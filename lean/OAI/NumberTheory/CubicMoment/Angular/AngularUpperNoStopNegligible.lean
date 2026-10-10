@@ -1,0 +1,134 @@
+import OAI.NumberTheory.CubicMoment.Angular.AngularUpperNoStopRow
+import OAI.NumberTheory.CubicMoment.Estimates.HeightWindowSum
+import OAI.NumberTheory.CubicMoment.Estimates.ScaleFirstEarlyNegligible
+
+namespace OAI
+
+/-! The upper-height no-stop contribution is negligible, with one mesh
+for all finite arities and all actual height windows. -/
+noncomputable section
+open Filter Asymptotics
+open scoped BigOperators
+attribute [local instance] Classical.propDecidable
+namespace CubicFirstMoment
+variable (ℓ : ℤ)
+
+def angular_upperNoStopArity (i : ℕ) (κ ρ ξ H T X : ℝ) : ℂ :=
+  ∑ s ∈ Finset.range (heightWindowCount H T),
+    if X^(1/100:ℝ) < T*(3/2:ℝ)^s then
+      ∑ d : Fin i → Fin (normPartitionCount (Real.exp primeProductWeights.radius*X)),
+        if distinguishedScaleLength d < X^(1/3-2*κ) then
+          upperTailNoStopRow i ℓ κ ρ ξ H (T*(3/2:ℝ)^s) X d else 0
+    else 0
+
+def angular_upperNoStopTail (m : ℕ) (κ ρ ξ H T X : ℝ) : ℂ :=
+  ∑ i ∈ Finset.range m, angular_upperNoStopArity ℓ i κ ρ ξ H T X
+
+theorem angular_upperNoStopTail_isLittleO (hℓ : ℓ ≠ 0) (m : ℕ) (hpnt : PrimaryPrimePNT)
+    {a : Eisenstein → MetaplecticDualArgument → ℂ} (hVor : MetaplecticVoronoiInput a)
+    {MV : ℝ} (hMV : MontgomeryVaughanBound MV) (hMV0 : 0 ≤ MV)
+    (hGamma : ∀ m : ℕ,
+      AngularGammaQuotientStripBound (metaplecticAngularShift ℓ-1/6) (-((m:ℝ)-1/2)) ∧
+      AngularGammaQuotientStripBound (metaplecticAngularShift ℓ+1/6) (-((m:ℝ)-1/2)))
+    {κ η cap : ℝ} (hκ : 0 < κ) (hκsmall : κ < 1/12)
+    (hη : 0 < η) (hηκ : η ≤ κ/4) (hcap : 1 < cap) :
+    ∃ ρ : ℝ, 1 < ρ ∧ ρ ≤ 2 ∧ ρ ≤ cap ∧ ∀ (ξ : ℝ)
+      (H T : ℝ → ℝ),
+      (∀ᶠ X : ℝ in atTop, 1 ≤ H X ∧ H X ≤ X^(1/6+η/2) ∧ Real.log X ≤ T X) →
+      (fun X => angular_upperNoStopTail ℓ m κ ρ ξ (H X) (T X) X)
+        =o[atTop] firstMomentScale := by
+  obtain ⟨ρ,C,E,hρ,hρ₂,hsmall,hC,hE,hbound⟩ := angular_upperTailNoStopRow_finite_bound ℓ hℓ
+    m hpnt hVor hMV hMV0 hGamma hκ (by linarith) hηκ hcap (m+5)
+  obtain ⟨K,hK,hheight⟩ := height_window_sum_bound
+  refine ⟨ρ,hρ,hρ₂,hsmall,?_⟩
+  intro ξ H T hsetup
+  unfold angular_upperNoStopTail
+  apply IsLittleO.fun_sum
+  intro i hi
+  have him : i < m := Finset.mem_range.mp hi
+  obtain ⟨D,hD,hcount⟩ := largePrimeTuplePartition_count i 0
+  let g₁ : ℝ → ℝ := fun X => (1+Real.log X)^(m+2)*X^(5/6-min (1/100) (3*κ/16))
+  let g₂ : ℝ → ℝ := fun X => X^(5/6:ℝ)/(1+Real.log X)^3
+  have hg : (fun X => g₁ X+g₂ X) =o[atTop] firstMomentScale :=
+    (log_power_powerSaving_isLittleO (m+2) (lt_min (by norm_num) (by positivity : 0 < 3*κ/16))).add
+      cubic_log_saving_isLittleO
+  apply IsBigO.trans_isLittleO (g := fun X => g₁ X+g₂ X) ?_ hg
+  apply IsBigO.of_bound (K*D*(C+E*2^(m+5)))
+  filter_upwards [hsetup,hbound,eventually_ge_atTop (1:ℝ),
+    Real.tendsto_log_atTop.eventually_ge_atTop 1,
+    eventually_const_mul_rpow_le (show (1/6+η/2:ℝ) < 1/6+η by linarith) (2*Real.pi)]
+    with X hs hb hX hlog hheightPower
+  have hXp : 0 < X := zero_lt_one.trans_le hX
+  have hLp : 0 < Real.log X := zero_lt_one.trans_le hlog
+  have hL : 1 ≤ 1+Real.log X := by linarith
+  have hLpos : 0 < 1+Real.log X := zero_lt_one.trans_le hL
+  let B := C*X^(5/6-min (1/100) (3*κ/16))+E*X^(5/6:ℝ)/(Real.log X)^(m+5)
+  have hB : 0 ≤ B := by dsimp [B]; positivity
+  let f : ℝ → ℂ := fun U => if X^(1/100:ℝ) < U then
+    ∑ d : Fin i → Fin (normPartitionCount (Real.exp primeProductWeights.radius*X)),
+      if distinguishedScaleLength d < X^(1/3-2*κ) then
+        upperTailNoStopRow i ℓ κ ρ ξ (H X) U X d else 0 else 0
+  have hf (U : ℝ) (hTU : T X ≤ U) (hUH : U < 2*Real.pi*(H X)) :
+      ‖f U‖ ≤ D*(1+Real.log X)^(m+1)*B := by
+    have hUhi : U ≤ X^(1/6+η) := hUH.le.trans
+      ((mul_le_mul_of_nonneg_left hs.2.1 (by positivity)).trans hheightPower)
+    dsimp only [f]
+    split_ifs with hU
+    · have hpiece (d : Fin i → Fin (normPartitionCount (Real.exp primeProductWeights.radius*X))) :
+          ‖if distinguishedScaleLength d < X^(1/3-2*κ) then
+            upperTailNoStopRow i ℓ κ ρ ξ (H X) U X d else 0‖ ≤ (1+Real.log X)*B := by
+        split_ifs
+        · exact hb i him ξ (H X) U d (zero_lt_one.trans_le hs.1) (hs.2.2.trans hTU) hU hUhi
+        · simpa only [norm_zero] using mul_nonneg hLpos.le hB
+      have hn : (Fintype.card (Fin i → Fin (normPartitionCount
+          (Real.exp primeProductWeights.radius*X))):ℝ) ≤ D*(1+Real.log X)^i := by
+        simpa only [Fintype.card_fun,Fintype.card_fin,Fintype.card_sum,Nat.add_zero] using hcount X hX
+      apply (norm_sum_le _ _).trans
+      apply (Finset.sum_le_sum (fun d _ => hpiece d)).trans
+      simp only [Finset.sum_const,Finset.card_univ,nsmul_eq_mul]
+      apply (mul_le_mul_of_nonneg_right hn (mul_nonneg hLpos.le hB)).trans
+      calc
+        D*(1+Real.log X)^i*((1+Real.log X)*B) = D*(1+Real.log X)^(i+1)*B := by rw [pow_succ]; ring
+        _ ≤ D*(1+Real.log X)^(m+1)*B := by
+          gcongr
+    · simpa only [norm_zero] using (show 0 ≤ D*(1+Real.log X)^(m+1)*B by positivity)
+  have hh := hheight (H X) (T X) (D*(1+Real.log X)^(m+1)*B) f hs.1
+    (hlog.trans hs.2.2) (by positivity) hf
+  have hlogH : 1+Real.log (H X) ≤ 1+Real.log X :=
+    add_le_add le_rfl (Real.log_le_log (zero_lt_one.trans_le hs.1)
+      (hs.2.1.trans (by
+        simpa only [Real.rpow_one] using Real.rpow_le_rpow_of_exponent_le hX
+          (show (1/6+η/2:ℝ) ≤ 1 by linarith))))
+  have hwhole : ‖angular_upperNoStopArity ℓ i κ ρ ξ (H X) (T X) X‖ ≤
+      K*D*(1+Real.log X)^(m+2)*B := by
+    apply hh.trans
+    calc
+      K*(1+Real.log (H X))*(D*(1+Real.log X)^(m+1)*B) ≤
+          K*(1+Real.log X)*(D*(1+Real.log X)^(m+1)*B) := by gcongr
+      _ = _ := by rw [show m+2=(m+1)+1 by omega,pow_succ]; ring
+  -- Three logarithms remain after both finite summations.
+  have hnorm := stopped_log_quotient_normalize (m+2) 3 hlog hE
+    (Real.rpow_nonneg hXp.le (5/6:ℝ))
+  have hg₁ : 0 ≤ g₁ X := by dsimp [g₁]; positivity
+  have hg₂ : 0 ≤ g₂ X := by dsimp [g₂]; positivity
+  rw [Real.norm_of_nonneg (add_nonneg hg₁ hg₂)]
+  apply hwhole.trans
+  have hnorm' : (1+Real.log X)^(m+2)*(E*X^(5/6:ℝ)/(Real.log X)^(m+5)) ≤
+      (E*2^(m+5))*g₂ X := by
+    dsimp only [g₂]
+    simpa only [show m+2+3=m+5 by omega,mul_div_assoc] using hnorm
+  calc
+    _ = K*D*(C*g₁ X+(1+Real.log X)^(m+2)*
+        (E*X^(5/6:ℝ)/(Real.log X)^(m+5))) := by dsimp [B,g₁]; ring
+    _ ≤ K*D*(C*g₁ X+(E*2^(m+5))*g₂ X) :=
+      mul_le_mul_of_nonneg_left (add_le_add le_rfl hnorm') (by positivity)
+    _ ≤ K*D*((C+E*2^(m+5))*(g₁ X+g₂ X)) := by
+      apply mul_le_mul_of_nonneg_left _ (by positivity)
+      nlinarith [mul_nonneg hC hg₂,mul_nonneg (show 0 ≤ E*2^(m+5) by positivity) hg₁]
+    _ = _ := by ring
+
+end CubicFirstMoment
+
+end
+
+end OAI

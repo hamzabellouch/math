@@ -1,0 +1,25 @@
+import OAI.NumberTheory.Catalan.Estimates.ManuscriptCaseTwoYAllPrecision
+
+namespace OAI
+
+section
+
+noncomputable section
+namespace InternalCatalan
+
+theorem manuscript_case2Y9_actual_substitution_error :
+    |barrierCase2Y (Case2PointData.Y9 : ℝ) - (manuscriptCase2Y9SubstituteRat : ℝ)| < ((14 / 1000000000000000) : ℝ) := by
+  have hw : manuscriptCase2Y9Interval.2 - manuscriptCase2Y9Interval.1 < ((14 / 1000000000000000) : ℚ) :=
+    manuscript_case2Y9_interval_width.trans (by norm_num)
+  simpa only [Rat.cast_div, Rat.cast_ofNat] using manuscript_interval_abs_sub_lt_of_width
+    manuscriptCase2Y9Interval.1 manuscriptCase2Y9Interval.2 manuscriptCase2Y9SubstituteRat
+    (barrierCase2Y (Case2PointData.Y9 : ℝ)) (14 / 1000000000000000)
+    manuscript_case2Y9_interval manuscript_case2Y9_substitute_interval hw
+
+end InternalCatalan
+
+end
+
+end
+
+end OAI

@@ -1,0 +1,46 @@
+import OAI.NumberTheory.TotientAsymptotic.FordSimplexFullRows
+
+namespace OAI
+
+/-! A truncated Ford simplex gives the complete row sums up to its own
+terminal index, which suffices for the retained prime-prefix count. -/
+noncomputable section
+open scoped BigOperators
+namespace TotientAsymptotic
+
+lemma ford_simplex_truncated_rows {x : ℝ} {H n : ℕ}
+    (hs : fordSimplexCondition x H n) :
+    ∀ i < m x-H,fordRowSum (m x-H) (fordPrimeCoordinate n) i ≤ 
+      xi x i*(if i=0 then B x else fordPrimeCoordinate n i) := by
+  intro i hi
+  have hh := hs.2.2 i (Finset.mem_Ico.mpr ⟨Nat.zero_le _,hi⟩)
+  have hlast : fordSimplexCoordinate x n (m x-H)=fordPrimeCoordinate n (m x-H) := by
+    rw [fordSimplexCoordinate,ite_eq_right (by omega : m x-H≠0)]
+  by_cases he : i+1=m x-H
+  · rw [ite_eq_left he,hlast] at hh
+    have hrow : fordRowSum (m x-H) (fordPrimeCoordinate n) i=
+        a 1*fordPrimeCoordinate n (m x-H) := by
+      unfold fordRowSum
+      rw [he,Finset.Icc_self,Finset.sum_singleton,show m x-H-i=1 by omega]
+    rw [hrow]
+    have hbound : a 1*fordPrimeCoordinate n (m x-H) ≤ fordPrimeCoordinate n (m x-H) := by
+      simpa using mul_le_mul_of_nonneg_right (a_le_index (j:=1) le_rfl)
+        (show 0 ≤ fordPrimeCoordinate n (m x-H) from le_max_left _ _)
+    exact hbound.trans hh
+  · rw [ite_eq_right he] at hh
+    have hsum : (∑ r∈Finset.Icc (i+1) (m x-H),a (r-i)*fordSimplexCoordinate x n r)=
+        fordRowSum (m x-H) (fordPrimeCoordinate n) i := by
+      unfold fordRowSum
+      apply Finset.sum_congr rfl
+      intro r hr
+      rw [fordSimplexCoordinate,ite_eq_right (by
+        have := (Finset.mem_Icc.mp hr).1
+        omega : r≠0)]
+    rw [hsum] at hh
+    simpa only [fordSimplexCoordinate] using hh
+
+end TotientAsymptotic
+
+end
+
+end OAI

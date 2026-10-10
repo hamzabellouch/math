@@ -1,0 +1,24 @@
+import Mathlib
+import OAI.Combinatorics.KMedianRecovery.Recovery.EllipsoidForms
+import OAI.Combinatorics.KMedianRecovery.Recovery.Stack2
+import OAI.Combinatorics.KMedianRecovery.Recovery.Cf
+import OAI.Combinatorics.KMedianRecovery.Geometry.ExecutionClusterCostOne
+import OAI.Combinatorics.KMedianRecovery.Recovery.ToleranceReciprocalBound
+import OAI.Combinatorics.KMedianRecovery.Recovery.SingleRadiusRatio
+import OAI.Combinatorics.KMedianRecovery.Branching.SuccessfulCompletionCharge
+import OAI.Combinatorics.KMedianRecovery.Branching.ObservableSuccessfulCompletion
+import OAI.Combinatorics.KMedianRecovery.Branching.ObservableSuccessfulProbability
+import OAI.Combinatorics.KMedianRecovery.Branching.ZeroSuccessfulCompletion
+import OAI.Combinatorics.KMedianRecovery.Branching.FairZeroCompletion
+import OAI.Combinatorics.KMedianRecovery.Branching.BranchTapeSuccess
+import OAI.Combinatorics.KMedianRecovery.Algorithms.GlobalRawFairExperiment
+import OAI.Combinatorics.KMedianRecovery.Strictness.DualReindex
+import OAI.Combinatorics.KMedianRecovery.Algorithms.GlobalOuterProbability
+
+namespace OAI
+
+namespace MetricKMedianRecovery
+theorem global_application : globalApplicationClaim := BitMachine.BinaryGlobalOuter.algorithm_guarantee
+end MetricKMedianRecovery
+
+end OAI

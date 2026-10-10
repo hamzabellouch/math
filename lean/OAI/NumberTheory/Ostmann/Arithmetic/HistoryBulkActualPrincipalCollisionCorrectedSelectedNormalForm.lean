@@ -1,0 +1,14 @@
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalCollisionCorrectedSelectedBlockDefs
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalCollisionCorrectedSelectedDefs
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalCollisionNormalForm
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkPrincipalSourceReindexPatterns
+
+namespace OAI
+
+open _root_.Erdos970 _root_.OAI.Erdos970
+
+open Erdos970.Erdos970Dependency.SiegelWalfisz
+
+
+
+end OAI

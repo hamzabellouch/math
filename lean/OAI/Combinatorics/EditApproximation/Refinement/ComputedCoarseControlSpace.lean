@@ -1,0 +1,91 @@
+import OAI.Combinatorics.EditApproximation.Coarse.CoarseInitialControlSpace
+import OAI.Combinatorics.EditApproximation.Refinement.ComputedCoarseHistorySpace
+import OAI.Combinatorics.EditApproximation.Refinement.ComputedCoarseBitWork
+import OAI.Combinatorics.EditApproximation.Definitions
+
+
+namespace OAI
+
+namespace EditApproximation
+open Filter
+
+def physicalCoarseControlEntry {M J B : ℕ} [NeZero B] (source target : List ℕ) (N : ℕ)
+    (depth : PhysicalEntry M J target.length → ℕ) (draw : PhysicalCoarseDraw source target B depth)
+    (entry : PhysicalEntry M J target.length) : ℕ :=
+  64 * BinaryFraction.coarseIndexedInitialInvocations (inputHeight N ^ 4) (64 * inputHeight N) N
+    (Nat.pos_of_neZero B) (pow_pos (Nat.two_pow_pos _) _)
+    (Nat.mul_pos (by decide) (Nat.two_pow_pos _))
+    (physicalSource source entry.1) (substring target entry.2.lo entry.2.hi) (draw entry)
+
+theorem physicalCoarseControlEntry_fits {M J : ℕ} :
+    ∀ᶠ N : ℕ in atTop, ∀ B : ℕ, ∀ (_hB : NeZero B),
+      ∀ (source target : List ℕ) (depth : PhysicalEntry M J target.length → ℕ),
+      B = (integerParameters N).B →
+      (∀ entry, depth entry = computedCoarseDepth N
+        (coarseEntryWidth (physicalSource source entry.1) (substring target entry.2.lo entry.2.hi))) →
+      source.length + target.length ≤ N →
+      (∀ a ∈ source ++ target, Nat.size a ≤ inputHeight N ^ 3) →
+      ∀ (draw : PhysicalCoarseDraw source target B depth) (entry : PhysicalEntry M J target.length),
+        physicalCoarseControlEntry source target N depth draw entry ≤ (N + 2) ^ 182 := by
+  filter_upwards [BinaryFraction.computedCoarseIndexedInitialInvocations_polynomial, eventually_ge_atTop 64] with N hN hlarge
+  intro B inst source target depth hB hd hsize hsymbols draw entry
+  have hx := physicalSource_length_le source entry.1
+  have hy : (substring target entry.2.lo entry.2.hi).length ≤ target.length := by
+    simp only [substring, List.length_drop, List.length_take]
+    exact (Nat.sub_le _ _).trans (min_le_right _ _)
+  have hs : ∀ a ∈ physicalSource source entry.1 ++ substring target entry.2.lo entry.2.hi,
+      Nat.size a ≤ inputHeight N ^ 3 := by
+    intro a ha
+    rcases List.mem_append.mp ha with ha | ha
+    · exact hsymbols a (List.mem_append_left _ (physicalSource_mem source entry.1 a ha))
+    · exact hsymbols a (List.mem_append_right _ (List.mem_of_mem_take (List.mem_of_mem_drop ha)))
+  have h := hN B (depth entry) (physicalSource source entry.1)
+    (substring target entry.2.lo entry.2.hi) hB (hd entry)
+    (max_le (by omega) (by omega)) hs (Nat.pos_of_neZero B)
+    (pow_pos (Nat.two_pow_pos _) _) (Nat.mul_pos (by decide) (Nat.two_pow_pos _)) (draw entry)
+  change 64 * BinaryFraction.coarseIndexedInitialInvocations
+    (inputHeight N ^ 4) (64 * inputHeight N) N (Nat.pos_of_neZero B)
+    (pow_pos (Nat.two_pow_pos _) _) (Nat.mul_pos (by decide) (Nat.two_pow_pos _))
+    (physicalSource source entry.1) (substring target entry.2.lo entry.2.hi) (draw entry) ≤ _
+  calc
+    _ ≤ 64 * (N + 2) ^ 181 := Nat.mul_le_mul_left 64 h
+    _ ≤ (N + 2) * (N + 2) ^ 181 := Nat.mul_le_mul_right _ (by omega)
+    _ = _ := (pow_succ' (N + 2) 181).symm
+
+/-- A 64-word control-frame allowance for every recursive invocation of
+every coarse cache miss, conservatively retained until termination. -/
+
+
+theorem computedFamilyCoarseControlCapacity_eq (source target : List ℕ) (N : ℕ)
+    (input : ComputedFamilyInput source target N) :
+    computedFamilyCoarseControlCapacity source target N input =
+      ((computedFamilyResult source target N input).freshKeys.map
+        (coarseHistoryKeyCost (fun _ => (N + 2) ^ 182))).sum :=
+  computedFamilyKernelWork_eq_fresh_sum source target N input _
+
+theorem computedFamilyCoarseControlCapacity_bound (source target : List ℕ) (N : ℕ)
+    (input : ComputedFamilyInput source target N) :
+    computedFamilyCoarseControlCapacity source target N input ≤
+      (N + 2) ^ 182 * (computedFamilyResult source target N input).requests := by
+  apply computedFamilyKernelWork_le
+  exact coarseHistoryKeyCost_le _ _ (fun _ => le_rfl)
+
+theorem computedFamilyCoarseControlCapacity_polynomial :
+    ∀ᶠ N : ℕ in atTop, ∀ source target : List ℕ, source.length + target.length ≤ N →
+      ∀ input : ComputedFamilyInput source target N,
+      computedFamilyCoarseControlCapacity source target N input ≤ (N + 2) ^ 184 := by
+  filter_upwards [computedFamilyResult_requests_near_linear 1 (by norm_num)] with N hr
+  intro source target hsize input
+  have hrequests : (computedFamilyResult source target N input).requests ≤ (N + 2) ^ 2 := by
+    have h := hr source target hsize input
+    norm_num at h
+    exact_mod_cast h
+  calc
+    _ ≤ (N + 2) ^ 182 * (computedFamilyResult source target N input).requests :=
+      computedFamilyCoarseControlCapacity_bound source target N input
+    _ ≤ (N + 2) ^ 182 * (N + 2) ^ 2 := Nat.mul_le_mul_left _ hrequests
+    _ = _ := by rw [← pow_add]
+
+end EditApproximation
+
+end OAI

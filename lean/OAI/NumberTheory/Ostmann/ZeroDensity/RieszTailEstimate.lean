@@ -1,0 +1,65 @@
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+import OAI.NumberTheory.Ostmann.ZeroDensity.RieszDirichletIntegral
+import OAI.NumberTheory.Ostmann.Characters.CharacterAbsoluteRightBound
+
+namespace OAI
+
+/-! # Explicit right-contour tails for the Riesz integral -/
+
+namespace Ostmann
+
+open Complex MeasureTheory Set
+
+theorem rieszMellinKernel_im_bound (s : ℂ) (ht : 0 < |s.im|) :
+    ‖rieszMellinKernel s‖ ≤ 1 / |s.im| ^ 2 := by
+  have hs : 0 < ‖s‖ := ht.trans_le (Complex.abs_im_le_norm s)
+  have hs1 : |s.im| ≤ ‖s + 1‖ := by simpa using Complex.abs_im_le_norm (s + 1)
+  have hprod : |s.im| ^ 2 ≤ ‖s‖ * ‖s + 1‖ := by
+    simpa only [pow_two] using mul_le_mul (Complex.abs_im_le_norm s) hs1 ht.le (norm_nonneg s)
+  rw [rieszMellinKernel, norm_div, norm_one, norm_mul]
+  exact div_le_div_of_nonneg_left zero_le_one (sq_pos_of_pos ht) hprod
+
+noncomputable def rightRieszIntegrand (χ : PrimitiveComplexCharacter)
+    (X σ t : ℝ) : ℂ :=
+  -logDeriv χ.L (rieszMellinLine σ t) * rieszVerticalWeight X σ t
+
+theorem rightRieszIntegrand_tail : ∃ C : ℝ, 0 < C ∧
+    ∀ (χ : PrimitiveComplexCharacter) (X σ T : ℝ), 0 < X → 1 < σ → σ ≤ 2 → 0 < T →
+      ‖∫ t in Ioi T, rightRieszIntegrand χ X σ t‖ ≤
+        (1 / (σ - 1) + C) * X ^ σ / T := by
+  obtain ⟨C, hC, hb⟩ := character_logDeriv_right_pole_bound
+  refine ⟨C, hC, ?_⟩
+  intro χ X σ T hX hσ hσ2 hT
+  let K := (1 / (σ - 1) + C) * X ^ σ
+  have hK : 0 ≤ K := by dsimp [K]; positivity
+  have hg : IntegrableOn (fun t : ℝ => K * t ^ (-(2 : ℝ))) (Ioi T) :=
+    (integrableOn_Ioi_rpow_of_lt (by norm_num) hT).const_mul K
+  have hn : ‖∫ t in Ioi T, rightRieszIntegrand χ X σ t‖ ≤
+      ∫ t in Ioi T, K * t ^ (-(2 : ℝ)) := by
+    apply norm_integral_le_of_norm_le hg
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with t ht
+    have htp : 0 < t := hT.trans ht
+    have hlog := hb χ (rieszMellinLine σ t) (by simpa using hσ) (by simpa using hσ2)
+    simp only [rieszMellinLine_re] at hlog
+    have hkernel := rieszMellinKernel_im_bound (rieszMellinLine σ t) (by simpa [rieszMellinLine, abs_of_pos htp] using htp)
+    simp only [rieszMellinLine, Complex.add_im, Complex.ofReal_im, Complex.mul_im,
+      Complex.ofReal_re, Complex.I_im, mul_one, Complex.I_re, mul_zero, add_zero,
+      zero_add, abs_of_pos htp] at hkernel
+    rw [rightRieszIntegrand, norm_mul, norm_neg, rieszVerticalWeight_norm X σ t hX]
+    calc
+      _ ≤ (1 / (σ - 1) + C) * (X ^ σ * (1 / t ^ 2)) := by
+        exact mul_le_mul hlog (mul_le_mul_of_nonneg_left hkernel (Real.rpow_nonneg hX.le _))
+          (by positivity) (by positivity)
+      _ = K * t ^ (-(2 : ℝ)) := by
+        rw [Real.rpow_neg htp.le, Real.rpow_two]
+        dsimp [K]
+        ring
+  apply hn.trans_eq
+  rw [integral_const_mul, integral_Ioi_rpow_of_lt (by norm_num : -(2 : ℝ) < -1) hT]
+  norm_num only [neg_add_cancel_left, neg_div_neg_eq, div_one, Real.rpow_neg_one]
+  dsimp [K]
+  ring
+
+end Ostmann
+
+end OAI

@@ -1,0 +1,318 @@
+import Mathlib
+import OAI.Combinatorics.SumProduct.Alignment.CubeLocal01
+import OAI.Geometry.NilpotentCharts.Main
+
+namespace OAI
+
+section
+section
+section
+section
+noncomputable section
+open scoped Topology
+end
+end
+ 
+
+ 
+section
+
+noncomputable section
+open scoped BigOperators Topology
+namespace FiniteHaarTests
+open Filter MeasureTheory
+variable {X P κ : Type*} [MetricSpace X] [CompactSpace X]
+variable [MeasurableSpace X] [BorelSpace X] [TopologicalSpace P]
+variable (μ : Measure X) [IsProbabilityMeasure μ]
+
+ 
+
+theorem two_scale_freezing (F : P→C(X,ℂ)) (hF : Continuous F) (a₀ : P)
+    (T : ℝ→ℕ→Finset κ) (p : ℝ→ℕ→κ→X) (a : ℝ→ℕ→κ→P)
+    (hbase : ∀ α : ℝ,0<α → ∀ ε : ℝ,0<ε → ∀ᶠ N : ℕ in atTop,
+      ‖discrepancy μ (T α N) (p α N) (F a₀)‖<ε)
+    (hsm : ∀ U∈𝓝 a₀,∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ∀ z∈T α N,a α N z∈U) :
+    ∀ ε : ℝ,0<ε → ∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ‖(𝔼 z∈T α N,F (a α N z) (p α N z))-(∫ x,F a₀ x ∂μ)‖<ε := by
+  intro ε hε
+  have hε3 : 0<ε/3 := by positivity
+  let U : Set P := F ⁻¹' Metric.ball (F a₀) (ε/3)
+  have hU : U∈𝓝 a₀ := hF.continuousAt.preimage_mem_nhds
+    (Metric.ball_mem_nhds _ hε3)
+  filter_upwards [hsm U hU,(self_mem_nhdsWithin : Set.Ioi (0:ℝ)∈𝓝[>] 0)] with α hα ha
+  filter_upwards [hα,hbase α ha (ε/3) hε3] with N hN hb
+  have hp (z : κ) (hz : z∈T α N) :
+      ‖F (a α N z) (p α N z)-F a₀ (p α N z)‖≤ε/3 := by
+    apply (ContinuousMap.norm_coe_le_norm (F (a α N z)-F a₀) (p α N z)).trans
+    exact le_of_lt (by simpa only [U,Set.mem_preimage,Metric.mem_ball,dist_eq_norm] using hN z hz)
+  have hm : ‖𝔼 z∈T α N,(F (a α N z) (p α N z)-F a₀ (p α N z))‖≤ε/3 := by
+    by_cases hn : (T α N).Nonempty
+    · exact (RCLike.norm_expect_le (K := ℂ)).trans (Finset.expect_le hn hp)
+    · simp only [Finset.not_nonempty_iff_eq_empty.mp hn,Finset.expect_empty,norm_zero]
+      positivity
+  rw [Finset.expect_sub_distrib] at hm
+  change ‖(𝔼 z∈T α N,F a₀ (p α N z))-(∫ x,F a₀ x ∂μ)‖<ε/3 at hb
+  calc
+    _ = ‖((𝔼 z∈T α N,F (a α N z) (p α N z))-(𝔼 z∈T α N,F a₀ (p α N z)))+
+          ((𝔼 z∈T α N,F a₀ (p α N z))-(∫ x,F a₀ x ∂μ))‖ := by congr 1; ring
+    _ ≤ _ := norm_add_le _ _
+    _ < ε := by linarith only [hm,hb,hε]
+
+end FiniteHaarTests
+end
+end
+ 
+
+ 
+section
+noncomputable section
+open scoped BigOperators Topology commutatorElement
+namespace CubeLocalHaar
+open CubeFaces LeibmanSquare CubeTaylorExpansion CubeHorizontalIrrationality
+open RationalLattice MeasureTheory Filter ComparableBoxLeibman MalcevCharacters AbelianMalcevTorus
+variable {G ι : Type} [Group G] [TopologicalSpace G] [IsTopologicalGroup G]
+variable [Fintype ι] [DecidableEq ι]
+variable {n t d v : ℕ} (c : RealCoordinates G n) (H : Filtration G)
+variable (S : ℕ→Set (Fin n))
+variable (hH : ∀ k (g : G),g∈H.level k ↔ ∀ i∈S k,c.coord g i=0)
+variable (Λ : Subgroup G) (σ : G) (h01 : H.level 0=H.level 1)
+variable (s : ℕ) (hs : H.level (s+1)=⊥) (e : Option ι≃Fin v)
+variable (cc : RealCoordinates (cube H (Finset.univ : Finset ι) 0) (t+d))
+variable (hsk : SecondKind cc)
+variable (q : ℕ→ℕ) (hqbound : ∀ k,q k ≤ t+d)
+variable (hq : ∀ k (g : cube H (Finset.univ : Finset ι) 0),
+  g∈(CubeMaxFiltration.filtration H Finset.univ).level k ↔
+    ∀ i : Fin (t+d),i.val < q k → cc.coord g i=0)
+variable (hΓ : ∀ g : cube H (Finset.univ : Finset ι) 0,
+  g∈cubeLattice H (conjugateLattice Λ σ) ↔ ∀ i,∃ z : ℤ,cc.coord g i=z)
+variable [MeasurableSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ))]
+variable [hBorel : @BorelSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)) (QuotientGroup.instTopologicalSpace (cubeLattice H (conjugateLattice Λ σ))) inferInstance]
+variable (mtr : MetricSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)))
+variable (htop : mtr.toUniformSpace.toTopologicalSpace=QuotientGroup.instTopologicalSpace (cubeLattice H (conjugateLattice Λ σ)))
+
+include h01 hs hsk hqbound hq hΓ htop in
+ 
+
+theorem two_scale_cube_haar
+    (μ : Measure ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)))
+    [IsProbabilityMeasure μ]
+    [SMulInvariantMeasure (cube H (Finset.univ : Finset ι) 0) _ μ]
+    (a : ℕ→∀ k : ℕ,H.level k)
+    (hirr : ∀ j : ℕ,0 < j → j ≤ s → ∀ ξ : H.level j→*Multiplicative ℝ,
+      ξ≠1 → Continuous ξ → RationalCharacter (conjugateLattice Λ σ) ξ →
+      (∀ x (hx : x∈H.level (j+1)),ξ ⟨x,H.antitone (Nat.le_succ _) hx⟩=1) →
+      (∀ i k : ℕ,0 < i → 0 < k → ∀ h : i+k=j,
+        ∀ x (hx : x∈H.level i) y (hy : y∈H.level k),
+          ξ ⟨⁅x,y⁆,by rw [←h]; exact H.commutator_le i k (Subgroup.commutator_mem_commutator hx hy)⟩=1) →
+      Tendsto (fun N : ℕ => ‖((ξ (a N j)).toAdd:UnitAddCircle)‖*(N:ℝ)^j)
+        atTop atTop)
+
+    (d₀ : ℕ) (hd₀ : 0<d₀) (r : Fin v→ℤ)
+    (lo hi : ℝ→ℕ→Fin v→ℝ)
+    (hb : ∀ α : ℝ,0<α → ∃ c₀ C₀ : ℝ,0<c₀ ∧ 0<C₀ ∧
+      ∀ᶠ N : ℕ in atTop,
+        (∀ i,c₀*(N:ℝ)≤hi α N i-lo α N i) ∧
+        (∀ i,-C₀*(N:ℝ)≤lo α N i ∧ hi α N i≤C₀*(N:ℝ)))
+    (u : ℝ→ℕ→(Fin v→ℤ)→Finset ι→G) (u₀ : Finset ι→G)
+    (hu : ∀ U∈𝓝 u₀,∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ∀ z∈integerBox v (lo α N) (hi α N),u α N z∈U)
+    (F : C((Finset ι→G⧸Λ),ℂ)) :
+    ∀ ε : ℝ,0<ε → ∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ‖(𝔼 z∈integerBox v (lo α N) (hi α N),
+          F (haarImage H Λ σ (u α N z) (QuotientGroup.mk
+            (cubePolynomial c H S hH (a N) s
+              (fun i => ((r (e i)+(d₀:ℤ)*z (e i):ℤ):ℝ))))))-
+        (∫ x,frozenTest H Λ σ F u₀ x ∂μ)‖<ε := by
+  let : MetricSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)) :=
+    MetricSpace.replaceTopology mtr htop.symm
+  let : CompactSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)) :=
+    metric_compact cc (cubeLattice H (conjugateLattice Λ σ)) hΓ inferInstance rfl
+  let p : ℝ→ℕ→(Fin v→ℤ)→((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)) :=
+    fun _ N z => QuotientGroup.mk (cubePolynomial c H S hH (a N) s
+      (fun i => ((r (e i)+(d₀:ℤ)*z (e i):ℤ):ℝ)))
+  apply FiniteHaarTests.two_scale_freezing μ (frozenTest H Λ σ F)
+    (frozenTest_continuous H Λ σ F) u₀
+    (fun α N => integerBox v (lo α N) (hi α N)) p u _ hu
+  intro α hα ε hε
+  obtain ⟨c₀,C₀,hc₀,hC₀,hbox⟩ := hb α hα
+  have he := haar_limit_compact c H S hH (conjugateLattice Λ σ) h01 s hs e cc hsk q hqbound hq hΓ
+    rfl μ a hirr c₀ C₀ hc₀ hC₀ d₀ hd₀ r
+    {frozenTest H Λ σ F u₀} isCompact_singleton ε hε
+  filter_upwards [he,hbox] with N he hbox
+  exact he (lo α N) (hi α N) hbox.1 hbox.2 _ (Set.mem_singleton _)
+
+end CubeLocalHaar
+end
+end
+ 
+
+ 
+section
+
+noncomputable section
+open scoped Topology BigOperators
+open Filter
+namespace CubeLocalHaar
+
+ 
+
+theorem smooth_local_freezing {G κ τ : Type*} [PseudoMetricSpace G] [Fintype τ]
+    (g : ℕ→ℝ→G) (h : ℝ→G) (β : ℝ) (hh : ContinuousAt h β)
+    (ρ : ℝ) (hρ : 0<ρ)
+    (hg : ∀ ε : ℝ,0<ε → ∀ᶠ N : ℕ in atTop,
+      ∀ t : ℝ,dist t β<ρ → dist (g N t) (h t)<ε)
+    (T : ℝ→ℕ→Finset κ) (t : ℝ→ℕ→κ→τ→ℝ) (C : ℝ)
+    (ht : ∀ α : ℝ,0<α → ∀ᶠ N : ℕ in atTop,
+      ∀ z∈T α N,∀ w,dist (t α N z w) β≤C*α) :
+    ∀ U∈𝓝 (fun _ : τ => h β),∀ᶠ α : ℝ in 𝓝[>] 0,
+      ∀ᶠ N : ℕ in atTop,∀ z∈T α N,(fun w => g N (t α N z w))∈U := by
+  intro U hU
+  obtain ⟨ε,hε,hball⟩ := Metric.mem_nhds_iff.mp hU
+  have hε2 : 0<ε/2 := by positivity
+  obtain ⟨δ,hδ,hcont⟩ := Metric.continuousAt_iff.mp hh (ε/2) hε2
+  have hlim : Tendsto (fun α : ℝ => C*α) (𝓝[>] 0) (𝓝 0) := by
+    have hc : Continuous (fun α : ℝ => C*α) := continuous_const.mul continuous_id
+    simpa only [mul_zero] using (hc.tendsto 0).mono_left (nhdsWithin_le_nhds (s := Set.Ioi (0:ℝ)))
+  filter_upwards [hlim.eventually_lt_const (lt_min hδ hρ),
+    (self_mem_nhdsWithin : Set.Ioi (0:ℝ)∈𝓝[>] 0)] with α hα ha
+  filter_upwards [hg (ε/2) hε2,ht α ha] with N hgN htN
+  intro z hz
+  apply hball
+  rw [Metric.mem_ball,dist_pi_lt_iff hε]
+  intro w
+  have hd := (htN z hz w).trans_lt hα
+  have hg' := hgN (t α N z w) ((lt_min_iff.mp hd).2)
+  have hh' := hcont ((lt_min_iff.mp hd).1)
+  exact (dist_triangle _ _ _).trans_lt (by linarith only [hg',hh'])
+
+ 
+
+lemma normalized_vertex_close {ι : Type*} [Fintype ι] [DecidableEq ι]
+    (b : Option ι→ℝ) (β α : ℝ) (hα : 0≤α)
+    (hb : |b none-β|≤α) (hi : ∀ i,|b (some i)|≤α) (w : Finset ι) :
+    dist (b none+∑ i∈w,b (some i)) β≤(1+(Fintype.card ι:ℝ))*α := by
+  rw [Real.dist_eq]
+  calc
+    _ = |(b none-β)+∑ i∈w,b (some i)| := by congr 1; ring
+    _ ≤ |b none-β|+|∑ i∈w,b (some i)| := abs_add_le _ _
+    _ ≤ α+∑ i∈w,|b (some i)| := add_le_add hb (Finset.abs_sum_le_sum_abs _ _)
+    _ ≤ α+∑ _i∈w,α := add_le_add le_rfl (Finset.sum_le_sum (fun i _ => hi i))
+    _ = (1+(w.card:ℝ))*α := by simp; ring
+    _ ≤ (1+(Fintype.card ι:ℝ))*α := by
+      apply mul_le_mul_of_nonneg_right _ hα
+      exact add_le_add le_rfl (by exact_mod_cast Finset.card_le_univ w)
+
+end CubeLocalHaar
+end
+end
+ 
+
+ 
+section
+noncomputable section
+open scoped BigOperators Topology commutatorElement
+namespace CubeLocalHaar
+open CubeFaces LeibmanSquare CubeTaylorExpansion CubeHorizontalIrrationality
+open RationalLattice MeasureTheory Filter ComparableBoxLeibman MalcevCharacters AbelianMalcevTorus
+variable {G ι : Type} [Group G] [PseudoMetricSpace G] [IsTopologicalGroup G]
+variable [Fintype ι] [DecidableEq ι]
+variable {n t d v : ℕ} (c : RealCoordinates G n) (H : Filtration G)
+variable (S : ℕ→Set (Fin n))
+variable (hH : ∀ k (g : G),g∈H.level k ↔ ∀ i∈S k,c.coord g i=0)
+variable (Λ : Subgroup G) (σ : G) (h01 : H.level 0=H.level 1)
+variable (s : ℕ) (hs : H.level (s+1)=⊥) (e : Option ι≃Fin v)
+variable (cc : RealCoordinates (cube H (Finset.univ : Finset ι) 0) (t+d))
+variable (hsk : SecondKind cc)
+variable (q : ℕ→ℕ) (hqbound : ∀ k,q k ≤ t+d)
+variable (hq : ∀ k (g : cube H (Finset.univ : Finset ι) 0),
+  g∈(CubeMaxFiltration.filtration H Finset.univ).level k ↔
+    ∀ i : Fin (t+d),i.val < q k → cc.coord g i=0)
+variable (hΓ : ∀ g : cube H (Finset.univ : Finset ι) 0,
+  g∈cubeLattice H (conjugateLattice Λ σ) ↔ ∀ i,∃ z : ℤ,cc.coord g i=z)
+variable [MeasurableSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ))]
+variable [hBorel : @BorelSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)) (QuotientGroup.instTopologicalSpace (cubeLattice H (conjugateLattice Λ σ))) inferInstance]
+variable (mtr : MetricSpace ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)))
+variable (htop : mtr.toUniformSpace.toTopologicalSpace=QuotientGroup.instTopologicalSpace (cubeLattice H (conjugateLattice Λ σ)))
+
+include S hH h01 hs hsk hqbound hq hΓ htop in
+ 
+
+theorem smooth_two_scale_cube_haar
+    (μ : Measure ((cube H (Finset.univ : Finset ι) 0)⧸cubeLattice H (conjugateLattice Λ σ)))
+    [IsProbabilityMeasure μ]
+    [SMulInvariantMeasure (cube H (Finset.univ : Finset ι) 0) _ μ]
+    (a : ℕ→∀ k : ℕ,H.level k)
+    (hirr : ∀ j : ℕ,0 < j → j ≤ s → ∀ ξ : H.level j→*Multiplicative ℝ,
+      ξ≠1 → Continuous ξ → RationalCharacter (conjugateLattice Λ σ) ξ →
+      (∀ x (hx : x∈H.level (j+1)),ξ ⟨x,H.antitone (Nat.le_succ _) hx⟩=1) →
+      (∀ i k : ℕ,0 < i → 0 < k → ∀ h : i+k=j,
+        ∀ x (hx : x∈H.level i) y (hy : y∈H.level k),
+          ξ ⟨⁅x,y⁆,by rw [←h]; exact H.commutator_le i k (Subgroup.commutator_mem_commutator hx hy)⟩=1) →
+      Tendsto (fun N : ℕ => ‖((ξ (a N j)).toAdd:UnitAddCircle)‖*(N:ℝ)^j)
+        atTop atTop)
+
+    (d₀ : ℕ) (hd₀ : 0<d₀) (r : Fin v→ℤ)
+    (lo hi : ℝ→ℕ→Fin v→ℝ)
+    (hb : ∀ α : ℝ,0<α → ∃ c₀ C₀ : ℝ,0<c₀ ∧ 0<C₀ ∧
+      ∀ᶠ N : ℕ in atTop,
+        (∀ i,c₀*(N:ℝ)≤hi α N i-lo α N i) ∧
+        (∀ i,-C₀*(N:ℝ)≤lo α N i ∧ hi α N i≤C₀*(N:ℝ)))
+
+    (g : ℕ→ℝ→G) (h : ℝ→G) (β : ℝ) (hh : ContinuousAt h β)
+    (ρ : ℝ) (hρ : 0<ρ)
+    (hg : ∀ ε : ℝ,0<ε → ∀ᶠ N : ℕ in atTop,
+      ∀ t : ℝ,dist t β<ρ → dist (g N t) (h t)<ε)
+    (hgeo : ∀ α : ℝ,0<α → ∀ᶠ N : ℕ in atTop,
+      ∀ z∈integerBox v (lo α N) (hi α N),
+        |(((r (e none)+(d₀:ℤ)*z (e none):ℤ):ℝ)/(N:ℝ))-β|≤α ∧
+        ∀ i : ι,|(((r (e (some i))+(d₀:ℤ)*z (e (some i)):ℤ):ℝ)/(N:ℝ))|≤α)
+    (F : C((Finset ι→G⧸Λ),ℂ)) :
+    ∀ ε : ℝ,0<ε → ∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ‖(𝔼 z∈integerBox v (lo α N) (hi α N),
+          F (fun w : Finset ι => QuotientGroup.mk
+            (g N (((r (e none)+(d₀:ℤ)*z (e none):ℤ):ℝ)/(N:ℝ)+
+                ∑ i∈w,(((r (e (some i))+(d₀:ℤ)*z (e (some i)):ℤ):ℝ)/(N:ℝ))) *
+              taylorPolynomial c H (a N) s
+                (((r (e none)+(d₀:ℤ)*z (e none):ℤ):ℝ)+
+                  ∑ i∈w,((r (e (some i))+(d₀:ℤ)*z (e (some i)):ℤ):ℝ)) * σ)))-
+        (∫ x,frozenTest H Λ σ F (fun _ => h β) x ∂μ)‖<ε := by
+  let T : ℝ→ℕ→Finset (Fin v→ℤ) := fun α N => integerBox v (lo α N) (hi α N)
+  let b : (Fin v→ℤ)→Option ι→ℝ := fun z i => ((r (e i)+(d₀:ℤ)*z (e i):ℤ):ℝ)
+  let t : ℝ→ℕ→(Fin v→ℤ)→Finset ι→ℝ :=
+    fun _ N z w => b z none/(N:ℝ)+∑ i∈w,b z (some i)/(N:ℝ)
+  have ht : ∀ α : ℝ,0<α → ∀ᶠ N : ℕ in atTop,
+      ∀ z∈T α N,∀ w,dist (t α N z w) β≤(1+(Fintype.card ι:ℝ))*α := by
+    intro α hα
+    filter_upwards [hgeo α hα] with N hN
+    intro z hz w
+    exact normalized_vertex_close (fun i => b z i/(N:ℝ)) β α hα.le
+      (hN z hz).1 (hN z hz).2 w
+  have hu := smooth_local_freezing g h β hh ρ hρ hg T t (1+(Fintype.card ι:ℝ)) ht
+  have hlimit := two_scale_cube_haar c H S hH Λ σ h01 s hs e cc hsk q hqbound hq hΓ mtr htop
+    μ a hirr d₀ hd₀ r lo hi hb (fun α N z w => g N (t α N z w)) (fun _ => h β) hu F
+  have himage (α : ℝ) (N : ℕ) (z : Fin v→ℤ) :
+      haarImage H Λ σ (fun w => g N (t α N z w))
+        (QuotientGroup.mk (cubePolynomial c H S hH (a N) s (b z))) =
+      fun w : Finset ι => QuotientGroup.mk
+        (g N (t α N z w)*taylorPolynomial c H (a N) s
+          (b z none+∑ i∈w,b z (some i))*σ) := by
+    funext w
+    rw [haarImage_mk,cubePolynomial_vertex]
+  change ∀ ε : ℝ,0<ε → ∀ᶠ α : ℝ in 𝓝[>] 0,∀ᶠ N : ℕ in atTop,
+      ‖(𝔼 z∈integerBox v (lo α N) (hi α N),
+        F (haarImage H Λ σ (fun w => g N (t α N z w))
+          (QuotientGroup.mk (cubePolynomial c H S hH (a N) s (b z)))))-
+        (∫ x,frozenTest H Λ σ F (fun _ => h β) x ∂μ)‖<ε at hlimit
+  simp_rw [himage] at hlimit
+  exact hlimit
+
+end CubeLocalHaar
+
+end
+end
+end
+end
+end
+
+end OAI

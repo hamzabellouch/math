@@ -1,0 +1,74 @@
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalSourceReindexCorrectedMeanDefs
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalSourceReindexCorrectedMeanExchange
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualPrincipalSourceReindexCorrectedMeanPoint
+
+namespace OAI
+
+open _root_.Erdos970 _root_.OAI.Erdos970
+
+open Erdos970.Erdos970Dependency.SiegelWalfisz
+
+noncomputable section
+open scoped BigOperators
+namespace Ostmann.Arithmetic.HistoryBulkActualBSquareReplacement
+open Construction Conclusion CanonicalOccurrenceTransport CompensationEqualityPatterns
+open HistoryPairReferenceFlagExpectation HistoryBulkActualRootReferenceFamily
+open HistoryBulkActualPrincipalBlockFamily HistoryBulkSourceDisintegration
+open HistoryBulkFibreGiantApproximation HistoryBulkFibreOriginalReference
+open HistoryBulkPrincipalBSquareReplacement HistoryRepresentativeSourceSeparation
+open HistoryBulkReferenceFrequencyFamily
+open HistoryBulkActualPrincipalSourceReindexFamilyCorrected
+open HistoryBulkIndependentFibreReference
+attribute [local instance] Classical.propDecidable
+attribute [local instance] HistoryBulkPrincipalBSquareReplacement.squareDensityBasicInternalDecidable
+variable {d : Decomposition} {Bs BD Bz L : ℝ} {k l : ℕ} {E : Finset ℕ}
+  (C : InitialSourceChoice d Bs BD Bz k L E) (outside : List ℕ)
+  (e : RemainingPermutation (k:=k) (L:=L) (l:=l))
+  (he : PreservesRemainingBands _ e) (hp : ∀q∈outside,q.Prime)
+  (hAd : ∀r : Frame (l:=l) C outside, PairAdmissible r.left r.right outside)
+  (hout : outside.length=2*(bulkSize k L/2))
+  (hV : ∀q∈outside,∀j≤l,frequencyBound Bs BD Bz k L j<q)
+
+open HistoryBulkUniversalPatternAggregation
+
+open HistoryBulkActualPrincipalSourceReindex
+variable (hfreq : ∀j≤l,∀origin,(C.sources origin).AboveFrequency (frequencyBound Bs BD Bz k L j))
+include hfreq
+
+theorem correctedRawSourceBackground_eq (bg : Background C l) :
+    patternComplexSum C.sources
+      (pairedInternalOrigin (Template.initial (2*(bulkSize k L/2)) k) l)
+      (pairedHistoryType (Template.initial (2*(bulkSize k L/2)) k) l)
+      (fun p b=>∑i : Index (Bs:=Bs) (BD:=BD) (Bz:=Bz) (k:=k) (L:=L) (l:=l),
+        (selectedOuter (l:=l) C outside e bg i p b).elim 0
+          (fun R=>(selectedBulkPrior C l).cmean (R.rawBTerm (l:=l) he hp)))=
+    (selectedBulkPrior C l).cmean (fun u=>∑i : Index (Bs:=Bs) (BD:=BD) (Bz:=Bz) (k:=k) (L:=L) (l:=l),
+      patternComplexSum C.sources
+        (pairedInternalOrigin (Template.initial (2*(bulkSize k L/2)) k) l)
+        (pairedHistoryType (Template.initial (2*(bulkSize k L/2)) k) l)
+        (fun p b=>densityPatternFactor (C:=C) (l:=l)
+          (referenceFamily (l:=l) C outside e he hp hAd hout hV bg u i)
+          (densitySources (l:=l) C outside e he hp bg u i) false true true
+          (staticMask (l:=l) C outside e he hp bg u i) p b)) :=
+  pattern_root_cmean_exchange_of_point
+    (ι:=Internal (Template.initial (2*(bulkSize k L/2)) k) l ⊕
+      Internal (Template.initial (2*(bulkSize k L/2)) k) l)
+    (α:=SelectedBulkSample C l)
+    (β:=Index (Bs:=Bs) (BD:=BD) (Bz:=Bz) (k:=k) (L:=L) (l:=l)) C.sources
+    (pairedInternalOrigin (Template.initial (2*(bulkSize k L/2)) k) l)
+    (pairedHistoryType (Template.initial (2*(bulkSize k L/2)) k) l)
+    (selectedBulkPrior C l)
+    (fun i p b=>(selectedOuter (l:=l) C outside e bg i p b).elim 0
+      (fun R=>(selectedBulkPrior C l).cmean (R.rawBTerm (l:=l) he hp)))
+    (fun i u p b=>densityPatternFactor (C:=C) (l:=l)
+      (referenceFamily (l:=l) C outside e he hp hAd hout hV bg u i)
+      (densitySources (l:=l) C outside e he hp bg u i) false true true
+      (staticMask (l:=l) C outside e he hp bg u i) p b)
+    (fun i p b=>corrected_raw_option_cmean_eq_densityFactor (l:=l)
+      C outside e he hp hAd hout hV hfreq bg i p b)
+
+end Ostmann.Arithmetic.HistoryBulkActualBSquareReplacement
+
+end
+
+end OAI

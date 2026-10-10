@@ -1,0 +1,65 @@
+import OAI.NumberTheory.Catalan.SecondBarrier.BarrierCaseTwoBracketYGroup0
+
+namespace OAI
+
+namespace InternalCatalan
+open Polynomial
+
+theorem barrierCase2AX_transform1_ratCoeff_0 :
+    barrierDescartesCoeffRat barrierCase2AXCoefficient 36 (0) (1) 0 =
+      barrierCase2AXTransform1Coefficient 0 := by decide +kernel
+
+theorem barrierCase2AXTransform1Explicit_coeff_0 :
+    barrierCase2AXTransform1Explicit.coeff 0 = (barrierCase2AXTransform1Coefficient 0 : ℝ) := by
+  simp only [barrierCase2AXTransform1Explicit, coeff_add, coeff_C_mul_X_pow,
+    coeff_C, Nat.reduceEqDiff, ite_true, ite_false, add_zero]
+  simp only [barrierCase2AXTransform1Coefficient, List.getD_cons_zero]
+  norm_num
+
+theorem barrierCase2AX_transform1_ratCoeff_1 :
+    barrierDescartesCoeffRat barrierCase2AXCoefficient 36 (0) (1) 1 =
+      barrierCase2AXTransform1Coefficient 1 := by decide +kernel
+
+theorem barrierCase2AXTransform1Explicit_coeff_1 :
+    barrierCase2AXTransform1Explicit.coeff 1 = (barrierCase2AXTransform1Coefficient 1 : ℝ) := by
+  simp only [barrierCase2AXTransform1Explicit, coeff_add, coeff_C_mul_X_pow,
+    coeff_C, Nat.reduceEqDiff, ite_true, ite_false, add_zero, zero_add]
+  simp only [barrierCase2AXTransform1Coefficient, List.getD_cons_zero, List.getD_cons_succ]
+  norm_num
+
+theorem barrierCase2AX_transform1_ratCoeff_2 :
+    barrierDescartesCoeffRat barrierCase2AXCoefficient 36 (0) (1) 2 =
+      barrierCase2AXTransform1Coefficient 2 := by decide +kernel
+
+theorem barrierCase2AXTransform1Explicit_coeff_2 :
+    barrierCase2AXTransform1Explicit.coeff 2 = (barrierCase2AXTransform1Coefficient 2 : ℝ) := by
+  simp only [barrierCase2AXTransform1Explicit, coeff_add, coeff_C_mul_X_pow,
+    coeff_C, Nat.reduceEqDiff, ite_true, ite_false, add_zero, zero_add]
+  simp only [barrierCase2AXTransform1Coefficient, List.getD_cons_zero, List.getD_cons_succ]
+  norm_num
+
+theorem barrierCase2AX_transform1_ratCoeff_3 :
+    barrierDescartesCoeffRat barrierCase2AXCoefficient 36 (0) (1) 3 =
+      barrierCase2AXTransform1Coefficient 3 := by decide +kernel
+
+theorem barrierCase2AXTransform1Explicit_coeff_3 :
+    barrierCase2AXTransform1Explicit.coeff 3 = (barrierCase2AXTransform1Coefficient 3 : ℝ) := by
+  simp only [barrierCase2AXTransform1Explicit, coeff_add, coeff_C_mul_X_pow,
+    coeff_C, Nat.reduceEqDiff, ite_true, ite_false, add_zero, zero_add]
+  simp only [barrierCase2AXTransform1Coefficient, List.getD_cons_zero, List.getD_cons_succ]
+  norm_num
+
+theorem barrierCase2AX_transform1_ratCoeff_4 :
+    barrierDescartesCoeffRat barrierCase2AXCoefficient 36 (0) (1) 4 =
+      barrierCase2AXTransform1Coefficient 4 := by decide +kernel
+
+theorem barrierCase2AXTransform1Explicit_coeff_4 :
+    barrierCase2AXTransform1Explicit.coeff 4 = (barrierCase2AXTransform1Coefficient 4 : ℝ) := by
+  simp only [barrierCase2AXTransform1Explicit, coeff_add, coeff_C_mul_X_pow,
+    coeff_C, Nat.reduceEqDiff, ite_true, ite_false, add_zero, zero_add]
+  simp only [barrierCase2AXTransform1Coefficient, List.getD_cons_zero, List.getD_cons_succ]
+  norm_num
+
+end InternalCatalan
+
+end OAI

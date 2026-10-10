@@ -1,0 +1,408 @@
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateAbundance
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateAbundanceAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateAsymptotics
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateBasics
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateConditionalMean
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateConstituentMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateCountAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateDistinctLaw
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateExternalTransport
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGeneratorPairFamily
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGeneratorPairModel
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGeneratorPairMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGeneratorPairTail
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGeometricUniform
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGlobalLineMean
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGlobalLineModel
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGlobalLineTail
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGraphEndpoint
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGraphProbabilityReduction
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateGraphReduction
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateHighMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateLabelBridge
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateLineHitFamily
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateMixedExternal
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateOldExternalOverlap
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateOppositeTransport
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidatePairCounts
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidatePairFibers
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidatePairMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidatePointFamily
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidatePrescriptionTransport
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateProbabilityAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateRetentionBridge
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateRootCount
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateRootFibers
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateSuccessfulAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateTwoLineFamily
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateTwoLineMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateUniform
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateValidityAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.CandidateWitnessProbability
+import OAI.Combinatorics.BalancedRyser.Candidates.ExposedExternalSum
+import OAI.Combinatorics.BalancedRyser.Candidates.ExposedOppositeSum
+import OAI.Combinatorics.BalancedRyser.Candidates.ExternalFreshGeneratorBound
+import OAI.Combinatorics.BalancedRyser.Candidates.ExternalWitnessModel
+import OAI.Combinatorics.BalancedRyser.Candidates.ExternalWitnessMoments
+import OAI.Combinatorics.BalancedRyser.Candidates.ExternalWitnessOldBridge
+import OAI.Combinatorics.BalancedRyser.Candidates.ExternalWitnessTail
+import OAI.Combinatorics.BalancedRyser.Candidates.FreshExternalCountBound
+import OAI.Combinatorics.BalancedRyser.Candidates.FreshExternalCounting
+import OAI.Combinatorics.BalancedRyser.Candidates.MixedExternalAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.OppositeAssembly
+import OAI.Combinatorics.BalancedRyser.Candidates.OppositeTail
+import OAI.Combinatorics.BalancedRyser.Construction.ConfigurationHypergraphSemantics
+import OAI.Combinatorics.BalancedRyser.Construction.ConfigurationRealization
+import OAI.Combinatorics.BalancedRyser.Construction.ConfigurationRealizationBridge
+import OAI.Combinatorics.BalancedRyser.Construction.ConstructionStructure
+import OAI.Combinatorics.BalancedRyser.Construction.CoverObstruction
+import OAI.Combinatorics.BalancedRyser.Construction.DeterministicReduction
+import OAI.Combinatorics.BalancedRyser.Construction.ExternalWitnessPartition
+import OAI.Combinatorics.BalancedRyser.Construction.Hypergraph
+import OAI.Combinatorics.BalancedRyser.Construction.HypergraphSemantics
+import OAI.Combinatorics.BalancedRyser.Construction.LocalCoverObstruction
+import OAI.Combinatorics.BalancedRyser.Construction.PartitionEncoding
+import OAI.Combinatorics.BalancedRyser.Construction.PartitionHypergraph
+import OAI.Combinatorics.BalancedRyser.Construction.ValidChoice
+import OAI.Combinatorics.BalancedRyser.Deletion.ConfigurationDeletion
+import OAI.Combinatorics.BalancedRyser.Deletion.DeletionAssignments
+import OAI.Combinatorics.BalancedRyser.Deletion.DeletionConditionalAssembly
+import OAI.Combinatorics.BalancedRyser.Deletion.DeletionCountingExposure
+import OAI.Combinatorics.BalancedRyser.Deletion.DeletionLawNormalization
+import OAI.Combinatorics.BalancedRyser.Deletion.GeometricDeletionCounting
+import OAI.Combinatorics.BalancedRyser.Deletion.SelectedDeletionEventsLemmas
+import OAI.Combinatorics.BalancedRyser.Deletion.SelectedDeletionFromSelection
+import OAI.Combinatorics.BalancedRyser.Deletion.UniformDeletionEnumeration
+import OAI.Combinatorics.BalancedRyser.Deletion.UniformDeletionMoments
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineDoubleCount
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineInjectionExposure
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineInjectionGuards
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineMomentAlgebraLemmas
+import OAI.Combinatorics.BalancedRyser.Incidence.AffinePermutationExposure
+import OAI.Combinatorics.BalancedRyser.Incidence.AffinePlaneOrderExposure
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineProfileParameter
+import OAI.Combinatorics.BalancedRyser.Incidence.AffineSecondMoment
+import OAI.Combinatorics.BalancedRyser.Incidence.AlignedFreshIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.AlignedGeneratorIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.AlignedGlobalProjectedIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateConditionalFreshIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceCompletion
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceCountTransport
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceInitialSums
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceModel
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceRootSums
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateIncidenceTransport
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidatePartialPointIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidatePointIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidatePointIncidenceMean
+import OAI.Combinatorics.BalancedRyser.Incidence.CandidateSmallIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.CorePencilAssembly
+import OAI.Combinatorics.BalancedRyser.Incidence.CorePencilFieldTransport
+import OAI.Combinatorics.BalancedRyser.Incidence.CorePencilReduction
+import OAI.Combinatorics.BalancedRyser.Incidence.LocalLargePencils
+import OAI.Combinatorics.BalancedRyser.Incidence.PartialIncidence
+import OAI.Combinatorics.BalancedRyser.Incidence.PartialIncidenceCounts
+import OAI.Combinatorics.BalancedRyser.Incidence.PencilOccupancy
+import OAI.Combinatorics.BalancedRyser.Incidence.PencilReuseEndpoint
+import OAI.Combinatorics.BalancedRyser.Incidence.PrimeStabilityEndpoint
+import OAI.Combinatorics.BalancedRyser.Incidence.PrimeStabilityReduction
+import OAI.Combinatorics.BalancedRyser.Incidence.Projective2
+import OAI.Combinatorics.BalancedRyser.Incidence.ProjectiveModel
+import OAI.Combinatorics.BalancedRyser.Incidence.ProjectiveNormalization
+import OAI.Combinatorics.BalancedRyser.Incidence.ProjectiveSkewCounting
+import OAI.Combinatorics.BalancedRyser.Incidence.RepeatedIncidences
+import OAI.Combinatorics.BalancedRyser.Incidence.SmallProjectiveArithmetic
+import OAI.Combinatorics.BalancedRyser.Incidence.SmallProjectiveStability
+import OAI.Combinatorics.BalancedRyser.Incidence.SmallProjectiveStabilityReduction
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityAlgebraAssembly
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityBlocking
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityCoprimeReduction
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityDegreeBudget
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityFinalRefinement
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityGridDegree
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityLargeFiber
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityPolynomial
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityRootDivisibility
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilitySkewCountLemmas
+import OAI.Combinatorics.BalancedRyser.Incidence.StabilityTangents
+import OAI.Combinatorics.BalancedRyser.Incidence.UnusedOffsetIncidence
+import OAI.Combinatorics.BalancedRyser.Local.AlignedFreshCoordinate
+import OAI.Combinatorics.BalancedRyser.Local.AlignedFreshHistory
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalCardinality
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalCurrentTuple
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalEarlyUsedTest
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalGeneratorTest
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalHistory
+import OAI.Combinatorics.BalancedRyser.Local.AlignedGlobalProduct
+import OAI.Combinatorics.BalancedRyser.Local.AlignedHistoryKernel
+import OAI.Combinatorics.BalancedRyser.Local.AlignedPointLaw
+import OAI.Combinatorics.BalancedRyser.Local.AlignedProjectedCollinearTest
+import OAI.Combinatorics.BalancedRyser.Local.AlignedProjectedExposure
+import OAI.Combinatorics.BalancedRyser.Local.AlignedProjectedMean
+import OAI.Combinatorics.BalancedRyser.Local.AlignedStateTransition
+import OAI.Combinatorics.BalancedRyser.Local.AlignedTokenPointLaw
+import OAI.Combinatorics.BalancedRyser.Local.AlignedUnusedLaw
+import OAI.Combinatorics.BalancedRyser.Local.AlignedUnusedTripleBound
+import OAI.Combinatorics.BalancedRyser.Local.AlignedUsedTestTransport
+import OAI.Combinatorics.BalancedRyser.Local.AlignmentNoBias
+import OAI.Combinatorics.BalancedRyser.Local.AlignmentNormalization
+import OAI.Combinatorics.BalancedRyser.Local.AlignmentStepLaw
+import OAI.Combinatorics.BalancedRyser.Local.ConfigurationReuse
+import OAI.Combinatorics.BalancedRyser.Local.FinalLocalEndpoint
+import OAI.Combinatorics.BalancedRyser.Local.GlobalAlignedParentCoordinates
+import OAI.Combinatorics.BalancedRyser.Local.InjectionConditioning
+import OAI.Combinatorics.BalancedRyser.Local.LocalAcyclicSpecifications
+import OAI.Combinatorics.BalancedRyser.Local.LocalAsymptotics
+import OAI.Combinatorics.BalancedRyser.Local.LocalBadCoverSpecifications
+import OAI.Combinatorics.BalancedRyser.Local.LocalConditionFibers
+import OAI.Combinatorics.BalancedRyser.Local.LocalConditionSpec
+import OAI.Combinatorics.BalancedRyser.Local.LocalConditionUnusedSupport
+import OAI.Combinatorics.BalancedRyser.Local.LocalCoverMarking
+import OAI.Combinatorics.BalancedRyser.Local.LocalDirectionAssignments
+import OAI.Combinatorics.BalancedRyser.Local.LocalEndpointCompletion
+import OAI.Combinatorics.BalancedRyser.Local.LocalEndpointReduction
+import OAI.Combinatorics.BalancedRyser.Local.LocalExposureTiming
+import OAI.Combinatorics.BalancedRyser.Local.LocalFailureReduction
+import OAI.Combinatorics.BalancedRyser.Local.LocalFourEventProbability
+import OAI.Combinatorics.BalancedRyser.Local.LocalFourEventUnion
+import OAI.Combinatorics.BalancedRyser.Local.LocalFourEventWitnesses
+import OAI.Combinatorics.BalancedRyser.Local.LocalFourEvents
+import OAI.Combinatorics.BalancedRyser.Local.LocalHighReuseEndpoint
+import OAI.Combinatorics.BalancedRyser.Local.LocalInjectionBudget
+import OAI.Combinatorics.BalancedRyser.Local.LocalInjectionFreeLaw
+import OAI.Combinatorics.BalancedRyser.Local.LocalInjectionLaw
+import OAI.Combinatorics.BalancedRyser.Local.LocalNoninjectiveContribution
+import OAI.Combinatorics.BalancedRyser.Local.LocalPatternEvents
+import OAI.Combinatorics.BalancedRyser.Local.LocalPrecoverageTransport
+import OAI.Combinatorics.BalancedRyser.Local.LocalPrescribedGeometry
+import OAI.Combinatorics.BalancedRyser.Local.LocalQuantitativeAssembly
+import OAI.Combinatorics.BalancedRyser.Local.LocalSelectedKernel
+import OAI.Combinatorics.BalancedRyser.Local.LocalSmallReuseAssembly
+import OAI.Combinatorics.BalancedRyser.Local.LocalSpecificationEncoding
+import OAI.Combinatorics.BalancedRyser.Local.LocalSpecificationProbability
+import OAI.Combinatorics.BalancedRyser.Local.LocalSpecificationTransport
+import OAI.Combinatorics.BalancedRyser.Local.LocalTiming
+import OAI.Combinatorics.BalancedRyser.Local.LocalTwoReuseEndpoint
+import OAI.Combinatorics.BalancedRyser.Local.LocalTwoReuseMean
+import OAI.Combinatorics.BalancedRyser.Local.LocalTwoReuseUsedEvents
+import OAI.Combinatorics.BalancedRyser.Local.LocalUnusedEventBridge
+import OAI.Combinatorics.BalancedRyser.Local.LocalUnusedOffsetProbability
+import OAI.Combinatorics.BalancedRyser.Local.LocalUnusedTripleProbability
+import OAI.Combinatorics.BalancedRyser.Local.LocalUsedEventMean
+import OAI.Combinatorics.BalancedRyser.Local.LocalUsedEventTiming
+import OAI.Combinatorics.BalancedRyser.Local.LocalUsedEventUnion
+import OAI.Combinatorics.BalancedRyser.Local.LocalUsedFreshMean
+import OAI.Combinatorics.BalancedRyser.Local.OneReuseDecomposition
+import OAI.Combinatorics.BalancedRyser.Local.PartialAlignment
+import OAI.Combinatorics.BalancedRyser.Local.ReuseGlobalExtension
+import OAI.Combinatorics.BalancedRyser.Local.ReuseScheduleBounds
+import OAI.Combinatorics.BalancedRyser.Local.ReuseSourceWitness
+import OAI.Combinatorics.BalancedRyser.Probability.Assembly
+import OAI.Combinatorics.BalancedRyser.Probability.AtypicalLines
+import OAI.Combinatorics.BalancedRyser.Probability.BoundedDrift
+import OAI.Combinatorics.BalancedRyser.Probability.ConditionalMGFStep
+import OAI.Combinatorics.BalancedRyser.Probability.ConditionalMultiplicity
+import OAI.Combinatorics.BalancedRyser.Probability.ConditionalOrderLaw
+import OAI.Combinatorics.BalancedRyser.Probability.CoreRepresentativeEquivalence
+import OAI.Combinatorics.BalancedRyser.Probability.CountingExposureKernel
+import OAI.Combinatorics.BalancedRyser.Probability.CountingJointLaw
+import OAI.Combinatorics.BalancedRyser.Probability.CoverCountingExposure
+import OAI.Combinatorics.BalancedRyser.Probability.CylinderUnionBound
+import OAI.Combinatorics.BalancedRyser.Probability.DriftUnionBound
+import OAI.Combinatorics.BalancedRyser.Probability.EqualityPatternOrdering
+import OAI.Combinatorics.BalancedRyser.Probability.ExactMultiplicity
+import OAI.Combinatorics.BalancedRyser.Probability.ExposureInterleaving
+import OAI.Combinatorics.BalancedRyser.Probability.ExposureMeshLimits
+import OAI.Combinatorics.BalancedRyser.Probability.ExposurePrefixCard
+import OAI.Combinatorics.BalancedRyser.Probability.ExposureSchedule
+import OAI.Combinatorics.BalancedRyser.Probability.ExposureScheduleOrder
+import OAI.Combinatorics.BalancedRyser.Probability.FiniteCenteredPatternLemmas
+import OAI.Combinatorics.BalancedRyser.Probability.FiniteConditionalAveraging
+import OAI.Combinatorics.BalancedRyser.Probability.FiniteDependencyRank
+import OAI.Combinatorics.BalancedRyser.Probability.FiniteFixedLaw
+import OAI.Combinatorics.BalancedRyser.Probability.FiniteKernelPotential
+import OAI.Combinatorics.BalancedRyser.Probability.ForwardDependencyExtraction
+import OAI.Combinatorics.BalancedRyser.Probability.FourCycle
+import OAI.Combinatorics.BalancedRyser.Probability.FreshDoublePrescription
+import OAI.Combinatorics.BalancedRyser.Probability.FreshRandomWitness
+import OAI.Combinatorics.BalancedRyser.Probability.FreshTupleConstraints
+import OAI.Combinatorics.BalancedRyser.Probability.FreshWitnessConditional
+import OAI.Combinatorics.BalancedRyser.Probability.FreshWitnessCounting
+import OAI.Combinatorics.BalancedRyser.Probability.FullyExposedTargets
+import OAI.Combinatorics.BalancedRyser.Probability.GlobalRootConditioning
+import OAI.Combinatorics.BalancedRyser.Probability.IndependentTrials2
+import OAI.Combinatorics.BalancedRyser.Probability.IndependentTrials3
+import OAI.Combinatorics.BalancedRyser.Probability.LogTail
+import OAI.Combinatorics.BalancedRyser.Probability.MainAssembly
+import OAI.Combinatorics.BalancedRyser.Probability.NearCoverLimit
+import OAI.Combinatorics.BalancedRyser.Probability.PMFConditioningMap
+import OAI.Combinatorics.BalancedRyser.Probability.PatternAllowedEventTails
+import OAI.Combinatorics.BalancedRyser.Probability.PatternAllowedGate
+import OAI.Combinatorics.BalancedRyser.Probability.PatternAllowedSourceTails
+import OAI.Combinatorics.BalancedRyser.Probability.PatternConditionalMean
+import OAI.Combinatorics.BalancedRyser.Probability.PatternExposureBoundary
+import OAI.Combinatorics.BalancedRyser.Probability.PatternExposureIdentities
+import OAI.Combinatorics.BalancedRyser.Probability.PatternGate
+import OAI.Combinatorics.BalancedRyser.Probability.PatternLabelRestriction
+import OAI.Combinatorics.BalancedRyser.Probability.PatternMoments
+import OAI.Combinatorics.BalancedRyser.Probability.PatternMomentsLemmas
+import OAI.Combinatorics.BalancedRyser.Probability.PatternSourceTails
+import OAI.Combinatorics.BalancedRyser.Probability.PatternTailAsymptotics
+import OAI.Combinatorics.BalancedRyser.Probability.PermutationExposureMean
+import OAI.Combinatorics.BalancedRyser.Probability.PointEdgeInjective
+import OAI.Combinatorics.BalancedRyser.Probability.RobustNearCover
+import OAI.Combinatorics.BalancedRyser.Probability.RootChildCount
+import OAI.Combinatorics.BalancedRyser.Probability.RootChildDependence
+import OAI.Combinatorics.BalancedRyser.Probability.RootSuccessAsymptotics
+import OAI.Combinatorics.BalancedRyser.Probability.ScheduledCountingExposure
+import OAI.Combinatorics.BalancedRyser.Probability.ScheduledCountingLaw
+import OAI.Combinatorics.BalancedRyser.Probability.ScheduledMarksBridge
+import OAI.Combinatorics.BalancedRyser.Probability.SectionAssembly
+import OAI.Combinatorics.BalancedRyser.Probability.SelectedExperimentLaw
+import OAI.Combinatorics.BalancedRyser.Probability.SelectedSuccessMass
+import OAI.Combinatorics.BalancedRyser.Probability.SizeThreshold
+import OAI.Combinatorics.BalancedRyser.Probability.SlotEdges2
+import OAI.Combinatorics.BalancedRyser.Probability.StoppedIncrements
+import OAI.Combinatorics.BalancedRyser.Probability.SurplusAcyclic
+import OAI.Combinatorics.BalancedRyser.Probability.TailConditioning2
+import OAI.Combinatorics.BalancedRyser.Probability.TailProductBounds
+import OAI.Combinatorics.BalancedRyser.Probability.UncoveredExchange
+import OAI.Combinatorics.BalancedRyser.Probability.UnexposedTupleLaw
+import OAI.Combinatorics.BalancedRyser.Probability.UniformKernel
+import OAI.Combinatorics.BalancedRyser.Probability.UnusedOffsetAveraging
+import OAI.Combinatorics.BalancedRyser.Probability.WitnessCounting
+import OAI.Combinatorics.BalancedRyser.Profiles.ConditionalOrderDetection
+import OAI.Combinatorics.BalancedRyser.Profiles.MarkedExposureNumerics
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileClassLimits
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileClassMargin
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileCompactness
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileCountingAssembly
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileCountingEndpoint
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileDetectionConcentration
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileDetectionNull
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileDetectionSource
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileFiniteMarks
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileFiniteScheduledLemmas
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileGridDetection
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileGridProducts
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileLimitLaws
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarginalContinuity
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarginalLimitTV
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarginalLimits
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarkedError
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarkedOrders
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileMarksLimit
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileOrderComplements
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfilePoissonLemmas
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileScheduledApproximation
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileScheduledMargin
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileScheduledMarks
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileSourceMarkLiminf
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileSourceMarkLimit
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileTargetExclusion
+import OAI.Combinatorics.BalancedRyser.Profiles.ProfileWitnessPayment
+import OAI.Combinatorics.BalancedRyser.Profiles.RobustFromProfileCounting
+import OAI.Combinatorics.BalancedRyser.Profiles.UniformDetectionMargin
+import OAI.Combinatorics.BalancedRyser.Profiles.WitnessDetection
+import OAI.Combinatorics.BalancedRyser.Selection.CensoredDrift
+import OAI.Combinatorics.BalancedRyser.Selection.DistinctInitialOccupancy
+import OAI.Combinatorics.BalancedRyser.Selection.InitialOccupancyUniform
+import OAI.Combinatorics.BalancedRyser.Selection.OccupancyClassVisibility
+import OAI.Combinatorics.BalancedRyser.Selection.ProfileOccupancy2
+import OAI.Combinatorics.BalancedRyser.Selection.RobustOccupancyAssembly
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionAuxiliaryConcentration
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionCensorMassBounds
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionCensorProbability
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionCensoredJumps
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionCensoring
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionConcentrationAsymptotics
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionConcentrationUniform
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionConditionedLaw
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionDraw
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionEndpoint
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionFirstAbortFinal
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionLineCylinder
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionOccupancyAgreement
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionOccupancyUniform
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionPostabort
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionProcessOccupancy
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionProcessThinning
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionSourceConcentration
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionState
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionSuccessBound
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionSuccessUniform
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionTailCheck
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionTailPotential
+import OAI.Combinatorics.BalancedRyser.Selection.SelectionUniformAssembly
+
+namespace OAI
+
+universe u v w
+
+open scoped BigOperators
+
+namespace Balanced
+open scoped _root_.Balanced
+
+theorem prime_stability : PrimeStability.{u} := primeStability_proof
+
+theorem selection : SelectionStatement.{u,v,w} := selection_proof
+
+theorem candidate_graph : CandidateGraphResult.{u} := candidateGraph_proof
+
+theorem deletion_domination : SelectedDeletionResult.{u} :=
+  SelectedDeletion.result_of_candidate_and_selection candidateGraph_proof selection_proof
+
+theorem pencil_reuse : Local.PencilReuseResult.{u} := pencilReuse_proof
+
+theorem pencil_small_reuse : Local.PencilSmallReuseResult.{u} :=
+  Local.pencilSmallReuse_proof
+
+theorem pencil_two_reuses : Local.PencilTwoReusesResult.{u} :=
+  Local.pencilTwoReuses_proof
+
+theorem pattern_moments : PatternMomentsResult.{u} := patternMoments_proof
+
+theorem deterministic_reduction : DeterministicReduction.{u} :=
+  deterministicReduction_proof
+
+theorem independent_trial_jumps : IndependentTrialJumps.{u,v} :=
+  independentTrialJumps_proof
+
+theorem bounded_drift_concentration : BoundedDriftConcentration.{u} :=
+  boundedDriftConcentration_proof
+
+theorem affine_second_moment (F : Type u) [Field F] [Fintype F] [DecidableEq F] :
+    AffineSecondMoment F := affineSecondMoment_proof
+
+theorem tail_conditioning {I : Type u} {Q : I → Type v}
+    [Fintype I] [∀ i, Fintype (Q i)]
+    [∀ i, MeasurableSpace (Q i)] [∀ i, MeasurableSingletonClass (Q i)]
+    (G : SimpleGraph (Sigma Q)) [DecidableRel G.Adj]
+    (hno : TailGraph.NoWithinSlotEdges G Sigma.fst)
+    (hmin : 3 ≤ TailConditioning.minSlotSize Q)
+    (hsparse : (G.maxDegree : ℝ) / TailConditioning.minSlotSize Q ≤ 1 / 8) :
+    0 < (Slots.law Q).real (TailConditioning.independentTransversals Q G) ∧
+      ∀ (J : Finset I) (a : Slots.Assignment Q),
+        TailConditioning.conditionalCylinder Q G J a ≤
+          Real.exp ((J.card : ℝ) / 2) * ∏ i ∈ J, (Fintype.card (Q i) : ℝ)⁻¹ :=
+  TailConditioning.tail_conditioning G hno hmin hsparse
+
+theorem profile_counting : ProfileCountingResult.{u} := profileCounting_proof
+
+theorem robust_deletion : RobustDeletionResult.{u} :=
+  robustDeletion_of_profileCounting profile_counting
+
+theorem core_pencil : CorePencilResult.{u} :=
+  corePencilResult_of_robustDeletion_primeStability robust_deletion prime_stability
+
+theorem pencil_local : Local.PencilLocalResult.{u} := Local.pencilLocal_proof
+
+theorem main_result : MainResult :=
+  mainResult_of_selectedDeletion_corePencil_local_deterministic
+    deterministic_reduction deletion_domination core_pencil pencil_local
+
+end Balanced
+
+end OAI

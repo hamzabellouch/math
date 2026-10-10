@@ -1,0 +1,13 @@
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualGoodPrincipalCorrected
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkActualIntegralReplacementCorrectedDefsBasic
+import OAI.NumberTheory.Ostmann.Arithmetic.HistoryBulkSupportConverseSelectedInputs
+
+namespace OAI
+
+open _root_.Erdos970 _root_.OAI.Erdos970
+
+open Erdos970.Erdos970Dependency.SiegelWalfisz
+
+
+
+end OAI
