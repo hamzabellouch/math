@@ -1,0 +1,110 @@
+import Mathlib
+import OAI.Analysis.LaughlinFock.LDL
+import OAI.Analysis.LaughlinFock.Sparse1027
+
+namespace OAI
+
+/-! Certificate10 Data. -/
+noncomputable section
+namespace LaughlinFock
+open scoped BigOperators Matrix ComplexOrder
+
+ 
+
+def fourYData_10 : Matrix (CopyLabel 10) (CopyLabel 10) ℚ :=
+  copyMatrixData 10 [
+    [(737670548859399948830388711147/33554432000000000000000000), (-340762940414160772908009142467/134217728000000000000000000), (148518328795926257133899451/134217728000000000000000), (-424730358650114657260778608119/536870912000000000000000000), (74331768409382616339850430283/134217728000000000000000000)],
+    [(-340762940414160772908009142467/134217728000000000000000000), (6753716923485661803328277187/67108864000000000000000000), (-133847515145750760226034487/1342177280000000000000000), (27875776847130353195239319289/214748364800000000000000000), (-62712565299322420555264659867/268435456000000000000000000)],
+    [(148518328795926257133899451/134217728000000000000000), (-133847515145750760226034487/1342177280000000000000000), (4916058814322941309449723117/107374182400000000000000000), (-8781593118050446480941197751/214748364800000000000000000), (79913088812449654011001179/1342177280000000000000000)],
+    [(-424730358650114657260778608119/536870912000000000000000000), (27875776847130353195239319289/214748364800000000000000000), (-8781593118050446480941197751/214748364800000000000000000), (88212964072712605466404249449/4294967296000000000000000000), (-4590411174217141231271545953/1073741824000000000000000000)],
+    [(74331768409382616339850430283/134217728000000000000000000), (-62712565299322420555264659867/268435456000000000000000000), (79913088812449654011001179/1342177280000000000000000), (-4590411174217141231271545953/1073741824000000000000000000), (-34263985364968403855161804941/268435456000000000000000000)]
+  ]
+
+def fourZData_10 : Matrix (CopyLabel 10) (CopyLabel 10) ℚ :=
+  copyMatrixData 10 [
+    [0, 0, 0, 0, 0],
+    [0, 3780, 0, (-2835/4), (2835/2)],
+    [0, 0, 0, 0, 0],
+    [0, (-2835/4), 0, (8505/64), (-8505/32)],
+    [0, (2835/2), 0, (-8505/32), (8505/16)]
+  ]
+
+def fourLData_10 : Matrix (CopyLabel 10) (CopyLabel 10) ℚ :=
+  copyMatrixData 10 [
+    [1, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, (-3/16), 0, 1, 0],
+    [0, (3/8), 0, 0, 1]
+  ]
+
+def fourPivotData_10 : CopyLabel 10 → ℚ :=
+  copyDiagonalData 10 [0, (8105210798198965041984329871639/4294967296000000000000000000), 0, 0, 0]
+
+theorem fourOccupations_10 : highestFourOccupations 10 = {{0,1,2,8}, {0,1,3,7}, {0,1,4,6}, {0,2,3,6}, {0,2,4,5}, {1,2,3,5}} := by
+  decide +kernel
+
+theorem fourYNumber_10_1_1 :
+    (collectedFourPartsTrace 10 1 1 collectedFourData_10 : ℚ) / fourCommonDenominator = (737670548859399948830388711147/33554432000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_3_1 :
+    (collectedFourPartsTrace 10 3 1 collectedFourData_10 : ℚ) / fourCommonDenominator = (-340762940414160772908009142467/134217728000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_3_3 :
+    (collectedFourPartsTrace 10 3 3 collectedFourData_10 : ℚ) / fourCommonDenominator = (6753716923485661803328277187/67108864000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_5_1 :
+    (collectedFourPartsTrace 10 5 1 collectedFourData_10 : ℚ) / fourCommonDenominator = (148518328795926257133899451/134217728000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_5_3 :
+    (collectedFourPartsTrace 10 5 3 collectedFourData_10 : ℚ) / fourCommonDenominator = (-133847515145750760226034487/1342177280000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_5_5 :
+    (collectedFourPartsTrace 10 5 5 collectedFourData_10 : ℚ) / fourCommonDenominator = (4916058814322941309449723117/107374182400000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_7_1 :
+    (collectedFourPartsTrace 10 7 1 collectedFourData_10 : ℚ) / fourCommonDenominator = (-424730358650114657260778608119/536870912000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_7_3 :
+    (collectedFourPartsTrace 10 7 3 collectedFourData_10 : ℚ) / fourCommonDenominator = (27875776847130353195239319289/214748364800000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_7_5 :
+    (collectedFourPartsTrace 10 7 5 collectedFourData_10 : ℚ) / fourCommonDenominator = (-8781593118050446480941197751/214748364800000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_7_7 :
+    (collectedFourPartsTrace 10 7 7 collectedFourData_10 : ℚ) / fourCommonDenominator = (88212964072712605466404249449/4294967296000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_9_1 :
+    (collectedFourPartsTrace 10 9 1 collectedFourData_10 : ℚ) / fourCommonDenominator = (74331768409382616339850430283/134217728000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_9_3 :
+    (collectedFourPartsTrace 10 9 3 collectedFourData_10 : ℚ) / fourCommonDenominator = (-62712565299322420555264659867/268435456000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_9_5 :
+    (collectedFourPartsTrace 10 9 5 collectedFourData_10 : ℚ) / fourCommonDenominator = (79913088812449654011001179/1342177280000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_9_7 :
+    (collectedFourPartsTrace 10 9 7 collectedFourData_10 : ℚ) / fourCommonDenominator = (-4590411174217141231271545953/1073741824000000000000000000) := by
+  decide +kernel
+
+theorem fourYNumber_10_9_9 :
+    (collectedFourPartsTrace 10 9 9 collectedFourData_10 : ℚ) / fourCommonDenominator = (-34263985364968403855161804941/268435456000000000000000000) := by
+  decide +kernel
+
+end LaughlinFock
+end
+
+end OAI

@@ -1,0 +1,1164 @@
+diff --git a/Iut/Anabelian/Genuine/Homs.lean b/Iut/Anabelian/Genuine/Homs.lean
+index 7de5889..2756b13 100644
+--- a/Iut/Anabelian/Genuine/Homs.lean
++++ b/Iut/Anabelian/Genuine/Homs.lean
+@@ -418,10 +418,8 @@ lemma eIdx_tower {F L L' : IntermediateField (xLine E) (Ω E)} [FiniteDimensiona
+ lemma comap_isMaximal {F L : IntermediateField (xLine E) (Ω E)} (h : F ≤ L)
+     (w : Ideal (coordRing k (xG E) L)) [hw : w.IsMaximal] :
+     (w.comap (ringMap (xG E) h)).IsMaximal := by
+-  letI := algRing (xG E) h
+-  haveI : Algebra.IsIntegral (coordRing k (xG E) F) (coordRing k (xG E) L) :=
+-    ⟨ringMap_isIntegral _ h⟩
+-  exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w
++  exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++    (ringMap (xG E) h).toRingHom (ringMap_isIntegral _ h) w
+ 
+ set_option maxHeartbeats 1000000 in
+ set_option synthInstance.maxHeartbeats 400000 in
+diff --git a/Iut/Anabelian/Genuine/Punctured.lean b/Iut/Anabelian/Genuine/Punctured.lean
+index 2810b7d..4106cbe 100644
+--- a/Iut/Anabelian/Genuine/Punctured.lean
++++ b/Iut/Anabelian/Genuine/Punctured.lean
+@@ -176,7 +176,7 @@ lemma bijective_algebraMap_coarse :
+     rw [← hz] at h1
+     haveI : IsScalarTower (A₀ k (xG E)) (K₀ k (xG E)) (Ω E) :=
+       IsScalarTower.of_algebraMap_eq fun _ => rfl
+-    exact (isIntegral_algebraMap_iff (algebraMap (K₀ k (xG E)) (Ω E)).injective).mp h1
++    exact isIntegral_algebraMap_iff.mp h1
+   obtain ⟨a, ha⟩ := (IsIntegrallyClosed.isIntegral_iff (R := A₀ k (xG E))
+     (K := K₀ k (xG E))).mp hzint
+   refine ⟨a, Subtype.ext (Subtype.ext ?_)⟩
+diff --git a/Iut/Anabelian/Model.lean b/Iut/Anabelian/Model.lean
+index 4145caa..3da2b3d 100644
+--- a/Iut/Anabelian/Model.lean
++++ b/Iut/Anabelian/Model.lean
+@@ -149,7 +149,7 @@ lemma pointMap_mem_torsion (f : k →+* K) (X : Orbicurve k) {P : X.E.toAffine.P
+ /-- The map on torsion induced by base change. -/
+ def mapTorsion (f : k →+* K) (X : Orbicurve k) :
+     ↥X.torsion →+ ↥(X.baseChange f).torsion :=
+-  ((pointMap X.E f).restrict X.torsion).codRestrict _ fun P => by
++  ((pointMap X.E f).domRestrict X.torsion).codRestrict _ fun P => by
+     exact X.pointMap_mem_torsion f P.2
+ 
+ @[simp] lemma coe_mapTorsion (f : k →+* K) (X : Orbicurve k) (P : ↥X.torsion) :
+diff --git a/Iut/Anabelian/Torsion.lean b/Iut/Anabelian/Torsion.lean
+index df13fd4..23c1d3d 100644
+--- a/Iut/Anabelian/Torsion.lean
++++ b/Iut/Anabelian/Torsion.lean
+@@ -93,7 +93,7 @@ lemma mem_TK_of_bcK {R : P.EK.toAffine.Point} (hR : P.bcK R ∈ P.TFbar) : R ∈
+ 
+ /-- **The ℓ-torsion is rational over `K`**: `E(K)[ℓ] ≃ E(F̄)[ℓ]`. -/
+ def torsionEquiv : ↥P.TK ≃+ ↥P.TFbar :=
+-  AddEquiv.ofBijective (P.bcK.restrict P.TK |>.codRestrict _ fun R => P.bcK_mem_TFbar R.2)
++  AddEquiv.ofBijective (P.bcK.domRestrict P.TK |>.codRestrict _ fun R => P.bcK_mem_TFbar R.2)
+     ⟨fun R R' h => Subtype.ext (P.bcK_injective (congrArg Subtype.val h)),
+      fun Q => by
+       obtain ⟨R, hR⟩ := P.exists_bcK_eq Q.1 Q.2
+@@ -150,7 +150,7 @@ lemma galK_mem_TK (σ : ↥P.torsionField ≃ₐ[F] ↥P.torsionField) {R : P.EK
+ 
+ /-- The action of `Gal(K/F)` on the ℓ-torsion. -/
+ def galTK (σ : ↥P.torsionField ≃ₐ[F] ↥P.torsionField) : ↥P.TK →+ ↥P.TK :=
+-  (P.galK σ).restrict P.TK |>.codRestrict _ fun R => P.galK_mem_TK σ R.2
++  (P.galK σ).domRestrict P.TK |>.codRestrict _ fun R => P.galK_mem_TK σ R.2
+ 
+ @[simp] lemma coe_galTK (σ : ↥P.torsionField ≃ₐ[F] ↥P.torsionField) (R : ↥P.TK) :
+     (P.galTK σ R : P.EK.toAffine.Point) = P.galK σ R := rfl
+diff --git a/Iut/Concrete/LocalConstruct/ArchLogShell.lean b/Iut/Concrete/LocalConstruct/ArchLogShell.lean
+index e078189..aa5d12e 100644
+--- a/Iut/Concrete/LocalConstruct/ArchLogShell.lean
++++ b/Iut/Concrete/LocalConstruct/ArchLogShell.lean
+@@ -140,7 +140,7 @@ theorem archNorm_mapAlgHom_le (σ : ∀ j, ArchFactor K (c j) ≃ₐ[ℝ] ArchFa
+   refine (ContinuousLinearMap.le_opNorm _ _).trans ?_
+   refine mul_le_of_le_one_left (norm_nonneg _) ?_
+   refine (PiTensorProduct.opNorm_mapL _).trans ?_
+-  exact Finset.prod_le_one (fun j _ => norm_nonneg _) fun j _ => norm_archAutCLM_le (c j) (σ j)
++  exact Finset.prod_le_one₀ (fun j _ => norm_nonneg _) fun j _ => norm_archAutCLM_le (c j) (σ j)
+ 
+ /-- **IUT IV, Proposition 1.5(iii)**: the indeterminacy automorphisms preserve `B_I`. -/
+ theorem mapAlgHom_image_archIntegral_subset
+diff --git a/Iut/Concrete/LocalConstruct/Haar.lean b/Iut/Concrete/LocalConstruct/Haar.lean
+index 8385d1b..2bf7745 100644
+--- a/Iut/Concrete/LocalConstruct/Haar.lean
++++ b/Iut/Concrete/LocalConstruct/Haar.lean
+@@ -84,7 +84,7 @@ lemma closedBall_eq_iUnion_padicCoset :
+     obtain ⟨y, hy⟩ := hmem
+     have hy' : (p : ℚ_[p]) * x - (z.zmodRepr : ℚ_[p]) = (p : ℚ_[p]) * (y : ℚ_[p]) := by
+       have := congrArg (fun w : ℤ_[p] => (w : ℚ_[p])) hy
+-      simpa [z] using this
++      exact this
+     have : x - (z.zmodRepr : ℚ_[p]) / p = (y : ℚ_[p]) := by
+       field_simp
+       linear_combination hy'
+diff --git a/Iut/Concrete/LocalConstruct/Integral.lean b/Iut/Concrete/LocalConstruct/Integral.lean
+index 77cbfda..cf2a52d 100644
+--- a/Iut/Concrete/LocalConstruct/Integral.lean
++++ b/Iut/Concrete/LocalConstruct/Integral.lean
+@@ -318,7 +318,7 @@ lemma exists_norm_tprodIntegral_le :
+   rw [Module.Basis.equivFun_apply]
+   unfold packetBasis tprodIntegral
+   rw [Basis.piTensorProduct_repr_tprod_apply, norm_prod]
+-  exact Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => hC j _ (a j).2 _
++  exact Finset.prod_le_prod₀ (fun j _ => norm_nonneg _) fun j _ => hC j _ (a j).2 _
+ 
+ /-- **`R_I` is bounded.** -/
+ lemma exists_order_subset_closedBall :
+diff --git a/Iut/Concrete/LocalConstruct/LogShell.lean b/Iut/Concrete/LocalConstruct/LogShell.lean
+index b0dfa96..88fac56 100644
+--- a/Iut/Concrete/LocalConstruct/LogShell.lean
++++ b/Iut/Concrete/LocalConstruct/LogShell.lean
+@@ -404,7 +404,7 @@ lemma exists_norm_logShellSet_le :
+   rw [Module.Basis.equivFun_apply]
+   unfold packetBasis
+   rw [Basis.piTensorProduct_repr_tprod_apply, norm_prod]
+-  exact Finset.prod_le_prod (fun j _ => norm_nonneg _) fun j _ => hC j _ (a j).2 _
++  exact Finset.prod_le_prod₀ (fun j _ => norm_nonneg _) fun j _ => hC j _ (a j).2 _
+ 
+ /-- The products of elements of `(R_I)^∼` with elementary tensors of elements of the factor
+ log-shells are bounded: `(R_I)^∼` is compact and the elementary tensors are bounded. -/
+diff --git a/Iut/Concrete/ModEllRepConstruct.lean b/Iut/Concrete/ModEllRepConstruct.lean
+index 57f8a8e..3a0afaa 100644
+--- a/Iut/Concrete/ModEllRepConstruct.lean
++++ b/Iut/Concrete/ModEllRepConstruct.lean
+@@ -53,7 +53,7 @@ endomorphism of the torsion subgroup. -/
+ noncomputable def galTorsionHom (n : ℕ) (σ : Fbar ≃ₐ[F] Fbar) :
+     AddSubgroup.torsionBy (Affine.Point (Affine.baseChange E Fbar)) n →+
+       AddSubgroup.torsionBy (Affine.Point (Affine.baseChange E Fbar)) n :=
+-  ((galPointMap F E Fbar σ).restrict
++  ((galPointMap F E Fbar σ).domRestrict
+     (AddSubgroup.torsionBy (Affine.Point (Affine.baseChange E Fbar)) n)).codRestrict
+     (AddSubgroup.torsionBy (Affine.Point (Affine.baseChange E Fbar)) n)
+     (fun P => galPointMap_torsionBy F E Fbar σ P.2)
+diff --git a/Iut/Concrete/ModEllRepGalois.lean b/Iut/Concrete/ModEllRepGalois.lean
+index 7272069..34b4939 100644
+--- a/Iut/Concrete/ModEllRepGalois.lean
++++ b/Iut/Concrete/ModEllRepGalois.lean
+@@ -98,7 +98,7 @@ lemma mem_TK_of_bcK {P : R.EK.toAffine.Point} (hP : R.bcK P ∈ TFbar C ℓ) : P
+ 
+ /-- **The `ℓ`-torsion is rational over `K`**: `E(K)[ℓ] ≃ E(F̄)[ℓ]`. -/
+ def torsionEquiv : ↥R.TK ≃+ ↥(TFbar C ℓ) :=
+-  AddEquiv.ofBijective (R.bcK.restrict R.TK |>.codRestrict _ fun P => R.bcK_mem_TFbar P.2)
++  AddEquiv.ofBijective (R.bcK.domRestrict R.TK |>.codRestrict _ fun P => R.bcK_mem_TFbar P.2)
+     ⟨fun P P' h => Subtype.ext (R.bcK_injective (congrArg Subtype.val h)),
+      fun Q => by
+       obtain ⟨P, hP⟩ := R.exists_bcK_eq Q.1 Q.2
+diff --git a/Iut/Concrete/SL2Image.lean b/Iut/Concrete/SL2Image.lean
+index a58f023..6a75976 100644
+--- a/Iut/Concrete/SL2Image.lean
++++ b/Iut/Concrete/SL2Image.lean
+@@ -142,7 +142,7 @@ lemma card_torsion_curveKw_ge (w' : FinitePlace ↥R.torsionField)
+     [Finite ↥(TateStructure.torsion ℓ (curveKw C.E R.torsionField w'))] :
+     ℓ * ℓ ≤ Nat.card ↥(TateStructure.torsion ℓ (curveKw C.E R.torsionField w')) := by
+   let f : ↥R.TK →+ ↥(TateStructure.torsion ℓ (curveKw C.E R.torsionField w')) :=
+-    ((pointMap (curveK C.E R.torsionField) (emb R.torsionField w')).restrict R.TK).codRestrict _
++    ((pointMap (curveK C.E R.torsionField) (emb R.torsionField w')).domRestrict R.TK).codRestrict _
+       fun P => by
+         rw [AddSubgroup.torsionBy.nsmul_iff]
+         have hP := AddSubgroup.torsionBy.nsmul_iff.mp P.2
+diff --git a/Iut/Cor312/ThetaData/PlacesOver.lean b/Iut/Cor312/ThetaData/PlacesOver.lean
+index 54f5d7e..b81f51c 100644
+--- a/Iut/Cor312/ThetaData/PlacesOver.lean
++++ b/Iut/Cor312/ThetaData/PlacesOver.lean
+@@ -45,14 +45,16 @@ lemma algebraMap_ringOfIntegers_injective :
+ /-- **Every finite place of `k` has a finite place of `K` over it.** -/
+ theorem FinitePlace.exists_liesOver (v : FinitePlace k) :
+     ∃ w : FinitePlace K, FinitePlace.LiesOver w v := by
++  have : FaithfulSMul (𝓞 k) (𝓞 K) :=
++    (faithfulSMul_iff_algebraMap_injective (𝓞 k) (𝓞 K)).mpr algebraMap_ringOfIntegers_injective
+   haveI : v.maximalIdeal.asIdeal.IsPrime := v.maximalIdeal.isPrime
+   obtain ⟨Q, -, hQ, hQv⟩ := Ideal.exists_ideal_over_prime_of_isIntegral (S := 𝓞 K)
+     v.maximalIdeal.asIdeal ⊥ (by
+-      rw [Ideal.comap_bot_of_injective _ algebraMap_ringOfIntegers_injective]
++      rw [Ideal.under_bot]
+       exact bot_le)
+   have hQne : Q ≠ ⊥ := by
+     rintro rfl
+-    rw [Ideal.comap_bot_of_injective _ algebraMap_ringOfIntegers_injective] at hQv
++    rw [Ideal.under_bot] at hQv
+     exact v.maximalIdeal.ne_bot hQv.symm
+   refine ⟨FinitePlace.mk ⟨Q, hQ, hQne⟩, ?_⟩
+   unfold FinitePlace.LiesOver
+@@ -138,10 +140,13 @@ lemma algebraMap_intClosure_injective :
+ theorem exists_prime_over (w : FinitePlace K) :
+     ∃ Q : Ideal (intClosure K Fbar), Q.IsPrime ∧
+       Q.comap (algebraMap (𝓞 K) (intClosure K Fbar)) = w.maximalIdeal.asIdeal := by
++  have : FaithfulSMul (𝓞 K) (intClosure K Fbar) :=
++    (faithfulSMul_iff_algebraMap_injective (𝓞 K) (intClosure K Fbar)).mpr
++      (algebraMap_intClosure_injective K Fbar)
+   haveI : w.maximalIdeal.asIdeal.IsPrime := w.maximalIdeal.isPrime
+   obtain ⟨Q, -, hQ, hQw⟩ := Ideal.exists_ideal_over_prime_of_isIntegral
+     (S := intClosure K Fbar) w.maximalIdeal.asIdeal ⊥ (by
+-      rw [Ideal.comap_bot_of_injective _ (algebraMap_intClosure_injective K Fbar)]
++      rw [Ideal.under_bot]
+       exact bot_le)
+   exact ⟨Q, hQ, hQw⟩
+ 
+diff --git a/Iut/Cor312/ThetaData/TateStructureTransport.lean b/Iut/Cor312/ThetaData/TateStructureTransport.lean
+index 0f98d1a..904c497 100644
+--- a/Iut/Cor312/ThetaData/TateStructureTransport.lean
++++ b/Iut/Cor312/ThetaData/TateStructureTransport.lean
+@@ -132,7 +132,9 @@ def baseChange (S : TateStructure E) : TateStructure (E.map (algebraMap k k')) w
+         (Additive.ofMul (QuotientGroup.mk (unitsEquiv hbij u))) =
+         Additive.ofMul (QuotientGroup.mk u) := by
+       rw [← quotEquiv_mk]
+-      exact (MulEquiv.toAdditive (quotEquiv hbij S.t)).symm_apply_apply _
++      change Additive.ofMul
++        ((quotEquiv hbij S.t).symm ((quotEquiv hbij S.t) (QuotientGroup.mk u))) = _
++      rw [MulEquiv.symm_apply_apply]
+     simp only [AddEquiv.trans_apply]
+     rw [h1, pointMapEquiv_apply, xCoord_pointMap, S.iso_x u hu, S.t.algebraMap_X k']
+     rfl
+@@ -143,7 +145,9 @@ def baseChange (S : TateStructure E) : TateStructure (E.map (algebraMap k k')) w
+         (Additive.ofMul (QuotientGroup.mk (unitsEquiv hbij u))) =
+         Additive.ofMul (QuotientGroup.mk u) := by
+       rw [← quotEquiv_mk]
+-      exact (MulEquiv.toAdditive (quotEquiv hbij S.t)).symm_apply_apply _
++      change Additive.ofMul
++        ((quotEquiv hbij S.t).symm ((quotEquiv hbij S.t) (QuotientGroup.mk u))) = _
++      rw [MulEquiv.symm_apply_apply]
+     simp only [AddEquiv.trans_apply]
+     rw [h1, pointMapEquiv_apply, yCoord_pointMap, S.iso_y u hu, S.t.algebraMap_Y k']
+     rfl
+@@ -163,7 +167,9 @@ lemma baseChange_ofUnit (u : kˣ) :
+       (Additive.ofMul (QuotientGroup.mk (unitsEquiv hbij u))) =
+       Additive.ofMul (QuotientGroup.mk u) := by
+     rw [← quotEquiv_mk]
+-    exact (MulEquiv.toAdditive (quotEquiv hbij S.t)).symm_apply_apply _
++    change Additive.ofMul
++      ((quotEquiv hbij S.t).symm ((quotEquiv hbij S.t) (QuotientGroup.mk u))) = _
++    rw [MulEquiv.symm_apply_apply]
+   simp only [AddEquiv.trans_apply]
+   rw [h1]
+   rfl
+diff --git a/Iut/Torsion/EDS.lean b/Iut/Torsion/EDS.lean
+index 0785677..2caf952 100644
+--- a/Iut/Torsion/EDS.lean
++++ b/Iut/Torsion/EDS.lean
+@@ -33,10 +33,11 @@ namespace Iut.Torsion
+ 
+ open WeierstrassCurve WeierstrassCurve.Affine Polynomial
+ 
+-open scoped Classical
+ 
+ variable {F : Type*} [Field F] {W : Affine F}
+ 
++noncomputable local instance : DecidableEq F := Classical.decEq F
++
+ /-! ### The sequence `ψₙ(P)` -/
+ 
+ /-- The value `ψₙ(x, y)` of the `n`-division polynomial at `(x, y)`, as the normalised EDS with
+@@ -155,7 +156,7 @@ theorem equation_iff₀ (x y : F) :
+     W.Equation x y ↔ y ^ 2 = x ^ 3 + W.a₂ * x ^ 2 + W.a₄ * x + W.a₆ := by
+   rw [equation_iff, ha₁, ha₃]; simp
+ 
+-omit [NeZero (2 : F)] in
++omit [NeZero (2 : F)] ha₃ in
+ theorem addX_eq (x₁ x₂ ℓ : F) : W.addX x₁ x₂ ℓ = ℓ ^ 2 - W.a₂ - x₁ - x₂ := by
+   simp [addX, ha₁]
+ 
+@@ -164,7 +165,7 @@ theorem addY_eq (x₁ x₂ y₁ ℓ : F) :
+     W.addY x₁ x₂ y₁ ℓ = -(ℓ * ((ℓ ^ 2 - W.a₂ - x₁ - x₂) - x₁) + y₁) := by
+   simp [addY, negY, negAddY, addX, ha₁, ha₃]
+ 
+-omit [NeZero (2 : F)] in
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ theorem slope_mul_of_X_ne {x₁ x₂ : F} (y₁ y₂ : F) (hx : x₁ ≠ x₂) :
+     W.slope x₁ x₂ y₁ y₂ * (x₁ - x₂) = y₁ - y₂ := by
+   rw [slope_of_X_ne hx, div_mul_cancel₀ _ (sub_ne_zero.mpr hx)]
+@@ -223,6 +224,7 @@ def Good (n : ℕ) : Prop :=
+ 
+ variable {h}
+ 
++omit [NeZero (2 : F)] in
+ theorem Good.smul_eq_zero_iff {n : ℕ} (hg : Good h n) :
+     n • Point.some x y h = 0 ↔ eds W x y n = 0 := by
+   refine ⟨fun h0 => ?_, hg.1⟩
+@@ -231,24 +233,29 @@ theorem Good.smul_eq_zero_iff {n : ℕ} (hg : Good h n) :
+   rw [hn] at h0
+   exact Point.some_ne_zero hXY h0
+ 
++omit [NeZero (2 : F)] in
+ theorem Good.eds_ne_zero {n : ℕ} (hg : Good h n) (hn : n • Point.some x y h ≠ 0) :
+     eds W x y n ≠ 0 :=
+   fun h0 => hn (hg.1 h0)
+ 
++omit [NeZero (2 : F)] in
+ theorem Good.eds_eq_zero {n : ℕ} (hg : Good h n) (hn : n • Point.some x y h = 0) :
+     eds W x y n = 0 :=
+   hg.smul_eq_zero_iff.mp hn
+ 
+ variable (h)
+ 
++omit [NeZero (2 : F)] in
+ theorem good_zero : Good h 0 := by
+   refine ⟨fun _ => zero_smul ℕ _, fun h0 => absurd (by simp) h0⟩
+ 
++omit [NeZero (2 : F)] in
+ theorem good_one : Good h 1 := by
+   refine ⟨fun h0 => absurd h0 (by simp), fun _ => ⟨x, y, h, one_smul ℕ _, by simp, by simp⟩⟩
+ 
+ include ha₁ ha₃
+ 
++omit [NeZero (2 : F)] in
+ theorem hQ_of (hXY : W.Nonsingular x y) :
+     y ^ 2 = x ^ 3 + W.a₂ * x ^ 2 + W.a₄ * x + W.a₆ :=
+   (equation_iff₀ ha₁ ha₃ x y).mp hXY.1
+@@ -267,7 +274,7 @@ theorem good_two (hy : y ≠ 0) : Good h 2 := by
+   have hI2 := Ident.double_X (hQ_of ha₁ ha₃ h) hμ hy
+   have hI3 := Ident.double_Y (hQ_of ha₁ ha₃ h) hμ hy
+   refine ⟨_, _, _, two_smul_eq ha₁ ha₃ h hy, ?_, ?_⟩
+-  · rw [addX_eq ha₁ ha₃]
++  · rw [addX_eq ha₁]
+     simp only [Nat.cast_ofNat, eds_two, Int.reduceAdd, eds_three, Int.reduceSub, eds_one,
+       Ψ₃_eval ha₁ ha₃]
+     linear_combination hI2
+@@ -281,7 +288,7 @@ theorem two_smul_X (hy : y ≠ 0) :
+     W.addX x x (W.slope x x y y) * (2 * y) ^ 2 = x * (2 * y) ^ 2 - W.Ψ₃.eval x := by
+   have hμ := slope_mul_of_Y_ne ha₁ ha₃ (x₁ := x) hy
+   have hI2 := Ident.double_X (hQ_of ha₁ ha₃ h) hμ hy
+-  rw [addX_eq ha₁ ha₃, Ψ₃_eval ha₁ ha₃]
++  rw [addX_eq ha₁, Ψ₃_eval ha₁ ha₃]
+   linear_combination hI2
+ 
+ include h in
+@@ -328,7 +335,7 @@ theorem good_three (hy : y ≠ 0) : Good h 3 := by
+       intro hX
+       apply hne
+       rw [← hc, hX, sub_self, zero_mul]
+-    have hp : W.slope X₂ x Y₂ y * (X₂ - x) = Y₂ - y := slope_mul_of_X_ne ha₁ ha₃ Y₂ y hXx
++    have hp : W.slope X₂ x Y₂ y * (X₂ - x) = Y₂ - y := slope_mul_of_X_ne Y₂ y hXx
+     have h3P : (3 : ℕ) • Point.some x y h =
+         Point.some (W.addX X₂ x (W.slope X₂ x Y₂ y)) (W.addY X₂ x Y₂ (W.slope X₂ x Y₂ y))
+           (nonsingular_add h₂ h fun hxy => hXx hxy.1) := by
+@@ -341,7 +348,7 @@ theorem good_three (hy : y ≠ 0) : Good h 3 := by
+       rw [← h2P, two_nsmul, add_neg_cancel_right]
+     rw [Point.neg_some, Point.add_of_X_ne hXx] at hsub
+     have hsubX : W.addX X₂ x (W.slope X₂ x Y₂ (W.negY x y)) = x := (Point.some.inj hsub).1
+-    rw [addX_eq ha₁ ha₃] at hsubX
++    rw [addX_eq ha₁] at hsubX
+     have hD := Ident.chord_diff (a₂ := W.a₂) hXx hp hm
+     rw [hsubX] at hD
+     set lp := W.slope X₂ x Y₂ y with hlp
+@@ -349,16 +356,16 @@ theorem good_three (hy : y ≠ 0) : Good h 3 := by
+     · -- the `x`-coordinate
+       have e4 : eds W x y (3 + 1) = W.preΨ₄.eval x * (2 * y) := by norm_num
+       have e2 : eds W x y (3 - 1) = 2 * y := by norm_num
+-      rw [Nat.cast_ofNat, eds_three, e4, e2, addX_eq ha₁ ha₃, ← hc, ← hY₂]
++      rw [Nat.cast_ofNat, eds_three, e4, e2, addX_eq ha₁, ← hc, ← hY₂]
+       linear_combination (-16 * y ^ 4) * hD
+     · -- the `y`-coordinate
+       have hQ₂ := hQ_of ha₁ ha₃ h₂
+       have hT : Y₂ * (2 * y) = -2 * y ^ 2 - (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) * (X₂ - x) := by
+-        rw [hY₂def, hX₂def, addY_eq ha₁ ha₃, addX_eq ha₁ ha₃]
++        rw [hY₂def, hX₂def, addY_eq ha₁ ha₃, addX_eq ha₁]
+         linear_combination (-(μ ^ 2 - W.a₂ - x - x - x)) * hμ
+       have hD2 : X₂ * (4 * y ^ 2) =
+           (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄) ^ 2 - 4 * y ^ 2 * (W.a₂ + 2 * x) := by
+-        rw [hX₂def, addX_eq ha₁ ha₃]
++        rw [hX₂def, addX_eq ha₁]
+         linear_combination (μ * (2 * y) + (3 * x ^ 2 + 2 * W.a₂ * x + W.a₄)) * hμ
+       have hG3 := Ident.three_Y (hQ_of ha₁ ha₃ h) hQ₂ hT hD2 hp hy
+       have hc3 : edsC W x y 3 = (2 * y) * (W.preΨ₄.eval x * (2 * y) ^ 4 - (W.Ψ₃.eval x) ^ 3) -
+@@ -374,21 +381,22 @@ theorem good_three (hy : y ≠ 0) : Good h 3 := by
+ 
+ /-! ### The even step -/
+ 
+-omit ha₁ ha₃ in
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- `Good n` when `eₙ = 0` and `n • P = 0`. -/
+ theorem good_of_eq_zero {n : ℕ} (h0 : eds W x y n = 0) (hn : n • Point.some x y h = 0) :
+     Good h n :=
+   ⟨fun _ => hn, fun hne => absurd h0 hne⟩
+ 
+-omit ha₁ ha₃ in
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ theorem smul_succ (k : ℕ) : (k + 1) • Point.some x y h = k • Point.some x y h + Point.some x y h :=
+   succ_nsmul _ _
+ 
+-omit ha₁ ha₃ in
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ theorem smul_pred {k : ℕ} (hk : 1 ≤ k) :
+     (k - 1) • Point.some x y h = k • Point.some x y h - Point.some x y h := by
+   conv_rhs => rw [← Nat.sub_add_cancel hk, succ_nsmul, add_sub_cancel_right]
+ 
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- Coordinates of `Q + P` for `X ≠ x`. -/
+ theorem add_eq_of_X_ne {X Y : F} (hQ : W.Nonsingular X Y) (hX : X ≠ x) :
+     Point.some X Y hQ + Point.some x y h =
+@@ -396,6 +404,7 @@ theorem add_eq_of_X_ne {X Y : F} (hQ : W.Nonsingular X Y) (hX : X ≠ x) :
+         (nonsingular_add hQ h fun hxy => hX hxy.1) :=
+   Point.add_of_X_ne hX
+ 
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- Coordinates of `Q − P` for `X ≠ x`. -/
+ theorem sub_eq_of_X_ne {X Y : F} (hQ : W.Nonsingular X Y) (hX : X ≠ x) :
+     Point.some X Y hQ - Point.some x y h =
+@@ -404,12 +413,14 @@ theorem sub_eq_of_X_ne {X Y : F} (hQ : W.Nonsingular X Y) (hX : X ≠ x) :
+         (nonsingular_add hQ ((nonsingular_neg ..).mpr h) fun hxy => hX hxy.1) := by
+   rw [sub_eq_add_neg, Point.neg_some, Point.add_of_X_ne hX]
+ 
++omit [NeZero (2 : F)] in
+ /-- The slope of the chord through `Q` and `−P`. -/
+ theorem slope_neg_mul {X Y : F} (hX : X ≠ x) :
+     W.slope X x Y (W.negY x y) * (X - x) = Y + y := by
+   rw [slope_of_X_ne hX, negY_eq ha₁ ha₃, div_mul_cancel₀ _ (sub_ne_zero.mpr hX)]
+   ring
+ 
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- If `Q = m • P = (X, Y)` with `(m − 1) • P ≠ 0` and `(m + 1) • P ≠ 0`, then `X ≠ x`. -/
+ theorem X_ne_of_smul {m : ℕ} (hm : 1 ≤ m) {X Y : F} {hQ : W.Nonsingular X Y}
+     (hmP : m • Point.some x y h = Point.some X Y hQ)
+@@ -507,7 +518,7 @@ theorem good_even (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m)
+       2 * (-(μ * ((μ ^ 2 - W.a₂ - X - X) - X) + Y)) * eds W x y (2 * m) ^ 3 =
+         edsC W x y (2 * m) by
+     refine ⟨fun h0 => absurd h0 (by rwa [hcast]), fun _ => ⟨_, _, _, h2Q, ?_, ?_⟩⟩
+-    · rw [hcast, addX_eq ha₁ ha₃]; exact key.1
++    · rw [hcast, addX_eq ha₁]; exact key.1
+     · rw [hcast, addY_eq ha₁ ha₃]; exact key.2
+   have hc : (x - x₂) * (2 * y) ^ 2 = W.Ψ₃.eval x := by linear_combination -hX₂
+   -- abbreviations
+@@ -547,7 +558,7 @@ theorem good_even (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m)
+       rw [hsmul, hmP, hQP0, smul_neg, hn2P]
+     rw [h2Q] at h2Q'
+     obtain ⟨hxq, hyq⟩ := Point.some.inj h2Q'
+-    rw [addX_eq ha₁ ha₃] at hxq
++    rw [addX_eq ha₁] at hxq
+     rw [addY_eq ha₁ ha₃] at hyq
+     rw [hyq, hxq, hny₂]
+     -- the sequence
+@@ -593,7 +604,7 @@ theorem good_even (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m)
+       rw [hsmul, hmP, hQP, h2P]
+     rw [h2Q] at h2Q'
+     obtain ⟨hxq, hyq⟩ := Point.some.inj h2Q'
+-    rw [addX_eq ha₁ ha₃] at hxq
++    rw [addX_eq ha₁] at hxq
+     rw [addY_eq ha₁ ha₃] at hyq
+     rw [hyq, hxq]
+     rw [hem1] at r_odd1 r_odd2 r_cm
+@@ -631,18 +642,18 @@ theorem good_even (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m)
+     obtain ⟨X', Y', h', hh, -, -⟩ := g₃.2 hep
+     rw [hh] at h0
+     exact Point.some_ne_zero h' h0
+-  have hXx : X ≠ x := X_ne_of_smul ha₁ ha₃ h (by omega) hmP hmm0 hpp0
++  have hXx : X ≠ x := X_ne_of_smul h (by omega) hmP hmm0 hpp0
+   obtain ⟨Xp, Yp, hQp, hpP, hXp, hYp⟩ := g₃.2 hep
+   obtain ⟨Xm, Ym, hQm, hmmP, hXm, hYm⟩ := g₁.2 hem1
+   have hpP' := hpP
+-  rw [smul_succ h, hmP, add_eq_of_X_ne ha₁ ha₃ h hQ hXx] at hpP'
++  rw [smul_succ h, hmP, add_eq_of_X_ne h hQ hXx] at hpP'
+   obtain ⟨hXp', hYp'⟩ := Point.some.inj hpP'
+   have hmmP' := hmmP
+-  rw [smul_pred h (by omega), hmP, sub_eq_of_X_ne ha₁ ha₃ h hQ hXx] at hmmP'
++  rw [smul_pred h (by omega), hmP, sub_eq_of_X_ne h hQ hXx] at hmmP'
+   obtain ⟨hXm', hYm'⟩ := Point.some.inj hmmP'
+-  rw [addX_eq ha₁ ha₃] at hXp' hXm'
++  rw [addX_eq ha₁] at hXp' hXm'
+   rw [addY_eq ha₁ ha₃] at hYp' hYm'
+-  have hp : W.slope X x Y y * (X - x) = Y - y := slope_mul_of_X_ne ha₁ ha₃ Y y hXx
++  have hp : W.slope X x Y y * (X - x) = Y - y := slope_mul_of_X_ne Y y hXx
+   have hmn : W.slope X x Y (W.negY x y) * (X - x) = Y + y := slope_neg_mul ha₁ ha₃ hXx
+   have hI5 := Ident.double_X_sub (hQ_of ha₁ ha₃ hQ) (hQ_of ha₁ ha₃ h) hXx hp hmn hμ hY0
+   have hI6 := Ident.double_Y_mul (hQ_of ha₁ ha₃ hQ) (hQ_of ha₁ ha₃ h) hXx hp hmn hμ hY0
+@@ -801,15 +812,15 @@ theorem good_odd (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m) (g₁ : Good h (m - 1))
+   -- `Q − Q⁺ = −P` and `Q⁺ − Q = P`
+   have hsub : Point.some X Y hQ - Point.some Xp Yp hQp = -Point.some x y h := by
+     rw [← hmP, ← hpP, smul_succ h]; abel
+-  rw [sub_eq_of_X_ne ha₁ ha₃ hQp hQ hXX, Point.neg_some] at hsub
++  rw [sub_eq_of_X_ne hQp hQ hXX, Point.neg_some] at hsub
+   obtain ⟨hsx, -⟩ := Point.some.inj hsub
+   have hsub' : Point.some Xp Yp hQp - Point.some X Y hQ = Point.some x y h := by
+     rw [← hmP, ← hpP, smul_succ h]; abel
+-  rw [sub_eq_of_X_ne ha₁ ha₃ hQ hQp (Ne.symm hXX)] at hsub'
++  rw [sub_eq_of_X_ne hQ hQp (Ne.symm hXX)] at hsub'
+   obtain ⟨hsx', hsy'⟩ := Point.some.inj hsub'
+-  rw [addX_eq ha₁ ha₃] at hsx hsx'
++  rw [addX_eq ha₁] at hsx hsx'
+   rw [addY_eq ha₁ ha₃] at hsy'
+-  have hl : W.slope X Xp Y Yp * (X - Xp) = Y - Yp := slope_mul_of_X_ne ha₁ ha₃ Y Yp hXX
++  have hl : W.slope X Xp Y Yp * (X - Xp) = Y - Yp := slope_mul_of_X_ne Y Yp hXX
+   have hn : W.slope Xp X Yp (W.negY X Y) * (Xp - X) = Yp + Y :=
+     slope_neg_mul ha₁ ha₃ (Ne.symm hXX)
+   have hn' : W.slope X Xp Y (W.negY Xp Yp) * (X - Xp) = Y + Yp := slope_neg_mul ha₁ ha₃ hXX
+@@ -838,7 +849,7 @@ theorem good_odd (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m) (g₁ : Good h (m - 1))
+     exact sub_eq_zero.mp ((mul_eq_zero.mp this).resolve_right
+       (mul_ne_zero (pow_ne_zero _ hem) hep))
+   refine ⟨fun h0 => absurd h0 hEp0, fun _ => ⟨_, _, _, hQQ.symm, ?_, ?_⟩⟩
+-  · rw [addX_eq ha₁ ha₃, h1, h4, h3]
++  · rw [addX_eq ha₁, h1, h4, h3]
+     linear_combination (-E1 ^ 4 * E2 ^ 4) * hD
+   · rw [addY_eq ha₁ ha₃, h1]
+     rw [h3, h4] at r_C
+@@ -852,7 +863,7 @@ theorem good_odd (hy : y ≠ 0) (m : ℕ) (hm : 2 ≤ m) (g₁ : Good h (m - 1))
+ 
+ /-! ### The `2`-torsion points and the main theorem -/
+ 
+-omit ha₁ ha₃ in
++omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- The odd terms of the auxiliary sequence with `b = 0` are nonzero when `c ≠ 0`. -/
+ theorem preNormEDS'_odd_ne_zero {c d : F} (hc : c ≠ 0) (k : ℕ) :
+     preNormEDS' (0 : F) c d (2 * k + 1) ≠ 0 := by
+@@ -863,7 +874,7 @@ theorem preNormEDS'_odd_ne_zero {c d : F} (hc : c ≠ 0) (k : ℕ) :
+   · simpa using hc
+   · rw [show 2 * (j + 2) + 1 = 2 * (j + 2) + 1 from rfl, preNormEDS'_odd]
+     rcases Nat.even_or_odd' j with ⟨i, rfl | rfl⟩
+-    · rw [if_pos (even_two_mul i), if_pos (even_two_mul i)]
++    · rw [ite_eq_left (even_two_mul i), ite_eq_left (even_two_mul i)]
+       have h1 := ih i (by omega)
+       have h2 := ih (i + 1) (by omega)
+       rw [show 2 * i + 1 = 2 * i + 1 from rfl] at h1
+@@ -872,7 +883,7 @@ theorem preNormEDS'_odd_ne_zero {c d : F} (hc : c ≠ 0) (k : ℕ) :
+       simp only [mul_zero, mul_one, zero_sub, neg_ne_zero]
+       exact mul_ne_zero h1 (pow_ne_zero _ h2)
+     · have hodd : ¬Even (2 * i + 1) := Nat.not_even_iff_odd.mpr ⟨i, rfl⟩
+-      rw [if_neg hodd, if_neg hodd]
++      rw [ite_eq_right hodd, ite_eq_right hodd]
+       have h1 := ih (i + 1) (by omega)
+       have h2 := ih (i + 2) (by omega)
+       rw [show 2 * (i + 1) + 1 = 2 * i + 1 + 2 by ring] at h1
+@@ -883,8 +894,9 @@ theorem preNormEDS'_odd_ne_zero {c d : F} (hc : c ≠ 0) (k : ℕ) :
+ omit [NeZero (2 : F)] ha₁ ha₃ in
+ /-- The even terms of `eₙ` vanish at a `2`-torsion point. -/
+ theorem eds_eq_zero_of_even (hy : y = 0) {n : ℤ} (hn : Even n) : eds W x y n = 0 := by
+-  rw [eds, normEDS, if_pos hn, hy]; ring
++  rw [eds, normEDS, ite_eq_left hn, hy]; ring
+ 
++omit [NeZero (2 : F)] in
+ include h in
+ /-- `Ψ₃(x) ≠ 0` at a `2`-torsion point `(x, 0)`: `Ψ₃(x) = −f'(x)²` there. -/
+ theorem Ψ₃_ne_zero_of_y_eq_zero (hy : y = 0) : W.Ψ₃.eval x ≠ 0 := by
+@@ -904,15 +916,17 @@ theorem Ψ₃_ne_zero_of_y_eq_zero (hy : y = 0) : W.Ψ₃.eval x ≠ 0 := by
+   rw [this, ← hf, zero_pow two_ne_zero, mul_zero, zero_sub, neg_ne_zero]
+   exact pow_ne_zero _ hf'
+ 
++omit [NeZero (2 : F)] in
+ include h in
+ /-- The odd terms of `eₙ` do not vanish at a `2`-torsion point. -/
+ theorem eds_ne_zero_of_odd (hy : y = 0) (k : ℕ) : eds W x y (2 * k + 1) ≠ 0 := by
+   have hc := Ψ₃_ne_zero_of_y_eq_zero ha₁ ha₃ h hy
+   have hodd : ¬Even (2 * (k : ℤ) + 1) := Int.not_even_iff_odd.mpr ⟨k, rfl⟩
+-  rw [eds, normEDS, if_neg hodd, mul_one, hy, mul_zero,
++  rw [eds, normEDS, ite_eq_right hodd, mul_one, hy, mul_zero,
+     show (2 * (k : ℤ) + 1) = ((2 * k + 1 : ℕ) : ℤ) by push_cast; ring, preNormEDS_ofNat]
+   simpa using preNormEDS'_odd_ne_zero hc k
+ 
++omit [NeZero (2 : F)] in
+ /-- `Good n` for every `n` at a `2`-torsion point `(x, 0)`. -/
+ theorem good_of_y_eq_zero (hy : y = 0) (n : ℕ) : Good h n := by
+   have h2P : 2 • Point.some x y h = 0 := by
+@@ -922,12 +936,13 @@ theorem good_of_y_eq_zero (hy : y = 0) (n : ℕ) : Good h n := by
+   · refine good_of_eq_zero h (eds_eq_zero_of_even hy ⟨k, by push_cast; ring⟩) ?_
+     rw [mul_nsmul, h2P, smul_zero]
+   · have hne := eds_ne_zero_of_odd ha₁ ha₃ h hy k
+-    refine ⟨fun h0 => absurd (by push_cast; exact h0) hne, fun _ => ⟨x, y, h, ?_, ?_, ?_⟩⟩
++    refine ⟨fun h0 => absurd h0 hne, fun _ => ⟨x, y, h, ?_, ?_, ?_⟩⟩
+     · rw [succ_nsmul, mul_nsmul, h2P, smul_zero, zero_add]
+     · have e1 : eds W x y (((2 * k + 1 : ℕ) : ℤ) + 1) = 0 :=
+         eds_eq_zero_of_even hy ⟨k + 1, by push_cast; ring⟩
+       rw [e1, zero_mul, sub_zero]
+-    · rw [hy, edsC, complEDS₂, if_neg (Int.not_even_iff_odd.mpr ⟨k, by push_cast; ring⟩)]; ring
++    · rw [hy, edsC, complEDS₂, ite_eq_right (Int.not_even_iff_odd.mpr ⟨k, by push_cast; ring⟩)]
++      ring
+ 
+ /-- **The division polynomials describe the multiples of a point**: for every nonsingular point
+ `P = (x, y)` of `y² = x³ + a₂x² + a₄x + a₆` and every `n`, `eₙ = ψₙ(x, y) = 0` iff `nP = 0`, and
+diff --git a/Iut/Tower/SerreBound.lean b/Iut/Tower/SerreBound.lean
+index 0129e14..c0d4d87 100644
+--- a/Iut/Tower/SerreBound.lean
++++ b/Iut/Tower/SerreBound.lean
+@@ -116,7 +116,7 @@ theorem exists_mem_pow_intTrace_notMem (h𝔭 : 𝔭 ≠ ⊥) (e κ : ℕ) (J :
+     refine Ideal.IsMaximal.eq_of_le inferInstance (Ideal.IsPrime.ne_top inferInstance) ?_
+     change maximalIdeal Rₚ ≤ 𝔓ₚ.comap (algebraMap Rₚ Sₚ)
+     rw [← Ideal.map_le_iff_le_comap, hpSₚ]
+-    exact Ideal.mul_le_right.trans (Ideal.pow_le_self he)
++    exact Ideal.mul_le_left.trans (Ideal.pow_le_self he)
+   haveI : Finite (Rₚ ⧸ maximalIdeal Rₚ) :=
+     Finite.of_equiv _ (IsLocalization.AtPrime.equivQuotMaximalIdeal 𝔭 Rₚ).toEquiv
+   -- the contraction of `𝔪^n` to `A` is `𝔭^n`
+@@ -186,7 +186,7 @@ theorem exists_mem_pow_intTrace_notMem (h𝔭 : 𝔭 ≠ ⊥) (e κ : ℕ) (J :
+     ((Ideal.isCoprime_iff_sup_eq.mpr hJₚ').pow_left).pow_right
+   letI : Algebra (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1)) (Sₚ ⧸ Jₚ ^ (κ + 1)) :=
+     Ideal.Quotient.algebraQuotientOfLEComap
+-      (by rw [← Ideal.map_le_iff_le_comap, hprod]; exact Ideal.mul_le_left)
++      (by rw [← Ideal.map_le_iff_le_comap, hprod]; exact Ideal.mul_le_right)
+   haveI : IsScalarTower Rₚ (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1)) (Sₚ ⧸ Jₚ ^ (κ + 1)) :=
+     IsScalarTower.of_algebraMap_eq' rfl
+   haveI : IsScalarTower Rₚ (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1))
+diff --git a/Iut/Tower/SerreCore.lean b/Iut/Tower/SerreCore.lean
+index 3d2a13f..ff3447b 100644
+--- a/Iut/Tower/SerreCore.lean
++++ b/Iut/Tower/SerreCore.lean
+@@ -37,7 +37,7 @@ variable (e κ : ℕ) (J : Ideal B)
+ lemma pow_le_comap (hpB : 𝔭.map (algebraMap A B) = 𝔓 ^ e * J) :
+     𝔭 ^ (κ + 1) ≤ (𝔓 ^ (e * (κ + 1))).comap (algebraMap A B) := by
+   rw [← Ideal.map_le_iff_le_comap, Ideal.map_pow, hpB, mul_pow, ← pow_mul]
+-  exact Ideal.mul_le_right
++  exact Ideal.mul_le_left
+ 
+ /-- The `A/𝔭^{κ+1}`-algebra structure of `B/𝔓^{e(κ+1)}`. -/
+ noncomputable def quotAlgebra (hpB : 𝔭.map (algebraMap A B) = 𝔓 ^ e * J) :
+@@ -170,7 +170,7 @@ lemma exists_monic_root (he : e ≠ 0) (h𝔓 : 𝔓 ≠ ⊥) :
+     exact (hmemI _).mp hαa₀
+   refine ⟨g, α, hgm, hgdeg.trans hg₀deg, hαg, fun y => ?_⟩
+   have hy : y ∈ Algebra.adjoin (A ⧸ 𝔭) ({a₁} : Set (B ⧸ 𝔓)) := by
+-    rw [← IntermediateField.adjoin_simple_toSubalgebra_of_integral hint, ha₁]
++    rw [← IntermediateField.adjoin_simple_toSubalgebra_of_isAlgebraic hint.isAlgebraic, ha₁]
+     exact trivial
+   rw [Algebra.adjoin_singleton_eq_range_aeval] at hy
+   obtain ⟨q', hq'⟩ := hy
+diff --git a/Iut/Tripod/Basic.lean b/Iut/Tripod/Basic.lean
+index e7dc78f..4ab670d 100644
+--- a/Iut/Tripod/Basic.lean
++++ b/Iut/Tripod/Basic.lean
+@@ -404,9 +404,9 @@ theorem finite_of_fieldOf_eq (F : IntermediateField ℚ Qbar) [FiniteDimensional
+       (fun x : Pt ↦ x.1) ⁻¹' (Subtype.val '' {y : F | Height.logHeight₁ y ≤
+         max H 0 * Module.finrank ℚ F}) := by
+     rintro ⟨l, hl⟩ ⟨hFl, hH⟩
+-    simp only [Set.mem_preimage, Set.mem_image, Set.mem_setOf_eq]
+     subst hFl
+     refine ⟨gen l, ?_, rfl⟩
++    change Height.logHeight₁ (gen ((⟨l, hl⟩ : Pt) : Qbar)) ≤ _
+     rw [← deg_mul_htCan ⟨l, hl⟩, ← deg_eq_finrank, mul_comm]
+     exact mul_le_mul_of_nonneg_right (hH.trans (le_max_left _ _)) (Nat.cast_nonneg _)
+   refine ((hF.image Subtype.val).preimage ?_).subset himg
+diff --git a/Iut/Tripod/CyclicIsogeny.lean b/Iut/Tripod/CyclicIsogeny.lean
+index cc96d31..9b14036 100644
+--- a/Iut/Tripod/CyclicIsogeny.lean
++++ b/Iut/Tripod/CyclicIsogeny.lean
+@@ -556,7 +556,8 @@ lemma apply_genC_eq_one {v : FinitePlace (P.curve x).F} (hv : v ∉ (P.curve x).
+ /-- `|n|_v ≤ 1` at a finite place. -/
+ lemma apply_natCast_le_one {T : Type*} [Field T] [NumberField T] (v : FinitePlace T) (n : ℕ) :
+     v (n : T) ≤ 1 :=
+-  IsNonarchimedean.apply_natCast_le_one (f := v) (fun a b => FinitePlace.add_le v a b)
++  IsNonarchimedean.apply_natCast_le_one (f := v) (by simp) (by simp)
++    (fun a b => FinitePlace.add_le v a b)
+ 
+ /-- `max(1, a)^d = max(1, a^d)` for `a ≥ 0`. -/
+ lemma max_one_pow {a : ℝ} (ha : 0 ≤ a) (d : ℕ) : max 1 a ^ d = max 1 (a ^ d) := by
+diff --git a/Iut/Tripod/CyclicLocal.lean b/Iut/Tripod/CyclicLocal.lean
+index 52c4ce3..e876e7a 100644
+--- a/Iut/Tripod/CyclicLocal.lean
++++ b/Iut/Tripod/CyclicLocal.lean
+@@ -349,6 +349,13 @@ variable {C : EllipticCurveData.{u}} {ℓ : ℕ} (R : C.ModEllRepData ℓ)
+ attribute [local instance 1100] Iut.EllipticCurveData.ModEllRepData.instDecidableEqTorsionFieldR
+ attribute [local instance] Iut.instGalRingOfIntegersAction Iut.instGalRingOfIntegersGaloisGroup
+ 
++noncomputable local instance instTorsionFieldIdealAction :
++    MulAction (↥R.torsionField ≃ₐ[C.F] ↥R.torsionField) (Ideal (𝓞 ↥R.torsionField)) := by
++  letI : MulSemiringAction (↥R.torsionField ≃ₐ[C.F] ↥R.torsionField) (𝓞 ↥R.torsionField) :=
++    Iut.instGalRingOfIntegersAction (k := C.F) (K := ↥R.torsionField)
++  exact (Ideal.pointwiseDistribMulAction : DistribMulAction
++    (↥R.torsionField ≃ₐ[C.F] ↥R.torsionField) (Ideal (𝓞 ↥R.torsionField))).toMulAction
++
+ lemma graphLineAt_congrR {VBad : Set (FinitePlace ↥(fieldOfModuli C.F C.E))}
+     (TF : TateFamily C.E R.torsionField ℓ VBad) {w w' : FinitePlace ↥R.torsionField} (h : w = w')
+     (hw : IsBadPlace C.E R.torsionField VBad w) (hw' : IsBadPlace C.E R.torsionField VBad w') :
+diff --git a/Iut/Tripod/CyclicTate.lean b/Iut/Tripod/CyclicTate.lean
+index d899299..b1427c5 100644
+--- a/Iut/Tripod/CyclicTate.lean
++++ b/Iut/Tripod/CyclicTate.lean
+@@ -132,7 +132,7 @@ theorem ratio_bound {ℓ : ℕ} (hℓ : Odd ℓ) (hcard : Fintype.card H = ℓ)
+     have hτ' : τ = -1 := Units.ext (by rw [hτ1]; simp)
+     have hρ' := half_class_minus_one S hRTm (hτ' ▸ hτ) hρ hρlo hρhi
+     rw [hr]
+-    refine Finset.prod_le_one (fun _ _ => by positivity) fun Q hQ => ?_
++    refine Finset.prod_le_one₀ (fun _ _ => by positivity) fun Q hQ => ?_
+     obtain ⟨hnum, hden⟩ := minus_one_bounds S.t h2 hρ' hℓ (hζℓ Q hQ) (hζ1 Q hQ)
+     rw [hτ']
+     exact div_le_one_of_le₀ (hnum.trans hden) (norm_nonneg _)
+@@ -142,7 +142,7 @@ theorem ratio_bound {ℓ : ℕ} (hℓ : Odd ℓ) (hcard : Fintype.card H = ℓ)
+     have hρ' := half_class_node S hRTm hτ hρ hτn hρlo hρhi
+     have hℓ0 : ℓ ≠ 0 := by rintro rfl; exact Nat.not_odd_zero hℓ
+     rw [hr, ← Finset.prod_pow, ← hcardnz, ← Finset.prod_const]
+-    refine Finset.prod_le_prod (fun _ _ => by positivity) fun Q hQ => ?_
++    refine Finset.prod_le_prod₀ (fun _ _ => by positivity) fun Q hQ => ?_
+     have hζn : ‖((ζ Q : kˣ) : k)‖ = 1 := by
+       have h := congrArg (fun u : kˣ => ‖(u : k)‖) (hζℓ Q hQ)
+       simp only [Units.val_pow_eq_pow_val, norm_pow, Units.val_one, norm_one] at h
+diff --git a/Iut/Tripod/CyclicTorsion.lean b/Iut/Tripod/CyclicTorsion.lean
+index 3d5a9fe..2b08938 100644
+--- a/Iut/Tripod/CyclicTorsion.lean
++++ b/Iut/Tripod/CyclicTorsion.lean
+@@ -159,7 +159,7 @@ lemma mem_TKR_of_bcKR {P : (curveK C.E R.torsionField).toAffine.Point}
+ 
+ /-- **The ℓ-torsion is rational over `K`**: `E(K)[ℓ] ≃ E(F̄)[ℓ]`. -/
+ noncomputable def torsionEquivR : ↥R.TKR ≃+ ↥R.TFbarR :=
+-  AddEquiv.ofBijective (R.bcKR.restrict R.TKR |>.codRestrict _ fun P => R.bcKR_mem_TFbarR P.2)
++  AddEquiv.ofBijective (R.bcKR.domRestrict R.TKR |>.codRestrict _ fun P => R.bcKR_mem_TFbarR P.2)
+     ⟨fun P P' h => Subtype.ext (R.bcKR_injective (congrArg Subtype.val h)),
+      fun Q => by
+       obtain ⟨P, hP⟩ := R.exists_bcKR_eq Q.1 Q.2
+diff --git a/Iut/Tripod/TorsionDegree.lean b/Iut/Tripod/TorsionDegree.lean
+index 144d0f8..76a6b68 100644
+--- a/Iut/Tripod/TorsionDegree.lean
++++ b/Iut/Tripod/TorsionDegree.lean
+@@ -75,7 +75,7 @@ theorem galAct_torsionBy (σ : Qbar ≃ₐ[K] Qbar) {n : ℕ} {P : (legendre l).
+ noncomputable def galTorsion (n : ℕ) (σ : Qbar ≃ₐ[K] Qbar) :
+     AddSubgroup.torsionBy (legendre l).toAffine.Point n →+
+       AddSubgroup.torsionBy (legendre l).toAffine.Point n :=
+-  ((galAct K hl σ).restrict (AddSubgroup.torsionBy (legendre l).toAffine.Point n)).codRestrict
++  ((galAct K hl σ).domRestrict (AddSubgroup.torsionBy (legendre l).toAffine.Point n)).codRestrict
+     (AddSubgroup.torsionBy (legendre l).toAffine.Point n)
+     (fun P => galAct_torsionBy K hl σ P.2)
+ 
+diff --git a/Iut/Tripod/TorsionNewton.lean b/Iut/Tripod/TorsionNewton.lean
+index 9f2147f..103302e 100644
+--- a/Iut/Tripod/TorsionNewton.lean
++++ b/Iut/Tripod/TorsionNewton.lean
+@@ -78,7 +78,8 @@ theorem apply_x_le {W : Affine K} (ha₁ : W.a₁ = 0) (ha₃ : W.a₃ = 0) (h
+   have h₃ : w W.a₃ ≤ 1 := by rw [ha₃, map_zero]; exact zero_le_one
+   have hroot : (W.ΨSq n).eval x = 0 := (Iut.Torsion.smul_eq_zero_iff_ΨSq ha₁ ha₃ h n).mp hP
+   have hn1 : (1 : ℝ) ≥ w (n : K) :=
+-    IsNonarchimedean.apply_natCast_le_one (f := w) (fun a b => FinitePlace.add_le w a b)
++    IsNonarchimedean.apply_natCast_le_one (f := w) (map_zero_le w 1) (map_one w)
++      (fun a b => FinitePlace.add_le w a b)
+   by_cases hx : w x ≤ 1
+   · exact mul_le_one₀ (pow_le_one₀ (n := 2) (apply_nonneg w _) hn1) (apply_nonneg w x) hx
+   rw [not_le] at hx
+diff --git a/Iut/Tripod/TpdGalois.lean b/Iut/Tripod/TpdGalois.lean
+index 2b4637c..ad28667 100644
+--- a/Iut/Tripod/TpdGalois.lean
++++ b/Iut/Tripod/TpdGalois.lean
+@@ -168,11 +168,11 @@ noncomputable def tpdEquivAdjoinMod :
+     ↥(tpdC x h3 h5) ≃ₐ[modC x h3 h5] ↥((modC x h3 h5)⟮genC x h3 h5⟯) where
+   toFun t := ⟨t.1, (mem_adjoin_modC_iff x h3 h5 _).mpr ((mem_tpdC_iff x h3 h5 _).mp t.2)⟩
+   invFun s := ⟨s.1, (mem_tpdC_iff x h3 h5 _).mpr ((mem_adjoin_modC_iff x h3 h5 _).mp s.2)⟩
+-  left_inv _ := rfl
+-  right_inv _ := rfl
+-  map_mul' _ _ := rfl
+-  map_add' _ _ := rfl
+-  commutes' _ := rfl
++  left_inv _ := Subtype.ext rfl
++  right_inv _ := Subtype.ext rfl
++  map_mul' _ _ := Subtype.ext rfl
++  map_add' _ _ := Subtype.ext rfl
++  commutes' _ := Subtype.ext rfl
+ 
+ /-- The sextic splits over `F_λ`. -/
+ theorem sext_map_splits :
+diff --git a/Iut/Tripod/TpdInertia.lean b/Iut/Tripod/TpdInertia.lean
+index 78240c5..775a3dc 100644
+--- a/Iut/Tripod/TpdInertia.lean
++++ b/Iut/Tripod/TpdInertia.lean
+@@ -131,7 +131,7 @@ theorem card_inertia_le_two_mul (w : FinitePlace (P.curve x).F) (f : (P.curve x)
+       2 * Nat.card (inertiaPlus P x w) := by
+   haveI : IsGalois (tpd P x) (P.curve x).F := isGalois_tpd_curve' (P := P) (x := x)
+   set I := w.maximalIdeal.asIdeal.inertia ((P.curve x).F ≃ₐ[tpd P x] (P.curve x).F) with hI
+-  set ε := (signHom f hf hf0).restrict I with hε
++  set ε := (signHom f hf hf0).domRestrict I with hε
+   have h1 := Subgroup.card_mul_index ε.ker
+   have hidx : ε.ker.index ≤ 2 := by
+     rw [Subgroup.index_ker]
+@@ -199,8 +199,8 @@ theorem card_inertiaPlus_le (w : FinitePlace (P.curve x).F) (h2 : residueChar w
+   haveI : Fact (Nat.Prime 5) := ⟨by norm_num⟩
+   have hsub3 := torsionCoords_three_subset_fieldOf' x.1
+   have hsub5 := torsionCoords_five_subset_fieldOf' x.1
+-  set ρ₃ := (repF P x 3 hsub3).restrict (inertiaPlus P x w) with hρ₃
+-  set ρ₅ := (repF P x 5 hsub5).restrict (inertiaPlus P x w) with hρ₅
++  set ρ₃ := (repF P x 3 hsub3).domRestrict (inertiaPlus P x w) with hρ₃
++  set ρ₅ := (repF P x 5 hsub5).domRestrict (inertiaPlus P x w) with hρ₅
+   have hn3 : w.maximalIdeal.valuation _ ((3 : ℕ) : (P.curve x).F) = 1 :=
+     (valuation_natCast_eq_one_iff w Nat.prime_three).2 h3
+   have hn5 : w.maximalIdeal.valuation _ ((5 : ℕ) : (P.curve x).F) = 1 :=
+@@ -246,7 +246,7 @@ theorem card_inertiaPlus_le (w : FinitePlace (P.curve x).F) (h2 : residueChar w
+     card_le_of_forall_pow_eq_one ρ₃.range 3 16 hGL3 (by norm_num) fun τ hτ => by
+       obtain ⟨σ, rfl⟩ := hτ
+       exact hpow3 σ
+-  set ρ₅' := ρ₅.restrict ρ₃.ker with hρ₅'
++  set ρ₅' := ρ₅.domRestrict ρ₃.ker with hρ₅'
+   have hinj' : Function.Injective ρ₅' := by
+     intro σ τ h
+     have h' : ρ₅ σ.1 = ρ₅ τ.1 := h
+diff --git a/Iut/Tripod/TpdTorsionRep.lean b/Iut/Tripod/TpdTorsionRep.lean
+index 5b03838..bb36be0 100644
+--- a/Iut/Tripod/TpdTorsionRep.lean
++++ b/Iut/Tripod/TpdTorsionRep.lean
+@@ -101,7 +101,7 @@ lemma toQbar_mem_torsionBy {R : (EF).Point} (hR : R ∈ AddSubgroup.torsionBy (E
+ noncomputable def torsionEquivF :
+     ↥(AddSubgroup.torsionBy (EF).Point n) ≃+
+       ↥(AddSubgroup.torsionBy (legendre x.1).toAffine.Point n) :=
+-  AddEquiv.ofBijective ((toQbar P x).restrict (AddSubgroup.torsionBy (EF).Point n) |>.codRestrict
++  AddEquiv.ofBijective ((toQbar P x).domRestrict (AddSubgroup.torsionBy (EF).Point n) |>.codRestrict
+     _ fun R => toQbar_mem_torsionBy P x n R.2)
+     ⟨fun R R' h => Subtype.ext (toQbar_injective P x (congrArg Subtype.val h)),
+      fun Q => by
+@@ -145,7 +145,7 @@ lemma galF_mem_torsionBy (σ : (P.curve x).F ≃ₐ[tpd P x] (P.curve x).F) {R :
+ /-- The action on the `n`-torsion. -/
+ noncomputable def galTorsionF (σ : (P.curve x).F ≃ₐ[tpd P x] (P.curve x).F) :
+     ↥(AddSubgroup.torsionBy (EF).Point n) →+ ↥(AddSubgroup.torsionBy (EF).Point n) :=
+-  (galF P x σ).restrict _ |>.codRestrict _ fun R => galF_mem_torsionBy P x n σ R.2
++  (galF P x σ).domRestrict _ |>.codRestrict _ fun R => galF_mem_torsionBy P x n σ R.2
+ 
+ omit [Fact n.Prime] hsub in
+ @[simp] lemma coe_galTorsionF (σ : (P.curve x).F ≃ₐ[tpd P x] (P.curve x).F)
+diff --git a/lake-manifest.json b/lake-manifest.json
+index c7312cb..819e49e 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,9 +1,7 @@
+-{
+- "version": "1.2.0",
++{"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+- "packages": [
+-  {
+-   "url": "https://github.com/lana-agents/tempered-fundamental-groups",
++ "packages":
++ [{"url": "https://github.com/lana-agents/tempered-fundamental-groups.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -12,10 +10,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "2006651f52b70ea2fe3388238c7d9db14d21748f",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/oka.git",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/oka.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -24,10 +20,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/orbicurve-cores",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/orbicurve-cores.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -36,10 +30,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "61616dcd77fbe45c083a8ebfa7cc80728f86e841",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/pi1",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/pi1.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -48,10 +40,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "ca7def953193f861a462aa0831eec8f0a31ff69f",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/heights",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/heights.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -60,10 +50,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/genl",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/genl.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -72,10 +60,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "ea2846c877d1e16d8f0b911a5fed07f5ee69eaaf",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/tate-curves-theta",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/tate-curves-theta.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -84,22 +70,18 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "ca6c2279d3cea0690cdb01328e727118d5485d68",
+    "inherited": false,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/mathlib4",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+-   "configFile": "lakefile.lean"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/elliptic-curves",
++   "configFile": "lakefile.lean"},
++  {"url": "https://github.com/lana-agents/elliptic-curves.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -108,10 +90,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "bebec3fc9f2602e81c83e5236789572a541c85fb",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/belyi.git",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/belyi.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -120,10 +100,8 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/lana-agents/formal-schemes",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/formal-schemes.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -132,106 +110,87 @@
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "51aa935079537bf4dc580751a6e70727fb23ca93",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/plausible",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/LeanSearchClient",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/LeanSearchClient",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/import-graph",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/import-graph",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/ProofWidgets4",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/ProofWidgets4",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+-   "configFile": "lakefile.lean"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/aesop",
++   "configFile": "lakefile.lean"},
++  {"url": "https://github.com/leanprover-community/aesop",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/quote4",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/quote4",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover-community/batteries",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover-community/batteries",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  },
+-  {
+-   "url": "https://github.com/leanprover/lean4-cli",
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/leanprover/lean4-cli",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+-   "configFile": "lakefile.toml"
+-  }
+- ],
++   "configFile": "lakefile.toml"}],
+  "name": "iut",
+  "lakeDir": ".lake",
+- "fixedToolchain": false
+-}
+\ No newline at end of file
++ "fixedToolchain": false}
+diff --git a/lakefile.toml b/lakefile.toml
+index 46c5aaa..fee9e14 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["Iut", "Iut4Sec1", "Challenge", "Solution"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -12,14 +14,14 @@ warn.sorry = false # `sorry` is load-bearing in Comparator/Challenge.lean
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ # Tate q-parameters and the classical theta function (taxis #13/#37); consumed by
+ # the initial Θ-data and Corollary 3.12 variant strand (taxis #33).
+ [[require]]
+ name = "tate-curves-theta"
+-git = "https://github.com/lana-agents/tate-curves-theta"
++git = "https://github.com/lana-agents/tate-curves-theta.git"
+ rev = "ca6c2279d3cea0690cdb01328e727118d5485d68"
+ 
+ # Arithmetic elliptic curves in general position (taxis #2): the height formalism and
+@@ -28,7 +30,7 @@ rev = "ca6c2279d3cea0690cdb01328e727118d5485d68"
+ # curves over number fields and its proof package (Genl.Curves, branch wp-height-theory).
+ [[require]]
+ name = "genl"
+-git = "https://github.com/lana-agents/genl"
++git = "https://github.com/lana-agents/genl.git"
+ rev = "ea2846c877d1e16d8f0b911a5fed07f5ee69eaaf"
+ 
+ # Heights and elliptic-curve height estimates (taxis #32): the complex uniformization of
+@@ -36,7 +38,7 @@ rev = "ea2846c877d1e16d8f0b911a5fed07f5ee69eaaf"
+ # also the height machine on curves used by Genl.Curves (branch wp-integrate).
+ [[require]]
+ name = "heights"
+-git = "https://github.com/lana-agents/heights"
++git = "https://github.com/lana-agents/heights.git"
+ rev = "721496ca4c158e511d25d8ccf6bfe8503eda73c1"
+ 
+ # Étale fundamental groups (Galois-theoretic π₁, inertia) and cores of orbicurves
+@@ -45,18 +47,17 @@ rev = "721496ca4c158e511d25d8ccf6bfe8503eda73c1"
+ # branch wp-core-basechange).
+ [[require]]
+ name = "pi1"
+-git = "https://github.com/lana-agents/pi1"
++git = "https://github.com/lana-agents/pi1.git"
+ rev = "ca7def953193f861a462aa0831eec8f0a31ff69f"
+ 
+ # [CanLift], Prop. 2.7 over ℂ (`OrbicurveCores.U2.canLift27C`, branch wp-u2), which together
+ # with `AffOrbicurve.canLift27_of_complex` discharges `AffOrbicurve.CanLift27`.
+ [[require]]
+ name = "orbicurve-cores"
+-git = "https://github.com/lana-agents/orbicurve-cores"
++git = "https://github.com/lana-agents/orbicurve-cores.git"
+ rev = "61616dcd77fbe45c083a8ebfa7cc80728f86e841"
+ 
+-# Pinned directly so that one `oka` revision serves both `belyi` (which pins the ancestor
+-# da228a2) and `orbicurve-cores` (which pins this revision, branch wp-u2).
++# One `oka` revision serves both `belyi` and `orbicurve-cores` (branch wp-u2).
+ [[require]]
+ name = "oka"
+ git = "https://github.com/lana-agents/oka.git"
+@@ -66,7 +67,7 @@ rev = "75dcdc3faadd10b986afb9283e89902bcdddecd4"
+ # `Iut.Anabelian.TemperedPi1Theory` in `Iut/Anabelian/Tempered.lean`.
+ [[require]]
+ name = "tempered-fundamental-groups"
+-git = "https://github.com/lana-agents/tempered-fundamental-groups"
++git = "https://github.com/lana-agents/tempered-fundamental-groups.git"
+ rev = "2006651f52b70ea2fe3388238c7d9db14d21748f"
+ 
+ # Corollary 3.12 variant (IUT III) and the ABC target statement.
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f49..ba8ebf2 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

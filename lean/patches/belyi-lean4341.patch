@@ -1,0 +1,408 @@
+diff --git a/Belyi/Converse/ConstantFamily.lean b/Belyi/Converse/ConstantFamily.lean
+index 2692f69b67ac443907d301f353162ead0303dd55..4b1a073bae874e42d95ebc1324b536786358832c 100644
+--- a/Belyi/Converse/ConstantFamily.lean
++++ b/Belyi/Converse/ConstantFamily.lean
+@@ -129,16 +129,14 @@ theorem isBaseChangeAlong_fibre (s : A →ₐ[k] k) (M : Type u) [CommRing M] [A
+     rw [Algebra.algebraMap_eq_smul_one (A := B), ← TensorProduct.smul_tmul, Algebra.smul_def,
+       mul_one]
+   haveI : IsScalarTower (A ⊗[k] R) R (M ⊗[k] R) := .of_algebraMap_eq fun x ↦ by
+-    induction x with
+-    | zero => simp
++    induction x using TensorProduct.inductionOn with
+     | add x y hx hy => simp only [map_add, hx, hy]
+     | tmul a r =>
+       change algebraMap k M (s a) ⊗ₜ r = 1 ⊗ₜ (s a • r)
+       rw [Algebra.algebraMap_eq_smul_one, TensorProduct.smul_tmul]
+   have hT : IsScalarTower (A ⊗[k] R) (M ⊗[k] R) (M ⊗[k] B₀) := by
+     refine .of_algebraMap_eq fun x ↦ ?_
+-    induction x with
+-    | zero => simp
++    induction x using TensorProduct.inductionOn with
+     | add x y hx hy => simp only [map_add, hx, hy]
+     | tmul a r =>
+       change (1 : M) ⊗ₜ ((1 : R) ⊗ₜ algebraMap (A ⊗[k] R) B (a ⊗ₜ r) : B₀) =
+@@ -178,8 +176,7 @@ theorem isBaseChangeAlong_map (φ : A →ₐ[k] L) (B₀ : Type u) [CommRing B
+     IsScalarTower.of_algebraMap_eq fun _ ↦ rfl
+   have hT : IsScalarTower (A ⊗[k] R) (L ⊗[k] R) (L ⊗[k] B₀) := by
+     refine .of_algebraMap_eq fun x ↦ ?_
+-    induction x with
+-    | zero => simp
++    induction x using TensorProduct.inductionOn with
+     | add x y hx hy => simp only [map_add, hx, hy]
+     | tmul a r => rfl
+   refine ⟨hT, ?_⟩
+diff --git a/Belyi/Converse/HomDescent.lean b/Belyi/Converse/HomDescent.lean
+index d6124c0fc6852061bb796402c0790f7b6f908c1e..0b5e604e97ff450339613f7607dc3def5ae3f287 100644
+--- a/Belyi/Converse/HomDescent.lean
++++ b/Belyi/Converse/HomDescent.lean
+@@ -47,8 +47,7 @@ variable {A : Type*} [CommRing A] {Ω : Type*} [CommRing Ω] [Algebra A Ω]
+ lemma map_id_eq_rTensor {D E : Type*} [CommRing D] [Algebra A D] [CommRing E] [Algebra A E]
+     (f : D →ₐ[A] E) (t : D ⊗[A] N) :
+     Algebra.TensorProduct.map f (AlgHom.id A N) t = LinearMap.rTensor N f.toLinearMap t := by
+-  induction t with
+-  | zero => simp
++  induction t using TensorProduct.inductionOn with
+   | tmul x y => simp
+   | add x y hx hy => rw [map_add, map_add, hx, hy]
+ 
+@@ -57,8 +56,7 @@ lemma map_inclusion_inclusion {C D E : Subalgebra A Ω} (h₁ : C ≤ D) (h₂ :
+     Algebra.TensorProduct.map (Subalgebra.inclusion h₂) (AlgHom.id A N)
+       (Algebra.TensorProduct.map (Subalgebra.inclusion h₁) (AlgHom.id A N) t) =
+     Algebra.TensorProduct.map (Subalgebra.inclusion (h₁.trans h₂)) (AlgHom.id A N) t := by
+-  induction t with
+-  | zero => simp
++  induction t using TensorProduct.inductionOn with
+   | tmul x y => simp
+   | add x y hx hy => rw [map_add, map_add, map_add, hx, hy]
+ 
+@@ -66,8 +64,7 @@ lemma map_val_inclusion {C D : Subalgebra A Ω} (h : C ≤ D) (t : C ⊗[A] N) :
+     Algebra.TensorProduct.map D.val (AlgHom.id A N)
+       (Algebra.TensorProduct.map (Subalgebra.inclusion h) (AlgHom.id A N) t) =
+     Algebra.TensorProduct.map C.val (AlgHom.id A N) t := by
+-  induction t with
+-  | zero => simp
++  induction t using TensorProduct.inductionOn with
+   | tmul x y => simp
+   | add x y hx hy => rw [map_add, map_add, map_add, hx, hy]
+ 
+@@ -232,8 +229,7 @@ lemma pushHom_apply (σ : D →ₐ[A] E) (F : B₁ →ₐ[A] D ⊗[A] B₂) (b :
+ lemma map_baseChangeHom (σ : D →ₐ[A] E) (F : B₁ →ₐ[A] D ⊗[A] B₂) (t : D ⊗[A] B₁) :
+     Algebra.TensorProduct.map σ (AlgHom.id A B₂) (baseChangeHom F t) =
+       baseChangeHom (pushHom σ F) (Algebra.TensorProduct.map σ (AlgHom.id A B₁) t) := by
+-  induction t with
+-  | zero => simp
++  induction t using TensorProduct.inductionOn with
+   | tmul d b => simp
+   | add x y hx hy => rw [map_add, map_add, map_add, hx, hy, map_add]
+ 
+@@ -300,8 +296,7 @@ theorem exists_algEquiv_of_fg [Algebra.FinitePresentation P B₁]
+     rw [← hF₂']; ext b; exact map_val_inclusion _ _
+   have hbc₁ : ∀ t, baseChangeHom F₁ t = e t := by
+     intro t
+-    induction t with
+-    | zero => simp
++    induction t using TensorProduct.inductionOn with
+     | tmul ω b =>
+       have : (ω ⊗ₜ[A] b : Ω ⊗[A] _) = algebraMap Ω _ ω * (1 ⊗ₜ b) := by simp
+       rw [baseChangeHom_tmul, this, map_mul, AlgEquiv.commutes]
+@@ -309,8 +304,7 @@ theorem exists_algEquiv_of_fg [Algebra.FinitePresentation P B₁]
+     | add x y hx hy => rw [map_add, map_add, hx, hy]
+   have hbc₂ : ∀ t, baseChangeHom F₂ t = e.symm t := by
+     intro t
+-    induction t with
+-    | zero => simp
++    induction t using TensorProduct.inductionOn with
+     | tmul ω b =>
+       have : (ω ⊗ₜ[A] b : Ω ⊗[A] _) = algebraMap Ω _ ω * (1 ⊗ₜ b) := by simp
+       rw [baseChangeHom_tmul, this, map_mul, AlgEquiv.commutes]
+diff --git a/Belyi/Converse/IsoDescent.lean b/Belyi/Converse/IsoDescent.lean
+index 69f7f51ad3d9f227c7df08169cb7b04eefc34974..65e59a91e3175df6b2b2050a60bb36b26b3bd87e 100644
+--- a/Belyi/Converse/IsoDescent.lean
++++ b/Belyi/Converse/IsoDescent.lean
+@@ -186,8 +186,7 @@ theorem nonempty_algEquiv_of_isBaseChangeAlong
+   -- back to `B₁K ≃ B₂K`
+   let E : B₁K ≃+* B₂K := (Ψ₁.symm.trans eK.toRingEquiv).trans Ψ₂
+   refine ⟨AlgEquiv.ofRingEquiv (f := E) fun x ↦ ?_⟩
+-  induction x with
+-  | zero => simp
++  induction x using TensorProduct.inductionOn with
+   | add x y hx hy => rw [map_add, map_add, hx, hy, map_add]
+   | tmul l r =>
+     have key₁ : algebraMap (K ⊗[k] R) B₁K (l ⊗ₜ r) =
+diff --git a/Belyi/Converse/Points.lean b/Belyi/Converse/Points.lean
+index 285770c889d3277896e9487be32a0d79010bc690..53fbc6cd9681ff1388451f8729394b1a2d6eaaf5 100644
+--- a/Belyi/Converse/Points.lean
++++ b/Belyi/Converse/Points.lean
+@@ -100,7 +100,7 @@ theorem exists_injective_algHom (k Ω A : Type u) [Field k] [Countable k]
+   obtain ⟨s, hs⟩ := exists_isTranscendenceBasis k A
+   have hsfin : #s < ℵ₀ := by
+     have h1 := hs.lift_cardinalMk_eq_trdeg
+-    have h2 := trdeg_lt_aleph0 (R := k) (S := A)
++    have h2 := trdeg_lt_aleph0_of_finiteType (R := k) (S := A)
+     simp only [lift_id] at h1
+     rwa [h1]
+   obtain ⟨t, ht⟩ := exists_isTranscendenceBasis k Ω
+diff --git a/Belyi/Converse/Spread.lean b/Belyi/Converse/Spread.lean
+index f76bb9ae3e7ec6dfe89f98ef62b25a70df7e5812..7a8378c2d0663f913cac6277bdc1ce0f39bb53dc 100644
+--- a/Belyi/Converse/Spread.lean
++++ b/Belyi/Converse/Spread.lean
+@@ -148,8 +148,7 @@ theorem injective_map_val (A : Subalgebra k K) :
+ theorem exists_fg_mem_range (x : K ⊗[k] R) :
+     ∃ A : Subalgebra k K, A.FG ∧
+       x ∈ Set.range (Algebra.TensorProduct.map A.val (AlgHom.id k R)) := by
+-  induction x with
+-  | zero => exact ⟨⊥, Subalgebra.fg_bot, 0, map_zero _⟩
++  induction x using TensorProduct.inductionOn with
+   | tmul a r =>
+     refine ⟨Algebra.adjoin k ((({a} : Finset K)) : Set K), Subalgebra.fg_adjoin_finset {a}, ?_⟩
+     exact ⟨⟨a, Algebra.subset_adjoin (by simp)⟩ ⊗ₜ r, rfl⟩
+diff --git a/Belyi/Curve/Descent.lean b/Belyi/Curve/Descent.lean
+index 6b9f7a650d4dff22de4e56c486d24466fefb81cb..a2cce2df8151aeccc4e8f80b01eb00aebcb3879b 100644
+--- a/Belyi/Curve/Descent.lean
++++ b/Belyi/Curve/Descent.lean
+@@ -5,6 +5,7 @@ Authors: The Belyi project contributors
+ -/
+ import Mathlib.AlgebraicGeometry.Morphisms.Separated
+ import Mathlib.AlgebraicGeometry.Morphisms.Proper
++import Mathlib.AlgebraicGeometry.Morphisms.Immersion
+ import Mathlib.AlgebraicGeometry.Morphisms.FlatDescent
+ import Mathlib.AlgebraicGeometry.Morphisms.LocalFlatDescent
+ 
+diff --git a/Belyi/CurveField/KummerStep.lean b/Belyi/CurveField/KummerStep.lean
+index f076a063d7f186ca0b78435c5861ba1d4cc41535..97aaee48ba1c670e92e3b024255997d5e11d5883 100644
+--- a/Belyi/CurveField/KummerStep.lean
++++ b/Belyi/CurveField/KummerStep.lean
+@@ -210,7 +210,7 @@ theorem exists_mem_conductor_notMem (x : chartRingExt K L t)
+   have hle : conductor (chartRing t) x * differentIdeal (chartRing t) (chartRingExt K L t) ≤
+       (heightOneBelow (R := chartRingExt K L t) Q.1 Q.ne_top
+         (algebraMap_chartRingExt_mem t Q htQ)).asIdeal :=
+-    Ideal.mul_le_right.trans fun c hc ↦ mem_heightOneBelow.mpr (h c hc)
++    Ideal.mul_le_left.trans fun c hc ↦ mem_heightOneBelow.mpr (h c hc)
+   rw [hcd] at hle
+   exact hunit (mem_heightOneBelow.mp (hle (Ideal.mem_span_singleton_self _)))
+ 
+diff --git a/Belyi/CurveField/Point.lean b/Belyi/CurveField/Point.lean
+index 2dc6d8369c43f30a75c9ed06321882a01ecc8aa8..70d055182fd8f8b08de4c4d9f4debc97e0959f9a 100644
+--- a/Belyi/CurveField/Point.lean
++++ b/Belyi/CurveField/Point.lean
+@@ -169,7 +169,7 @@ theorem exists_P_eq (P : Place K) : ∃ x : QbarPoint K, x.P = P :=
+     rfl⟩
+ 
+ instance (P : Place K) : Finite (P.ResidueField →+* AlgebraicClosure ℚ) :=
+-  Finite.of_equiv _ RingHom.equivRatAlgHom.symm
++  Finite.of_equiv _ (RingHom.equivRatAlgHom P.ResidueField (AlgebraicClosure ℚ)).symm
+ 
+ /-- Only finitely many points lie over a finite set of places. -/
+ theorem finite_setOf_mem {S : Set (Place K)} (hS : S.Finite) :
+diff --git a/Belyi/P1/BaseChange.lean b/Belyi/P1/BaseChange.lean
+index 67e8ea29c3b37ccb5050567dfc607f393ae525bc..45353c4786ceb7486db5baacea394e5cb22b7a7e 100644
+--- a/Belyi/P1/BaseChange.lean
++++ b/Belyi/P1/BaseChange.lean
+@@ -152,7 +152,7 @@ lemma irrelevant_le_map_gradedMapOfAlgebra :
+     have h := Ideal.mem_map_of_mem (f := gradedMapOfAlgebra k₀ K)
+       (show X j ∈ (HomogeneousIdeal.irrelevant (P1Grading k₀)).toIdeal from hXj)
+     rwa [gradedMapOfAlgebra_apply, MvPolynomial.map_X] at h
+-  have hdvd : (X j : MvPolynomial (Fin 2) K) ∣ monomial d (coeff d p) := by
++  have hdvd : (X j : MvPolynomial (Fin 2) K) ∣ monomial d (p.coeff d) := by
+     rw [X, MvPolynomial.monomial_dvd_monomial]
+     exact ⟨Or.inr (by simpa [Finsupp.single_le_iff] using Nat.one_le_iff_ne_zero.mpr hj),
+       one_dvd _⟩
+diff --git a/Belyi/P1/BaseChangeIso.lean b/Belyi/P1/BaseChangeIso.lean
+index 21faa2ba37302121df279eba05eeaaee970939e3..68d7005cb52f1ce424a12482d49efa03fc2f6a42 100644
+--- a/Belyi/P1/BaseChangeIso.lean
++++ b/Belyi/P1/BaseChangeIso.lean
+@@ -217,7 +217,7 @@ lemma irrelevant_le_span_X (k : Type u) [CommRing k] :
+   have hXj : (X j : MvPolynomial (Fin 2) k) ∈
+       Ideal.span (Set.range (fun i : Fin 2 => (X i : MvPolynomial (Fin 2) k))) :=
+     Ideal.subset_span ⟨j, rfl⟩
+-  have hdvd : (X j : MvPolynomial (Fin 2) k) ∣ monomial d (coeff d p) := by
++  have hdvd : (X j : MvPolynomial (Fin 2) k) ∣ monomial d (p.coeff d) := by
+     rw [X, MvPolynomial.monomial_dvd_monomial]
+     exact ⟨Or.inr (by simpa [Finsupp.single_le_iff] using Nat.one_le_iff_ne_zero.mpr hj),
+       one_dvd _⟩
+diff --git a/Belyi/P1/PointsBaseChange.lean b/Belyi/P1/PointsBaseChange.lean
+index 45a48c5d2f6fd9d5ce64b3dc5c6069d12a3ec505..2e91534e2218acc5817e46cefa8ddca786948591 100644
+--- a/Belyi/P1/PointsBaseChange.lean
++++ b/Belyi/P1/PointsBaseChange.lean
+@@ -39,9 +39,9 @@ variable {σ : Type*} {R S : Type*} [CommRing R] [CommRing S]
+ /-- `x` is divisible by `monomial s 1` iff every coefficient at a multi-index not `≥ s`
+ vanishes. -/
+ lemma monomial_one_dvd_iff_forall_coeff (x : MvPolynomial σ R) (s : σ →₀ ℕ) :
+-    (monomial s 1) ∣ x ↔ ∀ d, ¬ s ≤ d → coeff d x = 0 := by
++    (monomial s 1) ∣ x ↔ ∀ d, ¬ s ≤ d → x.coeff d = 0 := by
+   rw [monomial_one_dvd_iff_modMonomial_eq_zero, MvPolynomial.ext_iff]
+-  simp only [coeff_zero]
++  simp only [AddMonoidAlgebra.coeff_zero, Finsupp.zero_apply]
+   constructor
+   · intro h d hd
+     rw [← coeff_modMonomial_of_not_le x hd]
+diff --git a/Belyi/P1/PolynomialMap.lean b/Belyi/P1/PolynomialMap.lean
+index 42a9a639fb8f479e712e560ea9ab9d3b0ba9b574..68e923dda9fa8a991b8fbbcece70bc63e7424c47 100644
+--- a/Belyi/P1/PolynomialMap.lean
++++ b/Belyi/P1/PolynomialMap.lean
+@@ -64,7 +64,7 @@ lemma X1_dvd_homogInput_sub :
+       homogInput k g - C (g.coeff g.natDegree) * X 0 ^ g.natDegree := by
+   rw [MvPolynomial.X_dvd_iff_modMonomial_eq_zero]
+   ext m
+-  rw [coeff_zero]
++  rw [AddMonoidAlgebra.coeff_zero, Finsupp.zero_apply]
+   by_cases hm : Finsupp.single (1 : Fin 2) 1 ≤ m
+   · exact MvPolynomial.coeff_modMonomial_of_le _ hm
+   · rw [MvPolynomial.coeff_modMonomial_of_not_le _ hm]
+@@ -122,7 +122,7 @@ lemma X1_notMem_or_homogInput_notMem (hd : 0 < g.natDegree)
+   obtain ⟨j, hj⟩ : ∃ j, dd j ≠ 0 := by
+     by_contra hcon
+     exact hd0 (by ext j; simpa using not_not.mp (not_exists.mp hcon j))
+-  have hdvd : (X j : MvPolynomial (Fin 2) k) ∣ monomial dd (coeff dd p) := by
++  have hdvd : (X j : MvPolynomial (Fin 2) k) ∣ monomial dd (p.coeff dd) := by
+     rw [MvPolynomial.X, MvPolynomial.monomial_dvd_monomial]
+     exact ⟨Or.inr (by simpa [Finsupp.single_le_iff] using Nat.one_le_iff_ne_zero.mpr hj),
+       one_dvd _⟩
+diff --git a/lake-manifest.json b/lake-manifest.json
+index 5353a1a61ba8bdc45abdead73e0e5baa1c450bb7..7f84303cb861125f4c4a0499e51c10f46933cd33 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,31 +1,51 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/lana-agents/oka.git",
++ [{"url": "https://github.com/lana-agents/belyi.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "da228a2cf9671aaba08ddc96274d75e098b28f67",
++   "rev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "name": "belyi",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/oka.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
+    "name": "oka",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "da228a2cf9671aaba08ddc96274d75e098b28f67",
++   "inputRev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/leanprover-community/mathlib4",
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
++  {"url": "https://github.com/lana-agents/heights.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
++   "name": "heights",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -35,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -65,7 +85,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -75,7 +95,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -85,7 +105,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -95,10 +115,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "belyi",
+diff --git a/lakefile.toml b/lakefile.toml
+index 070a3d25f5ff8b83defe14d6e08e25b0eaa46449..28c618d17067766cc8d57c5a2dca9f227227c1ee 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["Belyi"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -11,13 +13,13 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[require]]
+ name = "oka"
+ git = "https://github.com/lana-agents/oka.git"
+-rev = "da228a2cf9671aaba08ddc96274d75e098b28f67"
++rev = "75dcdc3faadd10b986afb9283e89902bcdddecd4"
+ 
+ [[lean_lib]]
+ name = "Belyi"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

@@ -1,0 +1,208 @@
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionData14
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionData15
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionMergeData11
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionMergeData12
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionMergeData13
+import OAI.Analysis.MutuallyUnbiased.MixedTargets.ReductionMergeData7
+
+namespace OAI
+
+namespace MUB6.Certificate.MixedTargetSemantics
+
+open MixedSemantics
+
+def reducedMerge448 : Integer.Sparse Master := [(Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000)]
+
+def originalMerge448 : Integer.Sparse OriginalKey := originalTerm454 ++ originalTerm455
+
+theorem reducedMerge448Check : reducedMerge448 = Integer.Sparse.mergeBy masterLess reducedTerm454 reducedTerm455 := by decide +kernel
+
+def reducedMerge449 : Integer.Sparse Master := [(Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000)]
+
+def originalMerge449 : Integer.Sparse OriginalKey := originalMerge447 ++ originalMerge448
+
+theorem reducedMerge449Check : reducedMerge449 = Integer.Sparse.mergeBy masterLess reducedMerge447 reducedMerge448 := by decide +kernel
+
+def reducedMerge450 : Integer.Sparse Master := [(Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000)]
+
+def originalMerge450 : Integer.Sparse OriginalKey := originalMerge446 ++ originalMerge449
+
+theorem reducedMerge450Check : reducedMerge450 = Integer.Sparse.mergeBy masterLess reducedMerge446 reducedMerge449 := by decide +kernel
+
+def reducedMerge451 : Integer.Sparse Master := [(Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000)]
+
+def originalMerge451 : Integer.Sparse OriginalKey := originalTerm456 ++ originalTerm457
+
+theorem reducedMerge451Check : reducedMerge451 = Integer.Sparse.mergeBy masterLess reducedTerm456 reducedTerm457 := by decide +kernel
+
+def reducedMerge452 : Integer.Sparse Master := [(Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000)]
+
+def originalMerge452 : Integer.Sparse OriginalKey := originalTerm458 ++ originalTerm459
+
+theorem reducedMerge452Check : reducedMerge452 = Integer.Sparse.mergeBy masterLess reducedTerm458 reducedTerm459 := by decide +kernel
+
+def reducedMerge453 : Integer.Sparse Master := [(Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000)]
+
+def originalMerge453 : Integer.Sparse OriginalKey := originalMerge451 ++ originalMerge452
+
+theorem reducedMerge453Check : reducedMerge453 = Integer.Sparse.mergeBy masterLess reducedMerge451 reducedMerge452 := by decide +kernel
+
+def reducedMerge454 : Integer.Sparse Master := [(Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000)]
+
+def originalMerge454 : Integer.Sparse OriginalKey := originalTerm460 ++ originalTerm461
+
+theorem reducedMerge454Check : reducedMerge454 = Integer.Sparse.mergeBy masterLess reducedTerm460 reducedTerm461 := by decide +kernel
+
+def reducedMerge455 : Integer.Sparse Master := [(Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000)]
+
+def originalMerge455 : Integer.Sparse OriginalKey := originalTerm462 ++ originalTerm463
+
+theorem reducedMerge455Check : reducedMerge455 = Integer.Sparse.mergeBy masterLess reducedTerm462 reducedTerm463 := by decide +kernel
+
+def reducedMerge456 : Integer.Sparse Master := [(Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000)]
+
+def originalMerge456 : Integer.Sparse OriginalKey := originalMerge454 ++ originalMerge455
+
+theorem reducedMerge456Check : reducedMerge456 = Integer.Sparse.mergeBy masterLess reducedMerge454 reducedMerge455 := by decide +kernel
+
+def reducedMerge457 : Integer.Sparse Master := [(Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000)]
+
+def originalMerge457 : Integer.Sparse OriginalKey := originalMerge453 ++ originalMerge456
+
+theorem reducedMerge457Check : reducedMerge457 = Integer.Sparse.mergeBy masterLess reducedMerge453 reducedMerge456 := by decide +kernel
+
+def reducedMerge458 : Integer.Sparse Master := [(Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000)]
+
+def originalMerge458 : Integer.Sparse OriginalKey := originalMerge450 ++ originalMerge457
+
+theorem reducedMerge458Check : reducedMerge458 = Integer.Sparse.mergeBy masterLess reducedMerge450 reducedMerge457 := by decide +kernel
+
+def reducedMerge459 : Integer.Sparse Master := [(Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000)]
+
+def originalMerge459 : Integer.Sparse OriginalKey := originalTerm465 ++ originalTerm466
+
+theorem reducedMerge459Check : reducedMerge459 = Integer.Sparse.mergeBy masterLess reducedTerm465 reducedTerm466 := by decide +kernel
+
+def reducedMerge460 : Integer.Sparse Master := [(Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000)]
+
+def originalMerge460 : Integer.Sparse OriginalKey := originalTerm464 ++ originalMerge459
+
+theorem reducedMerge460Check : reducedMerge460 = Integer.Sparse.mergeBy masterLess reducedTerm464 reducedMerge459 := by decide +kernel
+
+def reducedMerge461 : Integer.Sparse Master := [(Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000)]
+
+def originalMerge461 : Integer.Sparse OriginalKey := originalTerm467 ++ originalTerm468
+
+theorem reducedMerge461Check : reducedMerge461 = Integer.Sparse.mergeBy masterLess reducedTerm467 reducedTerm468 := by decide +kernel
+
+def reducedMerge462 : Integer.Sparse Master := [(Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000)]
+
+def originalMerge462 : Integer.Sparse OriginalKey := originalTerm469 ++ originalTerm470
+
+theorem reducedMerge462Check : reducedMerge462 = Integer.Sparse.mergeBy masterLess reducedTerm469 reducedTerm470 := by decide +kernel
+
+def reducedMerge463 : Integer.Sparse Master := [(Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000)]
+
+def originalMerge463 : Integer.Sparse OriginalKey := originalMerge461 ++ originalMerge462
+
+theorem reducedMerge463Check : reducedMerge463 = Integer.Sparse.mergeBy masterLess reducedMerge461 reducedMerge462 := by decide +kernel
+
+def reducedMerge464 : Integer.Sparse Master := [(Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000)]
+
+def originalMerge464 : Integer.Sparse OriginalKey := originalMerge460 ++ originalMerge463
+
+theorem reducedMerge464Check : reducedMerge464 = Integer.Sparse.mergeBy masterLess reducedMerge460 reducedMerge463 := by decide +kernel
+
+def reducedMerge465 : Integer.Sparse Master := [(Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000)]
+
+def originalMerge465 : Integer.Sparse OriginalKey := originalTerm471 ++ originalTerm472
+
+theorem reducedMerge465Check : reducedMerge465 = Integer.Sparse.mergeBy masterLess reducedTerm471 reducedTerm472 := by decide +kernel
+
+def reducedMerge466 : Integer.Sparse Master := [(Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000)]
+
+def originalMerge466 : Integer.Sparse OriginalKey := originalTerm473 ++ originalTerm474
+
+theorem reducedMerge466Check : reducedMerge466 = Integer.Sparse.mergeBy masterLess reducedTerm473 reducedTerm474 := by decide +kernel
+
+def reducedMerge467 : Integer.Sparse Master := [(Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000)]
+
+def originalMerge467 : Integer.Sparse OriginalKey := originalMerge465 ++ originalMerge466
+
+theorem reducedMerge467Check : reducedMerge467 = Integer.Sparse.mergeBy masterLess reducedMerge465 reducedMerge466 := by decide +kernel
+
+def reducedMerge468 : Integer.Sparse Master := [(Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000)]
+
+def originalMerge468 : Integer.Sparse OriginalKey := originalTerm475 ++ originalTerm476
+
+theorem reducedMerge468Check : reducedMerge468 = Integer.Sparse.mergeBy masterLess reducedTerm475 reducedTerm476 := by decide +kernel
+
+def reducedMerge469 : Integer.Sparse Master := [(Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge469 : Integer.Sparse OriginalKey := originalTerm477 ++ originalTerm478
+
+theorem reducedMerge469Check : reducedMerge469 = Integer.Sparse.mergeBy masterLess reducedTerm477 reducedTerm478 := by decide +kernel
+
+def reducedMerge470 : Integer.Sparse Master := [(Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge470 : Integer.Sparse OriginalKey := originalMerge468 ++ originalMerge469
+
+theorem reducedMerge470Check : reducedMerge470 = Integer.Sparse.mergeBy masterLess reducedMerge468 reducedMerge469 := by decide +kernel
+
+def reducedMerge471 : Integer.Sparse Master := [(Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge471 : Integer.Sparse OriginalKey := originalMerge467 ++ originalMerge470
+
+theorem reducedMerge471Check : reducedMerge471 = Integer.Sparse.mergeBy masterLess reducedMerge467 reducedMerge470 := by decide +kernel
+
+def reducedMerge472 : Integer.Sparse Master := [(Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge472 : Integer.Sparse OriginalKey := originalMerge464 ++ originalMerge471
+
+theorem reducedMerge472Check : reducedMerge472 = Integer.Sparse.mergeBy masterLess reducedMerge464 reducedMerge471 := by decide +kernel
+
+def reducedMerge473 : Integer.Sparse Master := [(Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000), (Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge473 : Integer.Sparse OriginalKey := originalMerge458 ++ originalMerge472
+
+theorem reducedMerge473Check : reducedMerge473 = Integer.Sparse.mergeBy masterLess reducedMerge458 reducedMerge472 := by decide +kernel
+
+def reducedMerge474 : Integer.Sparse Master := [(Sum.inl 0, 994623221799567360000), (Sum.inl 1, 2400011865306316800000), (Sum.inl 4, 1841863535021260800000), (Sum.inl 12, -609714611070566400000), (Sum.inr 577, -654308882759024640000), (Sum.inr 578, -2282493232765992960000), (Sum.inr 579, 654308882759024640000), (Sum.inr 580, 877592856526848000000), (Sum.inr 581, 877447660307742720000), (Sum.inr 582, 607591276892651520000), (Sum.inr 583, 2282493232765992960000), (Sum.inr 584, -113253321790586880000), (Sum.inr 585, -2325444766551244800000), (Sum.inr 586, -878028445184163840000), (Sum.inr 587, 4950070676784414720000), (Sum.inr 588, -947351242264412160000), (Sum.inr 589, -877883248965058560000), (Sum.inr 590, -544816666760970240000), (Sum.inr 591, 2291676713032089600000), (Sum.inr 597, -28541892592926720000), (Sum.inr 599, -1211529171307069440000), (Sum.inr 600, 344588552322416640000), (Sum.inr 601, 28541892592926720000), (Sum.inr 603, 533546803510640640000), (Sum.inr 604, 6690208535414046720000), (Sum.inr 605, -2453660793490636800000), (Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000), (Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge474 : Integer.Sparse OriginalKey := originalMerge444 ++ originalMerge473
+
+theorem reducedMerge474Check : reducedMerge474 = Integer.Sparse.mergeBy masterLess reducedMerge444 reducedMerge473 := by decide +kernel
+
+def reducedMerge475 : Integer.Sparse Master := [(Sum.inl 0, -760048217543946240000), (Sum.inl 1, -4317265986963148800000), (Sum.inl 2, 1153719028094976000000), (Sum.inl 3, 58376847620844748800000), (Sum.inl 4, 16002410467973529600000), (Sum.inl 5, 1319920851065241600000), (Sum.inl 6, -139941733194547200000), (Sum.inl 7, 562832512362086400000), (Sum.inl 8, 1627605471382732800000), (Sum.inl 12, 27013097852684697600000), (Sum.inl 13, 30348824729687654400000), (Sum.inl 23, -4150728363840307200000), (Sum.inl 24, -367033407661670400000), (Sum.inl 25, -13187755114194124800000), (Sum.inl 26, 2999870993026252800000), (Sum.inl 27, -2969524514473574400000), (Sum.inl 30, -5160894864556032000000), (Sum.inl 31, -5828521755635712000000), (Sum.inl 32, 1481351094197452800000), (Sum.inl 33, -35752465208910643200000), (Sum.inl 34, 1200611473934745600000), (Sum.inl 35, -77137280601292800000), (Sum.inl 51, -255596124672000000000), (Sum.inl 54, -6334880740186521600000), (Sum.inl 55, -255596124672000000000), (Sum.inl 62, -3283146290995200000000), (Sum.inl 63, -1688249172492288000000), (Sum.inl 64, -3632094469656576000000), (Sum.inl 81, -255596124672000000000), (Sum.inl 123, -1943845297164288000000), (Sum.inl 195, 511192249344000000000), (Sum.inr 577, -654308882759024640000), (Sum.inr 578, -2282493232765992960000), (Sum.inr 579, 654308882759024640000), (Sum.inr 580, 877592856526848000000), (Sum.inr 581, 877447660307742720000), (Sum.inr 582, 607591276892651520000), (Sum.inr 583, 2282493232765992960000), (Sum.inr 584, -113253321790586880000), (Sum.inr 585, -2325444766551244800000), (Sum.inr 586, -878028445184163840000), (Sum.inr 587, 4950070676784414720000), (Sum.inr 588, -947351242264412160000), (Sum.inr 589, -877883248965058560000), (Sum.inr 590, -544816666760970240000), (Sum.inr 591, 2291676713032089600000), (Sum.inr 597, -28541892592926720000), (Sum.inr 599, -1211529171307069440000), (Sum.inr 600, 344588552322416640000), (Sum.inr 601, 28541892592926720000), (Sum.inr 603, 533546803510640640000), (Sum.inr 604, 6690208535414046720000), (Sum.inr 605, -2453660793490636800000), (Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000), (Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge475 : Integer.Sparse OriginalKey := originalMerge415 ++ originalMerge474
+
+theorem reducedMerge475Check : reducedMerge475 = Integer.Sparse.mergeBy masterLess reducedMerge415 reducedMerge474 := by decide +kernel
+
+def reducedMerge476 : Integer.Sparse Master := [(Sum.inl 0, -1068265709427087360000), (Sum.inl 1, -6269124228862924800000), (Sum.inl 2, 2400098515302297600000), (Sum.inl 3, 85491677033105817600000), (Sum.inl 4, 23393830581854208000000), (Sum.inl 5, 616641968091340800000), (Sum.inl 6, -364602250543104000000), (Sum.inl 7, 4447005619927449600000), (Sum.inl 8, 1192630560384614400000), (Sum.inl 12, 24542044085396275200000), (Sum.inl 13, 23492078816713113600000), (Sum.inl 23, 4112814374852198400000), (Sum.inl 24, 8867508331452825600000), (Sum.inl 25, -16761687597346406400000), (Sum.inl 26, 20668134741243494400000), (Sum.inl 27, -5273720189673062400000), (Sum.inl 30, -4680882943930368000000), (Sum.inl 31, -6817737340882944000000), (Sum.inl 32, 1481351094197452800000), (Sum.inl 33, -42894910800580608000000), (Sum.inl 34, 3134970110619648000000), (Sum.inl 35, 547870823881113600000), (Sum.inl 51, 12636654745868697600000), (Sum.inl 52, -1659949495993958400000), (Sum.inl 54, -10920078628274995200000), (Sum.inl 55, 15045085981539532800000), (Sum.inl 59, 4336091649146880000000), (Sum.inl 61, 4737490670223360000000), (Sum.inl 62, -3283146290995200000000), (Sum.inl 63, -4187069832727756800000), (Sum.inl 64, -7573706843325235200000), (Sum.inl 65, -3294511642430668800000), (Sum.inl 66, -75222115850649600000), (Sum.inl 67, 317221934432256000000), (Sum.inl 68, 3947707853313638400000), (Sum.inl 81, -766788374016000000000), (Sum.inl 123, -7182585418530816000000), (Sum.inl 124, 130212675610214400000), (Sum.inl 125, -708684465497702400000), (Sum.inl 126, 740907351126835200000), (Sum.inl 194, -15476971187994624000000), (Sum.inl 195, -3484357479751680000000), (Sum.inl 196, -839693753863372800000), (Sum.inl 197, 742500576637747200000), (Sum.inl 236, -796612755456000000), (Sum.inl 263, -7580203037245440000000), (Sum.inl 264, -228202465591296000000), (Sum.inl 266, -228202465591296000000), (Sum.inl 486, -511192249344000000000), (Sum.inl 487, -8091395286589440000000), (Sum.inr 577, -654308882759024640000), (Sum.inr 578, -2282493232765992960000), (Sum.inr 579, 654308882759024640000), (Sum.inr 580, 877592856526848000000), (Sum.inr 581, 877447660307742720000), (Sum.inr 582, 607591276892651520000), (Sum.inr 583, 2282493232765992960000), (Sum.inr 584, -113253321790586880000), (Sum.inr 585, -2325444766551244800000), (Sum.inr 586, -878028445184163840000), (Sum.inr 587, 4950070676784414720000), (Sum.inr 588, -947351242264412160000), (Sum.inr 589, -877883248965058560000), (Sum.inr 590, -544816666760970240000), (Sum.inr 591, 2291676713032089600000), (Sum.inr 597, -28541892592926720000), (Sum.inr 599, -1211529171307069440000), (Sum.inr 600, 344588552322416640000), (Sum.inr 601, 28541892592926720000), (Sum.inr 603, 533546803510640640000), (Sum.inr 604, 6690208535414046720000), (Sum.inr 605, -2453660793490636800000), (Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000), (Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge476 : Integer.Sparse OriginalKey := originalMerge356 ++ originalMerge475
+
+theorem reducedMerge476Check : reducedMerge476 = Integer.Sparse.mergeBy masterLess reducedMerge356 reducedMerge475 := by decide +kernel
+
+def reducedMerge477 : Integer.Sparse Master := [(Sum.inl 0, 19939583051424368640000), (Sum.inl 1, -1869104049556746240000), (Sum.inl 2, 4644371801737543680000), (Sum.inl 3, 92326856811407769600000), (Sum.inl 4, 23131383503877734400000), (Sum.inl 5, 3221049461020876800000), (Sum.inl 6, 365717504568729600000), (Sum.inl 7, 4614860267355340800000), (Sum.inl 8, -3743296719276441600000), (Sum.inl 9, 393661292632473600000), (Sum.inl 12, 22474548704872857600000), (Sum.inl 13, 38992015299221913600000), (Sum.inl 23, 10762160834550988800000), (Sum.inl 24, 18372170846144102400000), (Sum.inl 25, -13985496533978726400000), (Sum.inl 26, 21323362686706483200000), (Sum.inl 27, 1418716175772672000000), (Sum.inl 30, -4680882943930368000000), (Sum.inl 31, -7073333465554944000000), (Sum.inl 32, 4745802201477120000000), (Sum.inl 33, -45071977043939328000000), (Sum.inl 34, 3216637014287155200000), (Sum.inl 35, 20300984533831680000000), (Sum.inl 51, 20844440076334694400000), (Sum.inl 52, 8392474405866700800000), (Sum.inl 54, -12374076546168422400000), (Sum.inl 55, 31850438803874611200000), (Sum.inl 56, 6418437993883238400000), (Sum.inl 58, -176614741297612800000), (Sum.inl 59, 3635458356805632000000), (Sum.inl 60, 10815717612581683200000), (Sum.inl 61, 13348031491591372800000), (Sum.inl 62, -13208691003295334400000), (Sum.inl 63, -4304761391185920000000), (Sum.inl 64, -464566913608089600000), (Sum.inl 65, -2552961633494630400000), (Sum.inl 66, -75222115850649600000), (Sum.inl 67, 3088303514556825600000), (Sum.inl 68, 16182381785549414400000), (Sum.inl 69, 4283407023294873600000), (Sum.inl 70, 3692799467642880000000), (Sum.inl 71, 581673332072448000000), (Sum.inl 81, -7522157156548608000000), (Sum.inl 123, -5779978416672768000000), (Sum.inl 124, 9185931342714470400000), (Sum.inl 125, 11504122430924390400000), (Sum.inl 126, 34702576396546867200000), (Sum.inl 128, 5071126617627033600000), (Sum.inl 194, -15476971187994624000000), (Sum.inl 195, -3484357479751680000000), (Sum.inl 196, -1563346487756390400000), (Sum.inl 197, 15472899725952614400000), (Sum.inl 256, -668797982060544000000), (Sum.inl 257, 3497224054947840000000), (Sum.inl 259, 1776106015617024000000), (Sum.inl 260, -8587699706363904000000), (Sum.inl 263, -8918577379314892800000), (Sum.inl 264, -7410130929421516800000), (Sum.inl 266, 8419210088841216000000), (Sum.inl 268, 2344146906415104000000), (Sum.inl 487, -23459956324245504000000), (Sum.inl 495, 2895341101225574400000), (Sum.inr 577, -654308882759024640000), (Sum.inr 578, -2282493232765992960000), (Sum.inr 579, 654308882759024640000), (Sum.inr 580, 877592856526848000000), (Sum.inr 581, 877447660307742720000), (Sum.inr 582, 607591276892651520000), (Sum.inr 583, 2282493232765992960000), (Sum.inr 584, -113253321790586880000), (Sum.inr 585, -2325444766551244800000), (Sum.inr 586, -878028445184163840000), (Sum.inr 587, 4950070676784414720000), (Sum.inr 588, -947351242264412160000), (Sum.inr 589, -877883248965058560000), (Sum.inr 590, -544816666760970240000), (Sum.inr 591, 2291676713032089600000), (Sum.inr 597, -28541892592926720000), (Sum.inr 599, -1211529171307069440000), (Sum.inr 600, 344588552322416640000), (Sum.inr 601, 28541892592926720000), (Sum.inr 603, 533546803510640640000), (Sum.inr 604, 6690208535414046720000), (Sum.inr 605, -2453660793490636800000), (Sum.inr 606, 1441480432653434880000), (Sum.inr 607, 2300979745408942080000), (Sum.inr 608, -1054181617875025920000), (Sum.inr 610, -9473152863350292480000), (Sum.inr 611, 18388973290326589440000), (Sum.inr 612, -584459388199895040000), (Sum.inr 613, -2602745435968634880000), (Sum.inr 614, 677982367796428800000), (Sum.inr 615, 1801435404238848000000), (Sum.inr 616, -2365767237453742080000), (Sum.inr 617, 3002873618910412800000), (Sum.inr 618, 1287214867623444480000), (Sum.inr 619, 3163253859043246080000), (Sum.inr 620, 9267211259630714880000), (Sum.inr 621, 365728146625658880000), (Sum.inr 622, -820112129438515200000), (Sum.inr 623, -1258494730418257920000), (Sum.inr 624, -363229471392399360000), (Sum.inr 626, 4002258833827430400000), (Sum.inr 627, -860150167449108480000), (Sum.inr 628, 363229471392399360000), (Sum.inr 629, 1355923199361024000000), (Sum.inr 630, -1355923199361024000000), (Sum.inr 631, -3620046943302451200000), (Sum.inr 633, 4614435349529886720000), (Sum.inr 634, -4581648092858941440000), (Sum.inr 635, -1883613935960064000000), (Sum.inr 636, -3999431119401123840000), (Sum.inr 637, 5023829814312960000000), (Sum.inr 638, 5237719375993896960000)]
+
+def originalMerge477 : Integer.Sparse OriginalKey := originalMerge237 ++ originalMerge476
+
+theorem reducedMerge477Check : reducedMerge477 = Integer.Sparse.mergeBy masterLess reducedMerge237 reducedMerge476 := by decide +kernel
+
+def reducedMerge478 : Integer.Sparse Master := [(Sum.inr 640, -5023829814312960000000), (Sum.inr 641, 2600840819146752000000)]
+
+def originalMerge478 : Integer.Sparse OriginalKey := originalTerm480 ++ originalTerm481
+
+theorem reducedMerge478Check : reducedMerge478 = Integer.Sparse.mergeBy masterLess reducedTerm480 reducedTerm481 := by decide +kernel
+
+def reducedMerge479 : Integer.Sparse Master := [(Sum.inr 639, -3501219910680576000000), (Sum.inr 640, -5023829814312960000000), (Sum.inr 641, 2600840819146752000000)]
+
+def originalMerge479 : Integer.Sparse OriginalKey := originalTerm479 ++ originalMerge478
+
+theorem reducedMerge479Check : reducedMerge479 = Integer.Sparse.mergeBy masterLess reducedTerm479 reducedMerge478 := by decide +kernel
+
+end MUB6.Certificate.MixedTargetSemantics
+
+end OAI

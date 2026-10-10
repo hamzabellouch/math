@@ -1,0 +1,2575 @@
+diff --git a/Schoenflies/Accessible.lean b/Schoenflies/Accessible.lean
+--- a/Schoenflies/Accessible.lean
++++ b/Schoenflies/Accessible.lean
+@@ -113,7 +113,7 @@
+   have h1 : Continuous fun x : Plane => ‖x - p‖ := (continuous_id.sub continuous_const).norm
+   have h2 : Continuous fun x : Plane => inner ℝ v (x - p) :=
+     continuous_const.inner (continuous_id.sub continuous_const)
+-  rw [accessCone, setOf_and]
++  rw [accessCone, ofPred_and]
+   exact (isOpen_lt h1 continuous_const).inter (isOpen_lt (h1.div_const 2) h2)
+ 
+ /-- Membership in the cone in the form used by the blueprint: a unit direction `w` making an
+diff --git a/Schoenflies/ArcCollars.lean b/Schoenflies/ArcCollars.lean
+--- a/Schoenflies/ArcCollars.lean
++++ b/Schoenflies/ArcCollars.lean
+@@ -1261,7 +1261,7 @@
+          (min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖))) • (z - A.vertex (i + 1)) -
+          A.vertex (i + 1) =
+          (min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖))) • (z - A.vertex (i + 1)) := by module)
+-  · rw [Set.mem_setOf_eq, hsub]
++  · rw [Set.mem_ofPred_eq, hsub]
+     exact (smul_mem_arcCCW hδpos).2 harc
+   · rw [mem_ball, dist_eq_norm, hsub, norm_smul, Real.norm_eq_abs, abs_of_pos hδpos]
+     have h1 : min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖)) ≤ 1 := min_le_left _ _
+@@ -1286,7 +1286,7 @@
+          (min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖))) • (z - A.vertex (i + 1)) -
+          A.vertex (i + 1) =
+          (min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖))) • (z - A.vertex (i + 1)) := by module)
+-  · rw [Set.mem_setOf_eq, hsub]
++  · rw [Set.mem_ofPred_eq, hsub]
+     exact (smul_mem_arcCCW hδpos).2 harc
+   · rw [mem_ball, dist_eq_norm, hsub, norm_smul, Real.norm_eq_abs, abs_of_pos hδpos]
+     have h1 : min 1 (ε / (2 * ‖z - A.vertex (i + 1)‖)) ≤ 1 := min_le_left _ _
+diff --git a/Schoenflies/ArcComplement.lean b/Schoenflies/ArcComplement.lean
+--- a/Schoenflies/ArcComplement.lean
++++ b/Schoenflies/ArcComplement.lean
+@@ -154,7 +154,7 @@
+     Graph.pointSet (segGraph S) segmentDrawing = ⋃ P ∈ S, P.seg := by
+   ext z
+   simp only [Graph.pointSet, mem_union, mem_iUnion, exists_prop, segGraph_vertexSet,
+-    mem_setOf_eq, segGraph_edgeSet, edgeArc_segmentDrawing]
++    mem_ofPred_eq, segGraph_edgeSet, edgeArc_segmentDrawing]
+   constructor
+   · rintro (⟨P, hP, hzP⟩ | ⟨P, hP, hzP⟩)
+     · refine ⟨P, hP, ?_⟩
+@@ -453,7 +453,7 @@
+     intro z hz hz'
+     obtain ⟨j, hj, hj', hzj⟩ := exists_mem_frontier_of_mem_pointSet_familyChain hz
+     obtain ⟨k, hk, hk', hzk⟩ := exists_mem_frontier_of_mem_pointSet_familyChain hz'
+-    rw [Plane.frontier_closedSquare, mem_setOf_eq] at hzj hzk
++    rw [Plane.frontier_closedSquare, mem_ofPred_eq] at hzj hzk
+     have htri := Plane.supDist_triangle (c j) z (c k)
+     rw [Plane.supDist_comm (c j) z] at htri
+     exact absurd (hfar p q hp hq hpq j hj hj' k hk hk') (by rw [hzj, hzk] at htri; linarith)
+@@ -525,7 +525,7 @@
+         z ∈ Plane.closedSquare (c (p * m)) R := by
+       intro i hi hi' hzi
+       obtain ⟨j, hj, hj', hzj⟩ := exists_mem_frontier_of_mem_pointSet_familyChain hzi
+-      rw [Plane.frontier_closedSquare, mem_setOf_eq] at hzj
++      rw [Plane.frontier_closedSquare, mem_ofPred_eq] at hzj
+       have hjlo : p * m ≤ j := le_trans (Nat.mul_le_mul_right _ hi) hj
+       have hjhi : j ≤ p * m + m + m := by
+         have : i * m ≤ (p + 1) * m := Nat.mul_le_mul_right _ hi'
+@@ -714,7 +714,7 @@
+     (outerOnPairs_familyChain hcontain (hxfar u hmemu))
+   have houtw := outer_face_familyChain hchain
+     (outerOnPairs_familyChain hcontain (hxfar w hmemw))
+-  haveI : (Graph.chainUnion (familyChain c ((n + 1) * m) m r) 0 n).Finite :=
++  have : (Graph.chainUnion (familyChain c ((n + 1) * m) m r) 0 n).Finite :=
+     hchain.block_finite (i := 0) (m := n) (by omega)
+   have hdraw : Graph.IsDrawing (Graph.chainUnion (familyChain c ((n + 1) * m) m r) 0 n)
+       segmentDrawing := hchain.block_isDrawing (by omega)
+diff --git a/Schoenflies/ArcComplementPrep.lean b/Schoenflies/ArcComplementPrep.lean
+--- a/Schoenflies/ArcComplementPrep.lean
++++ b/Schoenflies/ArcComplementPrep.lean
+@@ -441,7 +441,7 @@
+ theorem mem_compl_closedSquare_iff (c : Plane) (r : ℝ) (x : Plane) :
+     x ∈ (closedSquare c r)ᶜ ↔ x - c ∈ beyondSquare r := by
+   rw [beyondSquare_eq_compl]
+-  simp only [mem_compl_iff, closedSquare, mem_setOf_eq, supDist_zero]
++  simp only [mem_compl_iff, closedSquare, mem_ofPred_eq, supDist_zero]
+   exact Iff.rfl
+ 
+ theorem compl_closedSquare_eq_image (c : Plane) (r : ℝ) :
+@@ -465,7 +465,7 @@
+     (frontier (closedSquare c r))ᶜ = openSquare c r ∪ (closedSquare c r)ᶜ := by
+   ext z
+   rw [frontier_closedSquare]
+-  simp only [mem_compl_iff, mem_setOf_eq, mem_union, openSquare, closedSquare, not_le]
++  simp only [mem_compl_iff, mem_ofPred_eq, mem_union, openSquare, closedSquare, not_le]
+   constructor
+   · intro h
+     rcases lt_or_gt_of_ne h with h' | h'
+diff --git a/Schoenflies/ArcMonotone.lean b/Schoenflies/ArcMonotone.lean
+--- a/Schoenflies/ArcMonotone.lean
++++ b/Schoenflies/ArcMonotone.lean
+@@ -86,7 +86,7 @@
+   have h : ∃ s, s ∈ I ∧ f s = p := by
+     obtain ⟨s, hs, rfl⟩ := hp
+     exact ⟨s, hs, rfl⟩
+-  rw [arcParam, dif_pos h]
++  rw [arcParam, dite_eq_left h]
+   exact h.choose_spec
+ 
+ theorem arcParam_mem_I (hp : p ∈ f '' I) : arcParam f p ∈ I := (arcParam_spec hp).1
+diff --git a/Schoenflies/BoundaryAnchors.lean b/Schoenflies/BoundaryAnchors.lean
+--- a/Schoenflies/BoundaryAnchors.lean
++++ b/Schoenflies/BoundaryAnchors.lean
+@@ -119,7 +119,7 @@
+       have harc := h.edge_isArcBetween hxy
+       apply Or.inr
+       exact Set.mem_iUnion₂.2 ⟨e, by
+-        rw [Graph.edgeSet_eq_setOf_exists_isLink]
++        rw [Graph.edgeSet_eq_setOfPred_exists_isLink]
+         exact ⟨x, y, (Graph.traceGraph_isLink D).2
+           ⟨heD, hxy, heD harc.left_mem, heD harc.right_mem⟩⟩, hze⟩
+ 
+@@ -246,7 +246,7 @@
+       h.vertex_mem hlb.right_mem (hcase hlb hbnb hbC)
+     let K := Graph.traceGraph G drawing (inside C)
+     have hKle : K ≤ G := Graph.traceGraph_le _
+-    letI : K.Finite := Graph.Finite.of_le hKle
++    let : K.Finite := Graph.Finite.of_le hKle
+     have hKpoint : Graph.pointSet K drawing =
+         Graph.interiorPart G drawing (inside C) :=
+       Graph.pointSet_traceGraph_eq_interiorPart h.isDrawing (inside C)
+@@ -793,7 +793,7 @@
+   have hrTargetAdmissible :
+       r.pair.tgt.IsAdmissible modelCurve (Plane.closedSquare 0 1) :=
+     r.pair.tgt_isAdmissible hrAdmissible.isConnected_nonboundary
+-  letI : r.pair.src.graph.Finite := CellStructure.Realization.finite_graph r.pair.src
++  let : r.pair.src.graph.Finite := CellStructure.Realization.finite_graph r.pair.src
+   have hsourceStage := hrAdmissible.isStageOn
+   have htargetStage : Graph.IsStageOn r.pair.tgt.graph r.pair.tgt.drawing
+       modelCurve (inside modelCurve) := by
+diff --git a/Schoenflies/BoundaryContinuity2.lean b/Schoenflies/BoundaryContinuity2.lean
+--- a/Schoenflies/BoundaryContinuity2.lean
++++ b/Schoenflies/BoundaryContinuity2.lean
+@@ -494,7 +494,7 @@
+     hsnot (mem_of_superset h (preimage_mono hWs))
+   -- the filter of approach that stays away from `W`
+   set l' : Filter Plane := 𝓝[inside C] p ⊓ 𝓟 (F ⁻¹' Wᶜ) with hl'
+-  haveI : l'.NeBot := by
++  have : l'.NeBot := by
+     refine ⟨fun h => hWnot ?_⟩
+     rw [hl', Filter.inf_principal_eq_bot] at h
+     simpa using h
+@@ -521,7 +521,7 @@
+       rw [le_principal_iff, mem_map]
+       filter_upwards [hl'in] with z hz using hF.mapsTo hz
+     set m : Filter Plane := 𝓝 q ⊓ map F l' with hm
+-    haveI : m.NeBot := hqcl
++    have : m.NeBot := hqcl
+     have hm1 : m ≤ 𝓝[Plane.openSquare 0 1] q :=
+       le_inf inf_le_left (le_trans inf_le_right hmapO)
+     have h1 : Tendsto F' m (𝓝 (F' q)) := (hF.continuousOn_inv q hqopen).mono_left hm1
+diff --git a/Schoenflies/BoundaryCycles.lean b/Schoenflies/BoundaryCycles.lean
+--- a/Schoenflies/BoundaryCycles.lean
++++ b/Schoenflies/BoundaryCycles.lean
+@@ -148,7 +148,7 @@
+   rw [CellStructure.pathCells, CellStructure.pathCells,
+     h₁.walkVertices_eq_covered hne₁, h₂.walkVertices_eq_covered hne₂]
+   ext σ
+-  simp only [Set.mem_union, Set.mem_setOf_eq, Graph.mem_coveredVertices_iff]
++  simp only [Set.mem_union, Set.mem_ofPred_eq, Graph.mem_coveredVertices_iff]
+   constructor
+   · rintro (hσ | ⟨e, he, hi⟩)
+     · exact Or.inl (hp.mem_iff.1 hσ)
+diff --git a/Schoenflies/Bounded.lean b/Schoenflies/Bounded.lean
+--- a/Schoenflies/Bounded.lean
++++ b/Schoenflies/Bounded.lean
+@@ -38,7 +38,7 @@
+ /-- The outside of a square is exactly the complement of the closed square. -/
+ theorem beyondSquare_eq_compl (r : ℝ) : beyondSquare r = (closedSquare 0 r)ᶜ := by
+   ext x
+-  simp only [beyondSquare, closedSquare, mem_setOf_eq, mem_compl_iff, supDist_zero, supNorm,
++  simp only [beyondSquare, closedSquare, mem_ofPred_eq, mem_compl_iff, supDist_zero, supNorm,
+     max_le_iff, not_and_or, not_le]
+ 
+ /-- A bounded set sits inside a closed square about the origin, of nonnegative radius. -/
+diff --git a/Schoenflies/CommonSubdivision.lean b/Schoenflies/CommonSubdivision.lean
+--- a/Schoenflies/CommonSubdivision.lean
++++ b/Schoenflies/CommonSubdivision.lean
+@@ -48,8 +48,8 @@
+   let B : Graph Plane β := G.induce (V(G) \ G.component x)
+   have hAle : A ≤ G := G.induce_le component_subset_vertexSet
+   have hBle : B ≤ G := G.induce_le Set.sdiff_subset
+-  letI : A.Finite := Graph.Finite.of_le hAle
+-  letI : B.Finite := Graph.Finite.of_le hBle
++  let : A.Finite := Graph.Finite.of_le hAle
++  let : B.Finite := Graph.Finite.of_le hBle
+   have hAclosed : IsClosed (pointSet A drawing) := (hdraw.mono hAle).isClosed_pointSet
+   have hBclosed : IsClosed (pointSet B drawing) := (hdraw.mono hBle).isClosed_pointSet
+   have hcover : pointSet G drawing ⊆ pointSet A drawing ∪ pointSet B drawing := by
+@@ -64,14 +64,14 @@
+       · have hvC : v ∈ G.component x := mem_component_of_isLink huC huv
+         exact Or.inl (Or.inr (Set.mem_iUnion₂_of_mem
+           (show e ∈ E(A) by
+-            rw [edgeSet_eq_setOf_exists_isLink]
++            rw [edgeSet_eq_setOfPred_exists_isLink]
+             exact ⟨u, v, huv, huC, hvC⟩) hze))
+       · have hvC : v ∉ G.component x := by
+           intro hvC
+           exact huC (mem_component_of_isLink hvC huv.symm)
+         exact Or.inr (Or.inr (Set.mem_iUnion₂_of_mem
+           (show e ∈ E(B) by
+-            rw [edgeSet_eq_setOf_exists_isLink]
++            rw [edgeSet_eq_setOfPred_exists_isLink]
+             exact ⟨u, v, huv, ⟨huv.left_mem, huC⟩, ⟨huv.right_mem, hvC⟩⟩) hze))
+   have hAB : Disjoint (pointSet A drawing) (pointSet B drawing) := by
+     rw [Set.disjoint_left]
+@@ -79,13 +79,13 @@
+     rcases hzA with hzAV | hzAE <;> rcases hzB with hzBV | hzBE
+     · exact hzBV.2 hzAV
+     · obtain ⟨e, heB, hze⟩ := Set.mem_iUnion₂.1 hzBE
+-      rw [edgeSet_eq_setOf_exists_isLink] at heB
++      rw [edgeSet_eq_setOfPred_exists_isLink] at heB
+       obtain ⟨u, v, huv, huB, hvB⟩ := heB
+       have hzinc := hdraw.vertex_mem_edgeArc huv (component_subset_vertexSet hzAV) hze
+       rcases hzinc with rfl | rfl
+       exacts [huB.2 hzAV, hvB.2 hzAV]
+     · obtain ⟨e, heA, hze⟩ := Set.mem_iUnion₂.1 hzAE
+-      rw [edgeSet_eq_setOf_exists_isLink] at heA
++      rw [edgeSet_eq_setOfPred_exists_isLink] at heA
+       obtain ⟨u, v, huv, huA, hvA⟩ := heA
+       have hzinc := hdraw.vertex_mem_edgeArc huv hzBV.1 hze
+       rcases hzinc with rfl | rfl
+@@ -97,7 +97,7 @@
+       have hef : e ≠ f := by
+         intro hef
+         subst f
+-        rw [edgeSet_eq_setOf_exists_isLink] at heA hfB
++        rw [edgeSet_eq_setOfPred_exists_isLink] at heA hfB
+         obtain ⟨u, v, huv, huA, -⟩ := heA
+         obtain ⟨u', v', huv', huB, hvB⟩ := hfB
+         rcases huv.left_eq_or_eq huv' with h | h
+@@ -105,7 +105,7 @@
+         · exact hvB.2 (h ▸ huA)
+       obtain ⟨hzV, ⟨u, heu⟩, ⟨v, hfv⟩⟩ :=
+         hdraw.edge_inter heG hfG hef hzeA hzfB
+-      rw [edgeSet_eq_setOf_exists_isLink] at heA hfB
++      rw [edgeSet_eq_setOfPred_exists_isLink] at heA hfB
+       obtain ⟨a, b, hab, haA, hbA⟩ := heA
+       obtain ⟨c, d, hcd, hcB, hdB⟩ := hfB
+       rcases heu.left_eq_or_eq hab with rfl | rfl <;>
+@@ -135,7 +135,7 @@
+ @[simp] theorem traceGraph_isLink (A : Set Plane) :
+     (traceGraph G drawing A).IsLink e x y ↔
+       edgeArc drawing e ⊆ A ∧ G.IsLink e x y ∧ x ∈ A ∧ y ∈ A := by
+-  simp only [traceGraph, induce_isLink, restrict_isLink, Set.mem_setOf_eq,
++  simp only [traceGraph, induce_isLink, restrict_isLink, Set.mem_ofPred_eq,
+     Set.mem_inter_iff]
+   constructor
+   · rintro ⟨⟨hsub, hlink⟩, ⟨-, hxA⟩, ⟨-, hyA⟩⟩
+@@ -164,7 +164,7 @@
+   rintro z (hz | hz)
+   · exact hz.2
+   · obtain ⟨e, he, hze⟩ := Set.mem_iUnion₂.1 hz
+-    rw [edgeSet_eq_setOf_exists_isLink] at he
++    rw [edgeSet_eq_setOfPred_exists_isLink] at he
+     obtain ⟨x, y, hxy⟩ := he
+     exact (traceGraph_isLink A).1 hxy |>.1 hze
+ 
+@@ -185,7 +185,7 @@
+         habsorb he ⟨z, ⟨hze, hzA, hzVG⟩⟩
+       exact Or.inr (Set.mem_iUnion₂_of_mem
+         (show e ∈ E(traceGraph G drawing A) by
+-          rw [edgeSet_eq_setOf_exists_isLink]
++          rw [edgeSet_eq_setOfPred_exists_isLink]
+           obtain ⟨x, y, hxy⟩ := G.exists_isLink_of_mem_edgeSet he
+           have harc := hdraw.edge_isArcBetween hxy
+           exact ⟨x, y, (traceGraph_isLink A).2
+@@ -302,8 +302,8 @@
+       Graph.edgesCover Hdraw D = edgeArc R.drawing e := by
+   let K := Graph.traceGraph H Hdraw (edgeArc R.drawing e)
+   have hKle : K ≤ H := Graph.traceGraph_le _
+-  letI : H.Finite := hH.finite
+-  letI : K.Finite := Graph.Finite.of_le hKle
++  let : H.Finite := hH.finite
++  let : K.Finite := Graph.Finite.of_le hKle
+   have hpoint : pointSet K Hdraw = edgeArc R.drawing e :=
+     edge_trace_pointSet hH hab.edge_mem
+   have haH : R.pos a ∈ V(H) := hH.vertexSet_subset (by
+@@ -683,8 +683,8 @@
+     ∃ D : List δ, K.IsPath a D b ∧ edgesCover Kdraw D = edgeArc Gdraw e := by
+   let T := Graph.traceGraph K Kdraw (edgeArc Gdraw e)
+   have hTK : T ≤ K := Graph.traceGraph_le _
+-  letI : K.Finite := h.finite
+-  letI : T.Finite := Graph.Finite.of_le hTK
++  let : K.Finite := h.finite
++  let : T.Finite := Graph.Finite.of_le hTK
+   have hpoint : pointSet T Kdraw = edgeArc Gdraw e := h.edge_trace_pointSet hab.edge_mem
+   have haK : a ∈ V(K) := h.vertexSet_subset hab.left_mem
+   have hbK : b ∈ V(K) := h.vertexSet_subset hab.right_mem
+@@ -1083,7 +1083,7 @@
+     have hvertex : d.realizePos R t '' V(d.outer) =
+         insert (R.drawing d.edge t) (R.pos '' V(S.outerGraph)) := by
+       rw [CellStructure.SubdivData.outer, subdivGraph_vertexSet]
+-      simp only [d.outer_isLink he, and_true, Set.setOf_eq_eq_singleton,
++      simp only [d.outer_isLink he, and_true, Set.ofPred_eq_eq_singleton,
+         Set.image_union, Set.image_singleton, d.realizePos_newVertex]
+       rw [Set.union_comm]
+       congr 1
+@@ -1326,7 +1326,7 @@
+         exact (P.src.isDrawing.edge_param heR).2.2.right_mem
+       have htIoo : t ∈ Set.Ioo (0 : ℝ) 1 :=
+         ⟨lt_of_le_of_ne ht.1 (Ne.symm ht0), lt_of_le_of_ne ht.2 ht1⟩
+-      letI : Finite (Fin 3) := inferInstance
++      let : Finite (Fin 3) := inferInstance
+       obtain ⟨fresh, hfresh, havoid⟩ :=
+         exists_injective_avoiding P.str.cells P.str.finite_cells (Fin 3)
+       have h01 : fresh 0 ≠ fresh 1 := fun h => by
+diff --git a/Schoenflies/Concatenate.lean b/Schoenflies/Concatenate.lean
+--- a/Schoenflies/Concatenate.lean
++++ b/Schoenflies/Concatenate.lean
+@@ -84,11 +84,11 @@
+ variable {f g : ℝ → Plane}
+ 
+ theorem concatenate_of_le {t : ℝ} (ht : t ≤ 1 / 2) : concatenate f g t = f (2 * t) :=
+-  if_pos ht
++  ite_eq_left ht
+ 
+ theorem concatenate_of_not_le {t : ℝ} (ht : ¬t ≤ 1 / 2) :
+     concatenate f g t = g (2 * t - 1) :=
+-  if_neg ht
++  ite_eq_right ht
+ 
+ theorem concatenate_zero : concatenate f g 0 = f 0 := by
+   rw [concatenate_of_le (by norm_num)]
+diff --git a/Schoenflies/Direction.lean b/Schoenflies/Direction.lean
+--- a/Schoenflies/Direction.lean
++++ b/Schoenflies/Direction.lean
+@@ -177,7 +177,7 @@
+   have key : ∀ x : ℝ, 0 < r * x ↔ 0 < x := by
+     intro x
+     constructor <;> intro hx <;> nlinarith
+-  simp only [arcCCW, mem_setOf_eq, det_smul_left, det_smul_right, key]
++  simp only [arcCCW, mem_ofPred_eq, det_smul_left, det_smul_right, key]
+ 
+ theorem dir_mem_arcCCW_iff (hd : d ≠ 0) : dir d ∈ arcCCW u w ↔ d ∈ arcCCW u w := by
+   obtain ⟨c, hc, hcd⟩ := dir_eq_smul hd
+@@ -432,7 +432,7 @@
+   by_cases h : 0 < det w u
+   · have : arcCCW u w = {d : Plane | 0 < det u d} ∪ {d : Plane | 0 < det d w} := by
+       ext d
+-      simp only [arcCCW, mem_setOf_eq, mem_union]
++      simp only [arcCCW, mem_ofPred_eq, mem_union]
+       constructor
+       · rintro (⟨h1, _⟩ | ⟨h2, _⟩ | ⟨_, h1⟩) <;> tauto
+       · rintro (hx | hx)
+@@ -442,7 +442,7 @@
+     exact h1.union h2
+   · have : arcCCW u w = {d : Plane | 0 < det u d} ∩ {d : Plane | 0 < det d w} := by
+       ext d
+-      simp only [arcCCW, mem_setOf_eq, mem_inter_iff]
++      simp only [arcCCW, mem_ofPred_eq, mem_inter_iff]
+       constructor
+       · rintro (hx | ⟨_, hx⟩ | ⟨hx, _⟩) <;> [exact hx; exact absurd hx h; exact absurd hx h]
+       · exact Or.inl
+diff --git a/Schoenflies/Endgame.lean b/Schoenflies/Endgame.lean
+--- a/Schoenflies/Endgame.lean
++++ b/Schoenflies/Endgame.lean
+@@ -112,28 +112,28 @@
+   classical
+   refine ⟨fun z => if hz : z ∈ S then (e ⟨z, hz⟩ : Plane) else z,
+     fun w => if hw : w ∈ T then (e.symm ⟨w, hw⟩ : Plane) else w,
+-    ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, fun z hz => dif_pos hz⟩
+-  · exact fun z hz => by simp only [dif_pos hz]; exact (e ⟨z, hz⟩).2
+-  · exact fun w hw => by simp only [dif_pos hw]; exact (e.symm ⟨w, hw⟩).2
+-  · rw [continuousOn_iff_continuous_restrict]
+-    have heq : (S.restrict fun z => if hz : z ∈ S then (e ⟨z, hz⟩ : Plane) else z) =
++    ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, fun z hz => dite_eq_left hz⟩
++  · exact fun z hz => by simp only [dite_eq_left hz]; exact (e ⟨z, hz⟩).2
++  · exact fun w hw => by simp only [dite_eq_left hw]; exact (e.symm ⟨w, hw⟩).2
++  · rw [continuousOn_iff_continuous_domRestrict]
++    have heq : (S.domRestrict fun z => if hz : z ∈ S then (e ⟨z, hz⟩ : Plane) else z) =
+         fun z : ↥S => (e z : Plane) := by
+       funext z
+-      simp only [Set.restrict_apply, dif_pos z.2]
++      simp only [Set.domRestrict_apply, dite_eq_left z.2]
+     rw [heq]
+     exact continuous_subtype_val.comp e.continuous
+-  · rw [continuousOn_iff_continuous_restrict]
+-    have heq : (T.restrict fun w => if hw : w ∈ T then (e.symm ⟨w, hw⟩ : Plane) else w) =
++  · rw [continuousOn_iff_continuous_domRestrict]
++    have heq : (T.domRestrict fun w => if hw : w ∈ T then (e.symm ⟨w, hw⟩ : Plane) else w) =
+         fun w : ↥T => (e.symm w : Plane) := by
+       funext w
+-      simp only [Set.restrict_apply, dif_pos w.2]
++      simp only [Set.domRestrict_apply, dite_eq_left w.2]
+     rw [heq]
+     exact continuous_subtype_val.comp e.symm.continuous
+   · intro z hz
+-    simp only [dif_pos hz, dif_pos (e ⟨z, hz⟩).2]
++    simp only [dite_eq_left hz, dite_eq_left (e ⟨z, hz⟩).2]
+     exact congrArg Subtype.val (e.symm_apply_apply ⟨z, hz⟩)
+   · intro w hw
+-    simp only [dif_pos hw, dif_pos (e.symm ⟨w, hw⟩).2]
++    simp only [dite_eq_left hw, dite_eq_left (e.symm ⟨w, hw⟩).2]
+     exact congrArg Subtype.val (e.apply_symm_apply ⟨w, hw⟩)
+ 
+ namespace IsHomeoOn
+@@ -196,11 +196,11 @@
+ 
+ theorem paste_of_mem {S : Set Plane} {f₁ f₂ : Plane → Plane} {z : Plane} (hz : z ∈ S) :
+     paste S f₁ f₂ z = f₁ z := by
+-  classical exact if_pos hz
++  classical exact ite_eq_left hz
+ 
+ theorem paste_of_notMem {S : Set Plane} {f₁ f₂ : Plane → Plane} {z : Plane} (hz : z ∉ S) :
+     paste S f₁ f₂ z = f₂ z := by
+-  classical exact if_neg hz
++  classical exact ite_eq_right hz
+ 
+ /-! ### The square `Q` and its boundary `S`
+ 
+diff --git a/Schoenflies/FaceCyclesProof.lean b/Schoenflies/FaceCyclesProof.lean
+--- a/Schoenflies/FaceCyclesProof.lean
++++ b/Schoenflies/FaceCyclesProof.lean
+@@ -840,7 +840,7 @@
+     (hint : ∀ y ∈ G.walkVertices a D', y ≠ a → y ≠ b → y ∉ V(B))
+     (hnew : ∀ g ∈ D', g ∉ E(B)) :
+     HasFaceCycles (B.union (G.pathGraphOf a D')) drawing := by
+-  haveI : B.Finite := Finite.of_le hBG
++  have : B.Finite := Finite.of_le hBG
+   have hB : IsDrawing B drawing := h.mono hBG
+   have hne : D' ≠ [] := hpath.ne_nil hab
+   have hPG : G.pathGraphOf a D' ≤ G := pathGraphOf_le hpath.isWalk
+diff --git a/Schoenflies/FiniteTransfer.lean b/Schoenflies/FiniteTransfer.lean
+--- a/Schoenflies/FiniteTransfer.lean
++++ b/Schoenflies/FiniteTransfer.lean
+@@ -735,7 +735,7 @@
+     (ι : Type*) [Finite ι] :
+     ∃ fresh : ι → γ, Function.Injective fresh ∧ ∀ i, fresh i ∉ used := by
+   classical
+-  letI : Fintype ι := Fintype.ofFinite ι
++  let : Fintype ι := Fintype.ofFinite ι
+   let code : ι ↪ ℕ := (Fintype.equivFin ι).toEmbedding.trans Fin.valEmbedding
+   let supply : ℕ ↪ {x // x ∈ (usedᶜ : Set γ)} :=
+     hused.infinite_compl.natEmbedding (usedᶜ : Set γ)
+@@ -753,7 +753,7 @@
+       ∀ x ∈ s, x ≠ a → x ≠ b → name x ∉ used := by
+   classical
+   let inner := {x : α // x ∈ s ∧ x ≠ a ∧ x ≠ b}
+-  letI : Finite inner := Set.finite_coe_iff.mpr (hs.subset fun x hx => hx.1)
++  let : Finite inner := Set.finite_coe_iff.mpr (hs.subset fun x hx => hx.1)
+   obtain ⟨fresh, hfresh, havoid⟩ := exists_injective_avoiding used hused inner
+   let name : α → γ := fun x =>
+     if hxa : x = a then u else if hxb : x = b then v
+@@ -1148,7 +1148,7 @@
+     exact vname_fresh x hxQ (fun h => hxab (Or.inl h)) (fun h => hxab (Or.inr h)) hzCell
+   let edgeUsed : Set γ := T.str.cells ∪ newVertices
+   have hedgeUsed_fin : edgeUsed.Finite := T.str.finite_cells.union hnewVertices_fin
+-  letI : Finite E(Q) := Set.finite_coe_iff.mpr hQfinE
++  let : Finite E(Q) := Set.finite_coe_iff.mpr hQfinE
+   obtain ⟨freshEdge, freshEdge_inj, freshEdge_avoid⟩ :=
+     exists_injective_avoiding edgeUsed hedgeUsed_fin E(Q)
+   let ename : γ → γ := fun e => if he : e ∈ E(Q) then freshEdge ⟨e, he⟩ else u
+@@ -1383,7 +1383,7 @@
+     (hsub : CommonSubdivision P H Hdraw) (hstep : EarStep P H Hdraw) :
+     ∃ (T : GeneratedPair S₀ srcOuter srcDom tgtOuter tgtDom) (par : γ → γ),
+       IsPartialTransferOf T P H Hdraw par := by
+-  haveI := hH.finite
++  have := hH.finite
+   obtain ⟨K, T₀, par₀, hK, hKH, hbase⟩ := hsub
+   refine hH.isTwoConnected.ear_decomposition
+     (motive := fun B => ∃ T par, IsPartialTransferOf T P B Hdraw par)
+@@ -1549,7 +1549,7 @@
+     exact fun hmem => Set.disjoint_left.1
+       (P.tgt.disjoint_cell_skeletonSet P.tgt_isCellDecomposition hF) hmem
+       (P.tgt.pos_mem_skeletonSet hv)
+-  letI : (P.str.skel.map P.tgt.pos).Finite := {
++  let : (P.str.skel.map P.tgt.pos).Finite := {
+     finite_vertexSet := by
+       rw [Graph.vertexSet_map]
+       exact P.str.finite_vertexSet.image _
+diff --git a/Schoenflies/FiniteTransferTarget.lean b/Schoenflies/FiniteTransferTarget.lean
+--- a/Schoenflies/FiniteTransferTarget.lean
++++ b/Schoenflies/FiniteTransferTarget.lean
+@@ -561,7 +561,7 @@
+     exact vname_fresh x hxQ (fun h => hxab (Or.inl h)) (fun h => hxab (Or.inr h)) hzCell
+   let edgeUsed : Set γ := T.str.cells ∪ newVertices
+   have hedgeUsed_fin : edgeUsed.Finite := T.str.finite_cells.union hnewVertices_fin
+-  letI : Finite E(Q) := Set.finite_coe_iff.mpr hQfinE
++  let : Finite E(Q) := Set.finite_coe_iff.mpr hQfinE
+   obtain ⟨freshEdge, freshEdge_inj, freshEdge_avoid⟩ :=
+     exists_injective_avoiding edgeUsed hedgeUsed_fin E(Q)
+   let ename : γ → γ := fun e => if he : e ∈ E(Q) then freshEdge ⟨e, he⟩ else u
+@@ -1128,8 +1128,8 @@
+       T.str.OuterOnlyAt w.splitData.source) ∧
+     (T.src.pos w.splitData.target ∈ srcOuter →
+       T.str.OuterOnlyAt w.splitData.target) := by
+-  letI : H.Finite := hH.finite
+-  letI : B.Finite := Graph.Finite.of_le hBH
++  let : H.Finite := hH.finite
++  let : B.Finite := Graph.Finite.of_le hBH
+   have hBdraw := hH.isDrawing.mono hBH
+   have hinside : Graph.edgesCover Hdraw D \ {a, b} ⊆
+       T.tgt.cell w.splitData.face := by
+@@ -1431,7 +1431,7 @@
+     rw [← hGunion, Graph.pointSet_union]
+     change pointSet G T.src.drawing ∪ T.src.outerSet = _
+     rw [T.src_isWeaklyAdmissible.outerSet_eq]
+-  letI : G.Finite := Graph.Finite.of_le Graph.deleteEdges_le
++  let : G.Finite := Graph.Finite.of_le Graph.deleteEdges_le
+   have hGdraw : G.IsDrawing T.src.drawing := T.src.isDrawing.mono Graph.deleteEdges_le
+   have hGpoly : ∀ e ∈ E(G), IsPolygonal (edgeArc T.src.drawing e) := by
+     intro e he
+@@ -1441,7 +1441,7 @@
+   have hFcells : T.src.cell F ∈ cells := ⟨F, hF, rfl⟩
+   have hdisj : Disjoint (T.src.cell F) T.src.skeletonSet :=
+     T.src.disjoint_cell_skeletonSet T.src_isCellDecomposition hF
+-  letI : O.Finite := Graph.Finite.of_le hOle
++  let : O.Finite := Graph.Finite.of_le hOle
+   have houterCompact : IsCompact srcOuter := by
+     rw [← T.src_isWeaklyAdmissible.outerSet_eq]
+     exact T.src.isCompact_skeletonSet.of_isClosed_subset
+@@ -1794,7 +1794,7 @@
+     (hsub : TargetCommonSubdivision P H Hdraw) (hstep : TargetEarStep P H Hdraw) :
+     ∃ (T : GeneratedPair S₀ srcOuter srcDom tgtOuter tgtDom) (par : γ → γ),
+       IsTargetPartialTransferOf T P H Hdraw par := by
+-  haveI := hH.finite
++  have := hH.finite
+   obtain ⟨K, T₀, par₀, hK, hKH, hbase⟩ := hsub
+   refine hH.isTwoConnected.ear_decomposition
+     (motive := fun B => ∃ T par, IsTargetPartialTransferOf T P B Hdraw par)
+diff --git a/Schoenflies/FiniteTransferTargetMesh.lean b/Schoenflies/FiniteTransferTargetMesh.lean
+--- a/Schoenflies/FiniteTransferTargetMesh.lean
++++ b/Schoenflies/FiniteTransferTargetMesh.lean
+@@ -112,12 +112,12 @@
+   · intro e he g hg heg
+     have hnames : freshName (⟨e, he⟩ : E(H)) = freshName ⟨g, hg⟩ := by
+       dsimp only [name] at heg
+-      rw [dif_pos he, dif_pos hg] at heg
++      rw [dite_eq_left he, dite_eq_left hg] at heg
+       exact heg
+     exact congrArg Subtype.val (hfreshName hnames)
+   · intro e he
+     dsimp only [name]
+-    rw [dif_pos he]
++    rw [dite_eq_left he]
+     exact havoid (⟨e, he⟩ : E(H))
+ 
+ /-- A finite square mesh can have all of its edges injectively renamed into any infinite cell
+diff --git a/Schoenflies/FreshDenseSelection.lean b/Schoenflies/FreshDenseSelection.lean
+--- a/Schoenflies/FreshDenseSelection.lean
++++ b/Schoenflies/FreshDenseSelection.lean
+@@ -58,8 +58,8 @@
+   have hforbiddenFinite : forbidden'.Finite := by
+     apply hforbidden.preimage
+     exact Set.injOn_of_injective Subtype.val_injective
+-  letI : ConnectedSpace C := Subtype.connectedSpace hC.isConnected
+-  letI : Nontrivial C := by
++  let : ConnectedSpace C := Subtype.connectedSpace hC.isConnected
++  let : Nontrivial C := by
+     obtain ⟨x, hx, y, hy, hxy⟩ := hC.exists_ne
+     exact ⟨⟨⟨x, hx⟩, ⟨y, hy⟩, fun h => hxy (congrArg Subtype.val h)⟩⟩
+   have hcleanDense : Dense (eligible' \ forbidden') :=
+@@ -345,7 +345,7 @@
+         StronglyAccessible (srcDom \ srcOuter) (P.homeo.invFun z)) ∧
+       FreshAvoidsTargetNonouterEdges P fresh ∧ FreshDense fresh delta ∧
+       FreshNet fresh delta := by
+-  letI : Graph.Finite P.tgt.graph :=
++  let : Graph.Finite P.tgt.graph :=
+     CellStructure.Realization.finite_graph P.tgt
+   have haccessibleSubset : accessibleTargetBoundary P ⊆ modelCurve :=
+     fun _ hz => hz.1
+diff --git a/Schoenflies/GeneratedStructure.lean b/Schoenflies/GeneratedStructure.lean
+--- a/Schoenflies/GeneratedStructure.lean
++++ b/Schoenflies/GeneratedStructure.lean
+@@ -375,14 +375,14 @@
+ 
+ @[simp] theorem skeleton_vertexSet : V(d.skeleton) = insert d.newVertex V(S.skel) := by
+   ext z
+-  simp only [skeleton, subdivGraph_vertexSet, Set.mem_union, Set.mem_setOf_eq,
++  simp only [skeleton, subdivGraph_vertexSet, Set.mem_union, Set.mem_ofPred_eq,
+     Set.mem_insert_iff, d.isLink, and_true]
+   tauto
+ 
+ @[simp] theorem skeleton_edgeSet :
+     E(d.skeleton) = insert d.newEdge₁ (insert d.newEdge₂ (E(S.skel) \ {d.edge})) := by
+   ext f
+-  simp only [skeleton, subdivGraph_edgeSet, Set.mem_union, Set.mem_setOf_eq,
++  simp only [skeleton, subdivGraph_edgeSet, Set.mem_union, Set.mem_ofPred_eq,
+     Set.mem_insert_iff, d.isLink, and_true]
+   tauto
+ 
+@@ -405,7 +405,7 @@
+ theorem outer_edgeSet_of_mem (he : d.edge ∈ E(S.outerGraph)) :
+     E(d.outer) = insert d.newEdge₁ (insert d.newEdge₂ (E(S.outerGraph) \ {d.edge})) := by
+   ext f
+-  simp only [outer, subdivGraph_edgeSet, Set.mem_union, Set.mem_setOf_eq,
++  simp only [outer, subdivGraph_edgeSet, Set.mem_union, Set.mem_ofPred_eq,
+     Set.mem_insert_iff, d.outer_isLink he, and_true]
+   tauto
+ 
+@@ -1035,10 +1035,10 @@
+ noncomputable def parent : γ → γ := fun σ => if σ ∈ d.newCells then d.edge else σ
+ 
+ theorem parent_of_mem_newCells {σ : γ} (h : σ ∈ d.newCells) : d.parent σ = d.edge := by
+-  rw [parent]; exact if_pos h
++  rw [parent]; exact ite_eq_left h
+ 
+ theorem parent_of_notMem_newCells {σ : γ} (h : σ ∉ d.newCells) : d.parent σ = σ := by
+-  rw [parent]; exact if_neg h
++  rw [parent]; exact ite_eq_right h
+ 
+ theorem parent_of_mem_cells {σ : γ} (h : σ ∈ S.cells) : d.parent σ = σ :=
+   d.parent_of_notMem_newCells (notMem_newCells_of_mem_cells h)
+@@ -1361,10 +1361,10 @@
+ noncomputable def parent : γ → γ := fun σ => if σ ∈ d.newCells then d.face else σ
+ 
+ theorem parent_of_mem_newCells {σ : γ} (h : σ ∈ d.newCells) : d.parent σ = d.face := by
+-  rw [parent]; exact if_pos h
++  rw [parent]; exact ite_eq_left h
+ 
+ theorem parent_of_notMem_newCells {σ : γ} (h : σ ∉ d.newCells) : d.parent σ = σ := by
+-  rw [parent]; exact if_neg h
++  rw [parent]; exact ite_eq_right h
+ 
+ theorem parent_of_mem_cells {σ : γ} (h : σ ∈ S.cells) : d.parent σ = σ :=
+   d.parent_of_notMem_newCells (notMem_newCells_of_mem_cells h)
+@@ -1689,11 +1689,11 @@
+     intro τ hτ
+     rw [subdivideEdge_cells] at hτ
+     ext z
+-    simp only [Set.mem_iUnion, Set.mem_setOf_eq, exists_prop]
++    simp only [Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop]
+     rcases hτ with ⟨hτc, hτe⟩ | hτn
+     · -- a surviving cell: the index set gains the new cells exactly when it had `e`
+       rw [href.cell_eq hτc hτe, h.closure_eq hτc]
+-      simp only [Set.mem_iUnion, Set.mem_setOf_eq, exists_prop]
++      simp only [Set.mem_iUnion, Set.mem_ofPred_eq, exists_prop]
+       constructor
+       · rintro ⟨σ, ⟨hσc, hσsub⟩, hz⟩
+         by_cases hσe : σ = d.edge
+diff --git a/Schoenflies/Graph/Cycle.lean b/Schoenflies/Graph/Cycle.lean
+--- a/Schoenflies/Graph/Cycle.lean
++++ b/Schoenflies/Graph/Cycle.lean
+@@ -61,7 +61,7 @@
+   edge lies on a cycle if and only if deleting it does not disconnect its endpoints", both
+   directions, with the finiteness the proof does not use dropped. The two halves are
+   `Graph.LiesOnCycle.deleteEdges_reaches` and `Graph.LiesOnCycle.of_deleteEdges_reaches`.
+-* `Graph.IsBridge`, `Graph.isBridge_iff_not_reaches` — the bridges of
++* `Graph.IsSchoenfliesBridge`, `Graph.isBridge_iff_not_reaches` — the bridges of
+   `lem:subdivision-ear-preserve` ("a 2-connected graph has no bridge. Indeed, if `uv` were a
+   bridge, the two components of `G - uv` …"), stated as the separation of the two ends.
+ * `Graph.IsAcyclic`, `Graph.Connected.deleteEdges_singleton` — the acyclicity underneath
+@@ -281,41 +281,41 @@
+ 
+ /-! ### Bridges -/
+ 
+-/-- `G.IsBridge e` : an edge of `G` that lies on no cycle. Equivalently — and this is the
++/-- `G.IsSchoenfliesBridge e` : an edge of `G` that lies on no cycle. Equivalently — and this is the
+ form every use wants — an edge whose deletion separates its two ends
+ (`Graph.isBridge_iff_not_reaches`). -/
+-def IsBridge (G : Graph α β) (e : β) : Prop := e ∈ E(G) ∧ ¬ G.LiesOnCycle e
+-
+-theorem IsBridge.edge_mem (h : G.IsBridge e) : e ∈ E(G) := h.1
+-
+-theorem IsBridge.not_liesOnCycle (h : G.IsBridge e) : ¬ G.LiesOnCycle e := h.2
++def IsSchoenfliesBridge (G : Graph α β) (e : β) : Prop := e ∈ E(G) ∧ ¬ G.LiesOnCycle e
++
++theorem IsSchoenfliesBridge.edge_mem (h : G.IsSchoenfliesBridge e) : e ∈ E(G) := h.1
++
++theorem IsSchoenfliesBridge.not_liesOnCycle (h : G.IsSchoenfliesBridge e) : ¬ G.LiesOnCycle e := h.2
+ 
+ /-- **Deleting a bridge separates its ends.** -/
+-theorem IsBridge.not_reaches (h : G.IsBridge e) (hl : G.IsLink e u v) :
++theorem IsSchoenfliesBridge.not_reaches (h : G.IsSchoenfliesBridge e) (hl : G.IsLink e u v) :
+     ¬ (G.deleteEdges {e}).Reaches u v :=
+   fun hR ↦ h.not_liesOnCycle (LiesOnCycle.of_deleteEdges_reaches hl hR)
+ 
+ /-- **An edge whose deletion separates its ends is a bridge.** -/
+ theorem isBridge_of_not_reaches (hl : G.IsLink e u v)
+-    (h : ¬ (G.deleteEdges {e}).Reaches u v) : G.IsBridge e :=
++    (h : ¬ (G.deleteEdges {e}).Reaches u v) : G.IsSchoenfliesBridge e :=
+   ⟨hl.edge_mem, fun hc ↦ h (hc.deleteEdges_reaches hl)⟩
+ 
+ /-- **A bridge is exactly an edge whose deletion separates its ends** — the cycle criterion,
+ negated. -/
+ theorem isBridge_iff_not_reaches (hl : G.IsLink e u v) :
+-    G.IsBridge e ↔ ¬ (G.deleteEdges {e}).Reaches u v :=
++    G.IsSchoenfliesBridge e ↔ ¬ (G.deleteEdges {e}).Reaches u v :=
+   ⟨fun h ↦ h.not_reaches hl, isBridge_of_not_reaches hl⟩
+ 
+ /-- A bridge is never a loop: a loop is a cycle. -/
+-theorem IsBridge.not_isLoopAt (h : G.IsBridge e) (x : α) : ¬ G.IsLoopAt e x :=
++theorem IsSchoenfliesBridge.not_isLoopAt (h : G.IsSchoenfliesBridge e) (x : α) : ¬ G.IsLoopAt e x :=
+   fun hloop ↦ h.not_liesOnCycle (liesOnCycle_of_isLoopAt hloop)
+ 
+ /-- **A graph is acyclic exactly when every one of its edges is a bridge.** This is the form
+ the tree module wants acyclicity in: "it is a tree — an edge of a cycle could be deleted"
+ reads backwards as "no edge can be deleted without separating its ends". -/
+-theorem isAcyclic_iff_forall_isBridge : G.IsAcyclic ↔ ∀ e ∈ E(G), G.IsBridge e :=
++theorem isAcyclic_iff_forall_isBridge : G.IsAcyclic ↔ ∀ e ∈ E(G), G.IsSchoenfliesBridge e :=
+   ⟨fun h _ he ↦ ⟨he, h he⟩, fun h _ he ↦ (h _ he).not_liesOnCycle⟩
+ 
+-theorem IsAcyclic.isBridge (h : G.IsAcyclic) (he : e ∈ E(G)) : G.IsBridge e := ⟨he, h he⟩
++theorem IsAcyclic.isBridge (h : G.IsAcyclic) (he : e ∈ E(G)) : G.IsSchoenfliesBridge e := ⟨he, h he⟩
+ 
+ end Graph
+diff --git a/Schoenflies/Graph/Degree.lean b/Schoenflies/Graph/Degree.lean
+--- a/Schoenflies/Graph/Degree.lean
++++ b/Schoenflies/Graph/Degree.lean
+@@ -231,23 +231,23 @@
+     have hl : G.IsLoopAt e u := huv
+     have h1 : {x | G.Inc e x} = {u} := by
+       ext z
+-      simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
++      simp only [Set.mem_ofPred_eq, Set.mem_singleton_iff]
+       exact ⟨fun h => (hl.eq_of_inc h).symm, fun h => h ▸ hl.inc⟩
+     have h2 : {x | G.IsLoopAt e x} = {u} := by
+       ext z
+-      simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
++      simp only [Set.mem_ofPred_eq, Set.mem_singleton_iff]
+       exact ⟨fun h => (hl.eq_of_inc h.inc).symm, fun h => h ▸ hl⟩
+     rw [h1, h2]
+     simp
+   · -- A non-loop: two distinct vertices, one end at each, and no loop anywhere.
+     have h1 : {x | G.Inc e x} = {u, v} := by
+       ext z
+-      simp only [Set.mem_setOf_eq, Set.mem_insert_iff, Set.mem_singleton_iff]
++      simp only [Set.mem_ofPred_eq, Set.mem_insert_iff, Set.mem_singleton_iff]
+       exact ⟨fun h => h.eq_or_eq_of_isLink huv,
+         fun h => h.elim (fun hz => hz ▸ huv.inc_left) (fun hz => hz ▸ huv.inc_right)⟩
+     have h2 : {x | G.IsLoopAt e x} = ∅ := by
+       ext z
+-      simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
++      simp only [Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
+       intro hz
+       exact huv' ((hz.eq_of_inc huv.inc_left).symm.trans (hz.eq_of_inc huv.inc_right))
+     rw [h1, h2, Set.ncard_pair huv']
+@@ -264,7 +264,7 @@
+   rw [← Finset.card_filter p s, ← Set.ncard_coe_finset]
+   congr 1
+   ext z
+-  simp only [Finset.coe_filter, Set.mem_setOf_eq]
++  simp only [Finset.coe_filter, Set.mem_ofPred_eq]
+   exact ⟨fun h => ⟨hsub z h, h⟩, fun h => h.2⟩
+ 
+ /-- **The handshake lemma.** The degrees of the vertices of a finite multigraph add up to
+diff --git a/Schoenflies/Graph/K33Land.lean b/Schoenflies/Graph/K33Land.lean
+--- a/Schoenflies/Graph/K33Land.lean
++++ b/Schoenflies/Graph/K33Land.lean
+@@ -154,10 +154,10 @@
+     have := ZMod.val_lt j; omega
+   have hw_lt : ∀ j : ZMod (n + 3), j.val < k →
+       w j = P.vertex (a + ((j.val : ℕ) : ZMod (m + 3))) := fun j hj => by
+-    rw [hwdef]; exact if_pos hj
++    rw [hwdef]; exact ite_eq_left hj
+   have hw_ge : ∀ j : ZMod (n + 3), ¬ j.val < k →
+       w j = P'.vertex (b + ((j.val - k : ℕ) : ZMod (m' + 3))) := fun j hj => by
+-    rw [hwdef]; exact if_neg hj
++    rw [hwdef]; exact ite_eq_right hj
+   have hsucc_lt : ∀ j : ZMod (n + 3), j.val < k →
+       w (j + 1) = P.vertex (a + ((j.val : ℕ) : ZMod (m + 3)) + 1) := by
+     intro j hj
+diff --git a/Schoenflies/Graph/OuterFace.lean b/Schoenflies/Graph/OuterFace.lean
+--- a/Schoenflies/Graph/OuterFace.lean
++++ b/Schoenflies/Graph/OuterFace.lean
+@@ -90,7 +90,7 @@
+   have hmem : Schoenflies.Plane.mk t 0 ∈ Schoenflies.Plane.beyondSquare r :=
+     Or.inl (show r < |t| by rw [abs_of_nonneg ht0]; exact htr)
+   have hin := hs hmem
+-  simp only [Schoenflies.Plane.closedSquare, mem_setOf_eq, Schoenflies.Plane.supDist_zero,
++  simp only [Schoenflies.Plane.closedSquare, mem_ofPred_eq, Schoenflies.Plane.supDist_zero,
+     Schoenflies.Plane.supNorm, max_le_iff] at hin
+   have h1 : |t| ≤ s := hin.1
+   rw [abs_of_nonneg ht0] at h1
+diff --git a/Schoenflies/Graph/PathGraph.lean b/Schoenflies/Graph/PathGraph.lean
+--- a/Schoenflies/Graph/PathGraph.lean
++++ b/Schoenflies/Graph/PathGraph.lean
+@@ -245,7 +245,7 @@
+ theorem pathGraphOf_isLink :
+     (G.pathGraphOf u W).IsLink e x y ↔
+       e ∈ W ∧ G.IsLink e x y ∧ x ∈ G.walkVertices u W ∧ y ∈ G.walkVertices u W := by
+-  simp only [pathGraphOf, induce_isLink, restrict_isLink, mem_setOf_eq]
++  simp only [pathGraphOf, induce_isLink, restrict_isLink, mem_ofPred_eq]
+   tauto
+ 
+ theorem mem_vertexSet_pathGraphOf_self : u ∈ V(G.pathGraphOf u W) := mem_walkVertices_self
+@@ -258,8 +258,8 @@
+ walk, to know that an entry of `W` is an edge of `G` at all and that its ends are visited. -/
+ theorem pathGraphOf_edgeSet (h : G.IsWalk u W v) : E(G.pathGraphOf u W) = {e | e ∈ W} := by
+   ext f
+-  rw [edgeSet_eq_setOf_exists_isLink]
+-  simp only [pathGraphOf_isLink, mem_setOf_eq]
++  rw [edgeSet_eq_setOfPred_exists_isLink]
++  simp only [pathGraphOf_isLink, mem_ofPred_eq]
+   refine ⟨fun ⟨_, _, hf, _⟩ ↦ hf, fun hf ↦ ?_⟩
+   obtain ⟨a, b, hab⟩ := exists_isLink_of_mem_edgeSet (h.edge_mem hf)
+   exact ⟨a, b, hf, hab, mem_walkVertices_of_mem_covered ⟨f, hf, hab.inc_left⟩,
+diff --git a/Schoenflies/Graph/Tree.lean b/Schoenflies/Graph/Tree.lean
+--- a/Schoenflies/Graph/Tree.lean
++++ b/Schoenflies/Graph/Tree.lean
+@@ -241,7 +241,7 @@
+   refine h.anti deleteVerts_le ?_ fun g hg ↦ ?_
+   · exact ⟨h.left_mem, hX u mem_walkVertices_self⟩
+   · obtain ⟨p, q, hpq⟩ := exists_isLink_of_mem_edgeSet (h.edge_mem hg)
+-    simp only [edgeSet_deleteVerts, Set.mem_setOf_eq]
++    simp only [edgeSet_deleteVerts, Set.mem_ofPred_eq]
+     exact ⟨p, q, hpq, hX p (mem_walkVertices_of_mem_covered ⟨g, hg, hpq.inc_left⟩),
+       hX q (mem_walkVertices_of_mem_covered ⟨g, hg, hpq.inc_right⟩)⟩
+ 
+@@ -249,7 +249,7 @@
+ theorem edgeSet_deleteVerts_singleton (G : Graph α β) (x : α) :
+     E(G.deleteVerts {x}) = E(G) \ G.incidenceSet x := by
+   ext g
+-  simp only [edgeSet_deleteVerts, Set.mem_setOf_eq, Set.mem_sdiff, mem_incidenceSet,
++  simp only [edgeSet_deleteVerts, Set.mem_ofPred_eq, Set.mem_sdiff, mem_incidenceSet,
+     Set.mem_singleton_iff]
+   refine ⟨fun ⟨p, q, hpq, hp, hq⟩ ↦ ⟨hpq.edge_mem, fun hinc ↦ ?_⟩, fun ⟨hg, hninc⟩ ↦ ?_⟩
+   · rcases hinc.eq_or_eq_of_isLink hpq with rfl | rfl
+@@ -282,16 +282,16 @@
+   induction n with
+   | zero =>
+     intro G hfin hle hT
+-    haveI := hfin
++    have := hfin
+     obtain ⟨a, ha⟩ := hT.connected.nonempty
+     have := (Set.ncard_pos (finite_vertexSet G)).2 ⟨a, ha⟩
+     omega
+   | succ n ih =>
+     intro G hfin hle hT
+-    haveI := hfin
++    have := hfin
+     by_cases h2 : 2 ≤ V(G).ncard
+     · obtain ⟨x, hx⟩ := hT.has_leaf h2
+-      haveI : (G.deleteVerts {x}).Finite := Finite.of_le deleteVerts_le
++      have : (G.deleteVerts {x}).Finite := Finite.of_le deleteVerts_le
+       have hT' : (G.deleteVerts {x}).IsTree := hT.delete_leaf hx h2
+       have hV : V(G.deleteVerts {x}).ncard = V(G).ncard - 1 := by
+         rw [vertexSet_deleteVerts, Set.ncard_sdiff_singleton_of_mem hx.mem_vertexSet]
+diff --git a/Schoenflies/GridAttach.lean b/Schoenflies/GridAttach.lean
+--- a/Schoenflies/GridAttach.lean
++++ b/Schoenflies/GridAttach.lean
+@@ -184,7 +184,7 @@
+     Graph.SameLinks (pieceListGraph (subdivide pieces points)) (overlayGraph pieces points) := by
+   constructor
+   · ext v
+-    simp only [pieceListGraph_vertexSet, overlayGraph_vertexSet, endSet, mem_setOf_eq]
++    simp only [pieceListGraph_vertexSet, overlayGraph_vertexSet, endSet, mem_ofPred_eq]
+     constructor
+     · rintro ⟨P, hP, hv⟩
+       exact ⟨orientPiece P, mem_overlayPieces.2 ⟨P, hP, rfl⟩, (orientPiece_ends P v).2 hv⟩
+@@ -346,12 +346,12 @@
+     · rintro ⟨P, hP, hx⟩
+       rw [List.mem_singleton] at hP
+       subst hP
+-      simp only [Graph.walkVertices, mem_insert_iff, Graph.coveredVertices, mem_setOf_eq]
++      simp only [Graph.walkVertices, mem_insert_iff, Graph.coveredVertices, mem_ofPred_eq]
+       rcases hx with h | h
+       · exact Or.inl h
+       · exact Or.inr ⟨(q₀, q₁), hmem, pieceListGraph_inc hmem (Or.inr h)⟩
+     · intro hx
+-      simp only [Graph.walkVertices, mem_insert_iff, Graph.coveredVertices, mem_setOf_eq] at hx
++      simp only [Graph.walkVertices, mem_insert_iff, Graph.coveredVertices, mem_ofPred_eq] at hx
+       rcases hx with h | ⟨e, he, hinc⟩
+       · exact ⟨(q₀, q₁), hmem, Or.inl h⟩
+       · rw [List.mem_singleton] at he
+diff --git a/Schoenflies/InitialPair.lean b/Schoenflies/InitialPair.lean
+--- a/Schoenflies/InitialPair.lean
++++ b/Schoenflies/InitialPair.lean
+@@ -154,28 +154,28 @@
+   obtain ⟨h⟩ := hC.homeomorph_modelCurve
+   refine ⟨fun p => if hp : p ∈ C then (h ⟨p, hp⟩ : Plane) else 0,
+     fun q => if hq : q ∈ modelCurve then (h.symm ⟨q, hq⟩ : Plane) else 0, ?_, ?_, ?_, ?_, ?_, ?_⟩
+-  · rw [continuousOn_iff_continuous_restrict]
+-    have : (C.restrict fun p => if hp : p ∈ C then (h ⟨p, hp⟩ : Plane) else 0) =
++  · rw [continuousOn_iff_continuous_domRestrict]
++    have : (C.domRestrict fun p => if hp : p ∈ C then (h ⟨p, hp⟩ : Plane) else 0) =
+         fun p : ↥C => (h p : Plane) := by
+-      funext p; simp [Set.restrict, p.2]
++      funext p; simp [Set.domRestrict, p.2]
+     rw [this]
+     exact continuous_subtype_val.comp h.continuous
+-  · rw [continuousOn_iff_continuous_restrict]
+-    have : (modelCurve.restrict fun q => if hq : q ∈ modelCurve then (h.symm ⟨q, hq⟩ : Plane)
++  · rw [continuousOn_iff_continuous_domRestrict]
++    have : (modelCurve.domRestrict fun q => if hq : q ∈ modelCurve then (h.symm ⟨q, hq⟩ : Plane)
+         else 0) = fun q : ↥modelCurve => (h.symm q : Plane) := by
+-      funext q; simp [Set.restrict, q.2]
++      funext q; simp [Set.domRestrict, q.2]
+     rw [this]
+     exact continuous_subtype_val.comp h.symm.continuous
+-  · intro p hp; simp only [dif_pos hp]; exact (h ⟨p, hp⟩).2
+-  · intro q hq; simp only [dif_pos hq]; exact (h.symm ⟨q, hq⟩).2
++  · intro p hp; simp only [dite_eq_left hp]; exact (h ⟨p, hp⟩).2
++  · intro q hq; simp only [dite_eq_left hq]; exact (h.symm ⟨q, hq⟩).2
+   · intro p hp
+     have hmem : (h ⟨p, hp⟩ : Plane) ∈ modelCurve := (h ⟨p, hp⟩).2
+-    simp only [dif_pos hp, dif_pos hmem]
++    simp only [dite_eq_left hp, dite_eq_left hmem]
+     have : (⟨(h ⟨p, hp⟩ : Plane), hmem⟩ : ↥modelCurve) = h ⟨p, hp⟩ := rfl
+     rw [this, h.symm_apply_apply]
+   · intro q hq
+     have hmem : (h.symm ⟨q, hq⟩ : Plane) ∈ C := (h.symm ⟨q, hq⟩).2
+-    simp only [dif_pos hq, dif_pos hmem]
++    simp only [dite_eq_left hq, dite_eq_left hmem]
+     have : (⟨(h.symm ⟨q, hq⟩ : Plane), hmem⟩ : ↥C) = h.symm ⟨q, hq⟩ := rfl
+     rw [this, h.apply_symm_apply]
+ 
+@@ -1444,10 +1444,10 @@
+     d.cross (Function.invFunOn (tgtChord d.xa d.xb) I y)
+ 
+ theorem skelMap_of_mem {x : Plane} (hx : x ∈ C) : d.skelMap x = d.u x := by
+-  simp only [skelMap, if_pos hx]
++  simp only [skelMap, ite_eq_left hx]
+ 
+ theorem skelInv_of_mem {y : Plane} (hy : y ∈ modelCurve) : d.skelInv y = d.w y := by
+-  simp only [skelInv, if_pos hy]
++  simp only [skelInv, ite_eq_left hy]
+ 
+ /-- **The skeleton map matches parameters on the crosscut.** -/
+ theorem skelMap_cross {t : ℝ} (ht : t ∈ I) :
+@@ -1458,7 +1458,7 @@
+       simp [tgtChord]
+     · rw [d.skelMap_of_mem hmem, d.cross_one, d.u_b]
+       simp [tgtChord]
+-  · simp only [skelMap, if_neg hmem, d.injOn_cross.leftInvOn_invFunOn ht]
++  · simp only [skelMap, ite_eq_right hmem, d.injOn_cross.leftInvOn_invFunOn ht]
+ 
+ theorem tgtChord_mem_modelCurve_iff {t : ℝ} (ht : t ∈ I) :
+     tgtChord d.xa d.xb t ∈ modelCurve ↔ t = 0 ∨ t = 1 := by
+@@ -1486,7 +1486,7 @@
+       simp [tgtChord]
+     · rw [d.skelInv_of_mem hmem, d.cross_one]
+       simp [tgtChord]
+-  · simp only [skelInv, if_neg hmem, d.injOn_tgtChord.leftInvOn_invFunOn ht]
++  · simp only [skelInv, ite_eq_right hmem, d.injOn_tgtChord.leftInvOn_invFunOn ht]
+ 
+ /-! #### Continuity and inversion -/
+ 
+diff --git a/Schoenflies/InitialPairFixed.lean b/Schoenflies/InitialPairFixed.lean
+--- a/Schoenflies/InitialPairFixed.lean
++++ b/Schoenflies/InitialPairFixed.lean
+@@ -307,7 +307,7 @@
+     c ∈ faceCells k ↔
+       c ∈ initialStructure.pathCells u (initBoundary (.face k)) := by
+   rw [mem_faceCells_iff]
+-  simp only [CellStructure.pathCells, Set.mem_union, Set.mem_setOf_eq,
++  simp only [CellStructure.pathCells, Set.mem_union, Set.mem_ofPred_eq,
+     Graph.mem_walkVertices_iff, Graph.mem_coveredVertices_iff]
+   constructor
+   · rintro (hc | hc)
+diff --git a/Schoenflies/Inversion.lean b/Schoenflies/Inversion.lean
+--- a/Schoenflies/Inversion.lean
++++ b/Schoenflies/Inversion.lean
+@@ -172,8 +172,8 @@
+     z.2 (mem_singleton_iff.2 (invert_eq_center_iff.1 (mem_singleton_iff.1 h)))⟩
+   left_inv z := Subtype.ext (invert_invert a z)
+   right_inv z := Subtype.ext (invert_invert a z)
+-  continuous_toFun := ((continuousOn_invert a).restrict).subtype_mk _
+-  continuous_invFun := ((continuousOn_invert a).restrict).subtype_mk _
++  continuous_toFun := ((continuousOn_invert a).domRestrict).subtype_mk _
++  continuous_invFun := ((continuousOn_invert a).domRestrict).subtype_mk _
+ 
+ /-! ### The image of a Jordan curve
+ 
+diff --git a/Schoenflies/LimitMap.lean b/Schoenflies/LimitMap.lean
+--- a/Schoenflies/LimitMap.lean
++++ b/Schoenflies/LimitMap.lean
+@@ -477,7 +477,7 @@
+ 
+ /-- **The characterising property of `F`.** -/
+ theorem iInter_tgtStar_eq (hx : x ∈ L.dom) : ⋂ n, L.tgtStar n x = {L.F x} := by
+-  rw [F, dif_pos (L.exists_eq_singleton_iInter_tgtStar hx)]
++  rw [F, dite_eq_left (L.exists_eq_singleton_iInter_tgtStar hx)]
+   exact (L.exists_eq_singleton_iInter_tgtStar hx).choose_spec
+ 
+ theorem F_mem_iInter (hx : x ∈ L.dom) : L.F x ∈ ⋂ n, L.tgtStar n x := by
+@@ -863,7 +863,7 @@
+ 
+ theorem inv_spec (h : ∃ x, x ∈ L.region ∧ L.F x = y) :
+     L.inv y ∈ L.region ∧ L.F (L.inv y) = y := by
+-  rw [inv, dif_pos h]
++  rw [inv, dite_eq_left h]
+   exact h.choose_spec
+ 
+ theorem inv_mem_region (hy : y ∈ L.region') : L.inv y ∈ L.region :=
+diff --git a/Schoenflies/LocallyPolygonal.lean b/Schoenflies/LocallyPolygonal.lean
+--- a/Schoenflies/LocallyPolygonal.lean
++++ b/Schoenflies/LocallyPolygonal.lean
+@@ -185,7 +185,7 @@
+ centre in each coordinate separately. -/
+ theorem mem_openSquare_iff (c : Plane) (r : ℝ) (x : Plane) :
+     x ∈ openSquare c r ↔ ∀ i, |x i - c i| < r := by
+-  simp only [openSquare, mem_setOf_eq, supDist, supNorm, sub_apply, max_lt_iff,
++  simp only [openSquare, mem_ofPred_eq, supDist, supNorm, sub_apply, max_lt_iff,
+     Fin.forall_fin_two]
+ 
+ /-- The centre of a square of positive radius is in it. -/
+@@ -246,17 +246,17 @@
+   rw [abs_lt] at hlt
+   cases b
+   · exact absurd (show x i ≤ c i - r from hmem) (by
+-      simp only [sideGap, cond_false] at hs; linarith [hlt.1])
++      simp only [sideGap, Bool.cond_false] at hs; linarith [hlt.1])
+   · exact absurd (show c i + r ≤ x i from hmem) (by
+-      simp only [sideGap, cond_true] at hs; linarith [hlt.2])
++      simp only [sideGap, Bool.cond_true] at hs; linarith [hlt.2])
+ 
+ /-- If there is no room between `p` and a half-plane, `p` is in it. -/
+ theorem mem_sideHalfPlane_of_sideGap_nonpos {c : Plane} {r : ℝ} {p : Plane} {i : Fin 2}
+     {b : Bool} (h : sideGap c r p i b ≤ 0) : p ∈ sideHalfPlane c r i b := by
+   cases b
+-  · simp only [sideGap, cond_false] at h
++  · simp only [sideGap, Bool.cond_false] at h
+     exact show p i ≤ c i - r by linarith
+-  · simp only [sideGap, cond_true] at h
++  · simp only [sideGap, Bool.cond_true] at h
+     exact show c i + r ≤ p i by linarith
+ 
+ /-- Each piece the sides of one square cut a small square into is an axis-parallel rectangle —
+@@ -346,7 +346,7 @@
+       rintro c ⟨hcA, hcne⟩
+       have : p ∉ closedSquare c (ρ c) :=
+         Set.disjoint_left.1 (hdisj c₀ hc₀A c hcA fun h => hcne (h ▸ rfl)) hpc₀
+-      simp only [closedSquare, mem_setOf_eq, not_le] at this
++      simp only [closedSquare, mem_ofPred_eq, not_le] at this
+       linarith
+     obtain ⟨s₁, hs₁, hs₁le⟩ := exists_pos_le_of_finite (hA.sdiff (t := {c₀}))
+       (f := fun c => supDist p c - ρ c) hfar
+@@ -388,7 +388,7 @@
+     have hfar : ∀ c ∈ A, 0 < supDist p c - ρ c := by
+       intro c hcA
+       have := hnear c hcA
+-      simp only [closedSquare, mem_setOf_eq, not_le] at this
++      simp only [closedSquare, mem_ofPred_eq, not_le] at this
+       linarith
+     obtain ⟨s, hs, hsle⟩ := exists_pos_le_of_finite hA (f := fun c => supDist p c - ρ c) hfar
+     refine isLocallyPolyConnAt_of_convex (isOpen_openSquare p s)
+diff --git a/Schoenflies/MatchedSplit.lean b/Schoenflies/MatchedSplit.lean
+--- a/Schoenflies/MatchedSplit.lean
++++ b/Schoenflies/MatchedSplit.lean
+@@ -319,7 +319,7 @@
+ theorem splitMap_of_mem_skeletonSet {x : Plane} (hx : x ∈ R₁.skeletonSet) :
+     splitMap g m x = g.toFun x := by
+   classical
+-  simp only [splitMap, if_pos hx]
++  simp only [splitMap, ite_eq_left hx]
+ 
+ theorem splitMap_eqOn_skeletonSet : EqOn (splitMap g m) g.toFun R₁.skeletonSet :=
+   fun _ hx => splitMap_of_mem_skeletonSet hx
+@@ -327,12 +327,12 @@
+ theorem splitInvMap_of_mem_skeletonSet {y : Plane} (hy : y ∈ R₂.skeletonSet) :
+     splitInvMap g m y = g.invFun y := by
+   classical
+-  simp only [splitInvMap, if_pos hy]
++  simp only [splitInvMap, ite_eq_left hy]
+ 
+ theorem splitInvMap_of_notMem_skeletonSet {y : Plane} (hy : y ∉ R₂.skeletonSet) :
+     splitInvMap g m y = m.invFun y := by
+   classical
+-  simp only [splitInvMap, if_neg hy]
++  simp only [splitInvMap, ite_eq_right hy]
+ 
+ variable (hE₁ : d.EarCrosscut R₁ earPos₁ earDraw₁) (hE₂ : d.EarCrosscut R₂ earPos₂ earDraw₂)
+ 
+@@ -345,13 +345,13 @@
+     splitMap g m x = m.toFun x := by
+   classical
+   by_cases hs : x ∈ R₁.skeletonSet
+-  · rw [splitMap, if_pos hs]
++  · rw [splitMap, ite_eq_left hs]
+     have hends := hE₁.earSet_inter_skeletonSet ⟨hx, hs⟩
+     simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hends
+     rcases hends with rfl | rfl
+     · rw [g.pos_apply d.source_mem_skel, m.toFun_pos_source hE₁ hE₂]
+     · rw [g.pos_apply d.target_mem_skel, m.toFun_pos_target hE₁ hE₂]
+-  · rw [splitMap, if_neg hs]
++  · rw [splitMap, ite_eq_right hs]
+ 
+ theorem splitMap_eqOn_earSet : EqOn (splitMap g m) m.toFun (d.earSet earPos₁ earDraw₁) :=
+   fun _ hx => splitMap_of_mem_earSet hE₁ hE₂ hx
+@@ -362,7 +362,7 @@
+   classical
+   intro y hy
+   by_cases hs : y ∈ R₂.skeletonSet
+-  · rw [splitInvMap, if_pos hs]
++  · rw [splitInvMap, ite_eq_left hs]
+     have hends := hE₂.earSet_inter_skeletonSet ⟨hy, hs⟩
+     simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hends
+     rcases hends with rfl | rfl
+@@ -370,7 +370,7 @@
+       rw [h, m.invFun_pos_source hE₁ hE₂]
+     · have h : g.invFun (R₂.pos d.target) = R₁.pos d.target := g.symm.pos_apply d.target_mem_skel
+       rw [h, m.invFun_pos_target hE₁ hE₂]
+-  · rw [splitInvMap, if_neg hs]
++  · rw [splitInvMap, ite_eq_right hs]
+ 
+ /-- **A point of the source ear off the old skeleton is carried off the old target skeleton.**
+ The image lies on the target ear, and the target ear meets the target skeleton only in the two
+diff --git a/Schoenflies/ModelCurve.lean b/Schoenflies/ModelCurve.lean
+--- a/Schoenflies/ModelCurve.lean
++++ b/Schoenflies/ModelCurve.lean
+@@ -167,7 +167,7 @@
+ theorem modelCurve_eq_sides :
+     modelCurve = (sideTop ∪ sideLeft) ∪ (sideBottom ∪ sideRight) := by
+   ext x
+-  simp only [modelCurve, mem_setOf_eq, mem_union, mem_sideTop, mem_sideLeft, mem_sideBottom,
++  simp only [modelCurve, mem_ofPred_eq, mem_union, mem_sideTop, mem_sideLeft, mem_sideBottom,
+     mem_sideRight, Plane.supNorm]
+   constructor
+   · intro h
+@@ -373,7 +373,7 @@
+ theorem modelCurve_eq_frontier : modelCurve = frontier (Plane.closedSquare 0 1) := by
+   rw [(Plane.isClosed_closedSquare 0 1).frontier_eq, interior_closedSquare_zero_one]
+   ext x
+-  simp only [modelCurve, mem_setOf_eq, mem_sdiff, mem_closedSquare_zero_one,
++  simp only [modelCurve, mem_ofPred_eq, mem_sdiff, mem_closedSquare_zero_one,
+     mem_openSquare_zero_one, not_lt]
+   exact ⟨fun h => ⟨h.le, h.ge⟩, fun h => le_antisymm h.1 h.2⟩
+ 
+@@ -420,14 +420,14 @@
+     ∃ h : ↥(f '' I) ≃ₜ ↥(g '' I),
+       ∀ (t : ℝ) (ht : t ∈ I), (h ⟨f t, mem_image_of_mem f ht⟩ : Plane) = g t := by
+   classical
+-  haveI : CompactSpace ↥I := isCompact_iff_compactSpace.mp isCompact_I
+-  haveI : CompactSpace ↥(f '' I) :=
++  have : CompactSpace ↥I := isCompact_iff_compactSpace.mp isCompact_I
++  have : CompactSpace ↥(f '' I) :=
+     isCompact_iff_compactSpace.mp (isCompact_I.image_of_continuousOn hf.continuousOn)
+   -- the two parametrizations, read as maps of subtypes
+   set q : ↥I → ↥(f '' I) := fun t => ⟨f t, mem_image_of_mem f t.2⟩ with hq
+   set q' : ↥I → ↥(g '' I) := fun t => ⟨g t, mem_image_of_mem g t.2⟩ with hq'
+-  have hqc : Continuous q := (hf.continuousOn.restrict).subtype_mk _
+-  have hq'c : Continuous q' := (hg.continuousOn.restrict).subtype_mk _
++  have hqc : Continuous q := (hf.continuousOn.domRestrict).subtype_mk _
++  have hq'c : Continuous q' := (hg.continuousOn.domRestrict).subtype_mk _
+   have hqs : Function.Surjective q := by
+     rintro ⟨z, t, ht, rfl⟩
+     exact ⟨⟨t, ht⟩, rfl⟩
+diff --git a/Schoenflies/OuterChain.lean b/Schoenflies/OuterChain.lean
+--- a/Schoenflies/OuterChain.lean
++++ b/Schoenflies/OuterChain.lean
+@@ -309,13 +309,13 @@
+   have harc : ∀ {W : List β}, (∀ g ∈ W, g ∈ D₁ ++ D₂) →
+       ∀ g ∈ W, g ∈ E(H.cycleGraph u e D) := by
+     intro W hW g hg
+-    rw [hcyc.cycleGraph_edgeSet, Set.mem_setOf_eq, List.mem_append]
++    rw [hcyc.cycleGraph_edgeSet, Set.mem_ofPred_eq, List.mem_append]
+     rcases List.mem_cons.1 (hcc.split.mem_iff.1 (hW g hg)) with rfl | h
+     · exact Or.inr (List.mem_singleton_self _)
+     · exact Or.inl h
+   have hnew : ∀ g ∈ R, g ∉ E(H.cycleGraph u e D) := by
+     intro g hg hmem
+-    rw [hcyc.cycleGraph_edgeSet, Set.mem_setOf_eq] at hmem
++    rw [hcyc.cycleGraph_edgeSet, Set.mem_ofPred_eq] at hmem
+     exact hcc.edges_new g hg hmem
+   have hint : ∀ y ∈ H.walkVertices a R, y ≠ a → y ≠ b → y ∉ V(H.cycleGraph u e D) := by
+     intro y hy hya hyb
+@@ -779,7 +779,7 @@
+       ¬ Bornology.IsBounded (face (chainUnion Γ 0 n) drawing x) := by
+   have hext := h.mem_exterior_chain hout
+   refine ⟨hext, fun hb => ?_⟩
+-  haveI : (chainUnion Γ 0 n).Finite := h.block_finite (i := 0) (m := n) (by omega)
++  have : (chainUnion Γ 0 n).Finite := h.block_finite (i := 0) (m := n) (by omega)
+   exact h.not_encloses hout hdesc n 0 (by omega)
+     (encloses_of_isBounded_face (h.block_isDrawing (by omega)) (h.block_polygonal (by omega))
+       (h.block_isTwoConnected (by omega)) hext hb)
+diff --git a/Schoenflies/OverlayExtension.lean b/Schoenflies/OverlayExtension.lean
+--- a/Schoenflies/OverlayExtension.lean
++++ b/Schoenflies/OverlayExtension.lean
+@@ -22,7 +22,7 @@
+ 
+ namespace Schoenflies
+ 
+-open Graph
++open _root_.Schoenflies.Graph
+ 
+ namespace IsPlaneSubdivisionExtension
+ 
+diff --git a/Schoenflies/OverlayGraph.lean b/Schoenflies/OverlayGraph.lean
+--- a/Schoenflies/OverlayGraph.lean
++++ b/Schoenflies/OverlayGraph.lean
+@@ -88,12 +88,12 @@
+ 
+ theorem orientPiece_of_precedes {P : Piece} (h : Precedes P.1 P.2) : orientPiece P = P := by
+   classical
+-  exact if_pos h
++  exact ite_eq_left h
+ 
+ theorem orientPiece_of_not_precedes {P : Piece} (h : ¬ Precedes P.1 P.2) :
+     orientPiece P = (P.2, P.1) := by
+   classical
+-  exact if_neg h
++  exact ite_eq_right h
+ 
+ /-- Orienting does not move the segment. -/
+ @[simp] theorem orientPiece_seg (P : Piece) : (orientPiece P).seg = P.seg := by
+@@ -247,7 +247,7 @@
+     rcases hxy with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> rcases hvw with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp
+   edge_mem_iff_exists_isLink := by
+     intro P
+-    simp only [mem_setOf_eq]
++    simp only [mem_ofPred_eq]
+     exact ⟨fun hP => ⟨P.1, P.2, hP, Or.inl ⟨rfl, rfl⟩⟩, fun ⟨_, _, hP, _⟩ => hP⟩
+   left_mem_of_isLink := by
+     rintro P x y ⟨hP, h⟩
+@@ -347,7 +347,7 @@
+   rw [← overlayPieces_cover pieces points]
+   ext z
+   simp only [Graph.pointSet, mem_union, mem_iUnion, exists_prop, overlayGraph_vertexSet,
+-    endSet, mem_setOf_eq, overlayGraph_mem_edgeSet, edgeArc_segmentDrawing, cover]
++    endSet, mem_ofPred_eq, overlayGraph_mem_edgeSet, edgeArc_segmentDrawing, cover]
+   constructor
+   · rintro (⟨P, hP, hzP⟩ | ⟨P, hP, hzP⟩)
+     · refine ⟨P, hP, ?_⟩
+diff --git a/Schoenflies/Parity.lean b/Schoenflies/Parity.lean
+--- a/Schoenflies/Parity.lean
++++ b/Schoenflies/Parity.lean
+@@ -377,19 +377,22 @@
+   by_cases hD : fwd u q < fwd u (meet u a b (hgt u q))
+   · by_cases h1 : hgt u a ≤ hgt u q
+     · by_cases h2 : hgt u q < hgt u c
+-      · rw [if_pos ⟨h1, h2, hD⟩, if_neg (by rintro ⟨g, -, -⟩; linarith),
+-          if_pos ⟨h1, by linarith, hD⟩]
++      · rw [ite_eq_left ⟨h1, h2, hD⟩, ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++          ite_eq_left ⟨h1, by linarith, hD⟩]
+       · push Not at h2
+         by_cases h3 : hgt u q < hgt u b
+-        · rw [if_neg (by rintro ⟨-, g, -⟩; linarith), if_pos ⟨h2, h3, hD⟩,
+-            if_pos ⟨h1, h3, hD⟩]
+-        · rw [if_neg (by rintro ⟨-, g, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith),
+-            if_neg (by rintro ⟨-, g, -⟩; linarith)]
++        · rw [ite_eq_right (by rintro ⟨-, g, -⟩; linarith), ite_eq_left ⟨h2, h3, hD⟩,
++            ite_eq_left ⟨h1, h3, hD⟩]
++        · rw [ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++          ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+     · push Not at h1
+-      rw [if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨g, -, -⟩; linarith),
+-        if_neg (by rintro ⟨g, -, -⟩; linarith)]
+-  · rw [if_neg (by rintro ⟨-, -, g⟩; exact hD g), if_neg (by rintro ⟨-, -, g⟩; exact hD g),
+-      if_neg (by rintro ⟨-, -, g⟩; exact hD g)]
++      rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++        ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++        ite_eq_right (by rintro ⟨g, -, -⟩; linarith)]
++  · rw [ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++    ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++      ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g)]
+ 
+ private theorem crossings_split (hab : hgt u a ≠ hgt u b) (hc : c ∈ openSegment ℝ a b)
+     (q : Plane) :
+@@ -690,52 +693,59 @@
+         (meet u a b (hgt u q + s)) (hma _ (by linarith) hB.le)
+         (hha _).ge (by rw [hha]; linarith) (by rw [hha]; linarith) (hha _).le
+       by_cases hD : fwd u q < fwd u (meet u a b (hgt u q))
+-      · rw [if_pos ⟨hA, by linarith, hD⟩, if_pos ⟨by linarith, hB, e.1 hD⟩,
+-          if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith)]
++      · rw [ite_eq_left ⟨hA, by linarith, hD⟩, ite_eq_left ⟨by linarith, hB, e.1 hD⟩,
++          ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+         decide
+-      · rw [if_neg (by rintro ⟨-, -, g⟩; exact hD g),
+-          if_neg (by rintro ⟨-, -, g⟩; exact hD (e.2 g)),
+-          if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith)]
++      · rw [ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++          ite_eq_right (by rintro ⟨-, -, g⟩; exact hD (e.2 g)),
++          ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+     · rcases lt_or_ge (hgt u q) (hgt u b) with hB2 | hB2
+       · -- the sweep passes the upper end
+         have e := hside (meet u a b (hgt u q)) (hma _ hA hB2.le) b hbseg
+           (hha _).ge (by rw [hha]; linarith) (by linarith) hB
+         by_cases hD : fwd u q < fwd u (meet u a b (hgt u q))
+-        · rw [if_pos ⟨hA, hB2, hD⟩, if_neg (by rintro ⟨-, g, -⟩; linarith),
+-            if_neg (by rintro ⟨g, -, -⟩; linarith), if_pos ⟨hB2, hB, e.1 hD⟩]
++        · rw [ite_eq_left ⟨hA, hB2, hD⟩, ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++            ite_eq_right (by rintro ⟨g, -, -⟩; linarith), ite_eq_left ⟨hB2, hB, e.1 hD⟩]
+           decide
+-        · rw [if_neg (by rintro ⟨-, -, g⟩; exact hD g),
+-            if_neg (by rintro ⟨-, g, -⟩; linarith),
+-            if_neg (by rintro ⟨g, -, -⟩; linarith),
+-            if_neg (by rintro ⟨-, -, g⟩; exact hD (e.2 g))]
++        · rw [ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++            ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++            ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, -, g⟩; exact hD (e.2 g))]
+       · -- the edge is entirely below the sweep
+-        rw [if_neg (by rintro ⟨-, g, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith),
+-          if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨g, -, -⟩; linarith)]
++        rw [ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++          ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++          ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++            ite_eq_right (by rintro ⟨g, -, -⟩; linarith)]
+   · rcases le_or_gt (hgt u a) (hgt u q + s) with hA2 | hA2
+     · rcases lt_or_ge (hgt u q + s) (hgt u b) with hB | hB
+       · -- the sweep passes the lower end only
+         have e := hside (meet u a b (hgt u q + s)) (hma _ hA2 hB.le) a haseg
+           (by rw [hha]; linarith) (hha _).le (by linarith) hA2
+         by_cases hD : fwd u q < fwd u a
+-        · rw [if_neg (by rintro ⟨g, -, -⟩; linarith), if_pos ⟨hA2, hB, e.2 hD⟩,
+-            if_pos ⟨hA, hA2, hD⟩, if_neg (by rintro ⟨-, g, -⟩; linarith)]
++        · rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith), ite_eq_left ⟨hA2, hB, e.2 hD⟩,
++            ite_eq_left ⟨hA, hA2, hD⟩, ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+           decide
+-        · rw [if_neg (by rintro ⟨g, -, -⟩; linarith),
+-            if_neg (by rintro ⟨-, -, g⟩; exact hD (e.1 g)),
+-            if_neg (by rintro ⟨-, -, g⟩; exact hD g),
+-            if_neg (by rintro ⟨-, g, -⟩; linarith)]
++        · rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, -, g⟩; exact hD (e.1 g)),
++            ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++            ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+       · -- the sweep passes both ends
+         have e := hside a haseg b hbseg (by linarith) hA2 (by linarith) hB
+         by_cases hD : fwd u q < fwd u a
+-        · rw [if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith),
+-            if_pos ⟨hA, hA2, hD⟩, if_pos ⟨by linarith, hB, e.1 hD⟩]
++        · rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++          ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++            ite_eq_left ⟨hA, hA2, hD⟩, ite_eq_left ⟨by linarith, hB, e.1 hD⟩]
+           decide
+-        · rw [if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith),
+-            if_neg (by rintro ⟨-, -, g⟩; exact hD g),
+-            if_neg (by rintro ⟨-, -, g⟩; exact hD (e.2 g))]
++        · rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++          ite_eq_right (by rintro ⟨-, g, -⟩; linarith),
++            ite_eq_right (by rintro ⟨-, -, g⟩; exact hD g),
++            ite_eq_right (by rintro ⟨-, -, g⟩; exact hD (e.2 g))]
+     · -- the edge is entirely above the sweep
+-      rw [if_neg (by rintro ⟨g, -, -⟩; linarith), if_neg (by rintro ⟨g, -, -⟩; linarith),
+-        if_neg (by rintro ⟨-, g, -⟩; linarith), if_neg (by rintro ⟨-, g, -⟩; linarith)]
++      rw [ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++        ite_eq_right (by rintro ⟨g, -, -⟩; linarith),
++        ite_eq_right (by rintro ⟨-, g, -⟩; linarith), ite_eq_right (by rintro ⟨-, g, -⟩; linarith)]
+ 
+ /-- Sweeping the base point across the ray direction, without meeting the polygon, does not
+ change the parity. This is where the polygon has to be closed. -/
+@@ -882,7 +892,7 @@
+   refine List.sum_eq_zero ?_
+   intro x hx
+   obtain ⟨P, hP, rfl⟩ := List.mem_map.1 hx
+-  refine if_neg ?_
++  refine ite_eq_right ?_
+   rintro ⟨h1, h2, h3⟩
+   exact absurd (h _ (mem_cover hP (meet_mem_seg (hL P hP) h1 h2.le))) (not_lt.2 h3.le)
+ 
+@@ -999,7 +1009,7 @@
+       rintro ⟨-, -, g⟩
+       rw [hgp, hfp, hmeetp] at g
+       linarith
+-    rw [mark, mark, if_pos hm1, if_neg hm2, add_zero]
++    rw [mark, mark, ite_eq_left hm1, ite_eq_right hm2, add_zero]
+   refine ⟨by rw [hneg]; exact hcov (-t) (by linarith) habsm, hcov t (ne_of_gt ht) habsp, ?_⟩
+   have hz1 : (L₁.map (fun P => mark u P (p - t • u) + mark u P (p + t • u))).sum = 0 := by
+     refine List.sum_eq_zero ?_
+diff --git a/Schoenflies/ParitySplitting.lean b/Schoenflies/ParitySplitting.lean
+--- a/Schoenflies/ParitySplitting.lean
++++ b/Schoenflies/ParitySplitting.lean
+@@ -122,7 +122,9 @@
+ theorem mark_swap' (u : Plane) (P : Piece) (q : Plane) : mark u (P.2, P.1) q = mark u P q := by
+   obtain ⟨a, b⟩ := P
+   by_cases h : hgt u a = hgt u b
+-  · rw [mark, mark, if_neg (not_crosses_of_level h.symm q), if_neg (not_crosses_of_level h q)]
++  · rw [mark, mark,
++    ite_eq_right (not_crosses_of_level h.symm q),
++    ite_eq_right (not_crosses_of_level h q)]
+   · exact mark_swap h q
+ 
+ /-- Reordering the edges does not change the count. -/
+diff --git a/Schoenflies/PolyArcRealize.lean b/Schoenflies/PolyArcRealize.lean
+--- a/Schoenflies/PolyArcRealize.lean
++++ b/Schoenflies/PolyArcRealize.lean
+@@ -122,22 +122,22 @@
+   intro k l hkl
+   dsimp only at hkl
+   by_cases hk : k < N <;> by_cases hl : l < N
+-  · rw [if_pos hk, if_pos hl] at hkl
++  · rw [ite_eq_left hk, ite_eq_left hl] at hkl
+     exact hv k hk l hl hkl
+   · -- A listed point cannot equal a padded one: its first coordinate is too small.
+     exfalso
+-    rw [if_pos hk, if_neg hl] at hkl
++    rw [ite_eq_left hk, ite_eq_right hl] at hkl
+     have h1 : v k 0 = M + 1 + (l : ℝ) := by rw [hkl]; exact Plane.mk_zero _ _
+     have h2 : (0 : ℝ) ≤ (l : ℝ) := Nat.cast_nonneg l
+     have h3 := hM k hk
+     linarith
+   · exfalso
+-    rw [if_neg hk, if_pos hl] at hkl
++    rw [ite_eq_right hk, ite_eq_left hl] at hkl
+     have h1 : v l 0 = M + 1 + (k : ℝ) := by rw [← hkl]; exact Plane.mk_zero _ _
+     have h2 : (0 : ℝ) ≤ (k : ℝ) := Nat.cast_nonneg k
+     have h3 := hM l hl
+     linarith
+-  · rw [if_neg hk, if_neg hl] at hkl
++  · rw [ite_eq_right hk, ite_eq_right hl] at hkl
+     have h1 : M + 1 + (k : ℝ) = M + 1 + (l : ℝ) := by
+       rw [← Plane.mk_zero (M + 1 + (k : ℝ)) 0, hkl]; exact Plane.mk_zero _ _
+     exact_mod_cast (by linarith : (k : ℝ) = (l : ℝ))
+@@ -156,9 +156,9 @@
+ /-- The index map that skips over vertex `i + 1`. -/
+ def skipIdx (i k : ℕ) : ℕ := if k ≤ i then k else k + 1
+ 
+-theorem skipIdx_of_le (h : k ≤ i) : skipIdx i k = k := if_pos h
+-
+-theorem skipIdx_of_lt (h : i < k) : skipIdx i k = k + 1 := if_neg (by omega)
++theorem skipIdx_of_le (h : k ≤ i) : skipIdx i k = k := ite_eq_left h
++
++theorem skipIdx_of_lt (h : i < k) : skipIdx i k = k + 1 := ite_eq_right (by omega)
+ 
+ theorem skipIdx_injective (i : ℕ) : Function.Injective (skipIdx i) := by
+   intro k l h
+@@ -572,18 +572,18 @@
+   -- The linear vertex list: the ends, in the order the arc reaches them, and then `b`.
+   set vf : ℕ → Plane := fun k => if h : k < n then f (par TF hcard ⟨k, h⟩) else b with hvf
+   have hvflt : ∀ (k : ℕ) (hk : k < n), vf k = f (tp ⟨k, hk⟩) := by
+-    intro k hk; rw [hvf]; simp only [dif_pos hk, htp]
+-  have hvfn : vf n = b := by rw [hvf]; simp only [dif_neg (lt_irrefl n)]
++    intro k hk; rw [hvf]; simp only [dite_eq_left hk, htp]
++  have hvfn : vf n = b := by rw [hvf]; simp only [dite_eq_right (lt_irrefl n)]
+   -- `f 1 = b` is the right end of the last gap, so the list has the right successor at each step.
+   have hvfsucc : ∀ (k : ℕ) (hk : k < n), vf (k + 1) = f (nx ⟨k, hk⟩) := by
+     intro k hk
+     by_cases hk1 : k + 1 < n
+     · rw [hvflt (k + 1) hk1, htp, hnx, parNext,
+-        dif_pos (show (⟨k, hk⟩ : Fin n).val + 1 < n from hk1)]
++        dite_eq_left (show (⟨k, hk⟩ : Fin n).val + 1 < n from hk1)]
+       rfl
+     · have : k + 1 = n := by omega
+       rw [this, hvfn, hnx, parNext,
+-        dif_neg (show ¬ ((⟨k, hk⟩ : Fin n).val + 1 < n) from hk1), hf1]
++        dite_eq_right (show ¬ ((⟨k, hk⟩ : Fin n).val + 1 < n) from hk1), hf1]
+   -- The vertex list is injective on `{0, …, n}`: `f` is, and the parameters are increasing.
+   have hvfinj : ∀ i < n + 1, ∀ j < n + 1, vf i = vf j → i = j := by
+     have hkey : ∀ i < n, ∀ j < n, vf i = vf j → i = j := by
+diff --git a/Schoenflies/PolyLocal.lean b/Schoenflies/PolyLocal.lean
+--- a/Schoenflies/PolyLocal.lean
++++ b/Schoenflies/PolyLocal.lean
+@@ -277,7 +277,7 @@
+       rintro c ⟨hcQ, hcne⟩
+       have : p ∉ closedSquare c (ρ c) :=
+         Set.disjoint_left.1 (hdisj c₀ hc₀Q c hcQ fun h => hcne (h ▸ rfl)) hpc₀
+-      simp only [closedSquare, mem_setOf_eq, not_le] at this
++      simp only [closedSquare, mem_ofPred_eq, not_le] at this
+       linarith
+     obtain ⟨s, hs, hsle⟩ := exists_pos_le_of_finite (hQ.sdiff (t := {c₀}))
+       (f := fun c => supDist p c - ρ c) hfar
+@@ -298,7 +298,7 @@
+     have hfar : ∀ c ∈ Q, 0 < supDist p c - ρ c := by
+       intro c hcQ
+       have := hnear c hcQ
+-      simp only [closedSquare, mem_setOf_eq, not_le] at this
++      simp only [closedSquare, mem_ofPred_eq, not_le] at this
+       linarith
+     obtain ⟨s, hs, hsle⟩ := exists_pos_le_of_finite hQ (f := fun c => supDist p c - ρ c) hfar
+     refine isLocallyPolyConnAt'_of_nbhd_subset (isOpen_openSquare p s) (mem_openSquare_self hs)
+diff --git a/Schoenflies/PrePolygonArc.lean b/Schoenflies/PrePolygonArc.lean
+--- a/Schoenflies/PrePolygonArc.lean
++++ b/Schoenflies/PrePolygonArc.lean
+@@ -623,13 +623,13 @@
+   have hlt : j.val < m + 3 := ZMod.val_lt j
+   have hval : (emb j).val = j.val := by
+     rw [emb, ZMod.val_cast_of_lt (by omega)]
+-  rw [insVertex, if_pos (by rw [hval]; exact hlt), hval, ZMod.natCast_rightInverse j]
++  rw [insVertex, ite_eq_left (by rw [hval]; exact hlt), hval, ZMod.natCast_rightInverse j]
+ 
+ theorem val_neg_one' : (-1 : ZMod (m + 1 + 3)).val = m + 3 := by
+   rw [neg_one_eq_cast, ZMod.val_cast_of_lt (by omega)]
+ 
+ theorem insVertex_neg_one (P : PrePolygon m) (z : Plane) : insVertex P z (-1) = z := by
+-  rw [insVertex, if_neg (by rw [val_neg_one' (m := m)]; omega)]
++  rw [insVertex, ite_eq_right (by rw [val_neg_one' (m := m)]; omega)]
+ 
+ /-- Away from the inserted vertex the edges are unchanged. -/
+ theorem insEdge_of_lt {j : ZMod (m + 3)} (h : j.val + 1 < m + 3) :
+@@ -688,12 +688,12 @@
+     have hi := ZMod.val_lt i
+     have hj := ZMod.val_lt j
+     by_cases hli : i.val < m + 3 <;> by_cases hlj : j.val < m + 3
+-    · rw [if_pos hli, if_pos hlj] at hij
++    · rw [ite_eq_left hli, ite_eq_left hlj] at hij
+       exact ZMod.val_injective _
+         (ClosedPolygon.natCast_inj hli hlj (P.vertex_inj hij))
+-    · rw [if_pos hli, if_neg hlj] at hij
++    · rw [ite_eq_left hli, ite_eq_right hlj] at hij
+       exact absurd hij (hzv _)
+-    · rw [if_neg hli, if_pos hlj] at hij
++    · rw [ite_eq_right hli, ite_eq_left hlj] at hij
+       exact absurd hij.symm (hzv _)
+     · exact ZMod.val_injective _ (by omega)
+   edges_meet := by
+diff --git a/Schoenflies/QuantitativeForwardStages.lean b/Schoenflies/QuantitativeForwardStages.lean
+--- a/Schoenflies/QuantitativeForwardStages.lean
++++ b/Schoenflies/QuantitativeForwardStages.lean
+@@ -34,8 +34,8 @@
+   rw [Plane.closedSquare_eq_inter] at hclosed
+   have hopen := hz.2
+   rw [Plane.openSquare_eq_inter] at hopen
+-  simp only [Set.mem_inter_iff, Set.mem_setOf_eq] at hclosed
+-  simp only [Set.mem_inter_iff, Set.mem_setOf_eq, not_and_or, not_lt] at hopen
++  simp only [Set.mem_inter_iff, Set.mem_ofPred_eq] at hclosed
++  simp only [Set.mem_inter_iff, Set.mem_ofPred_eq, not_and_or, not_lt] at hopen
+   rcases hopen with hX | hY
+   · rcases hX with hleft | hright
+     · exact mem_cover_of_coord_eq hs hk (Nat.zero_le k) hz.1 (by
+diff --git a/Schoenflies/QuantitativeRecursion.lean b/Schoenflies/QuantitativeRecursion.lean
+--- a/Schoenflies/QuantitativeRecursion.lean
++++ b/Schoenflies/QuantitativeRecursion.lean
+@@ -191,7 +191,7 @@
+ 
+ theorem denseQuantitativeSchedule_centresDense (hC : IsSeparating C) :
+     (denseQuantitativeSchedule hC).CentresDense := by
+-  letI : Nonempty (inside C) := hC.isConnected_inside.nonempty.to_subtype
++  let : Nonempty (inside C) := hC.isConnected_inside.nonempty.to_subtype
+   intro x hx δ hδ
+   obtain ⟨k, hk⟩ :=
+     (TopologicalSpace.denseRange_denseSeq (inside C)).exists_dist_lt
+diff --git a/Schoenflies/Realization.lean b/Schoenflies/Realization.lean
+--- a/Schoenflies/Realization.lean
++++ b/Schoenflies/Realization.lean
+@@ -876,7 +876,7 @@
+ /-- The successor in `ZMod n`, read as a numeral below `n`. -/
+ theorem zmod_val_succ {n : ℕ} (hn : 1 < n) (j : ZMod n) :
+     (j + 1).val = if j.val + 1 < n then j.val + 1 else 0 := by
+-  haveI : NeZero n := ⟨by omega⟩
++  have : NeZero n := ⟨by omega⟩
+   have h1 : (1 : ZMod n).val = 1 := by
+     rw [show (1 : ZMod n) = ((1 : ℕ) : ZMod n) by norm_num]
+     exact ZMod.val_cast_of_lt hn
+@@ -1084,27 +1084,27 @@
+     · exfalso
+       have hcond : ¬ ((⟨0, hn0⟩ : Fin n) : ℕ) + 1 < n :=
+         fun hc => absurd (lt_of_le_of_lt (Nat.le_add_left 1 _) hc) (by omega)
+-      have hnx0 : nx ⟨0, hn0⟩ = 1 := by rw [hnx, parNext, dif_neg hcond]
++      have hnx0 : nx ⟨0, hn0⟩ = 1 := by rw [hnx, parNext, dite_eq_right hcond]
+       exact hfne ⟨0, hn0⟩ (by rw [htp0, hnx0]; exact hf.closes)
+     · exact hge
+-  haveI : NeZero n := ⟨by omega⟩
++  have : NeZero n := ⟨by omega⟩
+   -- The cyclic vertex list: the ends, in the order the loop reaches them.
+   set w : ZMod n → Plane := fun j => f (tp ⟨j.val, ZMod.val_lt j⟩) with hw
+   have hwsucc : ∀ j : ZMod n, w (j + 1) = f (nx ⟨j.val, ZMod.val_lt j⟩) := by
+     intro j
+     have hjlt := ZMod.val_lt j
+     by_cases hj : j.val + 1 < n
+-    · have hval : (j + 1).val = j.val + 1 := by rw [zmod_val_succ (by omega) j, if_pos hj]
++    · have hval : (j + 1).val = j.val + 1 := by rw [zmod_val_succ (by omega) j, ite_eq_left hj]
+       have hfin : (⟨(j + 1).val, ZMod.val_lt (j + 1)⟩ : Fin n) = ⟨j.val + 1, hj⟩ :=
+         Fin.val_injective hval
+       simp only [hw, hfin]
+-      rw [hnx, parNext, dif_pos (show (⟨j.val, hjlt⟩ : Fin n).val + 1 < n from hj)]
++      rw [hnx, parNext, dite_eq_left (show (⟨j.val, hjlt⟩ : Fin n).val + 1 < n from hj)]
+       rfl
+-    · have hval : (j + 1).val = 0 := by rw [zmod_val_succ (by omega) j, if_neg hj]
++    · have hval : (j + 1).val = 0 := by rw [zmod_val_succ (by omega) j, ite_eq_right hj]
+       have hfin : (⟨(j + 1).val, ZMod.val_lt (j + 1)⟩ : Fin n) = ⟨0, hn0⟩ :=
+         Fin.val_injective hval
+       simp only [hw, hfin]
+-      rw [htp0, hnx, parNext, dif_neg (show ¬ ((⟨j.val, hjlt⟩ : Fin n).val + 1 < n) from hj)]
++      rw [htp0, hnx, parNext, dite_eq_right (show ¬ ((⟨j.val, hjlt⟩ : Fin n).val + 1 < n) from hj)]
+       exact hf.closes
+   have hedgeq : ∀ j : ZMod n,
+       segment ℝ (w j) (w (j + 1)) = (pc ⟨j.val, ZMod.val_lt j⟩).seg := by
+@@ -1141,7 +1141,7 @@
+         omega
+       have hsucc1 : (1 : ZMod n) + 1 = 0 := by
+         refine ZMod.val_injective _ ?_
+-        rw [zmod_val_succ (by omega) 1, hone, if_neg (by omega), ZMod.val_zero]
++        rw [zmod_val_succ (by omega) 1, hone, ite_eq_right (by omega), ZMod.val_zero]
+       have hw01 : w 0 ≠ w 1 := fun he => h01 (hwinj he)
+       obtain ⟨p, hp, hp1, hp2⟩ := PrePolygon.exists_mem_segment_ne hw01
+       have hmem := hwmeet 0 1 h01
+diff --git a/Schoenflies/RealizeSplit.lean b/Schoenflies/RealizeSplit.lean
+--- a/Schoenflies/RealizeSplit.lean
++++ b/Schoenflies/RealizeSplit.lean
+@@ -501,11 +501,11 @@
+ 
+ theorem splitPos_of_mem_ear {z : γ} (hz : z ∈ V(d.ear)) : d.splitPos R earPos z = earPos z := by
+   classical
+-  simp only [splitPos, if_pos hz]
++  simp only [splitPos, ite_eq_left hz]
+ 
+ theorem splitPos_of_notMem_ear {z : γ} (hz : z ∉ V(d.ear)) : d.splitPos R earPos z = R.pos z := by
+   classical
+-  simp only [splitPos, if_neg hz]
++  simp only [splitPos, ite_eq_right hz]
+ 
+ theorem EarCrosscut.splitPos_eq (hE : d.EarCrosscut R earPos earDraw) {z : γ}
+     (hz : z ∈ V(S.skel)) : d.splitPos R earPos z = R.pos z := by
+@@ -516,24 +516,24 @@
+ theorem splitDrawing_of_mem_ear {f : γ} (hf : f ∈ E(d.ear)) :
+     d.splitDrawing R earDraw f = earDraw f := by
+   classical
+-  simp only [splitDrawing, if_pos hf]
++  simp only [splitDrawing, ite_eq_left hf]
+ 
+ theorem splitDrawing_of_mem_skel {f : γ} (hf : f ∈ E(S.skel)) :
+     d.splitDrawing R earDraw f = R.drawing f := by
+   classical
+-  simp only [splitDrawing, if_neg (Set.disjoint_left.1 d.disjoint_edgeSet hf)]
++  simp only [splitDrawing, ite_eq_right (Set.disjoint_left.1 d.disjoint_edgeSet hf)]
+ 
+ theorem splitCell_face₁ : d.splitCell R earPos earDraw d.face₁ =
+     inside (R.cellUnion d.cells₁ ∪ d.earSet earPos earDraw) := by
+   classical
+   unfold splitCell
+-  rw [if_pos rfl]
++  rw [ite_eq_left rfl]
+ 
+ theorem splitCell_face₂ : d.splitCell R earPos earDraw d.face₂ =
+     inside (R.cellUnion d.cells₂ ∪ d.earSet earPos earDraw) := by
+   classical
+   unfold splitCell
+-  rw [if_neg (Ne.symm d.face_ne), if_pos rfl]
++  rw [ite_eq_right (Ne.symm d.face_ne), ite_eq_left rfl]
+ 
+ theorem splitCell_of_mem_cells {σ : γ} (hσ : σ ∈ S.cells) :
+     d.splitCell R earPos earDraw σ = R.cell σ := by
+@@ -546,7 +546,7 @@
+     exacts [hnv d.source_mem_skel, hnv d.target_mem_skel]
+   have h₄ : σ ∉ E(d.ear) := fun h => d.edge_fresh h hσ
+   unfold splitCell
+-  rw [if_neg h₁, if_neg h₂, if_neg h₃, if_neg h₄]
++  rw [ite_eq_right h₁, ite_eq_right h₂, ite_eq_right h₃, ite_eq_right h₄]
+ 
+ theorem EarCrosscut.splitCell_earVertex (hE : d.EarCrosscut R earPos earDraw) {z : γ}
+     (hz : z ∈ V(d.ear)) : d.splitCell R earPos earDraw z = {earPos z} := by
+@@ -557,7 +557,9 @@
+   · have h₁ : z ≠ d.face₁ := by rintro rfl; exact d.face₁_notMem_ear (Or.inl hz)
+     have h₂ : z ≠ d.face₂ := by rintro rfl; exact d.face₂_notMem_ear (Or.inl hz)
+     unfold splitCell
+-    rw [if_neg h₁, if_neg h₂, if_pos (show z ∈ V(d.ear) ∧ z ∉ V(S.skel) from ⟨hz, hz'⟩)]
++    rw [ite_eq_right h₁,
++      ite_eq_right h₂,
++      ite_eq_left (show z ∈ V(d.ear) ∧ z ∉ V(S.skel) from ⟨hz, hz'⟩)]
+ 
+ theorem splitCell_earEdge {f : γ} (hf : f ∈ E(d.ear)) :
+     d.splitCell R earPos earDraw f = Graph.edgeArc earDraw f \ earPos '' V(d.ear) := by
+@@ -567,7 +569,7 @@
+   have h₃ : ¬ (f ∈ V(d.ear) ∧ f ∉ V(S.skel)) := fun h =>
+     Set.disjoint_left.1 d.ear_disjoint h.1 hf
+   unfold splitCell
+-  rw [if_neg h₁, if_neg h₂, if_neg h₃, if_pos hf]
++  rw [ite_eq_right h₁, ite_eq_right h₂, ite_eq_right h₃, ite_eq_left hf]
+ 
+ theorem edgeArc_splitDrawing_of_mem_skel {f : γ} (hf : f ∈ E(S.skel)) :
+     Graph.edgeArc (d.splitDrawing R earDraw) f = Graph.edgeArc R.drawing f := by
+diff --git a/Schoenflies/RealizeSubdiv.lean b/Schoenflies/RealizeSubdiv.lean
+--- a/Schoenflies/RealizeSubdiv.lean
++++ b/Schoenflies/RealizeSubdiv.lean
+@@ -309,7 +309,7 @@
+       R.drawing d.edge (d.rightParam R) = R.pos d.right := by
+   have hd := R.isDrawing.edge_param (d.edge_mem_edgeSet_graph R)
+   rcases (d.isLink_drawn_edge R).eq_and_eq_or_eq_and_eq hd.2.2 with ⟨h0, h1⟩ | ⟨h0, h1⟩
+-  · have hL : d.leftParam R = 0 := if_pos h0.symm
++  · have hL : d.leftParam R = 0 := ite_eq_left h0.symm
+     refine ⟨by rw [hL]; exact h0.symm, ?_⟩
+     have hR : d.rightParam R = 1 := by rw [rightParam, hL]; ring
+     rw [hR]; exact h1.symm
+@@ -317,7 +317,7 @@
+     -- endpoint values, which injectivity forbids.
+     have hne : ¬ (R.drawing d.edge 0 = R.pos d.left) := fun hcon =>
+       zero_ne_one (hd.2.1 zero_mem_I one_mem_I (by rw [hcon, h0]))
+-    have hL : d.leftParam R = 1 := if_neg hne
++    have hL : d.leftParam R = 1 := ite_eq_right hne
+     refine ⟨by rw [hL]; exact h0.symm, ?_⟩
+     have hR : d.rightParam R = 0 := by rw [rightParam, hL]; ring
+     rw [hR]; exact h1.symm
+@@ -458,9 +458,10 @@
+ variable {d R}
+ 
+ @[simp] theorem realizePos_newVertex : d.realizePos R t d.newVertex = R.drawing d.edge t :=
+-  if_pos rfl
+-
+-theorem realizePos_of_ne {z : γ} (h : z ≠ d.newVertex) : d.realizePos R t z = R.pos z := if_neg h
++  ite_eq_left rfl
++
++theorem realizePos_of_ne {z : γ} (h : z ≠ d.newVertex) : d.realizePos R t z = R.pos z :=
++  ite_eq_right h
+ 
+ theorem realizePos_of_mem_cells {z : γ} (h : z ∈ S.cells) : d.realizePos R t z = R.pos z :=
+   realizePos_of_ne (d.ne_newVertex_of_mem_cells h)
+@@ -469,33 +470,38 @@
+   realizePos_of_mem_cells (S.mem_cells_of_mem_vertexSet h)
+ 
+ @[simp] theorem realizeDrawing_newEdge₁ :
+-    d.realizeDrawing R t d.newEdge₁ = subarc (R.drawing d.edge) (d.leftParam R) t := if_pos rfl
++    d.realizeDrawing R t d.newEdge₁ = subarc (R.drawing d.edge) (d.leftParam R) t := ite_eq_left rfl
+ 
+ @[simp] theorem realizeDrawing_newEdge₂ :
+     d.realizeDrawing R t d.newEdge₂ = subarc (R.drawing d.edge) t (d.rightParam R) := by
+-  rw [realizeDrawing, if_neg d.newEdge_ne.symm, if_pos rfl]
++  rw [realizeDrawing, ite_eq_right d.newEdge_ne.symm, ite_eq_left rfl]
+ 
+ theorem realizeDrawing_of_ne {f : γ} (h₁ : f ≠ d.newEdge₁) (h₂ : f ≠ d.newEdge₂) :
+-    d.realizeDrawing R t f = R.drawing f := by rw [realizeDrawing, if_neg h₁, if_neg h₂]
++    d.realizeDrawing R t f = R.drawing f := by rw [realizeDrawing, ite_eq_right h₁, ite_eq_right h₂]
+ 
+ theorem realizeDrawing_of_mem_cells {f : γ} (h : f ∈ S.cells) :
+     d.realizeDrawing R t f = R.drawing f :=
+   realizeDrawing_of_ne (d.ne_newEdge₁_of_mem_cells h) (d.ne_newEdge₂_of_mem_cells h)
+ 
+ @[simp] theorem realizeCell_newVertex : d.realizeCell R t d.newVertex = {R.drawing d.edge t} :=
+-  if_pos rfl
++  ite_eq_left rfl
+ 
+ @[simp] theorem realizeCell_newEdge₁ : d.realizeCell R t d.newEdge₁ =
+     R.drawing d.edge '' uIcc (d.leftParam R) t \ {R.pos d.left, R.drawing d.edge t} := by
+-  rw [realizeCell, if_neg d.newVertex_ne₁.symm, if_pos rfl]
++  rw [realizeCell, ite_eq_right d.newVertex_ne₁.symm, ite_eq_left rfl]
+ 
+ @[simp] theorem realizeCell_newEdge₂ : d.realizeCell R t d.newEdge₂ =
+     R.drawing d.edge '' uIcc t (d.rightParam R) \ {R.drawing d.edge t, R.pos d.right} := by
+-  rw [realizeCell, if_neg d.newVertex_ne₂.symm, if_neg d.newEdge_ne.symm, if_pos rfl]
++  rw [realizeCell,
++    ite_eq_right d.newVertex_ne₂.symm,
++    ite_eq_right d.newEdge_ne.symm,
++    ite_eq_left rfl]
+ 
+ theorem realizeCell_of_mem_cells {c : γ} (h : c ∈ S.cells) : d.realizeCell R t c = R.cell c := by
+-  rw [realizeCell, if_neg (d.ne_newVertex_of_mem_cells h), if_neg (d.ne_newEdge₁_of_mem_cells h),
+-    if_neg (d.ne_newEdge₂_of_mem_cells h)]
++  rw [realizeCell,
++    ite_eq_right (d.ne_newVertex_of_mem_cells h),
++    ite_eq_right (d.ne_newEdge₁_of_mem_cells h),
++    ite_eq_right (d.ne_newEdge₂_of_mem_cells h)]
+ 
+ /-! ### The two half arcs -/
+ 
+diff --git a/Schoenflies/RefinementStars.lean b/Schoenflies/RefinementStars.lean
+--- a/Schoenflies/RefinementStars.lean
++++ b/Schoenflies/RefinementStars.lean
+@@ -132,7 +132,7 @@
+ theorem carrier_spec [Nonempty γ] (R : S.Realization) (x : Plane)
+     (h : ∃ σ, σ ∈ S.cells ∧ x ∈ R.cell σ) :
+     R.carrier x ∈ S.cells ∧ x ∈ R.cell (R.carrier x) := by
+-  rw [carrier, dif_pos h]
++  rw [carrier, dite_eq_left h]
+   exact h.choose_spec
+ 
+ namespace IsCellDecomposition
+diff --git a/Schoenflies/SimpleArc.lean b/Schoenflies/SimpleArc.lean
+--- a/Schoenflies/SimpleArc.lean
++++ b/Schoenflies/SimpleArc.lean
+@@ -146,14 +146,14 @@
+       · -- A repeated vertex contributes the point `u`, which the rest of the chain already
+         -- holds.
+         subst huv
+-        rw [if_pos rfl, segment_same]
++        rw [ite_eq_left rfl, segment_same]
+         have hmem : u ∈ poly (u :: rest) := mem_poly_of_mem (List.mem_cons_self ..)
+         rcases ih with h | ⟨h1, h2⟩
+         · exact Or.inl (by rw [h, union_eq_self_of_subset_left (singleton_subset_iff.2 hmem)])
+         · refine Or.inr ⟨h1, ?_⟩
+           rw [union_eq_self_of_subset_left (singleton_subset_iff.2 hmem)]
+           exact h2
+-      · rw [if_neg huv, cover_cons]
++      · rw [ite_eq_right huv, cover_cons]
+         refine Or.inl ?_
+         rcases ih with h | ⟨h1, h2⟩
+         · rw [h]; rfl
+@@ -284,7 +284,7 @@
+   -- And they carry disjoint sets: a common point is a vertex incident with an edge of each.
+   have hdisj : ∀ z, z ∈ S → z ∈ T → False := by
+     intro z hzS hzT
+-    simp only [hS, hT, mem_iUnion, mem_setOf_eq, exists_prop] at hzS hzT
++    simp only [hS, hT, mem_iUnion, mem_ofPred_eq, exists_prop] at hzS hzT
+     obtain ⟨P, ⟨hP, hPr⟩, hzP⟩ := hzS
+     obtain ⟨Q, ⟨hQ, hQr⟩, hzQ⟩ := hzT
+     have hPQ : P ≠ Q := by rintro rfl; exact hQr hPr
+@@ -315,7 +315,7 @@
+       hsub ⟨a, ha, fun h => hdisj a haS h⟩ ⟨b, hb, fun h => hdisj b h hbT⟩
+     exact (hunion z hzc).elim hzS hzT
+   -- `b` is a vertex on an edge of the reachable class, hence an end of it.
+-  simp only [hS, mem_iUnion, mem_setOf_eq, exists_prop] at hbS
++  simp only [hS, mem_iUnion, mem_ofPred_eq, exists_prop] at hbS
+   obtain ⟨P, ⟨hP, hPr⟩, hbP⟩ := hbS
+   have hbend : b = P.1 ∨ b = P.2 :=
+     hdraw.vertex_mem_edgeArc (hlink P hP) hbV (by rwa [edgeArc_segmentDrawing])
+diff --git a/Schoenflies/SkeletonAccess.lean b/Schoenflies/SkeletonAccess.lean
+--- a/Schoenflies/SkeletonAccess.lean
++++ b/Schoenflies/SkeletonAccess.lean
+@@ -648,8 +648,8 @@
+     frontier (Plane.openSquare c s) ⊆ Plane.closedSquare c s \ Plane.openSquare c s := by
+   have hsub : Plane.openSquare c s ⊆ Plane.closedSquare c s := by
+     intro w hw
+-    simp only [Plane.openSquare, mem_setOf_eq] at hw
+-    simp only [Plane.closedSquare, mem_setOf_eq]
++    simp only [Plane.openSquare, mem_ofPred_eq] at hw
++    simp only [Plane.closedSquare, mem_ofPred_eq]
+     exact hw.le
+   rw [(Plane.isOpen_openSquare c s).frontier_eq]
+   exact Set.sdiff_subset_sdiff_left
+diff --git a/Schoenflies/SkeletonLocal.lean b/Schoenflies/SkeletonLocal.lean
+--- a/Schoenflies/SkeletonLocal.lean
++++ b/Schoenflies/SkeletonLocal.lean
+@@ -213,9 +213,9 @@
+       · exact one_pos
+       · exact dist_pos.2 (Ne.symm h)
+     · intro h1
+-      exact le_trans (min_le_left _ _) (le_of_eq (if_neg h1))
++      exact le_trans (min_le_left _ _) (le_of_eq (ite_eq_right h1))
+     · intro h2
+-      exact le_trans (min_le_right _ _) (le_of_eq (if_neg h2))
++      exact le_trans (min_le_right _ _) (le_of_eq (ite_eq_right h2))
+   · -- A piece missing `x` is a compact set at positive distance from `x`.
+     obtain ⟨ρ, hρ, hd⟩ := Plane.exists_dist_pos isCompact_singleton (isCompact_segment P.1 P.2)
+       (Set.disjoint_singleton_left.2 hx)
+@@ -453,7 +453,7 @@
+ theorem IsLocalRadius.ball_diff_eq_cone (h : IsLocalRadius S x r) :
+     ball x r \ S = Plane.cone x {u | u ≠ 0 ∧ Plane.dir u ∉ localDirs S x} r := by
+   ext z
+-  simp only [Set.mem_sdiff, mem_ball, Plane.mem_cone_iff, mem_setOf_eq, sub_ne_zero]
++  simp only [Set.mem_sdiff, mem_ball, Plane.mem_cone_iff, mem_ofPred_eq, sub_ne_zero]
+   constructor
+   · rintro ⟨hzb, hzS⟩
+     have hiff := h.2 z hzb.le
+diff --git a/Schoenflies/SkeletonSectors.lean b/Schoenflies/SkeletonSectors.lean
+--- a/Schoenflies/SkeletonSectors.lean
++++ b/Schoenflies/SkeletonSectors.lean
+@@ -178,19 +178,19 @@
+ counterclockwise from `u` to `w` exactly when `w` lies on the arc counterclockwise from `d` to
+ `u`. -/
+ theorem mem_arcCCW_rotate : d ∈ arcCCW u w ↔ w ∈ arcCCW d u := by
+-  simp only [arcCCW, mem_setOf_eq]
++  simp only [arcCCW, mem_ofPred_eq]
+   tauto
+ 
+ /-- A bounding ray is not on its own arc. -/
+ theorem left_notMem_arcCCW (u w : Plane) : u ∉ arcCCW u w := by
+   have h : det w u = -det u w := det_comm w u
+-  simp only [arcCCW, mem_setOf_eq, det_self, h]
++  simp only [arcCCW, mem_ofPred_eq, det_self, h]
+   rintro (⟨h1, _⟩ | ⟨h1, h2⟩ | ⟨_, h2⟩) <;> linarith
+ 
+ /-- The other bounding ray is not on the arc either. -/
+ theorem right_notMem_arcCCW (u w : Plane) : w ∉ arcCCW u w := by
+   have h : det w u = -det u w := det_comm w u
+-  simp only [arcCCW, mem_setOf_eq, det_self, h]
++  simp only [arcCCW, mem_ofPred_eq, det_self, h]
+   rintro (⟨_, h2⟩ | ⟨h1, _⟩ | ⟨_, h2⟩) <;> linarith
+ 
+ /-- **Asymmetry.** Transposing the first two entries of the triple negates the cyclic order:
+@@ -200,7 +200,7 @@
+   have e1 : det v u = -det u v := det_comm v u
+   have e2 : det u w = -det w u := det_comm u w
+   have e3 : det w v = -det v w := det_comm w v
+-  simp only [arcCCW, mem_setOf_eq] at h ⊢
++  simp only [arcCCW, mem_ofPred_eq] at h ⊢
+   rw [e1, e3]
+   rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩ | ⟨h1, h2⟩ <;>
+     rintro (⟨g1, g2⟩ | ⟨g1, g2⟩ | ⟨g1, g2⟩) <;> linarith
+@@ -268,7 +268,7 @@
+ transitive: if `w` comes before `v` and `v` before `d`, then `w` comes before `d`. This is what
+ makes a finite set of directions linearly ordered once a ray to cut at has been chosen. -/
+ theorem arcCCW_trans (h₁ : w ∈ arcCCW u v) (h₂ : v ∈ arcCCW u d) : w ∈ arcCCW u d := by
+-  simp only [arcCCW, mem_setOf_eq] at h₁ h₂ ⊢
++  simp only [arcCCW, mem_ofPred_eq] at h₁ h₂ ⊢
+   have hv : det u v = -det v u := det_comm u v
+   rw [hv] at h₂
+   exact trans_aux₁ (grassmann u w v d) h₁ h₂
+@@ -278,7 +278,7 @@
+ counterclockwise from `w` to `d`. This is the step that turns "nothing of the finite set lies
+ between `u` and the extreme rays" into "nothing lies inside the sector". -/
+ theorem arcCCW_trans' (h₁ : w ∈ arcCCW u v) (h₂ : v ∈ arcCCW u d) : v ∈ arcCCW w d := by
+-  simp only [arcCCW, mem_setOf_eq] at h₁ h₂ ⊢
++  simp only [arcCCW, mem_ofPred_eq] at h₁ h₂ ⊢
+   have hv : det u v = -det v u := det_comm u v
+   have hd : det d w = -det w d := det_comm d w
+   rw [hv] at h₂
+@@ -401,7 +401,7 @@
+         ring
+       rw [he, mul_comm, mul_assoc]
+       exact mul_pos (inv_pos.2 hupos) (mul_self_pos.2 hne)
+-  simp only [arcCCW, mem_setOf_eq]
++  simp only [arcCCW, mem_ofPred_eq]
+   rw [hAB, hCB, hWV]
+   rcases key with h | h
+   · exact Or.inl h
+@@ -446,7 +446,7 @@
+     intro v; rw [hsm, det_smul_right, det_comm v u]; ring
+   have e2 : det (-u) u = 0 := by rw [hsm, det_smul_left, det_self, mul_zero]
+   ext v
+-  simp only [arcCCW, mem_setOf_eq, e1, e2]
++  simp only [arcCCW, mem_ofPred_eq, e1, e2]
+   constructor
+   · rintro (⟨h, _⟩ | ⟨_, h⟩ | ⟨h, _⟩) <;> linarith
+   · exact fun h => Or.inl ⟨h, h⟩
+@@ -461,7 +461,7 @@
+     have hhalf : (0 : ℝ) < ρ / 2 := by linarith
+     refine ⟨⟨(ρ / 2) • perp u, ?_, ?_⟩,
+       ((convex_det_right_pos u).inter (convex_ball _ _)).isPreconnected⟩
+-    · simp only [mem_setOf_eq, det_smul_right, det_perp_self, hu.norm, one_pow, mul_one]
++    · simp only [mem_ofPred_eq, det_smul_right, det_perp_self, hu.norm, one_pow, mul_one]
+       exact hhalf
+     · rw [mem_ball, dist_zero_right, norm_smul, Real.norm_eq_abs, norm_perp, hu.norm, mul_one,
+         abs_of_pos hhalf]
+@@ -558,8 +558,8 @@
+       rw [hwd, neg_neg] at hne
+       rw [hwd]
+       exact hne
+-    rw [harc, mem_setOf_eq, not_lt] at h
+-    rw [harc', mem_setOf_eq, hwd]
++    rw [harc, mem_ofPred_eq, not_lt] at h
++    rw [harc', mem_ofPred_eq, hwd]
+     have hdz : det d z ≠ 0 := by
+       intro hzero
+       rcases eq_dir_or_eq_neg_dir hd.ne_zero hz hzero with h1 | h1
+@@ -980,11 +980,11 @@
+     (hs₂ : segment ℝ x (x + r • d₂) ⊆ edgeArc drawing e)
+     (hs₃ : segment ℝ x (x + r • d₃) ⊆ edgeArc drawing e) : False := by
+   obtain ⟨hcont, hinj, -⟩ := h.edge_param he
+-  haveI : CompactSpace ↥(I : Set ℝ) := isCompact_iff_compactSpace.1 isCompact_I
+-  set φ : ↥(I : Set ℝ) → Plane := Set.restrict I (drawing e) with hφdef
++  have : CompactSpace ↥(I : Set ℝ) := isCompact_iff_compactSpace.1 isCompact_I
++  set φ : ↥(I : Set ℝ) → Plane := Set.domRestrict I (drawing e) with hφdef
+   have hφi : Function.Injective φ := Set.injOn_iff_injective.1 hinj
+-  have hcm : IsClosedMap φ := (hcont.restrict).isClosedMap
+-  have hrange : Set.range φ = edgeArc drawing e := Set.range_restrict _ _
++  have hcm : IsClosedMap φ := (hcont.domRestrict).isClosedMap
++  have hrange : Set.range φ = edgeArc drawing e := Set.range_domRestrict _ _
+   -- The preimage of a radial segment is a connected set of parameters.
+   have hpre : ∀ dd : Plane, segment ℝ x (x + r • dd) ⊆ edgeArc drawing e →
+       IsPreconnected (Subtype.val '' (φ ⁻¹' segment ℝ x (x + r • dd))) := by
+diff --git a/Schoenflies/SourceAttachment.lean b/Schoenflies/SourceAttachment.lean
+--- a/Schoenflies/SourceAttachment.lean
++++ b/Schoenflies/SourceAttachment.lean
+@@ -29,7 +29,7 @@
+ 
+ namespace Schoenflies
+ 
+-open Graph
++open _root_.Schoenflies.Graph
+ 
+ variable {γ : Type*} {S₀ : CellStructure γ}
+   {srcOuter srcDom tgtOuter tgtDom : Set Plane}
+@@ -312,7 +312,7 @@
+       V(Q.crosscutOverlay J p s epsilon extra) := by
+   intro x hx
+   rw [localGrid_eq, pieceListGraph_vertexSet] at hx
+-  simp only [endSet, Set.mem_setOf_eq] at hx
++  simp only [endSet, Set.mem_ofPred_eq] at hx
+   obtain ⟨R, hR, hxR⟩ := hx
+   change x ∈ V(overlayGraph (Q.crosscutPieces J p s epsilon)
+     (attachPoints (Q.crosscutPieces J p s epsilon)
+@@ -630,7 +630,7 @@
+     w.drawing e =
+       (Q.crosscutOverlay J p s epsilon extra).relabelDrawing
+         w.name segmentDrawing e := by
+-  rw [drawing, if_neg]
++  rw [drawing, ite_eq_right]
+   obtain ⟨R, hR, rfl⟩ := he
+   exact fun heOuter => w.name_fresh R hR
+     (P.str.mem_cells_of_mem_edgeSet (P.str.outerGraph_le.edgeSet_mono heOuter))
+@@ -1071,7 +1071,7 @@
+   vertexSet_subset := by
+     intro x hx
+     rw [pieceListGraph_vertexSet] at hx
+-    simp only [endSet, Set.mem_setOf_eq] at hx
++    simp only [endSet, Set.mem_ofPred_eq] at hx
+     obtain ⟨R, hR, hxR⟩ := hx
+     simp only [List.mem_singleton] at hR
+     subst R
+diff --git a/Schoenflies/SourceJoining.lean b/Schoenflies/SourceJoining.lean
+--- a/Schoenflies/SourceJoining.lean
++++ b/Schoenflies/SourceJoining.lean
+@@ -24,7 +24,7 @@
+ 
+ namespace Schoenflies
+ 
+-open Graph
++open _root_.Schoenflies.Graph
+ 
+ variable {γ : Type*} {S₀ : CellStructure γ}
+   {srcOuter srcDom tgtOuter tgtDom : Set Plane}
+@@ -92,10 +92,10 @@
+       | v :: rest =>
+           rw [segsOf_cons_cons]
+           by_cases huv : u = v
+-          · rw [if_pos huv]
++          · rw [ite_eq_left huv]
+             subst u
+             exact ih (List.cons_ne_nil v rest) hne
+-          · rw [if_neg huv]
++          · rw [ite_eq_right huv]
+             constructor
+             · exact ⟨(u, v), List.mem_cons_self, Or.inl rfl⟩
+             · by_cases hvlast : v = (v :: rest).getLast (List.cons_ne_nil v rest)
+@@ -299,7 +299,7 @@
+     u.drawing e =
+       (Q.joinedCrosscutOverlay J p s epsilon extra joins).relabelDrawing
+         u.name segmentDrawing e := by
+-  rw [drawing, if_neg]
++  rw [drawing, ite_eq_right]
+   obtain ⟨R, hR, rfl⟩ := he
+   exact fun heOuter => u.name_fresh R hR
+     (P.str.mem_cells_of_mem_edgeSet (P.str.outerGraph_le.edgeSet_mono heOuter))
+@@ -636,8 +636,8 @@
+       _root_.Graph.edgesCover u.drawing D = cover joins := by
+   let T := _root_.Graph.traceGraph u.graph u.drawing (cover joins)
+   have hTle : T ≤ u.graph := _root_.Graph.traceGraph_le _
+-  letI : u.graph.Finite := u.graph_finite
+-  letI : T.Finite := _root_.Graph.Finite.of_le hTle
++  let : u.graph.Finite := u.graph_finite
++  let : T.Finite := _root_.Graph.Finite.of_le hTle
+   have hpoint : _root_.Graph.pointSet T u.drawing = cover joins :=
+     u.joinTrace_pointSet hs hJ hJgeom hwindow hjoins hjoinsOpen
+   have hxGraph : x ∈ V(u.graph) := u.joinEnds_subset_graph hs hJ hjoins hxEnd
+diff --git a/Schoenflies/SourceOverlay.lean b/Schoenflies/SourceOverlay.lean
+--- a/Schoenflies/SourceOverlay.lean
++++ b/Schoenflies/SourceOverlay.lean
+@@ -314,7 +314,7 @@
+       V(Q.localOverlay p s epsilon extra) := by
+   intro x hx
+   rw [localGrid_eq, pieceListGraph_vertexSet] at hx
+-  simp only [endSet, Set.mem_setOf_eq] at hx
++  simp only [endSet, Set.mem_ofPred_eq] at hx
+   obtain ⟨R, hR, hxR⟩ := hx
+   change x ∈ V(overlayGraph (Q.localPieces p s epsilon)
+     (attachPoints (Q.localPieces p s epsilon)
+@@ -478,7 +478,7 @@
+   have hxmono := (localGridX_strictMono (p := p) hs hk).monotone
+   have hymono := (localGridY_strictMono (p := p) hs hk).monotone
+   rw [Plane.closedSquare_eq_inter]
+-  simp only [Set.mem_inter_iff, Set.mem_setOf_eq, gridPt]
++  simp only [Set.mem_inter_iff, Set.mem_ofPred_eq, gridPt]
+   constructor
+   · constructor
+     · calc
+@@ -668,7 +668,7 @@
+ theorem drawing_of_inner {e : γ} (he : e ∈ E(w.innerGraph)) :
+     w.drawing e =
+       (Q.localOverlay p s epsilon extra).relabelDrawing w.name segmentDrawing e := by
+-  rw [drawing, if_neg]
++  rw [drawing, ite_eq_right]
+   obtain ⟨R, hR, rfl⟩ := he
+   exact fun heOuter => w.name_fresh R hR
+     (P.str.mem_cells_of_mem_edgeSet (P.str.outerGraph_le.edgeSet_mono heOuter))
+diff --git a/Schoenflies/Square.lean b/Schoenflies/Square.lean
+--- a/Schoenflies/Square.lean
++++ b/Schoenflies/Square.lean
+@@ -116,21 +116,21 @@
+ 
+ theorem convex_coord_le (i : Fin 2) (r : ℝ) : Convex ℝ {x : Plane | x i ≤ r} := by
+   intro x hx y hy a b ha hb hab
+-  simp only [mem_setOf_eq] at *
++  simp only [mem_ofPred_eq] at *
+   rw [smul_add_apply]
+   have hr : a * r + b * r = r := by rw [← add_mul, hab, one_mul]
+   nlinarith [mul_le_mul_of_nonneg_left hx ha, mul_le_mul_of_nonneg_left hy hb]
+ 
+ theorem convex_coord_ge (i : Fin 2) (r : ℝ) : Convex ℝ {x : Plane | r ≤ x i} := by
+   intro x hx y hy a b ha hb hab
+-  simp only [mem_setOf_eq] at *
++  simp only [mem_ofPred_eq] at *
+   rw [smul_add_apply]
+   have hr : a * r + b * r = r := by rw [← add_mul, hab, one_mul]
+   nlinarith [mul_le_mul_of_nonneg_left hx ha, mul_le_mul_of_nonneg_left hy hb]
+ 
+ theorem convex_coord_lt (i : Fin 2) (r : ℝ) : Convex ℝ {x : Plane | x i < r} := by
+   intro x hx y hy a b ha hb hab
+-  simp only [mem_setOf_eq] at *
++  simp only [mem_ofPred_eq] at *
+   rw [smul_add_apply]
+   have hr : a * r + b * r = r := by rw [← add_mul, hab, one_mul]
+   rcases eq_or_lt_of_le ha with rfl | ha'
+@@ -140,7 +140,7 @@
+ 
+ theorem convex_coord_gt (i : Fin 2) (r : ℝ) : Convex ℝ {x : Plane | r < x i} := by
+   intro x hx y hy a b ha hb hab
+-  simp only [mem_setOf_eq] at *
++  simp only [mem_ofPred_eq] at *
+   rw [smul_add_apply]
+   have hr : a * r + b * r = r := by rw [← add_mul, hab, one_mul]
+   rcases eq_or_lt_of_le ha with rfl | ha'
+@@ -167,7 +167,7 @@
+       ({x : Plane | c 0 - r ≤ x 0} ∩ {x : Plane | x 0 ≤ c 0 + r}) ∩
+       ({x : Plane | c 1 - r ≤ x 1} ∩ {x : Plane | x 1 ≤ c 1 + r}) := by
+   ext x
+-  simp only [closedSquare, supDist, supNorm, sub_apply, mem_setOf_eq, mem_inter_iff,
++  simp only [closedSquare, supDist, supNorm, sub_apply, mem_ofPred_eq, mem_inter_iff,
+     max_le_iff, abs_le]
+   constructor
+   · rintro ⟨⟨h1, h2⟩, h3, h4⟩; exact ⟨⟨by linarith, by linarith⟩, by linarith, by linarith⟩
+@@ -178,7 +178,7 @@
+       ({x : Plane | c 0 - r < x 0} ∩ {x : Plane | x 0 < c 0 + r}) ∩
+       ({x : Plane | c 1 - r < x 1} ∩ {x : Plane | x 1 < c 1 + r}) := by
+   ext x
+-  simp only [openSquare, supDist, supNorm, sub_apply, mem_setOf_eq, mem_inter_iff,
++  simp only [openSquare, supDist, supNorm, sub_apply, mem_ofPred_eq, mem_inter_iff,
+     max_lt_iff, abs_lt]
+   constructor
+   · rintro ⟨⟨h1, h2⟩, h3, h4⟩; exact ⟨⟨by linarith, by linarith⟩, by linarith, by linarith⟩
+@@ -223,7 +223,7 @@
+   set B : Set Plane := {x : Plane | x 1 < -r} with hB
+   have hcover : beyondSquare r = R ∪ T ∪ L ∪ B := by
+     ext x
+-    simp only [beyondSquare, hR, hL, hT, hB, mem_setOf_eq, mem_union, lt_abs]
++    simp only [beyondSquare, hR, hL, hT, hB, mem_ofPred_eq, mem_union, lt_abs]
+     constructor
+     · rintro (h | h) <;> rcases h with h | h
+       · exact Or.inl (Or.inl (Or.inl h))
+diff --git a/Schoenflies/SquareCycle.lean b/Schoenflies/SquareCycle.lean
+--- a/Schoenflies/SquareCycle.lean
++++ b/Schoenflies/SquareCycle.lean
+@@ -650,7 +650,7 @@
+ theorem sqCoord_top (hz : z ∈ segment ℝ (sqNE c r) (sqNW c r)) :
+     sqCoord c r z = dist (sqNE c r) z := by
+   classical
+-  rw [sqCoord, if_pos hz]
++  rw [sqCoord, ite_eq_left hz]
+ 
+ theorem sqCoord_left (hr : 0 ≤ r) (hz : z ∈ segment ℝ (sqNW c r) (sqSW c r)) :
+     sqCoord c r z = 2 * r + dist (sqNW c r) z := by
+@@ -658,8 +658,8 @@
+   by_cases htop : z ∈ segment ℝ (sqNE c r) (sqNW c r)
+   · -- the shared corner, where the two formulas agree
+     obtain rfl := eq_sqNW_of_mem_top_left hr htop hz
+-    rw [sqCoord, if_pos htop, dist_sqNE_sqNW c hr, dist_self, add_zero]
+-  · rw [sqCoord, if_neg htop, if_pos hz]
++    rw [sqCoord, ite_eq_left htop, dist_sqNE_sqNW c hr, dist_self, add_zero]
++  · rw [sqCoord, ite_eq_right htop, ite_eq_left hz]
+ 
+ theorem sqCoord_bottom (hr : 0 < r) (hz : z ∈ segment ℝ (sqSW c r) (sqSE c r)) :
+     sqCoord c r z = 4 * r + dist (sqSW c r) z := by
+@@ -667,9 +667,9 @@
+   have htop : z ∉ segment ℝ (sqNE c r) (sqNW c r) := notMem_top_of_mem_bottom hr hz
+   by_cases hleft : z ∈ segment ℝ (sqNW c r) (sqSW c r)
+   · obtain rfl := eq_sqSW_of_mem_left_bottom hr.le hleft hz
+-    rw [sqCoord, if_neg htop, if_pos hleft, dist_sqNW_sqSW c hr.le, dist_self, add_zero]
++    rw [sqCoord, ite_eq_right htop, ite_eq_left hleft, dist_sqNW_sqSW c hr.le, dist_self, add_zero]
+     ring
+-  · rw [sqCoord, if_neg htop, if_neg hleft, if_pos hz]
++  · rw [sqCoord, ite_eq_right htop, ite_eq_right hleft, ite_eq_left hz]
+ 
+ theorem sqCoord_right (hr : 0 < r) (hz : z ∈ segment ℝ (sqSE c r) (sqNE c r))
+     (hne : z ≠ sqNE c r) : sqCoord c r z = 6 * r + dist (sqSE c r) z := by
+@@ -679,10 +679,13 @@
+   have hleft : z ∉ segment ℝ (sqNW c r) (sqSW c r) := notMem_left_of_mem_right hr hz
+   by_cases hbot : z ∈ segment ℝ (sqSW c r) (sqSE c r)
+   · obtain rfl := eq_sqSE_of_mem_bottom_right hr.le hbot hz
+-    rw [sqCoord, if_neg htop, if_neg hleft, if_pos hbot, dist_sqSW_sqSE c hr.le, dist_self,
++    rw [sqCoord,
++      ite_eq_right htop,
++      ite_eq_right hleft,
++      ite_eq_left hbot, dist_sqSW_sqSE c hr.le, dist_self,
+       add_zero]
+     ring
+-  · rw [sqCoord, if_neg htop, if_neg hleft, if_neg hbot]
++  · rw [sqCoord, ite_eq_right htop, ite_eq_right hleft, ite_eq_right hbot]
+ 
+ /-! ## Part 4: the overlay edges on one side
+ 
+diff --git a/Schoenflies/SquareMesh.lean b/Schoenflies/SquareMesh.lean
+--- a/Schoenflies/SquareMesh.lean
++++ b/Schoenflies/SquareMesh.lean
+@@ -110,7 +110,7 @@
+   ext x
+   simp only [ringPieces, cover_cons, cover_nil, union_empty, mem_union, Piece.seg,
+     mem_segment_horiz, mem_segment_vert, segment_symm_Icc hr, segment_symm_Icc' hr,
+-    mem_Icc, ringSet, mem_setOf_eq, Plane.supNorm]
++    mem_Icc, ringSet, mem_ofPred_eq, Plane.supNorm]
+   -- On each side one coordinate is pinned to `±r` and the other is confined to `[-r, r]`;
+   -- which of the two is pinned is the only difference between the four sides.
+   have hleft : ∀ u v : ℝ, |u| = r → |v| ≤ r → max |u| |v| = r := by
+@@ -275,9 +275,9 @@
+     ∃ R ∈ splitAt p P, R.seg ⊆ P.seg ∧ (p = R.1 ∨ p = R.2) := by
+   classical
+   by_cases hp : p ∈ P.interior
+-  · refine ⟨(P.1, p), by rw [splitAt, if_pos hp]; simp, ?_, Or.inr rfl⟩
++  · refine ⟨(P.1, p), by rw [splitAt, ite_eq_left hp]; simp, ?_, Or.inr rfl⟩
+     exact (convex_segment P.1 P.2).segment_subset (left_mem_segment ℝ _ _) hmem
+-  · refine ⟨P, by rw [splitAt, if_neg hp]; simp, subset_rfl, ?_⟩
++  · refine ⟨P, by rw [splitAt, ite_eq_right hp]; simp, subset_rfl, ?_⟩
+     by_contra hcon
+     push Not at hcon
+     exact hp (mem_openSegment_of_ne_left_right (Ne.symm hcon.1) (Ne.symm hcon.2) hmem)
+@@ -289,11 +289,11 @@
+   by_cases hq : q ∈ P.interior
+   · have hqseg : q ∈ P.seg := openSegment_subset_segment ℝ _ _ hq
+     rcases h with rfl | rfl
+-    · refine ⟨(P.1, q), by rw [splitAt, if_pos hq]; simp, ?_, Or.inl rfl⟩
++    · refine ⟨(P.1, q), by rw [splitAt, ite_eq_left hq]; simp, ?_, Or.inl rfl⟩
+       exact (convex_segment P.1 P.2).segment_subset (left_mem_segment ℝ _ _) hqseg
+-    · refine ⟨(q, P.2), by rw [splitAt, if_pos hq]; simp, ?_, Or.inr rfl⟩
++    · refine ⟨(q, P.2), by rw [splitAt, ite_eq_left hq]; simp, ?_, Or.inr rfl⟩
+       exact (convex_segment P.1 P.2).segment_subset hqseg (right_mem_segment ℝ _ _)
+-  · exact ⟨P, by rw [splitAt, if_neg hq]; simp, subset_rfl, h⟩
++  · exact ⟨P, by rw [splitAt, ite_eq_right hq]; simp, subset_rfl, h⟩
+ 
+ theorem splitAllAt_preserves_end (q : Plane) {p : Plane} {P : Piece} {pieces : List Piece}
+     (h : ∃ R ∈ pieces, R.seg ⊆ P.seg ∧ (p = R.1 ∨ p = R.2)) :
+diff --git a/Schoenflies/SquareMeshClosed.lean b/Schoenflies/SquareMeshClosed.lean
+--- a/Schoenflies/SquareMeshClosed.lean
++++ b/Schoenflies/SquareMeshClosed.lean
+@@ -216,7 +216,7 @@
+         Graph.edgesCover segmentDrawing (t.1 :: t.2.2.2.2) = modelCurve := by
+     obtain ⟨e, u, v, x, D, h₁, h₂, h₃⟩ := squareMesh_outer_cycle hfresh δ anchors
+     exact ⟨(e, u, v, x, D), h₁, h₂, h₃⟩
+-  have hd : outerCycleData δ fresh anchors = h.choose := dif_pos h
++  have hd : outerCycleData δ fresh anchors = h.choose := dite_eq_left h
+   simpa [outerCycleEdge, outerCycleStart, outerCycleEnd, outerCycleThird, outerCycleDetour, hd]
+     using h.choose_spec
+ 
+@@ -745,7 +745,7 @@
+         ∀ Q, Q ∈ W ↔ (Q ∈ E(meshGraph N fresh anchors) ∧ Q.seg ⊆ (spokePiece N z).seg) :=
+     meshSubdividesToPath hN hfresh anchors _ (spokePiece_mem_meshSegments hz)
+       (spokePiece_nondeg hN (hfresh z hz))
+-  rw [spokeWalk, dif_pos h]
++  rw [spokeWalk, dite_eq_left h]
+   exact h.choose_spec
+ 
+ theorem spokeWalk_isPath {N : ℕ} (hN : 2 ≤ N) {fresh : List Plane}
+@@ -834,7 +834,7 @@
+   classical
+   have h : ∃ P : List Piece, (ringGraph N fresh anchors r).IsPath a P b :=
+     (ringGraph_isTwoConnected hN hfresh anchors hr).connected.exists_isPath ha hb
+-  rw [ringArc, dif_pos h]
++  rw [ringArc, dite_eq_left h]
+   exact h.choose_spec
+ 
+ /-- **The ear**: down the spoke at `z`, round the inner ring, and back up the spoke at `w`. -/
+diff --git a/Schoenflies/SquareMeshConnected.lean b/Schoenflies/SquareMeshConnected.lean
+--- a/Schoenflies/SquareMeshConnected.lean
++++ b/Schoenflies/SquareMeshConnected.lean
+@@ -314,7 +314,7 @@
+     rcases hxy with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> rcases hvw with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ <;> simp
+   edge_mem_iff_exists_isLink := by
+     intro P
+-    simp only [Set.mem_setOf_eq]
++    simp only [Set.mem_ofPred_eq]
+     exact ⟨fun hP => ⟨P.1, P.2, hP, Or.inl ⟨rfl, rfl⟩⟩, fun ⟨_, _, hP, _⟩ => hP⟩
+   left_mem_of_isLink := by
+     rintro P x y ⟨hP, h⟩
+@@ -361,7 +361,7 @@
+ 
+ theorem endSet_append (l l' : List Piece) : endSet (l ++ l') = endSet l ∪ endSet l' := by
+   ext v
+-  simp only [endSet, Set.mem_setOf_eq, Set.mem_union, List.mem_append]
++  simp only [endSet, Set.mem_ofPred_eq, Set.mem_union, List.mem_append]
+   constructor
+   · rintro ⟨P, hP | hP, h⟩
+     exacts [Or.inl ⟨P, hP, h⟩, Or.inr ⟨P, hP, h⟩]
+@@ -378,7 +378,7 @@
+     Graph.pointSet (pieceListGraph l) segmentDrawing = cover l := by
+   ext z
+   simp only [Graph.pointSet, Set.mem_union, Set.mem_iUnion, exists_prop, pieceListGraph_vertexSet,
+-    endSet, Set.mem_setOf_eq, pieceListGraph_mem_edgeSet, edgeArc_segmentDrawing, cover]
++    endSet, Set.mem_ofPred_eq, pieceListGraph_mem_edgeSet, edgeArc_segmentDrawing, cover]
+   constructor
+   · rintro (⟨P, hP, hzP⟩ | ⟨P, hP, hzP⟩)
+     · refine ⟨P, hP, ?_⟩
+@@ -662,9 +662,9 @@
+ theorem bIdy_le {m n t : ℕ} (h : t ≤ 2 * m + 2 * n) : bIdy m n t ≤ n := by
+   unfold bIdy; split_ifs <;> omega
+ 
+-theorem bIdx_bottom {m n t : ℕ} (h : t ≤ m) : bIdx m n t = t := by unfold bIdx; exact if_pos h
+-
+-theorem bIdy_bottom {m n t : ℕ} (h : t ≤ m) : bIdy m n t = 0 := by unfold bIdy; exact if_pos h
++theorem bIdx_bottom {m n t : ℕ} (h : t ≤ m) : bIdx m n t = t := by unfold bIdx; exact ite_eq_left h
++
++theorem bIdy_bottom {m n t : ℕ} (h : t ≤ m) : bIdy m n t = 0 := by unfold bIdy; exact ite_eq_left h
+ 
+ theorem bIdx_right {m n t : ℕ} (h₁ : m ≤ t) (h₂ : t ≤ m + n) : bIdx m n t = m := by
+   unfold bIdx; split_ifs <;> omega
+@@ -737,25 +737,29 @@
+   unfold gridBoundaryEdge gridBoundaryPt gridGraph
+   rcases lt_or_ge t m with h₁ | h₁
+   · -- along the bottom
+-    rw [if_pos h₁, bIdx_bottom (by omega), bIdy_bottom (by omega), bIdx_bottom (by omega),
++    rw [ite_eq_left h₁, bIdx_bottom (by omega), bIdy_bottom (by omega), bIdx_bottom (by omega),
+       bIdy_bottom (by omega)]
+     exact pieceListGraph_isLink_self (gridHEdge_mem_gridEdges h₁ (Nat.zero_le n) hn)
+   rcases lt_or_ge t (m + n) with h₂ | h₂
+   · -- up the right side
+-    rw [if_neg (by omega), if_pos h₂, bIdx_right (by omega) (by omega),
++    rw [ite_eq_right (by omega), ite_eq_left h₂, bIdx_right (by omega) (by omega),
+       bIdy_right (by omega) (by omega), bIdx_right (by omega) (by omega),
+       bIdy_right (by omega) (by omega), show t + 1 - m = (t - m) + 1 by omega]
+     exact pieceListGraph_isLink_self (gridVEdge_mem_gridEdges le_rfl (by omega) hm)
+   rcases lt_or_ge t (2 * m + n) with h₃ | h₃
+   · -- back along the top, so the walk runs against the edge's own orientation
+-    rw [if_neg (by omega), if_neg (by omega), if_pos h₃, bIdx_top (by omega) (by omega),
++    rw [ite_eq_right (by omega),
++      ite_eq_right (by omega),
++      ite_eq_left h₃, bIdx_top (by omega) (by omega),
+       bIdy_top (by omega) (by omega), bIdx_top (by omega) (by omega),
+       bIdy_top (by omega) (by omega), show 2 * m + n - (t + 1) = 2 * m + n - 1 - t by omega,
+       show 2 * m + n - t = 2 * m + n - 1 - t + 1 by omega]
+     exact (pieceListGraph_isLink_self (gridHEdge_mem_gridEdges
+       (show 2 * m + n - 1 - t < m by omega) le_rfl hn)).symm
+   · -- down the left side, again against the edge's orientation
+-    rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), bIdx_left (by omega) (by omega),
++    rw [ite_eq_right (by omega),
++      ite_eq_right (by omega),
++      ite_eq_right (by omega), bIdx_left (by omega) (by omega),
+       bIdy_left (by omega) (by omega), bIdx_left (by omega) (by omega),
+       bIdy_left (by omega) (by omega),
+       show 2 * m + 2 * n - (t + 1) = 2 * m + 2 * n - 1 - t by omega,
+@@ -814,23 +818,23 @@
+ 
+ theorem gridBoundaryEdge_bottom {xc yc : ℕ → ℝ} {m n i : ℕ} (h : i < m) :
+     gridBoundaryEdge xc yc m n i = gridHEdge xc yc i 0 := by
+-  unfold gridBoundaryEdge; rw [if_pos h]
++  unfold gridBoundaryEdge; rw [ite_eq_left h]
+ 
+ theorem gridBoundaryEdge_right {xc yc : ℕ → ℝ} {m n j : ℕ} (h : j < n) :
+     gridBoundaryEdge xc yc m n (m + j) = gridVEdge xc yc m j := by
+   unfold gridBoundaryEdge
+-  rw [if_neg (by omega), if_pos (by omega), show m + j - m = j by omega]
++  rw [ite_eq_right (by omega), ite_eq_left (by omega), show m + j - m = j by omega]
+ 
+ theorem gridBoundaryEdge_top {xc yc : ℕ → ℝ} {m n i : ℕ} (hn : 1 ≤ n) (h : i < m) :
+     gridBoundaryEdge xc yc m n (2 * m + n - 1 - i) = gridHEdge xc yc i n := by
+   unfold gridBoundaryEdge
+-  rw [if_neg (by omega), if_neg (by omega), if_pos (by omega),
++  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left (by omega),
+     show 2 * m + n - 1 - (2 * m + n - 1 - i) = i by omega]
+ 
+ theorem gridBoundaryEdge_left {xc yc : ℕ → ℝ} {m n j : ℕ} (h : j < n) :
+     gridBoundaryEdge xc yc m n (2 * m + 2 * n - 1 - j) = gridVEdge xc yc 0 j := by
+   unfold gridBoundaryEdge
+-  rw [if_neg (by omega), if_neg (by omega), if_neg (by omega),
++  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega),
+     show 2 * m + 2 * n - 1 - (2 * m + 2 * n - 1 - j) = j by omega]
+ 
+ /-- The realisation of the cycle is the union of the boundary edges, indexed by position on
+diff --git a/Schoenflies/SquareMeshFixed.lean b/Schoenflies/SquareMeshFixed.lean
+--- a/Schoenflies/SquareMeshFixed.lean
++++ b/Schoenflies/SquareMeshFixed.lean
+@@ -133,7 +133,7 @@
+ 
+ theorem endSet_pair (a q b : Plane) : endSet [((a, q) : Piece), (q, b)] = {a, q, b} := by
+   ext x
+-  simp only [endSet, mem_setOf_eq, List.mem_cons, List.not_mem_nil, or_false, mem_insert_iff,
++  simp only [endSet, mem_ofPred_eq, List.mem_cons, List.not_mem_nil, or_false, mem_insert_iff,
+     mem_singleton_iff]
+   constructor
+   · rintro ⟨P, hP, hx⟩
+@@ -240,7 +240,7 @@
+   induction l with
+   | nil => rfl
+   | cons R l ih =>
+-    rw [splitAllAt, List.flatMap_cons, splitAt, if_neg (h R (List.mem_cons_self ..))]
++    rw [splitAllAt, List.flatMap_cons, splitAt, ite_eq_right (h R (List.mem_cons_self ..))]
+     rw [show l.flatMap (splitAt q) = splitAllAt q l from rfl,
+       ih fun S hS => h S (List.mem_cons_of_mem _ hS)]
+     rfl
+@@ -256,22 +256,22 @@
+     obtain ⟨S, hS, hRS⟩ := List.mem_flatMap.1 hR
+     by_cases hqS : q ∈ S.interior
+     · obtain rfl := huniq S hS hqS
+-      rw [splitAt, if_pos hqS] at hRS
++      rw [splitAt, ite_eq_left hqS] at hRS
+       exact Or.inr hRS
+-    · rw [splitAt, if_neg hqS] at hRS
++    · rw [splitAt, ite_eq_right hqS] at hRS
+       obtain rfl : R = S := List.mem_singleton.1 hRS
+       exact Or.inl ⟨hS, fun h => hqS (h ▸ hq)⟩
+   · rintro (⟨hR, hRP⟩ | hR)
+     · have hqR : q ∉ R.interior := fun h => hRP (huniq R hR h)
+-      exact List.mem_flatMap.2 ⟨R, hR, by rw [splitAt, if_neg hqR]; simp⟩
+-    · exact List.mem_flatMap.2 ⟨P, hP, by rw [splitAt, if_pos hq]; exact hR⟩
++      exact List.mem_flatMap.2 ⟨R, hR, by rw [splitAt, ite_eq_right hqR]; simp⟩
++    · exact List.mem_flatMap.2 ⟨P, hP, by rw [splitAt, ite_eq_left hq]; exact hR⟩
+ 
+ /-- The ends of a split list: the old ends and the cut point. -/
+ theorem endSet_splitAllAt {l : List Piece} {P : Piece} {q : Plane} (hP : P ∈ l)
+     (hq : q ∈ P.interior) (huniq : ∀ S ∈ l, q ∈ S.interior → S = P) :
+     endSet (splitAllAt q l) = endSet l ∪ {q} := by
+   ext v
+-  simp only [endSet, mem_setOf_eq, mem_union, mem_singleton_iff]
++  simp only [endSet, mem_ofPred_eq, mem_union, mem_singleton_iff]
+   constructor
+   · rintro ⟨R, hR, hv⟩
+     rcases (mem_splitAllAt_iff hP hq huniq).1 hR with ⟨hRl, -⟩ | hR2
+@@ -373,7 +373,7 @@
+         (splitAt_interior_subset q' S₀ S hSS₀ hqS)
+     -- … and the two halves of one piece have disjoint interiors
+     by_cases hq'R : q' ∈ R₀.interior
+-    · rw [splitAt, if_pos hq'R] at hRR₀ hSS₀
++    · rw [splitAt, ite_eq_left hq'R] at hRR₀ hSS₀
+       simp only [List.mem_cons, List.not_mem_nil, or_false] at hRR₀ hSS₀
+       have hnd₀ : R₀.Nondeg := hnd R₀ hR₀
+       rcases hRR₀ with rfl | rfl <;> rcases hSS₀ with rfl | rfl
+@@ -381,7 +381,7 @@
+       · exact absurd (openSegment_halves_disjoint hnd₀ hq'R hqR hqS) not_false
+       · exact absurd (openSegment_halves_disjoint hnd₀ hq'R hqS hqR) not_false
+       · rfl
+-    · rw [splitAt, if_neg hq'R] at hRR₀ hSS₀
++    · rw [splitAt, ite_eq_right hq'R] at hRR₀ hSS₀
+       rw [List.mem_singleton.1 hRR₀, List.mem_singleton.1 hSS₀]
+   · rcases hq.2 with hnone | hend
+     · exact Or.inl fun R hR => by
+diff --git a/Schoenflies/SquareMover.lean b/Schoenflies/SquareMover.lean
+--- a/Schoenflies/SquareMover.lean
++++ b/Schoenflies/SquareMover.lean
+@@ -96,10 +96,10 @@
+ noncomputable def bend (r p q u : ℝ) : ℝ :=
+   if u ≤ p then -r + (u + r) * (q + r) / (p + r) else r - (r - u) * (r - q) / (r - p)
+ 
+-theorem bend_of_le (h : u ≤ p) : bend r p q u = -r + (u + r) * (q + r) / (p + r) := if_pos h
++theorem bend_of_le (h : u ≤ p) : bend r p q u = -r + (u + r) * (q + r) / (p + r) := ite_eq_left h
+ 
+ theorem bend_of_gt (h : p < u) : bend r p q u = r - (r - u) * (r - q) / (r - p) :=
+-  if_neg (not_le.2 h)
++  ite_eq_right (not_le.2 h)
+ 
+ theorem bend_left (h : -r ≤ p) : bend r p q (-r) = -r := by
+   rw [bend_of_le h]; simp
+@@ -279,7 +279,7 @@
+       c i + bend r (a + k * shearWeight c r b j z) (a + (k + k') * shearWeight c r b j z)
+         (z i - c i) := by
+   simp only [shear, PiLp.add_apply, PiLp.smul_apply, PiLp.single_apply, smul_eq_mul,
+-    if_true, mul_one]
++    ite_true, mul_one]
+   ring
+ 
+ theorem shear_apply_ne (h : l ≠ i) : shear c r a b k k' i j z l = z l := by
+@@ -585,13 +585,13 @@
+   · rintro ⟨h1, h2⟩
+     exact le_antisymm h1 (not_lt.1 h2)
+   · intro h
+-    exact ⟨le_of_eq h, by rw [openSquare, mem_setOf_eq, h]; exact lt_irrefl r⟩
++    exact ⟨le_of_eq h, by rw [openSquare, mem_ofPred_eq, h]; exact lt_irrefl r⟩
+ 
+ /-- A mover is the identity on the boundary square `S`. -/
+ theorem IsSquareMover.eqOn_frontier {M N : Plane → Plane} (h : IsSquareMover c r M N) :
+     EqOn M id (frontier (closedSquare c r)) := by
+   intro z hz
+-  rw [frontier_closedSquare, mem_setOf_eq] at hz
++  rw [frontier_closedSquare, mem_ofPred_eq] at hz
+   exact h.fixes z (le_of_eq hz) hz
+ 
+ /-! ### The mover as a homeomorphism -/
+@@ -603,8 +603,8 @@
+   invFun z := ⟨N z, h.mapsTo_inv z.2⟩
+   left_inv z := Subtype.ext (h.invOn.1 z.2)
+   right_inv z := Subtype.ext (h.invOn.2 z.2)
+-  continuous_toFun := h.continuousOn.restrict.subtype_mk _
+-  continuous_invFun := h.continuousOn_inv.restrict.subtype_mk _
++  continuous_toFun := h.continuousOn.domRestrict.subtype_mk _
++  continuous_invFun := h.continuousOn_inv.domRestrict.subtype_mk _
+ 
+ @[simp] theorem IsSquareMover.homeomorph_apply {M N : Plane → Plane}
+     (h : IsSquareMover c r M N) (z : closedSquare c r) :
+diff --git a/Schoenflies/Strip.lean b/Schoenflies/Strip.lean
+--- a/Schoenflies/Strip.lean
++++ b/Schoenflies/Strip.lean
+@@ -207,7 +207,7 @@
+     have harc : arcCCW u w = {d : Plane | det w d < 0} ∪ {d : Plane | det d u < 0} := by
+       ext d
+       rw [mem_arcCCW_rev_iff h']
+-      simp only [mem_union, mem_setOf_eq]
++      simp only [mem_union, mem_ofPred_eq]
+     have hd0 : (-ε) • (u + w) ∈ ball (0 : Plane) ρ :=
+       hball _ (by rw [abs_of_neg (neg_neg_iff_pos.2 hε), neg_neg])
+     have hA : (-ε) • (u + w) ∈ {d : Plane | det w d < 0} := by
+@@ -227,7 +227,7 @@
+     have harc : arcCCW u w = {d : Plane | 0 < det u d} ∩ {d : Plane | 0 < det d w} := by
+       ext d
+       rw [mem_arcCCW_iff hpos]
+-      simp only [mem_inter_iff, mem_setOf_eq]
++      simp only [mem_inter_iff, mem_ofPred_eq]
+     have hmem : ε • (u + w) ∈ arcCCW u w ∩ ball (0 : Plane) ρ := by
+       refine ⟨?_, hball _ (abs_of_pos hε)⟩
+       rw [harc]
+@@ -275,7 +275,7 @@
+       module
+   · rintro ⟨d, ⟨hd, hb⟩, rfl⟩
+     have he : v + d - v = d := by module
+-    refine ⟨by rw [mem_setOf_eq, he]; exact hd, ?_⟩
++    refine ⟨by rw [mem_ofPred_eq, he]; exact hd, ?_⟩
+     rw [mem_ball, dist_eq_norm, he]
+     rw [mem_ball, dist_zero_right] at hb
+     exact hb
+@@ -388,7 +388,7 @@
+       ({x : Plane | t₁ < coordAlong a u x} ∩ {x : Plane | coordAlong a u x < t₂}) ∩
+         ({x : Plane | s₁ < coordAcross a u x} ∩ {x : Plane | coordAcross a u x < s₂}) := by
+     ext y
+-    simp only [mem_strip_iff, mem_inter_iff, mem_setOf_eq]
++    simp only [mem_strip_iff, mem_inter_iff, mem_ofPred_eq]
+     tauto
+   rw [key]
+   exact ((isOpen_lt continuous_const (continuous_coordAlong a u)).inter
+@@ -407,7 +407,7 @@
+       simp only [coordAcross, det]
+       simp
+       ring
+-    simp only [mem_strip_iff, mem_inter_iff, mem_setOf_eq, h1, h2]
++    simp only [mem_strip_iff, mem_inter_iff, mem_ofPred_eq, h1, h2]
+     constructor
+     · rintro ⟨a1, a2, a3, a4⟩; exact ⟨⟨by linarith, by linarith⟩, ⟨by linarith, by linarith⟩⟩
+     · rintro ⟨⟨a1, a2⟩, ⟨a3, a4⟩⟩; exact ⟨by linarith, by linarith, by linarith, by linarith⟩
+diff --git a/Schoenflies/StripLocal.lean b/Schoenflies/StripLocal.lean
+--- a/Schoenflies/StripLocal.lean
++++ b/Schoenflies/StripLocal.lean
+@@ -288,7 +288,7 @@
+     (have hδpos : 0 < min 1 (ε / (2 * ‖z - P.vertex i‖)) := lt_min one_pos (by positivity)
+      have hsub : P.vertex i + (min 1 (ε / (2 * ‖z - P.vertex i‖))) • (z - P.vertex i) -
+          P.vertex i = (min 1 (ε / (2 * ‖z - P.vertex i‖))) • (z - P.vertex i) := by module)
+-  · rw [Set.mem_setOf_eq, hsub]
++  · rw [Set.mem_ofPred_eq, hsub]
+     exact (smul_mem_arcCCW hδpos).2 harc
+   · rw [mem_ball, dist_eq_norm, hsub, norm_smul, Real.norm_eq_abs, abs_of_pos hδpos]
+     have h1 : min 1 (ε / (2 * ‖z - P.vertex i‖)) ≤ 1 := min_le_left _ _
+@@ -309,7 +309,7 @@
+     (have hδpos : 0 < min 1 (ε / (2 * ‖z - P.vertex i‖)) := lt_min one_pos (by positivity)
+      have hsub : P.vertex i + (min 1 (ε / (2 * ‖z - P.vertex i‖))) • (z - P.vertex i) -
+          P.vertex i = (min 1 (ε / (2 * ‖z - P.vertex i‖))) • (z - P.vertex i) := by module)
+-  · rw [Set.mem_setOf_eq, hsub]
++  · rw [Set.mem_ofPred_eq, hsub]
+     exact (smul_mem_arcCCW hδpos).2 harc
+   · rw [mem_ball, dist_eq_norm, hsub, norm_smul, Real.norm_eq_abs, abs_of_pos hδpos]
+     have h1 : min 1 (ε / (2 * ‖z - P.vertex i‖)) ≤ 1 := min_le_left _ _
+diff --git a/Schoenflies/Subarc.lean b/Schoenflies/Subarc.lean
+--- a/Schoenflies/Subarc.lean
++++ b/Schoenflies/Subarc.lean
+@@ -78,7 +78,8 @@
+ theorem image_reparam_I : reparam a b '' I = uIcc a b := by
+   have h : (fun θ : ℝ => a + θ • (b - a)) '' Icc (0 : ℝ) 1 = uIcc a b := by
+     rw [← segment_eq_image' ℝ a b, segment_eq_uIcc]
+-  simpa [reparam, smul_eq_mul] using h
++  change (fun t : ℝ => a + t * (b - a)) '' Icc (0 : ℝ) 1 = uIcc a b
++  simpa only [smul_eq_mul] using h
+ 
+ theorem mapsTo_reparam : MapsTo (reparam a b) I (uIcc a b) :=
+   mapsTo_iff_image_subset.mpr image_reparam_I.subset
+diff --git a/Schoenflies/TargetOverlay.lean b/Schoenflies/TargetOverlay.lean
+--- a/Schoenflies/TargetOverlay.lean
++++ b/Schoenflies/TargetOverlay.lean
+@@ -84,7 +84,7 @@
+ theorem exists_targetSegmentCover
+     (P : GeneratedPair S₀ srcOuter srcDom tgtOuter tgtDom) :
+     Nonempty (TargetSegmentCover P) := by
+-  letI : Graph.Finite P.tgt.graph :=
++  let : Graph.Finite P.tgt.graph :=
+     CellStructure.Realization.finite_graph P.tgt
+   have hincident : ∀ z ∈ V(P.tgt.graph), ∃ e, P.tgt.graph.Inc e z := by
+     intro z hz
+@@ -1024,7 +1024,7 @@
+     A ∈ openTargetEdgePieces P ↔
+       ∃ e ∈ E(P.str.skel), e ∉ E(P.str.outerGraph) ∧
+         A = edgeArc P.tgt.drawing e \ modelCurve := by
+-  letI : P.str.skel.Finite :=
++  let : P.str.skel.Finite :=
+     ⟨P.str.finite_vertexSet, P.str.finite_edgeSet⟩
+   simp only [openTargetEdgePieces, List.mem_map, Finset.mem_toList, Finset.mem_filter,
+     Graph.mem_edgeFinset]
+diff --git a/lakefile.toml b/lakefile.toml
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -12,7 +12,7 @@
+ [[require]]
+ name = "mathlib"
+ scope = "leanprover-community"
+-rev = "v4.32.2"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "Schoenflies"
+diff --git a/lean-toolchain b/lean-toolchain
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.2
++leanprover/lean4:v4.34.1
+diff --git a/Schoenflies/Jordan.lean b/Schoenflies/Jordan.lean
+index fef1405..ad432b8 100644
+--- a/Schoenflies/Jordan.lean
++++ b/Schoenflies/Jordan.lean
+@@ -719,7 +719,7 @@ theorem not_three_components (harc : ∀ A : Set Plane, IsArc A → IsConnected
+         first
+           | exact absurd rfl hjl
+           | assumption
+-          | (rw [inter_comm]; assumption)
++          | rwa [inter_comm]
+   choose xx hxxΩ TT hTTarc hTTsub hTTmeet using htri
+   /- ### Assembling the `K(3,3)` -/
+   have hTC : ∀ i j, TT i j ∩ f '' I = {f (t i j)} := by

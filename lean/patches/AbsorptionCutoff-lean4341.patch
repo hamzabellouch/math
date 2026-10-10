@@ -1,0 +1,111 @@
+diff --git a/AbsorptionCutoff/Supercritical/Renewal.lean b/AbsorptionCutoff/Supercritical/Renewal.lean
+index be4e8d0..84e0b74 100644
+--- a/AbsorptionCutoff/Supercritical/Renewal.lean
++++ b/AbsorptionCutoff/Supercritical/Renewal.lean
+@@ -599,7 +599,7 @@ theorem exists_pos_le_norm_one_sub_charFun {μ : Measure ℝ} [IsProbabilityMeas
+     have ht₀ne : t₀ ≠ 0 := by
+       intro h
+       have h' := ht₀K.2
+-      simp only [Set.mem_setOf_eq, h, abs_zero] at h'
++      simp only [Set.mem_ofPred_eq, h, abs_zero] at h'
+       linarith
+     have hpos : 0 < ‖1 - charFun μ t₀‖ := by
+       rw [norm_pos_iff, sub_ne_zero]
+@@ -1246,7 +1246,7 @@ theorem tendsto_driNorm_tail {g : ℝ → ℝ≥0∞} (hg : driNorm g ≠ ∞) :
+   have hkey := hS (Finset.Icc (-(N : ℤ)) (N : ℤ)) hsub
+   have hset : {k : ℤ | (N : ℤ) < |k|} = ((Finset.Icc (-(N : ℤ)) (N : ℤ) : Finset ℤ) : Set ℤ)ᶜ := by
+     ext k
+-    simp only [Set.mem_setOf_eq, Set.mem_compl_iff, Finset.coe_Icc, Set.mem_Icc]
++    simp only [Set.mem_ofPred_eq, Set.mem_compl_iff, Finset.coe_Icc, Set.mem_Icc]
+     rw [← not_le, abs_le]
+   rw [hset, ← tsum_subtype]
+   exact hkey
+@@ -1431,7 +1431,7 @@ theorem exists_hasCompactSupport_driNorm_sub_lt {z : ℝ → ℂ} (hz : Continuo
+     exact ENNReal.ofReal_le_one.2 (cutoff_le_one M x)
+   · refine lt_of_le_of_lt (ENNReal.tsum_le_tsum fun k => ?_) hN
+     by_cases hk : (N : ℤ) < |k|
+-    · rw [Set.indicator_apply, if_pos (show k ∈ {k : ℤ | (N : ℤ) < |k|} from hk)]
++    · rw [Set.indicator_apply, ite_eq_left (show k ∈ {k : ℤ | (N : ℤ) < |k|} from hk)]
+       refine cellSup_mono (fun x => ?_) k
+       rw [show z x - (cutoff M x : ℂ) * z x = ((1 - cutoff M x : ℝ) : ℂ) * z x by push_cast; ring,
+         enorm_mul]
+@@ -1439,7 +1439,7 @@ theorem exists_hasCompactSupport_driNorm_sub_lt {z : ℝ → ℂ} (hz : Continuo
+       rw [← ofReal_norm, Complex.norm_real, Real.norm_eq_abs,
+         abs_of_nonneg (by linarith [cutoff_le_one M x])]
+       exact ENNReal.ofReal_le_one.2 (by linarith [cutoff_nonneg M x])
+-    · rw [Set.indicator_apply, if_neg (show k ∉ {k : ℤ | (N : ℤ) < |k|} from hk),
++    · rw [Set.indicator_apply, ite_eq_right (show k ∉ {k : ℤ | (N : ℤ) < |k|} from hk),
+         nonpos_iff_eq_zero]
+       refine iSup₂_eq_bot.2 fun x hx => ?_
+       obtain ⟨h1, h2⟩ := abs_le.1 (not_lt.1 hk)
+diff --git a/AbsorptionCutoff/Supercritical/RenewalApprox.lean b/AbsorptionCutoff/Supercritical/RenewalApprox.lean
+index a394d70..d4094ca 100644
+--- a/AbsorptionCutoff/Supercritical/RenewalApprox.lean
++++ b/AbsorptionCutoff/Supercritical/RenewalApprox.lean
+@@ -295,7 +295,7 @@ theorem exists_forall_norm_smoothed_sub_le {w : ℝ → ℂ} (hwc : Continuous w
+     · have h2M : ‖w (x - u) - w x‖ ≤ 2 * M :=
+         le_trans (norm_sub_le _ _) (by linarith [hM (x - u), hM x])
+       have : Set.indicator {u : ℝ | δ < |u|} (smoothKernel a) u = smoothKernel a u := by
+-        rw [Set.indicator_apply, if_pos (show u ∈ {u : ℝ | δ < |u|} from hu)]
++        rw [Set.indicator_apply, ite_eq_left (show u ∈ {u : ℝ | δ < |u|} from hu)]
+       rw [hg]
+       simp only [this]
+       nlinarith [mul_nonneg hε.le hK0]
+@@ -309,7 +309,7 @@ theorem exists_forall_norm_smoothed_sub_le {w : ℝ → ℂ} (hwc : Continuous w
+         rw [dist_eq_norm] at this
+         linarith
+       have : Set.indicator {u : ℝ | δ < |u|} (smoothKernel a) u = 0 := by
+-        rw [Set.indicator_apply, if_neg (show u ∉ {u : ℝ | δ < |u|} from hu)]
++        rw [Set.indicator_apply, ite_eq_right (show u ∉ {u : ℝ | δ < |u|} from hu)]
+       rw [hg]
+       simp only [this]
+       nlinarith
+diff --git a/lakefile.toml b/lakefile.toml
+index 34acdfc..1a2b828 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,26 +4,26 @@ keywords = ["math"]
+ defaultTargets = ["AbsorptionCutoff"]
+ 
+ [leanOptions]
+-pp.unicode.fun = true # pretty-prints `fun a ↦ b`
++pp.unicode.fun = true
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
+-
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[require]]
+ name = "checkdecls"
+ git = "https://github.com/PatrickMassot/checkdecls.git"
+-[[lean_lib]]
+-name = "AbsorptionCutoff"
+ 
+-# Mathlib-only comparator surface. Kept out of `defaultTargets` so a plain
+-# `lake build` never elaborates the intentional statement-level `sorry` that
+-# each `Challenge.lean` ends with. Build it with `lake build Audit`.
+ [[lean_lib]]
+-name = "Audit"
+-globs = ["Audit", "Audit.+"]
++name = "AbsorptionCutoff"
++globs = [
++  "AbsorptionCutoff.Supercritical.Renewal",
++  "AbsorptionCutoff.Supercritical.RenewalAbel",
++  "AbsorptionCutoff.Supercritical.RenewalKernel",
++  "AbsorptionCutoff.Supercritical.RenewalSinc",
++  "AbsorptionCutoff.Supercritical.RenewalApprox"
++]
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f49..ba8ebf2 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

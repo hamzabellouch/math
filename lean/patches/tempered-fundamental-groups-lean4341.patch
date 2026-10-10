@@ -1,0 +1,272 @@
+diff --git a/TemperedFundamentalGroups/Models/Projective.lean b/TemperedFundamentalGroups/Models/Projective.lean
+index 0f8582d7e728987f7bf3a8c23c46c27b93aae30c..5ff142d2155f8401695f70661069691b55f445e1 100644
+--- a/TemperedFundamentalGroups/Models/Projective.lean
++++ b/TemperedFundamentalGroups/Models/Projective.lean
+@@ -84,7 +84,7 @@ open MvPolynomial HomogeneousLocalization
+ variable {R}
+ 
+ lemma isHomogeneous_fin_one {p : MvPolynomial (Fin (0 + 1)) R} {n : ℕ} (hp : p.IsHomogeneous n) :
+-    p = C (coeff (Finsupp.single 0 n) p) * X 0 ^ n := by
++    p = C (p.coeff (Finsupp.single 0 n)) * X 0 ^ n := by
+   ext d
+   rw [coeff_C_mul, coeff_X_pow]
+   by_cases hd : Finsupp.single 0 n = d
+@@ -129,7 +129,7 @@ lemma bijective_fromZeroRingHom_projSpace_zero :
+   · obtain ⟨n, a, ha, rfl⟩ := Away.mk_surjective (homogeneousSubmodule (Fin (0 + 1)) R)
+       X_zero_mem_homogeneousSubmodule z
+     have ha' : a.IsHomogeneous n := by simpa using ha
+-    refine ⟨⟨C (coeff (Finsupp.single 0 n) a), isHomogeneous_C _ _⟩, ?_⟩
++    refine ⟨⟨C (a.coeff (Finsupp.single 0 n)), isHomogeneous_C _ _⟩, ?_⟩
+     apply val_injective
+     rw [Away.val_mk]
+     change Localization.mk _ 1 = _
+diff --git a/TemperedFundamentalGroups/Models/Specialization.lean b/TemperedFundamentalGroups/Models/Specialization.lean
+index 00f4b73f89c33df5476307335fb0195af1b36ed5..e3dd586fa3e3eb43feb6b88c6b69f9778de9e3c3 100644
+--- a/TemperedFundamentalGroups/Models/Specialization.lean
++++ b/TemperedFundamentalGroups/Models/Specialization.lean
+@@ -192,7 +192,12 @@ lemma spLift_unique [UniversallyClosed f] [IsSeparated f] (x : Spec (CommRingCat
+ lemma spLift_closedPoint_mem [UniversallyClosed f] (x : Spec (CommRingCat.of Ω) ⟶ X)
+     (hx : x ≫ f = Spec.map (CommRingCat.ofHom (valToField O))) :
+     (spLift (hV := hV) x hx).l (closedPoint V) ∈ specialFibre f := by
+-  rw [mem_specialFibre, ← Scheme.Hom.comp_apply, spLift_fac_right]
++  let ℓ : Spec (CommRingCat.of V) ⟶ X := (spLift (hV := hV) x hx).l
++  let v : Spec (CommRingCat.of V) := closedPoint V
++  have hℓ : ℓ ≫ f = Spec.map (CommRingCat.ofHom (valToVal O V hV)) :=
++    spLift_fac_right x hx
++  change ℓ v ∈ specialFibre f
++  rw [mem_specialFibre, ← Scheme.Hom.comp_apply, hℓ]
+   exact valToVal_closedPoint O V hV
+ 
+ end Specialization
+@@ -228,10 +233,15 @@ lemma sp_comp {X' : Scheme.{u}} {f' : X' ⟶ Spec (CommRingCat.of O)}
+     (hx : x ≫ f = Spec.map (CommRingCat.ofHom (valToField O))) :
+     sp f' V hV (x ≫ ψ) (by rw [Category.assoc, hψ, hx]) =
+       specialFibreMap ψ hψ (sp f V hV x hx) := by
++  let ℓ : Spec (CommRingCat.of V) ⟶ X := (spLift (hV := hV) x hx).l
++  have hℓ_left : Spec.map (CommRingCat.ofHom (algebraMap V Ω)) ≫ ℓ = x :=
++    spLift_fac_left x hx
++  have hℓ_right : ℓ ≫ f = Spec.map (CommRingCat.ofHom (valToVal O V hV)) :=
++    spLift_fac_right x hx
+   ext
+-  rw [sp_eq_of_lift (x ≫ ψ) _ ((spLift (hV := hV) x hx).l ≫ ψ)
+-    (by rw [← Category.assoc, spLift_fac_left])
+-    (by rw [Category.assoc, hψ]; exact spLift_fac_right x hx)]
++  rw [sp_eq_of_lift (x ≫ ψ) _ (ℓ ≫ ψ)
++    (by rw [← Category.assoc, hℓ_left])
++    (by rw [Category.assoc, hψ, hℓ_right])]
+   rfl
+ 
+ lemma coe_sp_comp {X' : Scheme.{u}} {f' : X' ⟶ Spec (CommRingCat.of O)}
+@@ -268,22 +278,26 @@ lemma sp_galois [UniversallyClosed f] [IsSeparated f] (σ : Ω ≃ₐ[K] Ω)
+       congr 2
+       ext a
+       simp [valToField]) = sp f V hV x hx := by
++  let ℓ : Spec (CommRingCat.of V) ⟶ X := (spLift (hV := hV) x hx).l
++  have hℓ_left : Spec.map (CommRingCat.ofHom (algebraMap V Ω)) ≫ ℓ = x :=
++    spLift_fac_left x hx
++  have hℓ_right : ℓ ≫ f = Spec.map (CommRingCat.ofHom (valToVal O V hV)) :=
++    spLift_fac_right x hx
+   ext
+-  rw [sp_eq_of_lift _ _ (Spec.map (CommRingCat.ofHom (restrictVal σ hσ)) ≫
+-    (spLift (hV := hV) x hx).l)]
+-  · change (spLift (hV := hV) x hx).l _ = (spLift (hV := hV) x hx).l _
++  rw [sp_eq_of_lift _ _ (Spec.map (CommRingCat.ofHom (restrictVal σ hσ)) ≫ ℓ)]
++  · change ℓ _ = ℓ _
+     congr 1
+     exact comap_closedPoint (restrictVal σ hσ)
+   · have e : (algebraMap V Ω).comp (restrictVal σ hσ) = (σ : Ω →+* Ω).comp (algebraMap V Ω) := by
+       ext; rfl
+     rw [← Category.assoc, ← Spec.map_comp, ← CommRingCat.ofHom_comp, e,
+-      CommRingCat.ofHom_comp, Spec.map_comp, Category.assoc, spLift_fac_left]
++      CommRingCat.ofHom_comp, Spec.map_comp, Category.assoc, hℓ_left]
+   · have e : (restrictVal σ hσ).comp (valToVal O V hV) = valToVal O V hV := by
+       ext a
+       exact σ.commutes (a : K)
+     rw [Category.assoc]
+     refine (congrArg (Spec.map (CommRingCat.ofHom (restrictVal σ hσ)) ≫ ·)
+-      (spLift_fac_right (hV := hV) x hx)).trans ?_
++      hℓ_right).trans ?_
+     rw [← Spec.map_comp, ← CommRingCat.ofHom_comp, e]
+ 
+ end Specialization
+diff --git a/TemperedFundamentalGroups/SemistableReduction/NodeNormal.lean b/TemperedFundamentalGroups/SemistableReduction/NodeNormal.lean
+index 393ca04750fcc7b0bdfe5cb7426aac029e7d9ba4..0e073bd71f05f9fe197d96fdd1a68e4d573c5520 100644
+--- a/TemperedFundamentalGroups/SemistableReduction/NodeNormal.lean
++++ b/TemperedFundamentalGroups/SemistableReduction/NodeNormal.lean
+@@ -74,7 +74,7 @@ lemma toLaurent_map_mem_integralLaurent (h : Polynomial O) :
+ lemma coeff_toLaurent_natCast (p : Polynomial K) (k : ℕ) :
+     (Polynomial.toLaurent p).coeff (k : ℤ) = p.coeff k := by
+   rw [coeff_toLaurent]
+-  exact Finsupp.mapDomain_apply Nat.cast_injective _ k
++  exact Finsupp.mapDomain_apply_of_injective Nat.cast_injective _ k
+ 
+ lemma exists_map_eq_of_toLaurent_mem {p : Polynomial K}
+     (hp : Polynomial.toLaurent p ∈ integralLaurent O) :
+diff --git a/lake-manifest.json b/lake-manifest.json
+index e17bd4ffa0e881f9ab806a1a47c9b7cea8f8b24d..1927b94ca6e8b09e86ef5aeadc8b187ab9af7102 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,17 +1,17 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/lana-agents/pi1",
++ [{"url": "https://github.com/lana-agents/pi1.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "60129404bd759f1a3653e87c2c9e6fbb21ec995e",
++   "rev": "ca7def953193f861a462aa0831eec8f0a31ff69f",
+    "name": "pi1",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "60129404bd759f1a3653e87c2c9e6fbb21ec995e",
++   "inputRev": "ca7def953193f861a462aa0831eec8f0a31ff69f",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/lana-agents/elliptic-curves",
++  {"url": "https://github.com/lana-agents/elliptic-curves.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -21,21 +21,21 @@
+    "inputRev": "bebec3fc9f2602e81c83e5236789572a541c85fb",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/leanprover-community/mathlib4",
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +45,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -65,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -75,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -85,7 +85,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -95,7 +95,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -105,10 +105,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "«tempered-fundamental-groups»",
+diff --git a/lakefile.toml b/lakefile.toml
+index 81e26b03d5eba16bfb14fdd53fd58f0907adbd16..3cfc8b854d4fa7a0b15b805fd877ec332914bc69 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["TemperedFundamentalGroups"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -11,8 +13,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "TemperedFundamentalGroups"
+@@ -21,7 +23,7 @@ name = "TemperedFundamentalGroups"
+ # the removed set `E[ℓ] + M` of the model orbicurves is a finite (closed) set.
+ [[require]]
+ name = "elliptic-curves"
+-git = "https://github.com/lana-agents/elliptic-curves"
++git = "https://github.com/lana-agents/elliptic-curves.git"
+ rev = "bebec3fc9f2602e81c83e5236789572a541c85fb"
+ 
+ # The étale fundamental group of an affine orbifold `[Spec R / A]` (`Pi1.Orbifold.etalePi1`), its
+@@ -29,5 +31,5 @@ rev = "bebec3fc9f2602e81c83e5236789572a541c85fb"
+ # (`Pi1.Orbifold.EtaleCode`, `SemilinearAut`, `LevelRing`), shared with the `pi1` project.
+ [[require]]
+ name = "pi1"
+-git = "https://github.com/lana-agents/pi1"
+-rev = "60129404bd759f1a3653e87c2c9e6fbb21ec995e"
++git = "https://github.com/lana-agents/pi1.git"
++rev = "ca7def953193f861a462aa0831eec8f0a31ff69f"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

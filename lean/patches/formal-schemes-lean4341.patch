@@ -1,0 +1,193 @@
+diff --git a/FormalSchemes/AdicCompletionLimit.lean b/FormalSchemes/AdicCompletionLimit.lean
+index d778fcade8f85bf6d12f3cccdf148af42c52c5dd..b1b66cd19c24e883c264f0adfac65aa0d853a48b 100644
+--- a/FormalSchemes/AdicCompletionLimit.lean
++++ b/FormalSchemes/AdicCompletionLimit.lean
+@@ -79,7 +79,6 @@ theorem quotientTower_map {m n : ℕ} (hmn : m ≤ n) :
+         (homOfLE (Nat.le_add_right n 1)).op ≫ (homOfLE hmn).op from Subsingleton.elim _ _,
+       CategoryTheory.Functor.map_comp, quotientTower_map_succ, ih]
+     apply CommRingCat.hom_ext
+-    simp only [CommRingCat.hom_comp]
+     exact Ideal.Quotient.factor_comp (Ideal.pow_le_pow_right (Nat.le_succ n))
+       (Ideal.pow_le_pow_right hmn)
+ 
+@@ -128,7 +127,6 @@ theorem factorPow_comp_limitProj {m n : ℕ} (hmn : m ≤ n) :
+   rw [quotientTower_map] at hw
+   refine RingHom.ext fun z => ?_
+   have h := DFunLike.congr_fun (congrArg CommRingCat.Hom.hom hw) z
+-  rw [CommRingCat.hom_comp] at h
+   exact h
+ 
+ /-- The ring homomorphism `limit (quotientTower I) →+* AdicCompletion I R` obtained from the
+diff --git a/FormalSchemes/FormalSpectrum.lean b/FormalSchemes/FormalSpectrum.lean
+index eaa51f03d448e0eb994047eb92258dd72617ad19..dd86085fe3841adc9919b73488167bb91fd0cf01 100644
+--- a/FormalSchemes/FormalSpectrum.lean
++++ b/FormalSchemes/FormalSpectrum.lean
+@@ -192,6 +192,7 @@ theorem map_comp (φ : R →+* S) (ψ : S →+* T) (hIJ : I ≤ J.comap φ) (hJK
+       (Ideal.quotientMap K ψ hJK).comp (Ideal.quotientMap J φ hIJ) :=
+     Ideal.Quotient.ringHom_ext (RingHom.ext fun x => by simp [Ideal.quotientMap_mk])
+   funext x
++  change PrimeSpectrum (T ⧸ K) at x
+   change PrimeSpectrum.comap (Ideal.quotientMap K (ψ.comp φ) hIK) x = _
+   rw [hq, PrimeSpectrum.comap_comp_apply]
+   rfl
+@@ -208,6 +209,7 @@ Spec S →  Spec R
+ commutes. -/
+ theorem toPrimeSpectrum_map (φ : R →+* S) (h : I ≤ J.comap φ) (x : FormalSpectrum J) :
+     toPrimeSpectrum I (map I J φ h x) = PrimeSpectrum.comap φ (toPrimeSpectrum J x) := by
++  change PrimeSpectrum (S ⧸ J) at x
+   change PrimeSpectrum.comap (Ideal.Quotient.mk I)
+       (PrimeSpectrum.comap (Ideal.quotientMap J φ h) x)
+       = PrimeSpectrum.comap φ (PrimeSpectrum.comap (Ideal.Quotient.mk J) x)
+@@ -278,6 +280,7 @@ theorem comap_factor_comp_toThickening {m n : ℕ} (hm : m ≠ 0) (hn : n ≠ 0)
+     PrimeSpectrum.comap (Ideal.Quotient.factor (Ideal.pow_le_pow_right hmn)) ∘
+       toThickening I m hm = toThickening I n hn := by
+   funext x
++  change PrimeSpectrum (R ⧸ I) at x
+   change PrimeSpectrum.comap (Ideal.Quotient.factor (Ideal.pow_le_pow_right hmn))
+       (PrimeSpectrum.comap (Ideal.Quotient.factor (Ideal.pow_le_self hm)) x) = _
+   rw [← PrimeSpectrum.comap_comp_apply, Ideal.Quotient.factor_comp]
+@@ -289,6 +292,7 @@ compatibly. -/
+ theorem comap_mk_toThickening (n : ℕ) (hn : n ≠ 0) (x : FormalSpectrum I) :
+     PrimeSpectrum.comap (Ideal.Quotient.mk (I ^ n)) (toThickening I n hn x) =
+       toPrimeSpectrum I x := by
++  change PrimeSpectrum (R ⧸ I) at x
+   rw [toThickening, toPrimeSpectrum, ← PrimeSpectrum.comap_comp_apply,
+     Ideal.Quotient.factor_comp_mk]
+ 
+@@ -299,6 +303,7 @@ theorem toThickening_preimage_basicOpen (n : ℕ) (hn : n ≠ 0) (f : R) :
+         (PrimeSpectrum.basicOpen (Ideal.Quotient.mk (I ^ n) f) : Set (PrimeSpectrum (R ⧸ I ^ n)))
+       = (basicOpen I f : Set (FormalSpectrum I)) := by
+   ext x
++  change PrimeSpectrum (R ⧸ I) at x
+   change Ideal.Quotient.mk (I ^ n) f ∉ (PrimeSpectrum.comap _ x).asIdeal ↔ _
+   rw [PrimeSpectrum.comap_asIdeal, Ideal.mem_comap, Ideal.Quotient.factor_mk]
+   rfl
+diff --git a/lake-manifest.json b/lake-manifest.json
+index b1308febafec43a4ce2579e35c508f6b66654b88..4f22c9fbf687e031625e1f4ed2bc973e57446dcd 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,21 +1,21 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/leanprover-community/mathlib4",
++ [{"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -25,7 +25,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -35,7 +35,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +45,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -65,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -75,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -85,10 +85,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "«formal-schemes»",
+diff --git a/lakefile.toml b/lakefile.toml
+index 551af80eb4d69a8c4d63abf0cde6124936dc0b02..53ef215a48858b86da7776108148f74dbc3d4c73 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["FormalSchemes"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -11,8 +13,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "FormalSchemes"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

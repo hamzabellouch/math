@@ -1,0 +1,668 @@
+diff --git a/EllipticCurves/FormalGroup/DividedDiffDiagonal.lean b/EllipticCurves/FormalGroup/DividedDiffDiagonal.lean
+index 83a0c99107040dc9d9cd9679e970521b0f0c926f..84163f3a94a1ff49633771c646cc814e5143085a 100644
+--- a/EllipticCurves/FormalGroup/DividedDiffDiagonal.lean
++++ b/EllipticCurves/FormalGroup/DividedDiffDiagonal.lean
+@@ -27,7 +27,7 @@ the Weierstrass formal group addition law (Silverman AEC IV.1).
+ ## Main result
+ 
+ * `PowerSeries.adicEvalMv_dividedDiff_diagonal` :
+-  `adicEvalMv I ![x, x] (dividedDiff f) = adicEval I hx (derivativeFun f)`.
++  `adicEvalMv I ![x, x] (dividedDiff f) = adicEval I hx (derivative f)`.
+ -/
+ 
+ open MvPowerSeries
+@@ -43,9 +43,9 @@ theorem diag_mem {x : A} (hx : x ∈ I) : ∀ s : Fin 2, (![x, x] : Fin 2 → A)
+ 
+ /-- **The divided difference on the diagonal is the formal derivative.**  Evaluating the bivariate
+ divided difference `Δf` at the diagonal point `(x, x)` (with `x ∈ I`, in the `I`-adically complete
+-ring `A`) yields the `I`-adic evaluation of the formal derivative `f′ = derivativeFun f` at `x`. -/
++ring `A`) yields the `I`-adic evaluation of the formal derivative `f′ = derivative f` at `x`. -/
+ theorem adicEvalMv_dividedDiff_diagonal {x : A} (hx : x ∈ I) (f : PowerSeries A) :
+-    adicEvalMv I (diag_mem I hx) (dividedDiff f) = adicEval I hx (derivativeFun f) := by
++    adicEvalMv I (diag_mem I hx) (dividedDiff f) = adicEval I hx (derivative f) := by
+   classical
+   letI : WithIdeal A := ⟨I⟩
+   haveI : CompleteSpace A := ((IsAdic.isAdicComplete_iff (I := I) rfl).mp ‹_›).1
+@@ -94,7 +94,7 @@ theorem adicEvalMv_dividedDiff_diagonal {x : A} (hx : x ∈ I) (f : PowerSeries
+   have hsig := hP.sigma hfib
+   -- Match the derivative coefficient shape.
+   have hfun2 : (fun n : ℕ ↦ (n + 1) • (coeff (n + 1) f * x ^ n)) =
+-      fun n : ℕ ↦ coeff n (derivativeFun f) * x ^ n := by
++      fun n : ℕ ↦ coeff n (derivative f) * x ^ n := by
+     funext n
+     rw [coeff_derivativeFun, nsmul_eq_mul]
+     push_cast
+@@ -103,7 +103,7 @@ theorem adicEvalMv_dividedDiff_diagonal {x : A} (hx : x ∈ I) (f : PowerSeries
+   -- The right-hand side, `f′(x)`, as a convergent sum with the *same* summand.
+   have hxnil : PowerSeries.HasEval x := WithIdeal.isTopologicallyNilpotent_of_mem hx
+   have hR := PowerSeries.hasSum_eval₂ (φ := RingHom.id A) (a := x) continuous_id hxnil
+-    (derivativeFun f)
++    (derivative f)
+   simp only [RingHom.id_apply] at hR
+   -- Conclude by uniqueness of sums.
+   rw [coe_adicEvalMv I (diag_mem I hx), coe_adicEval hx, ← hLdef]
+diff --git a/EllipticCurves/FormalGroup/InvariantDifferentialInvariance.lean b/EllipticCurves/FormalGroup/InvariantDifferentialInvariance.lean
+index 30d26f1960722fdf925dde3db9703aa5ec3c9cc2..9079ac48793bac2aa4cb8e485aa330885a244859 100644
+--- a/EllipticCurves/FormalGroup/InvariantDifferentialInvariance.lean
++++ b/EllipticCurves/FormalGroup/InvariantDifferentialInvariance.lean
+@@ -90,10 +90,8 @@ variable {R : Type*} [CommRing R] (W : WeierstrassCurve R)
+ /-- The formal derivative of `z³` is `3z²`. -/
+ private theorem derivativeFun_X_pow_three :
+     derivativeFun (X ^ 3 : R⟦X⟧) = 3 * X ^ 2 := by
+-  have h := PowerSeries.derivative_pow R (X : R⟦X⟧) 3
+-  rw [PowerSeries.derivative_X, mul_one] at h
+-  rw [show derivativeFun (X ^ 3 : R⟦X⟧) = PowerSeries.derivative R (X ^ 3) from rfl, h]
+-  norm_num
++  change PowerSeries.derivative (X ^ 3 : R⟦X⟧) = 3 * X ^ 2
++  simpa using PowerSeries.derivative_pow (X : R⟦X⟧) 3
+ 
+ /-- **Step 1 (`Eq.Ω`).** The pole-cleared defining identity of the invariant differential:
+ `ω_E · (w·(-2 + a₁z + a₃w)) = w − z·w'` in `R⟦z⟧`, with `w = W.formalW`.
+@@ -113,6 +111,9 @@ theorem invariantDifferential_mul_clear [Algebra ℚ R] :
+   have ha : X ^ 3 * W.invDiffDen = W.formalW * (-2 + C W.a₁ * X + C W.a₃ * W.formalW) := by
+     rw [invDiffDen, ← mul_assoc, ← W.formalW_eq_X_pow_mul_wCofactor]
+   have hb : X ^ 3 * W.invDiffNum = W.formalW - X * derivativeFun W.formalW := by
++    change PowerSeries.derivative W.formalW =
++      X ^ 3 * PowerSeries.derivative W.wCofactor + 3 * X ^ 2 * W.wCofactor at hderiv
++    change X ^ 3 * W.invDiffNum = W.formalW - X * PowerSeries.derivative W.formalW
+     rw [invDiffNum, hderiv, W.formalW_eq_X_pow_mul_wCofactor]
+     ring
+   calc W.invariantDifferential * (W.formalW * (-2 + C W.a₁ * X + C W.a₃ * W.formalW))
+@@ -159,6 +160,9 @@ theorem invariantDifferential_mul_clear_subst_mul_pderivSnd [Algebra ℚ R] :
+           * MvPowerSeries.pderivSnd (W.formalW.subst W.formalGroupZW) := by
+   have hΩF := W.invariantDifferential_mul_clear_subst
+   have hchain := MvPowerSeries.pderivSnd_subst W.constantCoeff_formalGroupZW W.formalW
++  change MvPowerSeries.pderivSnd (W.formalW.subst W.formalGroupZW) =
++    W.formalW.derivativeFun.subst W.formalGroupZW *
++      MvPowerSeries.pderivSnd W.formalGroupZW at hchain
+   linear_combination MvPowerSeries.pderivSnd W.formalGroupZW * hΩF + W.formalGroupZW * hchain
+ 
+ end WeierstrassCurve
+diff --git a/EllipticCurves/FormalGroup/LogAdditivity.lean b/EllipticCurves/FormalGroup/LogAdditivity.lean
+index 4b07889c1f9ae0f936f78bed2821b39d65834f13..3885dc976aabf531f43ea7a6f80a2fb377e168e6 100644
+--- a/EllipticCurves/FormalGroup/LogAdditivity.lean
++++ b/EllipticCurves/FormalGroup/LogAdditivity.lean
+@@ -130,6 +130,7 @@ theorem eq_C_of_derivativeFun_eq_zero {g : S⟦X⟧} (h : g.derivativeFun = 0) :
+   | succ m =>
+     have hcoeff : coeff (m + 1) g * ((m : S) + 1) = 0 := by
+       have hm := congrArg (coeff m) h
++      change coeff m (derivative g) = coeff m 0 at hm
+       rwa [coeff_derivativeFun, map_zero] at hm
+     have hu : IsUnit ((m : S) + 1) := by
+       have hcast : ((m : S) + 1) = algebraMap ℚ S ((m : ℚ) + 1) := by push_cast; ring
+@@ -359,6 +360,7 @@ theorem derivativeFun_curry_formalLogAdditivityDefect_of_star [Algebra ℚ R]
+     (hstar : W.invariantDifferential.subst W.formalGroupZW * pderivSnd W.formalGroupZW
+       = W.invariantDifferential.subst (X 1)) :
+     (mvPowerSeriesFinTwoCurry W.formalLogAdditivityDefect).derivativeFun = 0 := by
++  change (mvPowerSeriesFinTwoCurry W.formalLogAdditivityDefect).derivative = 0
+   rw [← curry_pderivSnd, W.pderivSnd_formalLogAdditivityDefect, hstar, sub_self, map_zero]
+ 
+ /-- **Log-additivity, reduced to the two geometric facts.**  Combining the two reductions, the full
+diff --git a/EllipticCurves/FormalGroup/Logarithm.lean b/EllipticCurves/FormalGroup/Logarithm.lean
+index 341610c8b12a0f043d599c1dad58e0fcd883b502..714bb409df9c9b7875ba12029b21be0e57fb49f7 100644
+--- a/EllipticCurves/FormalGroup/Logarithm.lean
++++ b/EllipticCurves/FormalGroup/Logarithm.lean
+@@ -55,7 +55,7 @@ variable {R : Type*} [CommRing R] (W : WeierstrassCurve R)
+ /-- The numerator of the invariant differential after cancelling the pole:
+ `-(2·v + z·v')` with `v = W.wCofactor`. It has constant term `-2`. -/
+ noncomputable def invDiffNum : R⟦X⟧ :=
+-  -(2 * W.wCofactor + X * derivativeFun W.wCofactor)
++  -(2 * W.wCofactor + X * derivative W.wCofactor)
+ 
+ /-- The denominator of the invariant differential after cancelling the pole:
+ `v · (-2 + a₁ z + a₃ w)` with `v = W.wCofactor`, `w = W.formalW`. It has constant term `-2`. -/
+@@ -126,7 +126,7 @@ theorem coeff_formalLog_succ [Algebra ℚ R] (n : ℕ) :
+ 
+ /-- **`log_E'(z) = ω_E(z)`.** The formal logarithm is a primitive of the invariant differential. -/
+ theorem derivativeFun_formalLog [Algebra ℚ R] :
+-    derivativeFun W.formalLog = W.invariantDifferential := by
++    derivative W.formalLog = W.invariantDifferential := by
+   ext n
+   rw [coeff_derivativeFun, coeff_formalLog_succ]
+   have key : algebraMap ℚ R ((n : ℚ) + 1)⁻¹ * ((n : R) + 1) = 1 := by
+diff --git a/EllipticCurves/FormalGroup/MvPowerSeriesCurry.lean b/EllipticCurves/FormalGroup/MvPowerSeriesCurry.lean
+index 1b76092dceb54adc2d1b95e45b0bb220bec2646d..16c02edfa4e94e6723eeb65ff28cf888e067dd6d 100644
+--- a/EllipticCurves/FormalGroup/MvPowerSeriesCurry.lean
++++ b/EllipticCurves/FormalGroup/MvPowerSeriesCurry.lean
+@@ -183,10 +183,12 @@ theorem curryFinTwoRingHom_bijective :
+       using this
+   · -- surjective
+     intro F
+-    refine ⟨fun d => PowerSeries.coeff (d 0) (PowerSeries.coeff (d 1) F), ?_⟩
++    let φ : MvPowerSeries (Fin 2) R :=
++      fun d => PowerSeries.coeff (d 0) (PowerSeries.coeff (d 1) F)
++    refine ⟨φ, ?_⟩
+     refine PowerSeries.ext fun n => PowerSeries.ext fun m => ?_
+-    rw [curryFinTwoRingHom_apply, coeff_coeff_curryFinTwoFun, coeff_eval,
+-      single_add_apply_zero, single_add_apply_one]
++    rw [curryFinTwoRingHom_apply, coeff_coeff_curryFinTwoFun, coeff_eval]
++    simp only [φ, single_add_apply_zero, single_add_apply_one]
+ 
+ /-- **The currying ring isomorphism** `MvPowerSeries (Fin 2) R ≃+* PowerSeries (PowerSeries R)`. -/
+ noncomputable def mvPowerSeriesFinTwoCurry :
+diff --git a/EllipticCurves/FormalGroup/MvPowerSeriesPderiv.lean b/EllipticCurves/FormalGroup/MvPowerSeriesPderiv.lean
+index 1861a2978b87de99d7f483f8e0b313a77cef7c7f..e3782524c382f1642d6b8c952f81b8a026bf69d3 100644
+--- a/EllipticCurves/FormalGroup/MvPowerSeriesPderiv.lean
++++ b/EllipticCurves/FormalGroup/MvPowerSeriesPderiv.lean
+@@ -12,13 +12,13 @@ import EllipticCurves.FormalGroup.MvPowerSeriesCurry
+ # The `z₂`-partial derivative on `MvPowerSeries (Fin 2) R`
+ 
+ This Mathlib pin provides the univariate formal derivative
+-`PowerSeries.derivativeFun` / `PowerSeries.derivative : Derivation R R⟦X⟧ R⟦X⟧`
+-but has **no** partial-derivative operator on `MvPowerSeries`.  For the invariant-differential
++`PowerSeries.derivative : Derivation R R⟦X⟧ R⟦X⟧`
++and the multivariate partial derivative `MvPowerSeries.pderiv`. For the invariant-differential
+ argument behind log-additivity of the Weierstrass formal group
+ (`EllipticCurves.FormalGroup.LogAdditivity`, Silverman AEC IV.5) we need to differentiate a
+ bivariate series in its *second* variable `z₂`.
+ 
+-We obtain such an operator for free by transporting the univariate `derivativeFun` on the outer
++We obtain such an operator for free by transporting the univariate `derivative` on the outer
+ `z₂`-variable across the currying ring isomorphism
+ `mvPowerSeriesFinTwoCurry : MvPowerSeries (Fin 2) R ≃+* R⟦z₁⟧⟦z₂⟧`
+ (`EllipticCurves.FormalGroup.MvPowerSeriesCurry`; the *outer* index `1` is `z₂`, the *inner*
+@@ -27,7 +27,7 @@ index `0` is `z₁`).
+ ## Main definitions and results
+ 
+ * `MvPowerSeries.pderivSnd : MvPowerSeries (Fin 2) R → MvPowerSeries (Fin 2) R` — the `z₂`-partial
+-  derivative, `curry.symm ∘ derivativeFun ∘ curry`.
++  derivative, `curry.symm ∘ derivative ∘ curry`.
+ * `MvPowerSeries.coeff_coeff_pderivSnd` — its bigraded coefficient formula: the `z₂`-degree `n` is
+   bumped to `n + 1` and scaled by `n + 1`.
+ * Transported `Derivation`-style API: `pderivSnd_add`, `pderivSnd_zero`, `pderivSnd_smul`,
+@@ -45,7 +45,7 @@ index `0` is `z₁`).
+   substitutable `G`, `∂_{z₂}(p(G)) = p'(G) · ∂_{z₂}G` (via `Derivation.comp_aeval_eq`).
+ * `MvPowerSeries.pderivSnd_subst` — the **substitution chain rule** in full generality: for a
+   univariate `f : R⟦X⟧` and a substitutable bivariate `G` (`constantCoeff G = 0`),
+-  `∂_{z₂}(f.subst G) = (f.derivativeFun.subst G) · ∂_{z₂}G`.  This is the `Fin 2`-graded analogue of
++  `∂_{z₂}(f.subst G) = (f.derivative.subst G) · ∂_{z₂}G`.  This is the `Fin 2`-graded analogue of
+   `PowerSeries.derivative_subst`, and the key calculus input for the invariant-differential form of
+   log-additivity (`EllipticCurves.FormalGroup.LogAdditivity`, `#315`).
+ 
+@@ -61,13 +61,13 @@ namespace MvPowerSeries
+ variable {R : Type*} [CommRing R]
+ 
+ /-- The **`z₂`-partial derivative** on `MvPowerSeries (Fin 2) R`, defined by transporting the
+-univariate `PowerSeries.derivativeFun` on the outer (`z₂`) variable across the currying ring
++univariate `PowerSeries.derivative` on the outer (`z₂`) variable across the currying ring
+ isomorphism `mvPowerSeriesFinTwoCurry`. -/
+ noncomputable def pderivSnd (φ : MvPowerSeries (Fin 2) R) : MvPowerSeries (Fin 2) R :=
+-  mvPowerSeriesFinTwoCurry.symm (mvPowerSeriesFinTwoCurry φ).derivativeFun
++  mvPowerSeriesFinTwoCurry.symm (mvPowerSeriesFinTwoCurry φ).derivative
+ 
+ theorem curry_pderivSnd (φ : MvPowerSeries (Fin 2) R) :
+-    mvPowerSeriesFinTwoCurry (pderivSnd φ) = (mvPowerSeriesFinTwoCurry φ).derivativeFun := by
++    mvPowerSeriesFinTwoCurry (pderivSnd φ) = (mvPowerSeriesFinTwoCurry φ).derivative := by
+   rw [pderivSnd, RingEquiv.apply_symm_apply]
+ 
+ /-- The bigraded coefficient of the `z₂`-partial derivative: the `z₂`-degree `n` is bumped to
+@@ -75,7 +75,7 @@ theorem curry_pderivSnd (φ : MvPowerSeries (Fin 2) R) :
+ theorem coeff_coeff_pderivSnd (φ : MvPowerSeries (Fin 2) R) (n m : ℕ) :
+     PowerSeries.coeff m (PowerSeries.coeff n (mvPowerSeriesFinTwoCurry (pderivSnd φ)))
+       = MvPowerSeries.coeff (Finsupp.single 0 m + Finsupp.single 1 (n + 1)) φ * ((n : R) + 1) := by
+-  rw [curry_pderivSnd, PowerSeries.coeff_derivativeFun,
++  rw [curry_pderivSnd, PowerSeries.coeff_derivative,
+     show ((n : PowerSeries R) + 1) = PowerSeries.C ((n : R) + 1) by
+       rw [map_add, map_natCast, map_one],
+     PowerSeries.coeff_mul_C, coeff_coeff_mvPowerSeriesFinTwoCurry]
+@@ -90,7 +90,7 @@ theorem ext_coeff_coeff {φ ψ : MvPowerSeries (Fin 2) R}
+ 
+ theorem pderivSnd_add (φ ψ : MvPowerSeries (Fin 2) R) :
+     pderivSnd (φ + ψ) = pderivSnd φ + pderivSnd ψ := by
+-  rw [pderivSnd, pderivSnd, pderivSnd, map_add, PowerSeries.derivativeFun_add, map_add]
++  rw [pderivSnd, pderivSnd, pderivSnd, map_add, map_add, map_add]
+ 
+ @[simp]
+ theorem pderivSnd_zero : pderivSnd (0 : MvPowerSeries (Fin 2) R) = 0 := by
+@@ -101,12 +101,14 @@ theorem pderivSnd_zero : pderivSnd (0 : MvPowerSeries (Fin 2) R) = 0 := by
+ 
+ @[simp]
+ theorem pderivSnd_one : pderivSnd (1 : MvPowerSeries (Fin 2) R) = 0 := by
+-  rw [pderivSnd, map_one, PowerSeries.derivativeFun_one, map_zero]
++  rw [pderivSnd, map_one, PowerSeries.derivative_one, map_zero]
+ 
+ /-- **Leibniz rule** for the `z₂`-partial derivative. -/
+ theorem pderivSnd_mul (φ ψ : MvPowerSeries (Fin 2) R) :
+     pderivSnd (φ * ψ) = φ * pderivSnd ψ + ψ * pderivSnd φ := by
+-  rw [pderivSnd, pderivSnd, pderivSnd, map_mul, PowerSeries.derivativeFun_mul,
++  -- Differentiate in the outer variable, treating inner series as coefficients.
++  let : Algebra (PowerSeries R) (PowerSeries (PowerSeries R)) := MvPowerSeries.instAlgebra
++  rw [pderivSnd, pderivSnd, pderivSnd, map_mul, Derivation.leibniz,
+     smul_eq_mul, smul_eq_mul, map_add, map_mul, map_mul, RingEquiv.symm_apply_apply,
+     RingEquiv.symm_apply_apply]
+ 
+@@ -195,7 +197,7 @@ theorem coe_pderivSndDerivation :
+ 
+ /-- **Power rule** for the `z₂`-partial derivative: `∂_{z₂}(φ ^ n) = n • φ ^ (n-1) • ∂_{z₂}φ`.
+ This is the inductive core of the substitution chain rule `∂_{z₂}(f.subst G)
+-= (f.derivativeFun.subst G) · ∂_{z₂}G`. -/
++= (f.derivative.subst G) · ∂_{z₂}G`. -/
+ theorem pderivSnd_pow (φ : MvPowerSeries (Fin 2) R) (n : ℕ) :
+     pderivSnd (φ ^ n) = n • φ ^ (n - 1) • pderivSnd φ := by
+   have h := pderivSndDerivation.leibniz_pow (a := φ) n
+@@ -211,7 +213,7 @@ theorem coeff_pderivSnd (φ : MvPowerSeries (Fin 2) R) (m n : ℕ) :
+ 
+ /-! ### The substitution chain rule
+ 
+-`pderivSnd (f.subst G) = (f.derivativeFun.subst G) * pderivSnd G` for a univariate `f : R⟦X⟧` and a
++`pderivSnd (f.subst G) = (f.derivative.subst G) * pderivSnd G` for a univariate `f : R⟦X⟧` and a
+ substitutable bivariate `G` (`constantCoeff G = 0`, i.e. `PowerSeries.HasSubst G`).  We follow the
+ model of Mathlib's `PowerSeries.derivative_subst`: first the polynomial case via
+ `Derivation.comp_aeval_eq` on `pderivSndDerivation`, then the general case by a finite-truncation
+@@ -225,8 +227,8 @@ derivative of `p(G)` obeys the chain rule.  Immediate from `Derivation.comp_aeva
+ theorem pderivSnd_subst_coe {G : MvPowerSeries (Fin 2) R} (hG : PowerSeries.HasSubst G)
+     (p : Polynomial R) :
+     pderivSnd ((p : R⟦X⟧).subst G)
+-      = ((p : R⟦X⟧).derivativeFun.subst G) * pderivSnd G := by
+-  rw [PowerSeries.subst_coe hG, PowerSeries.derivativeFun_coe, PowerSeries.subst_coe hG]
++      = ((p : R⟦X⟧).derivative.subst G) * pderivSnd G := by
++  rw [PowerSeries.subst_coe hG, PowerSeries.derivative_coe, PowerSeries.subst_coe hG]
+   have h := pderivSndDerivation.comp_aeval_eq (a := G) p
+   simpa only [pderivSndDerivation_apply, smul_eq_mul] using h
+ 
+@@ -247,7 +249,7 @@ fixed bidegree to a finite truncation of `f`, apply the polynomial case `pderivS
+ match coefficients. -/
+ theorem pderivSnd_subst {G : MvPowerSeries (Fin 2) R} (hG0 : MvPowerSeries.constantCoeff G = 0)
+     (f : R⟦X⟧) :
+-    pderivSnd (f.subst G) = f.derivativeFun.subst G * pderivSnd G := by
++    pderivSnd (f.subst G) = f.derivative.subst G * pderivSnd G := by
+   classical
+   have hG : PowerSeries.HasSubst G := PowerSeries.HasSubst.of_constantCoeff_zero hG0
+   -- Replacing `h` by a high truncation does not change any coefficient of `h.subst G` in a
+@@ -269,17 +271,17 @@ theorem pderivSnd_subst {G : MvPowerSeries (Fin 2) R} (hG0 : MvPowerSeries.const
+   obtain ⟨m, n, rfl⟩ : ∃ m n, e = Finsupp.single 0 m + Finsupp.single 1 n :=
+     ⟨e 0, e 1, by ext i; fin_cases i <;> simp⟩
+   set N := m + n + 2 with hN
+-  -- Coefficients of the two `derivativeFun`s agree up to degree `N - 1`.
++  -- Coefficients of the two `derivative`s agree up to degree `N - 1`.
+   have hder_eq : ∀ d : ℕ, d < N - 1 →
+-      PowerSeries.coeff d ((↑(PowerSeries.trunc N f) : R⟦X⟧).derivativeFun)
+-        = PowerSeries.coeff d f.derivativeFun := by
++      PowerSeries.coeff d ((↑(PowerSeries.trunc N f) : R⟦X⟧).derivative)
++        = PowerSeries.coeff d f.derivative := by
+     intro d hd
+-    rw [PowerSeries.coeff_derivativeFun, PowerSeries.coeff_derivativeFun,
++    rw [PowerSeries.coeff_derivative, PowerSeries.coeff_derivative,
+       PowerSeries.coeff_coe_trunc_of_lt (show d + 1 < N by omega)]
+   -- Hence substituting the truncated derivative agrees on small bidegrees.
+   have hRHSterm : ∀ e₁ : Fin 2 →₀ ℕ, Finsupp.degree e₁ ≤ m + n →
+-      MvPowerSeries.coeff e₁ ((↑(PowerSeries.trunc N f) : R⟦X⟧).derivativeFun.subst G)
+-        = MvPowerSeries.coeff e₁ (f.derivativeFun.subst G) := by
++      MvPowerSeries.coeff e₁ ((↑(PowerSeries.trunc N f) : R⟦X⟧).derivative.subst G)
++        = MvPowerSeries.coeff e₁ (f.derivative.subst G) := by
+     intro e₁ he₁
+     rw [PowerSeries.coeff_subst hG, PowerSeries.coeff_subst hG]
+     refine finsum_congr fun d => ?_
+diff --git a/EllipticCurves/FormalGroup/VietaDifferential.lean b/EllipticCurves/FormalGroup/VietaDifferential.lean
+index 1374be0b83aa5d36b643ea0ed18e5e1811f69c00..9ca9e822e771b49cfef19341b0055bd3fc49a42f 100644
+--- a/EllipticCurves/FormalGroup/VietaDifferential.lean
++++ b/EllipticCurves/FormalGroup/VietaDifferential.lean
+@@ -67,8 +67,9 @@ theorem derivative_ofPowerSeries (f : PowerSeries R) :
+       simp
+   · lift n to ℕ using hn with m
+     have hidx : ((m : ℤ) + 1) = ((m + 1 : ℕ) : ℤ) := by push_cast; ring
+-    rw [hidx, LaurentSeries.coeff_coe_powerSeries, LaurentSeries.coeff_coe_powerSeries,
+-      PowerSeries.coeff_derivativeFun, zsmul_eq_mul]
++    rw [hidx, LaurentSeries.coeff_coe_powerSeries, LaurentSeries.coeff_coe_powerSeries]
++    change _ = PowerSeries.coeff m (PowerSeries.derivative f)
++    rw [PowerSeries.coeff_derivative, zsmul_eq_mul]
+     push_cast
+     ring
+ 
+diff --git a/EllipticCurves/FunctionField/CoordinateRingBaseChange.lean b/EllipticCurves/FunctionField/CoordinateRingBaseChange.lean
+index d8e43bf3359d82d4e7bb541ad775d95cf81d8d33..97a3ea5a4f605ddb5146aaa1b49cea333e75a16f 100644
+--- a/EllipticCurves/FunctionField/CoordinateRingBaseChange.lean
++++ b/EllipticCurves/FunctionField/CoordinateRingBaseChange.lean
+@@ -98,14 +98,18 @@ private lemma e1_trans_e2_includeRight (a : W.CoordinateRing) :
+     refine AdjoinRoot.ringHom_ext (RingHom.ext fun r => ?_) ?_
+     · simp only [RingHom.comp_apply, AlgEquiv.coe_toAlgHom,
+         AlgHom.toRingHom_eq_coe, RingHom.coe_coe, AlgEquiv.trans_apply,
+-        Algebra.TensorProduct.includeRight_apply, e1, AdjoinRoot.tensorAlgEquiv_of, e2,
+-        AdjoinRoot.coe_mapAlgEquiv, AdjoinRoot.map_of, coe_polyEquivTensor'_symm,
+-        polyEquivTensor_symm_apply_tmul_eq_smul, one_smul, CoordinateRing.map,
++        Algebra.TensorProduct.includeRight_apply, e1, e2,
++        AdjoinRoot.coe_mapAlgEquiv, CoordinateRing.map,
+         AdjoinRoot.lift_of, Polynomial.coe_mapRingHom]
++      erw [AdjoinRoot.tensorAlgEquiv_of]
++      erw [AdjoinRoot.map_of, coe_polyEquivTensor'_symm,
++        polyEquivTensor_symm_apply_tmul_eq_smul, one_smul]
+     · simp only [RingHom.comp_apply, AlgEquiv.coe_toAlgHom,
+         AlgHom.toRingHom_eq_coe, RingHom.coe_coe, AlgEquiv.trans_apply,
+-        Algebra.TensorProduct.includeRight_apply, e1, AdjoinRoot.tensorAlgEquiv_root, e2,
+-        AdjoinRoot.coe_mapAlgEquiv, AdjoinRoot.map_root, CoordinateRing.map, AdjoinRoot.lift_root]
++        Algebra.TensorProduct.includeRight_apply, e1, e2,
++        AdjoinRoot.coe_mapAlgEquiv, CoordinateRing.map, AdjoinRoot.lift_root]
++      erw [AdjoinRoot.tensorAlgEquiv_root]
++      rw [AdjoinRoot.map_root]
+   have h := DFunLike.congr_fun key a
+   simp only [RingHom.comp_apply, AlgEquiv.coe_toAlgHom,
+     AlgHom.toRingHom_eq_coe, RingHom.coe_coe, Algebra.TensorProduct.includeRight_apply] at h
+@@ -128,8 +132,7 @@ noncomputable instance instAlgebraCoordinateRingMap :
+ private lemma comm_one_tmul_mul (a : W.CoordinateRing) (y : K ⊗[F] W.CoordinateRing) :
+     (TensorProduct.comm F K W.CoordinateRing) (((1 : K) ⊗ₜ[F] a) * y)
+       = a • (TensorProduct.comm F K W.CoordinateRing) y := by
+-  induction y with
+-  | zero => simp
++  induction y using TensorProduct.inductionOn with
+   | tmul k x =>
+     rw [Algebra.TensorProduct.tmul_mul_tmul, one_mul, TensorProduct.comm_tmul,
+       TensorProduct.comm_tmul, TensorProduct.smul_tmul', smul_eq_mul]
+diff --git a/EllipticCurves/FunctionField/CoordinateRingNormalAlgClosed.lean b/EllipticCurves/FunctionField/CoordinateRingNormalAlgClosed.lean
+index 4fd18a022c6ba3585e9061b6cd14ca120e320e0a..f26a3d417978aef34f16d51bb57dbd757e4d266e 100644
+--- a/EllipticCurves/FunctionField/CoordinateRingNormalAlgClosed.lean
++++ b/EllipticCurves/FunctionField/CoordinateRingNormalAlgClosed.lean
+@@ -153,7 +153,7 @@ theorem isIntegrallyClosed_of_isAlgClosed : IsIntegrallyClosed W.CoordinateRing
+     IsLocalization.isNoetherianRing (XYIdeal W a (C b)).primeCompl _ inferInstance
+   have htfae := tfae_of_isNoetherianRing_of_isLocalRing_of_isDomain
+     (R := Localization.AtPrime (XYIdeal W a (C b)))
+-  exact ((htfae.out 4 3 rfl rfl).mp hprin).1
++  exact ((htfae.out 5 4 rfl rfl).mp hprin).1
+ 
+ /-- **The coordinate ring of an elliptic curve over an algebraically closed field is a Dedekind
+ domain.** -/
+diff --git a/EllipticCurves/FunctionField/FunctionFieldGaloisDescent.lean b/EllipticCurves/FunctionField/FunctionFieldGaloisDescent.lean
+index 7a2f87f15869ede95b9c7ec9d4e87318951373bd..4d4e5bc8457e7fa1e84da581b190c6205dc59417 100644
+--- a/EllipticCurves/FunctionField/FunctionFieldGaloisDescent.lean
++++ b/EllipticCurves/FunctionField/FunctionFieldGaloisDescent.lean
+@@ -8,6 +8,7 @@ import EllipticCurves.FunctionField.FunctionFieldBaseChange
+ import EllipticCurves.FunctionField.GaloisFunctoriality
+ import EllipticCurves.FunctionField.MulByNPullback
+ import Mathlib.FieldTheory.Finite.GaloisField
++import Mathlib.FieldTheory.Galois.Infinite
+ 
+ /-!
+ # Galois descent for the function field of a Weierstrass curve
+diff --git a/EllipticCurves/FunctionField/LocalRingNormal.lean b/EllipticCurves/FunctionField/LocalRingNormal.lean
+index a9ff5a72e2e72b56f9cfbf62c4ff08ccf0fb56f8..508ab6ac07eb89f058bcfcbfbc3bb9c4c24fd087 100644
+--- a/EllipticCurves/FunctionField/LocalRingNormal.lean
++++ b/EllipticCurves/FunctionField/LocalRingNormal.lean
+@@ -107,7 +107,7 @@ theorem isIntegrallyClosed_localization_of_nonsingular (h : W.Nonsingular x y)
+     [(XYIdeal W x (C y)).IsPrime] :
+     IsIntegrallyClosed (Localization.AtPrime (XYIdeal W x (C y))) := by
+   have hiff := (tfae_of_isNoetherianRing_of_isLocalRing_of_isDomain
+-      (Localization.AtPrime (XYIdeal W x (C y)))).out 4 3
++      (Localization.AtPrime (XYIdeal W x (C y)))).out 5 4
+   exact (hiff.mp (maximalIdeal_isPrincipal_of_nonsingular W x y h)).1
+ 
+ /-- **Integral closedness of the coordinate ring from the closed-point classification.**  If every
+diff --git a/EllipticCurves/FunctionField/PlaceDegreeComparison.lean b/EllipticCurves/FunctionField/PlaceDegreeComparison.lean
+index 5dc4a8a5312cfc487920d7ad47efa1186d976ab5..fa0bc9cd1c3f68a59c431e9c905c6310fab1640c 100644
+--- a/EllipticCurves/FunctionField/PlaceDegreeComparison.lean
++++ b/EllipticCurves/FunctionField/PlaceDegreeComparison.lean
+@@ -254,7 +254,8 @@ theorem degPt_eq_residueDegreeProj (v : HeightOneSpectrum W.CoordinateRing) :
+     degPt v = residueDegreeProj W (some v) := by
+   haveI : v.asIdeal.IsMaximal := v.isMaximal
+   haveI hpmax : (v.asIdeal.under F[X]).IsMaximal :=
+-    Ideal.isMaximal_comap_of_isIntegral_of_isMaximal v.asIdeal
++    Ideal.isMaximal_comap_of_isIntegral_of_isMaximal (algebraMap F[X] W.CoordinateRing)
++      (algebraMap_isIntegral_iff.mpr inferInstance) v.asIdeal
+   haveI : v.asIdeal.LiesOver (v.asIdeal.under F[X]) := ⟨rfl⟩
+   haveI : IsGalois (FractionRing F[X]) W.FunctionField := isGalois_fractionRing_polynomial
+   have hp0 : v.asIdeal.under F[X] ≠ 0 :=
+diff --git a/EllipticCurves/FunctionField/PlaceOrder.lean b/EllipticCurves/FunctionField/PlaceOrder.lean
+index 5ffe055ed91af3d57e10ae3ce582ec20e5c7de4c..db82cacc5f573c7013df06aa5810e115c0769884 100644
+--- a/EllipticCurves/FunctionField/PlaceOrder.lean
++++ b/EllipticCurves/FunctionField/PlaceOrder.lean
+@@ -356,7 +356,8 @@ theorem divisorProj_algEquiv {f : W.FunctionField} (hf : f ≠ 0) :
+     divisorProj W (σ f) = (divisorProj W f).mapDomain (mapProjPoint W σ) := by
+   ext q
+   obtain ⟨p, rfl⟩ := (mapProjPoint W σ).surjective q
+-  rw [Finsupp.mapDomain_apply (mapProjPoint W σ).injective, divisorProj_algEquiv_apply σ hf p]
++  rw [Finsupp.mapDomain_apply_of_injective (mapProjPoint W σ).injective,
++    divisorProj_algEquiv_apply σ hf p]
+ 
+ end Transport
+ 
+diff --git a/EllipticCurves/FunctionField/ProjectiveDivisor.lean b/EllipticCurves/FunctionField/ProjectiveDivisor.lean
+index b6957fd3da22f2e3487c111c3718e674c15d67eb..13dd0143b5fd8c724bd12e65a638a57be3d08ba2 100644
+--- a/EllipticCurves/FunctionField/ProjectiveDivisor.lean
++++ b/EllipticCurves/FunctionField/ProjectiveDivisor.lean
+@@ -138,13 +138,14 @@ noncomputable def divisorProj (f : W.FunctionField) : ProjPoint W →₀ ℤ :=
+ @[simp]
+ lemma divisorProj_apply_some (f : W.FunctionField) (v : HeightOneSpectrum W.CoordinateRing) :
+     divisorProj W f (some v) = ord v f := by
+-  rw [divisorProj, Finsupp.add_apply, Finsupp.mapDomain_apply (some_injective_projPoint W),
++  rw [divisorProj, Finsupp.add_apply,
++    Finsupp.mapDomain_apply_of_injective (some_injective_projPoint W),
+     Finsupp.single_apply, if_neg (by simp), add_zero, divisor_apply]
+ 
+ @[simp]
+ lemma divisorProj_apply_none (f : W.FunctionField) :
+     divisorProj W f none = ordInfty W f := by
+-  rw [divisorProj, Finsupp.add_apply, Finsupp.mapDomain_notin_range _ _ (by simp),
++  rw [divisorProj, Finsupp.add_apply, Finsupp.mapDomain_of_notMem_range _ _ (by simp),
+     Finsupp.single_eq_same, zero_add]
+ 
+ /-- The projective divisor determines, and is determined by, the affine divisor and the order at
+diff --git a/EllipticCurves/Reduction/FormalGroupTangent.lean b/EllipticCurves/Reduction/FormalGroupTangent.lean
+index b4fca14466daa0a5da09bba03a588a44ab462a75..1d4cef6c9fdb2bda5a143378d73bfcf71569c1ba 100644
+--- a/EllipticCurves/Reduction/FormalGroupTangent.lean
++++ b/EllipticCurves/Reduction/FormalGroupTangent.lean
+@@ -71,15 +71,15 @@ open scoped PowerSeries
+ yields the tangency identity for `w′ = d⁄dX w`:
+ `w′ = 3z² + (a₁ + 2a₂z)w + (a₁z + a₂z²)w′ + a₄w² + 2(a₃ + a₄z)w·w′ + 3a₆w²·w′`. -/
+ theorem derivative_formalW :
+-    derivative R W.formalW
++    derivative W.formalW
+       = 3 * PowerSeries.X ^ 2
+         + (PowerSeries.C W.a₁ + 2 * (PowerSeries.C W.a₂ * PowerSeries.X)) * W.formalW
+         + (PowerSeries.C W.a₁ * PowerSeries.X + PowerSeries.C W.a₂ * PowerSeries.X ^ 2)
+-          * derivative R W.formalW
++          * derivative W.formalW
+         + PowerSeries.C W.a₄ * W.formalW ^ 2
+         + 2 * (PowerSeries.C W.a₃ + PowerSeries.C W.a₄ * PowerSeries.X) * W.formalW
+-          * derivative R W.formalW
+-        + 3 * (PowerSeries.C W.a₆ * W.formalW ^ 2) * derivative R W.formalW := by
++          * derivative W.formalW
++        + 3 * (PowerSeries.C W.a₆ * W.formalW ^ 2) * derivative W.formalW := by
+   conv_lhs => rw [W.formalW_eq, WeierstrassCurve.wOp]
+   simp only [map_add, Derivation.leibniz, Derivation.leibniz_pow, PowerSeries.derivative_C,
+     PowerSeries.derivative_X, smul_eq_mul, nsmul_eq_mul, mul_one, mul_zero, add_zero, zero_add,
+@@ -100,7 +100,7 @@ variable (W : WeierstrassCurve K) [IsIntegral R W] {z : R}
+ /-- The `𝔪`-adic value of the formal derivative `w′` of the Weierstrass expansion at `z`,
+ i.e. `w′(z) = adicEval z (d⁄dX formalW)`. -/
+ noncomputable def wParamDeriv (hz : z ∈ (maximalIdeal R).asIdeal) : R :=
+-  adicEval (maximalIdeal R).asIdeal hz (PowerSeries.derivative R (integralModel R W).formalW)
++  adicEval (maximalIdeal R).asIdeal hz (PowerSeries.derivative (integralModel R W).formalW)
+ 
+ omit [IsFractionRing R K] in
+ /-- **The tangent slope is the derivative.**  On the diagonal `z₁ = z₂ = z`, the numeric chord slope
+@@ -190,4 +190,3 @@ theorem thirdChordPoint_functional_eq_diag (hz : z ∈ (maximalIdeal R).asIdeal)
+ end Diagonal
+ 
+ end WeierstrassCurve
+-
+diff --git a/EllipticCurves/TateModule/Continuity.lean b/EllipticCurves/TateModule/Continuity.lean
+index b9af90db4906f3bd3990e43c1abbb3221f541807..cc7700b7536bc30182acaa060503881f05eeb8b1 100644
+--- a/EllipticCurves/TateModule/Continuity.lean
++++ b/EllipticCurves/TateModule/Continuity.lean
+@@ -195,14 +195,14 @@ theorem Point.stabilizer_some_eq (x y : F) (h : (W'⁄F).Nonsingular x y) :
+   simp only [SetLike.mem_coe, MulAction.mem_stabilizer_iff, Set.mem_inter_iff]
+   constructor
+   · intro hσ
+-    have h' : Point.some (σ x) (σ y)
++    have h' : Point.some ((σ : F →ₐ[S] F) x) ((σ : F →ₐ[S] F) y)
+         ((W'.baseChange_nonsingular (σ : F →ₐ[S] F).injective ..).mpr h) = Point.some x y h := hσ
+-    have h₂ : σ x = x ∧ σ y = y := by simpa only [Point.some.injEq] using h'
+-    exact h₂
++    exact Point.some.inj h'
+   · rintro ⟨hx, hy⟩
+-    change Point.some (σ x) (σ y) _ = _
+-    simp only [Point.some.injEq]
+-    exact ⟨hx, hy⟩
++    change (σ : F →ₐ[S] F) x = x at hx
++    change (σ : F →ₐ[S] F) y = y at hy
++    change Point.some ((σ : F →ₐ[S] F) x) ((σ : F →ₐ[S] F) y) _ = _
++    simp only [hx, hy]
+ 
+ /-- **The stabiliser of a point of `E(F)` is open in the Krull topology.** This is the one fact the
+ whole file rests on. For the point at infinity the stabiliser is all of `G`; for an affine point it
+diff --git a/EllipticCurves/Torsion/NormEDSHomogeneous.lean b/EllipticCurves/Torsion/NormEDSHomogeneous.lean
+index 64dd51c0a69bc09095d1965b1b496b03fcc64373..a174cff420b4c84425fa26329a4075c12b5ab523 100644
+--- a/EllipticCurves/Torsion/NormEDSHomogeneous.lean
++++ b/EllipticCurves/Torsion/NormEDSHomogeneous.lean
+@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
+ Authors: The Elliptic Curves formalisation contributors
+ -/
+ import Mathlib.NumberTheory.EllipticDivisibilitySequence
++import Mathlib.Tactic.LinearCombination
++import Mathlib.Tactic.Ring
+ 
+ /-!
+ # `normEDS` is weighted-homogeneous: the scaling law of a normalised EDS
+diff --git a/EllipticCurves/Torsion/TwoTorsionSplittingField.lean b/EllipticCurves/Torsion/TwoTorsionSplittingField.lean
+index 777c85ff15f0e13eb77b78de23039b6516b45871..672913ad140239a059242e6f40c4622f3304de79 100644
+--- a/EllipticCurves/Torsion/TwoTorsionSplittingField.lean
++++ b/EllipticCurves/Torsion/TwoTorsionSplittingField.lean
+@@ -129,7 +129,8 @@ theorem separable_Ψ₂Sq [W.IsElliptic] (h2 : (2 : F) ≠ 0) : W.Ψ₂Sq.Separa
+     (W.Ψ₂Sq_ne_zero (four_ne_zero_of_two_ne_zero h2)) hsplits).mp ?_
+   have hnodup := (Cubic.discr_ne_zero_iff_roots_nodup
+     (φ := algebraMap F W.Ψ₂Sq.SplittingField) ha (by rw [← Ψ₂Sq_eq]; exact hsplits)).mp hd
+-  simpa [Polynomial.aroots, Cubic.roots, Cubic.map_toPoly, Ψ₂Sq_eq] using hnodup
++  rw [Cubic.map_roots] at hnodup
++  simpa only [Polynomial.aroots, Ψ₂Sq_eq] using hnodup
+ 
+ /-! ## A splitting field of the `2`-torsion cubic -/
+ 
+diff --git a/EllipticCurves/Torsion/WardR1.lean b/EllipticCurves/Torsion/WardR1.lean
+index c65eb7cc2ff727ff8c7595d7a62e7839b5f2de42..137ae92b5b6b3f9eafe49e350246dd04c5efb00b 100644
+--- a/EllipticCurves/Torsion/WardR1.lean
++++ b/EllipticCurves/Torsion/WardR1.lean
+@@ -332,7 +332,7 @@ lemma normEDS_univ_ne_zero (n : ℤ) (hn : n ≠ 0) :
+   have hφ := map_normEDS (aeval ![(2 : ℤ), 3, 2] : UnivEDS →ₐ[ℤ] ℤ) (X 0 : UnivEDS) (X 1) (X 2) n
+   rw [h, map_zero] at hφ
+   norm_num [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons] at hφ
+-  rw [show (![(2 : ℤ), 3, 2] 2) = 2 from rfl, normEDS_two_three_two] at hφ
++  rw [normEDS_two_three_two] at hφ
+   exact hn hφ.symm
+ 
+ end Universal
+diff --git a/lake-manifest.json b/lake-manifest.json
+index e2a21bd49d1aada1485597e9d77ae656791a657a..61f2046f73871c3929c5d81e209ef36dcc8bb0e5 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,21 +1,21 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/leanprover-community/mathlib4",
++ [{"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -25,7 +25,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -35,7 +35,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +45,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -65,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -75,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -85,10 +85,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "elliptic_curves",
+diff --git a/lakefile.toml b/lakefile.toml
+index dadf0adbfa50fd51667ecfe8437532db8e80d3ad..0b302539c60ea7bfa08b95792c32bf7ab7d94de2 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -13,6 +13,8 @@ defaultTargets = ["EllipticCurves"]
+ lintDriver = "batteries/runLinter"
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -20,8 +22,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "EllipticCurves"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

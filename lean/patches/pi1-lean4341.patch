@@ -1,0 +1,418 @@
+diff --git a/Pi1/FundamentalGroup/Galois.lean b/Pi1/FundamentalGroup/Galois.lean
+index a2c4ab3051407e7c32f0e383f2490e0e8ff9c9fc..9eac7f2196a24cc78ef1cf86c36e14067de3a6ce 100644
+--- a/Pi1/FundamentalGroup/Galois.lean
++++ b/Pi1/FundamentalGroup/Galois.lean
+@@ -610,7 +610,7 @@ instance galoisCategory [ConnectedSpace X] : GaloisCategory (FiniteEtale X) wher
+     let Ω : Type u := AlgebraicClosure k
+     let ξ : Spec (.of Ω) ⟶ X :=
+       Spec.map (CommRingCat.ofHom <| algebraMap k Ω) ≫ X.fromSpecResidueField x
+-    exact ⟨fiber ξ, ⟨inferInstance⟩⟩
++    exact ⟨fiber ξ, inferInstance⟩
+ 
+ /-- The étale fundamental group of a connected scheme `X` at the geometric point `ξ` is
+ the automorphism group of the fiber functor at `ξ`. -/
+diff --git a/Pi1/Mathlib/RingTheory/Geometric.lean b/Pi1/Mathlib/RingTheory/Geometric.lean
+index 508409f0ad5c389ea2f281277c3d23a26112a5e1..334e49ce6706a1bd3e6957dd93c9bb89ad0a33aa 100644
+--- a/Pi1/Mathlib/RingTheory/Geometric.lean
++++ b/Pi1/Mathlib/RingTheory/Geometric.lean
+@@ -37,8 +37,7 @@ lemma Algebra.TensorProduct.exists_intermediateField_isSeparable_and_mem_range
+     ∃ (K : IntermediateField k Ω), Algebra.IsSeparable k K ∧ Module.Finite k K ∧
+         x ∈ Set.range
+           (Algebra.TensorProduct.map (IsScalarTower.toAlgHom k K Ω) (AlgHom.id k R)) := by
+-  induction x with
+-  | zero => exact ⟨⊥, inferInstance, inferInstance, 0, by simp⟩
++  induction x using TensorProduct.inductionOn with
+   | add x y hx hy =>
+     obtain ⟨K, hK₁, hK₂, ⟨x, rfl⟩⟩ := hx
+     obtain ⟨L, hL₁, hL₂, ⟨y, rfl⟩⟩ := hy
+diff --git a/Pi1/Mathlib/RingTheory/TensorProduct/Basic.lean b/Pi1/Mathlib/RingTheory/TensorProduct/Basic.lean
+index 5ce0f465a46056184814f3f8659a071e1d9f3479..8e0d9e5862786f9212862e26ec8a0327384f351d 100644
+--- a/Pi1/Mathlib/RingTheory/TensorProduct/Basic.lean
++++ b/Pi1/Mathlib/RingTheory/TensorProduct/Basic.lean
+@@ -12,8 +12,7 @@ noncomputable def Algebra.TensorProduct.comm' {R S T : Type*} [CommRing R]
+     S ⊗[R] T ≃ₗ[S] T ⊗[R] S :=
+   (_root_.TensorProduct.comm ..).toAddEquiv.toLinearEquiv <| by
+     intro c x
+-    induction x with
+-    | zero => simp
++    induction x using TensorProduct.inductionOn with
+     | add x y hx hy =>
+       simp only [LinearEquiv.coe_toAddEquiv, LinearEquiv.coe_addEquiv_apply] at hx hy
+       simp [hx, hy]
+diff --git a/Pi1/Orbicurve/BaseChange.lean b/Pi1/Orbicurve/BaseChange.lean
+index 090ba0a7bd9ece77432f149024b04a0d97ae7b6b..70fdb5887ae555de87ccd0f44cfb88f8d4c60564 100644
+--- a/Pi1/Orbicurve/BaseChange.lean
++++ b/Pi1/Orbicurve/BaseChange.lean
+@@ -662,8 +662,7 @@ theorem mem_K₀_of_isAlgebraic (htK : Transcendental K t) {x : Ω} (hx : x ∈
+   obtain ⟨P, hP⟩ : ∃ P : K[X], aeval t P = g := by
+     have h1 : IsIntegral (A₀ K t) (⟨g, hgK⟩ : K₀ K t) := by
+       haveI : IsScalarTower (A₀ K t) (K₀ K t) Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+-      exact (isIntegral_algebraMap_iff (algebraMap (K₀ K t) Ω).injective).mp
+-        (isIntegral_A₀_of t hgint)
++      exact isIntegral_algebraMap_iff.mp (isIntegral_A₀_of t hgint)
+     obtain ⟨a, ha⟩ := (IsIntegrallyClosed.isIntegral_iff (R := A₀ K t) (K := K₀ K t)).mp h1
+     refine ⟨eK.symm a, ?_⟩
+     rw [← coe_algEquivOfTranscendental htK, AlgEquiv.apply_symm_apply]
+@@ -871,7 +870,8 @@ theorem ramificationIdx_bc (htK : Transcendental K t)
+     haveI hum : u.IsMaximal := Ideal.IsPrime.isMaximal inferInstance hune
+     refine ⟨?_, ?_⟩
+     · rw [hwu]
+-      exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal' _ (ringMap_isIntegral t _) u
++      exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++        (ringMap t hF₂N).toRingHom (ringMap_isIntegral t hF₂N) u
+     · have hmc := ramificationIdx_mul_card t htk h hF₂N u
+       rw [← hwu] at hmc
+       have c1 := card_inertia_inf_fixSub hNN' htK (le_of_eq hN') (h.trans hF₂N) h₁ h₁' u' hune
+@@ -954,7 +954,8 @@ theorem exists_comap_bc_eq [IsAlgClosed k] (htK : Transcendental K t)
+     letI := algRing t hbotN
+     haveI : Algebra.IsIntegral (coordRing k t (⊥ : IntermediateField (K₀ k t) Ω))
+       (coordRing k t N) := ⟨ringMap_isIntegral t _⟩
+-    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal u
++    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap t hbotN).toRingHom (ringMap_isIntegral t hbotN) u
+   set ek := coordRingBotEquiv (Ω := Ω) htk
+   set eK := coordRingBotEquiv (Ω := Ω) htK
+   set P : Ideal k[X] := p.comap ek.toRingEquiv.toRingHom
+@@ -1028,7 +1029,8 @@ theorem exists_comap_bc_eq [IsAlgClosed k] (htK : Transcendental K t)
+       ← bcMap_smul]
+     exact Iff.rfl
+   refine ⟨u'.comap (ringMap t hF'N'),
+-    Ideal.isMaximal_comap_of_isIntegral_of_isMaximal' _ (ringMap_isIntegral t _) u', ?_⟩
++    Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap t hF'N').toRingHom (ringMap_isIntegral t hF'N') u', ?_⟩
+   rw [← huw, ← hu'u]
+   ext x
+   exact Iff.rfl
+diff --git a/Pi1/Orbicurve/CoreCriterion.lean b/Pi1/Orbicurve/CoreCriterion.lean
+index f3abee6eff68fe5d793cd80047d547c57863272a..3acb520602d01e1d875e8f9ff8991245aa225db5 100644
+--- a/Pi1/Orbicurve/CoreCriterion.lean
++++ b/Pi1/Orbicurve/CoreCriterion.lean
+@@ -87,7 +87,10 @@ lemma le_one_of_integral_mvPolynomial {R : Type*} [CommRing R] [IsDomain R] [Alg
+     exact zero_mem _
+   haveI : (⊥ : Ideal R).IsPrime := Ideal.isPrime_bot
+   obtain ⟨Q1, -, hQ1, hQ1c⟩ := Ideal.exists_ideal_over_prime_of_isIntegral_of_isPrime p1 ⊥ hbot
+-  have hQ1c' : Q1.comap (algebraMap (MvPolynomial (Fin s) k) R) ≤ p2 := hQ1c ▸ hp12
++  have hQ1c' : Q1.comap (algebraMap (MvPolynomial (Fin s) k) R) ≤ p2 := by
++    change Q1.under (MvPolynomial (Fin s) k) ≤ p2
++    rw [hQ1c]
++    exact hp12
+   obtain ⟨Q2, hQ12, hQ2, hQ2c⟩ := Ideal.exists_ideal_over_prime_of_isIntegral_of_isPrime p2 Q1 hQ1c'
+   have hQ1ne : Q1 ≠ ⊥ := by
+     rintro rfl
+@@ -150,11 +153,10 @@ lemma bijective_algebraMap_coordRing_bot :
+         IsScalarTower.of_algebraMap_eq fun _ => rfl
+       have := b.2
+       rw [mem_integralClosure_iff] at this
+-      exact (isIntegral_algebraMap_iff (A := (⊥ : IntermediateField (K₀ k t) Ω)) (B := Ω)
+-        (algebraMap (⊥ : IntermediateField (K₀ k t) Ω) Ω).injective).mpr this
++      exact (isIntegral_algebraMap_iff (A := (⊥ : IntermediateField (K₀ k t) Ω)) (B := Ω)).mpr this
+     rw [← hz] at h1
+     haveI : IsScalarTower (A₀ k t) (K₀ k t) Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+-    exact (isIntegral_algebraMap_iff (algebraMap (K₀ k t) Ω).injective).mp h1
++    exact isIntegral_algebraMap_iff.mp h1
+   obtain ⟨a, ha⟩ := (IsIntegrallyClosed.isIntegral_iff (R := A₀ k t) (K := K₀ k t)).mp hzint
+   refine ⟨a, Subtype.ext (Subtype.ext ?_)⟩
+   rw [← hz, ← ha]
+diff --git a/Pi1/Orbicurve/Descent.lean b/Pi1/Orbicurve/Descent.lean
+index cc144f5107305081c45a2ab530aa2c977feaf399..441506695c68758cd178a77c46fcfad3f6f87e3d 100644
+--- a/Pi1/Orbicurve/Descent.lean
++++ b/Pi1/Orbicurve/Descent.lean
+@@ -162,7 +162,7 @@ theorem isIntegral_A₀_of_bc [IsAlgClosed k] (htK : Transcendental K t) {x : Ω
+     haveI := isPrincipalIdealRing_A₀ htK
+     have h1 : IsIntegral (A₀ K t) (⟨_, hK⟩ : K₀ K t) := by
+       haveI : IsScalarTower (A₀ K t) (K₀ K t) Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+-      exact (isIntegral_algebraMap_iff (algebraMap (K₀ K t) Ω).injective).mp hR
++      exact isIntegral_algebraMap_iff.mp hR
+     obtain ⟨a, ha⟩ := (IsIntegrallyClosed.isIntegral_iff (R := A₀ K t) (K := K₀ K t)).mp h1
+     have hA : ((p.coeff i : K₀ k t) : Ω) ∈ A₀ K t := by
+       rw [← congrArg Subtype.val ha]; exact a.2
+diff --git a/Pi1/Orbicurve/EllipticSubfield.lean b/Pi1/Orbicurve/EllipticSubfield.lean
+index bd714eb726fcb5b45f2ddebd2b9f4f0649373075..0f89de5c7e5d2cfe82e5cf3691fb1d3d9a86e2c5 100644
+--- a/Pi1/Orbicurve/EllipticSubfield.lean
++++ b/Pi1/Orbicurve/EllipticSubfield.lean
+@@ -290,7 +290,9 @@ lemma multE_eq (w : Ideal (coordRing k (tE j) (fnFieldE j))) [hw : w.IsMaximal]
+   letI iR := algRing (tE j) (bot_le_fnFieldE j)
+   haveI : Algebra.IsIntegral (coordRing k (tE j) (⊥ : IntermediateField (K₀ k (tE j)) Ω))
+     (coordRing k (tE j) (fnFieldE j)) := ⟨ringMap_isIntegral _ _⟩
+-  haveI hv : v.IsMaximal := Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w
++  haveI hv : v.IsMaximal := Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++    (ringMap (tE j) (bot_le_fnFieldE j)).toRingHom
++    (ringMap_isIntegral (tE j) (bot_le_fnFieldE j)) w
+   have hex : ∃ P : Ideal (coordRing k (tE j) (fnFieldE j)), P.IsPrime ∧ P.LiesOver v :=
+     ⟨w, hw.isPrime, ⟨rfl⟩⟩
+   unfold multE
+diff --git a/Pi1/Orbicurve/Embed.lean b/Pi1/Orbicurve/Embed.lean
+index 2ecb512486f83f0bcb61cf889da57aa497b42d2b..dd4cf874658c96a8958dd4c5230a07df02544d07 100644
+--- a/Pi1/Orbicurve/Embed.lean
++++ b/Pi1/Orbicurve/Embed.lean
+@@ -47,7 +47,7 @@ lemma mem_coordRing_of_isIntegral {L : IntermediateField (K₀ k t) Ω} {x : Ω}
+     (h : IsIntegral (A₀ k t) x) : (⟨x, hx⟩ : L) ∈ coordRing k t L := by
+   haveI : IsScalarTower (A₀ k t) L Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+   rw [mem_integralClosure_iff]
+-  exact (isIntegral_algebraMap_iff (A := L) (B := Ω) (algebraMap L Ω).injective).mp h
++  exact (isIntegral_algebraMap_iff (A := L) (B := Ω)).mp h
+ 
+ omit [IsAlgClosed Ω] [FiniteDimensional (K₀ k t) B] in
+ lemma isIntegral_of_mem_coordRing {L : IntermediateField (K₀ k t) Ω}
+@@ -55,7 +55,7 @@ lemma isIntegral_of_mem_coordRing {L : IntermediateField (K₀ k t) Ω}
+   haveI : IsScalarTower (A₀ k t) L Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+   have := x.2
+   rw [mem_integralClosure_iff] at this
+-  exact (isIntegral_algebraMap_iff (A := L) (B := Ω) (algebraMap L Ω).injective).mpr this
++  exact (isIntegral_algebraMap_iff (A := L) (B := Ω)).mpr this
+ 
+ set_option maxHeartbeats 1000000 in
+ theorem exists_algEquiv_coordRing (g : coordRing k t B →ₐ[k] Z) (hg : Function.Injective g)
+diff --git a/Pi1/Orbicurve/HemiTY.lean b/Pi1/Orbicurve/HemiTY.lean
+index 8d0bcd5489998284c34d9df61cb0111351673942..72f5f321a530b773de7272af239e41dc17b4705b 100644
+--- a/Pi1/Orbicurve/HemiTY.lean
++++ b/Pi1/Orbicurve/HemiTY.lean
+@@ -162,7 +162,8 @@ lemma multTY_eq (w : Ideal (coordRing F t (fnTY F t y))) [hw : w.IsMaximal] :
+   letI iR := algRing t hle
+   haveI : Algebra.IsIntegral (coordRing F t (⊥ : IntermediateField (K₀ F t) Ω))
+     (coordRing F t (fnTY F t y)) := ⟨ringMap_isIntegral _ _⟩
+-  haveI hv : v.IsMaximal := Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w
++  haveI hv : v.IsMaximal := Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++    (ringMap t hle).toRingHom (ringMap_isIntegral t hle) w
+   have hex : ∃ P : Ideal (coordRing F t (fnTY F t y)), P.IsPrime ∧ P.LiesOver v :=
+     ⟨w, hw.isPrime, ⟨rfl⟩⟩
+   unfold multTY
+diff --git a/Pi1/Orbicurve/Lefschetz.lean b/Pi1/Orbicurve/Lefschetz.lean
+index 4c16c738ccab27bf389bd2a04fd6c9cb85335eae..aecad2b4d42fe8de49372021ccacad5c5f3b7306 100644
+--- a/Pi1/Orbicurve/Lefschetz.lean
++++ b/Pi1/Orbicurve/Lefschetz.lean
+@@ -162,7 +162,8 @@ theorem etale_bc
+     letI := algRing t h'
+     haveI : Algebra.IsIntegral (coordRing K t F₁') (coordRing K t F₂') :=
+       ⟨ringMap_isIntegral t _⟩
+-    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w'
++    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap t h').toRingHom (ringMap_isIntegral t h') w'
+   by_cases hw : w = ⊥
+   · rw [hbot hw, one_mul, hm₂ w' hw' hw, hm₁ _ inferInstance (by
+       rw [hv, hw]; exact Ideal.comap_bot_of_injective _ (ringMap_injective t h))]
+@@ -199,7 +200,8 @@ theorem etale_of_bc [IsAlgClosed k]
+     letI := algRing t h'
+     haveI : Algebra.IsIntegral (coordRing K t F₁') (coordRing K t F₂') :=
+       ⟨ringMap_isIntegral t _⟩
+-    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w'
++    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap t h').toRingHom (ringMap_isIntegral t h') w'
+   have hv0 : w.comap (ringMap t h) ≠ ⊥ := by
+     letI := algRing t h
+     haveI : Algebra.IsIntegral (coordRing k t F₁) (coordRing k t F₂) :=
+@@ -295,8 +297,9 @@ lemma coe_coordRingRangeEquiv {u : Ω} (L : IntermediateField (K₀ k u) Ω) (a
+ over `k[t]` and `t` over `k[s]`. -/
+ noncomputable def rebaseEquiv (hst : IsIntegral (A₀ k t) s) (hts : IsIntegral (A₀ k s) t) :
+     coordRing k t F ≃+* coordRing k s (rebase F hs) :=
+-  (coordRingRangeEquiv F).trans ((RingEquiv.subringCongr (range_coordRingVal_rebase hst hts)).trans
+-    (coordRingRangeEquiv (rebase F hs)).symm)
++  (coordRingRangeEquiv F).trans ((RingEquiv.subringCongr
++    (range_coordRingVal_rebase (F := F) (hs := hs) hst hts)).trans
++      (coordRingRangeEquiv (rebase F hs)).symm)
+ 
+ lemma coordRingVal_rebaseEquiv (hst : IsIntegral (A₀ k t) s) (hts : IsIntegral (A₀ k s) t)
+     (a : coordRing k t F) :
+diff --git a/Pi1/Orbicurve/Morphisms.lean b/Pi1/Orbicurve/Morphisms.lean
+index 3acbb75d5d6f01f5f792e046904553b44a21bc6a..e56607fcfb6e87a1dbb76e3d8c92f6d1d5142cbf 100644
+--- a/Pi1/Orbicurve/Morphisms.lean
++++ b/Pi1/Orbicurve/Morphisms.lean
+@@ -65,9 +65,7 @@ def Hom.comp {Z Y C : AffOrbicurve k} (φ : Hom Z Y) (ψ : Hom Y C) : Hom Z C wh
+   etale w hw := by
+     have h1 := ramificationIdx_comp ψ.f.toRingHom φ.f.toRingHom φ.injective w
+     have hq : (w.comap φ.f).IsMaximal := by
+-      letI := φ.f.toRingHom.toAlgebra
+-      haveI : Algebra.IsIntegral Y.A Z.A := ⟨φ.isIntegral⟩
+-      exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal w
++      exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal φ.f.toRingHom φ.isIntegral w
+     rw [show (φ.f.comp ψ.f).toRingHom = φ.f.toRingHom.comp ψ.f.toRingHom from rfl, h1, mul_assoc,
+       φ.etale w hw]
+     exact ψ.etale _ hq
+diff --git a/Pi1/Orbicurve/Pullback.lean b/Pi1/Orbicurve/Pullback.lean
+index b44d8bfacd13e025fbfca01c9825b1670a30f1d6..65649013234a4e1a00a57d4e30524f55cb954d3b 100644
+--- a/Pi1/Orbicurve/Pullback.lean
++++ b/Pi1/Orbicurve/Pullback.lean
+@@ -259,9 +259,8 @@ theorem exists_pullback_subfield {B A Z : IntermediateField (K₀ k t) Ω}
+   have hmax : ∀ {F F' : IntermediateField (K₀ k t) Ω} (h : F ≤ F') (w : Ideal (coordRing k t F')),
+       w.IsMaximal → (w.comap (ringMap t h)).IsMaximal := by
+     intro F F' h w hw
+-    letI := algRing t h
+-    haveI : Algebra.IsIntegral (coordRing k t F) (coordRing k t F') := ⟨ringMap_isIntegral t h⟩
+-    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal (R := coordRing k t F) w
++    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap t h).toRingHom (ringMap_isIntegral t h) w
+   -- the key divisibility
+   have hdiv : ∀ w : Ideal (coordRing k t L), w.IsMaximal →
+       eL w ∣ mB (w.comap (ringMap t hBL)) := by
+diff --git a/Pi1/Orbicurve/SubfieldGalois.lean b/Pi1/Orbicurve/SubfieldGalois.lean
+index cdf1cd9a59b1babed4ec0f7e6cba5b4dc4ffe77e..4a7f20bb7d45cf270c4af8a0742e6d29fcf8f46d 100644
+--- a/Pi1/Orbicurve/SubfieldGalois.lean
++++ b/Pi1/Orbicurve/SubfieldGalois.lean
+@@ -125,6 +125,8 @@ theorem isGaloisGroup_fixSub (ht : Transcendental k t) :
+     Algebra.IsSeparable.of_algHom (F := K₀ k t) (E := F) (E' := N) (IntermediateField.inclusion hFN)
+   haveI := isDedekindDomain_ring t ht F
+   haveI : Algebra.IsIntegral (coordRing k t F) (coordRing k t N) := ⟨ringMap_isIntegral t hFN⟩
++  have : FaithfulSMul F N :=
++    (faithfulSMul_iff_algebraMap_injective F N).mpr (algebraMap F N).injective
+   haveI hG : IsGaloisGroup (fixSub t N F) F N := by
+     rw [fixSub_eq_fixingSubgroup_range t hFN]
+     exact IsGaloisGroup.of_isScalarTower (N ≃ₐ[K₀ k t] N) (K₀ k t) N F
+diff --git a/Pi1/Orbicurve/ValuationInertia.lean b/Pi1/Orbicurve/ValuationInertia.lean
+index 0ec7ebb8c00870e8772c67b93b3491957fc7a80c..d2f800ca2206762421dd68a3ccae78d6dcfece9f 100644
+--- a/Pi1/Orbicurve/ValuationInertia.lean
++++ b/Pi1/Orbicurve/ValuationInertia.lean
+@@ -380,7 +380,7 @@ theorem exists_isInertialOn_restrictNormal_eq [IsGalois (K₀ k t) Ω] (ht : Tra
+       by rw [fixSub_bot]; trivial⟩
+     rw [hr]
+     exact (mem_inertia_centerIdeal_iff hW M x).mp hx.1 (ringMap t hNM b)
+-  let f : H →* H' := (r.restrict H).codRestrict H' fun x => hmap x.1 x.2
++  let f : H →* H' := (r.domRestrict H).codRestrict H' fun x => hmap x.1 x.2
+   have hf : Function.Surjective f := by
+     apply MonoidHom.surjective_of_card_ker_le_div
+     rw [hcard, Nat.mul_div_cancel_left _ Nat.card_pos]
+diff --git a/Pi1/RingTheory/FiniteEtale/Basic.lean b/Pi1/RingTheory/FiniteEtale/Basic.lean
+index 5bac8ad46412db0bc8d51fc107aa78a9baae2a3a..665745890a7055fbd133742c1d0ab5a19f1c3294 100644
+--- a/Pi1/RingTheory/FiniteEtale/Basic.lean
++++ b/Pi1/RingTheory/FiniteEtale/Basic.lean
+@@ -2,6 +2,7 @@ module
+ 
+ public import Mathlib.Algebra.Lie.OfAssociative
+ public import Mathlib.RingTheory.RingHom.Etale
++public import Mathlib.RingTheory.RingHom.Finite
+ public import Mathlib.RingTheory.TotallySplit
+ public import Pi1.Mathlib.RingTheory.RingHom.Finite
+ 
+diff --git a/Pi1/RingTheory/UnramifiedValuation.lean b/Pi1/RingTheory/UnramifiedValuation.lean
+index e3052f76fd99bb8c09ed2c8364190ac6ba3f3e93..59f7901ee950991de6a61672712368b0aa193c7d 100644
+--- a/Pi1/RingTheory/UnramifiedValuation.lean
++++ b/Pi1/RingTheory/UnramifiedValuation.lean
+@@ -31,8 +31,7 @@ theorem algHom_eq_of_valuation [FormallyUnramified R B] [EssFiniteType R B]
+   let F : B ⊗[R] B →ₐ[R] K := Algebra.TensorProduct.lift f g fun _ _ => Commute.all _ _
+   have key : ∀ x : B ⊗[R] B, F x ∈ W ∧ W.valuation (F x - f (TensorProduct.lmul' R x)) < 1 := by
+     intro x
+-    induction x with
+-    | zero => simp
++    induction x using TensorProduct.inductionOn with
+     | tmul a b =>
+       refine ⟨?_, ?_⟩
+       · simp only [F, Algebra.TensorProduct.lift_tmul]
+diff --git a/lake-manifest.json b/lake-manifest.json
+index b559cbefeef96f6d55a8eeb1843117b696d3b13d..10f9c460beb405874e4ad6663b1e9d96aed961ea 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,21 +1,21 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/leanprover-community/mathlib4",
++ [{"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -25,7 +25,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -35,7 +35,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +45,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -65,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -75,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -85,10 +85,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "pi1",
+diff --git a/lakefile.toml b/lakefile.toml
+index c40e8fb8855e624ac19e0d4228b417b7f6ed8cd8..173ffbb273086f7536c3ff500e6577634f3e5da3 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -16,8 +16,8 @@ backward.defeqAttrib.useBackward = true
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "Pi1"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

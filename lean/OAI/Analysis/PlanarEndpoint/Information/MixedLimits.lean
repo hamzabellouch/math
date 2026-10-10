@@ -1,0 +1,134 @@
+import OAI.Analysis.PlanarEndpoint.Information.Expectations
+import OAI.Analysis.PlanarEndpoint.Information.MixedLaws
+import OAI.Analysis.PlanarEndpoint.Information.MixedMoments
+import OAI.Analysis.PlanarEndpoint.Information.Sampling
+import OAI.Analysis.PlanarEndpoint.Information.TailBounds
+import OAI.Analysis.PlanarEndpoint.Information.WeakLimits
+
+namespace OAI
+
+/-! Finite information laws, entropy and convergence of probability measures. -/
+
+
+noncomputable section
+open MeasureTheory Filter Set
+open scoped Topology BigOperators ENNReal Classical
+namespace PlanarEndpoint.TransverseInformation
+
+variable {S : ℕ → Type} [∀ n, Fintype (S n)]
+  {V Y : ℕ → ℕ → Type} [∀ n i, Fintype (V n i)] [∀ n i, Fintype (Y n i)]
+  (L : ℕ → ℝ) (w : (n : ℕ) → S n → ℝ)
+  (hw : ∀ n s, 0 ≤ w n s) (hw1 : ∀ n, ∑ s, w n s = 1)
+  (v : (n i : ℕ) → S n → V n i) (y : (n i : ℕ) → S n → Y n i)
+  (z : (n : ℕ) → ℕ → S n → ℝ)
+
+lemma mixedInformationLaws_uniform_expected_tail (hL : ∀ n, 2 ≤ L n)
+    (C : ℕ → ℝ) (hcard : ∀ n i, (Fintype.card (Y n i) : ℝ) ≤ (L n) ^ (C i))
+    (i : ℕ) :
+    ∀ ε : ℝ, 0 < ε → ∃ A₀ : ℝ, ∀ A : ℝ, A₀ ≤ A → ∀ n,
+      (∫ x, if A < x (.inl i) then x (.inl i) else 0
+        ∂(mixedInformationLaws L w hw hw1 v y z n : Measure ((ℕ ⊕ ℕ) → ℝ))) < ε := by
+  intro ε hε
+  obtain ⟨a, ha⟩ := eventually_atTop.mp
+    ((polynomial_alphabet_envelope_tendsto_zero (C i)).eventually (gt_mem_nhds hε))
+  refine ⟨max a (2*C i), fun A hA n => ?_⟩
+  exact ((mixedInformationLaw_expected_tail_le (L n) (by linarith [hL n]) (w n)
+    (hw n) (hw1 n) (v n) (y n) (z n) i A).trans
+      (polynomial_alphabet_tail_bound (hL n) (hcard n i)
+        ((le_max_right _ _).trans hA))).trans_lt (ha A ((le_max_left _ _).trans hA))
+
+lemma mixedInformationLaws_sharp_upper_tails (hL : ∀ n, 2 ≤ L n)
+    (hLlim : Tendsto L atTop atTop) (c : ℕ → ℕ → ℝ) (C : ℕ → ℝ)
+    (hc : ∀ i, Tendsto (fun n => c n i) atTop (𝓝 (C i)))
+    (hcard : ∀ n i, (Fintype.card (Y n i) : ℝ) ≤ (L n) ^ (c n i))
+    (i : ℕ) {η : ℝ} (hη : 0 < η) :
+    Tendsto (fun n => (mixedInformationLaws L w hw hw1 v y z n : Measure ((ℕ ⊕ ℕ) → ℝ))
+      {x | C i + η < x (.inl i)}) atTop (𝓝 0) := by
+  have henv : Tendsto (fun n => ENNReal.ofReal ((L n) ^ (-(η/2)))) atTop (𝓝 0) := by
+    simpa only [ENNReal.ofReal_zero, Function.comp_def] using ENNReal.tendsto_ofReal
+      ((tendsto_rpow_neg_atTop (half_pos hη)).comp hLlim)
+  apply tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds henv
+    (Eventually.of_forall (fun _ => bot_le))
+  filter_upwards [(hc i).eventually (gt_mem_nhds (by linarith : C i < C i + η/2))] with n hn
+  have hLn : 0 < L n := by linarith [hL n]
+  have hsub : {x : (ℕ ⊕ ℕ) → ℝ | C i + η < x (.inl i)} ⊆ {x | C i + η < |x (.inl i)|} := by
+    intro x hx
+    change C i + η < x (.inl i) at hx
+    change C i + η < |x (.inl i)|
+    exact lt_of_lt_of_le hx (le_abs_self _)
+  refine (measure_mono hsub).trans ?_
+  apply (mixedInformationLaw_mass_tail_le (L n) (by linarith [hL n]) (w n)
+    (hw n) (hw1 n) (v n) (y n) (z n) i (C i+η)).trans
+  apply ENNReal.ofReal_le_ofReal
+  calc
+    (Fintype.card (Y n i) : ℝ) * (L n) ^ (-(C i+η)) ≤
+        (L n) ^ (c n i) * (L n) ^ (-(C i+η)) :=
+      mul_le_mul_of_nonneg_right (hcard n i) (Real.rpow_nonneg hLn.le _)
+    _ = (L n) ^ (c n i - (C i+η)) := by
+      rw [sub_eq_add_neg, Real.rpow_add hLn]
+    _ ≤ _ := Real.rpow_le_rpow_of_exponent_le (by linarith [hL n]) (by linarith)
+
+theorem exists_mixed_information_sharp_limit (hL : ∀ n, 2 ≤ L n)
+    (hLlim : Tendsto L atTop atTop) (c : ℕ → ℕ → ℝ) (C : ℕ → ℝ)
+    (hc : ∀ i, Tendsto (fun n => c n i) atTop (𝓝 (C i)))
+    (hcard : ∀ n i, (Fintype.card (Y n i) : ℝ) ≤ (L n) ^ (c n i))
+    (E : ℕ → ℝ) (hz : ∀ n i s, |z n i s| ≤ E i) :
+    ∃ μ : ProbabilityMeasure ((ℕ ⊕ ℕ) → ℝ), ∃ φ : ℕ → ℕ,
+      StrictMono φ ∧ Tendsto ((mixedInformationLaws L w hw hw1 v y z) ∘ φ) atTop (𝓝 μ) ∧
+      (∀ᵐ x ∂(μ : Measure ((ℕ ⊕ ℕ) → ℝ)), ∀ i, 0 ≤ x (.inl i) ∧ x (.inl i) ≤ C i) ∧
+      ∀ i, Integrable (fun x => x (.inl i)) (μ : Measure ((ℕ ⊕ ℕ) → ℝ)) ∧
+        Tendsto (fun n => ∑ s, w (φ n) s *
+          sampledInformation (L (φ n)) (w (φ n)) (v (φ n) i) (y (φ n) i) s)
+          atTop (𝓝 (∫ x, x (.inl i) ∂(μ : Measure ((ℕ ⊕ ℕ) → ℝ)))) := by
+  have hb : ∀ i, ∃ D : ℝ, ∀ n, c n i ≤ D := by
+    intro i
+    obtain ⟨D, hD⟩ := (Metric.isBounded_range_of_tendsto _ (hc i)).bddAbove
+    exact ⟨D, fun n => hD (Set.mem_range_self n)⟩
+  choose D hD using hb
+  have hcardD : ∀ n i, (Fintype.card (Y n i) : ℝ) ≤ (L n) ^ (D i) := by
+    intro n i
+    exact (hcard n i).trans
+      (Real.rpow_le_rpow_of_exponent_le (by linarith [hL n]) (hD i n))
+  obtain ⟨μ, φ, hφ, hμ⟩ := exists_mixed_information_limit
+    L w hw hw1 v y z hL D E hcardD hz
+  have hnonneg : ∀ i, ∀ᵐ x ∂(μ : Measure ((ℕ ⊕ ℕ) → ℝ)), 0 ≤ x (.inl i) := by
+    intro i
+    apply ae_nonneg_of_weak_limit_tails hμ (continuous_apply (Sum.inl i : ℕ ⊕ ℕ))
+    intro η hη
+    have hz : ∀ n, (mixedInformationLaws L w hw hw1 v y z (φ n) : Measure ((ℕ ⊕ ℕ) → ℝ))
+        {x | x (.inl i) < -η} = 0 := by
+      intro n
+      apply le_antisymm _ bot_le
+      have hn := mixedInformationLaw_nonneg (L (φ n)) (by linarith [hL (φ n)])
+        (w (φ n)) (hw (φ n)) (hw1 (φ n)) (v (φ n)) (y (φ n)) (z (φ n)) i
+      have hn' := ae_iff.mp hn
+      exact (measure_mono (fun x hx => by
+        change x (.inl i) < -η at hx
+        change ¬0 ≤ x (.inl i)
+        linarith)).trans_eq hn'
+    simpa only [Function.comp_apply, hz] using (tendsto_const_nhds :
+      Tendsto (fun _ : ℕ => (0 : ℝ≥0∞)) atTop (𝓝 0))
+  have hupper : ∀ i, ∀ᵐ x ∂(μ : Measure ((ℕ ⊕ ℕ) → ℝ)), x (.inl i) ≤ C i := by
+    intro i
+    have h := ae_le_on_open_of_weak_limit_tails hμ isOpen_univ (continuous_apply (Sum.inl i : ℕ ⊕ ℕ)) (C i)
+      (fun η hη => by
+        simpa only [Set.univ_inter, Function.comp_def] using
+          (mixedInformationLaws_sharp_upper_tails L w hw hw1 v y z hL hLlim c C hc hcard i hη).comp hφ.tendsto_atTop)
+    exact h.mono (fun x hx => hx (Set.mem_univ x))
+  refine ⟨μ, φ, hφ, hμ, ae_all_iff.mpr (fun i => (hnonneg i).and (hupper i)), ?_⟩
+  intro i
+  have he := expected_information_tendsto hμ (continuous_apply (Sum.inl i : ℕ ⊕ ℕ))
+    (fun n => mixedInformationLaw_integrable (L (φ n)) (w (φ n)) (hw (φ n)) (hw1 (φ n))
+      (v (φ n)) (y (φ n)) (z (φ n)) i)
+    (fun n => mixedInformationLaw_nonneg (L (φ n)) (by linarith [hL (φ n)])
+      (w (φ n)) (hw (φ n)) (hw1 (φ n)) (v (φ n)) (y (φ n)) (z (φ n)) i)
+    (hnonneg i) (hupper i) (fun ε hε => by
+      obtain ⟨A₀, hA₀⟩ := mixedInformationLaws_uniform_expected_tail L w hw hw1 v y z hL D hcardD i ε hε
+      exact ⟨A₀, fun A hA n => hA₀ A hA (φ n)⟩)
+  refine ⟨he.1, ?_⟩
+  simpa only [Function.comp_apply, mixedInformationLaws, mixedInformationLaw_integral] using he.2
+
+end PlanarEndpoint.TransverseInformation
+end
+
+end OAI

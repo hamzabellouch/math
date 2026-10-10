@@ -1,0 +1,494 @@
+diff --git a/Heights/Absolute/Extension.lean b/Heights/Absolute/Extension.lean
+index 6450f16..a242f46 100644
+--- a/Heights/Absolute/Extension.lean
++++ b/Heights/Absolute/Extension.lean
+@@ -121,11 +121,7 @@ attribute [local instance] FractionRing.liftAlgebra in
+ /-- The absolute norm of an extended ideal is the `[K : k]`-th power of the absolute norm. -/
+ lemma absNorm_map_algebraMap (I : Ideal (𝓞 k)) :
+     Ideal.absNorm (I.map (algebraMap (𝓞 k) (𝓞 K))) = Ideal.absNorm I ^ finrank k K := by
+-  rw [Ideal.absNorm_algebraMap, Algebra.finrank_eq_of_equiv_equiv
+-      (FractionRing.algEquiv (𝓞 k) k).toRingEquiv (FractionRing.algEquiv (𝓞 K) K).toRingEquiv]
+-  ext
+-  exact IsFractionRing.algEquiv_commutes (FractionRing.algEquiv (𝓞 k) k)
+-    (FractionRing.algEquiv (𝓞 K) K) _
++  rw [Ideal.absNorm_algebraMap, ← IsFractionRing.finrank_eq (𝓞 k) k (𝓞 K) K]
+ 
+ lemma finPart_algebraMap_of_integral {ι : Type*} [Finite ι] (z : ι → 𝓞 k) (hz : z ≠ 0) :
+     finPart (fun i => algebraMap k K (z i)) = finPart (fun i => (z i : k)) ^ finrank k K := by
+diff --git a/Heights/Curve/Integrality.lean b/Heights/Curve/Integrality.lean
+index f221058..cc3e3a8 100644
+--- a/Heights/Curve/Integrality.lean
++++ b/Heights/Curve/Integrality.lean
+@@ -153,7 +153,7 @@ theorem apply_eval₂_le_nonarch (hw : ∀ a b, w (a + b) ≤ max (w a) (w b)) {
+     (zero_le_one.trans (one_le_coeffBound w Q)) fun m hm => ?_
+   rw [map_mul, map_prod]
+   have hprod : ∏ i ∈ m.support, w (a i ^ m i) ≤ 1 := by
+-    refine Finset.prod_le_one (fun _ _ => w.nonneg _) fun i _ => ?_
++    refine Finset.prod_le_one₀ (fun _ _ => w.nonneg _) fun i _ => ?_
+     rw [map_pow]
+     exact pow_le_one₀ (w.nonneg _) (ha i)
+   calc w (Rat.castHom F (Q.coeff m)) * ∏ i ∈ m.support, w (a i ^ m i)
+@@ -176,7 +176,7 @@ theorem apply_eval₂_le {a : κ → F} (ha : ∀ l, w (a l) ≤ 1) (Q : MvPolyn
+   refine Finset.sum_le_sum fun m hm => ?_
+   rw [map_mul, map_prod]
+   have hprod : ∏ i ∈ m.support, w (a i ^ m i) ≤ 1 := by
+-    refine Finset.prod_le_one (fun _ _ => w.nonneg _) fun i _ => ?_
++    refine Finset.prod_le_one₀ (fun _ _ => w.nonneg _) fun i _ => ?_
+     rw [map_pow]
+     exact pow_le_one₀ (w.nonneg _) (ha i)
+   calc w (Rat.castHom F (Q.coeff m)) * ∏ i ∈ m.support, w (a i ^ m i)
+diff --git a/Heights/Different/NumberField.lean b/Heights/Different/NumberField.lean
+index 2136679..aae4cb0 100644
+--- a/Heights/Different/NumberField.lean
++++ b/Heights/Different/NumberField.lean
+@@ -94,7 +94,7 @@ lemma multiplicity_le_of_not_pow_dvd {P I : Ideal R} [P.IsPrime] (hP : P ≠ ⊥
+ 
+ omit [IsDedekindDomain R] in
+ lemma multiplicity_eq_zero_of_not_dvd {P I : Ideal R} (h : ¬ P ∣ I) : multiplicity P I = 0 :=
+-  multiplicity_eq_zero.mpr h
++  _root_.multiplicity_eq_zero_of_not_dvd h
+ 
+ end Multiplicity
+ 
+diff --git a/Heights/Different/SerreBound.lean b/Heights/Different/SerreBound.lean
+index 703d793..3c31aa0 100644
+--- a/Heights/Different/SerreBound.lean
++++ b/Heights/Different/SerreBound.lean
+@@ -117,7 +117,7 @@ theorem exists_mem_pow_intTrace_notMem (h𝔭 : 𝔭 ≠ ⊥) (e κ : ℕ) (J :
+     refine Ideal.IsMaximal.eq_of_le inferInstance (Ideal.IsPrime.ne_top inferInstance) ?_
+     change maximalIdeal Rₚ ≤ 𝔓ₚ.comap (algebraMap Rₚ Sₚ)
+     rw [← Ideal.map_le_iff_le_comap, hpSₚ]
+-    exact Ideal.mul_le_right.trans (Ideal.pow_le_self he)
++    exact Ideal.mul_le_left.trans (Ideal.pow_le_self he)
+   haveI : Finite (Rₚ ⧸ maximalIdeal Rₚ) :=
+     Finite.of_equiv _ (IsLocalization.AtPrime.equivQuotMaximalIdeal 𝔭 Rₚ).toEquiv
+   -- the contraction of `𝔪^n` to `A` is `𝔭^n`
+@@ -187,7 +187,7 @@ theorem exists_mem_pow_intTrace_notMem (h𝔭 : 𝔭 ≠ ⊥) (e κ : ℕ) (J :
+     ((Ideal.isCoprime_iff_sup_eq.mpr hJₚ').pow_left).pow_right
+   letI : Algebra (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1)) (Sₚ ⧸ Jₚ ^ (κ + 1)) :=
+     Ideal.Quotient.algebraQuotientOfLEComap
+-      (by rw [← Ideal.map_le_iff_le_comap, hprod]; exact Ideal.mul_le_left)
++      (by rw [← Ideal.map_le_iff_le_comap, hprod]; exact Ideal.mul_le_right)
+   haveI : IsScalarTower Rₚ (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1)) (Sₚ ⧸ Jₚ ^ (κ + 1)) :=
+     IsScalarTower.of_algebraMap_eq' rfl
+   haveI : IsScalarTower Rₚ (Rₚ ⧸ maximalIdeal Rₚ ^ (κ + 1))
+diff --git a/Heights/Different/SerreCore.lean b/Heights/Different/SerreCore.lean
+index f6972ba..9679716 100644
+--- a/Heights/Different/SerreCore.lean
++++ b/Heights/Different/SerreCore.lean
+@@ -38,7 +38,7 @@ variable (e κ : ℕ) (J : Ideal B)
+ lemma pow_le_comap (hpB : 𝔭.map (algebraMap A B) = 𝔓 ^ e * J) :
+     𝔭 ^ (κ + 1) ≤ (𝔓 ^ (e * (κ + 1))).comap (algebraMap A B) := by
+   rw [← Ideal.map_le_iff_le_comap, Ideal.map_pow, hpB, mul_pow, ← pow_mul]
+-  exact Ideal.mul_le_right
++  exact Ideal.mul_le_left
+ 
+ /-- The `A/𝔭^{κ+1}`-algebra structure of `B/𝔓^{e(κ+1)}`. -/
+ noncomputable def quotAlgebra (hpB : 𝔭.map (algebraMap A B) = 𝔓 ^ e * J) :
+diff --git a/Heights/IdealFactorization.lean b/Heights/IdealFactorization.lean
+index dcfa41a..0b9c902 100644
+--- a/Heights/IdealFactorization.lean
++++ b/Heights/IdealFactorization.lean
+@@ -105,7 +105,7 @@ theorem ReducedPrincipalIdealData.denominator_eq
+     have hcount := (r.count_spanSingleton hx v).symm.trans
+       (s.count_spanSingleton hx v)
+     have htop : multiplicity v.asIdeal (⊤ : Ideal (𝓞 K)) = 0 :=
+-      multiplicity_eq_zero.mpr (by
++      _root_.multiplicity_eq_zero_of_not_dvd (by
+         simpa only [← Ideal.one_eq_top] using v.prime.not_dvd_one)
+     have hr := v.multiplicity_sup (r.numerator_ne_bot hx) r.denominator_ne_bot
+     have hs := v.multiplicity_sup (s.numerator_ne_bot hx) s.denominator_ne_bot
+@@ -203,7 +203,7 @@ lemma ReducedPrincipalIdealData.finitePlace_posLog_eq
+       (neg_nonpos.mpr (Int.natCast_nonneg _))
+   have hA := r.numerator_ne_bot hx
+   have htop : multiplicity v.asIdeal (⊤ : Ideal (𝓞 K)) = 0 :=
+-    multiplicity_eq_zero.mpr (by
++    _root_.multiplicity_eq_zero_of_not_dvd (by
+       simpa only [← Ideal.one_eq_top] using v.prime.not_dvd_one)
+   have hsup := v.multiplicity_sup hA r.denominator_ne_bot
+   rw [(Ideal.isCoprime_iff_sup_eq).mp r.coprime, htop] at hsup
+@@ -319,7 +319,7 @@ lemma denominator_multiplicity_le_minimal
+   · have hD := (r.zero_normalization hj0).2
+     rw [hD]
+     have htop : multiplicity v.asIdeal (⊤ : Ideal (𝓞 K)) = 0 :=
+-      multiplicity_eq_zero.mpr (by
++      _root_.multiplicity_eq_zero_of_not_dvd (by
+         simpa only [← Ideal.one_eq_top] using v.prime.not_dvd_one)
+     rw [htop]
+     exact Nat.zero_le _
+@@ -327,7 +327,7 @@ lemma denominator_multiplicity_le_minimal
+   by_cases hD0 : multiplicity v.asIdeal r.denominator = 0
+   · omega
+   have htop : multiplicity v.asIdeal (⊤ : Ideal (𝓞 K)) = 0 :=
+-    multiplicity_eq_zero.mpr (by
++    _root_.multiplicity_eq_zero_of_not_dvd (by
+       simpa only [← Ideal.one_eq_top] using v.prime.not_dvd_one)
+   have hsup := v.multiplicity_sup hA r.denominator_ne_bot
+   rw [(Ideal.isCoprime_iff_sup_eq).mp r.coprime, htop] at hsup
+diff --git a/Heights/LatticePointMapTopology.lean b/Heights/LatticePointMapTopology.lean
+index 02e6b4e..6362309 100644
+--- a/Heights/LatticePointMapTopology.lean
++++ b/Heights/LatticePointMapTopology.lean
+@@ -107,7 +107,7 @@ theorem continuousAt_latticeCurvePointMap_of_mem (τ : ℍ) (z : ℂ)
+   by_cases hz : z ∈ (periodPairOfUpperHalfPlane τ).lattice
+   · exact continuousAt_latticeCurvePointMap_of_mem τ z hz
+   · have hrestrict : Continuous
+-        ({z : ℂ | z ∉ (periodPairOfUpperHalfPlane τ).lattice}.restrict
++        ({z : ℂ | z ∉ (periodPairOfUpperHalfPlane τ).lattice}.domRestrict
+           (latticeCurvePointMap τ)) := by
+       change Continuous (fun w : LatticeComplement τ ↦ latticeCurvePointMap τ w)
+       apply (continuous_latticeAffineCurvePointMap τ).congr
+@@ -116,7 +116,7 @@ theorem continuousAt_latticeCurvePointMap_of_mem (τ : ℍ) (z : ℂ)
+       exact (latticeAffineCurvePointMap_eq τ w).symm
+     have hon : ContinuousOn (latticeCurvePointMap τ)
+         ((periodPairOfUpperHalfPlane τ).lattice : Set ℂ)ᶜ :=
+-      continuousOn_iff_continuous_restrict.mpr hrestrict
++      continuousOn_iff_continuous_domRestrict.mpr hrestrict
+     exact hon.continuousAt
+       ((periodPairOfUpperHalfPlane τ).isClosed_lattice.isOpen_compl.mem_nhds hz)
+ 
+diff --git a/Heights/ModularJ.lean b/Heights/ModularJ.lean
+index b589e96..7b7ef38 100644
+--- a/Heights/ModularJ.lean
++++ b/Heights/ModularJ.lean
+@@ -34,12 +34,12 @@ group. This is the reduction needed to move a preimage into the standard
+ fundamental domain. -/
+ theorem modularJ_smul (γ : SL(2, ℤ)) (τ : ℍ) : modularJ (γ • τ) = modularJ τ := by
+   have hE : ModularForm.E₄ (γ • τ) = denom γ τ ^ (4 : ℤ) * ModularForm.E₄ τ := by
+-    letI : SlashInvariantFormClass (ModularForm 𝒮ℒ 4) Γ(1) 4 :=
++    let : SlashInvariantFormClass (ModularForm 𝒮ℒ 4) Γ(1) 4 :=
+       Gamma_one_coe_eq_SL ▸ inferInstance
+     exact SlashInvariantForm.slash_action_eqn_SL'' ModularForm.E₄ (mem_Gamma_one γ) τ
+   have hD : ModularForm.discriminant (γ • τ) =
+       denom γ τ ^ (12 : ℤ) * ModularForm.discriminant τ := by
+-    letI : SlashInvariantFormClass (CuspForm 𝒮ℒ 12) Γ(1) 12 :=
++    let : SlashInvariantFormClass (CuspForm 𝒮ℒ 12) Γ(1) 12 :=
+       Gamma_one_coe_eq_SL ▸ inferInstance
+     exact SlashInvariantForm.slash_action_eqn_SL'' CuspForm.discriminant (mem_Gamma_one γ) τ
+   rw [modularJ, modularJ, hE, hD]
+diff --git a/Heights/PeriodPairScaling.lean b/Heights/PeriodPairScaling.lean
+index 108bb60..41ec783 100644
+--- a/Heights/PeriodPairScaling.lean
++++ b/Heights/PeriodPairScaling.lean
+@@ -167,9 +167,7 @@ private theorem eventually_hasDerivAt_reciprocalX (L : PeriodPair) :
+     rw [← hval]
+     exact hi
+   have hrhs : AnalyticAt ℂ (fun z ↦ 2 * reciprocalY L z) 0 := by
+-    convert (analyticAt_reciprocalY L).const_smul (c := (2 : ℂ)) using 1
+-    ext z
+-    simp [Pi.smul_apply, smul_eq_mul]
++    exact (analyticAt_reciprocalY L).const_smul (c := (2 : ℂ))
+   have hderiv : deriv (reciprocalX L) =ᶠ[𝓝 0]
+       (fun z ↦ 2 * reciprocalY L z) :=
+     ((analyticAt_reciprocalX L).deriv.frequently_eq_iff_eventually_eq hrhs).mp
+diff --git a/Heights/VariableChangeAnalytic.lean b/Heights/VariableChangeAnalytic.lean
+index 67518e3..b86819f 100644
+--- a/Heights/VariableChangeAnalytic.lean
++++ b/Heights/VariableChangeAnalytic.lean
+@@ -50,8 +50,8 @@ noncomputable def variableChangeAffineAmbientBiholomorph
+     fun_prop).contMDiff
+   contMDiff_invFun := (show ContDiff ℂ ω
+       (variableChangeAffineAmbientEquiv C).symm by
+-    dsimp [variableChangeAffineAmbientEquiv,
+-      WeierstrassCurve.VariableChange.inverseX,
++    change ContDiff ℂ ω (fun xy : ℂ × ℂ => (C.inverseX xy.1, C.inverseY xy.1 xy.2))
++    dsimp [WeierstrassCurve.VariableChange.inverseX,
+       WeierstrassCurve.VariableChange.inverseY]
+     fun_prop).contMDiff
+ 
+diff --git a/Heights/WeierstrassFiniteAnalytic.lean b/Heights/WeierstrassFiniteAnalytic.lean
+index 8833daf..258616d 100644
+--- a/Heights/WeierstrassFiniteAnalytic.lean
++++ b/Heights/WeierstrassFiniteAnalytic.lean
+@@ -461,7 +461,7 @@ def complexWeierstrassImplicitYChart
+           have hright := e.right_inv x.2
+           exact congrArg Prod.fst hright)⟩
+     have hg : Continuous g := Continuous.subtype_mk hamb _
+-    have heq : {x : ℂ | (0, x) ∈ e.target}.restrict inv = g := by
++    have heq : {x : ℂ | (0, x) ∈ e.target}.domRestrict inv = g := by
+       funext x
+       apply Subtype.ext
+       exact complexWeierstrassImplicitYChartInv_coe_of_mem
+@@ -699,7 +699,7 @@ def complexWeierstrassImplicitXChart
+           have hright := e.right_inv y.2
+           exact congrArg Prod.fst hright)⟩
+     have hg : Continuous g := Continuous.subtype_mk hswap _
+-    have heq : {y : ℂ | (0, y) ∈ e.target}.restrict inv = g := by
++    have heq : {y : ℂ | (0, y) ∈ e.target}.domRestrict inv = g := by
+       funext y
+       apply Subtype.ext
+       exact complexWeierstrassImplicitXChartInv_coe_of_mem
+diff --git a/Heights/WeierstrassInfinityAnalytic.lean b/Heights/WeierstrassInfinityAnalytic.lean
+index 3cf5a37..3fdc1c4 100644
+--- a/Heights/WeierstrassInfinityAnalytic.lean
++++ b/Heights/WeierstrassInfinityAnalytic.lean
+@@ -312,7 +312,7 @@ def complexWeierstrassInfinityBranchChart (W : WeierstrassCurve ℂ) :
+       ⟨e.symm (inc u), by
+         exact congrArg Prod.fst (e.right_inv u.2)⟩
+     have hg : Continuous g := Continuous.subtype_mk hamb _
+-    have heq : {u : ℂ | (0, u) ∈ e.target}.restrict inv = g := by
++    have heq : {u : ℂ | (0, u) ∈ e.target}.domRestrict inv = g := by
+       funext u
+       apply Subtype.ext
+       exact complexWeierstrassInfinityChartInv_coe_of_mem W u.1 u.2
+diff --git a/Heights/WeierstrassPrincipalPart.lean b/Heights/WeierstrassPrincipalPart.lean
+index cc8d3cc..6254a27 100644
+--- a/Heights/WeierstrassPrincipalPart.lean
++++ b/Heights/WeierstrassPrincipalPart.lean
+@@ -187,27 +187,27 @@ theorem tendsto_weierstrass_secant_addX_zero (L : PeriodPair) (a b : ℂ) :
+     tendsto_const_nhds
+   have hea : Tendsto (fun z ↦ e z - a) (𝓝[≠] 0) (𝓝 (-a)) := by
+     convert he.sub ha using 1
+-    all_goals ring
++    all_goals ring_nf
+   have hdb : Tendsto (fun z ↦ d z - b) (𝓝[≠] 0) (𝓝 (-b)) := by
+     convert hd.sub hb using 1
+-    all_goals ring
++    all_goals ring_nf
+   have hA : Tendsto A (𝓝[≠] 0) (𝓝 1) := by
+     dsimp [A]
+     simpa using tendsto_const_nhds.add (hea.mul (hz.pow 2))
+   have hC : Tendsto C (𝓝[≠] 0) (𝓝 (-2 * a)) := by
+     dsimp [C]
+     convert (hea.const_mul 2).add (hdb.mul hz) using 1
+-    all_goals ring
++    all_goals ring_nf
+   have hD : Tendsto D (𝓝[≠] 0) (𝓝 (-4)) := by
+     dsimp [D]
+     convert (hnegfour.add (hdb.mul (hz.pow 3))).sub
+       ((hea.mul (hz.pow 2)).const_mul 2) using 1
+     · funext z
+       ring
+-    · ring
++    · ring_nf
+   have hden : Tendsto (fun z ↦ 4 * A z ^ 2) (𝓝[≠] 0) (𝓝 4) := by
+     convert hfour.mul (hA.pow 2) using 1
+-    all_goals ring
++    all_goals ring_nf
+   have hfrac : Tendsto (fun z ↦ D z * C z / (4 * A z ^ 2))
+       (𝓝[≠] 0) (𝓝 (2 * a)) := by
+     have h := (hD.mul hC).div hden (by norm_num)
+@@ -217,11 +217,11 @@ theorem tendsto_weierstrass_secant_addX_zero (L : PeriodPair) (a b : ℂ) :
+       filter_upwards with z
+       simp only [Pi.div_apply]
+     convert h' using 1
+-    ring
++    ring_nf
+   have hG : Tendsto (fun z ↦ -e z - a + D z * C z / (4 * A z ^ 2))
+       (𝓝[≠] 0) (𝓝 a) := by
+     convert (he.neg.sub ha).add hfrac using 1
+-    all_goals ring
++    all_goals ring_nf
+   apply hG.congr'
+   have hAne : ∀ᶠ z in 𝓝[≠] (0 : ℂ), A z ≠ 0 :=
+     hA (eventually_ne_nhds one_ne_zero)
+@@ -300,11 +300,11 @@ theorem tendsto_weierstrass_secant_addY_zero (L : PeriodPair) (a b : ℂ) :
+     have h := hc.tendsto.comp hzed
+     convert h using 1
+     · rfl
+-    · ring
++    · ring_nf
+   have hN : Tendsto N (𝓝[≠] 0) (𝓝 0) := by
+     dsimp [N]
+     convert ((hE.const_mul (-24)).sub (hd.const_mul 8)).add (hz.mul hS) using 1
+-    all_goals ring
++    all_goals ring_nf
+   have hA : Tendsto A (𝓝[≠] 0) (𝓝 1) := by
+     dsimp [A]
+     simpa using tendsto_const_nhds.add
+@@ -313,11 +313,8 @@ theorem tendsto_weierstrass_secant_addY_zero (L : PeriodPair) (a b : ℂ) :
+     simpa using (tendsto_const_nhds.mul (hA.pow 3))
+   have hquot : Tendsto (fun z ↦ N z / (8 * A z ^ 3))
+       (𝓝[≠] 0) (𝓝 0) := by
+-    have h := hN.div hden (by norm_num)
+-    convert h using 1
+-    · funext z
+-      simp only [Pi.div_apply]
+-    · norm_num
++    change Tendsto (N / (fun z => 8 * A z ^ 3)) (𝓝[≠] 0) (𝓝 0)
++    simpa only [zero_div] using hN.div hden (by norm_num)
+   have hfinal : Tendsto (fun z ↦ b / 2 + N z / (8 * A z ^ 3))
+       (𝓝[≠] 0) (𝓝 (b / 2)) := by
+     simpa using tendsto_const_nhds.add hquot
+diff --git a/Heights/WeierstrassSurjectivity.lean b/Heights/WeierstrassSurjectivity.lean
+index 37b20a6..72b3cfc 100644
+--- a/Heights/WeierstrassSurjectivity.lean
++++ b/Heights/WeierstrassSurjectivity.lean
+@@ -66,7 +66,7 @@ private theorem reciprocalWeierstrassSub_analyticAt (L : PeriodPair) (a z : ℂ)
+     apply hraw.congr
+     filter_upwards [L.isClosed_lattice.isOpen_compl.mem_nhds hz] with w hw
+     have hw' : w ∉ L.lattice := hw
+-    rw [reciprocalWeierstrassSub, if_neg hw', Pi.inv_apply, Pi.sub_apply]
++    rw [reciprocalWeierstrassSub, ite_eq_right hw', Pi.inv_apply, Pi.sub_apply]
+ 
+ private theorem reciprocalWeierstrassSub_add_lattice (L : PeriodPair) (a z : ℂ)
+     (l : L.lattice) :
+@@ -97,7 +97,7 @@ theorem exists_notMem_lattice_weierstrassP_eq (L : PeriodPair) (a : ℂ) :
+   let z₀ : ℂ := L.ω₁ / 2
+   have hz₀ : z₀ ∉ L.lattice := L.ω₁_div_two_notMem_lattice
+   have hne : reciprocalWeierstrassSub L a z₀ ≠ 0 := by
+-    rw [reciprocalWeierstrassSub, if_neg hz₀]
++    rw [reciprocalWeierstrassSub, ite_eq_right hz₀]
+     exact inv_ne_zero (sub_ne_zero.mpr (h z₀ hz₀))
+   apply hne
+   exact (hdiff.apply_eq_apply_of_bounded hcompact.isBounded z₀ 0).trans (by
+diff --git a/lake-manifest.json b/lake-manifest.json
+index 5d54dbc..67ccad8 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,7 +1,17 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/lana-agents/belyi.git",
++ [{"url": "https://github.com/lana-agents/heights.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
++   "name": "heights",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/belyi.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+@@ -11,31 +21,31 @@
+    "inputRev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/leanprover-community/mathlib4",
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/lana-agents/oka.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "da228a2cf9671aaba08ddc96274d75e098b28f67",
++   "rev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
+    "name": "oka",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "da228a2cf9671aaba08ddc96274d75e098b28f67",
++   "inputRev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
+    "inherited": true,
+    "configFile": "lakefile.toml"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -65,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -75,7 +85,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -85,7 +95,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -95,7 +105,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -105,10 +115,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "heights",
+diff --git a/lakefile.toml b/lakefile.toml
+index a8e48a6..4d39ef8 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["Heights", "Challenge", "Solution"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -11,8 +13,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ # Curves over number fields as function fields (Belyi.CurveField), for the height machine on
+ # curves (GenEll height theory, branch wp-height-theory).
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f49..ba8ebf2 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

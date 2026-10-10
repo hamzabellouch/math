@@ -1,0 +1,695 @@
+diff --git a/OrbicurveCores/ArithTraces.lean b/OrbicurveCores/ArithTraces.lean
+index c3a654502b15d737f9dfe7b668eda835b78264f1..6e00fbdb9aa6a8d6f1eaf5e95798a0919e5373ea 100644
+--- a/OrbicurveCores/ArithTraces.lean
++++ b/OrbicurveCores/ArithTraces.lean
+@@ -57,12 +57,11 @@ lemma trace_int_of_mem_SL {M : GL (Fin 2) ℝ} (hM : M ∈ 𝒮ℒ) :
+ into `𝒮ℒ` by `g`. -/
+ lemma exists_conj_pow_mem {g : GL (Fin 2) ℝ} (hg : g ∈ commensurator 𝒮ℒ) {u : GL (Fin 2) ℝ}
+     (hu : u ∈ 𝒮ℒ) : ∃ n : ℕ, 0 < n ∧ g⁻¹ * u ^ n * g ∈ 𝒮ℒ := by
+-  obtain ⟨n, hn, -, hmem⟩ := exists_pow_mem_of_relIndex_ne_zero hg.1 hu
++  obtain ⟨n, hn, -, hmem⟩ := exists_pow_mem_of_relIndex_ne_zero hg.1.relIndex_ne_zero hu
+   refine ⟨n, hn, ?_⟩
+   have h := (Subgroup.mem_inf.mp hmem).1
+   rw [mem_pointwise_smul_iff_inv_smul_mem] at h
+-  simpa only [MulEquiv.coe_toMonoidHom, ← ConjAct.toConjAct_inv, ConjAct.toConjAct_smul,
+-    inv_inv] using h
++  exact h
+ 
+ /-- The lower unipotent generator of `SL(2, ℤ)`. -/
+ def lowerL : SL(2, ℤ) := ⟨!![1, 0; 1, 1], by simp [det_fin_two]⟩
+@@ -85,6 +84,7 @@ lemma mapGL_lowerL_pow (n : ℕ) :
+   | zero => simp [Matrix.one_fin_two]
+   | succ n ih =>
+     rw [pow_succ, map_mul, Units.val_mul, ih]
++    rw [mapGL_coe_matrix]
+     ext i j
+     fin_cases i <;> fin_cases j <;> simp [lowerL, mul_apply, Fin.sum_univ_two]
+ 
+@@ -215,7 +215,7 @@ theorem IsArithmeticSL.sq_tr_int {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithmeticS
+   -- `γ'` commensurates `𝒮ℒ`
+   have hγ'comm : γ' ∈ commensurator 𝒮ℒ := by
+     rw [← Commensurable.eq hcomm, Commensurable.commensurator_mem_iff,
+-      conjAct_pointwise_smul_eq_self (le_normalizer hγ')]
++      conj_smul_eq_self_of_mem hγ']
+   -- traces
+   have trγ' : trace (γ' : Matrix (Fin 2) (Fin 2) ℝ) = tr γ := by
+     simp only [hγ'def, Units.val_mul, coe_GL_coe_matrix, tr]
+@@ -229,7 +229,7 @@ theorem IsArithmeticSL.sq_tr_int {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithmeticS
+     have := tr_mul_tr_inv_mem_rat hγ'comm
+     rwa [trγ', trγ'inv, ← pow_two] at this
+   -- integrality
+-  obtain ⟨n, hn, -, hpow⟩ := exists_pow_mem_of_relIndex_ne_zero hcomm.2 hγ'
++  obtain ⟨n, hn, -, hpow⟩ := exists_pow_mem_of_relIndex_ne_zero hcomm.2.relIndex_ne_zero hγ'
+   obtain ⟨m, hm⟩ := trace_int_of_mem_SL hpow.1
+   have hpow' : γ' ^ n = g * toGL (γ ^ n) * g⁻¹ := by
+     rw [hγ'def, conj_pow, map_pow]
+@@ -240,7 +240,7 @@ theorem IsArithmeticSL.sq_tr_int {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithmeticS
+   have hint : IsIntegral ℤ (tr γ ^ 2) := (isIntegral_of_lucas_eq hn htr).pow 2
+   obtain ⟨q, hq⟩ := hrat
+   have hq' : IsIntegral ℤ q := by
+-    rw [← isIntegral_algebraMap_iff (A := ℚ) (B := ℝ) (algebraMap ℚ ℝ).injective]
++    rw [← isIntegral_algebraMap_iff (A := ℚ) (B := ℝ)]
+     simpa [← hq] using hint
+   obtain ⟨k, hk⟩ := IsIntegrallyClosed.isIntegral_iff.mp hq'
+   refine ⟨k, ?_⟩
+diff --git a/OrbicurveCores/Core.lean b/OrbicurveCores/Core.lean
+index 5805d0f2a3cfc2729ecf8b0b2f9fe8b6358590b6..d855d04e82d60840d7ffab8a100b04ead7035132 100644
+--- a/OrbicurveCores/Core.lean
++++ b/OrbicurveCores/Core.lean
+@@ -65,8 +65,10 @@ lemma map_conjAct_smul (f : G →* H) (x : G) (K : Subgroup G) :
+ /-- Commensurators are transported along injective homomorphisms. -/
+ lemma mem_commensurator_map_iff {f : G →* H} (hf : Function.Injective f) {x : G}
+     {K : Subgroup G} : f x ∈ commensurator (K.map f) ↔ x ∈ commensurator K := by
+-  simp only [Commensurable.commensurator_mem_iff, Commensurable, ← map_conjAct_smul,
+-    relIndex_map_map_of_injective _ _ hf]
++  rw [Commensurable.commensurator_mem_iff, Commensurable.commensurator_mem_iff]
++  change Commensurable (ConjAct.toConjAct (f x) • K.map f) (K.map f) ↔
++    Commensurable (ConjAct.toConjAct x • K) K
++  rw [← map_conjAct_smul, Commensurable.map_injective_iff hf]
+ 
+ end conj
+ 
+@@ -140,7 +142,7 @@ theorem IsArithmeticSL.not_admitsCore {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithm
+       hΓ'.is_commensurable.symm
+   -- `s = g⁻¹ r g` commensurates `Γ.map toGL`
+   have hsC : Commensurable (ConjAct.toConjAct s • ΓGL) ΓGL := by
+-    rw [Commensurable.commensurable_conj (ConjAct.toConjAct g)]
++    rw [← Commensurable.smul_iff (φ := ConjAct.toConjAct g)]
+     have e : ConjAct.toConjAct g • ConjAct.toConjAct s • ΓGL = ConjAct.toConjAct r • Γ' := by
+       simp only [Γ', ← mul_smul, ← map_mul, hs]
+       congr 2
+@@ -163,7 +165,9 @@ theorem IsArithmeticSL.not_admitsCore {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithm
+       c • (s : Matrix (Fin 2) (Fin 2) ℝ) := rfl
+   have hσC : σ ∈ commensurator Γ := by
+     rw [← mem_commensurator_map_iff (f := toGL) toGL_injective,
+-      Commensurable.commensurator_mem_iff, conjAct_smul_eq_of_scalar hc0 hσs]
++      Commensurable.commensurator_mem_iff]
++    change Commensurable (ConjAct.toConjAct (toGL σ) • Γ.map toGL) (Γ.map toGL)
++    rw [conjAct_smul_eq_of_scalar hc0 hσs]
+     exact hsC
+   -- no positive power of `σ` lies in `Γ`
+   obtain ⟨n, hn, hσn⟩ := hcore.exists_pow_mem hσC
+diff --git a/OrbicurveCores/ForMathlib/ComplexEmbedding.lean b/OrbicurveCores/ForMathlib/ComplexEmbedding.lean
+index d36a4269ff942b77372fe6e37dd3aff87fa7cafe..f980b285e995d7ed336db45c47898180a39fded4 100644
+--- a/OrbicurveCores/ForMathlib/ComplexEmbedding.lean
++++ b/OrbicurveCores/ForMathlib/ComplexEmbedding.lean
+@@ -105,4 +105,6 @@ theorem exists_ringHom_real_complex_ne {x : ℝ} (hx : x ∉ Set.range ((↑) :
+   have h := RingHom.congr_fun he (Ideal.Quotient.mk I X)
+   simp only [RingHom.coe_comp, Function.comp_apply, f, g, Ideal.Quotient.lift_mk] at h
+   simp only [AlgHom.toRingHom_eq_coe, RingHom.coe_coe, aeval_X] at h
+-  simpa [h] using hne
++  change e (x : ℂ) = y at h
++  change e (x : ℂ) ≠ (x : ℂ)
++  rwa [h]
+diff --git a/OrbicurveCores/Fuchsian/Commensurator.lean b/OrbicurveCores/Fuchsian/Commensurator.lean
+index 8726267371001ef40e3411ee8cddc0d7e78a184b..0114ed0e8da5893971ad0156d82151f0b8381341 100644
+--- a/OrbicurveCores/Fuchsian/Commensurator.lean
++++ b/OrbicurveCores/Fuchsian/Commensurator.lean
+@@ -35,8 +35,9 @@ namespace Fuchsian
+ 
+ lemma le_commensurator (Γ : Subgroup SL(2, ℝ)) : Γ ≤ commensurator Γ := by
+   intro γ hγ
+-  rw [Subgroup.Commensurable.commensurator_mem_iff,
+-    Subgroup.conjAct_pointwise_smul_eq_self (Subgroup.le_normalizer hγ)]
++  rw [Subgroup.Commensurable.commensurator_mem_iff]
++  change Subgroup.Commensurable (ConjAct.toConjAct γ • Γ) Γ
++  rw [Subgroup.conjAct_pointwise_smul_eq_self (Subgroup.le_normalizer hγ)]
+ 
+ /-- If `1` is isolated in a subgroup, the subgroup is discrete. -/
+ lemma discreteTopology_of_nhdsWithin_eq_bot {H : Subgroup SL(2, ℝ)}
+diff --git a/OrbicurveCores/Fuchsian/DenseSubgroup.lean b/OrbicurveCores/Fuchsian/DenseSubgroup.lean
+index bd64d8c57078a8fd5d6809339d6c2624ac8ceefc..7e4d97090814d1257d8f68300fc808fcae61fc32 100644
+--- a/OrbicurveCores/Fuchsian/DenseSubgroup.lean
++++ b/OrbicurveCores/Fuchsian/DenseSubgroup.lean
+@@ -242,7 +242,9 @@ def wS : SL(2, ℝ) := ⟨!![0, -1; 1, 0], by simp [det_fin_two]⟩
+ 
+ lemma wS_conj_uU (t : ℝ) : wS * uU t * wS⁻¹ = uL (-t) := by
+   ext i j
+-  simp only [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_inv, wS, coe_uU,
++  rw [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_mul,
++    Matrix.SpecialLinearGroup.coe_inv]
++  simp only [wS, coe_uU,
+     coe_uL, adjugate_fin_two]
+   fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply, Fin.sum_univ_two]
+ 
+@@ -262,7 +264,9 @@ theorem uL_mem_of_tendsto {K : Subgroup SL(2, ℝ)} (hK : IsClosed (K : Set SL(2
+     change wS * D * wS⁻¹ ∈ K
+     have : wS * D * wS⁻¹ = D⁻¹ := by
+       ext i j
+-      simp only [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_inv, wS, hD,
++      rw [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_mul,
++        Matrix.SpecialLinearGroup.coe_inv, Matrix.SpecialLinearGroup.coe_inv]
++      simp only [wS, hD,
+         adjugate_fin_two]
+       fin_cases i <;> fin_cases j <;> simp [Matrix.mul_apply, Fin.sum_univ_two]
+     rw [this]; exact inv_mem hDK
+@@ -275,7 +279,9 @@ theorem uL_mem_of_tendsto {K : Subgroup SL(2, ℝ)} (hK : IsClosed (K : Set SL(2
+     simpa [Function.comp_def] using this
+   have h01' : ∀ n, ((wS⁻¹ * g n * wS : SL(2, ℝ)) : Matrix (Fin 2) (Fin 2) ℝ) 0 1 ≠ 0 := by
+     intro n
+-    simp only [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_inv, wS,
++    rw [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_mul,
++      Matrix.SpecialLinearGroup.coe_inv]
++    simp only [wS,
+       adjugate_fin_two]
+     rw [eta_fin_two (g n : Matrix (Fin 2) (Fin 2) ℝ)]
+     simp only [Matrix.mul_fin_two]
+diff --git a/OrbicurveCores/M2/BoundaryMeasure.lean b/OrbicurveCores/M2/BoundaryMeasure.lean
+index 1e9c086241e6d946c523d37338a53a1d38d296a8..820fe96d4ad126e959e5d49ea1044d219ef6c9f0 100644
+--- a/OrbicurveCores/M2/BoundaryMeasure.lean
++++ b/OrbicurveCores/M2/BoundaryMeasure.lean
+@@ -268,7 +268,8 @@ theorem tendsto_lintegral_comp_smul {F : OnePoint ℝ → ℝ} (hF : Measurable
+       rw [Real.norm_eq_abs]; exact hb x)
+   obtain ⟨φ, hφ, -⟩ := hmem.exists_boundedContinuous_eLpNorm_sub_le ENNReal.one_ne_top
+     (ENNReal.ofReal_pos.2 hη).ne'
+-  rw [eLpNorm_one_eq_lintegral_enorm] at hφ
++  rw [eLpNorm_one_eq_lintegral_enorm
++    (hF.sub φ.continuous.measurable).aestronglyMeasurable] at hφ
+   have hFφ : Measurable fun x ↦ ‖F x - φ x‖ₑ := (hF.sub φ.continuous.measurable).enorm
+   have hφφ : ∀ n, Measurable fun x ↦ ‖φ (g n • x) - φ (g₀ • x)‖ₑ := fun n ↦
+     ((φ.continuous.measurable.comp (measurable_smul_bdry _)).sub
+diff --git a/OrbicurveCores/M2/Final.lean b/OrbicurveCores/M2/Final.lean
+index 67fd5f5954e86363fed1e27dfe19196db7074661..736750a0ecfd5825501624bbdd2d5dfffd7607fc 100644
+--- a/OrbicurveCores/M2/Final.lean
++++ b/OrbicurveCores/M2/Final.lean
+@@ -119,6 +119,7 @@ end general
+ 
+ lemma neg_one_mem_commensurator (Γ : Subgroup SL(2, ℝ)) : (-1 : SL(2, ℝ)) ∈ commensurator Γ := by
+   rw [Subgroup.Commensurable.commensurator_mem_iff]
++  change (ConjAct.toConjAct (-1 : SL(2, ℝ)) • Γ).Commensurable Γ
+   have : ConjAct.toConjAct (-1 : SL(2, ℝ)) • Γ = Γ := by
+     ext g
+     rw [Subgroup.mem_pointwise_smul_iff_inv_smul_mem, ConjAct.smul_def]
+@@ -604,8 +605,11 @@ theorem margulisDenseOneInfty : MargulisDenseOneInfty := by
+     have hc := commensurable_signs hA'' hB''
+     rw [hcl] at hc
+     have hinj := Matrix.SpecialLinearGroup.toGL_injective (n := Fin 2) (R := ℝ)
+-    exact ⟨by simpa [Subgroup.relIndex_map_map_of_injective _ _ hinj] using hc.1,
+-      by simpa [Subgroup.relIndex_map_map_of_injective _ _ hinj] using hc.2⟩
++    constructor
++    · apply Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++      simpa [Subgroup.relIndex_map_map_of_injective _ _ hinj] using hc.1.relIndex_ne_zero
++    · apply Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++      simpa [Subgroup.relIndex_map_map_of_injective _ _ hinj] using hc.2.relIndex_ne_zero
+   have hcommeq : commensurator H'' = commensurator H := Subgroup.Commensurable.eq hcomm''
+   -- conjugation
+   set P : Matrix (Fin 2) (Fin 2) ℝ := g.1
+diff --git a/OrbicurveCores/M2/Furstenberg.lean b/OrbicurveCores/M2/Furstenberg.lean
+index 48ebc6847143f8eb47d97b8c781f2e0d2d052f72..1e1a7ed1ece0920854283d5f28998b52803d9134 100644
+--- a/OrbicurveCores/M2/Furstenberg.lean
++++ b/OrbicurveCores/M2/Furstenberg.lean
+@@ -330,7 +330,7 @@ lemma integral_theta [OpensMeasurableSpace Y] (n : ℕ) (g : SL(2, ℝ)) (f : Y
+ 
+ lemma theta_mul [BorelSpace Y] (n : ℕ) (γ₀ : Γ) (g : SL(2, ℝ)) :
+     theta D α y₀ n ((γ₀ : SL(2, ℝ)) * g) =
+-      (theta D α y₀ n g).map (α γ₀).continuous.measurable.aemeasurable := by
++      (theta D α y₀ n g).map (α γ₀) := by
+   apply ProbabilityMeasure.toMeasure_injective
+   ext A hA
+   rw [ProbabilityMeasure.toMeasure_map, Measure.map_apply (α γ₀).continuous.measurable hA,
+@@ -509,7 +509,7 @@ lemma tendsto_comb_theta_mul_iff {p : SL(2, ℝ)} (hp : IsP p) (g : SL(2, ℝ))
+ 
+ lemma comb_theta_mul (γ₀ : Γ) (g : SL(2, ℝ)) (m : ℕ) :
+     (W.comb m fun k ↦ theta D α y₀ k ((γ₀ : SL(2, ℝ)) * g)) =
+-      (W.comb m fun k ↦ theta D α y₀ k g).map (α γ₀).continuous.measurable.aemeasurable := by
++      (W.comb m fun k ↦ theta D α y₀ k g).map (α γ₀) := by
+   rw [W.comb_map _ _ (α γ₀).continuous.measurable]
+   simp_rw [theta_mul]
+ 
+@@ -517,7 +517,7 @@ lemma comb_theta_mul (γ₀ : Γ) (g : SL(2, ℝ)) (m : ℕ) :
+ lemma tendsto_comb_theta_mul {γ₀ : Γ} {g : SL(2, ℝ)} {ν : ProbabilityMeasure Y}
+     (h : Tendsto (fun m ↦ W.comb m fun k ↦ theta D α y₀ k g) atTop (𝓝 ν)) :
+     Tendsto (fun m ↦ W.comb m fun k ↦ theta D α y₀ k ((γ₀ : SL(2, ℝ)) * g)) atTop
+-      (𝓝 (ν.map (α γ₀).continuous.measurable.aemeasurable)) := by
++      (𝓝 (ν.map (α γ₀))) := by
+   simp_rw [comb_theta_mul]
+   exact ((ProbabilityMeasure.continuous_map (α γ₀).continuous).tendsto ν).comp h
+ 
+@@ -615,7 +615,7 @@ theorem GoodLattice.exists_boundaryMap {Γ : Subgroup SL(2, ℝ)} (h : GoodLatti
+   have h3 := tendsto_nhds_unique (W.tendsto_lim ν₀ hy) h2
+   rw [hsmul]
+   change (ψℝ y : Measure Y) = (ψℝ x : Measure Y).map (α γ)
+-  have h4 : ψℝ y = (ψℝ x).map (α γ).continuous.measurable.aemeasurable := h3
++  have h4 : ψℝ y = (ψℝ x).map (α γ) := h3
+   rw [h4, ProbabilityMeasure.toMeasure_map]
+ 
+ /-- `GoodLattice.exists_boundaryMap` with the boundary map packaged as a Markov kernel. -/
+diff --git a/OrbicurveCores/M2/FurstenbergLimit.lean b/OrbicurveCores/M2/FurstenbergLimit.lean
+index 7de16b7217602dbfe81c4aa7d071659763c52f94..59abb2f8652f171992b39f706598cf8b220f84ef 100644
+--- a/OrbicurveCores/M2/FurstenbergLimit.lean
++++ b/OrbicurveCores/M2/FurstenbergLimit.lean
+@@ -80,7 +80,7 @@ lemma integral_comb [TopologicalSpace Y] [OpensMeasurableSpace Y] (n : ℕ)
+ 
+ lemma comb_map {Z : Type*} [MeasurableSpace Z] (n : ℕ) (θ : ℕ → ProbabilityMeasure Y)
+     {h : Y → Z} (hh : Measurable h) :
+-    (W.comb n θ).map hh.aemeasurable = W.comb n fun k ↦ (θ k).map hh.aemeasurable := by
++    (W.comb n θ).map h = W.comb n fun k ↦ (θ k).map h := by
+   apply ProbabilityMeasure.toMeasure_injective
+   ext s hs
+   simp only [ProbabilityMeasure.toMeasure_map, coe_comb, combMeasure_apply,
+diff --git a/OrbicurveCores/M2/HopfCoords.lean b/OrbicurveCores/M2/HopfCoords.lean
+index fd3f5c06753b4d6541de6ffea2958e1c09c0b66c..55efd387b2954792580927d58f67ef652e56a38a 100644
+--- a/OrbicurveCores/M2/HopfCoords.lean
++++ b/OrbicurveCores/M2/HopfCoords.lean
+@@ -80,6 +80,7 @@ lemma hopf_mul_diagA (p : ℝ × ℝ × ℝ) (σ : ℝ) : hopf p * diagA σ = ho
+ 
+ lemma diagA_mul_unip (σ t : ℝ) : diagA σ * unip t = unip (exp (2 * σ) * t) * diagA σ := by
+   ext i j
++  rw [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_mul]
+   have h := exp_mul_exp_neg σ
+   fin_cases i <;> fin_cases j <;>
+     simp [diagA, unip, Matrix.mul_apply, Fin.sum_univ_two, exp_two_mul']
+diff --git a/OrbicurveCores/M2/Superrigid.lean b/OrbicurveCores/M2/Superrigid.lean
+index 5afbfbbdec312eb205a6fe8f2d2ce74c4a14f800..dbc9b35a55b180f8b99c246ab18aa8c4690ca164 100644
+--- a/OrbicurveCores/M2/Superrigid.lean
++++ b/OrbicurveCores/M2/Superrigid.lean
+@@ -81,7 +81,8 @@ theorem equivariant_commensurator {Γ Δ : Subgroup SL(2, ℝ)} (hΓΔ : Γ ≤
+     simpa using this
+   have hfi : Γδ.relIndex Γ ≠ 0 := by
+     rw [Subgroup.inf_relIndex_right]
+-    exact (Subgroup.Commensurable.commensurator_mem_iff _ _).1 (inv_mem (hΔ hδ)) |>.1
++    exact ((Subgroup.Commensurable.commensurator_mem_iff _ _).1
++      (inv_mem (hΔ hδ))).1.relIndex_ne_zero
+   haveI : Countable Γδ := Set.Countable.to_subtype
+     ((Set.countable_coe_iff.1 ‹Countable Γ›).mono hle)
+   have hactδ : ActsOn Γδ a := hact.mono (hle.trans hΓΔ)
+diff --git a/OrbicurveCores/M2/TraceField.lean b/OrbicurveCores/M2/TraceField.lean
+index 611fcf2484e214940a56d559b25224ed665f2f60..69e24da9759dc8424a2ce2fa2a784fb3226e7911 100644
+--- a/OrbicurveCores/M2/TraceField.lean
++++ b/OrbicurveCores/M2/TraceField.lean
+@@ -132,7 +132,9 @@ theorem slIn_of_mem_closure {A B : SL(2, ℝ)} (hA : SLIn F A) (hB : SLIn F B) {
+ /-- A power of each element of `Γ` is conjugated into `Γ` by a commensurating element. -/
+ theorem exists_pow_conj_mem {Γ : Subgroup SL(2, ℝ)} {δ : SL(2, ℝ)} (hδ : δ ∈ commensurator Γ)
+     {P : SL(2, ℝ)} (hP : P ∈ Γ) : ∃ n, 0 < n ∧ δ⁻¹ * P ^ n * δ ∈ Γ := by
+-  obtain ⟨n, hn, -, hmem⟩ := Subgroup.exists_pow_mem_of_relIndex_ne_zero hδ.1 hP
++  have hδ' := hδ.1.relIndex_ne_zero
++  change (ConjAct.toConjAct δ • Γ).relIndex Γ ≠ 0 at hδ'
++  obtain ⟨n, hn, -, hmem⟩ := Subgroup.exists_pow_mem_of_relIndex_ne_zero hδ' hP
+   refine ⟨n, hn, ?_⟩
+   have h := (Subgroup.mem_inf.mp hmem).1
+   rw [Subgroup.mem_pointwise_smul_iff_inv_smul_mem, ConjAct.smul_def] at h
+diff --git a/OrbicurveCores/S1/OrbLift.lean b/OrbicurveCores/S1/OrbLift.lean
+index 302eeaa5a9d749cb10f7958c550cbb128ba59721..c250449c73aa675033e95bbb63dd3ef5904f55f6 100644
+--- a/OrbicurveCores/S1/OrbLift.lean
++++ b/OrbicurveCores/S1/OrbLift.lean
+@@ -209,7 +209,7 @@ lemma exists_section {S : Set (ℂ × ℂ × ℂ)} {V : Set ℂ} {H : ℂ → 
+   refine ⟨fun z ↦ if hz : z ∈ V then ⟨jet H z, hS z hz⟩ else q, ?_, fun z hz ↦ by simp [hz],
+     Subtype.ext (by simp [hq, hqH.symm])⟩
+   rw [continuousOn_iff_continuous_restrict]
+-  have : V.restrict (fun z ↦ if hz : z ∈ V then (⟨jet H z, hS z hz⟩ : S) else q) =
++  have : V.domRestrict (fun z ↦ if hz : z ∈ V then (⟨jet H z, hS z hz⟩ : S) else q) =
+       fun z : V ↦ ⟨jet H z, hS z z.2⟩ := funext fun z ↦ dif_pos z.2
+   rw [this]
+   exact (continuousOn_jet hd hV).restrict.subtype_mk _
+diff --git a/OrbicurveCores/S1/Rigidity/Lift.lean b/OrbicurveCores/S1/Rigidity/Lift.lean
+index 87f401f9f9461b1ce08f50d15476c112a9ffa84a..ba7fdcaf2e0af119b662b0c1d8412ab8fbb971eb 100644
+--- a/OrbicurveCores/S1/Rigidity/Lift.lean
++++ b/OrbicurveCores/S1/Rigidity/Lift.lean
+@@ -61,7 +61,7 @@ theorem exists_isLatticeLift {τ : ℍ} {A B : SL(2, ℝ)}
+     else Heights.latticeCurvePointInfinity τ
+   have hgc : ContinuousOn g {z : ℂ | 0 < z.im} := by
+     rw [continuousOn_iff_continuous_restrict]
+-    have : {z : ℂ | 0 < z.im}.restrict g =
++    have : {z : ℂ | 0 < z.im}.domRestrict g =
+         fun z : {z : ℂ | 0 < z.im} ↦ Heights.latticeCurvePointOfAffine τ ⟨π z, heq' z z.2⟩ := by
+       funext z
+       exact dif_pos z.2
+diff --git a/OrbicurveCores/Sharpness.lean b/OrbicurveCores/Sharpness.lean
+index 3703e52b4d0bc57eb925d06d2f279f092716ed83..59c2d5e531a8f95280a905ac4fb0f1432754e6b7 100644
+--- a/OrbicurveCores/Sharpness.lean
++++ b/OrbicurveCores/Sharpness.lean
+@@ -563,8 +563,10 @@ theorem isArithmeticSL_of_certs {C : CoverCert} {D : TransCert}
+     IsArithmeticSL (Subgroup.closure {A, B}) :=
+   ⟨1, ⟨by
+     rw [map_one, one_smul]
+-    exact ⟨relIndex_ne_zero_of_coverOK hn hk hA hB hC,
+-      relIndex_ne_zero_of_transOK hn hk hA hB hD⟩⟩⟩
++    exact ⟨Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++      (relIndex_ne_zero_of_coverOK hn hk hA hB hC),
++      Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++        (relIndex_ne_zero_of_transOK hn hk hA hB hD)⟩⟩⟩
+ 
+ end transversal
+ 
+diff --git a/OrbicurveCores/Takeuchi.lean b/OrbicurveCores/Takeuchi.lean
+index 26c95a85ade249e67e71a93989b9463c922e218b..46ae78db9677953849e05966b17341ed8b24e864 100644
+--- a/OrbicurveCores/Takeuchi.lean
++++ b/OrbicurveCores/Takeuchi.lean
+@@ -287,7 +287,8 @@ power of `T = [[1, 1], [0, 1]]`), in particular one with `γ⁴ ≠ 1`. -/
+ lemma IsArithmeticSL.exists_pow_four_ne_one {Γ : Subgroup SL(2, ℝ)} (hΓ : IsArithmeticSL Γ) :
+     ∃ γ ∈ Γ, γ ^ 4 ≠ 1 := by
+   obtain ⟨g, hΓ'⟩ := hΓ
+-  obtain ⟨n, hn, -, hmem⟩ := exists_pow_mem_of_relIndex_ne_zero hΓ'.is_commensurable.1
++  obtain ⟨n, hn, -, hmem⟩ := exists_pow_mem_of_relIndex_ne_zero
++    hΓ'.is_commensurable.1.relIndex_ne_zero
+     (⟨ModularGroup.T, rfl⟩ : mapGL ℝ ModularGroup.T ∈ 𝒮ℒ)
+   have h := (Subgroup.mem_inf.mp hmem).1
+   rw [mem_pointwise_smul_iff_inv_smul_mem] at h
+diff --git a/OrbicurveCores/U2/Assembly.lean b/OrbicurveCores/U2/Assembly.lean
+index aba3d4e66450e6859f89fd1acd39a4f318244598..306edf8acd3ee21ece5a7c115ea0017b7eccfa84 100644
+--- a/OrbicurveCores/U2/Assembly.lean
++++ b/OrbicurveCores/U2/Assembly.lean
+@@ -303,7 +303,7 @@ theorem toHemi_etale_aux (w : Ideal (puncturedRing E)) (hw : w.IsMaximal) :
+     w.ramificationIdx ℂ[X] = (hemi E).mult (w.comap (algebraMap ℂ[X] (puncturedRing E))) := by
+   haveI := hw
+   have hv : (w.comap (algebraMap ℂ[X] (puncturedRing E))).IsMaximal :=
+-    Ideal.isMaximal_comap_of_isIntegral_of_isMaximal (R := ℂ[X]) w
++    Ideal.isMaximal_under_of_isIntegral_of_isMaximal (R := ℂ[X]) w
+   obtain ⟨c, hc⟩ := exists_eq_ker_aeval (w.comap (algebraMap ℂ[X] (puncturedRing E)))
+   have hlies : w ∈ (RingHom.ker (aeval c : ℂ[X] →ₐ[ℂ] ℂ)).primesOver (puncturedRing E) :=
+     ⟨hw.isPrime, ⟨hc.symm⟩⟩
+@@ -361,7 +361,8 @@ theorem hom_hemi_f_X (hj : ∀ c ∈ excJ, E.j ≠ (c : ℂ)) {Y Z : AffOrbicurv
+     have hpC : p = C (p.coeff 0) := eq_C_of_natDegree_le_zero h0
+     have := H.injective (a₁ := X - C (p.coeff 0)) (a₂ := 0) (by
+       change aeval (R := ℂ) p (X - C (p.coeff 0)) = aeval (R := ℂ) p 0
+-      rw [map_sub, aeval_X, aeval_C, map_zero, algebraMap_eq, ← hpC, sub_self])
++      rw [map_sub, aeval_X, aeval_C, map_zero (aeval (R := ℂ) p), algebraMap_eq, ← hpC,
++        sub_self])
+     exact X_sub_C_ne_zero _ this
+   have hcond : ∀ w : ℂ, Uniformization.RatFuncPoly.ramIdx p w *
+       Uniformization.RatFuncPoly.mult (E₂ E) w =
+diff --git a/OrbicurveCores/U2/CoreMap.lean b/OrbicurveCores/U2/CoreMap.lean
+index 29feb2b8eba4b63afbeabc96bc3841473dc1dc81..5b4ab0325344fd50eca74764c05c4b5570fb4411 100644
+--- a/OrbicurveCores/U2/CoreMap.lean
++++ b/OrbicurveCores/U2/CoreMap.lean
+@@ -138,7 +138,8 @@ theorem theoremG (hj : ∀ c ∈ excJ, E.j ≠ (c : ℂ)) {Y Z : AffOrbicurve 
+     intro w hw
+     letI := algRing tΩ hLM
+     haveI : Algebra.IsIntegral (coordRing ℂ tΩ L) B := ⟨ringMap_isIntegral tΩ hLM⟩
+-    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal (R := coordRing ℂ tΩ L) w
++    exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++      (ringMap tΩ hLM).toRingHom (ringMap_isIntegral tΩ hLM) w
+   have hmaxZ : ∀ w : Ideal (coordRing ℂ tΩ L), w.IsMaximal →
+       (w.comap ψZ.toRingEquiv.toRingHom).IsMaximal := fun w hw ↦
+     Ideal.comap_isMaximal_of_surjective _ ψZ.surjective
+diff --git a/OrbicurveCores/U2/GaloisClosure.lean b/OrbicurveCores/U2/GaloisClosure.lean
+index cb16f5db6a239c8df9159254e0f67e80bdeae42d..a3ef69922a9718d5c3e9980b907f6e349a223e7c 100644
+--- a/OrbicurveCores/U2/GaloisClosure.lean
++++ b/OrbicurveCores/U2/GaloisClosure.lean
+@@ -213,11 +213,13 @@ theorem ramificationIdx_closure_eq_one (ht : Transcendental k t) (hFL : F ≤ L)
+         letI := algRing t hLN
+         haveI : Algebra.IsIntegral (coordRing k t L) (coordRing k t N) :=
+           ⟨ringMap_isIntegral t hLN⟩
+-        exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal u'
++        exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++          (ringMap t hLN).toRingHom (ringMap_isIntegral t hLN) u'
+       haveI : (u.comap (ringMap t hLN)).IsMaximal := by
+         letI := algRing t hLN
+         haveI : Algebra.IsIntegral (coordRing k t L) (coordRing k t N) := ⟨ringMap_isIntegral t hLN⟩
+-        exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal u
++        exact Ideal.isMaximal_comap_of_isIntegral_of_isMaximal
++          (ringMap t hLN).toRingHom (ringMap_isIntegral t hLN) u
+       rw [hm _ inferInstance, hm _ inferInstance, hcomap, hcomap, hover]
+     have E1 := ramificationIdx_mul_card t ht hFL hLN u
+     have E1' := ramificationIdx_mul_card t ht hFL hLN u'
+@@ -316,9 +318,9 @@ theorem isIntegral_smul_toN (σ : N ≃ₐ[K₀ k t] N) (b : coordRing k t (clos
+   have h1 := isIntegral_of_mem_coordRing t b
+   haveI : IsScalarTower (A₀ k t) N Ω := IsScalarTower.of_algebraMap_eq fun _ => rfl
+   have h2 : IsIntegral (A₀ k t) (toN t b) :=
+-    (isIntegral_algebraMap_iff (A := N) (B := Ω) (algebraMap N Ω).injective).mp h1
++    (isIntegral_algebraMap_iff (A := N) (B := Ω)).mp h1
+   have h3 := h2.map ((σ : N →ₐ[K₀ k t] N).restrictScalars (A₀ k t))
+-  exact (isIntegral_algebraMap_iff (A := N) (B := Ω) (algebraMap N Ω).injective).mpr h3
++  exact (isIntegral_algebraMap_iff (A := N) (B := Ω)).mpr h3
+ 
+ theorem toN_injective : Function.Injective (toN t (F := F) (L := L) (N := N)) := by
+   intro a b h
+diff --git a/OrbicurveCores/U2/Noether.lean b/OrbicurveCores/U2/Noether.lean
+index c775bc4196f4848ef28c3f7cb6c38774ea973ed1..79ee9a4f2dc7186f8427467bd6b4797daf5a3b46 100644
+--- a/OrbicurveCores/U2/Noether.lean
++++ b/OrbicurveCores/U2/Noether.lean
+@@ -99,7 +99,10 @@ theorem exists_transcendental_isIntegral (hA : ¬ IsField A) :
+     have hP₁0 : P₁ ≠ ⊥ := by
+       intro h0
+       apply MvPolynomial.X_ne_zero (R := k) i0
+-      have : MvPolynomial.X i0 ∈ Ideal.comap (algebraMap R A) P₁ := hP₁q ▸ hX0
++      have : MvPolynomial.X i0 ∈ Ideal.comap (algebraMap R A) P₁ := by
++        change MvPolynomial.X i0 ∈ P₁.under R
++        rw [hP₁q]
++        exact hX0
+       rw [h0, Ideal.mem_comap, Ideal.mem_bot, hmap] at this
+       exact hinj (this.trans (map_zero g).symm)
+     have hmax : P₁.IsMaximal := hP₁.isMaximal hP₁0
+diff --git a/OrbicurveCores/U2/R3.lean b/OrbicurveCores/U2/R3.lean
+index a3b8ce873bbd66079505f67a3663c5193d4c7929..4fc66ed0f4fe09c5735dc64b5f96565b8d01af75 100644
+--- a/OrbicurveCores/U2/R3.lean
++++ b/OrbicurveCores/U2/R3.lean
+@@ -38,8 +38,11 @@ variable {G : Type*} [Group G]
+ lemma commensurator_smul (g : G) (H : Subgroup G) :
+     commensurator (ConjAct.toConjAct g • H) = ConjAct.toConjAct g • commensurator H := by
+   ext x
+-  rw [Subgroup.mem_pointwise_smul_iff_inv_smul_mem, commensurator_mem_iff, commensurator_mem_iff,
+-    commensurable_conj (ConjAct.toConjAct g)⁻¹, inv_smul_smul]
++  rw [Subgroup.mem_pointwise_smul_iff_inv_smul_mem, commensurator_mem_iff, commensurator_mem_iff]
++  change (ConjAct.toConjAct x • ConjAct.toConjAct g • H).Commensurable
++    (ConjAct.toConjAct g • H) ↔
++    (ConjAct.toConjAct ((ConjAct.toConjAct g)⁻¹ • x) • H).Commensurable H
++  rw [← Subgroup.Commensurable.smul_iff (φ := (ConjAct.toConjAct g)⁻¹), inv_smul_smul]
+   have e : (ConjAct.toConjAct g)⁻¹ • x = g⁻¹ * x * g := by
+     rw [ConjAct.smul_def, map_inv, ConjAct.ofConjAct_toConjAct, inv_inv]
+   rw [e, map_mul, map_mul, map_inv, mul_smul, mul_smul]
+@@ -47,8 +50,11 @@ lemma commensurator_smul (g : G) (H : Subgroup G) :
+ lemma relIndex_commensurator_of_le {H K : Subgroup G} (hHK : H ≤ K) (hi : H.relIndex K ≠ 0)
+     (h : H.relIndex (commensurator H) ≠ 0) : K.relIndex (commensurator K) ≠ 0 := by
+   have hc : Subgroup.Commensurable H K := by
+-    refine ⟨?_, ?_⟩ <;>
+-      first | exact hi | (rw [Subgroup.relIndex_eq_one.mpr hHK]; exact one_ne_zero)
++    constructor
++    · exact Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr hi
++    · apply Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++      rw [Subgroup.relIndex_eq_one.mpr hHK]
++      exact one_ne_zero
+   rw [← eq hc]
+   exact fun h0 ↦ h (Nat.eq_zero_of_zero_dvd (h0 ▸ Subgroup.relIndex_dvd_of_le_left _ hHK))
+ 
+@@ -166,10 +172,13 @@ theorem r3 {A B : SL(2, ℝ)} {π : ℂ → ℂ × ℂ} (hπ : IsUniformization
+     intro δ hδ z
+     -- `g δ g⁻¹ ∈ Comm Γ = Comm Γ̃ = Γ̃`
+     have hcommP : commensurator (Subgroup.closure {A, B}) = commensurator P := by
+-      refine eq ⟨?_, ?_⟩ <;>
+-        first | exact relIndex_closure_pmGroup_ne_zero A B |
+-          (rw [Subgroup.relIndex_eq_one.mpr (IsUniformization.closure_le_pmGroup A B)];
+-            exact one_ne_zero)
++      apply eq
++      constructor
++      · exact Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++          (relIndex_closure_pmGroup_ne_zero A B)
++      · apply Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
++        rw [Subgroup.relIndex_eq_one.mpr (IsUniformization.closure_le_pmGroup A B)]
++        exact one_ne_zero
+     have hmem : g * δ * g⁻¹ ∈ U.pmDeck := by
+       rw [← hR, U.commensurator_pmDeck, hD, commensurator_smul,
+         Subgroup.mem_smul_pointwise_iff_exists]
+diff --git a/OrbicurveCores/U2/Realize.lean b/OrbicurveCores/U2/Realize.lean
+index 9f6e1525c8541a53cf902094f3627a11ae11d182..b1847524a44797940a7343e209a5d991756211a7 100644
+--- a/OrbicurveCores/U2/Realize.lean
++++ b/OrbicurveCores/U2/Realize.lean
+@@ -53,7 +53,7 @@ theorem bijective_algebraMap_bot :
+     have h1 := isIntegral_of_mem_coordRing tΩ b
+     rw [← hz] at h1
+     haveI : IsScalarTower (A₀ ℂ tΩ) (K₀ ℂ tΩ) Ωt := IsScalarTower.of_algebraMap_eq fun _ => rfl
+-    exact (isIntegral_algebraMap_iff (algebraMap (K₀ ℂ tΩ) Ωt).injective).mp h1
++    exact isIntegral_algebraMap_iff.mp h1
+   obtain ⟨a, ha⟩ := (IsIntegrallyClosed.isIntegral_iff (R := A₀ ℂ tΩ) (K := K₀ ℂ tΩ)).mp hzint
+   refine ⟨a, Subtype.ext (Subtype.ext ?_)⟩
+   rw [← hz, ← ha]
+diff --git a/OrbicurveCores/U2/TheoremG.lean b/OrbicurveCores/U2/TheoremG.lean
+index df55e79122374a4286211abdb9d73e8f46974e4d..6ab2f68a70e9d68b91847d911ade083f094d0d36 100644
+--- a/OrbicurveCores/U2/TheoremG.lean
++++ b/OrbicurveCores/U2/TheoremG.lean
+@@ -100,7 +100,9 @@ theorem mobius_mem_commensurator [W.IsElliptic] (h : IsUniformization W G₁ G
+       intro τ b
+       rw [mul_smul, mul_smul, hg', hδ, ← hg, AlgEquiv.apply_symm_apply]
+   have hgS : g ∈ Subgroup.Commensurable.commensurator S := by
+-    rw [Subgroup.Commensurable.commensurator_mem_iff, hconj]
++    rw [Subgroup.Commensurable.commensurator_mem_iff]
++    change (ConjAct.toConjAct g • S).Commensurable S
++    rw [hconj]
+   -- `Γ`-invariance of `ι₀`
+   have hΓ : ∀ γ ∈ Γ, ∀ (a : A) (τ : ℍ), ι₀ a (γ • τ) = ι₀ a τ := by
+     intro γ hγ a τ
+@@ -147,7 +149,9 @@ theorem mobius_mem_commensurator [W.IsElliptic] (h : IsUniformization W G₁ G
+     exact Subgroup.index_ne_zero_of_finite
+   have hΓS : Γ.relIndex S ≠ 0 := fun h0 ↦
+     relIndex_closure_pmGroup_ne_zero G₁ G₂ (Subgroup.relIndex_eq_zero_of_le_right hSpm h0)
+-  have hcomm : Subgroup.Commensurable S Γ := ⟨hSΓ, hΓS⟩
++  have hcomm : Subgroup.Commensurable S Γ :=
++    ⟨Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr hSΓ,
++      Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr hΓS⟩
+   rwa [← Subgroup.Commensurable.eq hcomm]
+ 
+ end Commensurator
+diff --git a/lake-manifest.json b/lake-manifest.json
+index 6f40b5794c7780f797aa603a89b70a2304f2ca0e..9f8e5f69b8288de7b36c38564cb680d224db498f 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -15,37 +15,37 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "e0266a572e2ef7c144227c2703c450e466984528",
++   "rev": "ca7def953193f861a462aa0831eec8f0a31ff69f",
+    "name": "pi1",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "e0266a572e2ef7c144227c2703c450e466984528",
++   "inputRev": "ca7def953193f861a462aa0831eec8f0a31ff69f",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/leanprover-community/mathlib4",
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
+   {"url": "https://github.com/lana-agents/heights.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "3539e2a12dd3470c057a4eb531dc3fd627d4c97b",
++   "rev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
+    "name": "heights",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "3539e2a12dd3470c057a4eb531dc3fd627d4c97b",
++   "inputRev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
+    "inherited": true,
+    "configFile": "lakefile.toml"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -65,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -75,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -85,7 +85,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -95,7 +95,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -105,20 +105,30 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+    "inherited": true,
+    "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/belyi.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "name": "belyi",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
+   {"url": "https://github.com/leanprover/lean4-cli",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "«orbicurve-cores»",
+diff --git a/lakefile.toml b/lakefile.toml
+index 54266d79c4524636ec1eb9099976f85816fe20af..af2e31383dbd51980ef00ad33ccb069254a4e3a7 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -4,6 +4,8 @@ keywords = ["math"]
+ defaultTargets = ["OrbicurveCores"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ relaxedAutoImplicit = false
+ weak.linter.mathlibStandardSet = true
+@@ -11,8 +13,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "OrbicurveCores"
+@@ -20,10 +22,10 @@ name = "OrbicurveCores"
+ [[require]]
+ name = "pi1"
+ git = "https://github.com/lana-agents/pi1.git"
+-rev = "e0266a572e2ef7c144227c2703c450e466984528"
++rev = "ca7def953193f861a462aa0831eec8f0a31ff69f"
+ 
+ # Uniformisation of once-punctured elliptic curves (U1): `Uniformization.uniformization_oncePunctured`.
+-# `oka` pins `lana-agents/heights` at 3539e2a; this is the only `heights` revision in this project.
++# The patched `oka` package uses `heights` at 721496ca, shared with the IUT dependency graph.
+ [[require]]
+ name = "oka"
+ git = "https://github.com/lana-agents/oka.git"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

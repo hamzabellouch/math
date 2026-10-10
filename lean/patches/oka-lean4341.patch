@@ -1,0 +1,2014 @@
+diff --git a/Oka/Algebra/Category/ModuleCat/Presheaf/PullbackStalk.lean b/Oka/Algebra/Category/ModuleCat/Presheaf/PullbackStalk.lean
+index 470291bb7f5683f53077d88b015bb1242d86c7bb..480b1ff77217a7f6a59a354985edfd5dbdcb259f 100644
+--- a/Oka/Algebra/Category/ModuleCat/Presheaf/PullbackStalk.lean
++++ b/Oka/Algebra/Category/ModuleCat/Presheaf/PullbackStalk.lean
+@@ -100,7 +100,6 @@ lemma ringStalkMap_germ (V : Opens Y) (hx : f x ∈ V) (s : S.obj (op V)) :
+       ((TopCat.Presheaf.stalkFunctor CommRingCat.{u} (f x)).map φ (S.germ V (f x) hx s)) = _
+   rw [TopCat.Presheaf.stalkFunctor_map_germ_apply (C := CommRingCat.{u}) V (f x) hx φ s]
+   erw [TopCat.Presheaf.stalkPushforward_germ_apply]
+-  rfl
+ 
+ /-- The morphism of presheaves of rings, at the `RingCat` spelling `pushforward` consumes. -/
+ abbrev forgetRingHom :
+diff --git a/Oka/Algebra/Category/ModuleCat/Presheaf/Submodule.lean b/Oka/Algebra/Category/ModuleCat/Presheaf/Submodule.lean
+index ef73b01ddcad6f17fd86f665bb9b06acc2eb7b1e..bbd9cacb14234680212985f990aeae24fc441313 100644
+--- a/Oka/Algebra/Category/ModuleCat/Presheaf/Submodule.lean
++++ b/Oka/Algebra/Category/ModuleCat/Presheaf/Submodule.lean
+@@ -11,10 +11,8 @@ public import Mathlib.CategoryTheory.Subfunctor.Basic
+ /-!
+ # A submodule of a presheaf of modules, as a subfunctor of the underlying presheaf of types
+ 
+-Material for `Mathlib/Algebra/Category/ModuleCat/Presheaf/Submodule.lean`; see `README.md` on the
+-mirror tree. That file does not currently import `Mathlib.CategoryTheory.Subfunctor.Basic`, which
+-the definition below names, so upstreaming it adds that import — **one** file to the target's own
+-transitive closure, measured rather than estimated.
++Mathlib now provides the declarations described here with the same signatures and definitions.
++This module preserves the Oka import path while re-exporting the Mathlib implementation.
+ 
+ `PresheafOfModules.Submodule` is a submodule of `M.obj X` for each object `X`, closed under the
+ restriction maps. `PresheafOfModules.Submodule.toSubfunctor` forgets the module structure and
+@@ -32,32 +30,3 @@ it has content.
+ 
+ - `PresheafOfModules.Submodule.toSubfunctor`
+ -/
+-
+-@[expose] public section
+-
+-universe v v₁ u₁ u
+-
+-open CategoryTheory
+-
+-namespace PresheafOfModules
+-
+-variable {C : Type u₁} [Category.{v₁} C] {R : Cᵒᵖ ⥤ RingCat.{u}}
+-
+-namespace Submodule
+-
+-variable {M : PresheafOfModules.{v} R} (N : M.Submodule)
+-
+-/-- The subfunctor of the underlying type-valued presheaf of `M` induced by a submodule `N`. -/
+-def toSubfunctor : Subfunctor (M.presheaf ⋙ CategoryTheory.forget AddCommGrpCat.{v}) where
+-  obj X := {r : M.obj X | r ∈ N.obj X}
+-  map := fun {_ _} f _ hr ↦ N.map_mem f hr
+-
+-/-- Membership in the subfunctor is membership in the submodule. This is `Iff.rfl`; see the
+-module docstring for why it is a `simp` lemma. -/
+-@[simp]
+-lemma mem_toSubfunctor_obj {X : Cᵒᵖ} (r : M.obj X) :
+-    r ∈ N.toSubfunctor.obj X ↔ r ∈ N.obj X := Iff.rfl
+-
+-end Submodule
+-
+-end PresheafOfModules
+diff --git a/Oka/Algebra/Category/ModuleCat/Sheaf/Annihilator.lean b/Oka/Algebra/Category/ModuleCat/Sheaf/Annihilator.lean
+index 5ba4d73f420e77a1d1f58f55892f9b80a3475901..633cee2c72818e73eb15f03d549ab4d5fd4b2d6d 100644
+--- a/Oka/Algebra/Category/ModuleCat/Sheaf/Annihilator.lean
++++ b/Oka/Algebra/Category/ModuleCat/Sheaf/Annihilator.lean
+@@ -48,6 +48,7 @@ noncomputable def annihilator : (unit R).Submodule where
+     (Module.annihilator (R.obj Y) (M.obj Y)).comap (R.map f).hom
+   map {X Y} f := by
+     intro r hr
++    change R.obj X at r
+     rw [Submodule.mem_comap, restrictₛₗ_apply]
+     -- characterise membership in the defining `iInf` at the honest type `R.obj _`
+     have mem : ∀ {W : Cᵒᵖ} (s : R.obj W),
+@@ -115,6 +116,7 @@ noncomputable def annihilator : (SheafOfModules.unit R).Submodule where
+       (isSheaf_iff_isSheaf_of_type J _).mp
+         (GrothendieckTopology.HasSheafCompose.isSheaf _ M.isSheaf)
+     intro X s hmem
++    change R.obj.obj X at s
+     refine (mem_annihilator s).mpr fun W φ m ↦ ?_
+     -- It suffices, by separatedness, that every restriction of `R.map φ s • m` vanishes.
+     apply (hsep _ (J.pullback_stable φ.unop hmem)).isSeparatedFor.ext
+diff --git a/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Equivalence.lean b/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Equivalence.lean
+index 33ffcac6dc3e20b079b039ba0814a3838c01efbc..2f4c90a80b2de7ed24accc9f6fd437aeeb84f98f 100644
+--- a/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Equivalence.lean
++++ b/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Equivalence.lean
+@@ -145,7 +145,7 @@ lemma symm_H₁ :
+     rw [← Functor.map_comp, ← op_comp, Iso.inv_hom_id_app, op_id,
+       CategoryTheory.Functor.map_id]
+   have h' := h =≫ S.obj.map (eqv.unitInv.app X.unop).op
+-  rw [Category.assoc, Category.assoc] at h'
++  erw [Category.assoc, Category.assoc] at h'
+   erw [e] at h'
+   erw [Category.comp_id, Category.id_comp] at h'
+   exact h'.symm
+@@ -164,7 +164,7 @@ lemma symm_H₂ :
+       𝟙 _ := by
+     rw [← Functor.map_comp, ← op_comp, Iso.inv_hom_id_app, op_id,
+       CategoryTheory.Functor.map_id]
+-  rw [← Category.assoc, ← h]
++  erw [← Category.assoc, ← h]
+   exact e
+ 
+ variable [HasPullbacks C] [HasPullbacks D]
+diff --git a/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Presentation.lean b/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Presentation.lean
+index df229ae96f1a84b77a00a89fa12d4751fc21d93e..f78b8e026223edb5287b08645aa0ff5feaefd63c 100644
+--- a/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Presentation.lean
++++ b/Oka/Algebra/Category/ModuleCat/Sheaf/Coherent/Presentation.lean
+@@ -83,8 +83,12 @@ restriction preserves kernels (`SheafOfModules.overKernelIso`). Stated because i
+ generators of the relations *over `Y`* be read as relations of the restricted generators, which
+ is the whole of `SheafOfModules.GeneratingSections.presentationOver`. -/
+ noncomputable def GeneratingSections.overKernelπIso (G : N.GeneratingSections) (Y : C) :
+-    (kernel G.π).over Y ≅ kernel ((G.map (overFunctor R Y) (Iso.refl _)).π) :=
+-  overKernelIso G.π Y ≪≫ (kernelIsIsoComp _ _).symm ≪≫
++    (kernel G.π).over Y ≅ kernel ((G.map (overFunctor R Y) (Iso.refl _)).π) := by
++  let e : free (R := R.over Y) G.I ≅ (overFunctor R Y).obj (free (R := R) G.I) :=
++    mapFreeIso (overFunctor R Y) G.I (Iso.refl _)
++  have : IsIso e.hom := e.isIso_hom
++  exact overKernelIso G.π Y ≪≫
++    (kernelIsIsoComp e.hom ((overFunctor R Y).map G.π)).symm ≪≫
+     (kernelIsoOfEq (G.map_π_eq (overFunctor R Y) (Iso.refl _))).symm
+ 
+ /-- **Generators of `N`, together with generators of their relations over `Y`, present
+@@ -102,7 +106,7 @@ noncomputable def GeneratingSections.presentationOver (G : N.GeneratingSections)
+ instance GeneratingSections.isFinite_presentationOver (G : N.GeneratingSections) [G.IsFiniteType]
+     (Y : C) (H : ((kernel G.π).over Y).GeneratingSections) [H.IsFiniteType] :
+     (G.presentationOver Y H).IsFinite where
+-  isFiniteType_generators := inferInstanceAs (G.map (overFunctor R Y) (Iso.refl _)).IsFiniteType
++  isFiniteType_generators := ⟨inferInstanceAs (Finite G.I)⟩
+   isFiniteType_relations := inferInstanceAs (H.ofEpi (G.overKernelπIso Y).hom).IsFiniteType
+ 
+ /-- **Generators of `N` and a covering on which their relations are generated give quasicoherent
+diff --git a/Oka/Algebra/Category/ModuleCat/Sheaf/PushforwardContinuous.lean b/Oka/Algebra/Category/ModuleCat/Sheaf/PushforwardContinuous.lean
+index 6524079cc07ddc7880524860d4e5c35bf7be03a0..cdf79485d4ab61e66b2d0f4fef4cf0cf2131f739 100644
+--- a/Oka/Algebra/Category/ModuleCat/Sheaf/PushforwardContinuous.lean
++++ b/Oka/Algebra/Category/ModuleCat/Sheaf/PushforwardContinuous.lean
+@@ -167,8 +167,14 @@ section
+ variable {C : Type u} [SmallCategory C] {J : GrothendieckTopology C} {R : Sheaf J RingCat.{u}}
+   [HasWeakSheafify J AddCommGrpCat.{u}] [J.WEqualsLocallyBijective AddCommGrpCat.{u}]
+ 
+-instance (X : C) : (overFunctor.{u} R X).IsRightAdjoint :=
+-  inferInstanceAs (pushforward.{u} (𝟙 (R.over X))).IsRightAdjoint
++instance (X : C) : (overFunctor.{u} R X).IsRightAdjoint := by
++  let φ : R.over X ⟶
++      ((Over.forget X).sheafPushforwardContinuous RingCat.{u} (J.over X) J).obj R := 𝟙 _
++  let : (PresheafOfModules.pushforward.{u} φ.hom).IsRightAdjoint :=
++    CategoryTheory.Functor.isRightAdjoint_of_leftAdjointObjIsDefined_eq_top
++      (PresheafOfModules.pullbackObjIsDefined_eq_top
++        (F := Over.forget X) (R := R.obj) φ.hom)
++  exact (PullbackConstruction.adjunction.{u} φ).isRightAdjoint
+ 
+ variable [HasSheafify J AddCommGrpCat.{u}] [∀ (X : C), HasSheafify (J.over X) AddCommGrpCat.{u}]
+   [∀ (X : C), (J.over X).WEqualsLocallyBijective AddCommGrpCat.{u}]
+diff --git a/Oka/Algebra/Category/ModuleCat/Sheaf/Submodule.lean b/Oka/Algebra/Category/ModuleCat/Sheaf/Submodule.lean
+index b10f8c3b43ddc016d77045b940899be8951c4c77..ed660d7db04c0e4b3d94ccb19b40ff6e1f7a4053 100644
+--- a/Oka/Algebra/Category/ModuleCat/Sheaf/Submodule.lean
++++ b/Oka/Algebra/Category/ModuleCat/Sheaf/Submodule.lean
+@@ -6,7 +6,7 @@ Authors: Yuichiro Hoshi, Junnosuke Koizumi, Christian Merten
+ module
+ 
+ public import Oka.Algebra.Category.ModuleCat.Presheaf.Submodule
+-public import Mathlib.Algebra.Category.ModuleCat.Sheaf
++public import Mathlib.Algebra.Category.ModuleCat.Sheaf.Submodule
+ 
+ /-!
+ # Submodules of sheaves of modules
+@@ -19,107 +19,6 @@ presheaf of modules whose membership condition is local.
+ - `SheafOfModules.Submodule`: a submodule of (the underlying presheaf of modules of) a sheaf of
+   modules whose membership is local.
+ - `SheafOfModules.Submodule.toSheafOfModules`: the associated sheaf of modules.
+--/
+-
+-@[expose] public section
+-
+-universe v v₁ u₁ u
+-
+-open CategoryTheory Opposite
+-
+-namespace SheafOfModules
+-
+-open PresheafOfModules
+-
+-variable {C : Type u₁} [Category.{v₁} C] {J : GrothendieckTopology C}
+-  {R : Sheaf J RingCat.{u}}
+-
+-/-- A submodule of a sheaf of modules `M`: a submodule `N` of the underlying presheaf of modules
+-whose membership condition is local. -/
+-structure Submodule (M : SheafOfModules.{v} R) extends M.val.Submodule where
+-  isSheaf ⦃X : Cᵒᵖ⦄ (s : M.val.obj X) :
+-    toSubmodule.toSubfunctor.sieveOfSection s ∈ J X.unop → s ∈ toSubmodule.obj X
+-
+-namespace Submodule
+-
+-variable {M : SheafOfModules.{v} R} (N : M.Submodule)
+-
+-@[ext]
+-lemma ext {N₁ N₂ : M.Submodule} (h : N₁.toSubmodule = N₂.toSubmodule) : N₁ = N₂ := by
+-  cases N₁
+-  cases N₂
+-  subst h
+-  rfl
+-
+-/-- The sheaf of modules associated to a submodule of a sheaf of modules. -/
+-noncomputable def toSheafOfModules : SheafOfModules.{v} R where
+-  val := N.toPresheafOfModules
+-  isSheaf := by
+-    suffices Presieve.IsSheaf J N.toSubfunctor.toFunctor by
+-      apply Presheaf.isSheaf_of_isSheaf_comp J (s := CategoryTheory.forget AddCommGrpCat)
+-      rwa [isSheaf_iff_isSheaf_of_type]
+-    rw [N.toSubfunctor.isSheaf_iff]
+-    · exact N.isSheaf
+-    · rw [← isSheaf_iff_isSheaf_of_type]
+-      exact GrothendieckTopology.HasSheafCompose.isSheaf _ M.isSheaf
+-
+-/-- The inclusion of the sheaf of modules associated to a submodule `N` into `M`. -/
+-noncomputable def ι : N.toSheafOfModules ⟶ M :=
+-  ⟨N.toSubmodule.ι⟩
+ 
+-@[simp]
+-lemma ι_val : N.ι.val = N.toSubmodule.ι := rfl
+-
+-instance : Mono N.ι :=
+-  (forget R).mono_of_mono_map <| inferInstanceAs (Mono N.toSubmodule.ι)
+-
+-instance : PartialOrder M.Submodule :=
+-  PartialOrder.lift toSubmodule fun _ _ ↦ ext
+-
+-lemma le_iff {N₁ N₂ : M.Submodule} : N₁ ≤ N₂ ↔ N₁.toSubmodule ≤ N₂.toSubmodule := .rfl
+-
+-instance : InfSet M.Submodule where
+-  sInf s :=
+-    { toSubmodule := sInf ((·.toSubmodule) '' s)
+-      isSheaf X x hx := by
+-        simp only [PresheafOfModules.Submodule.sInf_obj, Submodule.mem_iInf]
+-        rintro _ ⟨N', hN', rfl⟩
+-        refine N'.isSheaf x (J.superset_covering (fun V f hf ↦ ?_) hx)
+-        exact (sInf_le (Set.mem_image_of_mem (·.toSubmodule) hN')) (op V) hf }
+-
+-instance : Min M.Submodule where
+-  min N₁ N₂ :=
+-    { toSubmodule := N₁.toSubmodule ⊓ N₂.toSubmodule
+-      isSheaf := by
+-        rw [← sInf_pair, ← Set.image_pair (·.toSubmodule) N₁ N₂]
+-        exact (sInf {N₁, N₂}).isSheaf }
+-
+-noncomputable instance : CompleteLattice M.Submodule where
+-  __ := completeLatticeOfInf M.Submodule fun s ↦
+-    ⟨fun _ hN ↦ le_iff.mpr (sInf_le (Set.mem_image_of_mem _ hN)),
+-      fun _ hb ↦ le_iff.mpr <| le_sInf <| by
+-        rintro _ ⟨N', hN', rfl⟩
+-        exact le_iff.mp (hb hN')⟩
+-  inf := (· ⊓ ·)
+-  inf_le_left := fun _ _ ↦ le_iff.mpr inf_le_left
+-  inf_le_right := fun _ _ ↦ le_iff.mpr inf_le_right
+-  le_inf := fun _ _ _ h₁ h₂ ↦ le_iff.mpr (le_inf (le_iff.mp h₁) (le_iff.mp h₂))
+-
+-@[simp]
+-lemma toSubmodule_sInf (s : Set M.Submodule) :
+-    (sInf s).toSubmodule = sInf ((·.toSubmodule) '' s) :=
+-  rfl
+-
+-@[simp]
+-lemma toSubmodule_iInf {ι : Sort*} (N : ι → M.Submodule) :
+-    (⨅ i, N i).toSubmodule = ⨅ i, (N i).toSubmodule := by
+-  rw [iInf, toSubmodule_sInf, ← Set.range_comp, iInf, Function.comp_def]
+-
+-@[simp]
+-lemma toSubmodule_inf (N₁ N₂ : M.Submodule) :
+-    (N₁ ⊓ N₂).toSubmodule = N₁.toSubmodule ⊓ N₂.toSubmodule :=
+-  rfl
+-
+-end Submodule
+-
+-end SheafOfModules
++Mathlib now provides these declarations. This module re-exports them to preserve Oka's import path.
++-/
+diff --git a/Oka/Algebra/Category/ModuleCat/Stalk.lean b/Oka/Algebra/Category/ModuleCat/Stalk.lean
+index 6a7f5c96778f62d63aeb9a38d3191b8411419e99..0d0b5e53df579ebea57660ac7c5568200967df9e 100644
+--- a/Oka/Algebra/Category/ModuleCat/Stalk.lean
++++ b/Oka/Algebra/Category/ModuleCat/Stalk.lean
+@@ -60,18 +60,20 @@ def stalkFunctor :
+       map_add' a b := map_add _ a b
+       map_smul' := by
+         intro r m
++        change _ = r • _
+         obtain ⟨U, hxU, r, rfl⟩ := TopCat.Presheaf.exists_germ_eq R r
+         obtain ⟨V, hxV, m, rfl⟩ := TopCat.Presheaf.exists_germ_eq M.presheaf m
++        have hxUV : x ∈ U ⊓ V := ⟨hxU, hxV⟩
+         rw [← TopCat.Presheaf.germ_res_apply R (homOfLE (inf_le_left : U ⊓ V ≤ U)) x
+-              ⟨hxU, hxV⟩ r,
++              hxUV r,
+             ← TopCat.Presheaf.germ_res_apply M.presheaf (homOfLE (inf_le_right : U ⊓ V ≤ V)) x
+-              ⟨hxU, hxV⟩ m,
+-            ← germ_smul]
++              hxUV m]
++        erw [← germ_smul]
+         erw [TopCat.Presheaf.stalkFunctor_map_germ_apply (C := AddCommGrpCat.{u})
+-              (F := M.presheaf) (G := N.presheaf) (U ⊓ V) x ⟨hxU, hxV⟩ ((toPresheaf _).map f),
++              (F := M.presheaf) (G := N.presheaf) (U ⊓ V) x hxUV ((toPresheaf _).map f),
+             TopCat.Presheaf.stalkFunctor_map_germ_apply (C := AddCommGrpCat.{u})
+-              (F := M.presheaf) (G := N.presheaf) (U ⊓ V) x ⟨hxU, hxV⟩ ((toPresheaf _).map f)]
+-        rw [RingHom.id_apply, ← germ_smul]
++              (F := M.presheaf) (G := N.presheaf) (U ⊓ V) x hxUV ((toPresheaf _).map f)]
++        erw [← germ_smul]
+         congr 1
+         exact (Hom.app f (op (U ⊓ V))).hom.map_smul _ _ }
+   map_id M := by
+diff --git a/Oka/Algebra/Homology/DerivedCategory/Ext/MapNatTrans.lean b/Oka/Algebra/Homology/DerivedCategory/Ext/MapNatTrans.lean
+index 351a850eb42d360471fadd3e1da31ae767498919..609b9c0608dedcfddbee558165c3f4311c5b3a69 100644
+--- a/Oka/Algebra/Homology/DerivedCategory/Ext/MapNatTrans.lean
++++ b/Oka/Algebra/Homology/DerivedCategory/Ext/MapNatTrans.lean
+@@ -6,6 +6,7 @@ Authors: Christian Merten
+ import Mathlib.Algebra.Homology.DerivedCategory.Ext.EnoughInjectives
+ import Mathlib.Algebra.Homology.DerivedCategory.Ext.ExactSequences
+ import Mathlib.Algebra.Homology.DerivedCategory.Ext.Map
++import Mathlib.CategoryTheory.Abelian.Exact
+ 
+ /-!
+ # Naturality of `Ext.mapExactFunctor` in the functor
+diff --git a/Oka/Algebra/MvPolynomial/PDeriv.lean b/Oka/Algebra/MvPolynomial/PDeriv.lean
+index 4d721a8d3638dc1b39f918f700d70cc0433780fb..e84717ba891d18bb45b82c193564ef64fb211145 100644
+--- a/Oka/Algebra/MvPolynomial/PDeriv.lean
++++ b/Oka/Algebra/MvPolynomial/PDeriv.lean
+@@ -58,7 +58,7 @@ vanish. The induction is `MvPolynomial.induction_on`, so no monomial expansion a
+ `classical`; the statement needs no `DecidableEq σ` and the `unusedDecidableInType` linter is
+ what says so. -/
+ theorem coeff_single_one_taylorAlgHom (z : σ → R) (i : σ) (p : MvPolynomial σ R) :
+-    coeff (Finsupp.single i 1) (taylorAlgHom z p) = eval z (pderiv i p) := by
++    (taylorAlgHom z p).coeff (Finsupp.single i 1) = eval z (pderiv i p) := by
+   classical
+   induction p using MvPolynomial.induction_on with
+   | C a =>
+@@ -66,7 +66,8 @@ theorem coeff_single_one_taylorAlgHom (z : σ → R) (i : σ) (p : MvPolynomial
+       exact if_neg fun h ↦ by simpa using h.symm
+   | add p q hp hq => simp [hp, hq]
+   | mul_X p j hp =>
+-      rw [map_mul, taylorAlgHom_X, mul_add, coeff_add, coeff_mul_X', mul_comm _ (C (z j)),
++      rw [map_mul, taylorAlgHom_X, mul_add, AddMonoidAlgebra.coeff_add, Finsupp.add_apply,
++        coeff_mul_X', mul_comm _ (C (z j)),
+         coeff_C_mul, hp, pderiv_mul, map_add, eval_mul, eval_mul, eval_X]
+       by_cases h : j = i
+       · subst h
+diff --git a/Oka/AlgebraicGeometry/AlgClosed/Basic.lean b/Oka/AlgebraicGeometry/AlgClosed/Basic.lean
+index a9d62d93ad0e92cd25050114c7bc153e54e46385..e4d46502cc27945f8e90243a9b8ced9ea69f164a 100644
+--- a/Oka/AlgebraicGeometry/AlgClosed/Basic.lean
++++ b/Oka/AlgebraicGeometry/AlgClosed/Basic.lean
+@@ -41,7 +41,12 @@ theorem ext_of_apply_eq_of_formallyUnramified {X Y Z : Scheme.{u}} {K : Type u}
+   have : JacobsonSpace X := LocallyOfFiniteType.jacobsonSpace (f ≫ s ≫ i)
+   refine ext_of_fromSpecResidueField_eq_of_formallyUnramified s h fun x hx ↦ ?_
+   rw [← cancel_epi (Spec.map (residueFieldIsoBase (f ≫ s ≫ i) x hx).hom)]
+-  refine ext_of_apply_closedPoint_eq (s ≫ i) ?_ ?_ (by simpa using H x hx)
++  refine ext_of_apply_closedPoint_eq (s ≫ i) ?_ ?_ (by
++    let p : Spec (X.residueField x) :=
++      Spec.map (residueFieldIsoBase (f ≫ s ≫ i) x hx).hom (IsLocalRing.closedPoint K)
++    change f (X.fromSpecResidueField x p) = g (X.fromSpecResidueField x p)
++    rw [Scheme.fromSpecResidueField_apply]
++    exact H x hx)
+   · simp only [Category.assoc, ← SpecMap_residueFieldIsoBase_inv (f ≫ s ≫ i) x hx,
+       ← Spec.map_comp, Iso.inv_hom_id, Spec.map_id]
+   · simp only [Category.assoc, ← reassoc_of% h, ← SpecMap_residueFieldIsoBase_inv (f ≫ s ≫ i) x hx,
+diff --git a/Oka/AlgebraicGeometry/GraphClosure.lean b/Oka/AlgebraicGeometry/GraphClosure.lean
+index 3b5043fbf8c34bba45b676805660cb88e8b93e39..ed888d852b67b08c834e5dc5bae6819826bd207d 100644
+--- a/Oka/AlgebraicGeometry/GraphClosure.lean
++++ b/Oka/AlgebraicGeometry/GraphClosure.lean
+@@ -67,9 +67,10 @@ theorem isClosedImmersion_morphismRestrict_of_graph (c : X ⟶ pullback sY sP)
+   have key : u ≫ γ' = (X.isoOfEq (by rfl : c ⁻¹ᵁ O = _)).inv ≫ (c ∣_ O) := by
+     rw [← cancel_mono O.ι, Category.assoc, hγ', Category.assoc, morphismRestrict_ι]
+     apply pullback.hom_ext
+-    · simp only [γ, Category.assoc, pullback.lift_fst, hu₂, Scheme.isoOfEq_inv_ι_assoc]
+-    · simp only [γ, Category.assoc, pullback.lift_snd, reassoc_of% hu₁, morphismRestrict_ι,
+-        Scheme.isoOfEq_inv_ι_assoc]
++    · simp only [γ, Category.assoc, pullback.lift_fst, hu₂]
++      erw [Scheme.isoOfEq_inv_ι_assoc]
++    · simp only [γ, Category.assoc, pullback.lift_snd, reassoc_of% hu₁, morphismRestrict_ι]
++      erw [Scheme.isoOfEq_inv_ι_assoc]
+   have : IsClosedImmersion (u ≫ γ') := key ▸ inferInstance
+   exact IsClosedImmersion.of_comp u γ'
+ 
+diff --git a/Oka/AlgebraicGeometry/Modules/CocycleTwist.lean b/Oka/AlgebraicGeometry/Modules/CocycleTwist.lean
+index 005529b17e2c6432b15ae17e316d9ed9052dbe17..458526882116f655a1594e315f741e612254098d 100644
+--- a/Oka/AlgebraicGeometry/Modules/CocycleTwist.lean
++++ b/Oka/AlgebraicGeometry/Modules/CocycleTwist.lean
+@@ -3,6 +3,7 @@ Copyright (c) 2026 Yuichiro Hoshi, Junnosuke Koizumi, Christian Merten. All righ
+ Released under Apache 2.0 license as described in the file LICENSE.
+ Authors: Yuichiro Hoshi, Junnosuke Koizumi, Christian Merten
+ -/
++import Mathlib.AlgebraicGeometry.AffineScheme
+ import Mathlib.AlgebraicGeometry.Modules.Sheaf
+ 
+ /-!
+diff --git a/Oka/AlgebraicGeometry/Modules/Coherent.lean b/Oka/AlgebraicGeometry/Modules/Coherent.lean
+index 2e9ce25cda45c59e74487ee0b2a3f85d5a465f17..6d2efe7e806b4c9f9a64438354c72395b31c271a 100644
+--- a/Oka/AlgebraicGeometry/Modules/Coherent.lean
++++ b/Oka/AlgebraicGeometry/Modules/Coherent.lean
+@@ -127,7 +127,7 @@ nothing else; it is stated because the rest of the file mixes the two spellings
+ lemma algebraMap_basicOpen_eq_res {U : X.Opens} (f : Γ(X, U)) (r : Γ(X, U)) :
+     algebraMap Γ(X, U) Γ(X, X.basicOpen f) r =
+       X.toLocallyRingedSpace.res (X.basicOpen_le f) r := by
+-  rw [RingHom.algebraMap_toAlgebra]; rfl
++  rw [RingHom.algebraMap_toAlgebra]
+ 
+ /-- **A locally noetherian scheme has locally finitely generated relations.**
+ 
+diff --git a/Oka/AlgebraicGeometry/ProjectiveSpace/BaseChange.lean b/Oka/AlgebraicGeometry/ProjectiveSpace/BaseChange.lean
+index 11f850b1d8982aa6b3ec36f555507f53a52c17ee..9f90b56e8c2490ac17f3dea3eb9236ef14482649 100644
+--- a/Oka/AlgebraicGeometry/ProjectiveSpace/BaseChange.lean
++++ b/Oka/AlgebraicGeometry/ProjectiveSpace/BaseChange.lean
+@@ -52,7 +52,7 @@ lemma mapGradedHom_apply (p : MvPolynomial (Fin (n + 1)) R) :
+ /-- A polynomial lies in the irrelevant ideal iff its constant coefficient vanishes. -/
+ lemma mem_irrelevant_iff_coeff_zero {S : Type u} [CommRing S]
+     (a : MvPolynomial (Fin (n + 1)) S) :
+-    a ∈ HomogeneousIdeal.irrelevant (homogeneousSubmodule (Fin (n + 1)) S) ↔ coeff 0 a = 0 := by
++    a ∈ HomogeneousIdeal.irrelevant (homogeneousSubmodule (Fin (n + 1)) S) ↔ a.coeff 0 = 0 := by
+   rw [HomogeneousIdeal.mem_irrelevant_iff, GradedRing.proj_apply]
+   exact (congrArg (· = 0) (decomposition.decompose'_apply a 0)).to_iff.trans (by
+     rw [homogeneousComponent_zero, C_eq_zero])
+diff --git a/Oka/AlgebraicGeometry/Spec.lean b/Oka/AlgebraicGeometry/Spec.lean
+index 4aaf23470bd3fe66532d65e904edd81451db7763..cc8ca808898dac8f18c2514e40d326d7edab535e 100644
+--- a/Oka/AlgebraicGeometry/Spec.lean
++++ b/Oka/AlgebraicGeometry/Spec.lean
+@@ -51,6 +51,11 @@ noncomputable section
+ 
+ namespace AlgebraicGeometry.StructureSheaf
+ 
++-- Keep the point typed as `PrimeSpectrum R` while selecting the locally ringed space instance.
++local instance (R : Type u) [CommRing R] (p : PrimeSpectrum R) :
++    IsLocalRing ((Spec.locallyRingedSpaceObj (CommRingCat.of R)).presheaf.stalk p) :=
++  (Spec.locallyRingedSpaceObj (CommRingCat.of R)).isLocalRing p
++
+ /-- **The germ at `p` of the global section of `𝒪_{Spec R}` attached to `a : R` lies in the
+ maximal ideal of the stalk exactly when `a` lies in `p`.**
+ 
+diff --git a/Oka/Analysis/Calculus/Implicit.lean b/Oka/Analysis/Calculus/Implicit.lean
+index 10af3babeca73146707010cb3b88e27511bf370a..1d88d506068c1c7bb66acb60329fa8a976354881 100644
+--- a/Oka/Analysis/Calculus/Implicit.lean
++++ b/Oka/Analysis/Calculus/Implicit.lean
+@@ -271,7 +271,7 @@ theorem isLocalHomeomorph_coordProj_comp_of_isEmbedding
+       (φ.injOn_rightFun_levelSet (hsub y y.2) (hsub y' y'.2) hyy'))
+   · intro W hW
+     obtain ⟨W', hW'open, rfl⟩ := isOpen_induced_iff.1 hW
+-    have himg : U.restrict (fun t ↦ g t ∘ e) '' (Subtype.val ⁻¹' W') =
++    have himg : U.domRestrict (fun t ↦ g t ∘ e) '' (Subtype.val ⁻¹' W') =
+         (fun t ↦ g t ∘ e) '' (U ∩ W') := by
+       rw [Set.restrict_eq, Set.image_comp, Subtype.image_preimage_coe]
+     rw [himg]
+diff --git a/Oka/Analytic/DifferentiableTsum.lean b/Oka/Analytic/DifferentiableTsum.lean
+index 1cc7593e2113393328c8b4aed04a8c2b6d2c7bec..3cda1414e87bf18fea90d11236466b4e236a7f1f 100644
+--- a/Oka/Analytic/DifferentiableTsum.lean
++++ b/Oka/Analytic/DifferentiableTsum.lean
+@@ -109,7 +109,7 @@ theorem differentiableOn_tsum_of_locally_summable {ι : Type*} [Countable ι] {m
+         ∏ i, (ρ - ‖y i‖)⁻¹ := by
+       intro θ
+       rw [norm_prod]
+-      refine Finset.prod_le_prod (fun i _ ↦ norm_nonneg _) fun i _ ↦ ?_
++      refine Finset.prod_le_prod₀ (fun i _ ↦ norm_nonneg _) fun i _ ↦ ?_
+       rw [norm_inv]
+       have h2 := norm_sub_norm_le (torusMap (0 : Fin m → ℂ) (fun _ ↦ ρ) θ i) (y i)
+       rw [hnorm] at h2
+diff --git a/Oka/Analytic/HartogsRegular.lean b/Oka/Analytic/HartogsRegular.lean
+index 432a16f62ac5ad92a90eca0977114d4d53d60010..46de5fc3caa70fb03ad1ef71d55289203c64cee7 100644
+--- a/Oka/Analytic/HartogsRegular.lean
++++ b/Oka/Analytic/HartogsRegular.lean
+@@ -120,6 +120,8 @@ theorem exists_ne_zero_incl_mem_span_pair {W : (LocalOkaRing (Fin n))[X]}
+     simp only [smul_eq_mul, ← map_mul, Ideal.Quotient.eq] at hab ⊢
+     rw [hdvd] at hab ⊢
+     exact hreg _ (by rwa [mul_sub])
++  have : Algebra.IsIntegral (LocalOkaRing (Fin n)) (LocalOkaRing (Fin (n + 1)) ⧸ I) :=
++    Algebra.IsIntegral.of_finite _ _
+   obtain ⟨c, hc0, hc⟩ := exists_ne_zero_algebraMap_mem_span_singleton
+     (R := LocalOkaRing (Fin n)) hx
+   obtain ⟨a, ha⟩ := Ideal.mem_span_singleton'.mp hc
+diff --git a/Oka/Analytic/Laurent/Several.lean b/Oka/Analytic/Laurent/Several.lean
+index d7ba12c980a5df7d310c21b8920f868e8dda3da7..c5b2408becda75420165c2e2340a0866b4cfcffb 100644
+--- a/Oka/Analytic/Laurent/Several.lean
++++ b/Oka/Analytic/Laurent/Several.lean
+@@ -340,7 +340,7 @@ theorem exists_summable_bound_mcoeff {f : (Fin n → ℂ) → ℂ}
+           (norm_nonneg _) _)
+     _ = M * ∏ i, (σ i ^ (-k i) * ‖z i‖ ^ k i) := by rw [Finset.prod_mul_distrib, mul_assoc]
+     _ ≤ M * ∏ i, β i (k i) := by
+-      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod (fun i _ ↦ ?_) fun i _ ↦ ?_) hM0
++      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod₀ (fun i _ ↦ ?_) fun i _ ↦ ?_) hM0
+       · exact mul_nonneg (zpow_nonneg (hσ i).pos.le _) (zpow_nonneg (norm_nonneg _) _)
+       · obtain ⟨hz2, hz1⟩ := hz i
+         rcases le_or_gt 0 (k i) with hk | hk
+@@ -561,7 +561,7 @@ theorem differentiableOn_tsum_monomial {b : (Fin n → ℤ) → ℂ}
+       refine le_trans ?_ (Finset.single_le_sum (f := fun s ↦ ‖b k‖ * ∏ i, τ s i ^ k i)
+         (fun s _ ↦ mul_nonneg (norm_nonneg _)
+           (Finset.prod_nonneg fun i _ ↦ zpow_nonneg (hτ s i).pos.le _)) (Finset.mem_univ s₀))
+-      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod
++      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod₀
+         (fun i _ ↦ zpow_nonneg (norm_nonneg _) _) fun i _ ↦ ?_) (norm_nonneg _)
+       obtain ⟨hz2, hz1⟩ := hz i
+       rcases le_or_gt 0 (k i) with hki | hki
+@@ -604,7 +604,7 @@ theorem differentiableOn_tsum_indicator_mcoeff {f : (Fin n → ℂ) → ℂ}
+       (Finset.prod_nonneg fun i _ ↦ zpow_nonneg (norm_nonneg _) _)) fun k ↦ ?_
+     by_cases hkS : k ∈ S
+     · rw [Set.indicator_of_mem hkS, norm_mul, norm_monomial]
+-      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod
++      refine mul_le_mul_of_nonneg_left (Finset.prod_le_prod₀
+         (fun i _ ↦ zpow_nonneg (norm_nonneg _) _) fun i _ ↦ ?_) (norm_nonneg _)
+       by_cases h : r' i = r i
+       · rw [hw'eq i h]
+diff --git a/Oka/Analytic/Puiseux.lean b/Oka/Analytic/Puiseux.lean
+index 05afbc2ddb7910756d06fff090cb1b235dbba8e2..9a5249ab6704717c82c7bebc6a6038bf36ecab97 100644
+--- a/Oka/Analytic/Puiseux.lean
++++ b/Oka/Analytic/Puiseux.lean
+@@ -126,7 +126,7 @@ theorem exists_prod_eq_of_mem_base (hG : Convex ℝ G) (hGo : IsOpen G)
+     exact (Φ ⟨c, ⟨z, hz⟩⟩).2
+   have hgcont (c : Cm) : ContinuousOn (g c) (base G) := by
+     rw [continuousOn_iff_continuous_restrict]
+-    have : (base G).restrict (g c) = fun z ↦ (Φ ⟨c, z⟩).1.2 := funext fun z ↦ hg c z.2
++    have : (base G).domRestrict (g c) = fun z ↦ (Φ ⟨c, z⟩).1.2 := funext fun z ↦ hg c z.2
+     rw [this]
+     exact continuous_snd.comp (continuous_subtype_val.comp (Φ.continuous.comp continuous_sigmaMk))
+   have hmemk (c : Cm) {z : E × ℂ} (hz : z ∈ base G) : (z.1, z.2 ^ (k c : ℕ)) ∈ base G := by
+diff --git a/Oka/AnalyticSpace/Continuity.lean b/Oka/AnalyticSpace/Continuity.lean
+index 38d7a2cdc65f7306d3996c08559e74c967a3de6f..fad2deea61f58d9a8ab9baedb5ae754ed1d37d8a 100644
+--- a/Oka/AnalyticSpace/Continuity.lean
++++ b/Oka/AnalyticSpace/Continuity.lean
+@@ -244,7 +244,7 @@ theorem continuousAt_eval (z₀ : U) :
+       ((complexAffineSpace.{u} n).toLocallyRingedSpace.restrict V.isOpenEmbedding)).1 :
+         ULift.{u} (Fin n) → ℂ) ∈ V.isOpenEmbedding.isOpenMap.functor.obj A :=
+     fun z ↦ ⟨i.base ⟨z.1.1, hWU₀ _ z.2⟩, hB'A (hmemB' _ z.2), rfl⟩
+-  have hrestrict : (S.restrict fun z : U ↦ Z.eval z.1 z.2 g) =
++  have hrestrict : (S.domRestrict fun z : U ↦ Z.eval z.1 z.2 g) =
+       (fun y : V.isOpenEmbedding.isOpenMap.functor.obj A ↦ OkaRing.evalHom y.2 u) ∘
+         fun z : S ↦ (⟨_, hmaps z⟩ : V.isOpenEmbedding.isOpenMap.functor.obj A) :=
+     funext fun z ↦ hval _ (hmemB' _ z.2)
+diff --git a/Oka/AnalyticSpace/EmptyBase.lean b/Oka/AnalyticSpace/EmptyBase.lean
+index 85d680812a7c71b40edd40a65671bd3808a3afcb..be71d82fca9502fa48a0bf324c64537c4a19ea03 100644
+--- a/Oka/AnalyticSpace/EmptyBase.lean
++++ b/Oka/AnalyticSpace/EmptyBase.lean
+@@ -195,7 +195,7 @@ are interchangeable because that class is a `Prop`. -/
+ theorem SeparatedFiniteEtaleOver.not_galoisCategory_of_isEmpty :
+     ¬ GaloisCategory (SeparatedFiniteEtaleOver.{u} X) := by
+   intro h
+-  obtain ⟨F, ⟨hF⟩⟩ := h.hasFiberFunctor
++  obtain ⟨F, hF⟩ := h.hasFiberFunctor
+   exact SeparatedFiniteEtaleOver.not_isFiberFunctor_of_isEmpty F hF
+ 
+ end ComplexAnalytic.AnalyticSpace
+diff --git a/Oka/AnalyticSpace/FundamentalGroup.lean b/Oka/AnalyticSpace/FundamentalGroup.lean
+index 786c99e8481fb3cf5c9030c61b6b8dae27a74791..a5b9eac5e2d3ca49ef7e8e6124a3a59688d063b3 100644
+--- a/Oka/AnalyticSpace/FundamentalGroup.lean
++++ b/Oka/AnalyticSpace/FundamentalGroup.lean
+@@ -338,12 +338,12 @@ Galois cover with a morphism to it.
+ **No point of the base appears in the statement either, and here that takes an argument.**
+ `CategoryTheory.PreGaloisCategory.exists_hom_from_galois_of_connected` takes the fibre functor
+ explicitly, and every fibre functor this repository has is taken at a point of the base;
+-`CategoryTheory.PreGaloisCategory.GaloisCategory.getFiberFunctor` is the one the class carries and
++`CategoryTheory.GaloisCategory.getFiberFunctor` is the one the class carries and
+ it takes none, so it is what this proof feeds the lemma. -/
+ theorem SeparatedFiniteEtaleOver.exists_isGalois_hom (A : SeparatedFiniteEtaleOver.{u} X)
+     [PreGaloisCategory.IsConnected A] :
+     ∃ (B : SeparatedFiniteEtaleOver.{u} X) (_ : B ⟶ A), PreGaloisCategory.IsGalois B :=
+   PreGaloisCategory.exists_hom_from_galois_of_connected
+-    (PreGaloisCategory.GaloisCategory.getFiberFunctor _) A
++    (GaloisCategory.getFiberFunctor _) A
+ 
+ end ComplexAnalytic.AnalyticSpace
+diff --git a/Oka/AnalyticSpace/GaloisCategory.lean b/Oka/AnalyticSpace/GaloisCategory.lean
+index 98b350d8474d86cee8aa56421812b4cf3aef0f5c..5cc4b7f2ebbba6965005c32a4128b358452b2934 100644
+--- a/Oka/AnalyticSpace/GaloisCategory.lean
++++ b/Oka/AnalyticSpace/GaloisCategory.lean
+@@ -338,8 +338,8 @@ of a fibre functor and is, at the commit that adds it, the whole of what this re
+ about that class.
+ 
+ `hasFiberFunctor` is the only field. It is the instance above's fibre functor taken at
+-`Classical.arbitrary`, and the `Nonempty` half of the field is `inferInstance`, which finds that
+-instance: **the class asks for a functor and this repository's fibre functors ask for a point, so
++`Classical.arbitrary`, and `inferInstance` supplies its `FiberFunctor` instance:
++**the class asks for a functor and this repository's fibre functors ask for a point, so
+ `[Nonempty X]` is exactly the gap** and it is spent here and nowhere else in this file.
+ 
+ **`[PreconnectedSpace X]` does not give the point**, `IsPreconnected` holding of the empty set, for
+@@ -350,6 +350,6 @@ instance SeparatedFiniteEtaleOver.galoisCategory :
+     GaloisCategory (SeparatedFiniteEtaleOver.{u} X) where
+   hasFiberFunctor :=
+     ⟨SeparatedFiniteEtaleOver.fintypeFiberFunctor.{u} (Classical.arbitrary (X : Type u)),
+-      ⟨inferInstance⟩⟩
++      inferInstance⟩
+ 
+ end ComplexAnalytic.AnalyticSpace
+diff --git a/Oka/AnalyticSpace/HartogsExtension.lean b/Oka/AnalyticSpace/HartogsExtension.lean
+index a6f59b110183fd5e8670bd351e675f59c5ea33f8..67ea3ea9dbd892343a22425f0ebcf50dc6a76531 100644
+--- a/Oka/AnalyticSpace/HartogsExtension.lean
++++ b/Oka/AnalyticSpace/HartogsExtension.lean
+@@ -76,7 +76,6 @@ theorem hasHartogsExtension_of_local {O : Z.Opens}
+   refine (res_res _ h₁ (hBΩ y hy.1) t).symm.trans ?_
+   change Z.res h₁ (sectRes (SheafOfModules.unit Z.ringSheaf) (hBΩ y hy.1) t) = _
+   rw [ht, hu]
+-  rfl
+ 
+ /-- **Hartogs extension passes to larger opens.** -/
+ theorem HasHartogsExtension.mono {O O' : Z.Opens} (h : HasHartogsExtension Z O) (hO : O ≤ O') :
+diff --git a/Oka/AnalyticSpace/MonicSplitting.lean b/Oka/AnalyticSpace/MonicSplitting.lean
+index 8af208f323257c36c0549e45b4c561e8c451a748..0dc537d129f8518ad5182bb16c8bcb866869a60a 100644
+--- a/Oka/AnalyticSpace/MonicSplitting.lean
++++ b/Oka/AnalyticSpace/MonicSplitting.lean
+@@ -665,7 +665,7 @@ lemma isPiQuotient_germMap_zero (P : Fin 0 → (LocalOkaRing (Fin n))[X]) :
+     exact Ideal.zero_mem _
+   · rw [MvPolynomial.eq_C_of_isEmpty f]
+     simp only [germMap_C, Ideal.mem_bot, MvPolynomial.C_eq_zero]
+-    exact ⟨fun h ↦ by rw [← h2 (MvPolynomial.coeff 0 f), h default, map_zero],
++    exact ⟨fun h ↦ by rw [← h2 (f.coeff 0), h default, map_zero],
+       fun h _ ↦ by rw [h, map_zero]⟩
+ 
+ /-- **Splitting in several variables**: for monic `P₁, …, P_m ∈ ℂ{x}[t]`, the germs at the
+diff --git a/Oka/AnalyticSpace/MonoDirectSummand.lean b/Oka/AnalyticSpace/MonoDirectSummand.lean
+index 05b2b984eec3188fca13ecbf990b502439105bf3..96dc86f474aef07e2fb8a15658cdda65c8b57cb9 100644
+--- a/Oka/AnalyticSpace/MonoDirectSummand.lean
++++ b/Oka/AnalyticSpace/MonoDirectSummand.lean
+@@ -239,22 +239,17 @@ noncomputable def FiniteEtaleOver.selfProdSnd : FiniteEtaleOver.selfProd i ⟶ A
+ Its triangle over `X` is not `rfl` and is the one place the square is used at the level of
+ morphisms rather than of points: `A.hom` is `i.left ≫ B.hom` because `i` is a morphism over `X`,
+ and the two composites to `B.left` agree by
+-`ComplexAnalytic.AnalyticSpace.baseChange_square`. **The two `rfl`s after the rewrites are the
+-comma-category seam** — `A.hom`'s source is `(𝟭 ComplexAnalytic.AnalyticSpace).obj A.left` and not
+-`A.left`, and a rewrite leaves the goal in the second spelling. **The step before them is a
+-`change` and not a `show`**, for the reason `ComplexAnalytic.AnalyticSpace.mono_ofRestrict`'s
+-docstring gives: the two spellings are `rfl`-equal and not syntactically equal, so
+-`linter.style.show` fires and `lake build --wfail` turns the warning into an error, which
+-`lake env lean` on a scratch file does not. -/
++`ComplexAnalytic.AnalyticSpace.baseChange_square`. The `change` aligns the comma-category spelling
++of the target before applying these identities. -/
+ noncomputable def FiniteEtaleOver.selfProdFst : FiniteEtaleOver.selfProd i ⟶ A :=
+   haveI : IsFiniteEtale i.left := FiniteEtaleOver.isFiniteEtale_left i
+   MorphismProperty.Over.homMk (baseChangeFst i.left i.left) (by
+     have hw : i.left ≫ B.hom = A.hom := MorphismProperty.Over.w i
+     change baseChangeFst i.left i.left ≫ A.hom = baseChangeSnd i.left i.left ≫ A.hom
+     have e1 : baseChangeFst i.left i.left ≫ A.hom
+-        = (baseChangeFst i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]; rfl
++        = (baseChangeFst i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]
+     have e2 : baseChangeSnd i.left i.left ≫ A.hom
+-        = (baseChangeSnd i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]; rfl
++        = (baseChangeSnd i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]
+     rw [e1, e2, baseChange_square])
+ 
+ /-- **A monomorphism of covers is injective on points**, when the target's total space is
+diff --git a/Oka/AnalyticSpace/PushforwardStalkCoherent.lean b/Oka/AnalyticSpace/PushforwardStalkCoherent.lean
+index 9bef8e578acabf034c54926a2dd6b1e8d7cd2962..8869167716a5e14b1b58d499c35fc7850f661eee 100644
+--- a/Oka/AnalyticSpace/PushforwardStalkCoherent.lean
++++ b/Oka/AnalyticSpace/PushforwardStalkCoherent.lean
+@@ -222,7 +222,6 @@ theorem isCoherent_pushUnit_of_stalks
+       rw [stalkAlgMap_germ]
+       erw [map_mul]
+       rw [germ_res_pushforward f (h'.trans h₁W)]
+-      rfl
+     obtain ⟨c, hc⟩ := hrel y' hy'W _ hgerm
+     choose U hyU γ hγ using fun l ↦ Y.presheaf.exists_germ_eq (c l)
+     obtain ⟨W₂, hyW₂, hW₂⟩ := exists_open_forall Y y' (fun l V ↦ V ≤ U l)
+diff --git a/Oka/AnalyticSpace/SeparatedFiniteEtale.lean b/Oka/AnalyticSpace/SeparatedFiniteEtale.lean
+index fe033bee08bdb493773cd588fb632bbbf4490b00..835d18362e97be53a54e500d797c6a0cc3ec0c18 100644
+--- a/Oka/AnalyticSpace/SeparatedFiniteEtale.lean
++++ b/Oka/AnalyticSpace/SeparatedFiniteEtale.lean
+@@ -409,10 +409,9 @@ noncomputable def SeparatedFiniteEtaleOver.selfProdSnd (i : A ⟶ B) :
+ 
+ The triangle is `ComplexAnalytic.AnalyticSpace.FiniteEtaleOver.selfProdFst`'s and the proof is
+ that one read here: `A.hom` is `i.left ≫ B.hom` because `i` is a morphism over `X`, and the two
+-composites to `B.left` agree by `ComplexAnalytic.AnalyticSpace.baseChange_square`. **The `change`
+-is not a `show` and the two `rfl`s are the comma-category seam**, both for the reasons that
+-docstring gives; neither is a stylistic choice and `lake build --wfail` turns the second into an
+-error. -/
++composites to `B.left` agree by `ComplexAnalytic.AnalyticSpace.baseChange_square`. The `change`
++exposes the equality of underlying morphisms, and rewriting by the structure triangle aligns the
++two composites. -/
+ noncomputable def SeparatedFiniteEtaleOver.selfProdFst (i : A ⟶ B) :
+     SeparatedFiniteEtaleOver.selfProd i ⟶ A :=
+   haveI : IsFiniteEtale i.left := SeparatedFiniteEtaleOver.isFiniteEtale_left i
+@@ -420,9 +419,9 @@ noncomputable def SeparatedFiniteEtaleOver.selfProdFst (i : A ⟶ B) :
+     have hw : i.left ≫ B.hom = A.hom := MorphismProperty.Over.w i
+     change baseChangeFst i.left i.left ≫ A.hom = baseChangeSnd i.left i.left ≫ A.hom
+     have e1 : baseChangeFst i.left i.left ≫ A.hom
+-        = (baseChangeFst i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]; rfl
++        = (baseChangeFst i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]
+     have e2 : baseChangeSnd i.left i.left ≫ A.hom
+-        = (baseChangeSnd i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]; rfl
++        = (baseChangeSnd i.left i.left ≫ i.left) ≫ B.hom := by rw [Category.assoc, hw]
+     rw [e1, e2, baseChange_square])
+ 
+ /-- **A monomorphism of this category is injective on points**, over a Hausdorff base.
+diff --git a/Oka/AnalyticSpace/SeparatedFiniteEtaleLimits.lean b/Oka/AnalyticSpace/SeparatedFiniteEtaleLimits.lean
+index 8ff2c0ca4a569d5fcfd505a69f4ee81a59056fb8..76bc85f173d0ebc89e2811a8377f6b7107092b57 100644
+--- a/Oka/AnalyticSpace/SeparatedFiniteEtaleLimits.lean
++++ b/Oka/AnalyticSpace/SeparatedFiniteEtaleLimits.lean
+@@ -290,13 +290,8 @@ def fibreProdSnd (i : A ⟶ C) (j : B ⟶ C) : fibreProd i j ⟶ B :=
+ The triangle over `X` is where `ComplexAnalytic.AnalyticSpace.baseChange_square` is spent: `A.hom`
+ is `i.left ≫ C.hom` and `B.hom` is `j.left ≫ C.hom`, both because a morphism of this category
+ commutes with the structure maps, and the two composites into `C.left` agree by that square.
+-**The `change` is not a `show` and the two `rfl`s at the ends of `e1` and `e2` are the comma
+-category's seam**, for the reason
+-`ComplexAnalytic.AnalyticSpace.SeparatedFiniteEtaleOver.selfProdFst`'s docstring gives of the same
+-two lines: `CategoryTheory.MorphismProperty.Over` is a comma category over
+-`CategoryTheory.Functor.id`, so a structure morphism's source is `(𝟭 _).obj A.left` rather than
+-`A.left`, and a `rw` whose motive crosses that unifier fails on an instance argument rather than
+-on the equation. -/
++The `change` exposes the equality of underlying morphisms, and rewriting by the two structure
++triangles aligns the composites with the base-change square. -/
+ def fibreProdFst (i : A ⟶ C) (j : B ⟶ C) : fibreProd i j ⟶ A :=
+   haveI : IsFiniteEtale i.left := isFiniteEtale_left i
+   MorphismProperty.Over.homMk (baseChangeFst i.left j.left) (by
+@@ -304,9 +299,9 @@ def fibreProdFst (i : A ⟶ C) (j : B ⟶ C) : fibreProd i j ⟶ A :=
+     have hj : j.left ≫ C.hom = B.hom := MorphismProperty.Over.w j
+     change baseChangeFst i.left j.left ≫ A.hom = baseChangeSnd i.left j.left ≫ B.hom
+     have e1 : baseChangeFst i.left j.left ≫ A.hom
+-        = (baseChangeFst i.left j.left ≫ i.left) ≫ C.hom := by rw [Category.assoc, hi]; rfl
++        = (baseChangeFst i.left j.left ≫ i.left) ≫ C.hom := by rw [Category.assoc, hi]
+     have e2 : baseChangeSnd i.left j.left ≫ B.hom
+-        = (baseChangeSnd i.left j.left ≫ j.left) ≫ C.hom := by rw [Category.assoc, hj]; rfl
++        = (baseChangeSnd i.left j.left ≫ j.left) ≫ C.hom := by rw [Category.assoc, hj]
+     rw [e1, e2, baseChange_square])
+ 
+ /-- **The square commutes in this category.**
+diff --git a/Oka/Analytification/GAGA/CartanApprox.lean b/Oka/Analytification/GAGA/CartanApprox.lean
+index 581b56da7387628e1e8cbd2d04a85b54a7b5f8f7..7ff68a39f4b23872a67738eedb69456f2f9bcbfc 100644
+--- a/Oka/Analytification/GAGA/CartanApprox.lean
++++ b/Oka/Analytification/GAGA/CartanApprox.lean
+@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
+ Authors: Christian Merten
+ -/
+ import Mathlib.Analysis.Calculus.InverseFunctionTheorem.ContDiff
++import Mathlib.Topology.Algebra.Group.Units
+ import Oka.Analytification.GAGA.CartanNearOne
+ 
+ /-!
+diff --git a/Oka/Analytification/GAGA/CechProjectiveAn.lean b/Oka/Analytification/GAGA/CechProjectiveAn.lean
+index ed2fc5a4c0c28f13f73dce5965442ec38dfa1e31..1ef973c306c5469e0aee642766c9e454801391cc 100644
+--- a/Oka/Analytification/GAGA/CechProjectiveAn.lean
++++ b/Oka/Analytification/GAGA/CechProjectiveAn.lean
+@@ -213,7 +213,7 @@ lemma SummableAt.of_le {a b : Coeff n} {w w' : Fin (n + 1) → ℂ} (h : Summabl
+   by_cases hk : a k = 0
+   · simp only [hk, norm_zero, zero_mul]
+     exact mul_nonneg (norm_nonneg _) (Finset.prod_nonneg fun i _ ↦ zpow_nonneg (norm_nonneg _) _)
+-  · exact mul_le_mul (hab k hk).1 (Finset.prod_le_prod
++  · exact mul_le_mul (hab k hk).1 (Finset.prod_le_prod₀
+       (fun i _ ↦ zpow_nonneg (norm_nonneg _) _) fun i _ ↦ (hab k hk).2 i)
+       (Finset.prod_nonneg fun i _ ↦ zpow_nonneg (norm_nonneg _) _) (norm_nonneg _)
+ 
+diff --git a/Oka/Analytification/GAGA/MittagLeffler.lean b/Oka/Analytification/GAGA/MittagLeffler.lean
+index 711b9c7df2560db92075615b89aebac7fd9690b7..52bdc81437280d285be3c9d6c4d6310947d15841 100644
+--- a/Oka/Analytification/GAGA/MittagLeffler.lean
++++ b/Oka/Analytification/GAGA/MittagLeffler.lean
+@@ -77,7 +77,7 @@ theorem differentiableOn_of_tendstoLocallyUniformlyOn {ι : Type*} {l : Filter 
+   have hKle : ∀ θ, ‖∏ i, (torusMap (0 : Fin m → ℂ) (fun _ ↦ ρ) θ i - y i)⁻¹‖ ≤ Cy := by
+     intro θ
+     rw [norm_prod]
+-    refine Finset.prod_le_prod (fun i _ ↦ norm_nonneg _) fun i _ ↦ ?_
++    refine Finset.prod_le_prod₀ (fun i _ ↦ norm_nonneg _) fun i _ ↦ ?_
+     rw [norm_inv]
+     have h2 := norm_sub_norm_le (torusMap (0 : Fin m → ℂ) (fun _ ↦ ρ) θ i) (y i)
+     rw [hnorm] at h2
+diff --git a/Oka/Analytification/GAGA/Proper/CechProjectiveBox.lean b/Oka/Analytification/GAGA/Proper/CechProjectiveBox.lean
+index bf41f8f5c8ed23452192f3404e1795f9d43356a7..0cbb53b33705b6acdbbf9a6b154f188559745578 100644
+--- a/Oka/Analytification/GAGA/Proper/CechProjectiveBox.lean
++++ b/Oka/Analytification/GAGA/Proper/CechProjectiveBox.lean
+@@ -225,7 +225,7 @@ lemma tsum_proj_toCoeff_eq
+   have hmono : ∀ k, negSupp k = N → ‖monomial k w‖ ≤ ‖monomial k w'‖ := by
+     intro k hk
+     rw [norm_monomial, norm_monomial]
+-    refine Finset.prod_le_prod (fun i _ ↦ zpow_nonneg (norm_nonneg _) _) fun i _ ↦ ?_
++    refine Finset.prod_le_prod₀ (fun i _ ↦ zpow_nonneg (norm_nonneg _) _) fun i _ ↦ ?_
+     by_cases hi : i ∈ I ∧ i ∉ N
+     · have : 0 ≤ k i := not_lt.1 fun h ↦ hi.2 (hk ▸ mem_negSupp.2 h)
+       simp only [w', hi, not_false_eq_true, and_self, if_true, Complex.norm_real,
+diff --git a/Oka/Analytification/GAGA/Proper/GAGA3.lean b/Oka/Analytification/GAGA/Proper/GAGA3.lean
+index d4040ca5b5330f7b491348fb1e5ad38b0c933989..ee911b977eabb89db35f547769f37bd039194b38 100644
+--- a/Oka/Analytification/GAGA/Proper/GAGA3.lean
++++ b/Oka/Analytification/GAGA/Proper/GAGA3.lean
+@@ -194,14 +194,14 @@ theorem genericAlgebraization_of_isProperℂ (H : RelativeAnalyticSerre.{u})
+     exact hw
+   have b₁ := fA.bijective_stalkFunctor_map_unit hf M
+   have b₂ := fA.bijective_stalkFunctor_map_pushforward hf _ hμ
+-  have b₃ := (((analytification.obj T).toLocallyRingedSpace.stalkFunctor
+-    (fA.base (ιA.base q))).mapIso
+-    (asIso (inv (analytificationPushforwardBaseChange π
+-      (twistAlong j G m))))).toLinearEquiv.bijective
++  have b₃ := ConcreteCategory.bijective_of_isIso
++    (((analytification.obj T).toLocallyRingedSpace.stalkFunctor
++      (fA.base (ιA.base q))).map
++      (inv (analytificationPushforwardBaseChange π (twistAlong j G m))))
+   change Function.Bijective (((analytification.obj T).toLocallyRingedSpace.stalkFunctor
+     (fA.base (ιA.base q))).map ψ)
+-  simp only [ψ, Functor.map_comp, ConcreteCategory.coe_comp]
+-  exact b₃.comp (b₂.comp b₁)
++  simpa only [ψ, Functor.map_comp, ConcreteCategory.coe_comp, Function.comp_assoc] using
++    b₃.comp (b₂.comp b₁)
+ 
+ variable (X) in
+ /-- **GAGA-3 for proper schemes**, assuming the analytic relative Serre theorem
+diff --git a/Oka/Analytification/GAGA/Proper/RelativeBaseChangeTwist.lean b/Oka/Analytification/GAGA/Proper/RelativeBaseChangeTwist.lean
+index e79d757c932d7223beb60e4a36231f3d6ac50ce6..83de59ad652db961074bfbd69a4aeb609aa7743f 100644
+--- a/Oka/Analytification/GAGA/Proper/RelativeBaseChangeTwist.lean
++++ b/Oka/Analytification/GAGA/Proper/RelativeBaseChangeTwist.lean
+@@ -258,7 +258,7 @@ lemma eval₂_monoPoly {e : ℕ} (s : MonoExp N e) (y : Fin m → ℂ) (v : Fin
+ /-- **A homogeneous polynomial is the sum of its monomials.** -/
+ lemma eq_sum_monoPoly {e : ℕ} (p : 𝒜 e) :
+     (p : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)) =
+-      ∑ s : MonoExp N e, C (coeff (monoExpFinsupp s) (p : MvPolynomial _ _)) *
++      ∑ s : MonoExp N e, C ((p : MvPolynomial _ _).coeff (monoExpFinsupp s)) *
+         (monoPoly.{u} (m := m) s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)) := by
+   refine MvPolynomial.ext _ _ fun d ↦ ?_
+   simp only [monoPoly, coeff_sum, coeff_C_mul, coeff_monomial]
+@@ -320,13 +320,14 @@ lemma globalSectionsEquiv_smul (hN : 1 ≤ N) (e : ℕ) (a : RelBase.{u} m)
+ `p = globalSectionsEquiv s`. -/
+ lemma eq_sum_smul_monoSec (hN : 1 ≤ N) (e : ℕ)
+     (s : AlgSec (twistingSheaf N (RelBase.{u} m) e)) :
+-    s = ∑ t : MonoExp N e, coeff (monoExpFinsupp t)
+-      (globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)) • monoSec hN t := by
++    s = ∑ t : MonoExp N e,
++      (globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)).coeff
++        (monoExpFinsupp t) • monoSec hN t := by
+   apply (globalSectionsEquiv (R := RelBase.{u} m) hN e).injective
+   apply Subtype.ext
+   have h1 := map_sum (globalSectionsEquiv (R := RelBase.{u} m) hN e)
+-    (fun t ↦ coeff (monoExpFinsupp t)
+-      (globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)) • monoSec hN t)
++    (fun t ↦ (globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)).coeff
++      (monoExpFinsupp t) • monoSec hN t)
+     Finset.univ
+   refine Eq.trans ?_ (congrArg Subtype.val h1).symm
+   rw [Submodule.coe_sum]
+@@ -373,8 +374,9 @@ lemma surjective_monoTensor (e : ℕ) : Function.Surjective (monoTensor.{u} D hN
+   induction x using TensorProduct.induction_on with
+   | zero => exact ⟨0, by simp [monoTensor]⟩
+   | tmul f s =>
+-    refine ⟨fun t ↦ polyToOka.{u} D (coeff (monoExpFinsupp t)
+-      (globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m))) * f, ?_⟩
++    refine ⟨fun t ↦ polyToOka.{u} D
++      ((globalSectionsEquiv hN e s : MvPolynomial (Fin (N + 1)) (RelBase.{u} m)).coeff
++        (monoExpFinsupp t)) * f, ?_⟩
+     conv_rhs => rw [eq_sum_smul_monoSec hN e s]
+     rw [TensorProduct.tmul_sum, monoTensor]
+     refine Finset.sum_congr rfl fun t _ ↦ ?_
+diff --git a/Oka/Analytification/RET/ES/BoundedSections.lean b/Oka/Analytification/RET/ES/BoundedSections.lean
+index 1d5a6fa3eaecf2a4e1e242e0c0ca0386d022a1f4..323af19a698cee76c7cd2f63689e4af17ea83bd0 100644
+--- a/Oka/Analytification/RET/ES/BoundedSections.lean
++++ b/Oka/Analytification/RET/ES/BoundedSections.lean
+@@ -153,7 +153,7 @@ lemma evalFun_of_mem {Z : AnalyticSpace.{u}} {O : Z.Opens} (a : Z.presheaf.obj (
+ lemma continuousOn_evalFun {Z : AnalyticSpace.{u}} {O : Z.Opens} (a : Z.presheaf.obj (op O)) :
+     ContinuousOn (evalFun a) O := by
+   rw [continuousOn_iff_continuous_restrict]
+-  have : (O : Set Z).restrict (evalFun a) = fun z : O ↦ Z.eval z.1 z.2 a :=
++  have : (O : Set Z).domRestrict (evalFun a) = fun z : O ↦ Z.eval z.1 z.2 a :=
+     funext fun z ↦ evalFun_of_mem a z.2
+   rw [this]
+   exact Z.continuous_eval a
+@@ -391,7 +391,7 @@ theorem exists_local_sheets [T2Space W.left] {x₀ : Cn.{u} n} (hx₀ : x₀ ∈
+     simp only [σ, dif_pos hxN, hG i _ hxU]
+     exact congrArg Subtype.val (hfG i _ hxU)
+   · rw [continuousOn_iff_continuous_restrict]
+-    have : B.restrict (σ i) = fun x : B ↦
++    have : B.domRestrict (σ i) = fun x : B ↦
+         (H.symm (⟨⟨x.1, (hB x.1 x.2).1⟩, (hB x.1 x.2).2⟩, i)).1 := by
+       funext x
+       simp only [Set.restrict_apply, σ, dif_pos (hB x.1 x.2).1, hG i _ (hB x.1 x.2).2]
+diff --git a/Oka/Analytification/RET/ES/BoundedSectionsHartogs.lean b/Oka/Analytification/RET/ES/BoundedSectionsHartogs.lean
+index b522e0bee17bfd58c8ad0c8d31227ee13ced1eee..374151aa665364f60f09866aa196f6254cdc5b57 100644
+--- a/Oka/Analytification/RET/ES/BoundedSectionsHartogs.lean
++++ b/Oka/Analytification/RET/ES/BoundedSectionsHartogs.lean
+@@ -207,8 +207,8 @@ theorem mem_boundedSubring_of_map_mem [T2Space W.left] (hD : HasThinComplement N
+     obtain ⟨c', hc'⟩ := (bijective_map_of_regularPairFamily P hVU hV'V hV').2 (c k)
+     refine ⟨c', fun x hx hxN ↦ ?_⟩
+     rw [← holFun_map hV'V c' hx, hc', hc k x hx hxN]
+-    congr 1
+-    refine charPolyFun_congr W fun w hw ↦ ha' w ((mem_preim_iff h₀ W).2 (hw ▸ hx))
++    exact congrArg (fun p : Polynomial ℂ ↦ p.coeff k)
++      (charPolyFun_congr W fun w hw ↦ ha' w ((mem_preim_iff h₀ W).2 (hw ▸ hx)))
+   choose c' hc' using hc'
+   -- a ball around `x₀` in `img V`, over which the number of sheets is constant
+   obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.1 (img V).isOpen x₀ hx₀
+diff --git a/Oka/Analytification/RET/ES/CapExtension/ChartReverse.lean b/Oka/Analytification/RET/ES/CapExtension/ChartReverse.lean
+index 8a4d84a8547b1140fd711465a10c7e6618a6d2b4..519a5c78ebf048be99ce17661e14b605b44c4692 100644
+--- a/Oka/Analytification/RET/ES/CapExtension/ChartReverse.lean
++++ b/Oka/Analytification/RET/ES/CapExtension/ChartReverse.lean
+@@ -67,7 +67,9 @@ theorem hasLocalModuleRelationsAt_of {z : Z} (hM : HasLocalModuleRelationsAt M (
+   refine ⟨C.pre W, hpreV, k, fun l i ↦ C.ψ (C.pre W) (Y.res hWe.le (g l i)), hzW,
+     fun l ↦ ?_, fun W' hW' a ha y hy ↦ ?_⟩
+   · have := congrArg (fun s ↦ C.φ (C.pre W) (sectRes M hWe.le s)) (hrel l)
+-    simp only [sectRes_sum, sectRes_smul, C.φ_sum, sectRes_zero, map_zero] at this
++    simp only [sectRes_sum, sectRes_smul, C.φ_sum, sectRes_zero] at this
++    have hzero : C.φ (C.pre W) 0 = 0 := (C.φ (C.pre W)).map_zero
++    rw [hzero] at this
+     rw [← this]
+     refine Finset.sum_congr rfl fun i _ ↦ ?_
+     rw [C.φ_smul, sectRes_sectRes, C.φ_res hpreV, φ_φInv]
+@@ -92,6 +94,8 @@ theorem hasLocalModuleRelationsAt_of {z : Z} (hM : HasLocalModuleRelationsAt M (
+       rw [C.ψ_res hpre, ψ_ψInv]
+     rw [e₁, ← Y.res_res hW''e.le hW'', this]
+     refine Finset.sum_congr rfl fun l _ ↦ ?_
++    change C.ψ (C.pre W'') (Y.res hW''e.le
++      (c l * Y.res (hW''.trans hW'e) (g l i))) = _
+     rw [res_mul, map_mul, Y.res_res, C.ψ_res_res _ (hpre.trans hW') hWe.le]
+ 
+ end AlgebraicGeometry.LocallyRingedSpace.ModuleChart
+diff --git a/Oka/Analytification/RET/ES/Codim2/BPointConfig.lean b/Oka/Analytification/RET/ES/Codim2/BPointConfig.lean
+index 42cbba4b625bf4eedd6512f31b175e5b96c88a8a..33f963d8779e62c9d631495ab0359703f3f4d5ef 100644
+--- a/Oka/Analytification/RET/ES/Codim2/BPointConfig.lean
++++ b/Oka/Analytification/RET/ES/Codim2/BPointConfig.lean
+@@ -268,7 +268,7 @@ lemma sec_mem_region {p : Cn.{u} n × ℂ} (hp : p.1 ∈ d.G') (ht : ‖p.2‖ <
+ lemma differentiableOn_Q_coeff (k : ℕ) :
+     DifferentiableOn ℂ (d.Q.coeff k) (d.G' ×ˢ ball 0 d.r) := by
+   have hsec : Differentiable ℂ d.sec := differentiableOn_univ.1
+-    (differentiableOn_update (fun e _ ↦ ((differentiable_baseProj (it := d.it) (iw := d.iw)
++    (differentiableOn_update (fun (e : Cn.{u} n × ℂ) _ ↦ ((differentiable_baseProj (it := d.it) (iw := d.iw)
+       e.1).comp e differentiableAt_fst).differentiableWithinAt)
+       differentiable_snd.differentiableOn d.it)
+   have : d.Q.coeff k = fun p ↦ d.P.coeff k (d.sec p) := funext (d.Q_coeff k)
+diff --git a/Oka/Analytification/RET/ES/Codim2/NormalCrossingsBasis.lean b/Oka/Analytification/RET/ES/Codim2/NormalCrossingsBasis.lean
+index ef039b72945947b5f998d5ae0388d3928a9a992a..6866f4cdc162bc7fa5eff6c06bb1eca0c406b212 100644
+--- a/Oka/Analytification/RET/ES/Codim2/NormalCrossingsBasis.lean
++++ b/Oka/Analytification/RET/ES/Codim2/NormalCrossingsBasis.lean
+@@ -121,7 +121,7 @@ lemma norm_val_le (i : K.ι) (w : W.left) : ‖K.val i w‖ ≤ 1 := by
+   by_cases h : ∃ u, K.Φ i.1 u = w
+   · obtain ⟨u, hu⟩ := h
+     rw [K.val_eq i hu, KummerPi.monomial, norm_prod]
+-    refine Finset.prod_le_one (fun _ _ ↦ norm_nonneg _) fun k _ ↦ ?_
++    refine Finset.prod_le_one₀ (fun _ _ ↦ norm_nonneg _) fun k _ ↦ ?_
+     rw [norm_pow]
+     exact pow_le_one₀ (norm_nonneg _) ((KummerPi.mem_base.1 u.2).2 k).2.le
+   · rw [K.val_eq_zero i fun u hu ↦ h ⟨u, hu⟩, norm_zero]
+@@ -164,7 +164,7 @@ theorem exists_eval_eq_val (i : K.ι) :
+     dif_pos hz
+   have hΦ'c : ContinuousOn Φ' (KummerPi.base χ.B r) := by
+     rw [continuousOn_iff_continuous_restrict]
+-    have : (KummerPi.base χ.B r).restrict Φ' = K.Φ c := funext fun z ↦ hΦ' z.1 z.2
++    have : (KummerPi.base χ.B r).domRestrict Φ' = K.Φ c := funext fun z ↦ hΦ' z.1 z.2
+     rw [this]
+     exact K.continuous c
+   obtain ⟨O₁, hwO₁, hinj, -⟩ := exists_sheet W w
+diff --git a/Oka/Analytification/RET/ES/Codim2/PuiseuxCoord.lean b/Oka/Analytification/RET/ES/Codim2/PuiseuxCoord.lean
+index 7b372bc3b5887bd9987d5c7557b18322f7eff199..11746c11c844207227ba398ed8db69828a17134f 100644
+--- a/Oka/Analytification/RET/ES/Codim2/PuiseuxCoord.lean
++++ b/Oka/Analytification/RET/ES/Codim2/PuiseuxCoord.lean
+@@ -378,7 +378,7 @@ lemma exists_norm_sub_zeta_pow_mul_lt {s : ℕ} (hs : 0 < s) {a b : ℂ} {r : 
+     rw [hζ.pow_sub_pow_eq_prod_sub_mul a b hs, norm_prod]
+     calc r ^ s = ∏ _μ ∈ Polynomial.nthRootsFinset s (1 : ℂ), r := by
+           rw [Finset.prod_const, hζ.card_nthRootsFinset]
+-      _ ≤ _ := Finset.prod_le_prod (fun _ _ ↦ hr.le) hle
++      _ ≤ _ := Finset.prod_le_prod₀ (fun _ _ ↦ hr.le) hle
+   exact absurd h (not_lt.2 this)
+ 
+ /-- **The preimage of a small neighbourhood off `t = 0` splits into `s` pieces.** Let `y'` be a
+diff --git a/Oka/Analytification/RET/ES/CurveEtale.lean b/Oka/Analytification/RET/ES/CurveEtale.lean
+index 1f1cd2b0a5ea2b932ae4ed78e97c6c11ba0671cf..d0efa5d5eace75f3f0da7be0822b314e89f41db1 100644
+--- a/Oka/Analytification/RET/ES/CurveEtale.lean
++++ b/Oka/Analytification/RET/ES/CurveEtale.lean
+@@ -173,16 +173,18 @@ lemma exists_ltSeries_of_isIntegral (hinj : Function.Injective (algebraMap R S))
+     (l : LTSeries (PrimeSpectrum R)) :
+     ∃ L : LTSeries (PrimeSpectrum S), L.length = l.length ∧
+       L.last.asIdeal.comap (algebraMap R S) = l.last.asIdeal := by
++  have : FaithfulSMul R S := (faithfulSMul_iff_algebraMap_injective R S).mpr hinj
+   induction l using RelSeries.inductionOn' with
+   | singleton p =>
+     obtain ⟨Q, -, hQ, hQp⟩ := Ideal.exists_ideal_over_prime_of_isIntegral p.asIdeal (⊥ : Ideal S)
+-      (by rw [← RingHom.ker_eq_comap_bot, (RingHom.injective_iff_ker_eq_bot _).1 hinj]
++      (by rw [Ideal.under_bot]
+           exact bot_le)
+     exact ⟨RelSeries.singleton _ ⟨Q, hQ⟩, rfl, hQp⟩
+   | snoc l p hlp ih =>
+     obtain ⟨L, hL, hLl⟩ := ih
++    have hLl' : Ideal.under R L.last.asIdeal = l.last.asIdeal := hLl
+     obtain ⟨Q, hQL, hQ, hQp⟩ := Ideal.exists_ideal_over_prime_of_isIntegral_of_isPrime
+-      p.asIdeal L.last.asIdeal (by rw [hLl]; exact le_of_lt hlp)
++      p.asIdeal L.last.asIdeal (by rw [hLl']; exact le_of_lt hlp)
+     have hlp' : l.last < p := hlp
+     have hlt : L.last < ⟨Q, hQ⟩ := lt_of_le_of_ne hQL fun h ↦ hlp'.ne (PrimeSpectrum.ext
+       (hLl.symm.trans ((congrArg (fun P : PrimeSpectrum S ↦ P.asIdeal.comap (algebraMap R S))
+@@ -211,8 +213,8 @@ theorem exists_finite_injective_of_ringKrullDim_eq_one {k A : Type*} [Field k] [
+   letI := g.toRingHom.toAlgebra
+   haveI : Module.Finite (MvPolynomial (Fin s) k) A := hfin
+   have hdimP : ringKrullDim (MvPolynomial (Fin s) k) = s := by
+-    rw [MvPolynomial.ringKrullDim_of_isNoetherianRing, ringKrullDim_eq_zero_of_field,
+-      Nat.card_eq_fintype_card, Fintype.card_fin, zero_add]
++    rw [MvPolynomial.ringKrullDim_of_isNoetherianRing, ringKrullDim_eq_zero_of_field]
++    simp
+   have h1 := ringKrullDim_le_of_isIntegral (R := MvPolynomial (Fin s) k) (S := A)
+   have h2 := ringKrullDim_le_of_isIntegral_of_injective (R := MvPolynomial (Fin s) k) (S := A)
+     hinj
+diff --git a/Oka/Analytification/RET/ES/CurveSections.lean b/Oka/Analytification/RET/ES/CurveSections.lean
+index df0b02dc61ad7a8299c7f6e2fd8147131fed5625..9caecf1061ad875322897d1ce7f6b30880f6775c 100644
+--- a/Oka/Analytification/RET/ES/CurveSections.lean
++++ b/Oka/Analytification/RET/ES/CurveSections.lean
+@@ -298,6 +298,34 @@ lemma eval_growthVal (f : W.presheaf.obj (op ⊤)) (k : ℕ) {V : (projectiveSpa
+   rw [growthVal, map_mul, eval_presheaf_map, eval_presheaf_map,
+     eval_c_app _ (toProjectiveLine ρ₀).isCLinear]
+ 
++private lemma norm_eval_growthVal (f : W.presheaf.obj (op ⊤)) (k : ℕ)
++    {V : (projectiveSpaceAn.{u} 1).Opens}
++    (t : (pbTwist πP (twistCocycle.{u} k)).val.obj (op V)) (w : W)
++    (hw : (toProjectiveLine ρ₀).toLRSHom.base w ∈ V)
++    (hw1 : (toProjectiveLine ρ₀).toLRSHom.base w ∈ V ⊓ preimOpen πP (stdU 1)) :
++    ‖W.eval w hw (growthVal ρ₀ f k t)‖ =
++      ‖coord (ρ₀.toLRSHom.base w) ^ (-(k : ℤ))‖ *
++        ‖(projectiveSpaceAn.{u} 1).eval _ hw1 (pbComp t 1)‖ *
++        ‖W.eval (U := ⊤) w trivial f‖ := by
++  let z := coord (ρ₀.toLRSHom.base w)
++  let q := pointOfVec.{u} ![1, z] (by simp)
++  have hpt : (toProjectiveLine ρ₀).toLRSHom.base w = q :=
++    chart_zero_eq_pointOfVec _
++  have hp0 : (toProjectiveLine ρ₀).toLRSHom.base w ∈ V ⊓ preimOpen πP (stdU 0) :=
++    ⟨hw, πP_chart_mem 0 _⟩
++  have hq0 : q ∈ V ⊓ preimOpen πP (stdU 0) := hpt ▸ hp0
++  have hq1 : q ∈ V ⊓ preimOpen πP (stdU 1) := hpt ▸ hw1
++  have e0 := eval_pbComp_zero k t z hq0 hq1
++  have echart : (projectiveSpaceAn.{u} 1).eval _ hp0 (pbComp t 0) =
++      z ^ (-(k : ℤ)) * (projectiveSpaceAn.{u} 1).eval _ hw1 (pbComp t 1) :=
++    (eval_congr_point hpt hp0 hq0 (pbComp t 0)).trans
++      (e0.trans (congrArg (fun a : ℂ ↦ z ^ (-(k : ℤ)) * a)
++        (eval_congr_point hpt hw1 hq1 (pbComp t 1)).symm))
++  have egrowth := (eval_growthVal ρ₀ f k t w hw).trans
++    (congrArg (fun a : ℂ ↦ a * W.eval (U := ⊤) w trivial f) echart)
++  exact (congrArg norm egrowth).trans ((norm_mul _ _).trans
++    (congrArg (· * ‖W.eval (U := ⊤) w trivial f‖) (norm_mul _ _)))
++
+ lemma isBoundedNear_growthVal (f : W.presheaf.obj (op ⊤)) (k : ℕ) (C R : ℝ) (hR : 0 < R)
+     (hf : ∀ w : W, R < ‖coord (ρ₀.toLRSHom.base w)‖ →
+       ‖W.eval (U := ⊤) w trivial f‖ ≤ C * ‖coord (ρ₀.toLRSHom.base w)‖ ^ k)
+@@ -317,18 +345,13 @@ lemma isBoundedNear_growthVal (f : W.presheaf.obj (op ⊤)) (k : ℕ) (C R : ℝ
+   set z := coord (ρ₀.toLRSHom.base w)
+   have hzR : R < ‖z‖ := (chart_zero_mem_nbd_iff hR _).1 hwN.2
+   have hz0 : z ≠ 0 := norm_pos_iff.1 (hR.trans hzR)
+-  have hpt : (toProjectiveLine ρ₀).toLRSHom.base w = pointOfVec.{u} ![1, z] (by simp) :=
+-    chart_zero_eq_pointOfVec _
+   have hw1 : (toProjectiveLine ρ₀).toLRSHom.base w ∈ V ⊓ preimOpen πP (stdU 1) := by
+     refine ⟨hw, ?_⟩
+     have := πP_chart_mem 1 (ofCoord z⁻¹)
+     rw [← chart_zero_eq_chart_one _ hz0] at this
+     exact this
+   have hbdt := hwN.1 ⟨_, hw1⟩ rfl
+-  rw [eval_growthVal]
+-  have e0 := eval_pbComp_zero k t z (hpt ▸ ⟨hw, πP_chart_mem 0 _⟩) (hpt ▸ hw1)
+-  rw [eval_congr_point hpt _ (hpt ▸ ⟨hw, πP_chart_mem 0 _⟩), e0, norm_mul, norm_mul,
+-    ← eval_congr_point hpt hw1 (hpt ▸ hw1)]
++  rw [norm_eval_growthVal ρ₀ f k t w hw hw1]
+   have hzk : ‖z ^ (-(k : ℤ))‖ * ‖z‖ ^ k = 1 := by
+     rw [norm_zpow, zpow_neg, zpow_natCast, inv_mul_cancel₀ (pow_ne_zero _ (norm_ne_zero_iff.2 hz0))]
+   calc ‖z ^ (-(k : ℤ))‖ * ‖(projectiveSpaceAn.{u} 1).eval _ hw1 (pbComp t 1)‖ *
+@@ -386,13 +409,9 @@ lemma growthVal_res {V V' : (projectiveSpaceAn.{u} 1).Opens} (h : V' ≤ V)
+   · have := c_app_res (M := W.toLocallyRingedSpace) (toProjectiveLine ρ₀).toLRSHom
+       (inf_le_inf_right _ h : V' ⊓ preimOpen πP (stdU 0) ≤ V ⊓ preimOpen πP (stdU 0)) (pbComp t 0)
+     refine (congrArg (W.presheaf.map _).hom this).trans ?_
+-    change W.presheaf.map _ (W.presheaf.map _ _) = W.presheaf.map _ (W.presheaf.map _ _)
+-    rw [← ConcreteCategory.comp_apply, ← ConcreteCategory.comp_apply, ← W.presheaf.map_comp,
+-      ← W.presheaf.map_comp]
+-    rfl
+-  · change _ = W.presheaf.map _ (W.presheaf.map _ f)
+-    rw [← ConcreteCategory.comp_apply, ← W.presheaf.map_comp]
+-    rfl
++    exact (res_res W.toLocallyRingedSpace _ _ (ρPull ρ₀ (pbComp t 0))).trans
++      (res_res W.toLocallyRingedSpace _ _ (ρPull ρ₀ (pbComp t 0))).symm
++  · exact (res_res W.toLocallyRingedSpace _ _ f).symm
+ 
+ include hR hf in
+ /-- The section of the extension given by `t₀ · f`. -/
+diff --git a/Oka/Analytification/RET/ES/CurveSetup.lean b/Oka/Analytification/RET/ES/CurveSetup.lean
+index ab3d6f13647c172f21ff20674d9988789f2e5a2f..8c31a79e2c9b84ee720797942c18f4ffad9b6e60 100644
+--- a/Oka/Analytification/RET/ES/CurveSetup.lean
++++ b/Oka/Analytification/RET/ES/CurveSetup.lean
+@@ -117,15 +117,14 @@ lemma etale_restrictι_comp_toAffineSpace (f : Γ(V.obj.left, ⊤))
+     (Scheme.ΓSpecIso (.of (MvPolynomial (Fin N) (ULift.{u} ℂ)))).inv _).1
+     ((RingHom.Etale.respectsIso.cancel_right_isIso _ U.topIso.hom).1 ?_)
+   convert hf using 2
+-  · rfl
+-  · refine RingHom.ext fun p ↦ ?_
+-    change U.topIso.hom (U.ι.appTop ((SchemeLFTℂ.toAffineSpace s hs).hom.left.appTop
+-      ((Scheme.ΓSpecIso (.of (MvPolynomial (Fin N) (ULift.{u} ℂ)))).inv p))) = _
+-    rw [SchemeLFTℂ.toAffineSpace_appTop]
+-    change (U.ι.appTop ≫ U.topIso.hom) (s p) = V.obj.left.presheaf.map _ (s p)
+-    rw [Scheme.Opens.ι_appTop, Scheme.Opens.topIso_hom]
+-    erw [← Functor.map_comp]
+-    rfl
++  refine RingHom.ext fun p ↦ ?_
++  change U.topIso.hom (U.ι.appTop ((SchemeLFTℂ.toAffineSpace s hs).hom.left.appTop
++    ((Scheme.ΓSpecIso (.of (MvPolynomial (Fin N) (ULift.{u} ℂ)))).inv p))) = _
++  rw [SchemeLFTℂ.toAffineSpace_appTop]
++  change (U.ι.appTop ≫ U.topIso.hom) (s p) = V.obj.left.presheaf.map _ (s p)
++  rw [Scheme.Opens.ι_appTop, Scheme.Opens.topIso_hom]
++  erw [← Functor.map_comp]
++  rfl
+ 
+ end Etale
+ 
+diff --git a/Oka/Analytification/RET/ES/FiniteCoherent.lean b/Oka/Analytification/RET/ES/FiniteCoherent.lean
+index 8a7bd9900ee3dee401920de065d542498da41e09..59834fd242ae5c33dfdb49bab139118fa01eb22e 100644
+--- a/Oka/Analytification/RET/ES/FiniteCoherent.lean
++++ b/Oka/Analytification/RET/ES/FiniteCoherent.lean
+@@ -157,7 +157,7 @@ theorem isCoherent_pushUnit_analytification_map {Y S : SchemeLFTℂ.{u}} [IsAffi
+     simp [π, Fintype.linearCombination_apply, Algebra.smul_def, RingHom.algebraMap_toAlgebra]
+   · obtain ⟨x, rfl⟩ := (hbij s').2 z
+     obtain ⟨r, rfl⟩ := TensorProduct.exists_eq_sum_tmul_of_span_eq_top hb x
+-    exact ⟨r, by simp only [map_sum, pushforwardStalkTensorMap_tmul]; rfl⟩
++    exact ⟨r, by simp only [map_sum, pushforwardStalkTensorMap_tmul]⟩
+   · have h0 : pushforwardStalkTensorMap (analytification.map q) (analytificationΓ Y)
+         (analytificationΓ_naturality q) s' (∑ j, r j ⊗ₜ b j) = 0 := by
+       simp only [map_sum, pushforwardStalkTensorMap_tmul]
+diff --git a/Oka/Analytification/RET/ES/NormalToSmooth.lean b/Oka/Analytification/RET/ES/NormalToSmooth.lean
+index 89e66a7c9ceea3f8305196a9240f6535038fcecf..17e405dfbe767f501fa42224bed4c1f12bdfd762 100644
+--- a/Oka/Analytification/RET/ES/NormalToSmooth.lean
++++ b/Oka/Analytification/RET/ES/NormalToSmooth.lean
+@@ -619,7 +619,6 @@ theorem bijective_res_of_isLocalIso (Ω : Z.Opens) :
+   refine (LocallyRingedSpace.res_res _ h₁ (hNΩ y hy.1) t).symm.trans ?_
+   change Z.res h₁ (LocallyRingedSpace.sectRes (SheafOfModules.unit Z.ringSheaf) (hNΩ y hy.1) t) = _
+   rw [ht, hu]
+-  rfl
+ end Sheet
+ 
+ /-! ### Hartogs extension and normalisation -/
+diff --git a/Oka/Analytification/RET/ES/Normalization.lean b/Oka/Analytification/RET/ES/Normalization.lean
+index 810f32cd7a3a30f17b5a1e44d39a8a85c04e2254..c53e2f27b06b041e8c92d987cca0be88aa4ad1da 100644
+--- a/Oka/Analytification/RET/ES/Normalization.lean
++++ b/Oka/Analytification/RET/ES/Normalization.lean
+@@ -507,7 +507,11 @@ lemma surjective_specAlgebraHom (x : analytification.obj X) :
+     exact zero_mem _
+   obtain ⟨q, -, hq, hqc⟩ := Ideal.exists_ideal_over_prime_of_isIntegral (affinePt x).asIdeal ⊥ hker
+   have hqm : q.IsMaximal :=
+-    Ideal.isMaximal_of_isIntegral_of_isMaximal_comap q (by rw [hqc]; infer_instance)
++    Ideal.isMaximal_of_isIntegral_of_isMaximal_comap (algebraMap Γ(X.obj.left, ⊤) S)
++      (algebraMap_isIntegral_iff.mpr inferInstance) q (by
++        change (q.under Γ(X.obj.left, ⊤)).IsMaximal
++        rw [hqc]
++        infer_instance)
+   obtain ⟨y, hy⟩ := exists_specPt_eq (X := X) ⟨q, hq⟩ hqm
+   refine ⟨y, affinePt_injective ?_⟩
+   rw [affinePt_specAlgebraHom, hy]
+diff --git a/Oka/Analytification/RET/ES/ReflexiveHull.lean b/Oka/Analytification/RET/ES/ReflexiveHull.lean
+index 554dea1b47636c108ba7fa7d9d9e6493ff81c936..105051040478dbff1661fa6a6544411e35cb6b7b 100644
+--- a/Oka/Analytification/RET/ES/ReflexiveHull.lean
++++ b/Oka/Analytification/RET/ES/ReflexiveHull.lean
+@@ -294,7 +294,6 @@ def reflexiveHullData {U : (space N).Opens} (P : RegularPairFamily (img U : Set
+   τ_smul j V hV r a := by rw [mulSec_smul, trace_smul]
+   τ_res j V hV V' h a := by
+     rw [← sectRes_sectRes (boundedModule h₀ W) h hV, ← mulSec_map, trace_map]
+-    rfl
+   eq_zero_of_τ V hV a ha := eq_zero_of_trace_mulSec_eq_zero h₀ W hD P s
+     (fun y hy hyZ ↦ exists_span_of_isFreeSpanAt (hfree y hy fun h ↦ hyZ (hS h))) hV a ha
+   injective_res V hV :=
+diff --git a/Oka/Analytification/RET/ES/SmoothLocus.lean b/Oka/Analytification/RET/ES/SmoothLocus.lean
+index 2e60cb37b692ff02841ec16207db3964879a58c7..09196574d7f84aea25f25f74b61050b3fab44885 100644
+--- a/Oka/Analytification/RET/ES/SmoothLocus.lean
++++ b/Oka/Analytification/RET/ES/SmoothLocus.lean
+@@ -151,7 +151,7 @@ lemma exists_ringKrullDim_le_natCast (X : SchemeLFTℂ.{u}) [IsAffine X.obj.left
+   obtain ⟨k, f, hf⟩ := Algebra.FiniteType.iff_quotient_mvPolynomial''.mp
+     (inferInstance : Algebra.FiniteType ℂ Γ(X.obj.left, ⊤))
+   refine ⟨k, (ringKrullDim_le_of_surjective f.toRingHom hf).trans_eq ?_⟩
+-  rw [MvPolynomial.ringKrullDim_of_isNoetherianRing, ringKrullDim_eq_zero_of_field, zero_add,
++  rw [MvPolynomial.ringKrullDim_of_isNoetherianRing_of_finite, ringKrullDim_eq_zero_of_field, zero_add,
+     Nat.card_eq_fintype_card, Fintype.card_fin]
+ 
+ /-- A nontrivial ring of dimension at most a natural number has dimension a natural number. -/
+diff --git a/Oka/Analytification/RET/ES/SmoothSections.lean b/Oka/Analytification/RET/ES/SmoothSections.lean
+index c6fc7b660664da1ebc77c4120d2a7e56c2280cbe..9161b7eef76650d4b64b48f4b82fa9fbd724e84c 100644
+--- a/Oka/Analytification/RET/ES/SmoothSections.lean
++++ b/Oka/Analytification/RET/ES/SmoothSections.lean
+@@ -473,13 +473,9 @@ lemma growthVal_res {V V' : (projectiveSpaceAn.{u} n).Opens} (h : V' ≤ V)
+   · have := c_app_res (M := W.toLocallyRingedSpace) (toProj ρ₀).toLRSHom
+       (inf_le_inf_right _ h : V' ⊓ preimOpen πP (stdU 0) ≤ V ⊓ preimOpen πP (stdU 0)) (pbComp t 0)
+     refine (congrArg (W.presheaf.map _).hom this).trans ?_
+-    change W.presheaf.map _ (W.presheaf.map _ _) = W.presheaf.map _ (W.presheaf.map _ _)
+-    rw [← ConcreteCategory.comp_apply, ← ConcreteCategory.comp_apply, ← W.presheaf.map_comp,
+-      ← W.presheaf.map_comp]
+-    rfl
+-  · change _ = W.presheaf.map _ (W.presheaf.map _ f)
+-    rw [← ConcreteCategory.comp_apply, ← W.presheaf.map_comp]
+-    rfl
++    exact (res_res W.toLocallyRingedSpace _ _ (ρPull ρ₀ (pbComp t 0))).trans
++      (res_res W.toLocallyRingedSpace _ _ (ρPull ρ₀ (pbComp t 0))).symm
++  · exact (res_res W.toLocallyRingedSpace _ _ f).symm
+ 
+ include hR hf in
+ /-- The section of the extension given by `t₀ · f`. -/
+diff --git a/Oka/Analytification/RET/ES/SmoothSetup.lean b/Oka/Analytification/RET/ES/SmoothSetup.lean
+index f5303cbdb348140ce6f5f8629a36ae0018566c00..c192325f00bad81579d32a3732d9bc496ad891aa 100644
+--- a/Oka/Analytification/RET/ES/SmoothSetup.lean
++++ b/Oka/Analytification/RET/ES/SmoothSetup.lean
+@@ -48,7 +48,7 @@ theorem exists_finite_injective_of_ringKrullDim_eq {k A : Type*} [Field k] [Comm
+   letI := g.toRingHom.toAlgebra
+   haveI : Module.Finite (MvPolynomial (Fin s) k) A := hfin
+   have hdimP : ringKrullDim (MvPolynomial (Fin s) k) = s := by
+-    rw [MvPolynomial.ringKrullDim_of_isNoetherianRing, ringKrullDim_eq_zero_of_field,
++    rw [MvPolynomial.ringKrullDim_of_isNoetherianRing_of_finite, ringKrullDim_eq_zero_of_field,
+       Nat.card_eq_fintype_card, Fintype.card_fin, zero_add]
+   have h1 := ringKrullDim_le_of_isIntegral (R := MvPolynomial (Fin s) k) (S := A)
+   have h2 := ringKrullDim_le_of_isIntegral_of_injective (R := MvPolynomial (Fin s) k) (S := A)
+diff --git a/Oka/CategoryTheory/GlueData.lean b/Oka/CategoryTheory/GlueData.lean
+index 850eece1ecb877738a92c5f04bca8f077ea535c1..abec33f687ac099fb2322275fa2c3be21cc1af5d 100644
+--- a/Oka/CategoryTheory/GlueData.lean
++++ b/Oka/CategoryTheory/GlueData.lean
+@@ -233,7 +233,7 @@ theorem GlueData.ofGlueData'_comm {Y : C} (fY : ∀ i, D.U i ⟶ Y)
+   rcases eq_or_ne i j with rfl | hij
+   · rw [GlueData.ofGlueData'_f_self, GlueData.ofGlueData'_t_self]
+     simp
+-  · rw [← Category.assoc, GlueData.ofGlueData'_t_comp_f_of_ne D hij,
++  · erw [← Category.assoc, GlueData.ofGlueData'_t_comp_f_of_ne D hij,
+       GlueData.ofGlueData'_f_of_ne D hij]
+     dsimp only [GlueData.ofGlueData']
+     rw [Category.assoc, Category.assoc, cancel_epi, Category.assoc]
+@@ -253,7 +253,7 @@ theorem GlueData.comm_of_ofGlueData'_comm {Y : C} (fY : ∀ i, D.U i ⟶ Y)
+     {i j : D.J} (hij : i ≠ j) :
+     D.f i j hij ≫ fY i = D.t i j hij ≫ D.f j i hij.symm ≫ fY j := by
+   have hij' := h i j
+-  rw [← Category.assoc, GlueData.ofGlueData'_t_comp_f_of_ne D hij,
++  erw [← Category.assoc, GlueData.ofGlueData'_t_comp_f_of_ne D hij,
+     GlueData.ofGlueData'_f_of_ne D hij] at hij'
+   dsimp only [GlueData.ofGlueData'] at hij'
+   rw [Category.assoc, Category.assoc, cancel_epi, Category.assoc] at hij'
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace.lean
+index cbaafe504f2ecccafef096383cbcf4420f804956..3040fbcf45bf5ef15160f54058407d35989ffc7c 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace.lean
+@@ -294,6 +294,7 @@ lemma restrictStalkIso_hom_stalkAlgMap {R : Type*} [NonAssocSemiring R]
+     (X.restrictStalkIso U.isOpenEmbedding x).hom
+         ((X.restrict U.isOpenEmbedding).stalkAlgMap (X.resAlgMap α U) x c) =
+       X.stalkAlgMap α x.1 c := by
++  change U at x
+   change (X.restrictStalkIso U.isOpenEmbedding x).hom
+       ((X.restrict U.isOpenEmbedding).presheaf.germ ⊤ x trivial
+         ((X.presheaf.map (homOfLE le_top).op).hom (α c))) = _
+@@ -432,6 +433,7 @@ lemma germ_Γ_map_ofRestrict (X : LocallyRingedSpace.{u}) (U : Opens X)
+         ((X.restrict U.isOpenEmbedding).presheaf.germ ⊤ x trivial
+           ((Γ.map (X.ofRestrict U.isOpenEmbedding).op).hom s)) =
+       X.presheaf.germ ⊤ x.1 trivial s := by
++  change U at x
+   rw [Γ_map_ofRestrict_apply, restrictStalkIso_hom_eq_germ_apply]
+   exact X.presheaf.germ_res_apply (homOfLE le_top) x.1 _ s
+ 
+@@ -510,7 +512,7 @@ lemma germ_eq_stalkMap_ofRestrict (X : LocallyRingedSpace.{u}) (U : Opens X)
+     (homOfLE (U.isOpenEmbedding.isOpenMap.adjunction.unit.app O).le) w hO _)
+   refine congrArg ((X.restrict U.isOpenEmbedding).presheaf.germ O w hO) ?_
+   change b = (X.presheaf.map _).hom ((X.presheaf.map _).hom b)
+-  rw [← ConcreteCategory.comp_apply, ← X.presheaf.map_comp]
++  erw [← ConcreteCategory.comp_apply, ← X.presheaf.map_comp]
+   exact (hid _).symm
+ 
+ /-- `germ_eq_stalkMap_ofRestrict` at the top open, for a section written as a
+@@ -673,7 +675,7 @@ lemma resAlgMap_eq_comp {R : Type*} [NonAssocSemiring R] (α : R →+* X.preshea
+   RingHom.ext fun c ↦ by
+     change (X.presheaf.map _).hom _ = (X.presheaf.map _).hom ((X.presheaf.map _).hom (α c))
+     change _ = ((X.presheaf.map _) ≫ (X.presheaf.map _)).hom _
+-    rw [← X.presheaf.map_comp]
++    erw [← X.presheaf.map_comp]
+     congr 2
+ 
+ section GlueAlgMap
+@@ -718,7 +720,7 @@ lemma resAlgMap_glueAlgMap (i : ι) :
+     change (X.presheaf.map _).hom _ = (X.presheaf.map _).hom ((α i) c)
+     rw [← map_glueAlgMap hU α h i c]
+     change _ = ((X.presheaf.map _) ≫ (X.presheaf.map _)).hom _
+-    rw [← X.presheaf.map_comp]
++    erw [← X.presheaf.map_comp]
+     congr 2
+ 
+ end GlueAlgMap
+@@ -932,7 +934,8 @@ lemma exists_localLift_family (hsurj : ∀ x, Function.Surjective (i.stalkMap x)
+     ⟨hx, Set.mem_iInter.2 hxB⟩, fun j ↦ ?_⟩
+   rw [c_app_res]
+   have h1 := congrArg (M.res (hB'j j)) (hres j)
+-  simp only [res_res] at h1 ⊢
++  simp only [res_res] at h1
++  erw [res_res]
+   exact h1
+ 
+ end LocalModel
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleOpenEmbedding.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleOpenEmbedding.lean
+index c13cca0af65e6aabe5d8da5ff556d645ee89ef62..f292e79aad03fe01a387d0a21341a56c2486d5df 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleOpenEmbedding.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleOpenEmbedding.lean
+@@ -251,7 +251,9 @@ theorem hasLocalModuleRelationsAt {z : Z} (hK : HasLocalModuleRelationsAt K z) :
+     let a' : Fin m → Z.presheaf.obj (op (C.pre W₁)) := fun i ↦ C.ψ (C.pre W₁) (Y.res hW₁e.le (a i))
+     have ha' : ∑ i, a' i • sectRes K (hpre.trans hW'V) (f' i) = 0 := by
+       have := congrArg (fun s ↦ C.φ (C.pre W₁) (sectRes M hW₁e.le s)) ha
+-      simp only [sectRes_sum, sectRes_smul, C.φ_sum, sectRes_zero, map_zero] at this
++      simp only [sectRes_sum, sectRes_smul, C.φ_sum, sectRes_zero] at this
++      have hzero : C.φ (C.pre W₁) 0 = 0 := (C.φ (C.pre W₁)).map_zero
++      rw [hzero] at this
+       rw [← this]
+       refine Finset.sum_congr rfl fun i _ ↦ ?_
+       rw [C.φ_smul, sectRes_sectRes, C.φ_sectRes_sectRes _ (hpre.trans hW'V) hVe.le]
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleSections.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleSections.lean
+index 67de23265671ee899a5af4b661675acde8970d8d..c61b5b8108007c7c7459ebd6cca5d69171428db4 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleSections.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentModuleSections.lean
+@@ -169,7 +169,6 @@ theorem hasLocalModuleRelations_of_isCoherent [M.IsCoherent] : HasLocalModuleRel
+     refine (key Z' b).trans (Eq.trans ?_ hrel)
+     refine Finset.sum_congr rfl (fun i _ ↦ ?_)
+     simp only [b, freeEval_freeEvalSymm]
+-    rfl
+   obtain ⟨n, hn⟩ := hlift (op Z') b hb
+   obtain ⟨S, hS, hS'⟩ := hs a Z' (Over.homMk (homOfLE hW') (Subsingleton.elim _ _)) n
+   rw [GrothendieckTopology.mem_over_iff] at hS
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentPushforwardClosedEmbedding.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentPushforwardClosedEmbedding.lean
+index 50c1e96197465808bd065e51dd056b87d17a2b93..af3ce55bab52e432570e82a5447fb45f9f1dd3b0 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentPushforwardClosedEmbedding.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace/CoherentPushforwardClosedEmbedding.lean
+@@ -355,9 +355,7 @@ lemma Hom.hasLocalModuleRelations_pushforward_of_mem (hf : IsClosedEmbedding f.b
+     erw [map_sub, map_sum, sub_eq_zero]
+     refine Eq.trans ?_ (e₂.trans (Finset.sum_congr rfl fun l _ ↦ ?_))
+     · erw [Hom.c_app_res]
+-      rfl
+     · erw [map_mul, Hom.c_app_res, Hom.c_app_res, hc3, hd, res_res, res_res]
+-      rfl
+   -- Step 2: the remainder is locally a combination of the `h_j`
+   have hy'WI : y' ∈ WI := hWWI (hW' hy')
+   let b : Fin m → Y.presheaf.obj (op W4) := fun i ↦ Y.res h4 (a i) -
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace/HomSheafCoherent.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace/HomSheafCoherent.lean
+index fb2ad81de60335236986de07b9f65b27cde369b7..5e6457c2fa7e9c37867489314b79903a9057e60b 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace/HomSheafCoherent.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace/HomSheafCoherent.lean
+@@ -90,7 +90,10 @@ def homSheafBiprodIso (A B : SheafOfModules.{u} Y.ringSheaf) :
+         inr_fst := by rw [← homSheafMap_comp, biprod.inl_snd, homSheafMap_zero]
+         inr_snd := by rw [← homSheafMap_comp, biprod.inr_snd, homSheafMap_id] }
+       (by
+-        dsimp
++        change homSheafMap G (biprod.inl : A ⟶ A ⊞ B) ≫
++            homSheafMap G (biprod.fst : A ⊞ B ⟶ A) +
++          homSheafMap G (biprod.inr : B ⟶ A ⊞ B) ≫
++            homSheafMap G (biprod.snd : A ⊞ B ⟶ B) = 𝟙 (homSheaf (A ⊞ B) G)
+         rw [← homSheafMap_comp G biprod.fst biprod.inl, ← homSheafMap_comp G biprod.snd biprod.inr,
+           ← homSheafMap_add, biprod.total, homSheafMap_id]))
+ 
+diff --git a/Oka/Geometry/RingedSpace/LocallyRingedSpace/Modules.lean b/Oka/Geometry/RingedSpace/LocallyRingedSpace/Modules.lean
+index 6d24d3bd90eb97ba8a0d60eec06f5517462a125f..71e83aa11c65abbe4699efcdee9586416d06d42d 100644
+--- a/Oka/Geometry/RingedSpace/LocallyRingedSpace/Modules.lean
++++ b/Oka/Geometry/RingedSpace/LocallyRingedSpace/Modules.lean
+@@ -134,6 +134,16 @@ noncomputable def Hom.toRingSheafHom {X : LocallyRingedSpace.{u}} (f : X ⟶ Y)
+       RingCat.{u} _ _).obj X.ringSheaf where
+   hom := Functor.whiskerRight f.c _
+ 
++instance isRightAdjoint_pushforwardModules {X : LocallyRingedSpace.{u}} (f : X ⟶ Y) :
++    (SheafOfModules.pushforward.{u} f.toRingSheafHom).IsRightAdjoint := by
++  let φ : Y.ringSheaf ⟶ ((Opens.map f.base).sheafPushforwardContinuous
++      RingCat.{u} _ _).obj X.ringSheaf := f.toRingSheafHom
++  let : (PresheafOfModules.pushforward.{u} φ.hom).IsRightAdjoint :=
++    CategoryTheory.Functor.isRightAdjoint_of_leftAdjointObjIsDefined_eq_top
++      (PresheafOfModules.pullbackObjIsDefined_eq_top
++        (F := Opens.map f.base) (R := X.ringSheaf.obj) φ.hom)
++  exact (SheafOfModules.PullbackConstruction.adjunction.{u} φ).isRightAdjoint
++
+ variable {Y} in
+ /-- **Pullback of `𝒪`-modules along a morphism of locally ringed spaces.**
+ 
+diff --git a/Oka/Geometry/RingedSpace/ZeroLocus.lean b/Oka/Geometry/RingedSpace/ZeroLocus.lean
+index a91f2e3a06bc79c15ebf6482a55919a21a2474aa..dcd61241e002bed47d0d244fe0687eab5b85effe 100644
+--- a/Oka/Geometry/RingedSpace/ZeroLocus.lean
++++ b/Oka/Geometry/RingedSpace/ZeroLocus.lean
+@@ -278,7 +278,7 @@ theorem stalkMap_zeroLocusιHom (z : Y.zeroLocusSpace f) :
+   -- `TopCat.Presheaf` is a `def`, so `rw` refuses to look inside its category instance; `erw`
+   -- does. The final `rfl` is `stalkPullbackHom` unfolding to its definition.
+   erw [Functor.map_comp, Functor.map_comp, Functor.map_comp]
+-  rw [Category.assoc, Category.assoc, Category.assoc]
++  erw [Category.assoc, Category.assoc, Category.assoc]
+   erw [TopCat.Presheaf.stalkPushforward_naturality]
+   rfl
+ 
+@@ -325,9 +325,14 @@ modulo the ideal generated by the germs of the `f i`. -/
+ def zeroLocusStalkQuotientEquiv (z : Y.zeroLocusSpace f) :
+     (Y.presheaf.stalk (Y.zeroLocusι f z) ⧸
+         Ideal.span (Set.range fun i ↦ Y.presheaf.Γgerm (Y.zeroLocusι f z) (f i))) ≃+*
+-      (Y.zeroLocusPresheaf f).stalk z :=
+-  (Ideal.quotEquivOfEq (Y.ker_stalkMap_zeroLocusιHom f z).symm).trans
+-    (RingHom.quotientKerEquivOfSurjective (Y.surjective_stalkMap_zeroLocusιHom f z))
++      (Y.zeroLocusPresheaf f).stalk z := by
++  let q : Y.presheaf.stalk (Y.zeroLocusι f z) →+* (Y.zeroLocusPresheaf f).stalk z :=
++    ((Y.zeroLocusιHom f).stalkMap z).hom
++  have hker : RingHom.ker q =
++      Ideal.span (Set.range fun i ↦ Y.presheaf.Γgerm (Y.zeroLocusι f z) (f i)) :=
++    Y.ker_stalkMap_zeroLocusιHom f z
++  have hsurj : Function.Surjective q := Y.surjective_stalkMap_zeroLocusιHom f z
++  exact (Ideal.quotEquivOfEq hker.symm).trans (RingHom.quotientKerEquivOfSurjective hsurj)
+ 
+ /-- The stalks of the structure sheaf of the zero locus are nonzero rings. -/
+ instance nontrivial_zeroLocusPresheaf_stalk (z : Y.zeroLocusSpace f) :
+diff --git a/Oka/LocalOkaRing.lean b/Oka/LocalOkaRing.lean
+index eb90e4f2cb26c1972f2d281c91c366fa1b485ec1..e1eee2176b31a391fbb8fe5d8917cb3015eacba6 100644
+--- a/Oka/LocalOkaRing.lean
++++ b/Oka/LocalOkaRing.lean
+@@ -304,7 +304,7 @@ omit [Fintype ι] in
+ lemma norm_evalMonomial_le (h : ∀ i, ‖x i‖ ≤ ‖y i‖) (d : ι →₀ ℕ) :
+     ‖evalMonomial d x‖ ≤ ‖evalMonomial d y‖ := by
+   simp only [evalMonomial, Finsupp.prod, norm_prod, norm_pow]
+-  exact Finset.prod_le_prod (fun i _ ↦ by positivity)
++  exact Finset.prod_le_prod₀ (fun i _ ↦ by positivity)
+     fun i _ ↦ pow_le_pow_left₀ (norm_nonneg _) (h i) _
+ 
+ omit [Fintype ι] in
+@@ -418,7 +418,7 @@ lemma norm_monomialCMM_le (d : ι →₀ ℕ) (n : ℕ) : ‖monomialCMM d n‖
+     rw [one_mul, ContinuousMultilinearMap.compContinuousLinearMap_apply,
+       ContinuousMultilinearMap.mkPiAlgebra_apply, norm_prod]
+     simp only [ContinuousLinearMap.proj_apply]
+-    exact Finset.prod_le_prod (fun _ _ ↦ norm_nonneg _) fun k _ ↦ norm_le_pi_norm _ _
++    exact Finset.prod_le_prod₀ (fun _ _ ↦ norm_nonneg _) fun k _ ↦ norm_le_pi_norm _ _
+   · simp
+ 
+ variable (P) in
+@@ -565,7 +565,7 @@ lemma norm_fpsCoeff_le (p : FormalMultilinearSeries ℂ (ι → ℂ) ℂ) (n : 
+   refine Finset.sum_le_sum fun s _ ↦ ?_
+   refine ((p n).le_opNorm _).trans ?_
+   refine mul_le_of_le_one_right (norm_nonneg _) ?_
+-  exact Finset.prod_le_one (fun _ _ ↦ norm_nonneg _) fun k _ ↦ norm_basisVec_le _
++  exact Finset.prod_le_one₀ (fun _ _ ↦ norm_nonneg _) fun k _ ↦ norm_basisVec_le _
+ 
+ lemma sum_card_fibers (n : ℕ) :
+     ∑ d ∈ degFinset ι n, ((tupleFinset n d).card : ℝ) = (Fintype.card ι : ℝ) ^ n := by
+@@ -578,7 +578,7 @@ lemma norm_evalMonomial_le_pow {ρ : ℝ} {y : ι → ℂ} (hy : ‖y‖ ≤ ρ)
+     (hd : d ∈ degFinset ι n) : ‖evalMonomial d y‖ ≤ ρ ^ n := by
+   have h1 : ∀ i, ‖y i‖ ≤ ρ := fun i ↦ (norm_le_pi_norm y i).trans hy
+   rw [norm_evalMonomial, ← mem_degFinset.mp hd, ← Finset.prod_pow_eq_pow_sum]
+-  exact Finset.prod_le_prod (fun i _ ↦ by positivity)
++  exact Finset.prod_le_prod₀ (fun i _ ↦ by positivity)
+     fun i _ ↦ pow_le_pow_left₀ (norm_nonneg _) (h1 i) _
+ 
+ /-- Absolute convergence can be checked after regrouping by total degree. -/
+@@ -802,7 +802,7 @@ theorem eq_zero_of_represents_zero [Finite ι] {R : MvPowerSeries ι ℂ} (hR :
+     refine MvPolynomial.funext fun y ↦ ?_
+     rw [map_zero, map_sum]
+     simpa [MvPolynomial.eval_monomial, evalMonomial] using hall (∑ i, d i) y
+-  have h3 := congrArg (MvPolynomial.coeff d) hΦ
++  have h3 := congrArg (fun p : MvPolynomial ι ℂ ↦ p.coeff d) hΦ
+   rw [MvPolynomial.coeff_sum] at h3
+   simp only [MvPolynomial.coeff_monomial, MvPolynomial.coeff_zero] at h3
+   rw [Finset.sum_ite_eq' (degFinset ι (∑ i, d i)) d (fun e ↦ coeff e R)] at h3
+diff --git a/Oka/Nullstellensatz/Germ.lean b/Oka/Nullstellensatz/Germ.lean
+index 9c3d3babe4e2f03cfb934f671a57c00197c8668f..a630f76a02023e4cb32970d26d51ecfb15ea43db 100644
+--- a/Oka/Nullstellensatz/Germ.lean
++++ b/Oka/Nullstellensatz/Germ.lean
+@@ -62,7 +62,7 @@ theorem exists_incl_sub_mul_mem {W : (LocalOkaRing (Fin n))[X]}
+       (Ideal.Quotient.factorₐ (LocalOkaRing (Fin n)) hle).toLinearMap
+       (Ideal.Quotient.factor_surjective hle)
+   have hint : IsIntegral (LocalOkaRing (Fin n)) (Ideal.Quotient.mk P g) :=
+-    Algebra.IsIntegral.isIntegral _
++    IsIntegral.of_finite _ _
+   have hne : Ideal.Quotient.mk P g ≠ 0 := by rwa [Ne, Ideal.Quotient.eq_zero_iff_mem]
+   have hlt := Ideal.comap_lt_comap_of_integral_mem_sdiff (R := LocalOkaRing (Fin n))
+     (I := (⊥ : Ideal (LocalOkaRing (Fin (n + 1)) ⧸ P)))
+diff --git a/Oka/OkaLemma.lean b/Oka/OkaLemma.lean
+index e17e8fa32fdd36fb3f5750413c3146acc734e7f2..1e06a52aa9232b16a68b1d800a0f478a40601c7b 100644
+--- a/Oka/OkaLemma.lean
++++ b/Oka/OkaLemma.lean
+@@ -167,10 +167,11 @@ lemma mapDomain_finInit_add_single_last (u : Fin (n + 1) →₀ ℕ) :
+   ext j
+   induction j using Fin.lastCases with
+   | last =>
+-    rw [Finsupp.add_apply, Finsupp.mapDomain_notin_range _ _ (by simp),
++    rw [Finsupp.add_apply, Finsupp.mapDomain_of_notMem_range _ _ (by simp),
+       Finsupp.single_eq_same, zero_add]
+   | cast i =>
+-    rw [Finsupp.add_apply, Finsupp.mapDomain_apply (Fin.castSucc_injective n), finInit_apply]
++    rw [Finsupp.add_apply, Finsupp.mapDomain_apply_of_injective (Fin.castSucc_injective n),
++      finInit_apply]
+     simp [(Fin.castSucc_lt_last i).ne]
+ 
+ /-- The coefficients of `MvPowerSeries.fromPolynomial' Q` at an arbitrary exponent. -/
+diff --git a/Oka/RingTheory/IntegralClosureEtale.lean b/Oka/RingTheory/IntegralClosureEtale.lean
+index 22d620ad0eed1f59e3d12d8706f3b7f5c5e7b1f0..37b331c92c9c51497a6e815ff6c4cb90cc8ccc30 100644
+--- a/Oka/RingTheory/IntegralClosureEtale.lean
++++ b/Oka/RingTheory/IntegralClosureEtale.lean
+@@ -87,8 +87,7 @@ theorem exists_algebraMap_eq_of_isIntegral_tensor [Algebra.Smooth R S]
+     (congrArg Subtype.val ht).symm
+   rw [hy']
+   clear ht hy'
+-  induction t with
+-  | zero => exact ⟨0, by simp⟩
++  induction t using TensorProduct.inductionOn with
+   | add x y hx hy =>
+     obtain ⟨a, ha⟩ := hx
+     obtain ⟨b, hb⟩ := hy
+diff --git a/Oka/RingTheory/MilnorPatching.lean b/Oka/RingTheory/MilnorPatching.lean
+index ef94de2518e2352d530fbfeeb8fde8803bf0a1b7..4edb36e268453696d149d78197669d80146167d5 100644
+--- a/Oka/RingTheory/MilnorPatching.lean
++++ b/Oka/RingTheory/MilnorPatching.lean
+@@ -244,7 +244,6 @@ include hφ in
+ lemma surjective_of_isBaseChange : Function.Surjective φ := by
+   intro y
+   induction y using hφ.inductionOn with
+-  | zero => exact ⟨0, map_zero φ⟩
+   | tmul m => exact ⟨m, rfl⟩
+   | smul s n hn =>
+     obtain ⟨m, rfl⟩ := hn
+@@ -310,7 +309,6 @@ lemma mem_span_range_fst (p : P) :
+       exact Submodule.smul_mem _ s hx
+   have hq : φ p ∈ Submodule.span (S ⧸ I.map (algebraMap R S)) (Set.range ψ) := by
+     induction φ p using hψ.inductionOn with
+-    | zero => exact zero_mem _
+     | tmul m => exact Submodule.subset_span ⟨m, rfl⟩
+     | smul s n hn => exact Submodule.smul_mem _ s hn
+     | add n₁ n₂ h₁ h₂ => exact add_mem h₁ h₂
+diff --git a/Oka/RingTheory/MvPolynomial/LaurentAway.lean b/Oka/RingTheory/MvPolynomial/LaurentAway.lean
+index 88222b85c4cbfe701696f5ee995643a918e53037..b2f15d3d79d4197f3dca8719c49c249ba766eed3 100644
+--- a/Oka/RingTheory/MvPolynomial/LaurentAway.lean
++++ b/Oka/RingTheory/MvPolynomial/LaurentAway.lean
+@@ -86,8 +86,7 @@ lemma toLaurent_apply (p : MvPolynomial ι R) : toLaurent ι R p = mapDomain exp
+ 
+ lemma coeff_toLaurent_expInt (p : MvPolynomial ι R) (e : ι →₀ ℕ) :
+     (toLaurent ι R p).coeff (expInt e) = p.coeff e := by
+-  rw [toLaurent_apply, coeff_mapDomain, Finsupp.mapDomain_apply expInt_injective]
+-  rfl
++  rw [toLaurent_apply, coeff_mapDomain, Finsupp.mapDomain_apply_of_injective expInt_injective]
+ 
+ lemma coeff_toLaurent_eq_zero (p : MvPolynomial ι R) {a : ι →₀ ℤ} (ha : ¬ ∀ j, 0 ≤ a j) :
+     (toLaurent ι R p).coeff a = 0 := by
+diff --git a/Oka/RingTheory/MvPolynomial/Localization.lean b/Oka/RingTheory/MvPolynomial/Localization.lean
+index eadf5f3f75d156a3e2d13b0f324d502f614469d0..75ac33618a8ace657f0ec9458095bd494e4452bb 100644
+--- a/Oka/RingTheory/MvPolynomial/Localization.lean
++++ b/Oka/RingTheory/MvPolynomial/Localization.lean
+@@ -185,7 +185,7 @@ theorem awayLift_awayBaseHom (a : MvPolynomial σ R ⧸ I) :
+   obtain ⟨p, rfl⟩ := Ideal.Quotient.mk_surjective a
+   have h := congrArg (fun φ : MvPolynomial σ R →ₐ[R] _ ↦ φ p) (awayAeval_comp_rename I f)
+   simp only [AlgHom.coe_comp, Function.comp_apply] at h
+-  simpa [awayLift, awayBaseHom] using h
++  exact h
+ 
+ theorem awayLift_comp_awayInv : (awayLift I f).comp (awayInv I f) = AlgHom.id R _ := by
+   ext a
+@@ -202,8 +202,14 @@ theorem awayInv_comp_awayLift : (awayInv I f).comp (awayLift I f) = AlgHom.id R
+     exact congrFun (congrArg DFunLike.coe h) p
+   apply MvPolynomial.algHom_ext
+   rintro (_ | i)
+-  · simp [awayLift, awayAeval, awayInv_invSelf]
+-  · simp [awayLift, awayAeval, awayInv_algebraMap, awayBaseHom]
++  · simp only [AlgHom.coe_comp, Function.comp_apply, Ideal.Quotient.mkₐ_eq_mk,
++      awayLift, Ideal.Quotient.liftₐ_apply]
++    erw [Ideal.Quotient.lift_mk]
++    simp [awayAeval, awayInv_invSelf]
++  · simp only [AlgHom.coe_comp, Function.comp_apply, Ideal.Quotient.mkₐ_eq_mk,
++      awayLift, Ideal.Quotient.liftₐ_apply]
++    erw [Ideal.Quotient.lift_mk]
++    simp [awayAeval, awayInv_algebraMap, awayBaseHom]
+ 
+ /-- **The isomorphism with `Localization.Away`**, over `R`. This is the shape a consumer that
+ renames variables wants; `MvPolynomial.isLocalization_away_quotient_awayIdeal` is the shape a
+diff --git a/Oka/RingTheory/SmoothCodimOne.lean b/Oka/RingTheory/SmoothCodimOne.lean
+index b8bcdd3d26553ed2d056f92b823260a8c8f3fa0d..6983111ee22074dbd8f1abf53f03cc36488a2b2a 100644
+--- a/Oka/RingTheory/SmoothCodimOne.lean
++++ b/Oka/RingTheory/SmoothCodimOne.lean
+@@ -80,7 +80,7 @@ theorem isSmoothAt_of_ringKrullDim_le_one {K A : Type*} [Field K] [CharZero K] [
+   haveI : Ring.DimensionLEOne S :=
+     ⟨fun hp hp' ↦ Ring.krullDimLE_one_iff_of_isPrime_bot.mp inferInstance _ hp hp'⟩
+   haveI : IsDedekindDomain S := {}
+-  obtain ⟨ϖ, hϖ⟩ := ((IsDiscreteValuationRing.TFAE S hS).out 2 4).mp ‹IsDedekindDomain S›
++  obtain ⟨ϖ, hϖ⟩ := ((IsDiscreteValuationRing.TFAE S hS).out 3 5).mp ‹IsDedekindDomain S›
+   obtain ⟨a, s, rfl⟩ := IsLocalization.exists_mk'_eq q.primeCompl ϖ
+   have hm : maximalIdeal S = Ideal.span {algebraMap A S a} := by
+     rw [hϖ, Ideal.submodule_span_eq, IsLocalization.mk'_eq_mul_mk'_one,
+diff --git a/Oka/Topology/Sheaves/Cohomology/ClosedEmbedding.lean b/Oka/Topology/Sheaves/Cohomology/ClosedEmbedding.lean
+index 4ec3d7043c0523150fc12e8c8d9574317675f9ea..06ce561ad0ab99e36d9e3d1c39d49851d3f84fde 100644
+--- a/Oka/Topology/Sheaves/Cohomology/ClosedEmbedding.lean
++++ b/Oka/Topology/Sheaves/Cohomology/ClosedEmbedding.lean
+@@ -118,7 +118,7 @@ theorem map_exact_pushforwardAb (hf : IsClosedEmbedding f) (S : ShortComplex (Ab
+ /-- Pushforward along a closed embedding preserves finite limits and finite colimits. -/
+ theorem preservesFiniteLimitsAndColimits_pushforwardAb (hf : IsClosedEmbedding f) :
+     PreservesFiniteLimits (pushforwardAb f) ∧ PreservesFiniteColimits (pushforwardAb f) :=
+-  ((Functor.exact_tfae (pushforwardAb f)).out 1 3).1 (map_exact_pushforwardAb hf)
++  ((Functor.exact_tfae (pushforwardAb f)).out 2 4).1 (map_exact_pushforwardAb hf)
+ 
+ /-- **Pushforward along a closed embedding preserves finite colimits.** -/
+ theorem preservesFiniteColimits_pushforwardAb (hf : IsClosedEmbedding f) :
+diff --git a/Oka/Topology/Sheaves/Cohomology/MayerVietoris.lean b/Oka/Topology/Sheaves/Cohomology/MayerVietoris.lean
+index e66d8343132ec9ac44817c1bd3f2a8a26c6b99e1..5b481b1e326399dfde46b19b5bee0e3439b2e79f 100644
+--- a/Oka/Topology/Sheaves/Cohomology/MayerVietoris.lean
++++ b/Oka/Topology/Sheaves/Cohomology/MayerVietoris.lean
+@@ -88,14 +88,12 @@ theorem extComparison_bijective
+         simp only [AddMonoidHom.coe_comp, Function.comp_apply, extComparison_apply,
+           AddCommGrpCat.hom_ofHom, Ext.postcomp, AddMonoidHom.flip_apply,
+           Ext.bilinearComp_apply_apply, Ext.mapExactFunctor_comp, Ext.mapExactFunctor_mk₀]
+-        erw [AddMonoidHom.flip_apply, Ext.bilinearComp_apply_apply]
+         exact Ext.comp_assoc_of_third_deg_zero _ _ _ _)
+       (by
+         ext x
+         simp only [AddMonoidHom.coe_comp, Function.comp_apply, extComparison_apply,
+           AddCommGrpCat.hom_ofHom, Ext.postcomp, AddMonoidHom.flip_apply,
+           Ext.bilinearComp_apply_apply, Ext.mapExactFunctor_comp, Ext.mapExactFunctor_extClass]
+-        erw [AddMonoidHom.flip_apply, Ext.bilinearComp_apply_apply]
+         exact Ext.comp_assoc _ _ _ (zero_add n) rfl (by omega))
+       ((ShortComplex.ab_exact_iff_function_exact _).mp
+         (Ext.covariant_sequence_exact₃' Z hS n (n + 1) rfl))
+@@ -125,7 +123,9 @@ noncomputable def freeYonedaHomEquiv (B : AbSheaf X) :
+ lemma freeYonedaHomEquiv_comp {B B' : AbSheaf X} (x : freeYoneda U ⟶ B) (g : B ⟶ B') :
+     freeYonedaHomEquiv U B' (x ≫ g) = g.hom.app (op U) (freeYonedaHomEquiv U B x) := by
+   simp only [freeYonedaHomEquiv, Equiv.trans_apply]
+-  erw [Adjunction.homEquiv_naturality_right, Equiv.trans_apply]
++  rw [(sheafificationAdjunction _ _).homEquiv_naturality_right x g,
++    Adjunction.homEquiv_naturality_right, yonedaEquiv_comp]
++  rfl
+ 
+ 
+ /-- Morphisms out of `ℤ_Y` are global sections. -/
+diff --git a/Oka/Topology/Sheaves/Cohomology/MayerVietorisNatural.lean b/Oka/Topology/Sheaves/Cohomology/MayerVietorisNatural.lean
+index d429c3076f4d3efc98ca2c3b2e3f24ff02f4c58c..7b26d4091f364a803957a2a34fdec4bf35e8d219 100644
+--- a/Oka/Topology/Sheaves/Cohomology/MayerVietorisNatural.lean
++++ b/Oka/Topology/Sheaves/Cohomology/MayerVietorisNatural.lean
+@@ -98,7 +98,7 @@ lemma freeYonedaHomEquiv_incl_comp (h : V ≤ U) {B : AbSheaf X} (s : freeYoneda
+       B.obj.map (homOfLE h).op (freeYonedaHomEquiv U B s) := by
+   simp only [freeYonedaHomEquiv, incl, Equiv.trans_apply]
+   erw [Adjunction.homEquiv_naturality_left]
+-  erw [Equiv.trans_apply, Equiv.trans_apply, Adjunction.homEquiv_naturality_left]
++  erw [Adjunction.homEquiv_naturality_left]
+   exact (yonedaEquiv_naturality _ _).symm
+ 
+ /-- `(ℤ[U] ⟶ B) ≃ B(U)` is evaluation at the canonical section of `ℤ[U]` over `U`. -/
+diff --git a/Oka/Topology/Sheaves/Cohomology/PushforwardAcyclic.lean b/Oka/Topology/Sheaves/Cohomology/PushforwardAcyclic.lean
+index 93347d22054fef6aa2b36c779c75e457204d38eb..9bf1b273f3aa47740e6d647856c113b6d027f5d8 100644
+--- a/Oka/Topology/Sheaves/Cohomology/PushforwardAcyclic.lean
++++ b/Oka/Topology/Sheaves/Cohomology/PushforwardAcyclic.lean
+@@ -360,7 +360,6 @@ lemma pullbackAb_map_pullbackPushforwardBaseChangeApp_comp_pushforwardCounit (G
+   symm
+   erw [Category.assoc, Category.assoc, ← n₁, ← Functor.map_comp_assoc, ← n₂, Functor.map_comp,
+     ← Category.assoc, ← Category.assoc, t, Category.id_comp]
+-  rfl
+ 
+ /-- The pullback maps along the two composites of a commutative square `f' ≫ g = g' ≫ f` agree
+ up to `f'⁻¹ g⁻¹ F ⟶ g'⁻¹ f⁻¹ F`. -/
+diff --git a/Oka/Topology/Sheaves/QuotientPresheaf.lean b/Oka/Topology/Sheaves/QuotientPresheaf.lean
+index eaae9c85d5347893c8677fd16faf3a8be457f1e5..235fa9056abcc9db6122b96449720442dbeb4d24 100644
+--- a/Oka/Topology/Sheaves/QuotientPresheaf.lean
++++ b/Oka/Topology/Sheaves/QuotientPresheaf.lean
+@@ -189,10 +189,17 @@ generated by the `f i`. -/
+ theorem ker_stalkFunctor_map_toQuotientSpan :
+     RingHom.ker ((stalkFunctor CommRingCat.{u} y).map (F.toQuotientSpan f)).hom =
+       Ideal.span (Set.range fun i ↦ F.Γgerm y (f i)) := by
++  let q : F.stalk y →+* (F.quotientSpan f).stalk y :=
++    ((stalkFunctor CommRingCat.{u} y).map (F.toQuotientSpan f)).hom
++  change RingHom.ker q = Ideal.span (Set.range fun i ↦ F.Γgerm y (f i))
+   apply le_antisymm
+   · intro t ht
++    have ht : q t = 0 := RingHom.mem_ker.mp ht
+     obtain ⟨U, hy, s, rfl⟩ := F.exists_germ_eq t
+-    rw [RingHom.mem_ker, stalkFunctor_map_germ_apply U y hy _ s] at ht
++    have hq : q (F.germ U y hy s) =
++        (F.quotientSpan f).germ U y hy ((F.toQuotientSpan f).app (op U) s) :=
++      stalkFunctor_map_germ_apply U y hy _ s
++    rw [hq] at ht
+     have ht0 : (F.quotientSpan f).germ U y hy ((F.toQuotientSpan f).app (op U) s) =
+         (F.quotientSpan f).germ U y hy 0 := by rw [map_zero]; exact ht
+     obtain ⟨W, hyW, iU, iV, hW⟩ := (F.quotientSpan f).germ_eq y hy hy _ _ ht0
+@@ -210,19 +217,25 @@ theorem ker_stalkFunctor_map_toQuotientSpan :
+     have h0 : ((F.toQuotientSpan f).app (op ⊤)) (f i) = 0 :=
+       (F.toQuotientSpan_app_eq_zero_iff f (f i)).2 (by simpa using F.res_mem_spanIdeal f ⊤ i)
+     refine RingHom.mem_ker.2 ?_
+-    change ((stalkFunctor CommRingCat.{u} y).map (F.toQuotientSpan f)).hom
+-      (F.Γgerm y (f i)) = 0
+-    rw [show F.Γgerm y (f i) = F.germ ⊤ y True.intro (f i) from rfl,
+-      stalkFunctor_map_germ_apply ⊤ y True.intro _ (f i), h0, map_zero]
+-    rfl
++    change q (F.Γgerm y (f i)) = 0
++    calc
++      q (F.Γgerm y (f i)) =
++          (F.quotientSpan f).germ ⊤ y True.intro ((F.toQuotientSpan f).app (op ⊤) (f i)) :=
++        stalkFunctor_map_germ_apply ⊤ y True.intro _ (f i)
++      _ = 0 := by rw [h0, map_zero]
+ 
+ /-- The stalk of the quotient presheaf at `y` is the quotient of the stalk of `F` at `y` by the
+ ideal generated by the germs at `y` of the `f i`. -/
+ noncomputable def stalkQuotientSpanEquiv :
+     (F.stalk y ⧸ Ideal.span (Set.range fun i ↦ F.Γgerm y (f i))) ≃+*
+-      (F.quotientSpan f).stalk y :=
+-  (Ideal.quotEquivOfEq (F.ker_stalkFunctor_map_toQuotientSpan f y).symm).trans
+-    (RingHom.quotientKerEquivOfSurjective (F.surjective_stalkFunctor_map_toQuotientSpan f y))
++      (F.quotientSpan f).stalk y := by
++  let q : F.stalk y →+* (F.quotientSpan f).stalk y :=
++    ((stalkFunctor CommRingCat.{u} y).map (F.toQuotientSpan f)).hom
++  have hker : RingHom.ker q = Ideal.span (Set.range fun i ↦ F.Γgerm y (f i)) :=
++    F.ker_stalkFunctor_map_toQuotientSpan f y
++  exact (Ideal.quotEquivOfEq hker.symm).trans
++    (RingHom.quotientKerEquivOfSurjective (show Function.Surjective q from
++      F.surjective_stalkFunctor_map_toQuotientSpan f y))
+ 
+ @[simp]
+ lemma stalkQuotientSpanEquiv_mk (t : F.stalk y) :
+diff --git a/Oka/Topology/Sheaves/Stalks.lean b/Oka/Topology/Sheaves/Stalks.lean
+index a1c31610e9fc3530826868f7ee7d6c04dfaf9eca..53b30d4e0ca4a41d637049bf2ef3fe8aa120ea9b 100644
+--- a/Oka/Topology/Sheaves/Stalks.lean
++++ b/Oka/Topology/Sheaves/Stalks.lean
+@@ -47,8 +47,8 @@ lemma stalkPushforward_naturality {X Y : TopCat.{v}} (g : X ⟶ Y) {F G : X.Pres
+   refine TopCat.Presheaf.stalk_hom_ext ((pushforward C g).obj F) fun U hU ↦ ?_
+   -- `rw` cannot see through the definition of `TopCat.Presheaf` here, hence `erw`.
+   erw [stalkFunctor_map_germ_assoc]
+-  simp only [pushforward_map_app, stalkFunctor_obj, stalkPushforward_germ,
+-    stalkPushforward_germ_assoc]
++  simp only [pushforward_map_app, stalkFunctor_obj, stalkPushforward_germ]
++  erw [stalkPushforward_germ_assoc]
+   exact (stalkFunctor_map_germ (C := C) ((Opens.map g).obj U) x hU T).symm
+ 
+ /-- **The specialization map between the stalks at two points which are in fact equal is an
+diff --git a/Oka/Uniformization/CoveringLift.lean b/Oka/Uniformization/CoveringLift.lean
+index a5ccc621c90bc562cfa5525f2f2e7e3b6616027a..ef64822db3f38d25a0c2c8a452b3ea44149f85f9 100644
+--- a/Oka/Uniformization/CoveringLift.lean
++++ b/Oka/Uniformization/CoveringLift.lean
+@@ -89,12 +89,12 @@ theorem IsCoveringMapOn.eqOn_of_lift {f : E → X} {V : Set X} (hf : IsCoveringM
+     ⟨σ₁ a₀, hV a₀ ha₀⟩
+   have hτ₁ : ContinuousOn τ₁ D := by
+     rw [continuousOn_iff_continuous_restrict]
+-    have : D.restrict τ₁ = fun a : D ↦ ⟨σ₁ a, hV a a.2⟩ := by funext a; simp [τ₁, a.2]
++    have : D.domRestrict τ₁ = fun a : D ↦ ⟨σ₁ a, hV a a.2⟩ := by funext a; simp [τ₁, a.2]
+     rw [this]
+     exact (h₁.restrict).subtype_mk _
+   have hτ₂ : ContinuousOn τ₂ D := by
+     rw [continuousOn_iff_continuous_restrict]
+-    have : D.restrict τ₂ = fun a : D ↦ ⟨σ₂ a, hV₂ a a.2⟩ := by
++    have : D.domRestrict τ₂ = fun a : D ↦ ⟨σ₂ a, hV₂ a a.2⟩ := by
+       funext a; simp [τ₂, a.2]
+     rw [this]
+     exact (h₂.restrict).subtype_mk _
+@@ -119,8 +119,8 @@ theorem eqOn_of_sections [T2Space E] {f : E → X} {V : Set X} (hV : IsPreconnec
+     (hinj : ∀ v ∈ V, ∃ W ∈ 𝓝 (s₁ v), InjOn f W) {v₀ : X} (hv₀ : v₀ ∈ V)
+     (h₀ : s₁ v₀ = s₂ v₀) : EqOn s₁ s₂ V := by
+   haveI : PreconnectedSpace V := Subtype.preconnectedSpace hV
+-  set g₁ : V → E := V.restrict s₁
+-  set g₂ : V → E := V.restrict s₂
++  set g₁ : V → E := V.domRestrict s₁
++  set g₂ : V → E := V.domRestrict s₂
+   have hg₁ : Continuous g₁ := h₁.restrict
+   have hg₂ : Continuous g₂ := h₂.restrict
+   set A : Set V := {v | g₁ v = g₂ v}
+@@ -243,6 +243,6 @@ theorem isCoveringMapOn_of_sections [T2Space E] {f : E → X} {B : Set X}
+       have := hsame (i := i) ht htf x hxV (hsx i)
+       refine mem_iUnion.mpr ⟨i, f e, he, ?_⟩
+       rw [this he, hte])
+-  exact .to_isEvenlyCovered_preimage (.of_trivialization (t := T) (by simpa [T] using hxV))
++  exact .to_isEvenlyCovered_preimage (.of_trivialization (t := T) hxV)
+ 
+ end Uniformization
+diff --git a/Oka/Uniformization/Depth.lean b/Oka/Uniformization/Depth.lean
+index 14e263fde75c44a64a19af5f2712d44c44e87368..70965c1739ea09fd21e3885d327ce5671dcb8b45 100644
+--- a/Oka/Uniformization/Depth.lean
++++ b/Oka/Uniformization/Depth.lean
+@@ -214,7 +214,8 @@ theorem relIndex_ne_zero_of_mem_commensurator {G : Type*} [Group G] {Γ : Subgro
+     (Γ ⊓ Γ.comap (MulAut.conj δ).toMonoidHom).relIndex Γ ≠ 0 := by
+   have hδ' : δ⁻¹ ∈ Subgroup.Commensurable.commensurator Γ := inv_mem hδ
+   rw [Subgroup.Commensurable.commensurator_mem_iff] at hδ'
+-  have h := hδ'.1
++  have h := hδ'.1.relIndex_ne_zero
++  change (ConjAct.toConjAct δ⁻¹ • Γ).relIndex Γ ≠ 0 at h
+   have heq : (ConjAct.toConjAct δ⁻¹ • Γ : Subgroup G) ⊓ Γ =
+       Γ ⊓ Γ.comap (MulAut.conj δ).toMonoidHom := by
+     ext x
+diff --git a/Oka/Uniformization/FEtTransitive.lean b/Oka/Uniformization/FEtTransitive.lean
+index fee3b419f88285966fd31025b20f086f5346fad7..bf78ec61adbdbf0dff71fd857bce4d2dbf891d54 100644
+--- a/Oka/Uniformization/FEtTransitive.lean
++++ b/Oka/Uniformization/FEtTransitive.lean
+@@ -235,7 +235,7 @@ theorem exists_smul_eq (hhol : ∀ a, Unif.HolH (ι₀ a)) {n : ℕ}
+     · refine (PolyBdd.prod S (u := fun _ τ ↦ 1 + R τ) (fun _ _ ↦ (PolyBdd.const 1).add hR)
+         fun _ _ τ ↦ by positivity).mono fun τ ↦ ?_
+       refine (norm_coeff_prod_X_sub_C_le _ _ k).trans ?_
+-      exact Finset.prod_le_prod (fun _ _ ↦ by positivity) fun f hf ↦ by linarith [hfR f hf τ]
++      exact Finset.prod_le_prod₀ (fun _ _ ↦ by positivity) fun f hf ↦ by linarith [hfR f hf τ]
+   choose a ha using hcoeff
+   set Q : A[X] := X ^ m + ∑ i : Fin m, C (a i) * X ^ (i : ℕ)
+   have hQm : Q.Monic := monic_X_pow_add (degree_sum_fin_lt _)
+diff --git a/Oka/Uniformization/Integrality.lean b/Oka/Uniformization/Integrality.lean
+index fd22073e989755defe2b3e014904682fb5d0fe10..0c55e5b1349c97d3215c969e913da79ac779ccfa 100644
+--- a/Oka/Uniformization/Integrality.lean
++++ b/Oka/Uniformization/Integrality.lean
+@@ -202,6 +202,7 @@ theorem le_commensurator {G : Type*} [Group G] (Γ : Subgroup G) :
+     Γ ≤ Subgroup.Commensurable.commensurator Γ := by
+   intro g hg
+   rw [Subgroup.Commensurable.commensurator_mem_iff]
++  change (ConjAct.toConjAct g • Γ).Commensurable Γ
+   have : ConjAct.toConjAct g • Γ = Γ := by
+     ext x
+     rw [Subgroup.mem_pointwise_smul_iff_inv_smul_mem, ← map_inv, ConjAct.smul_def,
+@@ -268,7 +269,7 @@ theorem exists_monic_wpΨ_smul {δ : SL(2, ℝ)}
+       have hw1 : 1 ≤ 2 + w := by linarith [norm_nonneg (wpΨ U τ)]
+       refine (norm_coeff_prod_X_sub_C_le _ _ k).trans ?_
+       rw [← Finset.prod_pow_eq_pow_sum, ← Finset.prod_mul_distrib]
+-      refine Finset.prod_le_prod (fun q _ ↦ by positivity) fun q _ ↦ ?_
++      refine Finset.prod_le_prod₀ (fun q _ ↦ by positivity) fun q _ ↦ ?_
+       have h1 : 1 ≤ (2 + w) ^ Nq q := one_le_pow₀ hw1
+       have h2 := hq q τ
+       have h3 : Cq q * (2 + w) ^ Nq q ≤ |Cq q| * (2 + w) ^ Nq q :=
+diff --git a/Oka/Uniformization/PmDeck.lean b/Oka/Uniformization/PmDeck.lean
+index b1d47aa62e690548727ab235db59d1bd60fff16e..c1bda015ad02de12045536b9ecdb9b1bef5bf8e7 100644
+--- a/Oka/Uniformization/PmDeck.lean
++++ b/Oka/Uniformization/PmDeck.lean
+@@ -166,7 +166,9 @@ theorem relIndex_deckGroup_pmDeck_ne_zero : U.deckGroup.relIndex U.pmDeck ≠ 0
+ theorem commensurator_pmDeck :
+     Subgroup.Commensurable.commensurator U.pmDeck =
+       Subgroup.Commensurable.commensurator U.deckGroup := by
+-  refine Subgroup.Commensurable.eq ⟨?_, U.relIndex_deckGroup_pmDeck_ne_zero⟩
++  refine Subgroup.Commensurable.eq ⟨?_,
++    Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr U.relIndex_deckGroup_pmDeck_ne_zero⟩
++  apply Subgroup.isFiniteRelIndex_iff_relIndex_ne_zero.mpr
+   rw [Subgroup.relIndex_eq_one.mpr (U.deckGroup_le_pmDeck)]; exact one_ne_zero
+ 
+ /-- A `Γ̃`-invariant function on `ℍ` as a function on `ℂ ∖ Λ` (and `0` on `Λ`). -/
+diff --git a/Oka/Uniformization/R3.lean b/Oka/Uniformization/R3.lean
+index 20629bda471772eb929b2c64251022295155b93f..421e9b56a0c7fd31f7d5c113499f34a922cd9b51 100644
+--- a/Oka/Uniformization/R3.lean
++++ b/Oka/Uniformization/R3.lean
+@@ -315,7 +315,7 @@ theorem exists_cosetPoly (hΓN : U.pmDeck ≤ N)
+       have hw1 : 1 ≤ 2 + w := by linarith [norm_nonneg (wpΨ U τ)]
+       refine (norm_coeff_prod_X_sub_C_le _ _ k).trans ?_
+       rw [← Finset.prod_pow_eq_pow_sum, ← Finset.prod_mul_distrib]
+-      refine Finset.prod_le_prod (fun q _ ↦ by positivity) fun q _ ↦ ?_
++      refine Finset.prod_le_prod₀ (fun q _ ↦ by positivity) fun q _ ↦ ?_
+       have h1 : 1 ≤ (2 + w) ^ Nq q := one_le_pow₀ hw1
+       have h2 := hq q τ
+       have h3 : Cq q * (2 + w) ^ Nq q ≤ |Cq q| * (2 + w) ^ Nq q :=
+diff --git a/Oka/Uniformization/SL2Facts.lean b/Oka/Uniformization/SL2Facts.lean
+index aaf4432cb8f98dd785743a87b19f3eb4415475f3..9d0eb99ffd04bfe3a520ad32f40b43a85db3f7b3 100644
+--- a/Oka/Uniformization/SL2Facts.lean
++++ b/Oka/Uniformization/SL2Facts.lean
+@@ -145,6 +145,8 @@ def conjFix (η : ℝ) : SL(2, ℝ) :=
+ theorem conjFix_lowerLeft (η : ℝ) (g : SL(2, ℝ)) :
+     ((conjFix η)⁻¹ * g * conjFix η) 1 0 =
+       g 1 0 * η ^ 2 + (g 1 1 - g 0 0) * η - g 0 1 := by
++  rw [Matrix.SpecialLinearGroup.coe_mul, Matrix.SpecialLinearGroup.coe_mul,
++    Matrix.SpecialLinearGroup.coe_inv]
+   simp [conjFix, Matrix.SpecialLinearGroup.coe_inv, Matrix.adjugate_fin_two,
+     Matrix.mul_apply, Fin.sum_univ_two, Matrix.vecMul, dotProduct]
+   ring
+diff --git a/Oka/Uniformization/Uniqueness.lean b/Oka/Uniformization/Uniqueness.lean
+index 57dd1eaca047eeaa4fa695db65f084adf79d64c0..eafbb89b7c83435aa070624a25cd2e644111846f 100644
+--- a/Oka/Uniformization/Uniqueness.lean
++++ b/Oka/Uniformization/Uniqueness.lean
+@@ -179,16 +179,16 @@ theorem exists_section_of_graph (h : IsUniformization W A B π) (z : ℍ) {pr pr
+     refine (convex_ball a₀ ε).isPreconnected.image φ ?_
+     rw [continuousOn_iff_continuous_restrict]
+     refine continuous_induced_rng.mpr ?_
+-    have : (fun a : ball a₀ ε ↦ ((ball a₀ ε).restrict φ a).1) = fun a ↦ π (σ a.1) := by
++    have : (fun a : ball a₀ ε ↦ ((ball a₀ ε).domRestrict φ a).1) = fun a ↦ π (σ a.1) := by
+       funext a; exact hφ a a.2
+     rw [Function.comp_def, this]
+     refine ContinuousOn.comp_continuous (s := {w : ℂ | 0 < w.im}) h.differentiableOn.continuousOn
+       ((hσc.mono hb₁).comp_continuous continuous_subtype_val fun a ↦ a.2) fun a ↦ (hb₂ a a.2).1
+   · rw [continuousOn_iff_continuous_restrict]
+     refine isOpenEmbedding_coe.isInducing.continuous_iff.mpr ?_
+-    have : (fun q : N ↦ ((N.restrict s q : ℍ) : ℂ)) = fun q : N ↦ σ (pr q.1.1) := by
++    have : (fun q : N ↦ ((N.domRestrict s q : ℍ) : ℂ)) = fun q : N ↦ σ (pr q.1.1) := by
+       funext q; exact hs_val q q.2
+-    rw [Function.comp_def]; simp only [restrict_apply] at this ⊢
++    rw [Function.comp_def]; simp only [domRestrict_apply] at this ⊢
+     rw [this]
+     exact (hσc.mono hb₁).comp_continuous ((hpr.comp continuous_subtype_val).comp
+       continuous_subtype_val) fun q ↦ q.2.1
+diff --git a/Oka/Weierstrass.lean b/Oka/Weierstrass.lean
+index 0d471db0ce70845ecde33a5dc724eb00556b9315..76d64d708f7ac1b75b2e5cbc9381946442169388 100644
+--- a/Oka/Weierstrass.lean
++++ b/Oka/Weierstrass.lean
+@@ -3358,7 +3358,7 @@ theorem MvPowerSeries.exists_direction {p : ℕ}
+     ∑ e ∈ degFinset (Fin (n + 1)) (k i), MvPolynomial.monomial e (coeff e (P i)) with hhp
+   have hh : ∀ i, hpol i ≠ 0 := by
+     intro i hzero
+-    have h3 := congrArg (MvPolynomial.coeff (D i)) hzero
++    have h3 := congrArg (fun f : MvPolynomial (Fin (n + 1)) ℂ ↦ f.coeff (D i)) hzero
+     rw [hhp] at h3
+     simp only [MvPolynomial.coeff_sum, MvPolynomial.coeff_monomial,
+       MvPolynomial.coeff_zero] at h3
+diff --git a/lake-manifest.json b/lake-manifest.json
+index c1d5a66d8ec064b00b58871d4139a8628f14f416..497d95b2b92486861c747fc3d9e39301bc54a72a 100644
+--- a/lake-manifest.json
++++ b/lake-manifest.json
+@@ -1,31 +1,51 @@
+ {"version": "1.2.0",
+  "packagesDir": ".lake/packages",
+  "packages":
+- [{"url": "https://github.com/lana-agents/heights.git",
++ [{"url": "https://github.com/lana-agents/oka.git",
+    "type": "git",
+    "subDir": null,
+    "scope": "",
+-   "rev": "3539e2a12dd3470c057a4eb531dc3fd627d4c97b",
++   "rev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
++   "name": "oka",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "75dcdc3faadd10b986afb9283e89902bcdddecd4",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
++  {"url": "https://github.com/lana-agents/heights.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
+    "name": "heights",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "3539e2a12dd3470c057a4eb531dc3fd627d4c97b",
++   "inputRev": "721496ca4c158e511d25d8ccf6bfe8503eda73c1",
+    "inherited": false,
+    "configFile": "lakefile.toml"},
+-  {"url": "https://github.com/leanprover-community/mathlib4",
++  {"url": "https://github.com/leanprover-community/mathlib4.git",
+    "type": "git",
+    "subDir": null,
+-   "scope": "leanprover-community",
+-   "rev": "81a5d257c8e410db227a6665ed08f64fea08e997",
++   "scope": "",
++   "rev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "name": "mathlib",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "d13f23b723b8a846827a245b89c10fc7d3f11612",
+    "inherited": false,
+    "configFile": "lakefile.lean"},
++  {"url": "https://github.com/lana-agents/belyi.git",
++   "type": "git",
++   "subDir": null,
++   "scope": "",
++   "rev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "name": "belyi",
++   "manifestFile": "lake-manifest.json",
++   "inputRev": "9ce4d3f793d3bc831f2fc7214b7dbad90ea012d8",
++   "inherited": true,
++   "configFile": "lakefile.toml"},
+   {"url": "https://github.com/leanprover-community/plausible",
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "e12c1910fe855cbfc38803cd4e55543906d5fa62",
++   "rev": "118aa17ee84656b8bd727fef7c458ee8c833385c",
+    "name": "plausible",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -35,7 +55,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "c5d5b8fe6e5158def25cd28eb94e4141ad97c843",
++   "rev": "ddf04cf3949fa556442341e87d47f9f6e6074707",
+    "name": "LeanSearchClient",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -45,7 +65,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "7e9612bf0b9ee66db3cb5b9988a35afc706f5a12",
++   "rev": "e928b72544873815af278d38681b31c0293588e3",
+    "name": "importGraph",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -55,7 +75,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "6e311e2a844da9b2cc3971187df2fe0066947b93",
++   "rev": "106ff4fafc74ef4ac99d81dbf3ab399118f497a5",
+    "name": "proofwidgets",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -65,7 +85,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "a7dbf0c63b694e47f425f3dcddbc0e178bb432d3",
++   "rev": "355695d523e41d0554926416cba2a2b3544fbbc9",
+    "name": "aesop",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -75,7 +95,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "38d591e778f100aec9762bb582f9c7f55f50e9dc",
++   "rev": "6a489d9af5d0c47e5b259e2e8bcdfc1811b5a259",
+    "name": "Qq",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "master",
+@@ -85,7 +105,7 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover-community",
+-   "rev": "023ce7d62a0531e22a5331e20b587817a80d49ff",
++   "rev": "f2effa3d803fda822b1f97b806c47cf2adfbcbc2",
+    "name": "batteries",
+    "manifestFile": "lake-manifest.json",
+    "inputRev": "main",
+@@ -95,10 +115,10 @@
+    "type": "git",
+    "subDir": null,
+    "scope": "leanprover",
+-   "rev": "88679d088c9720c27ebdf2ba4dafe17341747f94",
++   "rev": "e92c9f15fdfacc8536f31cfb3b7ad26c3c8cd204",
+    "name": "Cli",
+    "manifestFile": "lake-manifest.json",
+-   "inputRev": "v4.32.0",
++   "inputRev": "v4.34.0",
+    "inherited": true,
+    "configFile": "lakefile.toml"}],
+  "name": "oka",
+diff --git a/lakefile.toml b/lakefile.toml
+index d0589c058d6ab8b11ca5591af6f63caecb1850c9..d22800380c12ce35a302e598325148e01d56f365 100644
+--- a/lakefile.toml
++++ b/lakefile.toml
+@@ -8,6 +8,8 @@ lintDriver = "batteries/runLinter"
+ lintDriverArgs = ["Oka"]
+ 
+ [leanOptions]
++# Preserve the type-unification behavior expected by the pinned upstream sources.
++backward.isDefEq.respectTransparency.types = false
+ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+ autoImplicit = false
+ relaxedAutoImplicit = false
+@@ -16,8 +18,8 @@ maxSynthPendingDepth = 3
+ 
+ [[require]]
+ name = "mathlib"
+-scope = "leanprover-community"
+-rev = "v4.32.0"
++git = "https://github.com/leanprover-community/mathlib4.git"
++rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+ 
+ [[lean_lib]]
+ name = "Oka"
+@@ -27,4 +29,4 @@ name = "Oka"
+ [[require]]
+ name = "heights"
+ git = "https://github.com/lana-agents/heights.git"
+-rev = "3539e2a12dd3470c057a4eb531dc3fd627d4c97b"
++rev = "721496ca4c158e511d25d8ccf6bfe8503eda73c1"
+diff --git a/lean-toolchain b/lean-toolchain
+index 94b9f495baff80fd9cb44aad8f4762cb3b2066fe..ba8ebf2dbaf6a668cd2a0e086186d6d569b69ff5 100644
+--- a/lean-toolchain
++++ b/lean-toolchain
+@@ -1 +1 @@
+-leanprover/lean4:v4.32.0
++leanprover/lean4:v4.34.1

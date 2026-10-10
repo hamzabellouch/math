@@ -1,0 +1,103 @@
+import OAI.Analysis.CircleDomains.Selection.HitConfigurations
+import Mathlib.Topology.MetricSpace.Infsep
+
+namespace OAI
+
+/-! Testing all sizes and reciprocal separation scales is sufficient to control
+the full square norm of the point-hit probabilities. -/
+
+open Set Function MeasureTheory
+open scoped Topology ENNReal
+
+noncomputable section
+
+namespace CircleDomainRigidity
+
+theorem exists_reciprocal_separation {X I : Type*} [MetricSpace X] [Finite I]
+    (x : I → X) (hx : Injective x) :
+    ∃ m : ℕ, ∀ i j, i ≠ j → 1 / ((m : ℝ) + 1) ≤ dist (x i) (x j) := by
+  obtain ⟨c, hc, hsep⟩ := (Set.finite_range x).relatively_discrete
+  obtain ⟨a, ha, hac⟩ := ENNReal.lt_iff_exists_nnreal_btwn.mp hc
+  have ha0 : 0 < (a : ℝ) := by exact_mod_cast ha
+  obtain ⟨m, hm⟩ := exists_nat_one_div_lt ha0
+  refine ⟨m, fun i j hij => hm.le.trans ?_⟩
+  have hd := hac.le.trans (hsep (x i) (mem_range_self i) (x j) (mem_range_self j)
+    (fun h => hij (hx h)))
+  rw [edist_dist] at hd
+  have hdreal := ENNReal.toReal_mono ENNReal.ofReal_ne_top hd
+  simpa only [ENNReal.coe_toReal, ENNReal.toReal_ofReal dist_nonneg] using hdreal
+
+variable {X : Type*} [MetricSpace X]
+  [MeasurableSpace C(PathTime, X)]
+  (μ : ProbabilityMeasure C(PathTime, X)) {B : ℝ}
+
+/-- This hypothesis runs over a countable list of compact configuration spaces. -/
+def HasConfigurationBounds (B : ℝ) : Prop :=
+  ∀ n m : ℕ, ∀ p : HitConfiguration X n (1 / ((m : ℝ) + 1)),
+    weightedConfigurationHits (fun _ : Unit => μ) () p ≤ B
+
+theorem configuration_bound_of_injective
+    (h : HasConfigurationBounds μ B) {n : ℕ} (x : Fin n → X) (hx : Injective x)
+    (w : Fin n → Icc (0 : ℝ) 1) (hw : (∑ i, (w i : ℝ) ^ 2) ≤ 1) :
+    ∑ i, (w i : ℝ) * pathHitReal μ (x i) ≤ B := by
+  obtain ⟨m, hm⟩ := exists_reciprocal_separation x hx
+  exact h n m ⟨(x, w), hw, hm⟩
+
+theorem configuration_square_sum_le
+    (h : HasConfigurationBounds μ B) (hB : 0 ≤ B)
+    {n : ℕ} (x : Fin n → X) (hx : Injective x) :
+    ∑ i, pathHitReal μ (x i) ^ 2 ≤ B ^ 2 := by
+  let v : Fin n → ℝ := fun i => pathHitReal μ (x i)
+  let s : ℝ := Real.sqrt (∑ i, v i ^ 2)
+  have hv (i) : 0 ≤ v i := pathHitReal_nonneg _ _
+  have hsum : 0 ≤ ∑ i, v i ^ 2 := Finset.sum_nonneg fun _ _ => sq_nonneg _
+  have hs : s ^ 2 = ∑ i, v i ^ 2 := Real.sq_sqrt hsum
+  have hs0 : 0 ≤ s := Real.sqrt_nonneg _
+  by_cases hsz : s = 0
+  · have hz : (∑ i, v i ^ 2) = 0 := by nlinarith
+    change (∑ i, v i ^ 2) ≤ B ^ 2
+    rw [hz]
+    positivity
+  have hsp : 0 < s := lt_of_le_of_ne hs0 (Ne.symm hsz)
+  have hvi (i) : v i ≤ s := by
+    have hi : v i ^ 2 ≤ ∑ j, v j ^ 2 :=
+      Finset.single_le_sum (fun _ _ => sq_nonneg _) (Finset.mem_univ i)
+    nlinarith
+  let w : Fin n → Icc (0 : ℝ) 1 := fun i =>
+    ⟨v i / s, div_nonneg (hv i) hs0, (div_le_one hsp).mpr (hvi i)⟩
+  have hw : (∑ i, (w i : ℝ) ^ 2) ≤ 1 := by
+    change (∑ i, (v i / s) ^ 2) ≤ 1
+    simp_rw [div_pow]
+    rw [← Finset.sum_div, ← hs, div_self (pow_ne_zero 2 hsz)]
+  have hb := configuration_bound_of_injective μ h x hx w hw
+  have heq : (∑ i, (w i : ℝ) * pathHitReal μ (x i)) = s := by
+    change (∑ i, (v i / s) * v i) = s
+    calc
+      _ = (∑ i, v i ^ 2) / s := by
+        rw [Finset.sum_div]
+        apply Finset.sum_congr rfl
+        intro i _
+        ring
+      _ = s := by rw [← hs]; field_simp
+  rw [heq] at hb
+  change (∑ i, v i ^ 2) ≤ B ^ 2
+  nlinarith
+
+theorem hasHitNormBound_of_configuration_bounds
+    (h : HasConfigurationBounds μ B) (hB : 0 ≤ B) : HasHitNormBound μ B := by
+  classical
+  apply (hasHitNormBound_iff_sum_sq_le μ hB).mpr
+  intro F
+  let e : Fin (Fintype.card F) ≃ F := (Fintype.equivFin F).symm
+  have he : Injective (fun i : Fin (Fintype.card F) => (e i).val) :=
+    Subtype.val_injective.comp e.injective
+  have hb := configuration_square_sum_le μ h hB (fun i => (e i).val) he
+  rw [e.sum_comp (fun a : F => pathHitReal μ a.val ^ 2)] at hb
+  rw [Finset.sum_coe_sort F (fun x : X => pathHitReal μ x ^ 2)] at hb
+  exact hb
+
+end CircleDomainRigidity
+
+end
+
+end OAI
