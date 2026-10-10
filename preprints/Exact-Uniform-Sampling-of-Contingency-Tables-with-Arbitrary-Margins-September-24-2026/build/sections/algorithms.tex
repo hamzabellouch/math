@@ -1,0 +1,443 @@
+\section{Sampling algorithms and exact correction}\label{sec:algorithms}
+
+We now turn the weighted graph bound into an algorithm using unbiased random
+bits. All deterministic choices, including greedy completions, neighbor
+orders, and tie breaking, are fixed once and for all. Abbreviate
+$\Omega(r,c)$ by $\Omega$. Write
+$\nu_X$ for the uniform law on $\mathcal F_X$ and $z_0$ for a greedy original
+table. Its restriction to the small slots gives a starting transversal $X_0$.
+
+\subsection{The ideal chain}
+
+Set
+\[
+ q_{\rm s}=\lceil\log_2(32d^2)\rceil,
+ \qquad p=2^{-q_{\rm s}}.
+\]
+List the distinct feasible neighbors of a state $X$ in a fixed order.
+Assign one of the $2^{q_{\rm s}}$ equally likely binary strings to each
+neighbor and let all remaining strings propose a hold. This gives every
+edge the same proposal probability $p$ in both directions. As explained in
+Lemma~\ref{lem:repair}, the list is obtained by testing all unit exchanges,
+the repair of $X$ when it is a defect, and the uniquely reconstructed inverse
+repair of each possible ordered defect type. There are at most $5d^2+1$
+neighbors. Each test checks only coordinate bounds, the allowed occupancy
+pattern, and residual margins; it does not evaluate $f$.
+
+Here is the completion adjustment used for a nonholding proposal $X\to Y$.
+For a nonempty block $\mathcal B=I\times J$, fix a reference row $i_0$ and
+column $j_0$, independently of $X$. Let
+$\Delta R_i=R_i(Y)-R_i(X)$ and $\Delta P_j=P_j(Y)-P_j(X)$ be the changes in
+its padded margins. Define the integer matrix $D_{XY}$ by
+\[
+ (D_{XY})_{ij}=\begin{cases}
+ \Delta R_i,&i\ne i_0,\ j=j_0,\\
+ \Delta P_j,&i=i_0,\ j\ne j_0,\\
+ \Delta R_{i_0}-\sum_{j'\ne j_0}\Delta P_{j'},&i=i_0,\ j=j_0,\\
+ 0,&i\ne i_0,\ j\ne j_0.
+ \end{cases}
+\]
+The equality of total row and column changes verifies all its row and column
+sums, including the reference column. Also $D_{YX}=-D_{XY}$. Along a unit
+exchange or repair edge each individual residual changes by at most two;
+hence every displayed entry has magnitude at most $10d$. These formulas
+also apply to a block with a single row or column.
+
+The ideal transition draws $a\sim\nu_X$ and accepts $Y$ precisely when
+$a+D_{XY}$ is nonnegative. It then belongs to $\mathcal F_Y$ because its
+margins are already correct. A rejected proposal holds at $X$. If the block
+is empty, every edge proposal is accepted. Denote this ideal kernel by $P$.
+
+\begin{proposition}[Small-chain bound]\label{prop:small-chain}
+The kernel $P$ is lazy and reversible for $\pi(X)=f(X)/\Lambda$. On every
+edge it satisfies
+\[
+ P(X,Y)\ge \frac{1}{128d^2}
+                  \min\left\{1,\frac{f(Y)}{f(X)}\right\}.
+\]
+If there is more than one state, its inverse spectral gap is at most
+$d^{160}$. Moreover
+$\pi_{\min}\ge(C+1)^{-2d}$, and, for every $t\ge0$,
+\begin{equation}\label{eq:small-mixing}
+ \TV\bigl(P^t(X_0,\cdot),\pi\bigr)
+ \le (C+1)^{2d}\exp(-t/d^{160}).
+\end{equation}
+A one-state chain is already stationary.
+\end{proposition}
+
+\begin{proof}
+The proposal holds with probability at least
+$1-(5d^2+1)/(32d^2)>1/2$, and rejection can only increase this probability.
+Translation by $D_{XY}$ bijects the set of acceptable completions in
+$\mathcal F_X$ with the corresponding set in $\mathcal F_Y$. Calling its
+cardinality $c_{XY}=c_{YX}$ gives
+$f(X)P(X,Y)=p c_{XY}=f(Y)P(Y,X)$.
+
+Every nonempty completion-block margin is at least $L$. Rejection implies
+that one of at most $d$ entries of a uniform completion is less than $10d$.
+Lemma~\ref{lem:small-entry}, with $a=L$ and threshold $10d\le L/2$, gives
+\[
+ \Pp(\text{rejection})\le \frac{40d^5}{L}
+             =\frac{40}{d^7}<\frac12.
+\]
+Consequently $c_{XY}\ge f(X)/2$, and in particular
+$c_{XY}\ge\min(f(X),f(Y))/2$. Since $p\ge1/(64d^2)$, both the stated
+transition bound and the Dirichlet-form comparison
+\[
+ \mathcal E_P(H)\ge \frac{E(H)}{128d^2\Lambda}
+\]
+follow. Theorem~\ref{thm:poincare} and $U=d^{20}$ now give an inverse-gap
+bound of
+\begin{align*}
+128d^2\bigl((1+2d^2)4d^2(U+1)^6+2\bigr)
+ &\le 98{,}560d^{126}\le d^{160}.
+\end{align*}
+Indeed the coefficient inside parentheses is at most $770d^4U^6$.
+The graph is connected by Theorem~\ref{thm:poincare}, and
+Proposition~\ref{prop:stationary-success} gives
+$\pi_{\min}\ge(C+1)^{-2d}$. Lemma~\ref{lem:mixing} now gives
+\eqref{eq:small-mixing}.
+\end{proof}
+
+\subsection{A bounded almost-uniform sampler}
+
+For an integer $k\ge1$, put
+\begin{equation}\label{eq:outer-parameters}
+ J_{\rm o}=d^4(k+1),\qquad
+ T=d^{200}(k+b)^2,\qquad h=d^4(k+b)^2.
+\end{equation}
+The implemented chain replaces every ideal completion draw by the
+subroutine of Theorem~\ref{thm:dense-draw} with accuracy $h$; write $\mu_X$
+for its output law on $\mathcal F_X$ and $Q$ for the resulting kernel.
+Starting anew at $X_0$ on each trial, perform the following bounded procedure.
+\begin{enumerate}
+\item Run $Q$ for $T$ transitions and then make one further, independent
+completion draw with law $\mu_X$ at the final state.
+\item If $X$ is a transversal and every large completion entry is at least
+$L$, subtract $L$ on the large block and return the resulting original
+table. Otherwise this trial fails.
+\item Repeat for at most $J_{\rm o}$ independent trials, and return $z_0$
+if all of them fail.
+\end{enumerate}
+All randomness in different draws and trials is fresh. In particular, a
+completion used to test a transition is discarded after that test; the
+current small state is the chain's entire persistent state.
+
+\begin{theorem}[Almost-uniform sampling]\label{thm:almost-uniform}
+The preceding procedure returns a feasible table with law $p_k$ satisfying
+\[
+ \TV\bigl(p_k,\operatorname{Uniform}(\Omega)\bigr)\le2^{-k}.
+\]
+Its worst-case number of bit operations is bounded by a fixed polynomial
+in $d,b,k$.
+\end{theorem}
+
+\begin{proof}
+We first control adaptive approximation. The dense guarantee is uniform
+over feasible states:
+$\TV(\mu_X,\nu_X)\le\eta:=2^{-h}$.
+From a common state, couple the proposal and holding decision identically,
+and maximally couple the two completion draws if there is a nonholding
+proposal. Agreement of these draws gives the same acceptance decision and
+the same next state. Thus
+\[
+ \sup_X\TV\bigl(Q(X,\cdot),P(X,\cdot)\bigr)\le\eta.
+\]
+Couple successively until the first disagreement. Conditional on agreement
+so far, the common state may be adaptive, but the same uniform conditional
+bound still applies. After $T$ transitions and the terminal completion, the
+probability of a disagreement is at most $(T+1)\eta$. This argument uses
+neither reversibility nor a stationary-law assertion for $Q$.
+By Proposition~\ref{prop:small-chain}, the additional error from replacing
+the ideal terminal state by a stationary one is at most
+$\tau=(C+1)^{2d}e^{-T/d^{160}}$.
+
+In a stationary ideal trial every pair $(X,a)$ has probability
+$\pi(X)/f(X)=1/\Lambda$. By Proposition~\ref{prop:stationary-success},
+successful pairs are in bijection with $\Omega$, and the success probability
+$s_*=|\Omega|/\Lambda$ is at least $1/[2(1+d^2)]$.
+The first success among $J_{\rm o}$ independent stationary trials therefore
+has, including the fallback, the exact law
+\[
+ \bigl[1-(1-s_*)^{J_{\rm o}}\bigr]
+          \operatorname{Uniform}(\Omega)
+       +(1-s_*)^{J_{\rm o}}\delta_{z_0}.
+\]
+For clarity, each particular table receives first-success mass
+$\sum_{j=0}^{J_{\rm o}-1}(1-s_*)^j/\Lambda
+=[1-(1-s_*)^{J_{\rm o}}]/|\Omega|$.
+Pregenerate all potential trials in both procedures, then apply the same
+deterministic first-success-or-fallback map. The union bound and contraction
+of total variation under a deterministic map give total error at most
+\begin{equation}\label{eq:outer-error}
+ e^{-J_{\rm o}/[2(1+d^2)]}
+ +J_{\rm o}(C+1)^{2d}e^{-T/d^{160}}
+ +J_{\rm o}(T+1)2^{-h}.
+\end{equation}
+In particular, no error is divided by a success probability.
+
+Each term in \eqref{eq:outer-error} is at most $2^{-k-2}$. Here are explicit
+checks. Put $t=k+b\ge15$, so $d\le t$, $k+2\le t$, and
+$\log_2(C+1)<b$. First,
+\[
+ \frac{J_{\rm o}}{2(1+d^2)}
+ \ge\frac{d^2(k+1)}4\ge49(k+1)\ge(k+2)\ln2.
+\]
+For the second term,
+\[
+ \ln\bigl(J_{\rm o}(C+1)^{2d}\bigr)+(k+2)\ln2
+ \le2t^2+6t\le3t^2\le d^{40}t^2=T/d^{160}.
+\]
+Finally, since $T+1\le2T$,
+\begin{align*}
+ \log_2\bigl(J_{\rm o}(T+1)\bigr)+k+2
+ &\le204\log_2d+2\log_2t+\log_2(k+1)+k+3\\
+ &\le209t\le d^4t^2=h.
+\end{align*}
+Their sum is less than $2^{-k}$.
+
+For the running time, neighbor lists have polynomial size, and all state
+coordinates, residuals, and completion entries have $O(b+\log d)$ bits.
+The proposal uses exactly $q_{\rm s}$ unbiased bits. Each completion call
+has bounded polynomial bit cost by Theorem~\ref{thm:dense-draw}; the numbers
+of steps, trials, and calls in \eqref{eq:outer-parameters} are fixed
+polynomials. Comparisons, additions, integer multiplications and divisions,
+and loop counters all have polynomial bit cost, for example with schoolbook
+arithmetic. Only feasible completions and the feasible fallback can be
+returned. Empty and singleton-dimensional blocks use their deterministic
+completion rule. This proves the claimed worst-case bound.
+\end{proof}
+
+\subsection{Exact tabulation of the implemented law}
+
+The exact correction will need the law of the actual bounded algorithm,
+including approximate offsets, adaptive transitions, and both stopping
+rules. Only the small state persists between transitions. We can therefore
+cache the dense completion law for each small state, propagate the resulting
+finite kernel, and then apply the terminal and first-success rules. The spaces
+enumerated in this calculation do not grow with the accuracy request;
+accuracy changes only the iteration counts and the lengths of integers.
+
+\begin{proposition}[Law tabulation]\label{prop:law-tabulation}
+For fixed margins and $k$, the entire law $p_k$ can be computed exactly in
+\[
+ 2^{500db}\operatorname{poly}(d,b,k)
+\]
+bit operations. It has a common dyadic denominator:
+$p_k(z)=a_z/2^R$, where $a_z$ are nonnegative integers and $R$ is bounded by
+a fixed polynomial in $d,b,k$. The sizes of all enumerated state spaces
+are independent of $k$.
+\end{proposition}
+
+\begin{proof}
+\emph{The finite spaces.}
+Use the dense sampler's notation $A=d^4$ and $K_0=4d^8$.
+There are at most $\mathsf S:=2^{2db}$ feasible small states, since their
+number is at most $(C+1)^{2d}$. A completion fiber, the original table
+space, an offset space, and the bin space each have at most
+$\mathsf V:=2^{db}$ elements: use $(C+1)^d\le2^{db}$ and $K_0<C$.
+They can be enumerated by listing coordinate arrays and retaining those
+that pass their defining tests. None of these coordinate ranges depends
+on $k$. This exhaustive calculation is used only for the exact correction,
+not during an ordinary run of the bounded sampler.
+
+\emph{Caching a dense completion law.}
+The following denominator allowances are uniform over all feasible small
+states, with $h$ as in \eqref{eq:outer-parameters}:
+\begin{align}
+ Q_0&=\lceil\log_2(8d)\rceil+8Ad,
+ &r_{\max}&=b+1+4(h+d),\nonumber\\
+ H&=d^{50}(h+1)^2,
+ &J_{\rm D}&=d^4(h+1),\nonumber\\
+ R_1&=H Q_0+d r_{\max},
+ &R_{\rm D}&=J_{\rm D}R_1.\label{eq:bit-schedule}
+\end{align}
+Every bin transition has denominator dividing $2^{Q_0}$: its proposal
+needs $\lceil\log_2(8d)\rceil$ bits and every dyadic acceptance test needs
+at most $8Ad$ bits. For each input $X$, enumerate its bins, compute their
+transition matrix as $B_X/2^{Q_0}$ with integer entries, and propagate the
+point mass at zero for $H$ steps. At step $t$ the vector uses denominator
+$2^{tQ_0}$; its next numerator is the previous integer vector multiplied
+by $B_X$. Adding contributions from many paths changes the numerator,
+not the denominator exponent.
+
+Offsets are tabulated without enumerating their random bits. For width
+$w$ and the actual bit count
+$r=\lceil\log_2(w+1)\rceil+4(h+d)\le r_{\max}$, the probability of offset
+$u\in\{0,\ldots,w-1\}$ is
+\begin{equation}\label{eq:offset-count}
+ 2^{-r}\left(
+ \left\lceil\frac{(u+1)2^r}{w}\right\rceil
+ -\left\lceil\frac{u2^r}{w}\right\rceil\right).
+\end{equation}
+Indeed these two endpoints count the integers $z$ with
+$u\le wz/2^r<u+1$. Integer ceiling division evaluates the count exactly.
+Enlarge its denominator to $2^{r_{\max}}$, pad unused free coordinates to
+$d$, and combine with the propagated bin law. Enumerating bin and offset
+tuples, constructing the candidate table, and applying its feasibility
+test gives the implemented dense trial's success numerators $\alpha_X(a)$ and failure
+numerator $\phi_X$, all with denominator $2^{R_1}$.
+Sorting of margins and its inverse are deterministic functions of $X$;
+we always record completions in the original block coordinates.
+
+Let $a_X^0$ be the dense call's fixed greedy fallback. The complete dense
+output law is exactly
+\begin{equation}\label{eq:cached-dense-law}
+ \mu_X(a)=\frac{
+ \displaystyle\sum_{j=0}^{J_{\rm D}-1}
+    \phi_X^j\alpha_X(a)2^{R_1(J_{\rm D}-j-1)}
+    +\one_{\{a=a_X^0\}}\phi_X^{J_{\rm D}}
+ }{2^{R_{\rm D}}}.
+\end{equation}
+This is a finite first-success sum and the all-fail mass. It introduces
+no division by a success probability. A deterministic empty or
+singleton-dimensional completion call uses the same denominator by
+ignoring the reserved bits. Cache \eqref{eq:cached-dense-law} for each $X$.
+
+\emph{Propagating the implemented chain.}
+For a distinct neighbor $Y$ the implemented transition is
+\begin{equation}\label{eq:implemented-kernel}
+ \begin{aligned}
+ Q(X,Y)=p\sum_{a\in\mathcal F_X}\mu_X(a)
+                \one_{\{a+D_{XY}\in\mathcal F_Y\}},\\
+ Q(X,X)=1-\sum_{Y\ne X}Q(X,Y).
+ \end{aligned}
+\end{equation}
+For an empty block interpret the indicator as one. These entries share
+denominator $2^{R_{\rm D}+q_{\rm s}}$. Since only $X$ persists between
+steps and completion randomness is fresh, ordinary vector propagation
+$v_{t+1}=v_tQ$, starting at $X_0$, computes the exact adaptive state law.
+Append the terminal completion draw and the unpadding test. This yields
+the one-outer-trial success masses $g(z)$ and failure mass
+$f_0=1-\sum_z g(z)$ with common denominator $2^{R_{\rm T}}$, where
+\[
+ R_{\rm T}=T(R_{\rm D}+q_{\rm s})+R_{\rm D}.
+\]
+Explicitly, $g(z)$ is the sum of $v_T(X)\mu_X(a)$ over pairs passing that
+test and producing $z$. The final law is
+\begin{equation}\label{eq:outer-geometric-law}
+ p_k(z)=g(z)\sum_{j=0}^{J_{\rm o}-1}f_0^j
+                 +\one_{\{z=z_0\}}f_0^{J_{\rm o}},
+\end{equation}
+whose denominator divides $2^R$ for $R=J_{\rm o}R_{\rm T}$.
+Both geometric sums are evaluated by bounded integer multiplication and
+addition. Algebraically, the common denominators reserve ignored bits for
+holds, shorter draws, and stopped trials; neither tabulation nor sampling
+enumerates those bit strings.
+
+\emph{Bit complexity.}
+The denominator exponents are bounded by fixed polynomials. With
+$q=d+b+k+2\ge31$, one has $h\le q^6$, $h+1\le q^7$,
+$Q_0\le q^6$, $r_{\max}\le q^7$, $H\le q^{64}$, and hence
+\[
+ R_1\le q^{71},\quad R_{\rm D}\le q^{82},\quad
+ R_{\rm T}\le q^{285},\quad R\le q^{290}\le q^{300}.
+\]
+Here we used $T\le q^{202}$, $J_{\rm o}\le q^5$, and
+$q_{\rm s}\le q^2$. Probability numerators never exceed their common
+denominator. Intermediate products and sums may be stored with the
+prescribed stage's denominator, so their bit lengths, including the
+offset counts in \eqref{eq:offset-count}, are polynomial as well.
+Candidate tables that fail feasibility can have negative dependent
+entries, but their entries are integer sums of $O(d)$ quantities of size
+$O(C)$ and still have $O(b+\log d)$ bits.
+
+For each state, dense matrix propagation costs at most
+$H\mathsf V^2$ arithmetic operations. Bin--offset summation, even with
+a scan of all completions to identify the output, costs at most
+$\mathsf V^3$; the geometric composition costs at most
+$J_{\rm D}\mathsf V$. Constructing \eqref{eq:implemented-kernel} uses at
+most $\mathsf S^2\mathsf V$ terms. Small-state propagation uses
+$T\mathsf S^2$, terminal completion and output lookup at most
+$\mathsf S\mathsf V^2$, and the last geometric composition at most
+$J_{\rm o}\mathsf V$. Including the cache calculation for all
+$\mathsf S$ states, the total number of arithmetic operations is at most
+$2^{10db}\operatorname{poly}(d,b,k)$; multiplying by the established
+polynomial bit cost per operation gives the stated, looser $2^{500db}$
+bound. The iteration counts $H,J_{\rm D},T,J_{\rm o}$ depend polynomially
+on $k$; none of the enumerated spaces does.
+\end{proof}
+
+\subsection{Exact uniform sampling}
+
+The final step uses the rare residual-mixture construction of G\"obel,
+Liu, Manurangsi, and Pappik~\cite[Section~3.1, Algorithm~1 and
+Theorem~6]{GLMP2024}. A sufficiently accurate approximate law is dominated
+pointwise by a slight enlargement of the target law. Its remaining mass
+can therefore be sampled exactly on a rare branch. Here we verify this
+domination, implement the mixture with unbiased bits, and use
+Proposition~\ref{prop:law-tabulation} to account for the exhaustive work.
+
+\begin{theorem}[Exact sampling]\label{thm:exact-sampling}
+There is an algorithm using unbiased random bits that terminates almost
+surely, outputs an exactly uniform element of $\Omega$, and has expected
+bit running time polynomial in $d,b$.
+\end{theorem}
+
+\begin{proof}
+Set
+\[
+ D=d^6b^2,\qquad k=2D,\qquad\delta=2^{-D},\qquad M=|\Omega|.
+\]
+Theorem~\ref{thm:almost-uniform} gives, for every $z\in\Omega$,
+$p_k(z)\le1/M+\delta^2$. Also $M\le(C+1)^d\le2^{db}$ and $D\ge db$,
+so $M\delta\le1$. Therefore
+\[
+ (1-\delta)p_k(z)
+ \le\frac{1-\delta}{M}+(1-\delta)\delta^2
+ \le\frac1M.
+\]
+It follows that
+$r(z)=[1/M-(1-\delta)p_k(z)]/\delta$ is a probability law.
+
+Use $D$ independent bits to enter a correction branch precisely when
+all are zero. On the complementary event run the bounded sampler with
+accuracy $k$. On the correction branch, enumerate $\Omega$ to obtain
+$M$ and use Proposition~\ref{prop:law-tabulation} to compute
+$p_k(z)=a_z/2^R$. Form the integer weights
+\begin{equation}\label{eq:residual-integers}
+ n_z=2^{R+D}-M(2^D-1)a_z,
+ \qquad \sum_{z\in\Omega}n_z=M2^R.
+\end{equation}
+They are nonnegative by the pointwise domination just proved, and the
+sum follows from $\sum_z a_z=2^R$. Thus $r(z)=n_z/(M2^R)$.
+All integers in \eqref{eq:residual-integers} have
+$O(R+D+\log M)$ bits; the fact that $M$ can be large as a number does not
+make its binary representation long.
+
+To sample this law exactly, put $V=M2^R$ and draw a uniform integer in
+$\{0,\ldots,V-1\}$ by using $\lceil\log_2V\rceil$ bits and repeating
+whenever their value is at least $V$. If $V=1$, use zero bits.
+The acceptance probability is greater than $1/2$, so the expected number
+of attempts is less than two, and termination is almost sure. A scan of
+cumulative weights $n_z$ then selects the output exactly according to
+$r$. Use fresh bits on each attempt and after the branch decision.
+
+The output law is
+$(1-\delta)p_k+\delta r=\operatorname{Uniform}(\Omega)$.
+The correction branch has conditional expected cost at most
+$2^{500db}\operatorname{poly}(d,b,k)$, including enumeration, integer
+arithmetic, and the exact integer draw. Its contribution to the
+unconditional expectation is polynomial, since
+\[
+ \delta\,2^{500db}
+ =2^{-db(d^5b-500)}\le1
+ \qquad(d\ge14,\ b\ge d).
+\]
+Substituting $k=2d^6b^2$ into a fixed polynomial preserves polynomial
+dependence on $d,b$. The other branch and the branch decision also have
+polynomial cost. This proves the expectation and termination claims.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+If either dimension is empty, if $N=0$, or if one dimension is one,
+return the unique feasible table as in Section~\ref{sec:graph}.
+Otherwise the parameters in \eqref{eq:parameters} satisfy
+$d=O(mn+m+n+1)$ and $b=O(d+\log(N+1)+\log d)$.
+For the supplied integer $k\ge1$, Theorem~\ref{thm:almost-uniform}
+gives the first assertion. Theorem~\ref{thm:exact-sampling} gives the
+second. Their bounds therefore have the stated dependence on dimensions
+and binary margin size. All outputs are feasible, and the exact
+algorithm's only unbounded loop is the almost-surely terminating integer
+rejection on its correction branch.
+\end{proof}

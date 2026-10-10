@@ -1,0 +1,39 @@
+\section{Exact circuits and classical records}\label{sec:model}
+
+We first fix the computational conventions needed for exact probabilities.
+All logarithms in bit bounds are to base two. For an input integer $N\ge2$, put
+\begin{equation}\label{eq:parameters-n}
+ n=\max\{128,\lfloor\log_2N\rfloor+1\},\qquad B=2^n.
+\end{equation}
+Thus $N<B$. The cutoff at $128$ is a constant and has no effect on polynomial-time uniformity. Unless indicated otherwise, a polynomial bound is in $n$.
+
+Our fixed gate set contains NOT, CNOT, Toffoli, the Hadamard gate $H$, and the phase gate $S$, where
+\[
+ H=\frac1{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix},
+ \qquad S=\begin{pmatrix}1&0\\0&i\end{pmatrix}.
+\]
+We also allow their inverses and singly controlled versions. This is still a fixed finite set of bounded-arity gates. Gates with more controls will be implemented by computing the conjunction of the controls into a scratch bit, applying a singly controlled gate, and uncomputing the conjunction. In particular, signs conditioned on a polynomial-size Boolean test are exact: compute the test, apply $S^2$ to its result, and uncompute.
+
+A \emph{dyadic rational} is a number $A/2^T$ with $A\in\Z$ and an integer $T\ge0$. Its representation has polynomial bit length if $T$ and the bit length of $|A|$ are polynomially bounded. Integers, rational numbers, and Gaussian rationals are always represented exactly. Euclidean division, gcd, and modular powering with polynomial-length binary exponents take polynomial bit time. We use the reversible simulation and cleanup method of Bennett~\cite{Bennett}, compiled into the Boolean gates of Toffoli~\cite[Section~5]{Toffoli}. Concretely, unroll a deterministic computation with a polynomial clock bound into a uniformly generated Boolean circuit. Compute each intermediate AND into fresh scratch with a Toffoli gate, and use NOT and CNOT for complements, exclusive-or operations, and copies. Retain the intermediate values, copy the answer, and reverse the gates to clear scratch. This gives polynomial time and space overhead. Exact arithmetic networks over this basis are also developed by Vedral, Barenco, and Ekert~\cite{VBE}.
+
+\begin{lemma}[Exact dyadic sampling]\label{lem:dyadic}
+Let a classical basis label specify a dyadic $q\in[0,1]$ by a polynomial-time computation with polynomially bounded bit lengths. A circuit over the stated gates can append a flag that equals $1$ with probability exactly $q$, in polynomial time, without altering the label.
+\end{lemma}
+\begin{proof}
+Choose a common polynomial bound $T$ on the denominator exponent, and compute $A$ such that $q=A/2^T$. Apply $T$ Hadamards to fresh zero bits to obtain a uniform label $u\in\{0,\ldots,2^T-1\}$. Reversibly compute the flag $[u<A]$. Keep $u$ and all required work bits. Exactly $A$ labels set the flag. Padding to the common $T$ handles a denominator depending on the input label.
+\end{proof}
+
+When a procedure is said to \emph{retain} an event with probability $q$, it appends such a flag and requires that flag for its eventual success. It does not discard and renormalize the other branches. An ancillary projection likewise denotes a tested event whose actual squared norm contributes to the success probability.
+
+\begin{lemma}[Retained classical records]\label{lem:records}
+Consider a procedure with polynomially bounded time and workspace that uses the stated gates, computational-basis measurements, and polynomial-time classical control. Suppose subsequent quantum operations are controlled by the measurement outcomes as classical data. It has a polynomial-size uniform unitary implementation with the same distribution on its classical outputs and success flag, while retaining polynomially many history and work qubits. The inverse implementation uses the same fixed gate set.
+\end{lemma}
+\begin{proof}
+In place of a basis measurement, copy its outcome by CNOT gates into fresh history bits. Retain this copy and thereafter use it only as a classical control. The branches indexed by different recorded histories remain orthogonal. Induction over the procedure shows that their squared norms and subsequent outcome distributions equal those in the measured procedure. Quantum work not measured in the original procedure remains quantum work; in particular, no label is copied before an intended interference computation.
+
+Run the reversible classical controller for a fixed polynomial number of ticks, keeping its history and using a halted flag after termination. There is no need to list its possible histories. If a bounded-arity instruction selects registers by addresses, enumerate all tuples of addresses in the polynomial workspace. For each tuple, compute whether the controller selects it, apply the corresponding singly controlled primitive, and uncompute this test. The number of tuples is polynomial because the arity is fixed. A polynomial bound on ticks, workspace, and stored records therefore gives a polynomial circuit whose description can be generated in polynomial time. Reverse the gate list and invert each primitive to obtain the inverse.
+\end{proof}
+
+We will also use the following consequence when analyzing an adaptive procedure. Fix a retained classical history $h$. Its current classical inputs are fixed basis labels, while old quantum work may be in an arbitrary state $\rho_h$. If the next trial uses fresh zero registers and leaves that old work alone, it acts as $I_{\rm old}\otimes U_h$. Its outcome probabilities are those of $U_h$ alone, independently of $\rho_h$. This observation permits conditional probability calculations along recorded histories even though the full implementation is unitary.
+
+Finally, exact deterministic primality is needed to verify prime-factor lists. Lemma~\ref{lem:primality} in Appendix~\ref{app:primality} gives an elementary polynomial-time test for all $2\le m<B$. For the main construction, its only required interface is an exact yes-or-no decision with a polynomial bit-time bound.

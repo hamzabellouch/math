@@ -1,0 +1,338 @@
+
+\ProvidesFileRCS{pgfmoduleplot.code.tex}
+
+
+
+
+\def\pgfplotstreamstart{\pgf@plotstreamstart}%
+\def\pgfplotstreampoint#1{\gdef\pgfplotlastpoint{#1}\pgf@plotstreampoint{#1}}%
+\def\pgfplotstreampointoutlier#1{\pgfplot@outliers{}{\pgf@plotstreamjump}{\pgfplotstreampoint{#1}}}%
+\def\pgfplotstreampointundefined{\pgfplot@outliers{}{\pgf@plotstreamjump}{}}%
+\def\pgfplotstreamnewdataset{\pgfplot@outliers{}{\pgf@plotstreamjump}{}}%
+\def\pgfplotstreamspecial{\pgf@plotstreamspecial}%
+\def\pgfplotstreamend{\pgf@plotstreamend}%
+
+\def\pgfplot@ignorer#1#2#3{#1}%
+\def\pgfplot@jumper#1#2#3{#2}%
+\def\pgfplot@plotter#1#2#3{#3}%
+
+\let\pgfplot@outliers\pgfplot@jumper
+\let\pgfplot@undefined\pgfplot@jumper
+\let\pgfplot@newdata\pgfplot@jumper
+
+\pgfset{
+  handle outlier points in plots/.is choice,
+  handle outlier points in plots/ignore/.code=\let\pgfplot@outliers\pgfplot@ignorer,
+  handle outlier points in plots/jump/.code=\let\pgfplot@outliers\pgfplot@jumper,
+  handle outlier points in plots/plot/.code=\let\pgfplot@outliers\pgfplot@plotter,
+  handle undefined points in plots/.is choice,
+  handle undefined points in plots/ignore/.code=\let\pgfplot@undefined\pgfplot@ignorer,
+  handle undefined points in plots/jump/.code=\let\pgfplot@undefined\pgfplot@jumper,
+  handle new data sets in plots/.is choice,
+  handle new data sets in plots/ignore/.code=\let\pgfplot@newdata\pgfplot@ignorer,
+  handle new data sets in plots/jump/.code=\let\pgfplot@newdata\pgfplot@jumper,
+}%
+
+
+
+\def\pgfdeclareplothandler#1#2#3{%
+  \def#1#2{%
+    \pgfkeys{%
+      /pgf/plots/@handler options/.cd,
+      start=\relax,
+      end macro=\relax,
+      point macro=\pgfutil@gobble,
+      jump macro=\relax,
+      special macro=\pgfutil@gobble,%
+      #3%
+    }%
+  }%
+}%
+
+\pgfkeys{%
+  /pgf/plots/@handler options/.cd,
+  start/.code=%
+    \gdef\pgf@plotstreamstart{%
+      \global\pgf@plot@startedfalse%
+      \global\let\pgf@plotstreamend\pgf@plotstreamend@init%
+      \global\let\pgf@plotstreampoint\pgf@plotstreampoint@init%
+      \global\let\pgf@plotstreamjump\pgf@plotstreamjump@init%
+      \global\let\pgf@plotstreamspecial\pgf@plotstreamspecial@init%
+      #1%
+    },%
+  start macro/.code=%
+    \gdef\pgf@plotstreamstart{%
+      \global\pgf@plot@startedfalse%
+      \global\let\pgf@plotstreamend\pgf@plotstreamend@init%
+      \global\let\pgf@plotstreampoint\pgf@plotstreampoint@init%
+      \global\let\pgf@plotstreamjump\pgf@plotstreamjump@init%
+      \global\let\pgf@plotstreamspecial\pgf@plotstreamspecial@init%
+      #1%
+    },%
+  end/.code=\gdef\pgf@plotstreamend@init{#1},
+  end macro/.code=\global\let\pgf@plotstreamend@init#1,
+  point/.code=\gdef\pgf@plotstreampoint@init##1{#1},
+  point macro/.code=\global\let\pgf@plotstreampoint@init#1,
+  jump/.code=\gdef\pgf@plotstreamjump@init{#1},
+  jump macro/.code=\global\let\pgf@plotstreamjump@init#1,
+  special/.code=\gdef\pgf@plotstreamspecial@init##1{#1},
+  special macro/.code=\global\let\pgf@plotstreamspecial@init#1,
+}%
+
+\newif\ifpgf@plot@started
+
+
+
+
+
+\def\pgfsetlinetofirstplotpoint{\let\pgf@plot@first@action=\pgfpathlineto}%
+
+
+
+\def\pgfsetmovetofirstplotpoint{\let\pgf@plot@first@action=\pgfpathmoveto}%
+
+\let\pgf@plot@first@action=\pgfpathmoveto
+
+
+
+
+
+
+
+\pgfdeclareplothandler{\pgfplothandlerlineto}{}{
+  point macro=\pgf@plot@line@handler,
+  jump=\global\let\pgf@plotstreampoint\pgf@plot@line@handler@move%
+}%
+
+\def\pgf@plot@line@handler#1{%
+  \pgf@plot@first@action{#1}%
+  \global\let\pgf@plotstreampoint=\pgfpathlineto%
+}%
+
+\def\pgf@plot@line@handler@move#1{%
+  \pgfpathmoveto{#1}%
+  \global\let\pgf@plotstreampoint=\pgfpathlineto%
+}%
+
+
+
+
+\pgfdeclareplothandler{\pgfplothandlerpolygon}{}{%
+  point macro=\pgf@plot@line@handler@close,
+  jump macro=\pgf@plot@next@close@and@moveto,
+  end macro=\pgf@plot@polygon@stop
+}%
+
+\def\pgf@plot@line@handler@close#1{%
+  \pgfpathmoveto{#1}%
+  \global\pgf@plot@startedtrue%
+  \global\let\pgf@plotstreampoint=\pgfpathlineto%
+}%
+
+\def\pgf@plot@polygon@stop{%
+  \ifpgf@plot@started%
+    \pgfpathclose%
+  \fi%
+  \global\pgf@plot@startedfalse%
+}%
+
+\def\pgf@plot@next@close@and@moveto{%
+  \ifpgf@plot@started%
+    \pgfpathclose%
+  \fi%
+  \global\let\pgf@plotstreampoint\pgf@plot@line@handler@close%
+}%
+
+
+
+
+
+
+
+
+\pgfdeclareplothandler{\pgfplothandlerdiscard}{}{}%
+
+
+
+
+\pgfdeclareplothandler{\pgfplothandlerrecord}{#1}{%
+  start=\gdef#1{\pgfplotstreamstart},
+  point=\expandafter\gdef\expandafter#1\expandafter{#1\pgfplotstreampoint{##1}},
+  jump=\expandafter\gdef\expandafter#1\expandafter{#1\pgf@plotstreamjump},
+  special=\expandafter\gdef\expandafter#1\expandafter{#1\pgfplotstreamspecial{##1}},
+  end=\expandafter\gdef\expandafter#1\expandafter{#1\pgfplotstreamend},
+}%
+
+
+
+
+\def\pgfplotxyfile#1{%
+  \begingroup%
+    \def\b@pgfplotsxyfile@scanning@for@first{1}%
+    \pgfplotstreamstart%
+    \openin\r@pgf@reada=#1
+    \ifeof\r@pgf@reada
+      \pgfwarning{Plot data file `#1' not found.}
+     \else
+      \catcode`\#=14
+      \catcode`\^^M=5
+      \pgf@readxyfile%
+    \fi
+    \pgfplotstreamend%
+  \endgroup%
+}%
+
+\let\pgf@savedpar=\par
+\def\pgf@partext{\par}%
+\def\pgf@readxyfile{%
+  \pgfutil@read\r@pgf@reada to \pgf@temp%
+  \let\par=\pgf@savedpar%
+  \edef\pgf@temp{\pgf@temp}%
+  \ifx\pgf@temp\pgfutil@empty%
+    \if1\b@pgfplotsxyfile@scanning@for@first
+    \else
+        \ifeof\r@pgf@reada\else\pgfplotstreamnewdataset\fi%
+    \fi
+  \else\ifx\pgf@temp\pgf@partext%
+    \if1\b@pgfplotsxyfile@scanning@for@first
+    \else
+        \ifeof\r@pgf@reada\else\pgfplotstreamnewdataset\fi%
+    \fi
+  \else%
+    \expandafter\pgf@parsexyline\pgf@temp\pgf@stop%
+  \fi\fi%
+  \ifeof\r@pgf@reada\else\expandafter\pgf@readxyfile\fi%
+}%
+
+\def\pgf@parsexyline#1 #2 #3\pgf@stop{%
+  \def\b@pgfplotsxyfile@scanning@for@first{0}%
+  \edef\pgf@xyline@flag@val{#3}%
+  \ifx\pgf@xyline@flag@val\pgf@xyline@flag@undef%
+    \pgfplotstreampointundefined%
+  \else\ifx\pgf@xyline@flag@val\pgf@xyline@flag@out%
+    \pgfplotstreampointoutlier{\pgfpointxy{#1}{#2}}%
+  \else%
+    \pgfplotstreampoint{\pgfpointxy{#1}{#2}}%
+  \fi\fi%
+}%
+
+\edef\pgf@xyline@flag@out{o\space}%
+\edef\pgf@xyline@flag@undef{u\space}%
+
+
+
+
+
+\def\pgfplotxyzfile#1{%
+  \begingroup%
+    \pgfplotstreamstart%
+    \openin\r@pgf@reada=#1
+    \ifeof\r@pgf@reada
+      \pgfwarning{Plot data file `#1' not found.}
+    \else
+      \catcode`\#=14
+      \catcode`\^^M=5
+      \pgf@readxyzfile%
+    \fi
+    \pgfplotstreamend%
+  \endgroup%
+}%
+
+\def\pgf@readxyzfile{%
+  \pgfutil@read\r@pgf@reada to \pgf@temp%
+  \ifx\pgf@temp\pgfutil@empty%
+    \if1\b@pgfplotsxyfile@scanning@for@first
+    \else
+        \ifeof\r@pgf@reada\else\pgfplotstreamnewdataset\fi%
+    \fi
+  \else\ifx\pgf@temp\pgf@partext%
+    \if1\b@pgfplotsxyfile@scanning@for@first
+    \else
+        \ifeof\r@pgf@reada\else\pgfplotstreamnewdataset\fi%
+    \fi
+  \else%
+    \expandafter\pgf@parsexyzline\pgf@temp\pgf@stop%
+  \fi\fi%
+  \ifeof\r@pgf@reada\else\expandafter\pgf@readxyzfile\fi%
+}%
+
+\def\pgf@parsexyzline#1 #2 #3 #4\pgf@stop{%
+  \def\b@pgfplotsxyfile@scanning@for@first{0}%
+  \edef\pgf@xyline@flag@val{#4}%
+  \ifx\pgf@xyline@flag@val\pgf@xyline@flag@undef%
+    \pgfplotstreampointundefined%
+  \else\ifx\pgf@xyline@flag@val\pgf@xyline@flag@out%
+    \pgfplotstreampointoutlier{\pgfpointxyz{#1}{#2}{#3}}%
+  \else%
+    \pgfplotstreampoint{\pgfpointxyz{#1}{#2}{#3}}%
+  \fi\fi%
+}%
+
+
+
+
+
+{%
+  \catcode`\%=12
+  \catcode`\"=12
+  \xdef\pgf@gnuplot@head{set table \noexpand\pgf@plottablefile@quoted; set format "%.5f"}
+}%
+
+\let\pgf@plotwrite=\w@pgf@writea
+\newif\ifpgf@resample@plot
+
+\pgfkeys{%
+  /pgf/plot/gnuplot call/.initial={gnuplot}}%
+
+\def\pgfplotgnuplot{\pgfutil@ifnextchar[{\pgf@plotgnuplot}{\pgf@plotgnuplot[\jobname]}}%
+\def\pgf@plotgnuplot[#1]#2{%
+  \pgf@resample@plottrue%
+  \pgfutilpreparefilename{#1.gnuplot}%
+  \let\pgf@plotgnuplotfile=\pgfretval
+  \pgfutilpreparefilename{#1.table}%
+  \let\pgf@plottablefile=\pgfretval
+  \let\pgf@plottablefile@quoted=\pgfretvalquoted
+  \openin\pgfutil@inputcheck=\pgf@plotgnuplotfile\relax
+  \ifeof\pgfutil@inputcheck%
+  \else%
+    \pgfutil@read\pgfutil@inputcheck to\pgf@temp%
+    \pgfutil@read\pgfutil@inputcheck to\pgf@plot@line%
+    \closein\pgfutil@inputcheck
+    \edef\pgf@plot@code{#2\space}%
+    \ifx\pgf@plot@code\pgf@plot@line%
+      \openin\pgfutil@inputcheck=\pgfretval\relax
+      \ifeof\pgfutil@inputcheck%
+      \else%
+        \closein\pgfutil@inputcheck
+        \pgf@resample@plotfalse%
+      \fi%
+    \fi%
+  \fi
+  \ifpgf@resample@plot%
+    \immediate\openout\pgf@plotwrite=\pgf@plotgnuplotfile\relax
+    \immediate\pgfutil@write\pgf@plotwrite{\pgf@gnuplot@head}%
+    \immediate\pgfutil@write\pgf@plotwrite{#2}%
+    \immediate\closeout\pgf@plotwrite%
+    \pgfutil@shellescape{%
+      \pgfkeysvalueof{/pgf/plot/gnuplot call} \pgf@plotgnuplotfile}%
+  \fi%
+  \pgfplotxyfile{\pgf@plottablefile}%
+}%
+
+
+
+\def\pgfplotfunction#1#2#3{%
+  \pgfplotstreamstart%
+  \foreach#1in{#2}%
+  {%
+    \pgf@process{#3}%
+    \edef\pgf@marshal{\noexpand\pgfplotstreampoint{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}}%
+    \pgf@marshal%
+  }
+  \pgfplotstreamend%
+}%
+
+
+
+
+\endinput

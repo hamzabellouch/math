@@ -1,0 +1,128 @@
+\section{Conventions and reduction to bounded integral distances}
+\label{pre:section}
+
+For a nonempty set $H\subseteq F$, write
+\[
+ d(p,H)=\min_{x\in H}d(p,x),\qquad
+ \operatorname{cost}(H)=\sum_{p\in D}d(p,H),\qquad
+ \operatorname{opt}_r=\min_{\substack{H\subseteq F\\1\le|H|\le r}}
+                          \operatorname{cost}(H).
+\]
+We use $n=|D|$ and $N=n+|F|$. We use $\log(N+2)$ for logarithmic
+factors in the instance size. Constants may depend on fixed accuracy
+parameters, but not on the input. The expression $\exp(O(m))$ always
+has an input-independent constant in the exponent.
+
+We assume $F\ne\varnothing$ and $k\ge1$. Empty client sets have cost zero.
+When $k\ge |F|$, opening every facility is optimal. When $k\ge n$, choose
+a nearest available facility for each client; their union has at most
+$n$ elements and attains the sum of the individual lower bounds.
+We may consequently restrict the nontrivial analysis to
+\begin{equation}\label{pre:nontrivial}
+ 1\le k<n,\qquad k\le |F|.
+\end{equation}
+If a set has fewer than a desired number of facilities, it can be padded
+from $F$ without increasing cost. Whenever exact cardinalities are used
+for comparison, this padding is understood and will be specified at
+the relevant construction.
+
+Fix nearest assignments whenever a solution is considered. For a
+comparison solution $O$ of size $h$, its cluster at $i\in O$ is denoted
+$C_i$, and
+\[
+ n_i=|C_i|,\qquad d_p^*=d(p,O),\qquad
+ P_i=\sum_{p\in C_i}d_p^*,\qquad P=\operatorname{cost}(O).
+\]
+Clusters may be empty. A cluster mean $\bar d_i=P_i/n_i$ is used only
+when $n_i>0$. A local solution is denoted $S$, with $s_p=d(p,S)$.
+Assignment ties are broken by fixed priorities. When the reference
+set is enlarged only by adding points, its old points retain their
+relative priority. Thus the clients assigned to any fixed subset of
+old points can only disappear from that subset.
+
+The body of the proof first treats disjoint indexed client and facility
+sets with positive integer distances between distinct points, bounded
+by a fixed polynomial in $N$. In particular every nonempty comparison
+solution has integral cost at least $n$. The polynomial bound may have
+a fixed coefficient depending on an accuracy parameter. It is fixed
+before the surplus algorithm is invoked.
+
+\begin{lemma}[Metric rounding and transfer]\label{pre:rounding}
+Fix rational $0<\varepsilon_0\le1$. Suppose a polynomial-time algorithm for the bounded
+integral instances just described always returns at most $k$ facilities
+of cost at most $5\operatorname{opt}_k$, and, with probability at least
+$1-p$, returns cost at most $A\operatorname{opt}_k$, where $A\le5$.
+Then a randomized polynomial-time algorithm for arbitrary finite
+rational metric instances always returns at most $k$ facilities of
+cost at most $5(1+\varepsilon_0)\operatorname{opt}_k$ and, with
+probability at least $1-p$, returns cost at most
+$A(1+\varepsilon_0)\operatorname{opt}_k$.
+The bounded integral distances needed are at most
+$\lceil20n^2/\varepsilon_0\rceil+1$.
+\end{lemma}
+
+\begin{proof}
+Detect zero optimum first. It occurs exactly when every client location
+contains an available facility and the number of distinct client
+locations is at most $k$. More generally, if repeated indexed points
+are initially represented by zero distances, use their zero-distance
+equivalence classes for this test. Opening one facility in each relevant
+class gives cost zero.
+
+Suppose the optimum cost $P^*$ is positive. Guess a positive client--facility
+distance $M$ from the input; there are at most $n|F|$ possibilities.
+For the correct guess, $M$ is the largest assigned distance in some
+fixed optimum, so
+\begin{equation}\label{pre:M-range}
+ M\le P^*\le nM.
+\end{equation}
+Set
+\[
+ u=\frac{\varepsilon_0M}{n},\qquad
+ C=\lceil20n^2/\varepsilon_0\rceil+1.
+\]
+Separate client and facility copies when a point serves both roles.
+For distinct indexed points $x,y$ set
+\[
+ d_M(x,y)=\min\{C,\max\{1,\lceil d(x,y)/u\rceil\}\},
+ \qquad d_M(x,x)=0.
+\]
+This is a metric. Indeed, ceiling is monotone and subadditive on
+nonnegative arguments; enforcing the lower bound one on distinct
+points and applying a common cap preserve the triangle inequality.
+For a triangle with repeated indices the assertion is immediate.
+For three distinct indices it follows by applying these two monotone,
+subadditive operations to the original triangle inequality. These
+observations also cover distinct copies whose original distance is zero.
+
+The original optimum, evaluated in $d_M$, has cost at most $P^*/u+n$.
+Thus for the correct guess the new optimum $Q^*$ satisfies
+\begin{equation}\label{pre:rounded-optimum}
+ Q^*\le P^*/u+n\le n^2/\varepsilon_0+n.
+\end{equation}
+The assumed algorithm's output has rounded cost at most $5Q^*<C$.
+Choose nearest rounded assignments for that output. None of their
+edges has rounded length $C$, because the whole sum is smaller than
+$C$. On every selected edge, therefore,
+$d(x,y)\le u\,d_M(x,y)$. The original nearest-assignment cost is no
+larger than that of these assignments. The output consequently has
+original cost at most
+\[
+ 5uQ^*\le5(P^*+un)\le5(1+\varepsilon_0)P^*,
+\]
+using Equation~\eqref{pre:M-range}. On the successful event the same
+argument replaces $5$ by $A$.
+
+Run the algorithm for every positive guess and return the feasible
+output with the least original cost. It is at least as good as the
+output of the correct guess, so no union bound over guesses is needed.
+All sets returned respect the budget. Sorting distances, taking ceilings,
+and constructing the rounded matrices require polynomial-bit rational
+arithmetic. The number of guesses is polynomial, and the rounded
+distance bound is a fixed polynomial for fixed $\varepsilon_0$.
+\end{proof}
+
+The factor-five requirement in Lemma~\ref{pre:rounding} is supplied by
+always retaining a local-search fallback; see Lemma~\ref{loc:swap}.
+The algorithm eventually returns the cheapest of its feasible candidates.
+This ensures that failure of a sampling event never causes unbounded cost.

@@ -1,0 +1,194 @@
+\section{Alignment geometry and computational parameters}\label{sec:geometry}
+This section fixes the input conventions and the interval states used
+throughout the algorithm. It also records the geometric inequalities that
+allow child intervals to be combined even when their target endpoints do
+not agree.
+
+\subsection{Paths, states and connection costs}
+Index string boundaries starting at zero. An alignment path has steps
+$(1,0),(0,1),(1,1)$, of cost one, one, and the indicator that the two
+characters on a diagonal step differ. Such a path gives an edit sequence.
+Conversely, the original characters that survive an edit sequence occur in
+the final string in their original order. Deleting other original
+characters, inserting the remaining output characters and changing each
+surviving character whose label differs gives an alignment of no greater
+cost. Thus minimum alignment cost equals edit distance.
+
+For an interval $I=(l,u]$ of the first string, an interval state is
+$(I,q)$, where $q=(q^-,q^+)$ is an integer pair with
+$0\le q^-\le q^+\le |y|$. When $I$ is fixed, we also call $q$ a state. Set
+\[
+ c(I,q)=\ED\bigl(x_{(l,u]},y_{(q^-,q^+]}\bigr),\qquad
+ z(I,q)=(q^+-q^-)-(u-l).
+\]
+An endpoint's \emph{shift} is its target index minus its first-string index.
+In particular, $z$ is the change in shift between the two endpoints.
+For pairs use $|q-r|_1=|q^--r^-|+|q^+-r^+|$.
+
+\begin{lemma}\label{lem:geometry}
+For every interval state, $c(I,q)\ge |z(I,q)|$. Both $c(I,\cdot)$ and
+$|z(I,\cdot)|$ are $1$-Lipschitz in the endpoint metric.
+If $I$ is partitioned, in order, into $I_1,\ldots,I_m$, and
+$\alpha=(s_1,\ldots,s_m)$ is any list of valid child states, define
+\[
+ \conn_r(\alpha)=|s_1^--r^-|
+   +\sum_{i=1}^{m-1}|s_{i+1}^--s_i^+|+|s_m^+-r^+|.
+\]
+Then
+\begin{align}
+ c(I,r)&\le\sum_i c(I_i,s_i)+\conn_r(\alpha),\label{eq:connection}\\
+ |z(I,r)|&\le\sum_i|z(I_i,s_i)|+\conn_r(\alpha).
+ \label{eq:shift-connection}
+\end{align}
+The connection inequalities also hold for finite target intervals in any
+extension of $y$ beyond its stored endpoints.
+\end{lemma}
+\begin{proof}
+Only insertions and deletions change length, proving $c\ge|z|$.
+Changing a target substring's endpoints costs at most $|q-r|_1$:
+remove or insert endpoint portions if the substrings overlap, and delete
+and insert the whole substrings if they are disjoint. The triangle
+inequality gives the claim for $c$; the claim for $|z|$ follows from its
+formula.
+
+Edit each child to its specified target substring and concatenate the
+results. Consider the walk on the target's boundary line that starts at
+$r^-$, jumps to $s_1^-$, traverses each child target forward, makes the
+successive connecting jumps, and ends at $r^+$. Expand each jump into unit
+steps. From this walk choose, in order, one forward crossing of every unit
+interval between $r^-$ and $r^+$. Successive first arrivals at the next
+boundary give such a choice. The letters on these selected crossings,
+in their walk order, form exactly the parent's target substring. Delete
+the letters on unselected child crossings, and insert the letters on
+selected connecting crossings. By net displacement, the number of
+unselected forward crossings equals the number of backward crossings.
+All backward crossings belong to connecting jumps, since child targets
+are traversed forward. Thus deletions cost at most the total backward
+jump length, while insertions cost at most the total forward jump length.
+Their sum is $\conn_r(\alpha)$, proving~\eqref{eq:connection}.
+This argument uses only the letters at finitely many target positions,
+so it also proves the assertion for extensions of $y$.
+Finally, sum the signed shift changes of child intervals and connecting
+jumps and take absolute values to obtain~\eqref{eq:shift-connection}.
+\end{proof}
+
+Figure~\ref{fig:connection-cost} illustrates why the connection term permits
+both gaps and overlaps between consecutive child targets.
+\input{figures/connection-cost.tex}
+
+\subsection{Uniform access to the accuracy input}
+The rational accuracy is supplied in a fixed canonical binary encoding of
+its positive numerator and denominator in lowest terms, on a separate
+read-only input.
+For example, encode a positive integer by its binary length in unary,
+a delimiter, and its binary digits, and concatenate the two encodings.
+The input is promised to specify $0<\varepsilon<1$. Prefix inspection is
+ordinary input access; no numerical operation on the rational is free.
+
+The algorithm first handles equality, empty strings and $|x|\le1$
+exactly. These cases require $O(N+1)$ string work. On other inputs define
+$H$ as the least power of two at least $\lceil\log_2(N+2)\rceil$, and
+$\ell$ as the least power of two at least $\max(1,\log_2 H)$.
+Inspect at most $H^2+O(1)$ bits of the accuracy input. If its complete
+encoding has not been obtained, use exact alignment dynamic programming.
+The unread suffix is neither copied nor addressed. All addresses actually
+used for this prefix have $O(\log(N+2))$ bits. If the encoding is obtained,
+its integers have $O(H^2)$ bits, and exact arithmetic decides the test
+$\ell\varepsilon\ge10$ with polynomial work in $H$.
+
+Use exact dynamic programming also if $\ell<2^{1000}$ or
+$\ell\varepsilon<10$. It uses $O((N+1)^2)$ word operations and can store
+only two rows. Together with the bounded parameter inspection, this
+charges every operation in these branches. For each fixed rational
+encoding, the inspection bound eventually exceeds its length, and both
+numeric tests eventually pass as $N$ grows. Thus the exact branches affect
+only a bounded range of $N$ for each fixed $\varepsilon$. They preserve
+the uniform algorithm and its approximation guarantee on that range.
+No assertion about efficient joint dependence on encoding length or
+$1/\varepsilon$ is needed.
+
+\subsection{Parameters and the fixed interval tree}
+All remaining arguments concern the large-input branch. Logarithms with
+subscript two are binary, and $\ln$ denotes the natural logarithm.
+The coarse estimator and interval tree use the branching factors $B$ and
+$M$ below. The factor $A_{\rm init}$ is the initial seed accuracy, $F$
+controls its reduction across passes, and $P$ controls endpoint-grid
+resolution:
+\begin{align*}
+ p_*&=\left\lfloor(\log_2\ell)^{1/4}\right\rfloor,
+ &B&=H^{p_*},&A_{\rm init}&=H^{p_*+4},\\
+ M&=2^{\lfloor(\log_2 H)/20\rfloor},
+ &P&=H^{p_*+20},&F&=\ell.
+\end{align*}
+The counts $T$ and $S$ govern preliminary propagation and refinement
+iterations, respectively. The slopes $L_0$ and $L$ penalize changes in
+target endpoints:
+\[
+ T=2^{\lceil(3/4)\log_2H\rceil},\qquad S=H/\ell^2,
+ \qquad L_0=32F,\qquad L=128F.
+\]
+Finally, fix the error tolerances and the sampling and optimization
+parameters. Their roles are specified at the corresponding constructions:
+\begin{align*}
+ \delta&=\ell^{-10},&\kappa&=\tau=\ell^{-4},
+ &\theta&=\ell^{-40},\\
+ \gamma&=\ell^{-20},&\eta&=\ell^5,&Q_1&=\ell^{80}.
+\end{align*}
+The essential separation is between $H=\Theta(\log(N+2))$ and
+$\ell=\Theta(\log H)$: the branching factors and grid resolutions are
+powers of $H$, while the tolerances are powers of $\ell$. The inequalities
+below quantify the slack available between these scales.
+
+Every integer parameter here is computable using bit lengths and integer
+tests. For example, $p_*$ is the largest integer whose fourth power is
+at most the integer $\log_2\ell$. The displayed fractional powers and
+logarithms require no real-arithmetic oracle. All parameters used as dyadic
+grid spacings are powers of two, and $S$ is a positive integer in this
+branch.
+
+We will repeatedly use the generous bounds
+\begin{equation}\label{eq:parameter-slack}
+ H\ge2^{\ell/2},\qquad \ell^{200}\le H^{1/100},\qquad
+ p_*+21\le\sqrt\ell.
+\end{equation}
+The first follows from the definition of $\ell$; the other two follow at
+$\ell\ge2^{1000}$ and become stronger as $\ell$ increases. More explicitly,
+$200\log_2\ell\le\ell/200$ and
+$(\log_2\ell)^{1/4}+21\le\sqrt\ell$ hold at this cutoff, and their
+right sides thereafter grow faster. Factors polynomial in $\ell$ and
+$p_*$ will consequently be much smaller than any fixed positive power
+of $H$ needed below.
+
+Partition $x$ into a complete $M$-ary tree of height
+\[
+ J=\left\lceil\log_M\max(1,|x|)\right\rceil.
+\]
+At a node $(l,u]$ use cuts
+$l_i=l+\lfloor i(u-l)/M\rfloor$, $0\le i\le M$.
+Empty intervals are allowed, and node labels distinguish repeated
+intervals. Nodes need only be generated when requested. At depth $j$ the
+width is at most $\lceil|x|/M^j\rceil$, and leaves have width at most one.
+The parameters give
+\begin{equation}\label{eq:tree-bounds}
+ J\le100H/\ell,\qquad M^J\le M\max(1,|x|).
+\end{equation}
+Indeed $\log_2M\ge (\log_2H)/20-1$ and
+$\log_2H\ge\ell/2$, whereas $\log_2|x|\le H$.
+The second bound follows directly from the ceiling defining $J$.
+
+At a leaf of width zero the exact cost is the target length. At a leaf
+containing one character, the cost is one for an empty target, and otherwise
+is the target length minus the indicator that this character occurs there.
+Sort the pairs (symbol, position) of $y$ lexicographically by comparison
+sorting. A binary search then tests occurrence in any target interval in
+$O(\log(N+2))$ time, with $O(N\log(N+2))$ preprocessing work and linear
+storage. The word-label assumption makes each comparison a bounded number
+of word operations. Fresh padding symbols used later can be represented by
+a tag together with a label; no search for an unused alphabet value is
+needed.
+
+All subsequent tables are indexed by this fixed tree and valid endpoint
+pairs. The total domain is polynomial in $N+2$: there are at most
+$2M^J$ nodes and at most $(|y|+1)^2$ pairs per node. A simultaneous
+probability guarantee over this domain is meaningful even though the
+algorithm will evaluate only a small part of it.

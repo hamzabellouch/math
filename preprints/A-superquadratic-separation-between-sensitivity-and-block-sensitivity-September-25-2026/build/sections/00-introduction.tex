@@ -1,0 +1,139 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Sensitivity measures how many individual input bits can change a Boolean
+function's value; block sensitivity allows disjoint sets of bits to be
+flipped instead. We construct total Boolean functions for which the second
+quantity grows faster than any constant multiple of the square of the first.
+
+For a positive integer \(n\), write \([n]=\{1,\ldots,n\}\).
+If \(x\in\{0,1\}^n\) and \(B\subseteq[n]\), let \(x^B\) be obtained
+by flipping precisely the coordinates in \(B\); abbreviate
+\(x^{\{a\}}\) to \(x^a\).
+For a total Boolean function \(f:\{0,1\}^n\to\{0,1\}\), define
+\[
+ s(f,x)=\bigl|\{a\in[n]:f(x^a)\ne f(x)\}\bigr|,
+ \qquad s(f)=\max_x s(f,x).
+\]
+Its block sensitivity \(\bs(f,x)\) is the largest number of pairwise
+disjoint nonempty sets \(B_1,\ldots,B_m\subseteq[n]\) such that
+\(f(x^{B_j})\ne f(x)\) for every \(j\), and
+\(\bs(f)=\max_x\bs(f,x)\).
+
+The Sensitivity Conjecture asked whether block sensitivity is bounded by a
+polynomial in sensitivity, uniformly over the number of inputs and the
+function. The question goes back to Nisan's work on parallel computation,
+which introduced block sensitivity and already recorded Rubinstein's
+quadratic separation \cite[Section~2]{Nisan1989}.
+Nisan and Szegedy studied the problem through the degree of the unique
+multilinear real polynomial representing a Boolean function, and explicitly
+suggested the quadratic inequality \(\bs(f)\le s(f)^2\)
+\cite[Section~4]{NisanSzegedy1994}.
+Rubinstein's construction \cite{Rubinstein1995} showed that a polynomial
+upper bound would need degree at least two. Virza improved the separation
+to \(\bs(f)=\tfrac12s(f)^2+\tfrac12s(f)\) \cite{Virza2011}, and
+Ambainis and Sun subsequently obtained examples satisfying
+\[
+ \bs(f)=\frac23s(f)^2-\frac13s(f)
+\]
+\cite[Theorem~1]{AmbainisSun2011}.
+These improvements left open whether any universal quadratic upper bound
+could hold.
+
+Huang resolved the polynomial conjecture in 2019. His degree bound,
+together with Tal's refinement of the degree--block-sensitivity comparison
+\cite{Tal2013}, gives \(\bs(f)\le s(f)^4\) for every total Boolean function
+\cite[Theorem~1.5]{Huang2019}. Wellens later improved its leading constant,
+proving
+\(\bs(f)\le\sqrt{2/3}\,s(f)^4+1\)
+\cite[Corollary~4.2]{Wellens2022}.
+These results settle the polynomial question. The theorem below rules out
+its quadratic strengthening.
+
+\begin{theorem}\label{thm:main}
+For every real \(C>0\), there are a positive integer \(n\) and a
+nonconstant total Boolean function \(f:\{0,1\}^n\to\{0,1\}\) such that
+\[
+ \bs(f)>C\,s(f)^2.
+\]
+More precisely, for every integer \(d\ge1\) the construction below gives
+a nonconstant total Boolean function \(f\) with
+\[
+ \frac{\bs(f)}{s(f)^2}\ge \frac{2^d}{4(d+2)^2}.
+\]
+\end{theorem}
+
+\paragraph{Method and relation to spectral sensitivity.}
+Meiburg's spectral-sensitivity construction uses tournament-indexed rows
+of positive conditions and one selected blocking coordinate in each
+outgoing row \cite[Sections~3.1 and~5.2--5.5]{Meiburg2026}.\footnote{In the
+attribution accompanying this construction, Meiburg credits GPT-5.6-Sol
+with the gated-tournament ideas and describes his own contributions as
+exposition, size and parameter optimization, and checking the faithfulness
+of the Lean formalization.}
+Random labels exclude small local configurations in which many accepting
+subcubes lie close to the same accepting input. We adapt this architecture
+to nested predicates, using a different forbidden-label condition and a
+direct union bound. Simultaneous changes of two predicates then control
+ordinary sensitivity under recursion.
+
+The distinction between the two sensitivity measures matters here.
+The sensitivity graph joins adjacent cube inputs exactly when the function
+changes value. Its maximum degree is \(s(f)\); spectral sensitivity
+\(\lambda(f)\) is the operator norm of its adjacency matrix
+\cite{AaronsonEtAl2021}.
+Since \(\lambda(f)\le s(f)\), a lower bound on
+\(\bs(f)/\lambda(f)^2\) alone does not supply the ordinary-sensitivity
+separation in Theorem~\ref{thm:main}.
+The needed estimates are proved directly below, without a spectral input.
+
+\paragraph{Construction and proof strategy.}
+We recursively construct nested families of Boolean predicates: their
+accepting sets decrease as the predicate index increases. At a recursive
+step, the input is partitioned into disjoint child inputs arranged in
+rows, and every pair of rows is given one directed edge. Each edge is
+labelled by a position in its destination row. A clause associated with
+row \(i\) has target conditions requiring the strongest child predicate
+to accept every child in that row. For each edge from \(i\) to another row,
+it also requires a weaker child predicate to reject the child selected by
+the edge label. The parent predicate accepts when one of these clauses
+holds. Varying the weaker predicate used in these gate conditions produces
+a new nested family.
+
+Fix one parent predicate at a rejecting input, and consider clauses that
+can become satisfied after one bit changes. A bit belongs to only one child
+and hence affects only one condition of a fixed clause. The candidate
+clauses therefore fail exactly one target condition or one gate condition,
+and no other condition. The edge labels bound the number of candidates of
+the first kind. The tournament allows at most three candidates of the
+second kind, and all but at most one have their failed gate in a row whose
+strongest child predicates all accept. Repairing such a gate must reverse
+both its weaker predicate and the strongest predicate on the same child.
+We consequently track the number of bits that reverse a fixed pair of
+distinct predicates simultaneously, in addition to ordinary sensitivity.
+For a gate repair that makes a clause hold for two rejecting parent
+predicates, the two corresponding child gate predicates must both change,
+even in the possible exceptional clause.
+
+The initial family consists of indicators of unions of Hamming balls
+with successive integer radii around separated centres. One bit cannot
+cross two of these radii, so all its joint sensitivities vanish.
+Section~\ref{sec:construction} gives this family, the required edge
+labelling, and common disjoint sensitive blocks at zero.
+Section~\ref{sec:recurrences} then proves the four coupled sensitivity
+bounds for arbitrary inputs. With a size parameter \(M\) chosen
+sufficiently large for each fixed depth, their normalization in
+Section~\ref{sec:separation} bounds sensitivity growth by essentially
+a factor \(M\) per level, while the number of disjoint sensitive blocks
+grows by \(2M^2+1\). An OR of disjoint copies balances the sensitivities
+at zero and one, following the principle used by Ambainis and Sun
+\cite[Section~4, Lemma~1]{AmbainisSun2011}.
+
+Finally, Lemma~\ref{lem:composition} amplifies a fixed seed with
+\(f(0)=0\) and \(\bs(f,0)>s(f)^2\) into the fixed power separation of
+Corollary~\ref{cor:power-separation}. Ambainis and Pr\={u}sis explicitly
+noted that a seed with block sensitivity greater than sensitivity squared
+would yield a superquadratic power separation by iteration
+\cite[Section~1]{AmbainisPrusis2014}. Composition as an amplification method
+is treated systematically by Tal~\cite{Tal2013}; we prove the sensitivity
+upper bound and zero-input block lower bound used here.

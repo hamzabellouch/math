@@ -1,0 +1,605 @@
+\section{Selecting split lines}\label{sec:selection}
+
+The candidate graph supplies many choices in each slot; we must now
+choose one vertex from every slot without creating a conflict.  We need
+two further properties of this choice.  First, an event prescribing the
+chosen vertices in several slots must have small probability.  Such an
+event is called a \emph{cylinder}, and its bound will allow us to count
+exceptional pencil configurations.  Second, the chosen split lines must
+leave a positive proportion of the initially available points on every
+affine line.
+
+We prove these properties together in a graph statement whose bounds are
+uniform over all inputs satisfying the hypotheses.  The cylinder bound
+includes the event that the procedure succeeds; we do not condition the
+individual choices on eventual success.
+
+\begin{proposition}[Selection with bounded cylinder probabilities]
+\label{sel:selection}
+Fix constants $c_*,C_*>0$ and $0<c_0\le1$, and put $\beta=1/8$.
+For each sufficiently large integer $q$, let a finite graph have its
+vertex set partitioned into $n=2(q+1)$ slots $Q_i$, with no edge within
+a slot.  Write $N(v)$ for the neighborhood of a vertex.  Suppose that
+\begin{align}
+ c_*q\le |Q_i|\le q,&\qquad |N(v)|\le C_*q,
+ \qquad |N(v)\cap Q_i|\le q^\beta,\label{sel:graph-bounds}\\
+ |J(v)|\le q^\beta,&\qquad
+ |N(v)\cap N(w)|\le q^\beta\quad(w\notin J(v)),\label{sel:exceptional}
+\end{align}
+where every $w\in J(v)$ is either adjacent to $v$ or in its slot.
+There are constants $K_*,\rho>0$, depending only on $c_*,C_*,c_0$,
+and a random procedure which either fails or returns an independent
+transversal $(V_i)_{i\in I_0}$, where $I_0$ is the set of slots and
+$V_i\in Q_i$.  If $\mathcal A$ denotes its event of returning a
+transversal, then
+\begin{equation}\label{sel:success}
+ \Prb(\mathcal A)=1-o(1).
+\end{equation}
+For any $s$ distinct slots $i_1,\ldots,i_s$ and any prescribed vertices
+$v_j\in Q_{i_j}$,
+\begin{equation}\label{sel:cylinder}
+ \Prb\bigl(\mathcal A, V_{i_j}=v_j\ (1\le j\le s)\bigr)
+ \le (K_*/q)^s.
+\end{equation}
+
+Suppose also that the slots are indexed by $(g,k)$, with two slots for
+each direction $g$ of an affine plane of order $q$.  Associate to each
+vertex in slot $(g,k)$ a line of direction $g$, injectively within
+that slot.  For every affine line $\ell$, let $T_\ell\subseteq\ell$
+be a fixed set of at least $c_0q$ points.  From $T_\ell$ remove every
+point on a selected line different from $\ell$, and call the remaining
+set $T_\ell^{\rm fin}$.  Then the same procedure satisfies
+\begin{equation}\label{sel:occupancy-conclusion}
+ \Prb\bigl(\mathcal A, \min_\ell |T_\ell^{\rm fin}|<\rho q\bigr)
+ =o(1).
+\end{equation}
+The errors in \eqref{sel:success} and
+\eqref{sel:occupancy-conclusion} are uniform in all the stated input
+data.  By the injectivity within a slot, \eqref{sel:cylinder} also
+holds for prescribed candidate lines.
+\end{proposition}
+
+The selection has two stages.  In the main stage we repeatedly choose a
+slot and a vertex, delete conflicts, and thin the remaining choices so
+that every vertex has the same survival probability.  Domain sizes then
+decrease at a common rate.  Remaining degrees decrease faster, because
+the chosen slot also disappears.  We show that this difference leaves a
+sparse enough graph to complete the last slots by the local lemma.
+Partial random selection followed by local-lemma completion also appears
+in Loh and Sudakov~\cite[Section~4]{LohSudakov2007}. Here we additionally
+track occupancy on each affine line and prove a cylinder bound for the
+complete returned transversal.
+
+The main technical issue is concentration of the remaining degrees.
+A choice in $J(v)$ can delete many neighbors of $v$, but it also kills
+$v$ or removes its slot.  We will use this implication to stop tracking
+$v$ after such a choice, without losing any degree estimate needed for
+a subsequent step.
+
+\subsection{The main selection process}
+
+We first specify the main stage, including the events on which it
+aborts.  Choose the constants $P_*,s_{\min},B_*,\rho,a$ in the
+displayed order, and define the $q$-dependent parameters
+$\alpha,h_0,t_{\max}$ alongside them:
+\begin{align}
+ P_*&=4C_*/c_*+4,& \alpha&=P_*/q,&
+ s_{\min}&=\exp(-6P_*),\label{sel:constants-one}\\
+ B_*&=2/(s_{\min}c_*),&
+ \rho&=c_0\exp(-6B_*)/4,\label{sel:constants-two}\\
+ 0<a&<\min\{1,\rho/2,c_*/(100(C_*+1))\},&
+ h_0&=\lceil aq\rceil,& t_{\max}&=n-h_0.\label{sel:constants-three}
+\end{align}
+All subsequent assertions concern sufficiently large $q$.  The main
+stage runs for at most $t_{\max}$ steps, leaving $h_0$ slots if it
+reaches completion.
+At time $t$, before the next step, let $I(t)$ be the remaining slots,
+$h(t)=n-t$, and $Q_i(t)$ their domains of vertices still alive.  Put
+\begin{equation}\label{sel:scales}
+ L_i(t)=|Q_i(t)|,\qquad
+ s(t)=(1-\alpha)^t,\qquad b(t)=s(t)h(t)/n.
+\end{equation}
+Initially all slots and vertices are present.  The factors $s(t)$ and
+$b(t)$ will be the respective scales for domain sizes and remaining
+degrees.  Throughout $0\le t\le t_{\max}$,
+\begin{equation}\label{sel:scale-lower}
+ s_{\min}\le s(t)\le1,\qquad s_{\min}a/3\le b(t)\le1.
+\end{equation}
+Indeed $n\le3q$, $h(t)\ge aq$, and
+$\log(1-P_*/q)\ge-2P_*/q$ for large $q$.
+
+Each main step begins with two checks.  First, abort if some remaining
+domain satisfies
+\begin{equation}\label{sel:size-barrier}
+ L_i(t)<s(t)c_*q/2.
+\end{equation}
+For every alive vertex $v$ in a remaining slot define
+\begin{equation}\label{sel:degree-hazard}
+ D_v(t)=\sum_{i\in I(t)}|N(v)\cap Q_i(t)|,\qquad
+ r_v(t)=\frac1{h(t)}\sum_{i\in I(t)}
+            \frac{|N(v)\cap Q_i(t)|}{L_i(t)}.
+\end{equation}
+Here $r_v(t)$ is the probability that a uniform choice from a uniformly
+chosen remaining slot is adjacent to $v$.  The second check aborts if
+any such $r_v(t)>\alpha$.
+
+If both checks pass, choose a uniform slot $G\in I(t)$ and then a
+uniform vertex $W\in Q_G(t)$.  Record $W$ as the choice for $G$ and
+delete all its neighbors.  For every vertex $u$ alive before this step
+and not adjacent to $W$, independently delete it with probability
+\begin{equation}\label{sel:thinning-rate}
+ \lambda_u=\frac{\alpha-r_u(t)}{1-r_u(t)}.
+\end{equation}
+Compute all rates before choosing $G,W$.  The pre-step checks ensure
+$0\le\lambda_u\le\alpha<1$.  For the estimates below, perform this
+thinning hypothetically in slot $G$ as well: the recorded choice $W$
+is retained regardless of its hypothetical deletion.  Finally remove
+slot $G$.  Thus, before slot removal, every previously alive vertex
+has the same conditional survival probability:
+\begin{equation}\label{sel:equal-survival}
+ (1-r_u(t))(1-\lambda_u)=1-\alpha.
+\end{equation}
+
+A final check takes place after the step.  Count the thinning deletions
+in each domain present at its start and in each set
+$N(v)\cap\bigcup_{i\in I(t)}Q_i(t)$ then counted by a $D_v(t)$.
+Abort if any such count exceeds $q^\beta$, including hypothetical
+thinning in $G$.  This check limits the size of the increments used
+in the concentration argument.
+
+The probability of a post-step abort is small uniformly over all
+histories that pass the pre-step checks.  Conditional on such a history
+and on $G,W$, each tested count is a sum of independent Bernoulli variables
+with total mean at most
+$\mu_*=P_*\max\{1,C_*\}$.
+For such a sum $Z$ and any integer $k\ge1$,
+\begin{equation}\label{sel:bernoulli-tail}
+ \Prb(Z\ge k)\le \E\binom Zk\le\mu_*^k/k!
+ \le(e\mu_*/k)^k.
+\end{equation}
+The middle inequality follows by expanding the factorial moment and
+bounding the sum of products of $k$ distinct success probabilities
+by $\mu_*^k/k!$.  With $k=\lfloor q^\beta\rfloor+1$, the final
+bound, denoted $\varepsilon_q$, is smaller than $q^{-m}$ for every
+fixed $m$ once $q$ is sufficiently large.  There are $O(q^2)$ tested
+sets per step and at most $3q$ steps.  Thus any post-step abort has
+probability $O(q^3\varepsilon_q)=o(1)$.
+
+\subsection{Concentration with stopping and censoring}
+
+We now show that the main stage reaches the last $h_0$ slots with
+large domains and small remaining degrees.  Let $\mathcal F_t$ be the
+original history just before the next random slot and vertex are
+chosen.  All conditional expectations in this subsection use this
+filtration; in particular, the next slot is still uniform among the
+remaining slots.
+
+We use auxiliary processes that agree with the quantities of interest
+until they are stopped.  Stopping means holding the last value fixed.
+A pre-step abort produces no increment.  A performed step contributes
+its specified increment before any post-step stop.  When a large
+decrement is censored below, only the auxiliary update is replaced;
+the actual selection procedure is unchanged.
+
+The concentration tool is Lemma~\ref{lem:bounded-drift-concentration},
+the appendix form of the Azuma--Hoeffding estimate~\cite{Azuma1967}.
+For an adapted process $X_t$ with $|X_{t+1}-X_t|\le L$ for
+$0\le t<T$, put
+$d_t=\E[X_{t+1}-X_t\mid\mathcal F_t]$.  Its fixed-time conclusion is
+\begin{equation}\label{sel:azuma}
+ \Prb\left(\left|X_t-X_0-\sum_{j<t}d_j\right|\ge u\right)
+ \le 2\exp\left(-\frac{u^2}{8TL^2}\right)
+ \qquad(t\le T).
+\end{equation}
+The stopped auxiliary processes satisfy the same increment
+hypothesis.  For domain sizes we will bound the absolute accumulated
+drift; for degrees an upper bound suffices, and for occupancy we will
+use a lower bound.
+
+\paragraph{Domain sizes.}
+For each initial slot $i$, begin an auxiliary process at $L_i(0)$
+and track $L_i(t)/s(t)$ while the slot remains present.  In a
+performed step, let $L_i^+$ be its size after conflicts and thinning
+but before removing $G$.  This definition includes the hypothetical
+update when $G=i$.  Equal survival in \eqref{sel:equal-survival} gives
+\begin{equation}\label{sel:size-expectation}
+ \E[L_i^+\mid\mathcal F_t]=(1-\alpha)L_i(t).
+\end{equation}
+If this domain's thinning count exceeds $q^\beta$, replace the
+numerator $L_i^+$ by $L_i(t)$, update the auxiliary value to
+$L_i(t)/s(t+1)$, and then stop it.  Otherwise update to the true
+value $L_i^+/s(t+1)$ and stop after this update if $G=i$ or if the
+whole process aborts.  Until such a stop, the auxiliary process
+agrees with $L_i(t)/s(t)$.
+
+The replacement changes the conditional expectation of the numerator
+by at most $q\varepsilon_q$.  Consequently the conditional drift
+of this rescaled track has absolute value at most
+$q\varepsilon_q/s_{\min}$.  Its increments are $O(q^\beta)$:
+there are at most $q^\beta$ conflict deletions in a slot by
+\eqref{sel:graph-bounds}, and at most $q^\beta$ thinning deletions
+on a step without replacement.  The scaling change contributes
+only $O(1)$, by \eqref{sel:scale-lower}.  On a replaced step the
+scaling change is the only contribution.
+
+\paragraph{Remaining degrees.}
+For each initial vertex $v$, begin at $D_v(0)$ and track
+$D_v(t)/b(t)$ while $v$ is alive and its slot remains present.
+The faster scale $b(t)$ accounts for the removal of the chosen slot.
+To verify the required drift, let $\widetilde D_v$ be the true
+updated neighbor count after a performed step, including removal of
+$G$, whether or not $v$ itself survives.
+For each currently counted neighbor $u$, its probability of
+surviving before slot removal is $1-\alpha$.  If $u$'s own slot
+is chosen, it cannot conflict with $W$, because there are no
+within-slot edges.  Therefore
+\[
+ \Prb(u\hbox{ survives before removal and its slot is }G
+       \mid\mathcal F_t)=(1-\lambda_u)/h(t)
+       \ge(1-\alpha)/h(t).
+\]
+Subtracting this slot-removal probability from $1-\alpha$ and
+summing over the currently counted neighbors gives
+\begin{equation}\label{sel:degree-drift}
+ \E[\widetilde D_v\mid\mathcal F_t]
+ \le(1-\alpha)(1-1/h(t))D_v(t)
+ =\frac{b(t+1)}{b(t)}D_v(t).
+\end{equation}
+
+We next bound the increments.  When $W\notin J(v)$, conflicts
+remove at most $q^\beta$ counted neighbors by
+\eqref{sel:exceptional}, and slot removal costs at most $q^\beta$
+by \eqref{sel:graph-bounds}.  If instead $W\in J(v)$, or if the
+thinning count in the current neighbor set exceeds $q^\beta$,
+censor the auxiliary update: replace $\widetilde D_v$ by $D_v(t)$,
+update to $D_v(t)/b(t+1)$, and then stop the track.  In every other
+case update to $\widetilde D_v/b(t+1)$, and then stop if $v$ has
+died, its slot has been removed, or the whole process has aborted.
+
+The exceptional choice has conditional probability at most
+\begin{equation}\label{sel:exception-probability}
+ \Prb(W\in J(v)\mid\mathcal F_t)
+ \le\frac{|J(v)|}{h(t)\min_iL_i(t)}
+ \le\frac{2q^\beta}{a s_{\min}c_*q^2}
+ =O(q^{\beta-2}).
+\end{equation}
+Since $D_v(t)\le C_*q$, censoring increases the numerator's
+conditional expectation by at most
+$O(q^{\beta-1})+C_*q\varepsilon_q$.  By
+\eqref{sel:degree-drift} and \eqref{sel:scale-lower}, the rescaled
+track thus has conditional drift at most $O(q^{\beta-1})$.
+Its increments have absolute value $O(q^\beta)$.  Without
+replacement the raw decrement is at most $3q^\beta$; with
+replacement it is zero.  The relative change of $b(t)$ is
+$O(1/q)$, uniformly because $h(t)\ge aq$, so its scaling
+contribution is again $O(1)$.
+
+This is the point at which we use the location of the exceptional
+set $J(v)$, not just its size.  If $W\in J(v)$, then $W$ is adjacent
+to $v$ or belongs to its slot.  After this step $v$ is therefore dead
+or its slot has been removed.  A track stopped for this reason can
+never be needed at a later barrier check.
+
+\paragraph{Simultaneous estimates and absence of aborts.}
+The domain and degree processes now have the bounded increments and
+drift estimates needed for \eqref{sel:azuma}.  Apply that fixed-time
+bound with deviation $q^{4/5}/2$ separately to each track and each
+time.  There are $O(q^2)$ tracks and $O(q)$ times.
+The individual exceptional probability is at most
+\[
+ 2\exp\{-\Omega(q^{8/5-1-2\beta})\}
+ =2\exp\{-\Omega(q^{7/20})\}.
+\]
+The total absolute drift of a domain-size track is $o(1)$ and
+the total upper drift of a degree track is $O(q^\beta)$.
+It follows, by a union bound and by $s(t),b(t)\le1$, that with
+probability $1-o(1)$,
+\begin{equation}\label{sel:concentration}
+ |L_i(t)-s(t)L_i(0)|\le q^{4/5},\qquad
+ D_v(t)\le b(t)D_v(0)+q^{4/5}
+\end{equation}
+at every time when the auxiliary values still agree with the true
+rescaled quantities.
+
+We can now rule out aborts.  Exclude the post-step abort event, whose
+probability was already bounded by $o(1)$.  At a putative first
+pre-step abort, every remaining slot and every alive vertex still has
+a track agreeing with its true rescaled quantity.  A previous thinning
+censorship would have caused a post-step abort, and a previous
+exceptional choice would have killed the vertex or removed its slot.
+Thus \eqref{sel:concentration} applies at this abort check itself.
+Its first inequality rules out \eqref{sel:size-barrier} for large $q$.
+The second gives
+\begin{equation}\label{sel:hazard-barrier}
+ r_v(t)
+ \le \frac{s(t)(h(t)/n)C_*q+q^{4/5}}
+              {h(t)(s(t)c_*q-q^{4/5})}
+ =\frac{C_*}{c_*n}+o(q^{-1})<P_*/q.
+\end{equation}
+The error is uniform for $s(t)\ge s_{\min}$ and $h(t)\ge aq$.
+Thus no pre-step abort occurs on this event.
+
+To prepare the completion, make one final check at $t=t_{\max}$.
+Abort unless the remaining minimum domain size $L_{\min}$ and maximum
+degree $\Delta$ satisfy
+\begin{equation}\label{sel:tail-check}
+ L_{\min}\ge s(t_{\max})c_*q/2,
+ \qquad \Delta/L_{\min}\le1/8.
+\end{equation}
+The same estimates imply
+\[
+ \frac{\Delta}{L_{\min}}
+ \le\frac{h_0}{n}\frac{C_*}{c_*}+o(1)
+ \longrightarrow \frac{aC_*}{2c_*}<\frac18.
+\]
+Therefore the main process reaches and passes its final check with
+probability $1-o(1)$, uniformly in its input graph.
+
+\subsection{Keeping points on every line}
+
+The preceding estimates control the available vertices.  We next
+control the points left on affine lines, under the additional
+geometric hypotheses of Proposition~\ref{sel:selection}.
+Fix a line $\ell$, start with $T_\ell$, and remove its intersections
+with the main selected lines other than $\ell$.  Write $T(t)$ for
+the number of points still present.  Each step decreases $T(t)$ by
+at most one.
+
+Consider a slot whose direction differs from that of $\ell$.
+Conditional on the current history, at most $T(t)$ candidate lines
+in that slot meet a remaining point: each such line is determined by
+its intersection with $\ell$, and the assignment of lines within a
+slot is injective.  A line in the same direction as $\ell$ makes no
+deletion under our convention.  The size barrier therefore gives
+\begin{equation}\label{sel:occupancy-drift}
+ \Prb(T(t+1)=T(t)-1\mid\mathcal F_t)
+ \le \frac{B_*T(t)}q,
+ \qquad
+ \E[T(t+1)\mid\mathcal F_t]\ge(1-B_*/q)T(t).
+\end{equation}
+Track $T(t)/(1-B_*/q)^t$, freezing on an abort and including a
+performed step's increment before a post-step freeze.  For $t\le3q$
+its denominator is at least $e^{-6B_*}$.  Its conditional drift
+is nonnegative, and its increments have bounded absolute value
+independently of $q$: the raw size changes by at most one and
+$T(t)\le q$ controls the change of scale.
+
+Apply the lower-tail consequence of \eqref{sel:azuma} to these
+stopped processes and take a union bound over the $q(q+1)$ affine
+lines.  The probability that the main stage completes while some
+line has final main size below
+\begin{equation}\label{sel:occupancy-main}
+ c_0 e^{-6B_*}q/2=2\rho q
+\end{equation}
+is $o(1)$.
+Any completion on the remaining $h_0$ slots removes at most $h_0$
+further points from any one line.  By $a<\rho/2$ and
+$h_0=\lceil aq\rceil$, the terminal sizes are at least $\rho q$
+for large $q$.  Thus the required occupancy estimate will hold for
+every successful tail completion on these histories.
+
+\subsection{Completing the last slots}
+
+After \eqref{sel:tail-check}, the remaining graph is sparse enough
+for the Lov\'asz local lemma.  We need both an independent transversal
+and a bound on prescribed choices under the law used to choose it.
+The following conditional form supplies both, using the local-lemma
+argument of Erd\H{o}s and Lov\'asz~\cite[Section~2]{ErdosLovasz1975}.
+
+\begin{lemma}[Tail conditioning]\label{sel:tail-cylinder}
+Let a graph be partitioned into slots of sizes $L_i$, with no
+within-slot edges.  Let $L_{\min}=\min_iL_i$ and let its maximum
+degree be $\Delta$.  If $L_{\min}\ge3$ and
+$\Delta/L_{\min}\le1/8$, independent uniform choices from the
+slots have positive probability of being an independent transversal.
+Under the law conditioned on that event, a cylinder prescribing
+values in a set $J$ of $s$ slots has probability at most
+\begin{equation}\label{sel:tail-cylinder-bound}
+ e^{s/2}\prod_{i\in J}L_i^{-1}.
+\end{equation}
+An impossible prescription has probability zero.
+\end{lemma}
+
+\begin{proof}
+For every edge $e=uv$ between slots $i,j$, let $B_e$ be the event
+that those two endpoints are chosen and put
+$x_e=2/(L_iL_j)$.  Two events are neighbors when their edges use
+a common slot.  Each $B_e$ is jointly independent of all events
+outside its neighborhood.  For each slot $i$,
+\[
+ \sum_{e\text{ using }i}x_e
+ \le\sum_{u\in Q_i}\frac{2\deg(u)}{L_iL_{\min}}
+ \le\frac{2\Delta}{L_{\min}}\le\frac14.
+\]
+Thus a dependency neighborhood has total $x$-weight at most
+$1/2$.  Since $x_e<1/2$,
+\[
+ \Prb(B_e)=x_e/2
+ \le x_e\prod_{f\sim e}(1-x_f),
+\]
+using $\prod(1-x_f)\ge1-\sum x_f\ge1/2$.
+
+We record the conditioning argument, since it also controls cylinders.
+Induction on the size of an avoidance set $S$ of other events gives
+positive avoidance probability and
+\begin{equation}\label{sel:lll-induction}
+ \Prb(B_e\mid\bigcap_{f\in S}B_f^c)\le x_e.
+\end{equation}
+Partition $S$ into nonneighbors $T$ and neighbors $U$ of $e$.
+If $U$ is empty, joint independence gives the assertion.  Otherwise
+the induction hypothesis, used successively on the events of $U$,
+gives
+\[
+ \Prb\left(\bigcap_{f\in U}B_f^c
+                  \,\middle|\,\bigcap_{f\in T}B_f^c\right)
+ \ge\prod_{f\in U}(1-x_f).
+\]
+Every conditioning set in this product has smaller size than $S$.
+The numerator after conditioning only on avoidance of $T$ is at most
+$\Prb(B_e)$, by joint independence.  Dividing by the displayed
+lower bound, and using
+$\Prb(B_e)\le x_e\prod_{f\sim e}(1-x_f)$, proves
+\eqref{sel:lll-induction}.  Positivity at each size follows by
+successively avoiding its events and applying the preceding-size
+bound.  Thus the induction establishes the probability bound and
+positivity together.
+
+Now fix a possible cylinder $C$ on slots $J$.  Divide the bad events
+into those disjoint from $J$ and those using $J$.  Avoiding the former
+leaves $\Prb(C)=\prod_{i\in J}L_i^{-1}$ unchanged, since those
+events involve only other slots.  By \eqref{sel:lll-induction},
+avoiding the latter increases the upper bound by at most their
+product of $(1-x_e)^{-1}$.  Consequently
+\[
+ \Prb(C\mid\hbox{no bad event})
+ \le\Prb(C)\prod_{e\text{ using }J}(1-x_e)^{-1}
+ \le\Prb(C)\exp\left(2\sum_{e\text{ using }J}x_e\right)
+ \le e^{s/2}\Prb(C).
+\]
+Here $-\log(1-x)\le2x$ for $0\le x\le1/2$ and the incident
+weight per slot is at most $1/4$.  Counting an event twice in the
+sum over prescribed slots only increases the upper bound.
+\end{proof}
+
+For every history passing \eqref{sel:tail-check}, choose the tail
+according to the conditioned law in Lemma~\ref{sel:tail-cylinder}.
+Its hypotheses hold for large $q$, since the check also gives
+$L_{\min}\ge s_{\min}c_*q/2\ge3$.  The tail choices are mutually
+compatible, and the earlier neighbor deletions make them compatible
+with every main choice.  There is no further failure.  We have proved
+\eqref{sel:success}; the occupancy estimate, which allowed any
+successful completion of the last $h_0$ slots, also proves
+\eqref{sel:occupancy-conclusion}.
+
+\subsection{Cylinder probabilities for the whole selection}
+
+The remaining claim is \eqref{sel:cylinder}.  We must bound the
+probability of prescribed choices jointly with success, without
+conditioning a main choice on the later success of the procedure.
+For this purpose, realize the random slot order by sampling a uniform
+permutation $\pi$ of all slots at the outset and using its first
+$n-h_0$ entries.  Choose $\pi$ independently of all randomness for
+vertex choices and thinning.  This is the same process as before:
+the rates and abort decisions use no unexposed part of $\pi$, and
+its next entry is uniform among the remaining slots in the original
+filtration.
+
+Only now, for the cylinder calculation, condition on the entire
+permutation.  This divides the prescribed slots deterministically into
+$s_{\rm m}$ main slots and $s_{\rm t}$ tail slots, with
+$s_{\rm m}+s_{\rm t}=s$.  At any prescribed main slot reached before
+abort, the vertex is still uniform in its current domain when $\pi$
+is fixed.  The pre-step size barrier therefore bounds the probability
+of its prescribed value by
+\[
+ \frac{2}{s_{\min}c_*q}.
+\]
+Multiplication of these conditional upper bounds at the specified
+main steps bounds the probability of reaching and satisfying them
+all.  An intervening abort only lowers that probability.  Given
+any completed history passing the tail check,
+Lemma~\ref{sel:tail-cylinder} bounds the tail prescription by
+\[
+ \left(\frac{2e^{1/2}}{s_{\min}c_*q}\right)^{s_{\rm t}}.
+\]
+Taking conditional expectations backwards from the tail and then
+through the prescribed main steps gives
+\[
+ \Prb(\mathcal A,\hbox{ all prescriptions}\mid\pi)
+ \le\left(\frac{2}{s_{\min}c_*q}\right)^{s_{\rm m}}
+      \left(\frac{2e^{1/2}}{s_{\min}c_*q}\right)^{s_{\rm t}}.
+\]
+Average over $\pi$ and take
+\begin{equation}\label{sel:cylinder-constant}
+ K_* =\max\{1,2e^{1/2}/(s_{\min}c_*)\}.
+\end{equation}
+This proves \eqref{sel:cylinder} and completes
+Proposition~\ref{sel:selection}.  The two uses of the slot order are
+distinct: all drift estimates were taken in the original filtration,
+where the next slot remained uniform.  Fixing the full permutation
+was used only to multiply the cylinder bounds.  No drift identity
+was asserted or used under that conditioning.
+
+\subsection{Application to the deletion lines}\label{sec:selection-application}
+
+We now apply the graph result to the geometric construction.
+Proposition~\ref{prop:candidate-graph} supplies the domain and degree
+bounds, the codegree bound, and the exceptional sets required by
+Proposition~\ref{sel:selection}.  Its retained candidates are
+injective in their lines within each slot, and an independent
+transversal is a compatible collection of split tuples.  For the
+occupancy statement, take
+\[
+ T_\ell=
+ \begin{cases}
+  \ell,&\ell\in\{M_g^1:g\in\mathcal G\},\\
+  \ell\setminus\bigcup_g M_g^1,&\text{otherwise}.
+ \end{cases}
+\]
+The same graph proposition gives $|T_\ell|\ge c_0q$.  Recall from
+\eqref{eq:det-core} that $R_0$ avoids the deletion lines, whereas
+$R$ avoids only the selected split lines.  If $\ell$ is neither a
+selected split line nor one of the $M_g^1$, its final tracked set is
+exactly $\ell\cap R_0$.  For $\ell=M_g^1$, the final set is
+$\ell\cap R$, because a constituent cannot be a candidate split
+line.  Hence \eqref{sel:occupancy-conclusion} gives the line
+occupancy required by the deterministic construction.
+
+To describe the resulting deletion-line law, include the constituent
+sampling in the experiment.  Sample the two offsets in each direction
+independently and with replacement, as in
+Section~\ref{sec:candidates}.  Abort if the data fail the candidate
+graph conditions or if any constituent pair coincides; otherwise run
+the selection procedure.  Write $\mathcal A$ for the event that this
+entire experiment returns a collection.  By
+Proposition~\ref{prop:candidate-graph} and \eqref{sel:success}, there
+is a fixed $a_0>0$ such that
+\begin{equation}\label{sel:unconditional-success}
+ \Prb(\mathcal A)\ge a_0
+\end{equation}
+for all sufficiently large $q$.  For every fixed offset outcome $M$,
+\begin{equation}\label{sel:conditional-offset-cylinder}
+ \Prb(\mathcal A,\hbox{ prescribed choices in }s\hbox{ slots}\mid M)
+ \le(K_*/q)^s.
+\end{equation}
+These prescriptions may be chosen as functions of $M$, but are fixed
+once $M$ is fixed.  If the initial check fails for that offset outcome,
+the left side is zero.  This estimate lets us compare the law of the
+returned deletion set with a uniform law without changing the initial
+offset distribution.
+
+\begin{corollary}[Domination of the deletion-line law]
+\label{sel:deletion-domination}
+Let $D$ consist of the selected split lines and the lines $M_g^1$
+in the preceding experiment.  Conditional on $\mathcal A$, the law
+of $D$ is dominated pointwise by $\exp(O(q))$ times the uniform
+law on sets containing three distinct lines in each direction.
+\end{corollary}
+
+\begin{proof}
+Fix such an unordered deletion set $D_0$.  For each direction there
+are six assignments of its three lines to $M_g^1$, split slot 1,
+and split slot 2.  For a fixed assignment in all directions, the
+initial probability of the prescribed $M_g^1$ values is
+$q^{-(q+1)}$.  Conditional on the full offset data, the probability
+of all prescribed split lines jointly with $\mathcal A$ is at most
+$(K_*/q)^{2(q+1)}$, by
+\eqref{sel:conditional-offset-cylinder}.  Averaging over the
+unconstrained offsets $M_g^0$ and summing over all role assignments
+gives
+\[
+ \Prb(\mathcal A,D=D_0)
+ \le\left(\frac{6K_*^2}{q^3}\right)^{q+1}.
+\]
+The uniform law $U$ assigns $D_0$ probability
+$\binom q3^{-(q+1)}$.  Dividing also by
+\eqref{sel:unconditional-success}, we obtain
+\begin{equation}\label{sel:deletion-ratio}
+ \frac{\Prb(D=D_0\mid\mathcal A)}{U(D_0)}
+ \le a_0^{-1}\left[K_*^2(1-1/q)(1-2/q)\right]^{q+1}
+ \le a_0^{-1}K_*^{2(q+1)}=\exp(O(q)).
+\end{equation}
+All probabilities before this final conditioning use the original
+independent offset law; the event $\mathcal A$ enforces the candidate
+graph conditions and constituent distinctness.
+\end{proof}

@@ -1,0 +1,88 @@
+\section{A finite interpreter in the two-sided tape model}
+\label{sv:interpreter}
+Before serialization, delete all outgoing rows from designated halt
+states.  As in the recorder constructions, complete every missing
+state--symbol pair at a nonhalting state by an unchanged-symbol,
+zero-displacement move to a fresh halt state with no outgoing rows.
+This finite normalization preserves the halting question, including an
+initially halted machine.  In the resulting table, failure to find a
+matching row is equivalent to being in a halt state.
+
+Give the interpreted states and symbols positive integer indices, with
+blank index one.  Write an index $m$ as a block of $m$ ones followed
+by a separator.  Use distinct syntax symbols for begin, row-end,
+table-start, table-end, and the three head motions.  Serialize a machine
+and input by its initial state, its input-symbol fields in reverse word
+order, and its finite list of transition rows.  A row contains current
+state, scanned symbol, next state, written symbol, and motion.
+Correctness is required on these valid finite descriptions.
+
+First construct a fixed five-tape interpreter.  The tapes hold the
+unchanged description, a current-state record, a left-cell stack, a
+right-cell stack, and a scratch record.  Each work tape has a sentinel
+at cell zero.  A record is a finite unary block immediately to its right,
+with its head returned to the sentinel between uses.  A stack consists
+of finitely many unary symbol blocks to the right of its sentinel,
+written bottom to top; each block-end symbol also carries an origin
+bit.  The head rests at its top block-end, or at its sentinel when
+empty.  Below the stored blocks the logical stack consists of unmarked
+blanks.
+
+The needed routines have finite control and terminating scans.  To copy a
+field, erase the old record, return to its sentinel, and copy the field's
+ones while scanning it.  To compare a field and a record, scan their
+ones in parallel, remember whether they end together, and return the
+record head.  To push, copy the scratch unary block after the top and
+append the chosen origin-bit block-end.  To pop, retain the top origin
+bit in control, erase its end, and traverse its ones backward, copying
+one to scratch for every erased one until the previous end or sentinel.
+An empty stack instead supplies blank index one and origin bit zero.
+All these scans stop on explicitly present finite delimiters.
+
+Initialize the state record from the description.  Push the reversed
+input fields onto the right stack, then mark its top block as origin;
+for an empty input push a marked blank.  Leave the left stack empty.
+In each iteration pop the right top into scratch, remembering its bit.
+Search the table for a row matching the state and scratch records.
+On a match update the state and scratch to the next state and written
+symbol.  A right move pushes the written symbol onto the left; a stay
+pushes it back onto the right.  A left move first pushes the written
+symbol right, then pops the left (supplying an implicit blank if empty)
+and pushes that symbol right.  Every push retains the appropriate
+origin bit.  Return the description head to table-start and repeat.
+If no row matches, restore the popped symbol and halt; by the normalization
+above, this also handles a halt on the first iteration.  The two logical
+stacks are therefore exactly the interpreted tape halves, and the
+origin bit recovers its absolute head position at every iteration.
+
+These routines compile to a finite five-tape table: instruction location,
+comparison outcome, origin bit, and chosen direction have finitely many
+values; unbounded interpreted indices stay in unary on tape.  Each
+character test, write, copy, or move is an ordinary finite transition,
+and the finitely many call sites can be inlined.  Malformed descriptions
+may receive arbitrary defaults.
+
+Finally encode the five aligned tracks on one two-sided tape between
+left and right fences, with one head bit per track in the product
+alphabet.  At a simulated step, sweep the finite active interval to
+collect all five scanned symbols into finite control.  Choose the
+transition before changing any track.  Then sweep to each head bit in
+turn, make that track's write and move, preserving every other track.
+If a head crosses a fence, replace that fence by a blank tuple with the
+new head bit and put the new fence one cell farther out.  Return to the
+left fence between sweeps.  Only finitely many tracks, symbols, and
+pending transition choices are involved, so these are again finite
+rules.  Every sweep terminates, and all data and head bits match the
+five-tape machine at step boundaries.  Halt exactly when it halts.
+This yields a fixed universal single-tape table.  Serialization and
+fluid compilation use only the finite description and input, and never
+run the interpreted computation in advance.
+
+The same fence construction also converts any fixed finite number of
+tapes to one before applying a recorder: collect the finitely many head
+symbols, move the fences outward when needed, update one track at a time,
+and return to the left fence.  If a one-sided tape convention is desired,
+add a preserved bit at its left endpoint and implement that convention's
+left-end behavior in the marked-symbol transitions.  Both reductions
+preserve the initialized halting question without changing the geometric
+arguments.

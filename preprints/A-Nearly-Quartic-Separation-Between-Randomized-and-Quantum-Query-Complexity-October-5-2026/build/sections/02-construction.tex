@@ -1,0 +1,221 @@
+\section{An addressed certificate with outward pointers}
+\label{sec:construction}
+
+We construct a total function whose accepting certificate belongs to one
+column.  The certificate must certify the answers to several Forrelation
+instances and point to a zero in every other column.  The latter requirement
+will let a genuine accepting column defeat any competitor, even when that
+competitor's Forrelation instances violate their promise.
+
+Throughout the construction, fix an integer $k\geq 2$ and let $m$ tend to
+infinity through powers of four.  Constants in $O_k(\cdot)$ may depend on
+$k$, which remains fixed as $m$ grows.  Write $[m]=\{1,\ldots,m\}$.
+
+\subsection{The partial function and its exact circuit}
+
+We use the $k$-fold Forrelation problem introduced by Aaronson and
+Ambainis~\cite{AA18}, with the thresholds analyzed by Bansal and
+Sinha~\cite{BS21}. Let $H$ be the normalized Walsh--Hadamard matrix of order $m$, and let
+$u=m^{-1/2}(1,\ldots,1)^{\mathsf T}$.  We identify a bit $a$ with the sign
+$(-1)^a$.  For a sign vector $z$, write $D_z$ for the diagonal matrix with
+diagonal $z$.  Given $k$ sign vectors $z_1,\ldots,z_k\in\{\pm1\}^m$, put
+\begin{equation}\label{eq:forrelation-form}
+ \Phi(z_1,\ldots,z_k)
+ =u^{\mathsf T}D_{z_1}H D_{z_2}H\cdots H D_{z_k}u,
+ \qquad \delta=2^{-5k}.
+\end{equation}
+Define the partial Boolean function $P=P_{k,m}$ on $km$ bits by
+\begin{equation}\label{eq:forrelation-promise}
+ P(z_1,\ldots,z_k)=
+ \begin{cases}
+  1,&\Phi(z_1,\ldots,z_k)\geq\delta,\\
+  0,&|\Phi(z_1,\ldots,z_k)|\leq\delta/2,
+ \end{cases}
+\end{equation}
+and leave it undefined on all other inputs.  The two displayed cases are
+disjoint.  Query complexity for this partial function requires correctness
+only on its domain.
+
+\begin{lemma}\label{lem:forrelation}
+For each fixed integer $k\geq2$, the functions $P_{k,m}$ have the following
+properties.
+\begin{enumerate}
+ \item For all sufficiently large powers of four $m$,
+ \begin{equation}\label{eq:L-def}
+  \R(P_{k,m})>L,
+  \qquad
+  L=\left\lfloor
+       \frac{m^{1-1/k}}{(\log_2 m)^2}
+     \right\rfloor.
+ \end{equation}
+ \item For every $0<\eta<1/2$, a quantum algorithm uses
+ $O_k(1+\log(1/\eta))$ bit queries and returns $P_{k,m}$ with error at most
+ $\eta$ on every input in its domain.  The algorithm can be implemented
+ coherently, retaining its workspace.  On every input, promised or not, it
+ produces a bit when its output register is measured.
+ \item There is a Boolean circuit $C=C_{k,m}$ of fan-in at most two and
+ size $S=S_{k,m}=O_k(m(\log m)^2)$ with two output bits $d,b$ such that
+ \[
+  d=1\quad\Longleftrightarrow\quad P_{k,m}\text{ is defined},
+  \qquad d=1\quad\Longrightarrow\quad b=P_{k,m}.
+ \]
+ The circuit computes these outputs exactly on every input.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Theorem~1.3 and Corollary~1.4 of Bansal and Sinha~\cite{BS21} apply to
+exactly the normalized form and thresholds in
+\eqref{eq:forrelation-form}--\eqref{eq:forrelation-promise}.  They give,
+for fixed $k$ and error $1/3$,
+\[
+ \R(P_{k,m})=
+ \Omega_k\!\left(
+   \left(\frac{m}{\log(km)}\right)^{1-1/k}
+ \right).
+\]
+This exceeds the value of $L$ in \eqref{eq:L-def} for all sufficiently
+large $m$.
+
+For the quantum algorithm, prepare $u$, apply the unitary product in
+\eqref{eq:forrelation-form}, in its right-to-left order, and test the
+projection onto $u$.  Each $D_{z_h}$ uses one phase query, implemented by
+the standard bit oracle, while $H$ and the projection require no queries.
+The projection succeeds with probability $\Phi^2$.  This probability is
+at least $\delta^2$ on a 1-input and at most $\delta^2/4$ on a 0-input.
+Independent repetitions and a threshold between these two numbers give
+error $\eta$ with $O_k(1+\log(1/\eta))$ repetitions.  The measurement
+outcomes and the final threshold decision can instead be computed into
+registers and retained, giving the claimed coherent implementation.
+
+For the circuit, let $W=\sqrt m\,H$, whose entries are $\pm1$.  The scalar
+\[
+ N=z_1^{\mathsf T}W D_{z_2}W\cdots W D_{z_k}(1,\ldots,1)^{\mathsf T}
+\]
+is an integer, and
+\[
+ \Phi=\frac{N}{M_{k,m}},
+ \qquad M_{k,m}=m(\sqrt m)^{k-1}.
+\]
+The denominator is an integer because $m$ is a power of four.  Compute
+$N$ by $k-1$ unnormalized Walsh--Hadamard transforms, coordinatewise sign
+changes, and a final signed sum.  Each transform uses $O(m\log m)$
+additions and subtractions by the usual butterfly recursion.  All
+intermediate integers have absolute value at most $m^{O(k)}$, so
+$O_k(\log m)$ bits suffice.  Binary additions, subtractions, sign changes,
+and comparisons have fan-in-two Boolean circuits of size linear in this
+bit length.  Consequently the entire arithmetic circuit has Boolean size
+$O_k(m(\log m)^2)$.
+
+Finally, the two tests in \eqref{eq:forrelation-promise} are the exact
+integer comparisons
+\[
+ 2^{5k}N\geq M_{k,m},
+ \qquad 2^{5k+1}|N|\leq M_{k,m}.
+\]
+Set $d$ to the disjunction of these comparisons and $b$ to the first
+comparison.  This adds only $O_k(\log m)$ gates and proves the last
+assertion.
+\end{proof}
+
+The exact circuit serves a different purpose from the quantum algorithm.
+The algorithm will propose an address.  A transcript of the circuit will
+certify that this address consists of defined, correct answers, including
+on inputs where an arbitrary proposed address has no reason to be correct.
+
+\subsection{The total function}
+
+Set
+\begin{equation}\label{eq:r-def}
+ r=\lceil20\log_2m\rceil,
+ \qquad \ell=\log_2m.
+\end{equation}
+The input has $m$ columns.  Column $i\in[m]$ contains the following bits:
+\begin{enumerate}
+ \item A string $X_i\in\bits^m$.
+ \item Strings $A_{i,1},\ldots,A_{i,r}\in\bits^{km}$, with no promise
+ imposed on them.
+ \item A cell $B_{i,s}$ for each address $s\in\bits^r$.  This cell
+ contains a pointer $p_{i,s,j}\in[m]$ for each $j\ne i$, encoded by
+ $\ell$ bits using a fixed bijection, and an alleged evaluation transcript
+ of $C_{k,m}$ on each $A_{i,h}$, $h\in[r]$.
+\end{enumerate}
+An evaluation transcript consists of one bit for every non-input gate of
+$C_{k,m}$, including its output gates.  Circuit inputs are the actual bits
+of $A_{i,h}$; they need not be copied into the transcript.  We count these
+non-input gates in $S$.
+
+Call column $i$ a \emph{winner} if $X_i=1^m$, every $P(A_{i,h})$ is
+defined, and the cell at its true address
+\begin{equation}\label{eq:true-address}
+ s_i=(P(A_{i,1}),\ldots,P(A_{i,r}))
+\end{equation}
+contains correct evaluation transcripts and pointers satisfying
+\begin{equation}\label{eq:outward-pointers}
+ X_j[p_{i,s_i,j}]=0\qquad\text{for every }j\ne i.
+\end{equation}
+Define $F_{k,m}$ to be 1 if a winner exists, and 0 otherwise.  This is a
+total Boolean function: all the preceding conditions are predicates on
+the input bits, and no promise is made about the $A$-strings, the pointers,
+or the transcripts.
+
+The addressed transcripts have the certificate role used in cheat-sheet
+constructions~\cite{ABK16}, while pointers between columns also occur in
+earlier query-complexity separations~\cite{GPW15,ABBLSS17}. Here the pointers have
+a specific outward orientation: an accepting column supplies a direct
+zero witness against every competitor.  In particular, there can be at
+most one winner, since a winner's pointer to another column certifies that
+the latter is not all ones.  Figure~\ref{fig:outward} depicts this
+condition.
+
+\input{figures/outward-pointers}
+\FloatBarrier
+
+We next make certificate verification precise.  For a specified pair
+$(i,s)$, say that $i$ wins \emph{at address $s$} if $i$ is a winner and
+$s=s_i$.
+
+\Needspace{9\baselineskip}
+\begin{lemma}\label{lem:local-tests}
+For every input to $F_{k,m}$ and every pair $(i,s)\in[m]\times\bits^r$,
+the assertion that $i$ wins at address $s$ is a conjunction of
+\[
+ K_{k,m}=m+(m-1)+r(S_{k,m}+2)
+        =O_k(m(\log m)^3)
+\]
+Boolean tests.  Each test can be evaluated exactly with $O(\log m)$ bit
+queries.  The tests can also be evaluated coherently with the same query
+bound, with their indices supplied in superposition.  Their number and
+indexing convention are the same for every $(i,s)$.
+\end{lemma}
+
+\begin{proof}
+Use one test for each bit of $X_i$, requiring it to be 1, and one test
+for each $j\ne i$, reading the pointer $p_{i,s,j}$ and requiring the
+indicated bit of $X_j$ to be 0.  The latter uses $\ell+1$ queries.
+
+For each of the $r$ transcripts in $B_{i,s}$, use one test per gate,
+requiring its claimed value to be the prescribed Boolean function of its
+predecessors.  A predecessor value is read from the transcript for a
+non-input gate and from $A_{i,h}$ for an input wire.  Fan-in at most two
+therefore makes each such test use at most three queries.  Add two output
+tests, requiring $d=1$ and $b=s_h$.  By induction in a topological order
+of the circuit, all gate tests pass if and only if the transcript is the
+true evaluation.  The output tests then say exactly that $P(A_{i,h})$ is
+defined and equals $s_h$.  Together with the $X_i$ and pointer tests,
+these are precisely the winner conditions at $(i,s)$.
+
+The wiring of the circuit and the locations of all bits are fixed and
+require no queries to compute.  A test can load the required bits into
+ancillas, compute its result reversibly, and unload the bits by querying
+again.  The bit oracle is its own inverse.  A controlled use of that
+oracle, when needed, is likewise implemented by loading, controlled use
+of the loaded value, and unloading.  Thus coherent evaluation, including
+an input-dependent pointer lookup, changes the query count by at most a
+constant factor.
+\end{proof}
+
+Two consequences will be used repeatedly.  A winning column has one
+address at which every test passes; a nonwinning column has a failing
+test at every address.  Thus an address proposed on an unpromised input
+can always be checked against the total definition.

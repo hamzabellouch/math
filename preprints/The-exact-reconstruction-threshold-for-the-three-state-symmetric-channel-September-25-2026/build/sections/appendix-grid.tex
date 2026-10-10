@@ -1,0 +1,164 @@
+\section{Exact arithmetic and reproduction of the grid certificate}
+\label{grid:implementation}
+
+The complete C++17 program in Section~\ref{cert:grid} implements the
+recursions of Section~\ref{grid:section}.  Its parameters are fixed at
+$H=72$, $N=10^{12}$, and $\mathtt{SCALE}=10^{15}$.  It uses signed
+64-bit integers for table coefficients and mass units, and signed
+128-bit integers for products and accumulators. The compiler must also
+provide a plain \texttt{int} type of at least 32 bits. Assertions must be
+enabled; in particular the build must not define \texttt{NDEBUG}.
+For example, from the paper directory, the following commands compile and run all 28 cases:
+\begin{verbatim}
+g++ -std=c++17 -O3 -UNDEBUG -Wall -Wextra \
+    verification/grid.cpp -o grid
+for j in $(seq -1 26); do ./grid "$j"; done
+\end{verbatim}
+The program writes progress diagnostics to standard error and the case
+number followed by its stopping iteration to standard output.  Only
+the diagnostics convert to floating point.  Successful outputs are
+specified in~\eqref{grid:outputs}, together with \texttt{-1 162}.
+
+\subsection{Correspondence of code and probability operations}
+
+The routine \texttt{init} enumerates all sorted nonnegative integer
+triples of sum $72$.  It finds $469$ triples, identifies the pure
+representative $(72,0,0)$ and the uniform representative $(24,24,24)$,
+and stores an index for every representative.  The routine
+\texttt{indexof} sorts a candidate triple and verifies the resulting
+index.  A \texttt{Law} is a vector of orbit masses in units of $1/N$.
+The routine \texttt{complete} adds the missing units at the pure orbit,
+which is exactly Lemma~\ref{grid:completion}.
+
+The constructor \texttt{Table(mode,A,AD)} first reduces the channel
+fraction.  The variables \texttt{lhs}, \texttt{rhs}, \texttt{raw},
+\texttt{T}, and \texttt{den} are the entries and denominator of
+\eqref{grid:modes}.  For each of the six relative permutations,
+\texttt{n}, \texttt{rem}, and \texttt{miss} are the floor vector,
+remainders, and deficit in the grid spread.  The corner weights are
+\texttt{T}, \texttt{rem[c]}, or \texttt{T-rem[c]}, as appropriate.
+After aggregating equal output indices, the constructor checks that
+their sum is \texttt{den}.  These checks include every grid pair, not
+only pairs visited by an iteration.  Zero normalizers are omitted
+because they have zero tilted mass.
+
+The routine \texttt{combine} implements~\eqref{grid:combine}.  Symmetric
+modes use the triangular pair table and the stated off-diagonal
+coefficient; mode~1 uses ordered pairs.  Its row-skipping condition is
+safe: an ordered row contributes zero when its first mass is zero,
+while a triangular row contributes zero when both first-index masses
+are zero.  The table position advances by the full skipped row length.
+After division by $N\,\mathtt{den}$, each mass is rounded down and
+\texttt{complete} is applied.
+
+The functions \texttt{down} and \texttt{up} compute floor and ceiling
+of a nonnegative integer ratio.  The latter uses
+$\lceil x/y\rceil=\lfloor(x+y-1)/y\rfloor$ for $x\geq0$, $y>0$.
+The function \texttt{w\_zero} implements~\eqref{grid:taylor}.
+The routine \texttt{poisson} fixes its incoming child law
+\texttt{inc}, starts \texttt{part} at the uniform zero-count law, and
+uses mode~1 once for each positive count weight.  Its orbit sums are
+exactly~\eqref{grid:mixture}; the final \texttt{complete} handles all
+omitted mass.  No count product is needed after the first zero weight.
+The regular branch of \texttt{run} is~\eqref{grid:regular-recursion}.
+Finally, \texttt{mu\_num} is $M$ in~\eqref{grid:moment}, and the strict
+stopping test is $20M<NH^2$.  Each run allows $400$ iterations and
+asserts failure if none succeeds.  All reported stopping iterations
+are below that bound.
+
+\subsection{Bounds on every arithmetic class}
+
+For all Poisson table calls, the reduced fraction satisfies
+$B\leq10^6$ and $A\leq B/2$.  Thus
+\[
+ 0\leq e_i\leq(B+A)H\leq108000000,
+ \quad D_{\mathrm{tab}}=6BH^2\leq31104000000,
+ \quad Hr_i\leq559872000000.
+\]
+Each total $T$ is at most three times the bound on a raw coordinate;
+all of these quantities fit signed 64 bits.  The only mode~2 call is
+at the reduced fraction $A/B=1/2$, where
+$D_{\mathrm{tab}}=373248$ and $Hr_i\leq3359232$.
+Mode~0 has smaller bounds.  Every nonnegative aggregated table weight
+and every partial sum of weights is bounded by its denominator, by
+\eqref{grid:table-mass}.
+
+Input masses are nonnegative and sum to $N$, so their ordered pair
+mass is $N^2$.  The triangular implementation has the same total
+after the off-diagonal terms are combined.  Consequently every
+nonnegative product accumulator and its partial sums are at most
+\[
+ D_{\mathrm{tab}}N^2
+ \leq31104000000000000000000000000000000<2^{127}-1.
+\]
+The source casts an input factor to the 128-bit type \texttt{Big}
+before multiplying.  Dividing by $ND_{\mathrm{tab}}$ yields a mass
+between zero and $N$, safely convertible back to 64 bits.  The
+uncompleted masses sum to at most $N$; likewise the Poisson mixture
+masses sum to at most $N$, since they are lower bounds on a probability
+mixture.  These facts bound all 64-bit partial sums in
+\texttt{complete} and \texttt{poisson}.
+
+Here are bounds for the Taylor calculation independent of machine
+floating point.  If $t_n=S_0d_+^n/n!$, the lower and upper endpoint
+errors satisfy
+\[
+ 0\leq t_n-l_n< e^{d_+},\qquad
+ 0\leq u_n-t_n< e^{d_+}.
+\]
+Indeed an error satisfies $\epsilon_n\leq(d_+/n)\epsilon_{n-1}+1$;
+expanding this recurrence bounds it by
+$\sum_{j\geq0}d_+^j/j!=e^{d_+}$, since each product of $j$ successive
+denominators is at least $j!$.  As $d_+<5$ and $e<3$, the endpoint
+errors are less than $243$.  The sum of all endpoint magnitudes through
+degree $41$ is therefore bounded by
+\[
+ S_0e^{d_+}+42\cdot243<243(S_0+42)<2^{63}-1.
+\]
+This also bounds every signed partial sum in~\eqref{grid:taylor}.
+The endpoint multiplication by $d_{\max}\leq881$ is carried out in
+128 bits before division, and the same holds for multiplication by
+$N$ and for the Poisson weight recurrence.  These products are all
+less than $2^{127}-1$ under the displayed bounds.
+
+The lower sum $L$ is positive.  In fact Taylor's theorem gives
+\[
+ \frac{L}{S_0}
+ \geq e^{-d_+}-\frac{d_+^{42}}{42!}
+                   -\frac{41\cdot243}{S_0}
+ >\frac1{243}-10^{-20}-\frac{9963}{10^{15}}>0.
+\]
+The middle inequality uses the elementary integer comparison
+$5^{42}/42!<10^{-20}$.  Thus the nonnegative-argument conditions of
+\texttt{down} hold at the final Taylor step as well as in its term
+recurrences. Since $w_n/N\leq p_n$, every Poisson weight is at most
+$N$. In particular $w_8\leq N<2^{40}$, and the recurrence gives
+$w_n\leq w_{n-1}/2$ for $n\geq9$, since $d_+/n<1/2$.
+Thus $w_{48}<1$, so the first zero occurs by $n=48$. The count loop
+and its denominator therefore satisfy $n\leq48$ and $200n\leq9600$,
+well within the plain integer type. Every product $w_nq_n(h)$ is at
+most $N^2$ and is evaluated in 128 bits.
+
+For $h\in\mathcal H$, the bracket in~\eqref{grid:moment} belongs to
+$[0,H^2]$.  Hence every partial sum in \texttt{mu\_num} is at most
+\[
+ NH^2=5184000000000000<2^{63}-1.
+\]
+The factor $20$ in the stopping comparison is applied after converting
+to \texttt{Big}.  The binary-search comparisons for~\eqref{grid:magnitude}
+likewise use 128 bits before taking integer squares and products.
+
+There are at most $18$ unaggregated contributions per grid pair
+(six permutations, at most three corners).  Thus even a full ordered
+table has at most $18\cdot469^2=3959298$ entries before aggregation.
+All table positions and vector indices fit an ordinary signed 32-bit
+integer, and the source also checks an explicit
+$100000000$ entry limit.  Candidate grid coordinates belong to
+$\{0,\ldots,H\}$, and all small grid sums and products fit these
+integer types.  This accounts for the unguarded indexing arithmetic
+as well as the probabilistic accumulators.
+
+The supplied source therefore implements a finite exact-arithmetic
+certificate: positivity, normalization, rounding direction, all
+parameter choices, and the final strict inequalities are independent
+of compiler floating-point behavior.

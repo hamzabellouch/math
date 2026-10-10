@@ -1,0 +1,247 @@
+\section{The finite graph reduction}
+\label{sec:construction}
+
+We first construct a graph from an arbitrary Label Cover instance and
+fixed finite parameters. A satisfying labeling will give its
+three-coloring. The following sections analyze independent sets and
+determine which parameter choices make their density small.
+
+Fix integers $r\ge s\ge2$ and $m\ge1$, an even positive integer $P$,
+a rational $\lambda\in(0,1)$, and a rational probability distribution
+$\mu$ on $\binom{[r]}s$. Set $D=mP$. The coefficient values and their
+probabilities are
+\begin{equation}\label{eq:coefficient-law}
+ \mathcal T_m=\{0,1/m,\ldots,1\},\qquad
+ p_k=\Pr(t=k/m)=\frac{\lambda^k}{\sum_{\ell=0}^m\lambda^\ell}
+ \quad(0\le k\le m).
+\end{equation}
+These finite data are inputs to the construction. Section~\ref{sec:parameters}
+will choose them as constants depending only on the target density
+$\delta$, before choosing the Label Cover soundness and alphabets.
+The finite probability experiment below specifies a deterministic list
+of vertices by expanding each rational probability into a multiplicity.
+
+Choose a fixed integer $q>1/\delta$. Before invoking Label Cover,
+reindex the occurring variables densely, preserving repeated occurrences
+of each variable. Remove tautological clauses and duplicate literals.
+A formula with no clauses maps directly to a one-vertex graph; a formula
+containing an empty clause maps directly to $K_q$.
+Pad a remaining short clause to width three by including all sign choices
+for fresh filler variables. This preserves satisfiability at constant
+overhead. In the remainder, the formula has only nonempty clauses and
+has passed through this preprocessing.
+
+\subsection{Tuples, grids, and zero-length links}
+
+Let $\mathcal C$ be any Label Cover instance, with unused questions
+removed. In layer $i\in[r]$, take all question
+tuples
+\[
+ \mathbf q=(v_1,\ldots,v_{i-1},u_i,\ldots,u_{r-1})
+ \in V^{i-1}\times U^{r-i}.
+\]
+The answer set of such a tuple is
+\[
+ M_i=\Sigma_R^{\,i-1}\times\Sigma_L^{\,r-i}.
+\]
+Layered products of questions with projection constraints also occur in
+the multilayered PCP construction of \cite{DinurGuruswamiKhotRegev2005}.
+Here each position is a separate coordinate even if question names repeat.
+Different tuples in a layer use separate copies of this same answer set.
+
+Between adjacent layers $i$ and $i+1$, impose a map whenever the
+tuples agree outside position $i$ and their questions at position $i$
+are the endpoints of a test occurrence $c$.
+The map on answer sets applies $\pi_c$ in position $i$ and the identity
+in every other position. Impose it separately for every occurrence.
+
+Write $\Gamma=(D^{-1}\mathbb Z)/\mathbb Z$.
+At each question tuple place a separate copy of $\Gamma^{M_i}$,
+and let $\mathscr X$ be their disjoint union.
+Make a finite undirected weighted link graph on $\mathscr X$:
+\begin{itemize}
+\item Within each copy, link any two points with length their sup circle
+distance.
+\item For every imposed map $\pi:M_i\to M_{i+1}$, link each target
+point $x\in\Gamma^{M_{i+1}}$ to its source pullback $x\circ\pi$
+with length zero.
+\end{itemize}
+Let $\dist$ be the resulting shortest-path extended pseudometric,
+with distance infinity between components.
+Thus distinct points may have distance zero.
+
+Let $T$ add $1/2$ to every phase coordinate, within each copy.
+Since $D$ is even, $T$ permutes $\mathscr X$ and satisfies $T^2=\id$.
+It preserves all link lengths and therefore is an isometry of $\dist$.
+
+If some $x\in\mathscr X$ satisfies
+\begin{equation}\label{eq:clique-test}
+ \dist(x,Tx)\le1/8,
+\end{equation}
+output $K_q$ and stop. This branch already has independent-set density
+$1/q<\delta$. We will show that it never occurs in completeness.
+
+\subsection{Vertices and edges}
+
+If \eqref{eq:clique-test} fails for every point, consider the following
+finite experiment.
+
+\begin{enumerate}
+\item Sample $r-1$ independent uniform occurrences
+$c_1,\ldots,c_{r-1}$, with questions $(u_h,v_h)$ at position $h$.
+They determine a chain of tuples
+\[
+ \mathbf q_i=(v_1,\ldots,v_{i-1},u_i,\ldots,u_{r-1}),
+ \qquad i\in[r].
+\]
+Write $\pi_{ij}:M_i\to M_j$ for the corresponding composite answer maps.
+They apply the test projections in positions $i,\ldots,j-1$
+and leave the other positions unchanged; in particular they are
+composition-consistent.
+
+\item Independently choose $B\sim\mu$.
+For every $j\in B$, independently choose $t_j$ from
+\eqref{eq:coefficient-law}, and choose independent rotation entries
+\[
+ \widehat\theta_{j,\ell}\ \text{uniform in }\
+ \{0,1/P,\ldots,(P-1)/P\},\qquad \ell\in M_j .
+\]
+
+\item With $b=\min B$, give the outcome the location
+\begin{equation}\label{eq:location}
+ x=\left(
+ \sum_{j\in B}t_j\widehat\theta_{j,\pi_{bj}(\kappa)}
+        \pmod1\right)_{\kappa\in M_b}
+ \in\Gamma^{M_b}
+\end{equation}
+in the copy at tuple $\mathbf q_b$.
+\end{enumerate}
+
+Take distinct output vertices for these elementary outcomes with
+integer multiplicities that make the experiment their exact uniform law.
+The existence and size of these multiplicities are verified below.
+Different vertices may have the same location.
+For distinct vertices with locations $x,y$, put an edge precisely when
+\begin{equation}\label{eq:edge}
+ \dist(x,Ty)\le1/8.
+\end{equation}
+This is symmetric because $T$ is an involutive isometry:
+$\dist(x,Ty)=\dist(Tx,y)=\dist(y,Tx)$.
+
+\begin{proposition}[Explicit deterministic encoding]\label{prop:encoding}
+For fixed choices of the parameters and Label Cover alphabets, this rule
+constructs a nonempty finite simple
+unweighted graph in deterministic polynomial time and output size,
+measured in the size of the explicit Label Cover instance. Composing
+with Theorem~\ref{thm:label-cover} for any fixed $\sigma$ gives polynomial
+time and output size in the binary encoding length of the original
+$3$-CNF formula.
+\end{proposition}
+
+\begin{proof}
+Let $N=|\mathcal C|\ge1$.
+All alphabets, layer counts, and grids are fixed constants.
+There are polynomially many question tuples, each with a constant-size
+grid. The imposed maps and links are therefore polynomially enumerable.
+Every finite link length is an integer multiple of $1/D$.
+After multiplying lengths by $D$, exact integer shortest-path algorithms
+compute all distances, with infinity stored separately.
+Shortest paths have polynomial bit length, and comparison with $1/8$
+is exact by multiplication by $8$. This also implements the clique test.
+
+There are exactly $N^{r-1}$ equally likely occurrence chains.
+For each chain, the remaining outcome probabilities are fixed rational
+numbers. The number of rotation entries can vary with $B$ and its layers,
+but it ranges over fixed constants. Choose a common positive denominator
+$C_0$ for all these conditional probabilities. For a conditional outcome
+of probability $p$, emit $C_0p$ distinct vertices, omitting zero-probability
+outcomes. Every chain then contributes exactly $C_0$ vertices.
+The total is $C_0N^{r-1}$, and uniform sampling of these vertices is
+exactly the stated experiment, followed by a uniform choice among the
+copies of the chosen outcome. Exhaustive enumeration uses no random
+bits. Evaluating \eqref{eq:edge} for every distinct pair remains
+polynomial and gives an explicit edge list with no loops or multiple edges.
+
+The Label Cover reduction is polynomial for the fixed $\sigma$.
+The initial variable reindexing and clause preprocessing take polynomial
+time in the ordinary binary input length; the two trivial branches have
+constant-size outputs. Thus the construction covers every explicitly
+encoded $3$-CNF formula.
+\end{proof}
+
+\begin{lemma}[All-vertex completeness]\label{lem:completeness}
+If the Label Cover instance has value $1$, the clique branch does not
+occur and the constructed graph has a proper three-coloring.
+\end{lemma}
+
+\begin{proof}
+Fix a labeling satisfying every occurrence. At each question tuple,
+form the product of its assigned answers, an element of that tuple's
+answer set. Evaluate a grid point at this product answer.
+This defines a map $\varphi:\mathscr X\to\T$.
+
+Within a copy, evaluation is nonexpanding for the sup circle distance.
+Across each zero link the two evaluations agree because the labeling
+satisfies that test occurrence. Hence $\varphi$ is nonexpanding for
+every path, and thus for $\dist$.
+Also $\varphi(Tx)=\varphi(x)+1/2$.
+Consequently $\dist(x,Tx)\ge1/2$ for every $x$, so the clique test fails.
+
+If output vertices at $x,y$ are adjacent, then
+\[
+ d_{\T}\bigl(\varphi(x),\varphi(y)+1/2\bigr)\le1/8,
+ \qquad
+ d_{\T}\bigl(\varphi(x),\varphi(y)\bigr)\ge3/8>1/3.
+\]
+Color each vertex according to which of the half-open intervals
+$[0,1/3)$, $[1/3,2/3)$, $[2/3,1)$ contains its phase.
+Two phases in the same interval have circle distance less than $1/3$,
+so this colors every vertex properly. All multiplicity copies receive
+the color of their location.
+\end{proof}
+
+Figure~\ref{fig:geometry} shows how the two parts of the construction
+serve this coloring: projection links preserve the evaluated phase,
+whereas an output edge separates its endpoint phases by more than the
+length of a color interval.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=Stealth,every node/.style={font=\small}]
+\node (source) at (0,1.1) {$x\circ\pi\in\Gamma^{M_i}$};
+\node (target) at (4.0,1.1) {$x\in\Gamma^{M_{i+1}}$};
+\draw[<-] (source) -- node[above] {pullback} node[below] {zero-length link} (target);
+\node (seval) at (0,-0.4) {$x(\pi(\kappa_i))$};
+\node (teval) at (4.0,-0.4) {$x(\kappa_{i+1})$};
+\draw[->] (source) -- node[left] {evaluate} (seval);
+\draw[->] (target) -- node[right] {evaluate} (teval);
+\draw (seval) -- node[above] {$=$} (teval);
+\node at (2.0,-1.1) {$\pi(\kappa_i)=\kappa_{i+1}$};
+\begin{scope}[shift={(8.0,0)},scale=1.15]
+\draw[line width=3pt,blue!65!black] (1,0) arc[start angle=0,end angle=120,radius=1];
+\draw[line width=3pt,green!45!black] (120:1) arc[start angle=120,end angle=240,radius=1];
+\draw[line width=3pt,red!65!black] (240:1) arc[start angle=240,end angle=360,radius=1];
+\draw[densely dashed] (30:1) -- (210:1);
+\fill (30:1) circle[radius=1.5pt];
+\fill (210:1) circle[radius=1.5pt];
+\node[right] at (30:1.05) {$\varphi(x)$};
+\node[below left] at (210:1.05) {$\varphi(x)+\tfrac12$};
+\draw[line width=1.3pt] (165:1.18) arc[start angle=165,end angle=255,radius=1.18];
+\node at (8:1.25) {$0$};
+\node[above left] at (120:1.07) {$\tfrac13$};
+\node[below left] at (240:1.07) {$\tfrac23$};
+\node[align=center] at (0,-1.85) {$d_{\T}(\varphi(x),\varphi(y))\ge\tfrac38$\\for every output edge $xy$};
+\end{scope}
+\end{tikzpicture}
+\caption{The auxiliary geometry and the output coloring. Left: a satisfying
+product answer makes evaluation agree across a projection link. Here
+$\kappa_i$ and $\kappa_{i+1}$ are the satisfying product answers at the
+two tuples. The answer
+map $\pi:M_i\to M_{i+1}$ and its phase pullback go in opposite directions.
+Right: the three arcs represent the half-open color intervals. For the
+illustrated phase $\varphi(x)$, the black outer arc contains the possible
+phases $\varphi(y)$ of its neighbors, within $1/8$ of the antipodal phase.
+The weighted links on the left define the pseudometric; the output graph
+uses the separate half-shift edge rule.}
+\label{fig:geometry}
+\end{figure}

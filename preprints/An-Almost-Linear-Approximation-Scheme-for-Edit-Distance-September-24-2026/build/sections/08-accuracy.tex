@@ -1,0 +1,184 @@
+\section{Accuracy and the sequence of seed passes}\label{sec:accuracy}
+We first sum the node estimates to prove the refinement guarantee. We then
+use that guarantee to improve the simultaneous seed factor and obtain the
+answer to the original input. Throughout the first step the entire seed
+table is fixed and satisfies the hypotheses of
+Theorem~\ref{thm:refinement}.
+
+\subsection{Summing the comparison regrets}
+\begin{proof}[Proof of Theorem~\ref{thm:refinement}, accuracy part]
+Fix a starting state with true cost $D>0$ and its comparison tree from
+Section~\ref{sec:comparison}. For brevity write
+$\overline d_t=\max(c,d_t)$ at every state, as in
+Section~\ref{sec:regret}.  Terminal values are exact, so summing
+\eqref{eq:node-regret-definition} over the tree at a fixed index gives
+the identity
+\[
+ \overline d_t(\mathrm{root})
+ =C_{\mathrm{term}}+L\sum_{\mathrm{nonterminal}}e
+                      +\sum_{\mathrm{nonterminal}}\mathcal R_t.
+\]
+Average this identity over $t=1,\ldots,S$.  Since the root estimates
+decrease with $t$, the final positive error satisfies the deterministic
+bound
+\begin{equation}\label{eq:root-regret-telescope}
+ (d_S(\mathrm{root})-D)_+
+ \le C_{\mathrm{term}}-D+L\sum_{\mathrm{nonterminal}}e
+       +\frac1S\sum_{\mathrm{nonterminal}}\sum_{t=1}^S\mathcal R_t.
+\end{equation}
+Lemma~\ref{lem:comparison-tree} bounds the first two terms by
+$(8MJ/P+4LJ/P)D$.  We bound the last sum using the three classes
+of comparison nodes.
+
+On bad nodes use Lemma~\ref{lem:generic-regret} and $W\le4Fc$.
+Corollary~\ref{cor:bad-node-cost} bounds their total contribution by
+\[
+ 40000F^2 H^{1/4}(1+J/P+J/T)D.
+\]
+On nodes that are not bad but satisfy $|\widehat v|>1-\tau$, the same
+lemma gives $(H^{-1/4}+4\tau F)c$. Every other nonterminal satisfies
+Lemma~\ref{lem:comparison-band}, so Proposition~\ref{prop:node-regret}
+applies. Its dimension and mass bounds are
+\[
+ \ln d_{\mathcal C}\le4(p_*+21)\ell,\qquad h_\Sigma\le64Fb\le64Fc.
+\]
+The cost sum over all nonterminal levels is at most $2JD$.
+
+The conditional estimate at a node is valid after fixing its complete
+child tables. Taking expectations and then summing uses only the tower
+property and linearity of expectation. Independence between comparison
+nodes, or simultaneous success of their group samples, is unnecessary.
+Combining these bounds, the expected excess at the starting state divided
+by $D$ is at most
+\begin{align}
+ \mathcal E={}&(8M+512F)J/P
+ +40000F^2H^{1/4}(1+J/P+J/T)/S \notag\\
+ &+\frac{2J}{S}\left[
+ H^{-1/4}+4\tau F
+ +64F\left(\frac{4(p_*+21)\ell}{\eta}+2\kappa\right)
+ +2\delta\right]
+ +132FJH^{-3}.\label{eq:total-error}
+\end{align}
+Here the last term includes both numerical-mixture loss and group-failure
+loss: they are at most $128FJH^{-3}$ and $4FJH^{-4}$, respectively.
+
+We verify the numerical bound explicitly. Substituting
+$J\le100H/\ell$, $T\ge H^{3/4}$, $S=H/\ell^2$, $F=\ell$,
+$M\le H^{1/20}$ and $P\ge H^{20}$ yields
+\begin{align*}
+ \mathcal E\le{}&52000H^{-18}
+ +8.04\cdot10^6\ell^4H^{-1/2}
+ +200\ell H^{-1/4}\\
+ &+\frac{10^6(p_*+21)}{\ell^2}+13200H^{-2}.
+\end{align*}
+For the fourth term we have included
+$[26400+51200(p_*+21)]/\ell^2+400/\ell^9$ from the bracket in
+\eqref{eq:total-error}. Each of the five displayed terms is at most
+$1/(8\ell)$ at $\ell\ge2^{1000}$ and $H\ge2^{\ell/2}$.
+For example, the second requires only
+\[
+ \log_2(8\cdot8.04\cdot10^6)+5\log_2\ell\le\ell/4;
+\]
+it holds at the cutoff and remains true thereafter. The other
+negative-power terms require weaker inequalities of the same form.
+For the fourth, use $p_*+21\le\sqrt\ell$ and
+$\sqrt\ell\ge2^{500}>8\cdot10^6$.
+Consequently $\mathcal E<1/\ell$.
+
+Since $\overline d_S-D=(d_S-D)_+$, this is the required expected
+positive-excess bound. The deterministic lower bound is the invariant
+from Section~\ref{sec:bands}. When $D=0$, that invariant and
+$w_0\le2Fc$ give $d_S=0$ directly, without dividing by $D$.
+The numerical construction in Section~\ref{sec:numerics} supplies the
+mixtures used in this proof, and Section~\ref{sec:work} verifies finite
+execution of every defined operation.
+\end{proof}
+
+\subsection{Improving simultaneous seeds}
+The initial table of Theorem~\ref{thm:seed} has factor $A_{\rm init}$.
+The algorithm maintains a power-of-two factor $A$ and an integer seed
+$U\in[0,N]$ on the full state domain. A seed is called \emph{good} when
+$c\le U\le Ac$ at every state. This is a mathematical event, not a test
+performed by the algorithm.
+
+While $A>F$, set $a=A/F$ and use $H^2$ independent copies of the
+refinement, conditional on the previous complete table. For each state,
+form the $H^2$ integers $\lceil a d_S\rceil$, take their upper middle
+order statistic, and clamp the result to $[0,N]$. This defines the next
+seed. Update
+\begin{equation}\label{eq:seed-factor-update}
+ A\longleftarrow4a.
+\end{equation}
+All copies share the preceding table, but use independent new streams.
+Entries of each copy and of the new seed are stored on demand; their
+coherent full-table interpretation is justified in Section~\ref{sec:work}.
+
+\begin{lemma}\label{lem:seed-amplification}
+Conditional on any fixed good preceding seed, the next seed is good for
+factor $4a$ except with probability at most $\exp(10H-H^2)$.
+\end{lemma}
+\begin{proof}
+At a fixed state of positive integer cost $c$, the refinement theorem and
+Markov's inequality give
+\[
+ \Pr[d_S>2c]\le1/\ell.
+\]
+Every copy has $\lceil a d_S\rceil\ge c$. A copy with $d_S\le2c$ has
+$\lceil a d_S\rceil\le2ac$, because $a$ and $c$ are integers. If strictly
+more than half the copies have this upper bound, their upper middle order
+statistic does too, hence in particular is at most $4ac$. The probability
+that at least half fail is at most
+\[
+ 2^{H^2}\ell^{-H^2/2}\le e^{-H^2}.
+\]
+Clamping cannot spoil the lower bound $c\le N$ or the upper bound.
+At zero-cost states every copy is zero under the good seed.
+
+There are at most $2M\max(1,|x|)$ labeled nodes and at most
+$(|y|+1)^2$ valid states per node. Their product is less than $e^{10H}$
+in the large branch. Union over this full domain proves the assertion.
+No independence between different states is used.
+\end{proof}
+
+The update preserves powers of two and strictly decreases $A$, since
+$F>4$. Writing $s_{\rm pass}$ for the number of median passes plus the
+single final pass below, we have
+\begin{equation}\label{eq:pass-count}
+ s_{\rm pass}
+ =O\left(\frac{(p_*+1)\ell}{\log_2\ell}\right)<H.
+\end{equation}
+Indeed each median pass reduces $\log_2 A$ by $\log_2 F-2$, starting
+from $(p_*+4)\log_2 H$ and stopping by $A\le F$.
+Apply Lemma~\ref{lem:seed-amplification} to the first failed transition
+after a good history. The total probability that any seed needed by the
+algorithm is not good is less than
+\begin{equation}\label{eq:seed-total-failure}
+ 0.01+H\exp(10H-H^2)<1/10.
+\end{equation}
+The initial $0.01$ is the simultaneous initial-table failure probability.
+This estimate covers adaptive requests because every seed guarantee is
+over its entire potential domain.
+
+\subsection{The final answer}
+When $A\le F$, use one new refinement with $a=1$ at the full root state
+$(I,q)=((0,|x|],(0,|y|))$. Clamp its value to $[0,N]$ and round down to
+obtain $\widehat D$. Fix any complete good seed before exposing this
+final refinement's independent randomness. For the positive cost
+$D=\ED(x,y)$ the refinement theorem gives the deterministic lower bound
+$d_S\ge D$ under this conditioning and
+\[
+ \Pr[d_S>(1+\varepsilon)D\mid U\text{ fixed and good}]
+ \le\frac{1}{\ell\varepsilon}\le\frac1{10}.
+\]
+Together with~\eqref{eq:seed-total-failure}, the unconditional failure
+probability is less than $1/5$, and thus less than $1/3$. The lower bound
+is not asserted on executions with a bad seed.
+
+Clamping preserves the lower bound because $D\le N$. Rounding down also
+preserves it because $D$ is an integer. Neither operation worsens the
+upper bound. The initial equality test returns zero deterministically
+when $D=0$, and the exact branches of Section~\ref{sec:geometry} are also
+correct. This establishes the accuracy assertion of
+Theorem~\ref{thm:main} on every input. It remains to prove that the
+finite computations just specified, with all randomness and arithmetic
+charged, have the claimed expected running time.

@@ -1,0 +1,595 @@
+\section{Solving the promised norm equations}
+\label{sec:norms}
+
+Division of divisor classes will require a function with a prescribed
+norm.  This section constructs such a function when its existence is
+known.  The construction uses linear algebra and extraction of roots in
+finite reduced algebras, and its complexity is polynomial in the degree
+of the cover.  In particular, the cover degree is not treated as a
+constant.
+
+\begin{theorem}[Promised norm solver]\label{norm:solve}
+Let $k$ be an explicitly represented finite field of characteristic $p$,
+let $q$ be an odd prime, and suppose that a primitive $q$th root of unity
+$\zeta\in k$ and a generator of the full $q$-primary subgroup of $k^*$
+are given.  Let $F\in k[X]$ be monic and square-free, of positive degree
+$N$ divisible by $q$.  Put
+\[
+ K_0=k(X),\qquad
+ \mathcal L=K_0[Y]/(Y^q-F),\qquad \rho(Y)=\zeta Y.
+\]
+Let $G\in K_0^*$, write $D$ for the maximum of its reduced numerator
+and denominator degrees, and assume
+\begin{equation}\label{norm:characteristic}
+ p>(N+2D+1)^2.
+\end{equation}
+If $G$ belongs to $\operatorname{Norm}_{\mathcal L/K_0}(\mathcal L^*)$, a deterministic
+algorithm constructs $h\in \mathcal L^*$ with
+\[
+ \prod_{j=0}^{q-1}\rho^j(h)=G.
+\]
+Its bit complexity, and the degrees of the rational coefficients of
+$h$ in the basis $1,Y,\ldots,Y^{q-1}$, are bounded by fixed polynomials
+in $q,N,D$, and $\log|k|$.  It uses no polynomial factorization oracle.
+Its field-dependent branches use only zero tests, so the algorithm
+admits the simultaneous execution of Lemma~\ref{ff:simultaneous}.
+\end{theorem}
+
+The characteristic bound is a convenient sufficient condition for the
+scalar searches in Lemma~\ref{ff:unitroot}; the main algorithm satisfies
+it with considerable room.  The roots of $F$ need not be supplied, and
+the norm solver does not require $F$ to split over $k$.
+The function automorphism $\rho$ is the inverse of the action $\sigma$
+used in the divisor sections. Their powers run over the same cyclic
+group, so they define the same norm.
+
+We first turn the norm equation into the problem of constructing a
+rank-one idempotent in an algebra.  We then obtain that idempotent from
+spaces of matrices regular at the places of the rational function
+field.  This use of intersections of maximal orders is closely related
+to the explicit matrix-algebra algorithms of
+Ivanyos--Kutas--R\'onyai~\cite{IKR18}.  Their general algorithm permits a
+finite-field factorization oracle.  Here the cyclic presentation
+allows the local orders to be written explicitly, and a fiber
+calculation supplies the idempotent by linear algebra.  We give the
+construction and its bounds in full.
+
+\subsection{The cyclic algebra and its local matrix models}
+
+The polynomial $Y^q-F$ is irreducible over $K_0$: a place at which $F$
+has valuation one is Eisenstein for it.  Thus $\mathcal L$ is a field, cyclic of
+degree $q$ over $K_0$.  Form the $K_0$-algebra
+\begin{equation}\label{norm:cyclic-algebra}
+ \mathcal E=\bigoplus_{b=0}^{q-1} \mathcal L V^b,
+ \qquad V a=\rho(a)V\ (a\in \mathcal L),\qquad V^q=G.
+\end{equation}
+Its multiplication table in the basis
+\[
+ W_{ab}=Y^aV^b,\qquad 0\le a,b<q,
+\]
+is explicit.  The norm promise implies that $\mathcal E$ is a full
+matrix algebra over $K_0$, but does not initially give us an
+isomorphism.  Indeed, if $h_0$ is any norm solution, let $\mathcal L$ act on
+itself by multiplication and let $V$ act by $h_0\rho$.  These operators
+satisfy \eqref{norm:cyclic-algebra}.  Their linear independence follows
+by applying a putative relation between the operators $\rho^b$ to
+$1,Y,\ldots,Y^{q-1}$ and using the invertible matrix
+$(\zeta^{bj})_{b,j}$.  Dimension then gives an isomorphism
+\begin{equation}\label{norm:abstract-splitting}
+ \mathcal E\simeq M_q(K_0).
+\end{equation}
+This argument establishes existence only; the algorithm never uses
+$h_0$ or this unspecified isomorphism.
+
+A \emph{rank-one idempotent} in $\mathcal E$ is an element $e$ with
+$e^2=e$ whose image under \eqref{norm:abstract-splitting} has rank one.
+The following observation explains why constructing such an element
+solves the original norm equation.
+
+\begin{lemma}\label{norm:idempotent-to-norm}
+Given a rank-one idempotent $e\in\mathcal E$, linear algebra over
+$K_0$ constructs a norm solution $h\in \mathcal L$.
+\end{lemma}
+
+\begin{proof}
+The left ideal $\mathcal E e$ has dimension $q$ over $K_0$.  The map
+$\mathcal L\to\mathcal E e$, $a\mapsto ae$, is injective, since any nonzero
+$a\in \mathcal L$ is invertible.  Both sides have dimension $q$, so it is an
+isomorphism.  In particular, there is a unique $h\in \mathcal L$ satisfying
+\begin{equation}\label{norm:extract-h}
+ Ve=he.
+\end{equation}
+Solve this equation for the $q$ coefficients of $h$ in the basis
+$1,Y,\ldots,Y^{q-1}$, using the explicit $q^2$-element basis of
+$\mathcal E$ to express both sides.  Repeatedly multiply the equation
+on the left by $V$, using $Va=\rho(a)V$.  After $q$ steps this gives
+\[
+ G e=V^q e=\left(\prod_{j=0}^{q-1}\rho^j(h)\right)e.
+\]
+Since $e\ne0$ and the two coefficients are scalars in $K_0$, their
+equality proves the norm equation.  In particular $h\ne0$.
+\end{proof}
+
+Our remaining task is to construct $e$.  We will impose local
+integrality conditions on elements of $\mathcal E$, then find a
+rank-one matrix in their values at infinity.
+
+Let $v$ be a closed point of $\mathbb P^1_k$.  Write $K_v$ for the
+completed rational function field, $R_v$ for its valuation ring,
+$\kappa_v$ for its residue field, and $T$ for a uniformizer.  A
+\emph{lattice} in a finite-dimensional $K_v$-space is a free $R_v$-module
+of full rank.  An \emph{order} in $\mathcal E\otimes K_v$ is a lattice
+that contains $1$ and is closed under multiplication; it is
+\emph{maximal} if no strictly larger order contains it.  We construct
+one maximal order $\mathcal A_v$ at every $v$.  Only the points dividing
+$F$, the numerator or denominator of $G$, and the point at infinity
+require nontrivial conditions.
+
+We will repeatedly use the matrix trace $\operatorname{tr}$ on the
+split algebra.  It does not depend on the choice of isomorphism in
+\eqref{norm:abstract-splitting}.  Conjugation by $Y$ and $V$ shows that
+every nonidentity basis monomial has trace zero, while
+$\operatorname{tr}(1)=q$.  Consequently
+\begin{equation}\label{norm:trace-coordinates}
+ a=\sum_{a',b'} c_{a'b'}W_{a'b'}
+ \quad\Longrightarrow\quad
+ c_{ab}=q^{-1}\operatorname{tr}(aW_{ab}^{-1}).
+\end{equation}
+Here $q$ is invertible by \eqref{norm:characteristic}.
+
+\paragraph{Unramified places with $q\mid v(G)$.}
+Suppose $v$ is finite, $v(F)=0$, and $w=v(G)$ is divisible by $q$.
+Set $\widetilde V=T^{-w/q}V$, and take the $R_v$-span of
+$Y^a\widetilde V^b$.  Both $Y$ and $\widetilde V$ have unit $q$th
+powers, so this span is an order and contains the inverses of all its
+basis monomials.  It is maximal.  To see this, any larger order has
+integral matrix traces: its regular left-action trace is integral and
+equals $q$ times matrix trace.  Pairing an element of the larger order
+with the inverse basis monomials in
+\eqref{norm:trace-coordinates} therefore makes all its coordinates
+integral.  It already belongs to the displayed span.  This description
+applies at all finite places outside the indicated finite set, with
+$w=0$.
+
+\paragraph{Places ramified in $\mathcal L$.}
+Suppose $v(F)=1$, and again put $w=v(G)$.  Since $q$ is odd,
+\begin{equation}\label{norm:ramified-unit}
+ V'=Y^{-w}V,\qquad (V')^q=u:=G/F^w\in R_v^*.
+\end{equation}
+The commutation factor in taking the $q$th power is a power of
+$\zeta^{q(q-1)/2}=1$.  The residue of $u$ is a $q$th power in
+$\kappa_v^*$.  Indeed the extension at $v$ is totally ramified of
+degree $q$.  For any promised solution $h_0$ one has
+$v_{\mathcal L}(h_0)=v(G)=w$, with $v_{\mathcal L}(Y)=1$.  Hence $h_0/Y^w$ is a unit, its
+norm is $u$, and the residue of that norm is the $q$th power of its
+residue.
+
+Take a residue root and lift it by Hensel's method to $R\in R_v^*$
+with $R^q=u$.  On column vectors $e_0,\ldots,e_{q-1}$ define
+\begin{equation}\label{norm:ramified-matrices}
+ V'e_j=\zeta^jR e_j,\qquad
+ Ye_j=\begin{cases}e_{j+1},&j<q-1,\\F e_0,&j=q-1.\end{cases}
+\end{equation}
+These matrices satisfy $V'Y=\zeta YV'$, $Y^q=F$, and $(V')^q=u$.
+The distinct diagonal entries of $V'$ give all diagonal matrix units
+by interpolation, and the invertible shift $Y$ gives the remaining
+matrix units over $K_v$.  Thus the model is an isomorphism to
+$M_q(K_v)$.  Let $\mathcal A_v$ be the inverse image of $M_q(R_v)$.
+
+\paragraph{Unramified places with $q\nmid v(G)$.}
+Suppose $v(F)=0$ and $q\nmid w=v(G)$.  The residue of $F$ must be a
+$q$th power.  Otherwise, since $\kappa_v$ contains $\mu_q$ and $q$ is
+prime, $Y^q-\overline F$ is irreducible and defines an unramified
+extension of degree $q$.  All its norm valuations are then divisible
+by $q$, contradicting the promise on $G$.  Lift a residue root to
+$S\in R_v^*$ with $S^q=F$.  Use the matrices
+\begin{equation}\label{norm:unramified-matrices}
+ Ye_j=\zeta^{-j}S e_j,\qquad
+ Ve_j=\begin{cases}e_{j+1},&j<q-1,\\G e_0,&j=q-1.\end{cases}
+\end{equation}
+Now $VY=\zeta YV$, including at the wrap from $e_{q-1}$ to $e_0$.
+The same matrix-unit argument gives an isomorphism to $M_q(K_v)$;
+again take the inverse image of $M_q(R_v)$.
+
+\paragraph{Infinity.}
+Put $z=X^{-1}$ and $\widetilde Y=z^{N/q}Y$.  Then
+\[
+ \widetilde Y^q=z^NF(z^{-1})=:F_\infty(z),\qquad F_\infty(0)=1.
+\]
+There is a unique root $S\in k[[z]]$ of $S^q=F_\infty$ with $S(0)=1$.
+Use \eqref{norm:unramified-matrices} with $\widetilde Y$ in place of
+$Y$, and with the same weighted shift for $V$, whatever the valuation
+of $G$ may be.  The inverse image of $M_q(k[[z]])$ is $\mathcal A_\infty$.
+This model also specifies reduction to $M_q(k)$ at infinity.
+
+The matrix orders just used are maximal.  For example, pairing with
+matrix units shows that any element in a larger order has integral
+matrix entries, using the integrality of matrix trace exactly as
+above.  We have therefore specified maximal orders at every place,
+using only residue roots whose existence follows from the norm
+promise.
+
+\subsection{Why one fiber contains a rank-one matrix}
+
+Define the finite-dimensional $k$-algebra of global sections and its
+evaluation image by
+\begin{equation}\label{norm:sections-fiber}
+ \mathcal S=\{a\in\mathcal E:a\in\mathcal A_v\text{ for every }v\},
+ \qquad
+ \mathcal B=\operatorname{ev}_\infty(\mathcal S)\subseteq M_q(k).
+\end{equation}
+We will compute both spaces by linear equations.  First we establish
+the feature of $\mathcal B$ that will make this useful: up to change of
+basis it is the algebra of all block upper triangular matrices.  Its
+first block therefore contains the image of a rank-one idempotent.
+
+Here is the geometric explanation, including the descent from
+completed local orders.  Intersect $\mathcal A_v$ with the rational
+algebra $\mathcal E$.  This is a full lattice over the ordinary local
+discrete valuation ring at $v$, and its completion is
+$\mathcal A_v$.  Indeed the completed lattice lies between two powers
+of a rational uniformizer times a fixed rational lattice.  Rational
+approximation to a basis, to sufficiently high precision, produces a
+basis of the same completed lattice.  Equivalently, the finitely many
+congruences between these two bounds descend to the ordinary local
+ring.  Maximality descends as well, since a larger ordinary order
+would yield a larger completed order.
+
+For the following existence argument only, fix an isomorphism
+\eqref{norm:abstract-splitting}.  An ordinary local maximal order in
+$M_q(K_0)$ is the endomorphism ring of a lattice.  In fact, apply the
+order to the standard local lattice $R^q$ and take its span $M$.
+The order is a finite module and contains the identity, so $M$ is a
+full lattice stable under it.  The containing order
+$\operatorname{End}_R(M)$ must equal it by maximality.  At all but
+finitely many places the standard rational basis matrices and their
+inverse change of coordinates are integral; there we may use $M=R^q$.
+The resulting lattices glue to a vector bundle $\mathcal V$ of rank
+$q$ on $\mathbb P^1_k$.  Concretely, its local sections are rational
+column vectors satisfying the specified lattice conditions.  A basis
+of one local lattice gives a trivialization on a neighborhood after
+excluding the finitely many poles and other exceptional points.
+We have proved
+\begin{equation}\label{norm:endomorphism-bundle}
+ \mathcal S=H^0(\mathbb P^1_k,\operatorname{End}\mathcal V).
+\end{equation}
+The chosen matrix model at infinity identifies the endomorphism
+fiber with $M_q(k)$.  Any two such identifications differ by
+conjugation: an automorphism of a full matrix algebra sends matrix
+units to matrix units, from which a change of column basis is
+obtained.  Thus its particular choice will not affect the asserted
+shape of $\mathcal B$.
+
+The following form of the projective-line splitting theorem holds
+over the original field, rather than only after extending its
+constants; see Hazewinkel--Martin~\cite{HazewinkelMartin82}.
+
+\begin{lemma}[Splitting on the projective line]\label{norm:bundle-split}
+Every vector bundle on $\mathbb P^1_k$ is a direct sum of line bundles
+$\mathcal O(d)$, with integer degrees $d$.
+\end{lemma}
+
+\begin{proof}
+We recall a proof over the given field $k$.  Line bundles on
+$\mathbb P^1_k$ are classified by their degree.  On the two standard
+affine charts, the Laurent-polynomial computation of their
+cohomology gives
+\[
+ H^0(\mathcal O(t))=0\ (t<0),\qquad
+ H^1(\mathcal O(t))=0\ (t\ge-1).
+\]
+The first assertion is immediate from polynomial degrees; for the
+second, the \v Cech quotient is spanned by the Laurent monomials
+between the two chart ranges, and that range is empty for $t\ge-1$.
+
+Choose the largest integer $d$ for which there is a nonzero map
+$\mathcal O(d)\to\mathcal V$.  Such integers exist and are bounded
+above: enclosing the finitely many defining lattices of $\mathcal V$
+between twists of a fixed trivial bundle proves both claims.  A
+nonzero map is generically injective.  Saturating its image would
+increase its degree by the effective divisor of its zeros, so
+maximality of $d$ implies that it is a line subbundle.  The quotient
+$\mathcal Q$ is a vector bundle, and induction on rank writes it as
+$\bigoplus_i\mathcal O(t_i)$.  Twist
+\[
+ 0\longrightarrow\mathcal O(d)\longrightarrow\mathcal V
+   \longrightarrow\mathcal Q\longrightarrow0
+\]
+by $-d-1$.  Maximality of $d$ gives
+$H^0(\mathcal V(-d-1))=0$, and $H^1(\mathcal O(-1))=0$.
+The cohomology sequence therefore gives
+$H^0(\mathcal Q(-d-1))=0$, whence $t_i\le d$ for every $i$.
+Finally, each extension group
+\[
+ \operatorname{Ext}^1(\mathcal O(t_i),\mathcal O(d))
+   =H^1(\mathcal O(d-t_i))
+\]
+vanishes.  The sequence splits, completing the induction.
+\end{proof}
+
+Apply the lemma and order the summands by decreasing degree:
+$\mathcal V=\bigoplus_{i=1}^q\mathcal O(d_i)$ with
+$d_1\ge\cdots\ge d_q$.  The $(i,j)$ entry of a global endomorphism
+is a section of $\mathcal O(d_i-d_j)$.  If $d_i<d_j$ it is zero;
+otherwise its value at infinity is arbitrary, because a line bundle
+of nonnegative degree has a section with any prescribed value at that
+point.  Grouping the equal degrees proves the promised block upper
+triangular description of $\mathcal B$.  This is an existence proof of
+the shape, not an algorithm for computing the splitting of
+$\mathcal V$.
+
+\begin{lemma}[Extracting a rank-one fiber idempotent]
+\label{norm:fiber-idempotent}
+Given a basis of a subalgebra $\mathcal B\subseteq M_q(k)$ that is
+conjugate to a full block upper triangular algebra, linear algebra
+over $k$ constructs a rank-one idempotent in $\mathcal B$.
+\end{lemma}
+
+\begin{proof}
+Compute the kernel $\mathcal N$ of the bilinear form
+\[
+ (a,b)\longmapsto\operatorname{tr}(ab),\qquad a,b\in\mathcal B.
+\]
+In block upper triangular coordinates, a product has diagonal blocks
+equal to the products of the corresponding diagonal blocks.  The
+ordinary trace pairing on a full matrix algebra is nondegenerate in
+every characteristic, as is seen by pairing its matrix units.
+Hence $\mathcal N$ is exactly the strictly block upper triangular
+part.  The common kernel
+\[
+ U=\bigcap_{n\in\mathcal N}\ker n
+\]
+is the column space of the first block; if there is only one block,
+$\mathcal N=0$ and $U=k^q$.  Indeed every later block has arbitrary
+maps to the first block, which exclude any vector with a nonzero
+later component from this common kernel.
+
+Choose $0\ne v\in U$ and a row $w$ with $wv=1$.  Then $a_0=vw$
+has rank one and satisfies $a_0^2=a_0$.  In block coordinates it has
+nonzero entries only in the first block row, so it belongs to
+$\mathcal B$.  The computation requires only kernels and one scalar
+normalization; it does not require finding the conjugating matrix.
+\end{proof}
+
+\begin{figure}[tb]
+\centering
+\[
+ \mathcal B\sim
+ \begin{pmatrix} *&*&*\\0&*&*\\0&0&*\end{pmatrix}
+ \quad\xrightarrow{\ \ker\operatorname{tr}(ab)\ }\quad
+ \mathcal N\sim
+ \begin{pmatrix}0&*&*\\0&0&*\\0&0&0\end{pmatrix},
+ \qquad
+ U\sim\begin{pmatrix}k^{r_1}\\0\\0\end{pmatrix}.
+\]
+\caption{The fiber calculation with three distinct degree blocks.
+Each star denotes an arbitrary matrix block, and the diagonal block
+sizes are $r_1,r_2,r_3$.  The common kernel $U$ of the trace-pairing
+kernel is the first block column space.  Every matrix $vw$ with
+$v\in U$ belongs to $\mathcal B$; choosing $wv=1$ gives the rank-one
+idempotent.  The calculation works in the original coordinates.}
+\label{fig:norm-fiber}
+\end{figure}
+
+Figure~\ref{fig:norm-fiber} isolates the part of the vector-bundle
+argument that is actually computed.  The splitting theorem guarantees
+the triangular shape; the trace pairing finds enough of that shape
+to construct a rank-one matrix without a factorization or a change
+of basis.
+
+\subsection{From the fiber idempotent to a norm solution}
+
+Lift the matrix $a_0$ of Lemma~\ref{norm:fiber-idempotent} to any
+$b\in\mathcal S$ with $\operatorname{ev}_\infty(b)=a_0$.  This is a
+linear solve once \eqref{norm:sections-fiber} has been computed.  The
+coefficients of the generic characteristic polynomial of $b$ are
+regular at every point, since $b$ is a global endomorphism of
+$\mathcal V$.  A rational function regular on $\mathbb P^1_k$ is
+constant.  Evaluating at infinity consequently gives
+\[
+ \det(T-b)=T^{q-1}(T-1).
+\]
+The primary decomposition for the relatively prime factors
+$T^{q-1}$ and $T-1$ shows that
+\begin{equation}\label{norm:generic-idempotent}
+ e=b^q
+\end{equation}
+is the projection onto the one-dimensional $1$-eigenspace: it is zero
+on the nilpotent part and the identity on that eigenspace.  Thus $e$
+is a rank-one idempotent in $\mathcal E$.
+
+Lemma~\ref{norm:idempotent-to-norm} now recovers a norm solution by
+solving $Ve=he$ over $K_0$.
+
+It remains to make the spaces in \eqref{norm:sections-fiber}
+computable with polynomially many coefficients.  This is where the
+explicit local models, rather than an unspecified splitting of the
+cyclic algebra, are essential.
+
+\subsection{Computing all sections by finite linear systems}
+\label{norm:section-computation}
+
+Write $G=A/B$ with coprime nonzero polynomials $A,B\in k[X]$.
+Square-free decomposition and gcds partition the finite places
+dividing $FAB$ into pairwise coprime monic square-free polynomials
+$H_i$ such that the two values
+\[
+ \bigl(v(F),v(G)\bigr)=(\epsilon_i,w_i)
+\]
+are constant over the irreducible factors of each $H_i$.
+No irreducible factorization is involved: decompose the multiplicity
+layers of $A$ and $B$ and refine their intersections with each other
+and with $F$ by gcds.  All these polynomials have degree less than
+$p$ by \eqref{norm:characteristic}, so derivative-based square-free
+decomposition has no inseparable residual case.  Put
+\begin{equation}\label{norm:H-M}
+ H=\prod_i H_i,\qquad d_H=\deg H\le N+2D,
+ \qquad M=10q^2(N+D+1).
+\end{equation}
+
+At every place in group $i$ we may use the same rational uniformizer
+$T=H_i$.  Arithmetic modulo $H_i^s$ carries out, simultaneously, all
+the required arithmetic modulo the $s$th power of these local
+uniformizers.  The Chinese remainder theorem explains this statement
+without requiring the factors of $H_i$ to be computed.  When a local
+model requires a residue root, its residue is a unit modulo $H_i$
+and is a $q$th power in every residue-field component by the norm
+promise.  Lemma~\ref{ff:unitroot} constructs the root in $k[X]/H_i$.
+The characteristic bound supplies more than $d_H^2$ distinct prime
+field scalars for that lemma.  Hensel lifting then works modulo powers
+of $H_i$, since the derivative $qR^{q-1}$ or $qS^{q-1}$ is a unit.
+
+\begin{lemma}[Bounds for the local models]\label{norm:local-bounds}
+At a place with one of the matrix models above, every nonzero entry
+of the matrices of $W_{ab}$ and $W_{ab}^{-1}$ has valuation between
+$-M$ and $M$.  At a place with the scaled-basis order, the exponents
+changing between that basis and $W_{ab}$ have absolute value at most
+$M$.  Consequently, the standard coefficients of every local-order
+element have valuation at least $-M$ at the exceptional places and
+at infinity.  At all other finite places those coefficients are
+integral.
+\end{lemma}
+
+\begin{proof}
+At a ramified finite place, let $D_R$ denote the unit diagonal matrix
+of $V'$.  Then $V=Y^wD_R$, and commutation gives
+\[
+ W_{ab}=\zeta^{wb(b-1)/2}Y^{a+wb}D_R^b.
+\]
+For any integer $t$, the nonzero entry of $Y^t$ in column $j$ has
+valuation $\lfloor(j+t)/q\rfloor$.  Since $0\le a,b<q$ and
+$|w|\le D$, these valuations, and those of the inverse matrices,
+have absolute value at most $D+2$.  In the unramified matrix model,
+$Y$ is a unit diagonal matrix and each entry of $V^b$, for $b<q$,
+has valuation either $0$ or $w$; inverse entries have the opposite
+valuations.  At infinity the extra factor $z^{-aN/q}$ in $Y^a$
+gives the bound $N+D$.  These bounds are smaller than $M$.
+In the scaled-basis case, the change is multiplication by
+$T^{\pm bw/q}$, whose exponent has absolute value at most $D$.
+
+For an element in a matrix order, formula
+\eqref{norm:trace-coordinates} and the bound on the inverse basis
+matrices give the coefficient bound $-M$.  The scaled-basis assertion
+gives the same conclusion in the remaining case.  At an ordinary
+finite place the order is the unscaled standard span, so the
+coefficients are integral there.
+\end{proof}
+
+It follows that every global section is included in the ansatz
+\begin{equation}\label{norm:ansatz}
+ b=\sum_{a,b'=0}^{q-1}c_{ab'}W_{ab'},\qquad
+ c_{ab'}=\frac{P_{ab'}(X)}{H(X)^M},\qquad
+ \deg P_{ab'}\le M(d_H+1).
+\end{equation}
+Indeed the denominator clears every finite pole, and the bound at
+infinity says precisely that its numerator degree exceeds its
+denominator degree by at most $M$.  The polynomial coefficients in
+\eqref{norm:ansatz} are our scalar unknowns.
+
+For each finite group impose membership in $\mathcal A_v$ as follows.
+In a matrix model compute, modulo $T^{2M+1}$, the integral quantities
+$T^M c_{ab'}$ and every matrix entry of $T^M W_{ab'}$.
+Their products and sums give $T^{2M}$ times the matrix of the section.
+The section is integral exactly when all coefficients below order
+$2M$ vanish.  These are linear conditions over $k$.  In a
+scaled-basis order use the coordinates in that basis in place of
+matrix entries and impose the identical divisibility condition.
+At infinity make the same computation with $T=z$ and the prescribed
+matrix model.  The coefficient of $z^{2M}$, after the lower ones
+vanish, is exactly the evaluated matrix in $M_q(k)$.
+
+For completeness, the truncated entries are computed without an
+infinite-series oracle.  Each nonzero basis entry has the form
+$T^e u$ for a known exponent $e$ with $|e|\le M$ and a unit $u$ given
+by the diagonal and weighted-shift formulas.  Lift the required unit
+roots to precision $3M+3$ by the simple-root Hensel iteration.  After
+multiplication by $T^M$, this precision more than supplies all terms
+through $T^{2M}$.  For the rational coefficients of
+\eqref{norm:ansatz}, cancelling $T^M$ from the denominator leaves a
+unit denominator at the group, inverted by the polynomial Euclidean
+algorithm.  At infinity replace $X$ by $z^{-1}$ and cancel the known
+powers of $z$.  The same finite-precision computation then applies.
+
+Solving these linear equations gives a basis of $\mathcal S$ together
+with the evaluated matrix of every basis vector.  Taking their span
+gives $\mathcal B$ and retains a linear map with which to lift its
+elements.  The ansatz contains every section by
+Lemma~\ref{norm:local-bounds}; the imposed conditions are necessary
+and sufficient at every exceptional place, and elsewhere the ansatz
+is already integral.  Thus the computed spaces are exactly those in
+\eqref{norm:sections-fiber}.
+
+\subsection{Algorithm and polynomial bounds}
+
+The complete procedure can now be stated without any existential
+computational step.
+
+\begin{enumerate}
+\item Form the multiplication table of $\mathcal E$ in the basis
+      $Y^aV^b$.  Compute the square-free groups $H_i$ and the local
+      models, obtaining their residue roots by
+      Lemma~\ref{ff:unitroot} and their needed precision by Hensel
+      lifting.
+\item Use \eqref{norm:ansatz} and the divisibility conditions above
+      to compute $\mathcal S$ and its evaluation map to $M_q(k)$.
+\item In the image $\mathcal B$, compute the trace-pairing kernel,
+      its common column kernel, and a rank-one idempotent $a_0=vw$
+      as in Lemma~\ref{norm:fiber-idempotent}.
+\item Lift $a_0$ to $b\in\mathcal S$ by a linear solve and compute
+      $e=b^q$ with the multiplication table.
+\item Solve $Ve=he$ for $h\in \mathcal L$ over $k(X)$ and return $h$.
+\end{enumerate}
+
+Every step is deterministic after fixing a basis order and the first
+available pivot in each linear solve.  The preceding arguments prove
+existence of the required roots, a nonzero vector in the common
+kernel, a lift of $a_0$, and a solution of the last system; therefore
+the procedure terminates on every promised input.
+
+We record bounds to ensure that this is also a uniform algorithm.
+There are at most $d_H$ groups, and
+\[
+ d_H\le N+2D,\qquad M=10q^2(N+D+1).
+\]
+The number of unknowns in \eqref{norm:ansatz} is
+$q^2(M(d_H+1)+1)$.  The total number of scalar local conditions is at
+most a constant times $q^2M(d_H+1)$, since precision at a group of
+degree $d_i$ contributes $O(Md_i)$ coefficients.  All quotient
+polynomial rings have dimension at most $(3M+3)d_H$ over $k$.
+These are fixed polynomial bounds in $q,N,D$.  The finite-field root
+calculations also have polynomial complexity by
+Lemma~\ref{ff:unitroot}; the bit lengths of their powering exponents
+are $O(d_H\log|k|)$.
+
+For explicit denominator control, compute $b^q$ by successive
+multiplications by $b$.  Write $P_*=M(d_H+1)$.  The coefficients of
+$b^s$ have the common denominator
+\[
+ H^{Ms}B^{s-1}
+\]
+and numerator degrees at most
+$sP_*+(s-1)(N+D)$.  Indeed a product of two standard basis monomials
+introduces at most one factor of $F$ and one factor of $G=A/B$.
+Passing to the displayed common denominator at the next multiplication
+therefore adds at most $P_*+N+D$ to numerator degree, including every
+addition of terms.  This proves the assertion by induction for
+$1\le s\le q$.  The final system $Ve=he$ has the same common
+denominator with at most one extra factor of $B$; its cleared entries
+have polynomial degree.  A solution of this consistent rank-$q$
+system is expressed by ratios of minors, of degrees at most $q$
+times the cleared entry degree.  Fraction-reducing elimination or
+these minor formulas therefore bounds the output degree and the
+number of field operations by fixed polynomials.  Standard dense
+polynomial arithmetic and Gaussian elimination convert these bounds
+to a fixed polynomial in $q,N,D,\log|k|$ bit operations.  The more
+generous common bound needed by the full factorization algorithm is
+recorded in Proposition~\ref{complexity:bound}.
+
+Finally, polynomial gcds, Hensel lifting, and linear elimination use
+only field arithmetic and zero tests.  Integer choices such as
+degrees and multiplicities are determined by those tests; the
+valuation groups are formed by polynomial gcds rather than by an
+unknown factorization.  The finite-field root routine has the same
+property.  Hence all steps are compatible with simultaneous
+execution, proving the last assertion of Theorem~\ref{norm:solve}
+and completing its proof.

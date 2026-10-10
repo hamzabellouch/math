@@ -1,0 +1,510 @@
+\section{Constructive shortcut extraction}
+\label{sec:ta-algorithm}
+
+We now turn the simultaneous response of \Cref{prop:tg-response} into an
+algorithm. Throughout this section, an explicit multigraph has distinct
+labels for its parallel edges, and loops are discarded. Write
+$E_H(\mathcal P)$ for the edges crossing a partition $\mathcal P$ of the
+vertex set. Matrices act on $\one^\perp$, with its inherited Euclidean
+inner product. We retain the cone $\mathcal N$ and compact convex set
+$\mathcal K_H$ from the preceding section:
+\begin{equation}
+ \mathcal K_H=\{X\succeq L_H:
+       X\mathbin\bullet Z\le3L_H\mathbin\bullet Z\quad(Z\in\mathcal N)\}.
+ \label{eq:ta-K}
+\end{equation}
+Here $A\mathbin\bullet Z=\tr(AZ)$ always means the inherited trace, even
+when rational, nonorthonormal coordinates are used for computation.
+
+
+
+The construction follows the packing-preserving sparsification strategy
+of \cite{ThinTreesCompanion}. Convex continuation produces a rational
+shortcut together with a large integer packing supported on its
+low-resistance edges. Nonnegative capacities permit partition uncrossing;
+the nearly tight partitions then have highly connected parts, which is
+precisely the input required by the simultaneous geometric response.
+
+\subsection{A ramp of packing capacities}
+
+We use two standard algorithmic inputs in precise forms. The
+Nash--Williams--Tutte tree-packing theorem
+\cite{NashWilliams1961,Tutte1961} says that a multigraph contains $q$ edge-disjoint
+spanning trees if and only if
+\begin{equation}
+ |E_H(\mathcal P)|\ge q(|\mathcal P|-1)
+                \quad\hbox{for every partition }\mathcal P;
+ \label{eq:ta-integer-packing}
+\end{equation}
+see \cite[Theorem~1]{Kaiser2012}. A maximum union of $q$ graphic matroids
+can be constructed by matroid partition, originating with Edmonds
+\cite{Edmonds1968}; we use the polynomial-time independence-oracle
+algorithm of \cite[Theorem~14]{Terao2023}. The algorithm
+returns disjoint forests of maximum total cardinality. Their total size
+is $q(n-1)$ exactly when all $q$ forests are spanning trees. Acyclicity
+is a polynomial-time independence test, including for parallel edges.
+We reject $q(n-1)>m$ before invoking this procedure; thus the number of
+matroid copies is polynomial for an explicit graph.
+
+\begin{proposition}[Constructive shortcut extraction]
+\label{prop:ta-extraction}
+There are absolute constants $A$ and $r_0$ such that the following holds.
+If an explicit multigraph $H$ on at least two vertices contains $r\ge r_0$
+edge-disjoint spanning trees, one can deterministically compute a rational
+$X\in\mathcal K_H$ and at least
+\[
+                 (1-Ar^{-1/16})r
+\]
+edge-disjoint spanning trees, every edge $e$ of which satisfies
+$b_e^TX^{-1}b_e\le r^{-1/4}$. The running time and output encoding length
+are polynomial in $|V(H)|+|E(H)|$.
+\end{proposition}
+
+Fix such an $H$, put $m=|E(H)|$, and set
+\begin{equation}
+ \kappa=\frac1{m+1},\qquad t=\frac\kappa{32},\qquad
+ r^{-1/8}\le g\le2r^{-1/8},
+ \label{eq:ta-parameters}
+\end{equation}
+where $g$ is dyadic. Comparing eighth powers computes $g$ exactly with
+$O(\log r)$ bits. At a parameter $s>0$ and matrix $X\in\mathcal K_H$, define
+\begin{equation}
+ R_e(X)=b_e^TX^{-1}b_e,\qquad
+ p_e=\min\{2,(sR_e(X))^{-1}\},\qquad
+ u_e=\max\{0,p_e-1\}.
+ \label{eq:ta-ramp}
+\end{equation}
+The maintained invariant is
+\begin{equation}
+ \sum_{e\in E_H(\mathcal P)}(u_e+\kappa)
+       \ge Q(|\mathcal P|-1)\qquad\hbox{for every }\mathcal P.
+ \label{eq:ta-invariant}
+\end{equation}
+Initially take $s=1/2$, $X=L_H$, and $Q=r$. Since
+$L_H\succeq b_eb_e^T$, each $R_e(L_H)\le1$, so $u_e=1$ and the initial
+invariant follows from the given packing.
+
+One step replaces
+\begin{equation}
+ s^+=(1+t)s,\qquad X^+=(1-t)X+tY,\qquad Q^+=Q-2grt,
+ \label{eq:ta-step}
+\end{equation}
+where $Y\in\mathcal K_H$ is to be found. Steps are performed while
+$s^4<r$, an exact rational comparison. The final step may overshoot
+$r^{1/4}$; every response is invoked at an old parameter
+$s\le r^{1/4}$. There are
+$O(t^{-1}(1+\log r))$ steps, since $\log(1+t)\ge t/2$. Consequently
+\begin{equation}
+ r\ge Q\ge r\bigl(1-O(r^{-1/8}(1+\log r))\bigr)\ge3r/4
+ \label{eq:ta-target-bound}
+\end{equation}
+after increasing the absolute cutoff $r_0$.
+
+Let $G$ be the active subgraph with edges $u_e>0$. Choose variables
+$0\le y_e\le1$ for $e\in E(G)$ and impose
+\begin{equation}
+                 Y\succeq6s y_e b_eb_e^T.
+ \label{eq:ta-response-LMI}
+\end{equation}
+For these variables define concave lower capacities on all edges of $H$:
+\begin{equation}
+ a_e(y)=
+ \begin{cases}
+ \kappa+\min\{1,u_e+t(5y_e-4)\},&e\in E(G),\\
+ \kappa,&e\notin E(G).
+ \end{cases}
+ \label{eq:ta-lower-capacity}
+\end{equation}
+They are nonnegative, in fact $a_e\ge\kappa-4t=7\kappa/8$.
+This small baseline will also make the uncrossing argument valid.
+
+To check the lower bound, recall that $X\succeq\alpha b b^T$ is
+equivalent to $\alpha\le(b^TX^{-1}b)^{-1}$ for $X\succ0$.
+Thus $X\succeq sp_e b_eb_e^T$, and \Cref{eq:ta-response-LMI} gives
+\[
+ \frac1{s^+R_e(X^+)}\ge
+       \frac{(1-t)p_e+6ty_e}{1+t}
+       \ge p_e+t(5y_e-4).
+\]
+Indeed the numerator of the difference in the last inequality, divided
+by $t$, is $(1-5t)y_e+4+4t-2p_e\ge0$, since $p_e\le2$ and $t<1/5$.
+Taking the ramp at $s^+,X^+$, including both its upper cap and its lower
+truncation, proves
+\begin{equation}
+                         u_e^++\kappa\ge a_e(y).
+ \label{eq:ta-ramp-lower}
+\end{equation}
+Off $G$ this follows just from $u_e^+\ge0$.
+
+\begin{lemma}[A feasible continuation response]
+\label{lem:ta-continuation}
+Under \Cref{eq:ta-invariant,eq:ta-target-bound}, with
+$s\le r^{1/4}$, there exist $Y\in\mathcal K_H$ and $y$ satisfying
+\Cref{eq:ta-response-LMI} and
+\begin{equation}
+ \sum_{e\in E_H(\mathcal P)}a_e(y)
+       \ge (Q-grt)(|\mathcal P|-1)
+                  \qquad\hbox{for every }\mathcal P.
+ \label{eq:ta-strong-target}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Let $\mathcal C$ be the compact convex set of admissible $(Y,y)$ before
+the partition inequalities are imposed. It is nonempty: take $Y=L_H$
+and $y=0$. Put $q=Q-grt>0$ and let
+\[
+ S_{\mathcal P}(y)=\sum_{e\in E_H(\mathcal P)}a_e(y)
+                         -q(|\mathcal P|-1).
+\]
+Each slack is continuous and concave. Its vector image need not be
+convex, but the downward set
+\[
+ \mathcal D=\{v:\ v_{\mathcal P}\le S_{\mathcal P}(y)
+                 \text{ for some }(Y,y)\in\mathcal C\}
+\]
+is convex and closed. Convexity follows coordinatewise from concavity;
+closedness follows by taking a convergent subsequence of witnesses in
+$\mathcal C$. The set $\mathcal D$ is unbounded downward. If it does not
+meet the nonnegative orthant, its distance from that orthant is positive:
+the norm of the negative part of $S(y)$ has a positive minimum on the
+compact set $\mathcal C$, and passing downward cannot reduce that norm.
+Separation therefore supplies nonnegative weights $w_{\mathcal P}$,
+normalized to sum to one, for which
+\begin{equation}
+ F(w):=\max_{(Y,y)\in\mathcal C}
+                \sum_{\mathcal P}w_{\mathcal P}S_{\mathcal P}(y)<0.
+ \label{eq:ta-separated}
+\end{equation}
+
+There are finitely many partitions. Hence $F$ is continuous on their
+probability simplex and has a minimizer. Among minimizers choose one
+maximizing $\sum_{\mathcal P}w_{\mathcal P}|\mathcal P|^2$.
+Its support is a chain under refinement. To prove this, suppose
+incomparable $\mathcal P,\mathcal Q$ have positive mass. Move equal mass
+from them to their common refinement $\mathcal P\wedge\mathcal Q$ and
+finest common coarsening $\mathcal P\vee\mathcal Q$. For each edge,
+\[
+ \one_{E_H(\mathcal P\wedge\mathcal Q)}+
+ \one_{E_H(\mathcal P\vee\mathcal Q)}
+ \le \one_{E_H(\mathcal P)}+\one_{E_H(\mathcal Q)}.
+\]
+Moreover,
+\[
+ |\mathcal P\wedge\mathcal Q|+|\mathcal P\vee\mathcal Q|
+       \ge |\mathcal P|+|\mathcal Q|.
+\]
+For the second inequality, form the bipartite graph whose vertices are
+parts of $\mathcal P$ and $\mathcal Q$ and whose edges are their nonempty
+intersections. Its edges count refinement parts, and its connected
+components count coarsening parts; edges plus components are at least
+vertices. Since $a_e\ge0$ and $q>0$, uncrossing decreases the weighted
+slack for every $(Y,y)$, hence cannot increase $F$.
+Writing $a=|\mathcal P|$, $b=|\mathcal Q|$, $c=|\mathcal P\wedge\mathcal Q|$
+and $d=|\mathcal P\vee\mathcal Q|$, incomparability gives
+$c>\max(a,b)$ and $d<\min(a,b)$. Thus
+\[
+ c^2+d^2-a^2-b^2
+ =(c-a)(c-b)+(d-a)(d-b)+(a+b)(c+d-a-b)>0.
+\]
+This contradicts the tie-breaking choice. The one-part partition has
+zero slack and is comparable with every partition, so it creates no
+exception.
+
+It remains to satisfy \Cref{eq:ta-strong-target} simultaneously on any
+chain. Let the old slack in \Cref{eq:ta-invariant} be
+$\sigma_{\mathcal P}\ge0$. If $\sigma_{\mathcal P}>1$, the worst possible
+loss $4tm<1$ already leaves the desired inequality. Retain only partitions
+with $\sigma_{\mathcal P}\le1$, omitting the one-part partition. Every
+part of every retained partition induces an
+$h$-edge-connected graph in $G$, where $h=\lfloor r/2\rfloor$.
+Indeed, split one such part by any nontrivial internal cut. Subtracting
+the old partition capacity from the invariant for the refined partition
+shows that the internal cut has capacity at least $Q-1$. Removing all
+baselines loses less than $\kappa m<1$, and $u_e\le1$ then shows that
+the active internal cut has more than $Q-2\ge h$ edges. The same argument
+using a two-part partition at the root gives more than $Q-1$ active
+edges across every root cut. Singleton parts require no check.
+
+Apply \Cref{prop:tg-response} to this chain, with its root, and set $y_e=1$
+on edges satisfying $Y\succeq6s b_eb_e^T$, and $y_e=0$ otherwise.
+These choices satisfy \Cref{eq:ta-response-LMI}. Fix a retained partition,
+write $d=|\mathcal P|\ge2$ and $M=|E_G(\mathcal P)|$, and call its at most
+$r^{-1/3}M$ exceptional crossing edges bad. Good edges never lose
+capacity; bad edges lose at most $4t$ each. If $M\le8r(d-1)$, the total
+loss is at most
+\[
+ 4t r^{-1/3}M\le32tr^{2/3}(d-1)\le grt(d-1)
+\]
+for sufficiently large $r$, as required.
+
+If $M>8r(d-1)$, near-tightness gives
+$\sum_{E_G(\mathcal P)}u_e\le Q(d-1)+1\le r(d-1)+1$.
+Fewer than half of these $M$ edges can have $u_e>1/2$: their number is
+at most $2r(d-1)+2<M/2$ for the chosen cutoff. Each good edge with
+$u_e\le1/2$ gains exactly $t$, since $t<1/2$. The total gain minus loss
+is therefore at least
+\[
+ t\bigl(M/2-r^{-1/3}M\bigr)-4tr^{-1/3}M\ge0.
+\]
+This also proves the desired inequality. Every chain thus admits a
+simultaneous nonnegative slack vector, contradicting
+\Cref{eq:ta-separated}. The lemma follows.
+\end{proof}
+
+\subsection{Exact separation and a uniform interior ball}
+
+The existence lemma leaves a margin $grt$ beyond the actual target
+$Q^+=Q-2grt$. We next use that margin to compute a response, including
+when the stronger solution has $y_e=0$ or $1$.
+
+For distinct vertices put
+$T_{ijk}=b_{ij}b_{ij}^T+b_{jk}b_{jk}^T-b_{ik}b_{ik}^T$.
+The dual cone has the exact representation
+\begin{equation}
+ \mathcal N^*=\{P+\sum_{ijk}\lambda_{ijk}T_{ijk}:
+                         P\succeq0,\ \lambda_{ijk}\ge0\}.
+ \label{eq:ta-dual-cone}
+\end{equation}
+Here and below all ordered distinct triples may be used; repetitions
+of an identical generator are harmless. To verify closedness, note that
+$\tr T_{ijk}=2$. If matrices on the right converge, their traces bound
+both $\tr P$ and $\sum\lambda_{ijk}$. The PSD summands and coefficients
+therefore have convergent subsequences. The represented cone is closed,
+and its dual is exactly the PSD cone intersected with all triangle
+halfspaces, namely $\mathcal N$. The finite-dimensional bipolar theorem
+proves \Cref{eq:ta-dual-cone}. This trace argument uses full centered
+matrices; an ordinary trace in arbitrary reduced coordinates would not
+justify it. Also, for any connected $G$, choosing
+$0<\epsilon<\lambda_{\min}(L_G|_{\one^\perp})$ makes
+$L_G-\epsilon I$ positive definite and hence interior to
+$\mathcal N^*$. This supplies strict conic feasibility whenever it is
+needed in the shortcut domain.
+
+Use variables $Y$, $\lambda_{ijk}\ge0$, and $y_e,z_e$ for $e\in E(G)$.
+Besides \Cref{eq:ta-response-LMI}, impose
+\begin{align}
+ &Y-L_H\succeq0,\qquad
+  3L_H-Y-\sum_{ijk}\lambda_{ijk}T_{ijk}\succeq0,
+       \label{eq:ta-conic-representation}\\
+ &0\le y_e\le1,\qquad 0\le z_e\le\kappa+1,\qquad
+ z_e\le\kappa+u_e+t(5y_e-4).
+       \label{eq:ta-z-constraints}
+\end{align}
+Define $z_e=\kappa$ off $G$ and add
+\begin{equation}
+ \sum_{e\in E_H(\mathcal P)}z_e
+               \ge Q^+(|\mathcal P|-1)\quad\hbox{for all }\mathcal P.
+ \label{eq:ta-computational-packing}
+\end{equation}
+By \Cref{eq:ta-dual-cone}, the two LMIs in
+\Cref{eq:ta-conic-representation} describe exactly $Y\in\mathcal K_H$.
+The two upper bounds on $z_e$ describe $z_e\le a_e(y)$.
+
+\begin{lemma}[Partition separation by minimum spanning trees]
+\label{lem:ta-separation}
+For nonnegative rational capacities $z$ and rational $q\ge0$, the
+inequalities $z(E_H(\mathcal P))\ge q(|\mathcal P|-1)$ have an exact
+polynomial-time separation oracle. Consequently the full feasible set defined by
+\Cref{eq:ta-response-LMI,eq:ta-conic-representation,eq:ta-z-constraints,eq:ta-computational-packing}
+has such an oracle at rational points.
+\end{lemma}
+
+\begin{proof}
+The partition inequalities are equivalent to
+\begin{equation}
+             z\cdot\ell\ge q\,\operatorname{MST}(\ell)
+                      \qquad(0\le\ell_e\le1),
+ \label{eq:ta-MST-inequalities}
+\end{equation}
+where $\operatorname{MST}(\ell)$ is minimum spanning tree length in $H$.
+For one direction, assign length one to edges crossing a partition and
+zero to all other edges. Every spanning tree has at least
+$|\mathcal P|-1$ crossing edges. Conversely, let $\mathcal P_a$ be the
+components of the subgraph of edges of length less than $a$.
+Kruskal's algorithm gives
+\[
+ \operatorname{MST}(\ell)=\int_0^1(|\mathcal P_a|-1)\,da.
+\]
+Every edge crossing $\mathcal P_a$ has length at least $a$, so integration
+of the partition inequalities gives
+$q\operatorname{MST}(\ell)\le\sum_e z_e\ell_e$.
+
+To separate \Cref{eq:ta-MST-inequalities}, solve the rational linear
+program
+\begin{equation}
+ \max\bigl\{qv-z\cdot\ell:\ 0\le\ell\le1,\ 0\le v\le n,
+                         \ v\le\ell(T)\ \text{for all spanning trees }T\bigr\}.
+ \label{eq:ta-MST-LP}
+\end{equation}
+All facet coefficients have polynomial encoding length. A minimum
+spanning tree supplies exact separation for the exponentially many tree
+constraints. The rational polyhedral optimization theorem
+\cite[Theorem~6.4.9]{GLS1988} therefore computes the exact optimum and a
+rational optimizer in polynomial work. The optimum is nonnegative. If
+it is zero all inequalities hold; if positive, the returned length
+vector gives a violated valid linear inequality in $z$.
+
+The scalar constraints have immediate rational separators. Exact
+symmetric elimination either certifies a rational symmetric matrix as
+PSD or produces a rational vector of negative quadratic form. Applied
+to an affine matrix constraint, that vector supplies a rational linear
+separator of polynomial encoding length. This completes the oracle.
+\end{proof}
+
+\Needspace{4\baselineskip}
+\begin{lemma}[Quantitative feasibility and bounded output denominators]
+\label{lem:ta-bits}
+Every continuation step can be computed in polynomial binary time.
+Its returned variables may be taken on a fixed rational grid whose
+encoding length depends only on $n+m$, not on the denominators of the
+old capacities $u_e$.
+\end{lemma}
+
+\begin{proof}
+We give deliberately loose uniform bounds. Put $P=n+m+2\ge5$ and use
+the upper-triangular entries of the upper-left $(n-1)\times(n-1)$ block
+as free coordinates of a centered symmetric matrix. If that block is
+$A$, its full completion is $CAC^T$, where
+$C=[e_1-e_n\ \cdots\ e_{n-1}-e_n]$. Thus a free-coordinate perturbation
+of Euclidean norm $\eta$ changes the full matrix in operator norm by at
+most $2P\eta$. Include $\lambda,y,z$ as ordinary scalar coordinates.
+Their total number $D$ is at most $P^3$.
+
+A connected unweighted multigraph has
+\begin{equation}
+ \lambda_{\min}(L_H|_{\one^\perp})\ge P^{-3}=:\mu,
+                         \qquad \|L_H\|_{\op}\le2m.
+ \label{eq:ta-spectral-size}
+\end{equation}
+For the first bound, for a centered unit vector choose its largest and
+smallest coordinates and a path between them of length at most $n-1$.
+The coordinate range is at least $n^{-1/2}$, so Cauchy--Schwarz along
+that path already gives energy at least $1/(n(n-1))\ge P^{-3}$.
+
+Consider an auxiliary point, without requiring its partition constraints:
+\begin{equation}
+ Y_0=2L_H,\qquad \lambda_{ijk,0}=P^{-8},\qquad
+ y_{e,0}=P^{-8},\qquad z_{e,0}=\kappa/2.
+ \label{eq:ta-auxiliary}
+\end{equation}
+There are at most $P^3$ generators, each of norm at most $6$, so their
+weighted sum has norm at most $6P^{-5}<\mu/2$.
+Since $s\le r^{1/4}\le m+1<P$ and $\|b_eb_e^T\|=2$, the response LMI
+at this point has margin at least $2\mu-12P^{-7}>\mu$.
+The other two LMIs have margins at least $\mu/2$.
+The $\lambda$ and lower $y$ faces have margin $P^{-8}$, the upper $y$
+face has margin at least $1/2$, and the $z$ lower and upper faces have
+margins at least $\kappa/2$ and $1$, respectively. Finally
+\[
+ \kappa+u_e+t(5y_{e,0}-4)-z_{e,0}
+       \ge\kappa/2-4t=3\kappa/8.
+\]
+All scalar normal norms and affine matrix Lipschitz constants are at
+most $20P^3$ in these coordinates. It follows that the entire ball of
+radius
+\begin{equation}
+                         \rho_0=P^{-20}
+ \label{eq:ta-aux-radius}
+\end{equation}
+about this auxiliary point satisfies all non-packing constraints.
+In particular these estimates are uniform even when an active $u_e$
+is extremely small.
+
+By \Cref{lem:ta-continuation}, choose a stronger feasible point $x_*$,
+using $z_e=a_e(y)$ and any representation
+\Cref{eq:ta-conic-representation}. Let $\beta=grt$. Every nontrivial
+partition has slack at least $\beta(|\mathcal P|-1)\ge\beta$ at $x_*$
+relative to \Cref{eq:ta-computational-packing}. Moreover,
+\[
+ \beta\ge\frac1{32(m+1)}\ge\frac1{32P}.
+\]
+At the auxiliary point every such slack is at least $-P^2$, because
+all capacities are nonnegative and $Q^+\le r\le m$.
+Mix a fraction $\theta=P^{-8}$ of the auxiliary point into $x_*$.
+Since $P\ge5$, the new partition slacks are at least
+$(1-\theta)\beta-\theta P^2\ge\beta/2$.
+Convexity gives a ball of radius $\theta\rho_0=P^{-28}$ satisfying the
+non-packing constraints about the mixture. A partition normal has at
+most $m$ unit coefficients in the $z$ coordinates, so its norm is at
+most $\sqrt m$. Thus the smaller ball of radius
+\begin{equation}
+                              \rho=P^{-30}
+ \label{eq:ta-inradius}
+\end{equation}
+satisfies every partition constraint as well. Their exponential number
+does not change this uniform estimate.
+
+There is also a uniform outer ball. Testing \Cref{eq:ta-K} against the
+centered identity gives $\tr Y\le6m$. Taking traces in the second LMI
+of \Cref{eq:ta-conic-representation} gives
+$\sum\lambda_{ijk}\le3m$. Together with $0\le y_e\le1$ and
+$0\le z_e\le\kappa+1\le2$, these bounds place all free coordinates in
+the ball of radius $P^3$. We may impose the larger radius $2P^3$ with
+slack. This ball also has an exact rational separator: for a rational
+query $a$ with $\|a\|>R$, the inequality
+$ a\cdot x\le(R^2+\|a\|^2)/2$ contains the radius-$R$ ball
+and strictly excludes $a$, by Cauchy--Schwarz and the arithmetic--geometric
+mean inequality. All ball constants have logarithmic encoding length in $P$.
+The rational central-cut ellipsoid procedure, using
+\Cref{lem:ta-separation}, now finds an exactly feasible point in
+polynomial work \cite[Theorem~3.2.1 and its proof]{GLS1988}.
+Indeed, use our exact membership test at every oracle query and choose
+the enclosing-volume cutoff below $(2\rho/D)^D$, the volume of a
+coordinate cube contained in the proved radius-$\rho$ inner ball.
+The small-volume outcome is impossible, so the algorithm must terminate
+at an exactly accepted rational point. This argument uses the displayed
+positive inradius; it does not assume exact solvability of an arbitrary
+semidefinite feasibility problem.
+
+To bound the returned denominators independently of those in $u$, put
+$L=\lceil\log_2P\rceil$, $\eta=2^{-32L}$ and $\gamma=2^{-36L}$,
+and instead find $x$ such that
+\begin{equation}
+                         x\pm\eta e_j\in\mathcal F
+                          \qquad(1\le j\le D),
+ \label{eq:ta-translated}
+\end{equation}
+where $\mathcal F$ is the full step feasible set, including the outer
+bound. The intersection of these $2D$ translates still contains a ball
+of radius at least $\rho-\eta\ge3\rho/4$, and has a separation oracle
+by translating the queries. Use the corresponding volume cutoff with
+$3\rho/4$ in place of $\rho$. Convexity implies that the cross-polytope
+$\{x+v:\|v\|_1\le\eta\}$ lies in $\mathcal F$.
+Round each coordinate of $x$ to the fixed dyadic mesh $\gamma$.
+Its total rounding error is at most
+$D\gamma/2\le\eta/(2P)<\eta$, so the rounded point remains feasible.
+The outer bound gives at most $39L+O(1)$ bits per coordinate.
+This argument does not round a
+boundary solution without a margin.
+
+Finally $s$ and $Q$ have polynomial encoding length throughout the
+prescribed schedule. At a rational $X\succeq L_H$, its centered inverse
+and all old $u_e$ are computed exactly with polynomial bit operations.
+Every new $Y$ lies on the fixed grid just described. Forming
+$X^+=(1-t)X+tY$ increases encoding length by only a polynomial additive
+amount per step. Over the polynomial number of steps neither
+denominators nor oracle work can cascade beyond polynomial size.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{prop:ta-extraction}]
+Apply \Cref{lem:ta-continuation,lem:ta-bits} at every step.
+The computed capacities satisfy \Cref{eq:ta-computational-packing};
+\Cref{eq:ta-ramp-lower} therefore preserves
+\Cref{eq:ta-invariant} with target $Q^+$. At termination $s\ge r^{1/4}$,
+and every active edge has $R_e(X)<1/s\le r^{-1/4}$.
+Dropping the baselines loses less than one across any partition, and
+$u_e\le1$ gives
+\[
+ |E_G(\mathcal P)|\ge Q(|\mathcal P|-1)-1
+       \ge (Q-1)(|\mathcal P|-1)
+                   \quad(|\mathcal P|\ge2).
+\]
+Hence \Cref{eq:ta-integer-packing} supplies
+$\lfloor Q-1\rfloor$ disjoint spanning trees. Construct them by the
+graphic-matroid union procedure stated above. By
+\Cref{eq:ta-target-bound}, their number is
+$r(1-O(r^{-1/8}(1+\log r)))-O(1)$, which is at least
+$(1-Ar^{-1/16})r$ after enlarging $A$ and $r_0$. All steps have the
+claimed polynomial bit complexity.
+\end{proof}

@@ -1,0 +1,161 @@
+\section{Introduction}\label{sec:introduction}
+
+An online \(k\)-server algorithm maintains \(k\) labeled servers in a metric
+space. Upon receiving a request, it moves one server to the requested point
+and leaves the others fixed. The movement is charged according to the metric.
+The offline optimum knows the entire request sequence, whereas an online
+algorithm must act before seeing the next request. For an initial labeled
+tuple \(s\) and a finite request word \(\sigma\), write
+\(\cost_{A,s}(\sigma)\) for an algorithm's total movement and
+\(\OPT_s(\sigma)\) for the minimum such cost with full knowledge of the word.
+Requests are fixed independently of the algorithm's random bits, the
+oblivious-adversary model. We study finite rational metrics and the bit
+complexity of each online decision.
+
+The companion theorem~\cite{SquaredLog2026} supplies a policy with
+competitive ratio \(O(\log^2(k+1))\), but no procedure for computing
+its decision probabilities. We ask whether this existence guarantee can
+be realized by a single uniform algorithm on all finite rational metrics,
+using finite computations and unbiased random bits.
+
+\begin{theorem}\label{thm:main}
+There are an absolute constant \(C\) and a polynomial \(p\) with the following
+property. Let \(n\ge3\), \(2\le k<n\), let \(d\) be a rational metric on
+\(X=\{1,\ldots,n\}\), and let \(s\in X^k\) be an initial labeled tuple,
+with repetitions allowed. Write \(L\) for the total binary encoding length
+of \(n,k,d,s\). A single uniform randomized online algorithm preprocesses
+these data in at most \(p(L)\) bit operations and serves request \(r_t\),
+for every reachable history and internal state, in at most
+\[
+ p\!\left(L+\left\lceil\log_2(t+1)\right\rceil\right)
+\]
+additional bit operations. It uses only unbiased random bits and moves
+exactly one chosen server to each request, permitting a zero-length move.
+For every fixed finite request sequence \(\sigma\) independent of those bits,
+\begin{equation}\label{eq:main-bound}
+ \E\cost_{A,s}(\sigma)
+ \le C\bigl(\log(k+1)\bigr)^2\OPT_s(\sigma)+B_{d,k,s},
+\end{equation}
+where \(B_{d,k,s}\) is finite and independent of \(\sigma\) and its length.
+The algorithm does not need to know that length in advance.
+\end{theorem}
+
+Here and below \(\log\) is natural, except when the base is displayed.
+The worst-case bit bounds in Theorem~\ref{thm:main} imply the corresponding
+conditional expected bounds. The polynomial is uniform in every input
+parameter and in \(t\).
+
+Two features of the statement are essential. First, no bound on the size of
+\(B_{d,k,s}\) is imposed. Second, the permitted computation grows polynomially
+with the length of the binary request counter. Our algorithm serves
+requests immediately, but may serve an enormous initial number of them
+using one fixed label before the constructed policy takes over. The cost
+of this initial service enters \(B_{d,k,s}\). Thus polynomial preprocessing
+does not imply a short delay before activation or a polynomial bound on
+the additive movement loss.
+
+\subsection{History and computational scope}
+
+Manasse, McGeoch, and Sleator introduced the \(k\)-server problem as a metric
+framework for online service problems \cite{MMS1990}. Paging is its uniform
+metric case: servers represent the \(k\) pages held in a cache, and a request
+to an absent page costs one move. Fiat, Karp, Luby, McGeoch, Sleator, and
+Young gave the randomized marking algorithm and the harmonic randomized
+lower bound for paging \cite{FKLMSY1991}. This logarithmic behavior suggested
+the classical randomized \(k\)-server conjecture, which proposed an
+\(O(\log k)\) ratio on every metric. Bubeck, Coester, and Rabani disproved
+that conjecture by establishing a worst-case lower bound of order
+\(\log^2 k\) \cite{BCR2023}. The squared-logarithmic scale is therefore
+necessary for a guarantee uniform over metrics.
+
+Our mathematical input is Theorem~1.1 of the companion article
+\emph{Squared-logarithmic randomized \(k\)-server on arbitrary metrics}
+\cite{SquaredLog2026}. Its distinct-start clause supplies a single randomized
+policy for all finite oblivious inputs with zero additive loss. We state
+this exact finite-metric consequence as Theorem~\ref{thm:existence}.
+Only the existence of that policy is used, not its probabilities or any
+procedure for evaluating them.
+
+Coester and Cosson address polynomial-time implementation directly
+\cite[Theorem~1 and Corollary~2]{CoesterCosson2026}. They obtain ratio
+\(O(\log^2 k)\) on sufficiently separated hierarchically separated trees
+and ratio \(O(\log n\log^2 k)\) on arbitrary \(n\)-point metrics, with
+polynomial request-processing time independent of the request-history
+length. On the trees, they use only \(O(\log k)\) random bits in total;
+the general-metric algorithm also uses a bounded initial bit budget
+independent of the request-sequence length. These are stronger
+time and randomness guarantees than those sought here. Theorem~\ref{thm:main}
+instead obtains a competitive ratio independent of \(n\), using the
+companion existence theorem and allowing request-processing time polynomial
+in \(L+\log(t+1)\), together with an unrestricted finite additive movement
+term.
+
+Finite-policy synthesis and bounded-sequence reductions already have a
+substantial history. M\"omke \cite[Sections~3--4]{Moemke2013} gives a
+competitive-ratio approximation scheme on fixed finite metrics, reducing
+the analysis to bounded request sequences and expressing randomized
+strategies by a finite linear program. We use the same relationship between
+causal probabilities and linear constraints, spelling out exact
+elimination and the conversion to finite blocks of unbiased random bits.
+Mikkelsen~\cite[Section~5.2, proof of Lemma~9]{Mikkelsen2016}, using
+Lemma~8 there, develops related
+reset constructions for finite lazy task systems: candidate policies are
+simulated together, universally free requests are discarded, and a cost cap
+triggers a fallback within a phase. Our universal filter and fallback
+follow this general pattern, with explicit bounds for the retained word
+and the finite state used by the implementation.
+The proof retains the full construction so that its halting, sampling,
+and storage properties can all be checked in the same bit model.
+
+Resetting an online policy also requires accounting for the changes in its
+server positions and for the cost of each completed phase. Such accounting
+appears in M\"omke's bounded-sequence reduction
+\cite[Section~3]{Moemke2013} and in the bounded-cost phase methods of
+Komm, Kr\'alovi\v c, Kr\'alovi\v c, and M\"omke
+\cite[Section~4]{KKKM2022}. Our fallback uses the protection of marked
+points from classical paging \cite[Section~3]{FKLMSY1991}.
+
+\subsection{Proof ideas}
+
+The first step replaces real-valued policy probabilities by finite rational
+data. For a fixed horizon, configuration probabilities and transition flows
+form a rational linear system. Exact elimination finds a best feasible
+competitive coefficient without being given the constant in the existence
+theorem. Rounding the resulting conditional probabilities to dyadic values
+adds a bounded expected movement error.
+
+A finite horizon by itself does not control a long input whose optimum barely
+moves. A service is \emph{strongly lazy} if it moves only on a request to an
+unoccupied point. We retain a request only if some such service from the
+fixed distinct starting tuple, using at most a prescribed number of positive
+moves, would miss it. The filter represents these possible services by a
+tree, branching into at most \(k\) choices at each miss and with depth
+bounded by the move cap. Each retained request removes at least one live
+node; no removed node returns. The resulting word therefore has bounded
+length even when the original input does not.
+
+A table trajectory that exceeds the move cap has already paid enough to
+cover a deterministic marking fallback. An epoch groups a fixed number of
+blocks, each completed block ending at its \((k+1)\)st distinct request.
+Every completed block forces movement by the optimum, which pays for
+restarting the table between epochs. Both the blocks and the filtered
+request word are determined by the raw input alone. Consequently the
+finite-policy estimate is always applied to a fixed word, even when the
+actual service switches modes at a random time. This separates the finite
+table's horizon from the potentially unbounded duration of an epoch.
+
+Finally, a deterministic bit-machine constructor is simulated from scratch for only
+\(\lfloor\log_2(t+1)\rfloor\) steps at request \(t\). Once it finishes, its
+explicit output is small enough relative to that same budget to support all
+subsequent online operations. Its finite completion time affects the additive
+movement constant. Here the bounded retained word and explicit output-size
+bound make that schedule possible despite the constructor's uncontrolled
+running time.
+This delayed activation is an implementation device made possible by the
+unrestricted additive movement term; the substantive input to it is the
+bounded-state suffix routine.
+
+Section~\ref{sec:finite-tables} constructs the tables.
+Section~\ref{sec:bounded-suffix} turns one such table into a routine for an
+unbounded suffix. Section~\ref{sec:uniform-computation} schedules its
+construction and proves Theorem~\ref{thm:main}.

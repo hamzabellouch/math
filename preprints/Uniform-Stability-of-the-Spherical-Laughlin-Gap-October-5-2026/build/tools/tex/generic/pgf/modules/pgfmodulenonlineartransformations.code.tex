@@ -1,0 +1,232 @@
+
+\ProvidesFileRCS{pgfmodulenonlineartransformations.code.tex}
+
+
+
+
+
+
+
+\def\pgfpointtransformednonlinear#1{%
+  \pgf@process{%
+    #1%
+    \pgf@pos@transform@glob%
+    \pgf@nlt@list%
+  }
+}%
+
+
+
+
+
+\def\pgfapproximatenonlineartranslation{%
+  \ifx\pgf@nlt@list\pgfutil@empty%
+  \else%
+    \pgfpointtransformednonlinear{\pgfpointorigin}%
+    \pgf@pt@x=\pgf@x%
+    \pgf@pt@y=\pgf@y%
+    \let\pgf@nlt@list\pgfutil@empty%
+    \let\pgf@nlt@moveto\pgf@lt@moveto%
+    \let\pgf@nlt@lineto\pgf@lt@lineto%
+    \let\pgf@nlt@curveto\pgf@lt@curveto%
+    \let\pgf@nlt@closepath\pgf@lt@closepath%
+  \fi%
+}%
+
+
+
+
+\def\pgfapproximatenonlineartransformation{%
+  \ifx\pgf@nlt@list\pgfutil@empty%
+  \else%
+    \pgfpointtransformednonlinear{\pgfpoint{1pt}{0pt}}%
+    \pgf@xa\pgf@x
+    \pgf@ya\pgf@y
+    \pgfpointtransformednonlinear{\pgfpoint{0pt}{1pt}}%
+    \pgf@xb\pgf@x
+    \pgf@yb\pgf@y
+    \pgfpointtransformednonlinear{\pgfpointorigin}%
+    \advance\pgf@xa by-\pgf@x
+    \advance\pgf@xb by-\pgf@x
+    \advance\pgf@ya by-\pgf@y
+    \advance\pgf@yb by-\pgf@y
+    \pgfsettransformentries{\pgf@sys@tonumber\pgf@xa}{\pgf@sys@tonumber\pgf@ya}{\pgf@sys@tonumber\pgf@xb}{\pgf@sys@tonumber\pgf@yb}{\pgf@x}{\pgf@y}%
+    \let\pgf@nlt@list\pgfutil@empty%
+    \let\pgf@nlt@moveto\pgf@lt@moveto%
+    \let\pgf@nlt@lineto\pgf@lt@lineto%
+    \let\pgf@nlt@curveto\pgf@lt@curveto%
+    \let\pgf@nlt@closepath\pgf@lt@closepath%
+  \fi%
+}%
+
+
+
+
+\def\pgftransformnonlinear#1{%
+  \expandafter\def\expandafter\pgf@nlt@list\expandafter{\pgf@nlt@list#1}%
+  \let\pgf@nlt@moveto\pgf@nlt@moveto@nlt
+  \let\pgf@nlt@lineto\pgf@nlt@lineto@nlt
+  \let\pgf@nlt@curveto\pgf@nlt@curveto@nlt
+  \let\pgf@nlt@closepath\pgf@nlt@closepath@nlt
+}%
+
+\def\pgf@nlt@moveto@nlt#1#2{%
+  {%
+    \pgfutil@tempdima#1%
+    \pgfutil@tempdimb#2%
+    \pgf@x\pgfutil@tempdima%
+    \pgf@y\pgfutil@tempdimb%
+    \xdef\pgf@nlt@last@moveto@orig{{\the\pgf@x}{\the\pgf@y}}%
+    \pgf@nlt@list%
+    \xdef\pgf@nlt@last@moveto@trans{{\the\pgf@x}{\the\pgf@y}}%
+    \xdef\pgf@nlt@last@moveto@xaxis{{\the\pgf@xa}{\the\pgf@ya}}%
+    \xdef\pgf@nlt@last@moveto@yaxis{{\the\pgf@xb}{\the\pgf@yb}}%
+    \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+    \pgfsyssoftpath@moveto{\the\pgf@x}{\the\pgf@y}%
+    \global\let\pgf@nlt@last@coord@orig\pgf@nlt@last@moveto@orig%
+    \global\let\pgf@nlt@last@coord@trans\pgf@nlt@last@moveto@trans%
+    \global\let\pgf@nlt@last@coord@xaxis\pgf@nlt@last@moveto@xaxis%
+    \global\let\pgf@nlt@last@coord@yaxis\pgf@nlt@last@moveto@yaxis%
+  }%
+}%
+
+
+\def\pgf@nlt@lineto@nlt#1#2{%
+  {%
+    \edef\pgf@temp{\pgf@xc\the#1\pgf@yc\the#2}%
+    \pgf@temp%
+    \expandafter\pgfqpoint\pgf@nlt@last@coord@orig%
+    \expandafter\pgf@nlt@set@temps\pgf@nlt@last@coord@trans%
+    \pgf@xa\pgf@x\advance\pgf@xa by-\pgf@xc%
+    \pgf@ya\pgf@y\advance\pgf@ya by-\pgf@yc%
+    \pgfutil@tempswafalse%
+    \ifdim\pgf@xa<0.1pt\relax\ifdim\pgf@xa>-0.1pt\relax\ifdim\pgf@ya<0.1pt\relax\ifdim\pgf@ya>-0.1pt\relax\pgfutil@tempswatrue\fi\fi\fi\fi%
+    \ifpgfutil@tempswa%
+      \pgf@x\pgf@xc\pgf@y\pgf@yc%
+      \xdef\pgf@nlt@last@coord@orig{{\the\pgf@x}{\the\pgf@y}}%
+      \pgf@process{\pgf@nlt@list}%
+      \xdef\pgf@nlt@last@coord@trans{{\the\pgf@x}{\the\pgf@y}}%
+      \xdef\pgf@nlt@last@coord@xaxis{{\the\pgf@xa}{\the\pgf@ya}}%
+      \xdef\pgf@nlt@last@coord@yaxis{{\the\pgf@xb}{\the\pgf@yb}}%
+      \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+      \pgfsyssoftpath@lineto{\the\pgf@x}{\the\pgf@y}%
+    \else%
+      \pgf@xb=.333333\pgf@x%
+      \advance\pgf@xb by.666666\pgf@xc%
+      \pgf@yb=.333333\pgf@y%
+      \advance\pgf@yb by.666666\pgf@yc%
+      \pgf@xa=.333333\pgf@xc%
+      \advance\pgf@xa by.666666\pgf@x%
+      \pgf@ya=.333333\pgf@yc%
+      \advance\pgf@ya by.666666\pgf@y%
+      \pgf@nlt@inner@curve%
+    \fi%
+  }%
+}%
+
+\def\pgf@nlt@set@temps#1#2{%
+  \pgfutil@tempdima#1\pgfutil@tempdimb#2%
+}%
+
+\def\pgf@nlt@curveto@nlt#1#2#3#4#5#6{%
+  {%
+    \edef\pgf@temp{\pgf@xa\the#1\pgf@ya\the#2\pgf@xb\the#3\pgf@yb\the#4\pgf@xc\the#5\pgf@yc\the#6}%
+    \pgf@temp%
+    \pgf@nlt@inner@curve%
+  }%
+}%
+
+\newdimen\pgftransformnonlinearflatness
+\pgftransformnonlinearflatness=5pt
+\def\pgfsettransformnonlinearflatness#1{\pgfmathsetlength\pgftransformnonlinearflatness{#1}}%
+
+
+
+\def\pgf@nlt@inner@curve{%
+  \expandafter\pgfqpoint\pgf@nlt@last@coord@orig%
+  \pgfutil@tempdima\pgf@xa\advance\pgfutil@tempdima by-\pgf@xb
+  \pgfutil@tempdimb\pgf@ya\advance\pgfutil@tempdimb by-\pgf@yb
+  \begingroup
+    \advance\pgf@xa by-\pgf@x%
+    \advance\pgf@ya by-\pgf@y%
+    \advance\pgf@xb by-\pgf@xc%
+    \advance\pgf@yb by-\pgf@yc%
+    \pgfutil@tempswafalse
+    \ifdim\pgfutil@tempdima>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgfutil@tempdima<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgfutil@tempdimb>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgfutil@tempdimb<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@xa>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@xa<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@ya>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@ya<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@xb>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@xb<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@yb>\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+    \ifdim\pgf@yb<-\pgftransformnonlinearflatness\pgfutil@tempswatrue\fi%
+  \ifpgfutil@tempswa%
+    \endgroup%
+    {%
+      \edef\pgf@orig@xya{\pgf@xa\the\pgf@xa\pgf@ya\the\pgf@ya}
+      \edef\pgf@orig@xyb{\pgf@xb\the\pgf@xb\pgf@yb\the\pgf@yb}
+      \edef\pgf@orig@xyc{\pgf@xc\the\pgf@xc\pgf@yc\the\pgf@yc}
+      \pgfpointcurveattime{.5}%
+        {\expandafter\pgfqpoint\pgf@nlt@last@coord@orig}%
+        {\pgf@x\pgf@xa\pgf@y\pgf@ya}%
+        {\pgf@x\pgf@xb\pgf@y\pgf@yb}%
+        {\pgf@x\pgf@xc\pgf@y\pgf@yc}%
+      {%
+        \pgf@xc\pgf@x\pgf@yc\pgf@y
+        \expandafter\pgfqpoint\pgf@nlt@last@coord@orig%
+        \pgf@orig@xya%
+        \pgf@xa\pgf@time@s\pgf@xa\advance\pgf@xa by\pgf@time@t\pgf@x%
+        \pgf@ya\pgf@time@s\pgf@ya\advance\pgf@ya by\pgf@time@t\pgf@y%
+        \pgf@nlt@inner@curve%
+      }%
+      {%
+        \pgf@orig@xyb%
+        \pgf@orig@xyc%
+        \pgf@xb\pgf@time@t\pgf@xb\advance\pgf@xb by\pgf@time@s\pgf@xc%
+        \pgf@yb\pgf@time@t\pgf@yb\advance\pgf@yb by\pgf@time@s\pgf@yc%
+        \pgf@nlt@inner@curve%
+      }%
+    }%
+  \else%
+    \endgroup%
+    \pgf@nlt@do@inner@curve%
+  \fi%
+}%
+
+\def\pgf@nlt@do@inner@curve{%
+  \pgf@process{\pgf@x\pgf@xa\pgf@y\pgf@ya\pgf@nlt@list}%
+  \pgf@xa\pgf@x\pgf@ya\pgf@y%
+  \pgf@process{\pgf@x\pgf@xb\pgf@y\pgf@yb\pgf@nlt@list}%
+  \pgf@xb\pgf@x\pgf@yb\pgf@y%
+  \xdef\pgf@nlt@last@coord@orig{{\the\pgf@xc}{\the\pgf@yc}}%
+  \pgf@process{\pgf@x\pgf@xc\pgf@y\pgf@yc\pgf@nlt@list}%
+  \pgf@xc\pgf@x\pgf@yc\pgf@y%
+  \xdef\pgf@nlt@last@coord@trans{{\the\pgf@xc}{\the\pgf@yc}}%
+  \pgf@protocolsizes{\pgf@xa}{\pgf@ya}%
+  \pgf@protocolsizes{\pgf@xb}{\pgf@yb}%
+  \pgf@protocolsizes{\pgf@xc}{\pgf@yc}%
+  \pgfsyssoftpath@curveto{\the\pgf@xa}{\the\pgf@ya}{\the\pgf@xb}{\the\pgf@yb}{\the\pgf@xc}{\the\pgf@yc}%
+}%
+
+
+\def\pgf@nlt@closepath@nlt{%
+  {%
+    \expandafter\pgfqpoint\pgf@nlt@last@moveto@orig%
+    \expandafter\pgf@nlt@set@temps\pgf@nlt@last@coord@orig%
+    \advance\pgfutil@tempdima by-\pgf@x%
+    \advance\pgfutil@tempdimb by-\pgf@y%
+    \pgfutil@tempswatrue%
+    \ifdim\pgfutil@tempdima<0.01pt\relax\ifdim\pgfutil@tempdima>-0.01pt\relax\ifdim\pgfutil@tempdimb<0.01pt\relax\ifdim\pgfutil@tempdimb>-0.01pt\relax\pgfutil@tempswafalse\fi\fi\fi\fi%
+    \ifpgfutil@tempswa%
+      \pgf@nlt@lineto@nlt{\pgf@x}{\pgf@y}%
+    \fi%
+    \pgfsyssoftpath@closepath%
+  }%
+}%
+
+
+\endinput

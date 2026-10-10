@@ -1,0 +1,455 @@
+
+\ProvidesFileRCS{tikzlibrarycalc.code.tex}
+
+
+
+
+\def\tikz@let@command et{%
+  \let\p=\tikz@cc@dop%
+  \let\x=\tikz@cc@dox%
+  \let\y=\tikz@cc@doy%
+  \let\n=\tikz@cc@don%
+  \pgfutil@ifnextchar i{\tikz@cc@stop@let}{\tikz@cc@handle@line}%
+}%
+\def\tikz@cc@handle@line{%
+  \pgfutil@ifnextchar\p{%
+    \tikz@cc@handle@coor%
+  }{%
+    \pgfutil@ifnextchar\n{%
+      \tikz@cc@handle@num%
+    }{%
+      \pgfutil@ifnextchar i{%
+        \tikz@cc@stop@let
+      }{%
+        \tikzerror{``\string\p'' or ``\string\n'' expected}%
+      }%
+    }%
+  }%
+}%
+\def\tikz@cc@handle@num\n#1#2=#3{%
+  \pgfmathparse{#3}%
+  \expandafter\edef\csname tikz@cc@n@#1\endcsname{\pgfmathresult\ifpgfmathunitsdeclared pt\fi}
+  \pgfutil@ifnextchar,{\tikz@cc@handle@nextline}{\tikz@cc@stop@let}%
+}%
+\def\tikz@cc@handle@coor\p#1#2={%
+  \def\tikz@cc@coord@name{#1}%
+  \tikz@scan@one@point\tikz@cc@dolet%
+}%
+\def\tikz@cc@dolet#1{%
+  \pgf@process{#1}%
+  \expandafter\edef\csname tikz@cc@p@\tikz@cc@coord@name\endcsname{\the\pgf@x,\the\pgf@y}%
+  \expandafter\edef\csname tikz@cc@x@\tikz@cc@coord@name\endcsname{\the\pgf@x}%
+  \expandafter\edef\csname tikz@cc@y@\tikz@cc@coord@name\endcsname{\the\pgf@y}%
+  \pgfutil@ifnextchar,{\tikz@cc@handle@nextline}{\tikz@cc@stop@let}%
+}%
+\def\tikz@cc@handle@nextline,{%
+  \tikz@cc@handle@line%
+}%
+\def\tikz@cc@stop@let in{%
+  \tikz@scan@next@command%
+}%
+
+\def\tikz@cc@dop#1{\csname tikz@cc@p@#1\endcsname}%
+\def\tikz@cc@dox#1{\csname tikz@cc@x@#1\endcsname}%
+\def\tikz@cc@doy#1{\csname tikz@cc@y@#1\endcsname}%
+\def\tikz@cc@don#1{\csname tikz@cc@n@#1\endcsname}%
+
+
+
+
+\def\tikz@parse@calculator#1(${%
+  \def\tikz@cc@command{#1}%
+  \begingroup%
+    \pgf@xa=0pt%
+    \pgf@ya=0pt%
+    \tikz@cc@parse+%
+}%
+
+\def\tikz@cc@parse{%
+  \pgfutil@ifnextchar${%
+    \tikz@cc@end%
+  }
+  {\pgfutil@ifnextchar+{%
+      \tikz@cc@add%
+    }{%
+      \pgfutil@ifnextchar-{%
+        \tikz@cc@sub%
+      }{%
+        \tikzerror{+ or - expected}%
+        \tikz@cc@end$%
+      }%
+    }%
+  }%
+}%
+
+\def\tikz@cc@end$#1){%
+    \xdef\tikz@marshal{\noexpand\pgfqpoint{\the\pgf@xa}{\the\pgf@ya}}%
+  \endgroup%
+  \expandafter\tikz@cc@command\expandafter{\tikz@marshal}%
+}%
+
+
+\def\tikz@cc@add+{%
+  \def\tikz@cc@factor{1}%
+  \tikz@cc@factororcoordinate%
+}%
+\def\tikz@cc@sub-{%
+  \def\tikz@cc@factor{-1}%
+  \tikz@cc@factororcoordinate%
+}%
+
+\def\tikz@cc@factororcoordinate{%
+  \pgfutil@ifnextchar({%
+    \tikz@cc@coordinate%
+  }{%
+    \tikz@cc@parse@factor%
+  }%
+}%
+
+\def\tikz@cc@parse@factor#1*({%
+  \pgfmathparse{#1*\tikz@cc@factor}%
+  \let\tikz@cc@factor=\pgfmathresult%
+  \tikz@cc@coordinate(%
+}%
+
+\def\tikz@cc@coordinate{%
+  \tikz@scan@absolute\tikz@cc@after@coordinate%
+}%
+\def\tikz@cc@after@coordinate#1{%
+  \pgf@process{#1}%
+  \pgf@xb=\pgf@x%
+  \pgf@yb=\pgf@y%
+  \tikz@cc@mid@checks%
+}%
+
+
+
+\def\tikz@cc@mid@checks{%
+  \ifnum\the\catcode`\!=\active\relax
+    \expandafter\tikz@cc@mid@checks@active
+  \else
+    \expandafter\tikz@cc@mid@checks@nonactive
+  \fi
+}%
+
+\def\tikz@cc@mid@checks@nonactive{%
+  \pgfutil@ifnextchar!{%
+    \tikz@cc@mid@nonactive%
+  }{%
+    \advance\pgf@xa by\tikz@cc@factor\pgf@xb
+    \advance\pgf@ya by\tikz@cc@factor\pgf@yb
+    \tikz@cc@parse%
+  }%
+}%
+
+\def\tikz@cc@mid@nonactive!{%
+  \pgfutil@ifnextchar({%
+    \tikz@scan@one@point\tikz@cc@project%
+  }{%
+    \tikz@cc@mid@num@nonactive%
+  }%
+}%
+
+\begingroup
+  \catcode`\!=\active
+  \gdef\tikz@cc@mid@checks@active{%
+    \pgfutil@ifnextchar!{%
+      \tikz@cc@mid@active%
+    }{%
+      \advance\pgf@xa by\tikz@cc@factor\pgf@xb
+      \advance\pgf@ya by\tikz@cc@factor\pgf@yb
+      \tikz@cc@parse%
+    }%
+  }%
+
+  \gdef\tikz@cc@mid@active!{%
+    \pgfutil@ifnextchar({%
+      \tikz@scan@one@point\tikz@cc@project%
+    }{%
+      \tikz@cc@mid@num@active%
+    }%
+  }%
+\endgroup
+
+
+\def\tikz@cc@mid@num@nonactive#1!{\tikz@cc@mid@num{#1}}%
+
+\begingroup
+  \catcode`\!=\active
+  \gdef\tikz@cc@mid@num@active#1!{\tikz@cc@mid@num{#1}}%
+\endgroup
+
+\def\tikz@cc@mid@num#1{%
+  \pgfmathparse{#1}%
+  \ifpgfmathunitsdeclared%
+    \let\tikz@cc@mid@unit=\pgfmathresult%
+    \expandafter\tikz@cc@scan@rot\expandafter\tikz@cc@after@unit%
+  \else%
+    \let\tikz@cc@mid@factor=\pgfmathresult%
+    \pgfmathparse{1-\tikz@cc@mid@factor}%
+    \let\tikz@cc@mid@factor@one=\pgfmathresult%
+    \expandafter\tikz@cc@scan@rot\expandafter\tikz@cc@after@num%
+  \fi%
+}%
+
+\def\tikz@cc@after@num#1{%
+  \pgf@process{#1}%
+  \pgf@xb=\tikz@cc@mid@factor@one\pgf@xb%
+  \pgf@yb=\tikz@cc@mid@factor@one\pgf@yb%
+  \advance\pgf@xb by\tikz@cc@mid@factor\pgf@x%
+  \advance\pgf@yb by\tikz@cc@mid@factor\pgf@y%
+  \tikz@cc@mid@checks%
+}%
+
+
+
+
+\def\tikz@cc@after@unit#1{%
+  \pgf@process{#1}%
+  \advance\pgf@x by-\pgf@xb%
+  \advance\pgf@y by-\pgf@yb%
+  \pgf@process{\pgfpointnormalised{}}%
+  \advance\pgf@xb by\tikz@cc@mid@unit\pgf@x%
+  \advance\pgf@yb by\tikz@cc@mid@unit\pgf@y%
+  \tikz@cc@mid@checks%
+}%
+
+\def\tikz@cc@project#1{%
+  \pgf@process{#1}%
+  \pgf@xc=\pgf@x%
+  \pgf@yc=\pgf@y%
+  \begingroup
+    \ifnum\the\catcode`\!=\active
+      \def\tikz@next{%
+        \endgroup
+        \expandafter\tikz@cc@scan@rot\expandafter\tikz@cc@after@project
+        \tikz@cc@scan@ex@active}%
+    \else
+      \def\tikz@next{%
+        \endgroup
+        \expandafter\tikz@cc@scan@rot\expandafter\tikz@cc@after@project
+        \tikz@cc@scan@ex@nonactive}%
+    \fi
+    \tikz@next%
+}%
+
+\def\tikz@cc@scan@ex@nonactive!{}%
+
+\begingroup
+  \catcode`\!=\active
+  \gdef\tikz@cc@scan@ex@active!{}%
+\endgroup
+
+\def\tikz@cc@after@project#1{%
+  \pgf@process{#1}%
+  \advance\pgf@x by-\pgf@xb%
+  \advance\pgf@y by-\pgf@yb%
+  \advance\pgf@xc by-\pgf@xb%
+  \advance\pgf@yc by-\pgf@yb%
+  \pgf@process{\pgfpointnormalised{}}%
+  \pgf@xc=\pgf@sys@tonumber{\pgf@xc}\pgf@x%
+  \advance\pgf@xc by\pgf@sys@tonumber{\pgf@yc}\pgf@y%
+  \advance\pgf@xb by\pgf@sys@tonumber{\pgf@xc}\pgf@x%
+  \advance\pgf@yb by\pgf@sys@tonumber{\pgf@xc}\pgf@y%
+  \tikz@cc@mid@checks%
+}%
+
+
+\def\tikz@cc@scan@rot#1{%
+  \pgfutil@ifnextchar({%
+    \tikz@scan@one@point#1%
+  }%
+  {%
+    \def\tikz@cc@scan@rot@cmd{#1}%
+    \ifnum\the\catcode`\:=\active\relax
+      \expandafter\tikz@cc@scan@one@rot@active%
+    \else
+      \expandafter\tikz@cc@scan@one@rot@nonactive%
+    \fi
+  }%
+}%
+
+\def\tikz@cc@scan@one@rot@nonactive#1:{%
+  \def\tikz@cc@scan@rot@angle{#1}%
+  \tikz@scan@one@point\tikz@cc@handle@rot%
+}%
+
+\begingroup
+  \catcode`\:=\active
+  \gdef\tikz@cc@scan@one@rot@active#1:{%
+    \def\tikz@cc@scan@rot@angle{#1}%
+    \tikz@scan@one@point\tikz@cc@handle@rot%
+  }%
+\endgroup
+
+\def\tikz@cc@handle@rot#1{%
+  \pgf@process{#1}%
+  {%
+    \pgftransformreset%
+    \pgf@xc=\pgf@x%
+    \pgf@yc=\pgf@y%
+    \pgftransformshift{\pgfqpoint{\pgf@xb}{\pgf@yb}}%
+    \pgftransformrotate{\tikz@cc@scan@rot@angle}%
+    \pgftransformshift{\pgfqpoint{-\pgf@xb}{-\pgf@yb}}%
+    \pgfpointtransformed{\pgfqpoint{\pgf@xc}{\pgf@yc}}%
+    \expandafter
+  }%
+  \edef\tikz@marshal{\noexpand\tikz@cc@scan@rot@cmd{\noexpand\pgfqpoint{\the\pgf@x}{\the\pgf@y}}}%
+  \tikz@marshal%
+}%
+
+
+
+
+
+
+\tikzdeclarecoordinatesystem{tangent}
+{%
+  \tikzset{cs/.cd,#1}%
+  \expandafter\ifx\csname tikz@tangent@\tikz@cs@type\endcsname\relax%
+    \tikzerror{I do not know how to compute the tangent to
+    a \tikz@cs@type}%
+    \pgfpointorigin%
+  \else%
+    \expandafter\tikz@scan@one@point\expandafter\tikz@lib@do@tangent\tikz@cs@point%
+  \fi%
+}%
+
+\tikzset{cs/node/.code=\tikz@cs@unpack{\tikz@cs@node}{\tikz@cs@type}{#1}}%
+\tikzset{cs/point/.store in=\tikz@cs@point}%
+
+\def\tikz@lib@do@tangent{\csname tikz@tangent@\tikz@cs@type\endcsname}%
+
+\def\tikz@tangent@coordinate#1{%
+  \pgfpointanchor{\tikz@cs@node}{center}%
+}%
+
+\def\tikz@tangent@circle#1{%
+  {%
+    \pgf@process{\pgfpointtransformed{#1}}%
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \pgf@process{\pgfpointtransformed{\pgfpointanchor{\tikz@cs@node}{center}}}%
+    \advance\pgf@xa by-\pgf@x%
+    \advance\pgf@ya by-\pgf@y%
+    \pgftransformreset%
+    \pgftransformshift{\pgfpointanchor{\tikz@cs@node}{center}}%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node}{east}}%
+    \pgf@xc=\pgf@x%
+    \pgfmathparse{veclen(\the\pgf@xa,\the\pgf@ya)}
+    \pgfmathparse{acos(\the\pgf@xc/\pgfmathresult)}
+    \ifnum\pgfkeysvalueof{/tikz/cs/solution}>1\relax%
+      \pgfmathparse{0-\pgfmathresult}%
+    \fi%
+    \let\tikz@lib@temp=\pgfmathresult%
+    \pgf@process{\pgfpointnormalised{\pgfqpoint{\pgf@xa}{\pgf@ya}}}%
+    \pgf@ya=-\pgf@y%
+    \pgftransformcm{\pgf@sys@tonumber{\pgf@x}}{\pgf@sys@tonumber{\pgf@y}}{\pgf@sys@tonumber{\pgf@ya}}{\pgf@sys@tonumber{\pgf@x}}{\pgfpointorigin}%
+    \pgf@process{\pgfpointtransformed{\pgfpointpolar{\tikz@lib@temp}{\the\pgf@xc}}}%
+  }%
+  {%
+    \pgftransforminvert%
+    \pgf@process{\pgfpointtransformed{}}%
+  }%
+}%
+
+
+
+
+\def\tikz@intersect@circle@and@circle{%
+  {%
+    \pgftransformreset%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node@a}{center}}%
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node@a}{east}}%
+    \advance\pgf@x by-\pgf@xa%
+    \pgf@xc=\pgf@x%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node@b}{center}}%
+    \pgf@xb=\pgf@x%
+    \pgf@yb=\pgf@y%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node@b}{east}}%
+    \advance\pgf@x by-\pgf@xb%
+    \pgf@yc=\pgf@x%
+    \pgf@process{%
+      \pgfpointintersectionofcircles{\pgfqpoint{\pgf@xa}{\pgf@ya}}{\pgfqpoint{\pgf@xb}{\pgf@yb}}{\pgf@xc}{\pgf@yc}{\pgfkeysvalueof{/tikz/cs/solution}}%
+    }%
+  }%
+  {%
+    \pgftransforminvert%
+    \pgf@process{\pgfpointtransformed{}}%
+  }%
+}%
+
+
+\def\tikz@intersect@line@and@circle{%
+  {%
+    \expandafter\tikz@scan@one@point\expandafter\tikz@parse@line\tikz@cs@line@a%
+    \pgf@process{\pgfpointtransformed{}}%
+    \pgf@xb=\pgf@x%
+    \pgf@yb=\pgf@y%
+    \pgf@process{\pgfpointtransformed{\pgfqpoint{\pgf@xc}{\pgf@yc}}}%
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \pgf@process{\pgfpointtransformed{\pgfpointanchor{\tikz@cs@node@b}{center}}}%
+    \advance\pgf@xa by-\pgf@x%
+    \advance\pgf@ya by-\pgf@y%
+    \advance\pgf@xb by-\pgf@x%
+    \advance\pgf@yb by-\pgf@y%
+    \pgftransformreset%
+    \pgftransformshift{\pgfpointanchor{\tikz@cs@node@b}{center}}%
+    \pgf@process{\pgfpointanchor{\tikz@cs@node@b}{east}}%
+    \edef\tikz@lib@saved@radius{\pgf@sys@tonumber{\pgf@x}}%
+    \pgf@x=\pgf@xb%
+    \pgf@y=\pgf@yb%
+    \advance\pgf@x by-\pgf@xa%
+    \advance\pgf@y by-\pgf@ya%
+    \pgf@process{\pgfpointnormalised{}}%
+    \pgf@xc=\pgf@sys@tonumber{\pgf@xa}\pgf@x%
+    \advance\pgf@xc by\pgf@sys@tonumber{\pgf@ya}\pgf@y%
+    \pgf@xc=-\pgf@xc%
+    \advance\pgf@xa by\pgf@sys@tonumber{\pgf@xc}\pgf@x%
+    \advance\pgf@ya by\pgf@sys@tonumber{\pgf@xc}\pgf@y%
+    \pgf@xc=\pgf@x%
+    \pgf@yc=\pgf@y%
+    \pgf@xb=\tikz@lib@saved@radius pt%
+    \c@pgf@counta=1\relax%
+    \loop%
+    \ifdim\pgf@xb>50pt%
+      \multiply\c@pgf@counta by2\relax%
+      \divide\pgf@xa by2\relax%
+      \divide\pgf@ya by2\relax%
+      \divide\pgf@xb by2\relax%
+    \repeat%
+    \pgf@xb=\pgf@sys@tonumber{\pgf@xb}\pgf@xb%
+    \pgf@yb=\pgf@sys@tonumber{\pgf@xa}\pgf@xa%
+    \advance\pgf@xb by-\pgf@yb%
+    \pgf@yb=\pgf@sys@tonumber{\pgf@ya}\pgf@ya%
+    \advance\pgf@xb by-\pgf@yb%
+    \ifdim\pgf@xb<0pt%
+      \pgf@xb=0pt%
+    \fi%
+    \pgfmathsqrt@{\pgf@sys@tonumber{\pgf@xb}}%
+    \pgfmathmultiply@{\pgfmathresult}{\the\c@pgf@counta}%
+    \multiply\pgf@xa by\c@pgf@counta\relax%
+    \multiply\pgf@ya by\c@pgf@counta\relax%
+    \ifnum\pgfkeysvalueof{/tikz/cs/solution}>1\relax%
+      \pgfmathsubtract{0}{\pgfmathresult}%
+    \fi%
+    \advance\pgf@xa by \pgfmathresult\pgf@xc%
+    \advance\pgf@ya by \pgfmathresult\pgf@yc%
+    \pgf@process{\pgfpointtransformed{\pgfqpoint{\pgf@xa}{\pgf@ya}}}%
+  }%
+  {%
+    \pgftransforminvert%
+    \pgf@process{\pgfpointtransformed{}}%
+  }%
+}%
+
+\def\tikz@intersect@circle@and@line{%
+  {%
+    \let\tikz@cs@node@b=\tikz@cs@node@a%
+    \let\tikz@cs@line@a=\tikz@cs@line@b%
+    \tikz@intersect@line@and@circle%
+  }%
+}%

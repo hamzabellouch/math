@@ -1,0 +1,251 @@
+\section{A uniform schedule in the bit model}
+\label{sec:uniform-computation}
+
+The table and parameters of Section~\ref{sec:bounded-suffix} depend only on
+the finite instance, but their construction need not be efficient.  We now
+specify when that construction is performed and account for all computation
+charged to an individual request.  The schedule uses the allowed dependence
+on the binary length of the request counter.
+
+\paragraph{Canonical preprocessing.}
+Store $n,k,d$ in a fixed canonical encoding: binary integers have no leading
+zeroes, each rational distance has a positive denominator and relatively
+prime numerator and denominator, and matrix entries occur in their fixed
+index order.  Use a fixed unambiguous encoding of lengths and delimiters.
+Store the actual labeled tuple $s$, initialize a binary request counter to
+zero, and initialize a flag indicating that suffix service has not started.
+This takes a uniform polynomial number of bit operations in $L$ and produces
+$O(L)$ bits.  For completeness, rational reduction is polynomial: long
+division has polynomial bit cost, and in the Euclidean algorithm the larger
+positive magnitude decreases by at least a factor of two within two
+remainder steps.  Thus each reduction takes polynomially many bit
+operations.  The explicit matrix encoding also gives $n\le O(L)$ and hence
+$k\le O(L)$.  No table construction is part of preprocessing.
+
+\paragraph{One finite constructor.}
+Fix once and for all a deterministic, finite-alphabet bit machine $P$ with
+the following behavior on the canonical encoding of $(n,k,d)$.  It computes
+$D,\delta,R,F,M,H$, constructs the rational optimum and the dyadic table in
+Proposition~\ref{prop:finite-table}, and writes its complete output on an
+initially blank output tape.  It outputs the parameters, including $a$ and
+$b$, and an explicit list of table records.  Each record contains its key
+$(w,r,c)$ and the dyadic probability numerators in label order, with zero
+numerators for disallowed labels.  Its strings and records are delimited
+unambiguously.  Include, in addition, four unary strings of lengths
+$H,R,M,b$.  If $S$ is the total output length in bits, then
+\begin{equation}
+ H,R,M,b\le S.
+ \label{eq:unary-size}
+\end{equation}
+The output is a consecutively written finite string, so its representation
+cannot describe a large blank or compressed table as though that table had
+already been written.
+
+All choices in $P$ are deterministic: use length and lexicographic orders
+for finite indices and the fixed elimination, back-substitution, and
+rounding rules from Section~\ref{sec:finite-tables}.  Exact integer and
+rational operations are implemented by ordinary bit algorithms, rather
+than counted as single machine steps.  Positivity of $\delta$ and
+Proposition~\ref{prop:finite-table} show that $P$ halts on every valid
+input.  Denote its finite number of elementary transitions by $T_P$, adding
+an initial transition if necessary so that $T_P\ge1$.  Neither $C_0$, a
+source policy, nor a bound on $T_P$ is an input to this machine.  In
+particular, the existence theorem certifies feasibility of its finite
+calculation; it supplies no computational oracle.
+
+\begin{lemma}[Bounded implementation of the suffix]
+\label{lem:bounded-implementation}
+Given the explicitly written constructor output of length $S$, the suffix
+routine can be implemented with a uniform polynomial number of bits of
+storage and a uniform polynomial number of bit operations per request in
+$L+S+2$.  These bounds hold for every reachable state and every outcome of
+its random choices.  Each table sample uses exactly $b$ fresh unbiased
+random bits.
+\end{lemma}
+
+\begin{proof}
+Write $m=L+S+2$ for this proof.  By Equation~\eqref{eq:unary-size}, the numerical
+values $H,R,M,b$ are at most $m$, and $n,k\le O(m)$.  Use explicit lists,
+binary counters, and bounded strings for the following state.  The actual
+and virtual tuples contain $k$ point indices each.  The kept word has at
+most $H$ indices.  The filter has at most $H$ live entries by
+Lemma~\ref{lem:filter}; each entry contains a tuple of $k$ indices and a
+counter between zero and $M$.  Entries with the same data may remain
+separate, as required by the filter construction.
+
+For each raw request, scan every live tuple to determine whether it covers
+that request.  If the request is kept, copy the surviving entries into a
+new list and generate at most $k$ children for each removed entry.  Even an
+implementation that temporarily materializes all $kH$ possible children
+uses polynomial space: allowing $O(m)$ bits per index or counter gives
+$O(m^3)$ bits for the old live list and $O(m^4)$ bits for all temporary
+children.  Appending to the kept word and comparing or copying the lists
+requires only polynomially many operations on those strings.  The final
+list again has at most $H$ entries.  Continue these deterministic filter
+updates in fallback mode as well, so the stored kept word is the whole
+filtered prefix specified in Section~\ref{sec:bounded-suffix}.
+
+The remaining state is also bounded.  Store the current raw block's set
+of at most $k+1$ points, a counter of completed raw blocks bounded by
+$R$, and the fallback marks together with their assigned labels.  Mark
+sets have at most $k$ protected points; the possible next new point is
+handled at that block's endpoint.  A mode flag and the virtual positive
+move counter, capped at $M+1$, suffice for switching.  Set membership,
+choice of the least eligible label, counter updates, and changes of tuple
+entries all use finite scans and copies.  Epoch and block resets erase or
+reuse precisely these bounded lists.  No raw epoch length, global epoch
+number, cumulative movement total, or unfiltered request history is
+stored.
+
+At a table decision, locate the record by scanning the entire output and
+comparing its key with the kept prefix, current request, and current
+virtual tuple.  The key uses the prefix before appending the current kept
+request.  Lemma~\ref{lem:filter} and the table-mode invariant ensure that
+every required key has prefix length less than $H$.  All rows, including
+rows whose original rational marginal was zero, were written by $P$.
+Consequently lookup and the same storage bounds apply also to states
+reached only through dyadic rounding.
+
+If the row numerators are $N_1,\ldots,N_k$, draw exactly $b$ unbiased bits
+to obtain a uniform integer $U\in\{0,\ldots,2^b-1\}$.  Choose the least
+$j$ with $\sum_{i\le j}N_i>U$.  Such a $j$ exists because the numerators
+sum to $2^b$; it is allowed because disallowed labels have numerator zero.
+Only $k$ additions and comparisons of integers of at most $b+1$ bits are
+needed, in addition to the $b$ random bits.  This sampling has no rejection
+loop.  On a dropped table-mode request, or in fallback mode, the prescribed
+label is found by the bounded scans already described.
+
+These operations have a fixed number of nested loops, each over strings
+or lists with polynomially bounded lengths.  Elementary arithmetic uses
+bounded binary strings.  Implementing every access, scan, and copy on
+ordinary tapes therefore gives a fixed-degree polynomial time bound, with
+absolute constants. Use fixed-origin tape regions for the stored lists
+and return their heads to those origins during cleanup.
+At the end of each request discard or erase obsolete
+lists and temporary strings, carrying only the stated compact state into
+the next request.  Cleanup is included in the same polynomial bound.
+Every bound is deterministic and independent of the probability of the
+current state.
+\end{proof}
+
+\paragraph{The online schedule.}
+At request number $t\ge1$, set
+\begin{equation}
+ g(t)=\lfloor\log_2(t+1)\rfloor.
+ \label{eq:schedule-budget}
+\end{equation}
+Simulate $P$ from scratch on the stored canonical input for at most $g(t)$
+elementary transitions.  If it has not halted, serve the current request
+with label $1$.  If it has halted, use its output to serve the current
+request by the suffix routine.  At the first successful simulation,
+initialize a fresh suffix epoch, including this current request, and set
+the activation flag.  At every later success, retain the suffix state
+from the preceding request and perform its next step.  Recomputing the
+identical table does not reset that state; only the prescribed epoch
+boundaries do so.  Erase the simulation workspace and table after use,
+preserving the canonical input, actual tuple, counter, activation flag,
+and compact suffix state.
+
+Figure~\ref{fig:activation} separates the repeated constructor simulation
+from the persistent online state. The output-size estimate is the link
+between the simulation budget and the suffix implementation bound.
+
+\begin{proposition}[Uniform scheduling bound]
+\label{prop:schedule}
+There is one polynomial $p$, independent of the instance, such that
+preprocessing uses at most $p(L)$ bit operations and serving request $t$
+uses at most
+\[
+ p\bigl(L+\lceil\log_2(t+1)\rceil\bigr)
+\]
+bit operations, for every reachable history and internal state.  Activation
+occurs at a finite deterministic time $t_*$ depending only on $(n,k,d)$.
+\end{proposition}
+
+\begin{proof}
+The request counter has $O(g(t)+1)$ bits.  Incrementing it and determining
+$g(t)$ costs a polynomial in its length.  A simulation lasting at most
+$g(t)$ elementary transitions uses the copied input and at most
+$O(g(t)+1)$ additional cells on each of a fixed number of tapes.  Explicit
+tape simulation, including copying the $O(L)$-bit input, locating tape
+heads, counting transitions, and erasing the workspace, has uniform
+polynomial cost in $L+g(t)+2$.  This assertion concerns the actual capped
+simulation; it does not charge an uncapped arithmetic subroutine as one
+transition.
+
+Whenever a simulation succeeds, a fixed finite-alphabet machine has
+written at most a constant times $g(t)+1$ output bits.  Thus
+\begin{equation}
+ S=O(g(t)+1)
+ \label{eq:output-budget}
+\end{equation}
+before any suffix operation is attempted.  Lemma~\ref{lem:bounded-implementation}
+then bounds all suffix work by a uniform polynomial in $L+g(t)+2$.
+The failure action, updating the actual tuple, and issuing the chosen
+label have smaller polynomial bounds.  The preceding request's budget
+was no larger than the current one.  Its compact state and any storage
+to be accessed, copied, or erased are consequently bounded by the same
+current polynomial.  Our cleanup convention leaves no accumulated
+workspace depending on the number of earlier requests.  This also
+accounts for the first initialization and every later reset.
+
+Choose absolute constants $A$ and an integer $c$ large enough to dominate
+these finitely many polynomial bounds, and set $p(x)=A(x+2)^c$.  Increase
+$A,c$ if necessary to cover preprocessing.  Since
+$g(t)\le\lceil\log_2(t+1)\rceil$, this is the single polynomial asserted.
+The bound is worst case, so it implies the required conditional expected
+bound at every reachable state.
+
+Finally, define for analysis only
+\begin{equation}
+ t_* = \min\{t\ge1:g(t)\ge T_P\}=2^{T_P}-1.
+ \label{eq:activation-time}
+\end{equation}
+It is finite.  The constructor and its canonical input depend only on
+$(n,k,d)$, so the same is true of $T_P$ and $t_*$.  In particular,
+irrelevant padding or unreduced representations of the original rational
+input cannot change this threshold, nor can $s$ or the request sequence.
+Monotonicity of $g$ ensures that every simulation from $t_*$ onward
+succeeds.  The algorithm never computes $T_P$ or $t_*$ in advance; it
+detects success by the ordinary halting state of its capped simulation.
+\end{proof}
+
+\input{figures/activation}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+The preprocessing and online schedule above define a uniform causal
+algorithm using only unbiased random bits.  Every decision serves the
+current request by moving one labeled actual server.  By
+Proposition~\ref{prop:schedule}, its bit complexity has the required bound
+with one polynomial $p$.
+
+Fix any finite request sequence $\sigma$ independent of the random bits.
+The requests before activation cost at most
+$(t_*-1)D$ in total, since each moves a single server over distance at most
+$D$.  If $\sigma$ ends before activation, this already bounds its entire
+cost.  Otherwise Proposition~\ref{prop:suffix}, applied to the suffix
+starting at the deterministic time $t_*$ and compared with the optimum
+from $s$ for the whole sequence, gives
+\begin{equation}
+ \E[\operatorname{cost}_A(\sigma)]
+ \le (4a+2)\operatorname{OPT}_s(\sigma)
+       +(t_*-1)D+(2a+2)kD.
+ \label{eq:full-movement-bound}
+\end{equation}
+The same inequality holds for shorter sequences, including the empty
+sequence, by nonnegativity of its right-hand terms.
+
+Since $a\le C_0\log^2(k+1)$ and $\log(k+1)\ge\log3$, set
+\begin{equation}
+ C=4C_0+\frac{2}{(\log3)^2},
+ \qquad
+ B_{d,k,s}=(t_*-1)D+(2a+2)kD.
+ \label{eq:final-constants}
+\end{equation}
+Then $4a+2\le C\log^2(k+1)$, proving the desired movement inequality.
+The constant $C$ is absolute, and $B_{d,k,s}$ is finite and depends only
+on the instance.  Its formula happens not to require $s$.  Repeated
+positions in $s$ cause no difficulty: the suffix comparison allowed
+arbitrary actual starting tuples, while the existence theorem and finite
+table were used only from the distinct virtual tuple $u$.
+\end{proof}

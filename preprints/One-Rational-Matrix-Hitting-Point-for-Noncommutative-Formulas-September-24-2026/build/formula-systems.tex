@@ -1,0 +1,138 @@
+\section{From formulas to differential systems}
+\label{sec:formula-systems}
+
+The word functions from Section~\ref{sec:iterated-integrals} turn a nonzero
+polynomial $f=\sum_w f_wx_w$ into the nonzero series
+$h_f=\sum_w f_wh_w$.  We now express this series as a scalar output of a
+differential system whose dimension is at most twice the formula size.
+This small system will control how late the first nonzero coefficient of
+$h_f$ can occur. The underlying formula-to-path construction is due to
+Nisan~\cite[Section~2, Lemma~1]{Nisan1991}; see also Raz and
+Shpilka~\cite[Section~2.1, Lemma~2, Step~1]{RazShpilka2005}.
+
+\begin{lemma}[Acyclic coefficient representation]
+\label{lem:formula-representation}
+Let $F$ be a field, and let $f\in F\langle x_1,\ldots,x_n\rangle$
+be computed by a fan-in-two formula with at most $s$ gates, counting
+leaves.  There are an integer $m\le 2s$, a row
+$u\in F^{1\times m}$, a column $v\in F^{m\times1}$, and strictly
+upper triangular matrices $B_1,\ldots,B_n\in F^{m\times m}$ such that
+\begin{equation}
+\label{eq:formula-representation}
+ f_w=uB_wv\quad\text{for every word }w,
+ \qquad
+ B_{i_1\cdots i_k}=B_{i_1}\cdots B_{i_k},\quad B_\epsilon=I_m.
+\end{equation}
+In particular, $B_w=0$ whenever $|w|\ge m$.
+\end{lemma}
+
+\begin{proof}
+Construct a directed acyclic graph for each subformula, with a designated
+source having no incoming edges and a designated sink having no outgoing
+edges.  Each edge is labeled either by a variable or by a scalar in $F$.
+The label of a path is the ordered product of its edge labels.
+
+A leaf gives two vertices joined by one edge with the leaf's label.
+For a sum, take disjoint copies of the two child graphs, add a new source
+and sink, and join the new source to both child sources and both child
+sinks to the new sink by edges labeled $1$.  For an ordered product,
+take disjoint child graphs and join the first child's sink to the second
+child's source by an edge labeled $1$; retain the first source and the
+second sink.  These operations preserve acyclicity and the stated
+source and sink properties.  A path through a sum chooses one child,
+whereas a path through a product traverses the first child and then the
+second.  Induction therefore shows that the sum of source-to-sink path
+labels is $f$.
+
+If the formula has $L$ leaves and $a$ addition gates, the graph has
+$m=2L+2a\le2s$ vertices: multiplication adds no vertex.  Order the
+vertices topologically.  Let $E$ be the adjacency matrix of the scalar
+edges, with their scalar weights, and let $N_i$ be the adjacency matrix
+of the edges labeled $x_i$, with weight $1$.  In each adjacency matrix,
+row $a$ and column $b$ record edges from $a$ to $b$; parallel-edge weights
+are summed.  All these matrices are strictly upper triangular.  The matrix
+\[
+ Q=(I_m-E)^{-1}=I_m+E+\cdots+E^{m-1}
+\]
+records all paths consisting only of scalar edges, including the empty
+path at each vertex.  Write $e_j$ for the $j$th standard column vector.
+If $\sigma$ and $\rho$ are the source and sink,
+every path with variable word $i_1\cdots i_k$ decomposes uniquely into
+scalar subpaths separated by those $k$ variable edges.  Consequently
+\[
+ f_{i_1\cdots i_k}
+ =e_\sigma^{\mathsf T}Q N_{i_1}Q\cdots N_{i_k}Qe_\rho,
+ \qquad
+ f_\epsilon=e_\sigma^{\mathsf T}Qe_\rho.
+\]
+Set
+\[
+ u=e_\sigma^{\mathsf T}Q,\qquad v=e_\rho,
+ \qquad B_i=N_iQ.
+\]
+Then \eqref{eq:formula-representation} follows.  Multiplying a strictly
+upper triangular matrix by an upper triangular matrix preserves strict
+upper triangularity, so each $B_i$ has that property.  A product of $m$
+strictly upper triangular $m\times m$ matrices is zero, proving the
+last assertion.
+\end{proof}
+
+This construction allows arbitrary scalar leaves and constant terms.
+Its size bound uses the formula tree: the child graphs represent
+disjoint subtrees, so each gate is counted once.  The construction does
+not enumerate the monomials of $f$.
+
+\begin{proposition}[The system associated to a formula]
+\label{prop:formula-system}
+Let $F$ have characteristic zero, and let
+$0\ne f\in F\langle x_1,\ldots,x_n\rangle$ have a formula of size at
+most $s$.  There are $m\le2s$, a nonzero constant row $u$, a constant
+column $v$, and an invertible matrix $G\in F[[z]]^{m\times m}$ such that
+\begin{equation}
+\label{eq:formula-system}
+ G'=AG,\qquad G(0)=I_m,\qquad
+ A(z)=\frac{P(z)}{q(z)},\qquad
+ q(z)=\prod_{i=1}^n(z+i),\quad \deg P\le n-1,
+\end{equation}
+where $P$ is a polynomial matrix.  Moreover,
+\begin{equation}
+\label{eq:formula-output}
+ h_f(z)=\sum_w f_wh_w(z)=uG(z)v\ne0.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Take the representation from Lemma~\ref{lem:formula-representation}
+and define the finite sum
+\[
+ G(z)=\sum_{|w|<m}B_wh_w(z),\qquad
+ A(z)=\sum_{i=1}^n\frac{B_i}{z+i}.
+\]
+The empty word contributes $I_m$, and every other $h_w$ has zero
+constant term.  Thus $G(0)=I_m$, which makes $G$ invertible over
+$F[[z]]$.  The identity $h_{iw}'=h_w/(z+i)$ gives
+\[
+ G'
+ =\sum_{i=1}^n\sum_{|w|<m-1}
+       \frac{B_iB_wh_w}{z+i}
+ =AG.
+\]
+The terms with $|w|=m-1$ added in the last equality vanish because
+$B_iB_w=0$.  In particular the system acts on the \emph{left}, in
+the same order as the letters of a word.
+
+The denominator in \eqref{eq:formula-system} is nonzero at zero:
+$q(0)=n!\ne0$.  Its numerator is
+\[
+ P(z)=\sum_{i=1}^n B_i\prod_{j\ne i}(z+j),
+\]
+whose entries have degree at most $n-1$.  Finally,
+\eqref{eq:formula-representation} gives $uGv=h_f$.
+This series is nonzero by Lemma~\ref{lem:word-independence}, since
+$f\ne0$; in particular $u\ne0$.
+\end{proof}
+
+We have obtained a nonzero series $h_f$ inside a system of dimension at
+most $2s$, with a denominator of degree $n$ and a regular expansion
+point at zero.  The next section bounds its vanishing order using only
+these parameters, uniformly in all scalar coefficients of the formula.

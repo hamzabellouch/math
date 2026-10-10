@@ -1,0 +1,864 @@
+\section{Certified programs and persistent tape equations}\label{sec:outer-programs}
+
+We turn local code constraints into certificates for computations on the
+tape. This section supplies local reversible filling
+(Lemma~\ref{lem:outer-fill}) and a persistent tuple of tape equations
+(Lemma~\ref{lem:outer-wiring}); Section~\ref{sec:outer-representation}
+will assemble them into the evolving representation.
+
+We retain the outer notation of Sections~\ref{sec:macrograph} and
+\ref{sec:outer-codes}: $h=2^\ell$, $M_o=2^r$, the odd-characteristic
+field $J$, the group $\Gamma=\mathbb F_2^r\rtimes H$, and coordinates
+$k=(g,u)=(ux,u)$.  In particular $r=O(\log N)$,
+$|H|\le r^9$, and a field element has $O(\log N)$ bits.
+All constants and polynomial exponents in this section are fixed
+independently of $N$.  The local star degree $d$ is a constant.
+We pack the four parts $(s,t)\in\{0,1\}^2$ at one $k$ into one symbol;
+``part distance'' instead normalizes over the four parts separately.
+These distances differ by at most a factor of four.
+
+There are two kinds of storage.  A \emph{full slot} has both axis
+constraints and duplicated systematic payload, and thus equals
+$E_{\alpha,\beta}v$ for a unique payload $v:\Gamma\to U$.
+An \emph{A-only scratch slot} has the same local A constraints and
+A-edge agreements, but its other labels and entry coordinates are
+merely vector coordinates: no B condition is imposed.  Keeping all
+intermediate certificates, rather than just the values being computed,
+will let us certify a computation at every point of a reversible schedule.
+
+\subsection{Full operations and a fixed query list}
+
+\begin{definition}[Certified full operation]\label{op:full-operation}
+A full operation specifies parent full slots, a target encoder
+$E_{\mathrm{out}}$, and a local expression $X^{st}_k(i,j)$ in the parents.
+For arbitrary exact duplicated full parents, $X$ must have duplicated
+systematic payload $v$ and satisfy an allowed A-axis constraint system.
+In addition, either its A system is that of the target, or $X$ satisfies
+the target's B system.  The required target is $E_{\mathrm{out}}v$.
+Scalar coefficients in linear combinations are identical at every
+index.  They may depend on an identical clock and on previously
+certified, completed public address data.  The specified covariant
+primitive $W(k)\mapsto W(k)\rho_e(k)$ below may additionally use its
+explicit index-dependent public matrix; it must satisfy the same
+axis-constraint requirements on $X$.
+\end{definition}
+
+In the first case compare $X$ and the target on all systematic B columns
+at $t=0$, retaining every entry in each such column at both A parts.
+In the second case compare all systematic A rows at $s=0$, retaining
+their entire rows at both B parts.  The one-axis uniqueness and distance
+in Theorem~\ref{thm:outer-codes} give a constant $\gamma_{\mathrm{op}}>0$
+with the following alternative: the required payload identity is true
+and all comparisons hold, or these comparisons fail on at least
+$\gamma_{\mathrm{op}}$ of the centers.  Indeed, equality of payloads
+fixes each compared column or row by the shared one-axis extension.
+If a payload differs, at least one compared column or row is a nonzero
+codeword difference for that axis, so its vertex support has constant
+density.  The number of labels and parts is fixed.  A comparison of
+isolated systematic cells would not have this implication.
+
+We use the following full operations, splitting sums into bounded-arity
+stages whenever necessary.
+\begin{enumerate}[label=(\roman*)]
+\item Scalar linear combinations and right pulls
+$R_bF(k)=F(kb)$ share the scalar A system.  Elementary pulls are the
+identity, the three first-bit translations $(e_a,1)$, and one-step
+Singer-cycle rotations of each block and their inverses.
+\item A matrix payload can be reencoded while changing only one axis
+type, using the other as the shared axis.  Constant linear maps and
+contractions of fully untwisted entry alphabets also give full operations.
+\item To multiply a payload by a one-bit Walsh character, we must also
+certify the resulting full encoding. An index-dependent scalar
+multiplier need not preserve the scalar edge equations. The matrix
+representation supplies a shared-axis route through the twisted types.
+Starting from an untwisted scalar slot $W$, form
+\[
+             X^{st}_k(i,j)=W^{st}_k(i,j)\rho_e(k),
+\]
+where $e$ is a distinguished first bit of a block and $\rho_e$ is the
+representation of Section~\ref{sec:outer-codes}.  Multiplicativity gives
+\[
+ X^{1t}_{a_i k}(i,j)=\rho_e(a_i)X^{0t}_k(i,j),\qquad
+ X^{s1}_{k b_j}(i,j)=X^{s0}_k(i,j)\rho_e(b_j).
+\]
+Scalar local checks continue to hold, since the same entry matrix
+multiplies every local scalar.  Reencode first with twisted A and
+untwisted B, sharing A, and then with both axes untwisted, sharing B.
+The column of $\rho_e(g,u)$ indexed by $1_H$ has just one nonzero entry,
+in row $u$, equal to
+$(-1)^{(ue)\cdot g}=(-1)^{e\cdot x}$.
+Summing this entry-alphabet column therefore produces the full scalar
+encoding of $(-1)^{e\cdot x}v_W(k)$.  The contraction is on entry
+coordinates, not on outer star labels.
+\end{enumerate}
+Every intermediate matrix slot in this construction has a specified
+homogeneous linear payload recipe.  An arbitrary multiplier depending
+on one bit, with values $a_0,a_1\in J$, is
+$\frac12(a_0+a_1)I+\frac12(a_0-a_1)M_e$, where
+$M_ef(x,u)=(-1)^{e\cdot x}f(x,u)$ is the corresponding modulation.
+The divisions by two are valid because $J$ has odd characteristic.
+
+Right rotations move these operations to any bit in a block.  For a
+block rotation $v$ the pull convention gives
+\[
+ R_{(0,v)}R_{(e,1)}R_{(0,v^{-1})}=R_{(ve,1)}.
+\]
+Conjugating the modulation in the same way gives the modulation of bit
+$ve$.  A power of a rotation is implemented as a sequence of single
+rotations, returning to the original layout after the operation.
+Thus an arbitrary bit operation costs $O(r)$ elementary full stages,
+without introducing new query maps.
+
+Fix once and for all a permutation list $\Pi$ containing identity,
+the required forward and inverse A and B neighbor maps, left pulls by
+a fixed generating list of $H$, the elementary right pulls above,
+and right pulls by a fixed generating list of $H$ and its inverses.
+Include any bounded compositions used in a local expression.
+Its cardinality $q=|\Pi|$ is independent of $N$.
+All constraints of all slots are checked together at a center using
+the symbols at $\Pi(k)$.  A growing number of slots consequently
+increases local computation and symbol size, but not the number of
+queried positions.  In particular a single false exact full operation
+retains the gap $\gamma_{\mathrm{op}}$, rather than having its gap
+divided by the program length.
+
+\subsection{Scalar transforms with certified stages}
+
+\begin{lemma}[Scalar program library]\label{op:scalar-programs}
+On scalar tables indexed by $x\in\mathbb F_2^r$, the full operations
+above give homogeneous linear programs of $\poly(r)$ stages for:
+bit-conjunction and interval masks; controlled bit flips and bit
+permutations; integer cyclic shifts; discrete Fourier transforms and
+their inverses of lengths $M_o$ and $h$; the Walsh transform; and cyclic
+coefficient multiplication by any systematic Lagrange polynomial
+$L_j$, $0\le j<h$.  The last operation is uniform also when $j$ is
+supplied by already identical address bits.  All intermediate stages
+are full slots with fixed encoder types and query maps in $\Pi$.
+\end{lemma}
+
+\begin{proof}
+A bit-conjunction mask is a product of one-bit masks, applied in
+sequence.  For the integer interval $[0,a)$ with $0\le a\le M_o$,
+represent $a$ by $r+1$ public or already identical control bits.
+Use the zero operator for $a=0$ and the identity for $a=M_o$.
+For $0<a<M_o$, use the disjoint prefix rectangles obtained by
+specifying the most significant differing bit: at a position where
+$a$ has bit one, match its more significant bits and require the
+current bit to be zero.  There are at most $r$ rectangles.
+More explicitly, writing $a_r$ for the endpoint bit, one fixed
+padded program applies the mask
+\[
+ a_r+(1-a_r)\sum_{i=0}^{r-1}a_i\,
+        1[x_i=0]\prod_{j=i+1}^{r-1}1[x_j=a_j].
+\]
+All endpoint decisions and rectangle coefficients are identical at
+every index; the program keeps all candidate stages and uses scalar
+coefficient selection, so its topology and polynomial size do not
+depend on $a$.  Differences of two such masks give arbitrary intervals.
+
+Let $m$ be the indicator of a conjunction not involving bit $i$.
+The pullback of the permutation that flips bit $i$ precisely when
+$m=1$ is
+\begin{equation}\label{op:controlled-flip}
+                    f-mf+R_{(e_i,1)}(mf).
+\end{equation}
+To verify this, if $m(x)=0$ then $m(x+e_i)=0$, and the result is $f(x)$;
+if $m(x)=1$ then $m(x+e_i)=1$, and the result is $f(x+e_i)$.
+The independence of $m$ from the flipped bit is essential here.
+Three controlled XOR operations exchange two index bits, so they
+implement bit reversal and any prescribed bit permutation.
+
+For an integer subtraction of $2^j$ modulo $2^r$, flip bit $i>j$
+when the original bits $j,\ldots,i-1$ are all zero, and flip bit $j$
+unconditionally.  Process the higher bits in descending order;
+then none of the bits used by a condition has yet changed.
+The addition rule uses ones instead of zeros.  Pullbacks reverse the
+chronological composition of index permutations: thus the table
+stages apply these borrow gates in ascending bit order, the reverse
+of their descending index-permutation order.  This implements the
+desired cyclic table shift.  A conjunction uses $O(r)$ bit
+operations, so this procedure is polynomial in $r$.
+
+For the Fourier transform we realize the radix-two Cooley--Tukey
+decomposition~\cite[pp.~299--300]{CooleyTukey1965} by the certified full
+operations above. Let $D=2^v\in\{h,M_o\}$ and let
+$\xi=\zeta^{M_o/D}$ have order $D$.
+The transform acts on the low $v$ integer bits, independently within
+each block of fixed higher bits, and is
+\begin{equation}\label{op:dft}
+       \mathcal F_D(f)(y)=\sum_{z=0}^{D-1}\xi^{yz}f(z).
+\end{equation}
+First reverse these $v$ bits.  At level $j$, pair positions separated
+by XOR of bit $j-1$ in each aligned window of length $2^j$.
+Writing $a<2^{j-1}$ for the offset and $U,V$ for the lower and upper
+entries, replace the pair by
+\begin{equation}\label{op:butterfly}
+          U+\xi^{aD/2^j}V,\qquad U-\xi^{aD/2^j}V.
+\end{equation}
+The factor is a product of one-bit factors, since if
+$a=\sum_{i<j-1}2^ia_i$, then
+$\xi^{aD/2^j}=\prod_{i<j-1}(\xi^{2^iD/2^j})^{a_i}$.
+Half-window masks, the bit pull, these factors, and addition implement
+the displayed rule.  The identity
+\[
+ \sum_{z=0}^{D-1}\xi^{yz}f(z)
+ =\sum_{z=0}^{D/2-1}(\xi^2)^{yz}f(2z)
+  +\xi^y\sum_{z=0}^{D/2-1}(\xi^2)^{yz}f(2z+1)
+\]
+proves the algorithm by induction, with bit reversal placing the
+recursive even and odd subproblems in the required order.  More
+explicitly, if $\operatorname{rev}_a$ reverses $a$ bits, after level
+$j$ the entry at $b2^j+y$, $0\le y<2^j$, is
+\[
+ \sum_{z=0}^{2^j-1}(\xi^{D/2^j})^{yz}
+ f\bigl(\operatorname{rev}_{v-j}(b)+2^{v-j}z\bigr).
+\]
+The level-$j$ butterfly combines the even and odd values of $z$ in
+the level-$(j-1)$ formula, proving this invariant from the bit-reversed
+input at level zero; at level $v$ it is \eqref{op:dft}.
+Using $\xi^{-1}$ and multiplying by $D^{-1}$ gives the inverse:
+$\sum_{y=0}^{D-1}\xi^{y(z-z')}=D\,1[z=z']$.
+Without initial bit reversal, apply the sum/difference butterflies
+directly to the input table, one coordinate bit at a time, and use
+no twiddle factors.  This gives
+\begin{equation}\label{op:walsh}
+                   \mathcal W(f)(x)=\sum_y(-1)^{x\cdot y}f(y).
+\end{equation}
+They can be applied on all $r$ bits or just a specified block.
+The Walsh inverse is $M_o^{-1}\mathcal W$ when all bits are used.
+
+Finally set $\omega=\zeta^{M_o/h}$ and
+\begin{equation}\label{op:lagrange}
+ L_j(Z)=h^{-1}\sum_{a=0}^{h-1}\omega^{-ja}Z^a.
+\end{equation}
+The root sum just used gives $L_j(\omega^i)=1[i=j]$.
+For a length-$M_o$ coefficient table $F$, cyclic multiplication by
+$L_j$ has coefficient at $w$ equal to
+\begin{equation}\label{op:lagrange-convolution}
+ h^{-1}\omega^{-jw}\sum_{a=0}^{h-1}F_{w-a}\omega^{j(w-a)},
+\end{equation}
+with subscripts modulo $M_o$.  The powers are well defined under
+cyclic indexing because $h\mid M_o$.  Each of the two diagonal
+factors splits over the bits of $w$ and has coefficients computable
+from $j$.  If $T_bf(w)=f(w-b\bmod M_o)$, the middle window sum is
+\[
+                    \prod_{i=0}^{\ell-1}(I+T_{2^i}).
+\]
+Every integer in $[0,h)$ has a unique binary expansion, proving this
+identity.  The previously constructed shifts implement it.
+When $\deg(F L_j)<M_o$, cyclic and ordinary multiplication coincide;
+we impose this degree bound at every ordinary-product use.
+
+For clarity, crude stage bounds suffice: a bit operation uses $O(r)$
+elementary stages, a conjunction $O(r^2)$, a carry shift $O(r^3)$,
+and the window product $O(r^4)$.  The Fourier, Walsh, and range-mask
+constructions also fit a fixed polynomial bound.  Coefficient
+calculation, layout descriptions and every elementary local operation
+use polynomially many bit operations in $r$.  Padding unused steps
+with zero or identity operations makes all lengths independent of
+the particular control or address values.
+\end{proof}
+
+\subsection{Triangular A-only certificates}
+
+An A-only program starts from A-coded public constants or a local
+expression $X$ from Definition~\ref{op:full-operation}.  It forms
+identical-coefficient linear combinations and right pulls of earlier
+slots having the same A twist.  Right pulls commute with left
+translations and constant entry twists, and therefore preserve A
+constraints.  A fixed generating list of $H$ suffices to compute all
+desired right-$H$ pulls through stored paths in its Cayley graph.
+Each path has length at most $|H|-1$ after removing repetitions.
+Arbitrary bit pulls use the rotation sequences already described.
+The number of stored stages is polynomial in $r$, while all recurrence
+queries still belong to $\Pi$.
+
+At a fixed clock value, the initialized slots form triangular prefixes
+and satisfy their recurrences; every other scratch slot is zero.
+Filling one next stage evaluates its recurrence locally.  Erasing in
+reverse order replaces that stage by zero while its parents are still
+available.  Each step changes one designated slot or fixed family of
+slots, with the same definition of every retained slot.
+
+\begin{lemma}[Simultaneous scratch restoration]\label{op:scratch-restoration}
+Suppose all scratch recurrences at a legal repeated clock are
+triangular and their references, on arbitrary exact duplicated full
+parents, satisfy their assigned A constraints.  Public address-focus
+recurrences precede every recurrence using the resulting coefficients.
+There exist constants $C_{\mathrm{sc}}$ and $\theta_{\mathrm{sc}}>0$,
+independent of the number of stages, slots and entry coordinates,
+with the following property.  If the packed parsing, clock, full-code,
+duplication, scratch local-code, scratch-edge, recurrence and inactive-zero
+tests reject on a fraction $\theta<\theta_{\mathrm{sc}}$ of centers,
+then after one preprocessing of the parsing, clock and full slots,
+all scratch can be replaced simultaneously by its exact triangular
+reference at total symbol cost at most $C_{\mathrm{sc}}\theta$.
+The references are taken on the corrected full parents; those parents
+need not yet satisfy their advertised payload-operation identities.
+\end{lemma}
+
+\begin{proof}
+Theorem~\ref{thm:outer-codes} first repairs parsing, repetition and
+full codes at $O(\theta)$ symbol cost.  A repeated illegal clock is
+excluded by its range test.  The full-code duplication gap then
+excludes any failure of duplicated payload, for small enough $\theta$.
+Replace all locally A-invalid scratch parts by zero.  This is one
+further packed $O(\theta)$ change.  Call the resulting word $W$, and
+\emph{keep this word fixed throughout the following induction}.
+
+If preprocessing changed at most $C_{\mathrm{pre}}\theta$ packed
+sites, any test using $\Pi$ can change its outcome only on their
+$q$ inverse images.  After harmless fixed conversions of edge and
+part normalizations there are constants $C_z,C_r$ such that
+\begin{equation}\label{op:fixed-word-invariant}
+ z_A(W)\le C_z\theta,\qquad
+ \Pr[\text{some scratch recurrence or inactive-zero test fails on }W]
+       \le C_r\theta.
+\end{equation}
+One can use constant multiples of $1+qC_{\mathrm{pre}}$ for both
+constants.  These bounds concern the \emph{entire} packed scratch
+tuple, so they contain no slot-count factor.
+
+Order all initialized families topologically, putting public focus
+first, and include the inactive-zero families with their zero
+references.  Let $V_j$ be the exact reference of the first $j$ families
+on the corrected full parents and legal clock, and let $p_j$ be the
+joint part distance from the corresponding prefix of $W$ to $V_j$.
+The empty prefix has $p_0=0$.  The full parents may have incorrect
+advertised identities, but are A-coded; every allowed initial $X$
+is A-coded on such parents.  Right pulls and identical coefficients
+preserve this property.  Public focus begins with hardwired correct
+constant encodings and the identical clock.  Its completed reference
+supplies globally identical coefficients to subsequent recurrences.
+Consequently every $V_j$ is exactly A-coded.
+
+An error in the new family occurs only at a recurrence-failure center
+or at a center reading an erroneous earlier part.  A joint part-error
+set of density $p_j$ occupies at most $4p_j$ of the packed sites.
+Taking a union over the $q$ maps, and retaining the old prefix, gives
+\begin{equation}\label{op:prefix-provisional}
+                 p_{j+1}\le C_r\theta+(1+4q)p_j.
+\end{equation}
+This remains true when a recurrence reads all earlier slots or types
+at one of those sites: the error event is already joint.
+Put $K=2C_z/\delta_1$ and choose $\theta_{\mathrm{sc}}$ so small that
+\begin{equation}\label{op:scratch-smallness}
+          (C_r+(1+4q)K)\theta_{\mathrm{sc}}<\delta_1/16.
+\end{equation}
+If $p_j\le K\theta$, the provisional estimate is in the small-error
+range of the A near-code inequality of Theorem~\ref{thm:outer-codes}.
+Apply that inequality to the \emph{same fixed word} $W$, restricted
+to the enlarged tuple, and to $V_{j+1}$:
+\[
+ \delta_1p_{j+1}
+ \le z_A(W|_{j+1})+4p_{j+1}^2+\lambda p_{j+1}.
+\]
+The conflict count of a prefix is at most that of the whole tuple.
+Since $\lambda\le\delta_1/8$ and $p_{j+1}<\delta_1/16$, this implies
+\[
+                 p_{j+1}\le 2z_A(W)/\delta_1\le K\theta.
+\]
+Induction proves this bound for the complete scratch tuple.
+It resets an \emph{estimate}, without making successive word repairs.
+Only now replace the whole scratch tuple by its reference, at symbol
+cost at most $4K\theta$.  The common scalar local checks act on joint
+vectors, and the finitely many twist types act by a block-diagonal
+invertible map; the near-code estimate is therefore valid in exactly
+this joint metric.  Together with preprocessing this proves the lemma.
+\end{proof}
+
+\subsection{Mode-serial filling of a full slot}
+
+The target must remain a full codeword while it is being filled, even
+though its final value can depend on the parents at every index. We use
+a sequence of frequency cutoffs that commute with the encoder. Each
+increment is supported on one $H$-orbit, so its encoded contribution
+can be computed from a polylogarithmic list of coefficients gathered
+locally. A completed certificate for the old cutoff is retained until
+the next cutoff and its increment have both been prepared.
+
+Retaining the completed target while reversing its auxiliary computation
+follows the reversible-cleanup principle of Bennett~\cite[pp.~525--526]{Bennett1973}.
+The two-buffer schedule, local transitions, and certification guarantees
+needed here are established in the following proof.
+
+\begin{lemma}[Local reversible filling]\label{lem:outer-fill}
+For every full operation in Definition~\ref{op:full-operation}, there
+is a canonical reversible schedule from zero target and zero temporary
+scratch to its required full target and zero temporary scratch.
+Parents and all coefficient data remain fixed throughout.  The schedule
+has $O(M_o\poly(r))$ steps, a $\poly(r)$-bit local symbol and local
+algorithm, and an $O(\log M_o+\log\poly(r))$-bit microclock.
+Its checks and both local transition directions use only $\Pi$.
+At each clock location the target is a specified full encoding and
+all scratch consists of specified initialized prefixes.  After
+simultaneous scratch restoration, failure of the required target
+identity has a constant center gap.  Each reference scratch slot
+satisfies its A constraints, even when its full parents have not yet
+been shown to satisfy their advertised payload identities.
+\end{lemma}
+
+\begin{proof}
+Write the operation's local expression as $X$ and its duplicated
+systematic payload as $v$.  For each label, part and entry coordinate
+expand in the $x$ variable:
+\[
+ X(x,u)=\sum_{\nu\in\mathbb F_2^r}\widehat X_\nu(u)(-1)^{x\cdot\nu},
+ \qquad
+ \widehat X_\nu(u)=M_o^{-1}\sum_xX(x,u)(-1)^{x\cdot\nu}.
+\]
+For $0\le\tau\le M_o$ define a Fourier multiplier $P_\tau$ by
+\begin{equation}\label{op:cutoff}
+ w_\tau(\nu)=|H|^{-1}\sum_{a\in H}
+                    1[\underline{a^{-1}\nu}<\tau].
+\end{equation}
+Thus $P_0=0$ and $P_{M_o}=I$.  The inverses of $|H|$ and $M_o$
+exist in $J$.  The multipliers are constant on frequency orbits of
+$H$; they are not asserted to be projections.
+
+Here is the required commutation in detail.  A left pull by $(w,a)$
+sends $(x,u)$ to $(x+u^{-1}a^{-1}w,au)$, so it preserves each
+frequency, changing its coefficient by a known sign and an $H$-index
+permutation.  A right pull sends $(x,u)$ to
+$(a^{-1}(x+w),ua)$, carrying a frequency $\nu$ to $a\nu$, with
+sign $(-1)^{w\cdot a\nu}$.  Hence $P_\tau$ commutes with both pulls.
+The constant entry twists act on a different coordinate and also
+commute.  Every parity operator and every systematic injection thus
+intertwines $P_\tau$ on its domain and codomain.  If an invertible
+parity operator $T$ satisfies $TP_\tau=P_\tau T$, then its inverse
+does too, by multiplication by $T^{-1}$ on both sides.  Applying the
+two one-axis extensions gives
+\begin{equation}\label{op:cutoff-extension}
+              P_\tau E_{\mathrm{out}}v
+                      =E_{\mathrm{out}}(P_\tau v).
+\end{equation}
+No commutation with a preliminary index-dependent operation such as
+$W(k)\mapsto W(k)\rho_e(k)$ is needed: $P_\tau$ is applied to its
+already formed expression $X$.
+
+The mode-bit selector
+\begin{equation}\label{op:mode-selector}
+                   \frac{I+(-1)^bR_{(e_i,1)}}2
+\end{equation}
+retains precisely those frequencies with $\nu_i=b$.
+For each $a\in H$, decompose
+$\underline{a^{-1}\nu}<\tau$ into at most $r$ disjoint prefix
+rectangles and multiply their selectors.  Sum over rectangles and
+average over $a$.  This gives an A-only program computing $P_\tau X$
+with $\poly(r)$ stages.  Include all candidate rectangles and use
+coefficient bits from the microclock, so topology and length are fixed.
+The case $\tau=M_o$ uses the identity with the same padding.
+All selectors use the elementary pull list via stored bit alignments.
+
+The partial target at cutoff $\tau$ is
+$Y_\tau=E_{\mathrm{out}}(P_\tau v)$.
+Compare it with the completed cutoff program using the shared-axis
+test of Definition~\ref{op:full-operation}.  In the shared-B case,
+intermediate scratch is only A-coded.  The test's justification is
+made \emph{after} Lemma~\ref{op:scratch-restoration}: the completed
+reference is then exactly $P_\tau X$, which satisfies the target's
+B constraints by the commutation above.  One may now use B distance
+on its whole systematic A rows.  This argument neither assumes nor
+tests B validity of unfinished scratch.  The shared-A case uses the
+analogous columns.  Thus equality of the required payload suffices,
+and its failure has the same constant gap at every cutoff.
+
+It remains to compute a cutoff increment locally.  Let $a_\tau$ be
+the bit vector for the integer $\tau<M_o$, and set $O=Ha_\tau$.
+The increment multiplier is zero outside $O$ and, for $\nu\in O$, is
+\begin{equation}\label{op:orbit-weight}
+ (w_{\tau+1}-w_\tau)(\nu)
+ =\frac{\#\{a\in H:aa_\tau=\nu\}}{|H|}
+ =\frac1{|O|}.
+\end{equation}
+For each $\nu$ in the fixed-length list $(aa_\tau)_{a\in H}$,
+apply all $r$ mode selectors to $X$.  Repetitions are harmless.
+The resulting pure-mode slot is
+$X_\nu(x,u)=(-1)^{x\cdot\nu}\widehat X_\nu(u)$.
+Also store each right pull $R_{(0,b)}X_\nu$, $b\in H$, through
+generator paths and their intermediate stages.  At the current
+$k=(x,u)$ its systematic payload is
+\begin{equation}\label{op:orbit-focus}
+             (-1)^{(b^{-1}x)\cdot\nu}\widehat v_\nu(ub).
+\end{equation}
+For any desired $u'\in H$, take $b=u^{-1}u'$ and remove the displayed
+known sign.  One symbol now contains every coefficient
+$\widehat v_\nu(u')$ for $\nu\in O$ and every $u'\in H$.
+These are read from locally stored pull slots, not from remote global
+payload positions.
+
+We can apply $E_{\mathrm{out}}$ to this coefficient list locally.
+Remark~\ref{oc:orbit-invariance} supplies the inverse of each one-axis
+parity system on the $O$-frequency subspace: both this subspace and its
+complement are invariant, and the restricted domain and codomain have
+equal dimensions. Here its Fourier coordinates are indexed by frequency,
+$H$, labels, parts and entry coordinates, so the restricted dimension is
+at most
+\begin{equation}\label{op:orbit-dimension}
+         C|O|\,|H|\,\dim_J U\le C|H|^4=\poly(r),
+\end{equation}
+where $C$ depends only on the fixed labels, and
+$\dim_JU\le |H|^2$.  Form its entries using the explicit pulls and
+Walsh signs, solve the two successive axis systems by Gaussian
+elimination, and sum the output modes at $x$.  Together with
+\eqref{op:orbit-weight}, this computes every local entry of
+\[
+                 E_{\mathrm{out}}((P_{\tau+1}-P_\tau)v).
+\]
+Matrix assembly, elimination and field arithmetic take $\poly(r)$
+bit operations.  Canonical parsing and fixed defaults on malformed
+values, illegal clocks or failed pivots make the local algorithm total;
+on the promised data the prescribed matrices are invertible.
+
+Use two cutoff-program buffers and one orbit-focus buffer.
+Initially the target and all three buffers are zero.
+At iteration $\tau$ keep the completed buffer for cutoff $\tau$
+when $\tau>0$, and compare the target with it; at $\tau=0$ compare
+the entire target with zero.  In the other, empty buffer fill the
+cutoff-$\tau+1$ program in dependency order, and fill the orbit focus
+in dependency order.  With both complete, perform one pivot adding
+the local encoded increment to the target.  Its required comparison
+now uses the completed cutoff-$\tau+1$ buffer.  Erase focus in reverse
+order and erase the old cutoff buffer in reverse order when present.
+Swap the buffer roles, determined by the iteration parity.
+At cutoff $M_o$, compare the target directly with $X$ while erasing
+the final cutoff buffer.  This finishes with the full desired target
+and zero temporary scratch.
+
+At every clock value enforce the full-code and duplication constraints
+of the target, all initialized-prefix recurrences, inactive zeros,
+and the stated comparison.  While a new proof is being prepared, a
+completed old proof remains available.  At a pivot both the next
+proof and the increment focus are complete.  In reverse traversal,
+erased prefixes are first reconstructed in forward dependency order,
+so the reverse pivot subtracts the same locally available increment.
+Thus both directions are local, mutually inverse on canonical data,
+and never use a partial certificate as a completed one.
+
+For the size bound, each cutoff program uses at most
+$O(|H|r^3)$ elementary stages up to fixed padding factors.
+The orbit selectors and all right-$H$ paths use at most
+$O(|H|r^2+|H|^3)$ such stages, with a polynomial allowance for
+metadata.  Even a bound $O(r^{30})$ for both programs and their
+descriptions suffices.  Each entry alphabet has at most $r^{18}$
+field coordinates, each of $O(r)$ bits.  The two reused buffers
+therefore have $\poly(r)$ bits per index.  There are $M_o$ iterations
+of a common polynomial sublength, with a special initial omission
+and final erasure; their location is decoded by arithmetic on a
+logarithmic microclock.  No local step loops over all $M_o$ modes.
+The different cutoffs reuse the same zeroed buffers and do not
+contribute a factor $M_o$ to the word length.  Separate buffers for
+the finitely many required A types keep every slot's type fixed.
+These observations prove all bounds and claims of the lemma.
+\end{proof}
+
+\subsection{From sparse tape wiring to row systems}
+
+We next construct a persistent tuple $P(b)$ independent of the clock
+frame, where $b$ comprises the four tape-content and occupation arrays.
+Its canonical formulas are defined for every $b\in J^{4h}$; Boolean
+and phase-validity tests are additional conditions.
+Testing a uniformly chosen tape row would not detect one false row with
+constant probability. Instead we interpolate the row data, certify the
+required products, and encode the remainder of each row-equation
+polynomial modulo $Z^h-1$. A single false row makes that remainder
+nonzero; comparing its full encoding with zero then has the code's
+constant gap. The tuple retains the intermediate linear computations
+needed to perform these checks at every frame.
+
+\begin{lemma}[Persistent wiring and certification]\label{lem:outer-wiring}
+There are $\poly(r)$ persistent full slots $P(b)$, with polynomial
+canonical payload formulas in $b\in J^{4h}$, and packed local tests
+using $\Pi$, with the following properties.
+\begin{enumerate}[label=(\roman*)]
+\item Structural tests uniquely determine $P(b)$ from its four logical
+arrays.  Each variable factor array is a fixed permutation of one
+logical array; a one-address logical edit changes that factor at at
+most one publicly determined address.
+\item Each primary has assigned logical degree at most a fixed $d_2$.
+Every other persistent slot has a homogeneous linear recipe on the
+primaries, including all intermediate matrix reencodings and all
+phase-specific computations.  Its assigned logical degree can be
+the maximum degree of its primary inputs.
+\item There are persistent full encodings of
+\begin{equation}\label{op:address-transform}
+       U_D(x)=\sum_{j=0}^{h-1}(-1)^{x\cdot j}D_j
+\end{equation}
+for every needed logical singleton $D$, where $j$ denotes its padded
+$r$-bit vector.  Its Walsh coefficient at $j<h$ is exactly $D_j$.
+\item Conditional on exact duplicated full codes and a legal repeated
+clock, either all structural formulas hold and $b$ is a valid
+Boolean macrovertex at that clock, or one packed test rejects on
+at least a fixed fraction $\gamma_{\mathrm{per}}>0$ of centers.
+The same alternative without the macro-validity conclusion holds
+if only structural tests are imposed.
+\end{enumerate}
+The canonical tuple and public data are deterministically constructible
+in $\poly(N)$ time.  The number of field coordinates, public local
+parameters and bit operations at one index is $\poly(r)$.
+\end{lemma}
+
+\begin{proof}
+\paragraph{Sparse row equations.}
+Use the normalization in Lemma~\ref{lem:macrograph}.
+The Boolean tests for the four arrays are $z(z-1)=0$ at each row,
+and content must vanish where occupation is zero, by $a(1-e)=0$.
+For occupation in a prescribed order $\pi$, impose
+\[
+        e_{\pi(i+1)}(1-e_{\pi(i)})=0\quad(0\le i<h-1).
+\]
+Together with Booleanity, these equations say that occupied positions
+form a prefix.  Its desired length is imposed separately by its
+integer count.  Full occupation may instead be imposed row by row.
+Fixed gate truth tables have multilinear representing polynomials
+over $J$: for a Boolean input $a\in\{0,1\}^m$ its indicator is
+$\prod_{i:a_i=1}z_i\prod_{i:a_i=0}(1-z_i)$, so summing the indicators
+weighted by the truth-table values gives the desired polynomial.
+The arity is fixed.  Gate, input-copy, designated-comparison, dummy,
+and tape-to-tape-copy equations are conditioned by the occupation
+of their destination where appropriate.  This expresses exactly
+the phase rules in Section~\ref{sec:macrograph}; the phase prescription
+ensures that an occupied computation only depends on earlier occupied
+positions or the fixed full tape.  In a full $Q_x$, its $S$ inputs
+are free, with the terminal and other-input relations imposed as in
+its definition.  At shared phase boundaries fix either equivalent
+description.
+
+For each of the four phases and each unconditional family, organize
+these equations into a fixed number of length-$h$ lists, padding with
+zero equations.  Every operand map from list rows to an original
+logical array has bounded multiplicity: this follows from bounded
+fan-out for internal feeds, separate designated copies, and partial
+permutations for adjacency and same-position copies.
+An operand map of multiplicity at most $B$ splits into $B$ partial
+injections by coloring its preimages separately at each target.
+Each partial injection extends to a permutation of $[h]$, by any
+bijection between the unused domain and range.  Separate logical
+array types and intersect the finitely many operand-color and
+active-row cases.  Because arity and $B$ are constants, this causes
+only a constant number of cases.  Expand the representing polynomials
+into monomials.  Each row list is now a sum of a fixed number of
+bounded-length monomials, whose factors are permuted logical arrays
+or public coefficient and mask arrays.  Empty monomials represent
+constant terms.  Counting coefficient factors in the length still
+gives a fixed bound on the degree.
+
+\paragraph{Routing arbitrary permutations.}
+For completeness a permutation of $2^\ell$ locations has a binary
+switch realization with $2\ell-1$ layers, each layer switching pairs
+along one fixed XOR bit, with a public Boolean mask constant on each
+pair. This is the binary specialization of the Bene\v{s}
+rearrangeability construction~\cite[Lemma~3 and Theorems~2--3]{Benes1964Permutation}.
+Pair sources along the top
+bit and do the same for targets.  The prescribed item routes form a
+bipartite multigraph on these pairs with degree two at every vertex.
+Every component is an even cycle, including a pair of parallel edges;
+alternate its edges with two colors.  An initial top-bit switch and
+a final top-bit switch route each item through the half corresponding
+to its color.  Each half now has a permutation of $2^{\ell-1}$ items.
+Recurse with the same layer schedule in the two halves.  The base case
+$\ell=1$ has one layer and $\ell=0$ none; the recurrence for depth is
+$L(\ell)=L(\ell-1)+2$.  Cycle coloring and recursive routing take
+polynomial time in $h$.
+
+Introduce a variable factor type for every routed intermediate, and
+for each layer introduce the XOR-pulled counterpart $D^*$ of its input
+$D$.  The layer output $D'$ satisfies the row equation
+\begin{equation}\label{op:switch-row}
+                      D'-D-m_{\mathrm{sw}}(D^*-D)=0.
+\end{equation}
+The mask is pair-constant, so this is exactly either the identity or
+a transposition on each pair.  The counterpart identity itself is
+checked by a scalar program below.  These equations are always
+imposed, including in inactive phases.  Induction through the network
+makes each variable factor a known permutation of an original logical
+array, for arbitrary field values of that array.
+There are only $O(r)$ layers among a fixed number of routing networks,
+hence $\poly(r)$ factor and equation types with bounded arity per row.
+For an edit of an original logical array at $j$, every factor derived
+from it changes only at the image of $j$ under its fixed permutation.
+All such addresses for one frame occupy $\poly(r)$ bits.
+Their entire frame-indexed tables need not have a succinct random-access
+formula; they will be stored as public encoded tables and focused
+before use in Section~\ref{sec:outer-representation}.
+
+\paragraph{Primaries and assigned degree.}
+For every factor array $D\in J^h$, define its unique degree-$<h$
+interpolant on the subgroup grid by
+\begin{equation}\label{op:factor-interpolant}
+                  F_D(Z)=\sum_{j=0}^{h-1}D_jL_j(Z).
+\end{equation}
+For each factor-occurrence list of each monomial, include primaries
+for every subset $S$ of its occurrences, with payload the
+length-$M_o$ coefficient table, padded by zeros, of
+\begin{equation}\label{op:subset-primary}
+                         F_S(Z)=\prod_{a\in S}F_{D_a}(Z).
+\end{equation}
+The index set here consists of occurrences: repeated uses of one
+factor remain distinct.  The empty subset gives $1$.
+Identify shared singleton primaries or impose direct full-word
+equalities on copies, and include independent singletons when needed.
+The assigned logical degree $k_S$ counts variable occurrences only;
+public factors have degree zero.  Let $d_2$ bound the length of every
+factor-occurrence list after all switch and row equations have been
+included.  It is a fixed constant, and $k_S\le d_2$.
+The honest ordinary polynomial degree is at most $d_2(h-1)$.
+Choose the earlier size constant so that
+\begin{equation}\label{op:degree-slack}
+                         M_o>(8d_2+8)h.
+\end{equation}
+All primary formulas exist for arbitrary $b\in J^{4h}$.
+
+\paragraph{Index independence and support.}
+Scalar primaries are intended to depend only on $x$, not on $u$.
+Test invariance of their payloads under left $(0,a)$ pulls for the
+fixed generating list of $H$.  Such a pull fixes $x$ and changes
+$u$ to $au$, and shares B with the original untwisted scalar slot.
+Compare whole systematic A rows as above, using the pulled local
+expression without introducing a free encoder witness.
+The shared-B exact gap forces invariance under each generator;
+since these generate $H$, this is precisely independence from $u$.
+No independent invariance test is needed on a derived program stage
+whose exact recipe already determines it, and matrix intermediates
+need not be $u$-independent.
+
+Use range masks from Lemma~\ref{op:scalar-programs} to require
+singleton coefficient support in $[0,h)$ and product-primary support
+in $[0,d_2h+1)$, with sharper public bounds when appropriate.
+Encode the masked complement as a full output and compare that
+entire word with zero.  A nonzero output has full-code distance.
+Compare each public singleton and each empty product with its
+precomputed canonical full encoding.  These are structural conditions.
+
+\paragraph{Product certification.}
+Compute the length-$M_o$ DFT of each relevant primary coefficient
+table by certified full stages.  Its payload at integer $y$ is the
+polynomial's value at $\zeta^y$.  For every nontrivial subset choose
+one occurrence $a\in S$ and check, at one fixed systematic payload
+cell at $s=t=0$,
+\begin{equation}\label{op:primary-product-test}
+                   F_S(\zeta^y)
+                  =F_{S\setminus\{a\}}(\zeta^y)F_{D_a}(\zeta^y).
+\end{equation}
+These are pointwise nonlinear tests; the stored transform stages
+themselves have linear recipes.  Once support, independence and
+transform identities hold, a false equality is the nonzero polynomial
+$F_S-F_{S\setminus\{a\}}F_{D_a}$, of degree less than
+$(d_2+1)h+1<M_o/2$.  A nonzero polynomial of degree $D$ over a field
+has at most $D$ roots, as follows by successively dividing by $Z-z$
+at distinct roots.  Thus the false equality fails at more than half
+the $M_o$ distinct points $\zeta^y$.  Uniform $k$ has uniform $x$,
+and independence from $u$ prevents the extra index from diluting this
+gap.  Induction on subset size forces exactly all products
+\eqref{op:subset-primary} once these tests hold.
+
+\paragraph{Counterparts and the subgroup annihilator.}
+Apply the length-$h$ Fourier transform to the low $\ell$ bits of each
+singleton's padded coefficient table.  Its first block is the value
+table $D$, and every higher block is zero by coefficient support.
+For each XOR counterpart use the certified bit pull on this padded
+table and compare its full output with the counterpart's separately
+computed padded value table.  Their full-operation gap forces the
+exact counterpart identity needed in \eqref{op:switch-row}.
+
+For a row-equation list let $R(Z)$ be the indicated linear combination
+of its product primaries.  Its value at $\omega^j$ is exactly the
+row expression at $j$.  Its remainder modulo $Z^h-1$ has coefficients
+\begin{equation}\label{op:remainder-fold}
+       [Z^i](R\bmod(Z^h-1))
+          =\sum_{z=0}^{M_o/h-1}[Z^{i+zh}]R,
+                \quad 0\le i<h,
+\end{equation}
+and zero padding elsewhere.  This formula follows from
+$Z^{i+zh}\equiv Z^i\pmod{Z^h-1}$, since the coefficient table is
+supported below $M_o$.  It is a short linear program: apply
+$\prod_{i=\ell}^{r-1}(I+R_{(e_i,1)})$ to sum all high-bit blocks,
+then mask to high bits zero.  Require its entire full word to be
+zero when the equation is imposed.
+
+The polynomial $Z^h-1$ is exactly the annihilator of the subgroup grid:
+it has the $h$ distinct roots $\omega^j$, because $h$ is invertible
+in $J$, and its degree is $h$.  The remainder has degree below $h$.
+Therefore it vanishes as a polynomial if and only if $R$ vanishes at
+all grid points.  In one direction divisibility suffices; in the
+other direction a degree-$<h$ polynomial with $h$ distinct roots
+is zero.  This proves that the folded full-word checks impose the
+row equations exactly, without any random sampling loss over rows.
+All structural switch equations and their folded computations are
+always present.  All phase-specific folded computations are also
+stored persistently; the repeated clock selects only which final
+zero conditions are imposed.
+
+\paragraph{Counts and address transforms.}
+The constant coefficient of \eqref{op:factor-interpolant} is
+\begin{equation}\label{op:occupation-count}
+                       [Z^0]F_e=h^{-1}\sum_{j=0}^{h-1}e_j,
+\end{equation}
+since every $L_j$ has constant coefficient $h^{-1}$.
+Mask the occupation coefficient table to index zero, using all bit
+masks.  Compare its full word with the public full encoding of
+$1[\underline x=0]$ times $c h^{-1}$, where the expected count
+$c\in[0,h]$ is computed from the legal repeated stage and phase.
+This scalar is used in the comparison; it is not part of a changing
+persistent value.  On Boolean occupation data, characteristic
+$p>M_o\ge h$ implies that two counts in $[0,h]$ are equal in $J$
+only when they are equal as integers.  Together with monotonicity
+this enforces the prescribed prefix exactly.
+
+For address access, take the padded length-$h$ value table obtained
+above and apply the full $r$-bit Walsh transform.  Its result is
+\eqref{op:address-transform}.  Walsh orthogonality gives
+\[
+ M_o^{-1}\sum_x U_D(x)(-1)^{x\cdot j}
+ =\sum_{i<h}D_i
+        \left(M_o^{-1}\sum_x(-1)^{x\cdot(i+j)}\right)
+ =D_j \qquad(j<h).
+\]
+In particular the high bits of the zero-padded value table cause
+$U_D$ to repeat across the corresponding high output blocks;
+they do not introduce an additional normalization factor.
+
+\paragraph{Exact alternatives and complexity.}
+Every stage of every mask, transform, counterpart comparison and
+remainder computation is stored as a full slot with its specified
+linear recipe, including mixed and untwisted matrix intermediates.
+Give a derived stage the maximum assigned degree of its primary
+ancestors and retain its ancestor subprogram or shared directed
+acyclic recipe.  Public indexed arrays are degree-zero inputs with
+precomputed encoded constants.
+
+On exact duplicated full codewords, a false independence, support,
+public-constant, full-operation, counterpart, folded-zero or count
+identity has a constant gap by the shared-axis or full-code distance.
+If none is false, the polynomial root argument forces all primary
+products.  Singleton support makes the interpolant unique from its
+subgroup values.  The counterpart and switch equations then determine
+all factors as their prescribed permutations of the four original
+logical arrays, and the public factors are fixed.  Thus the structural
+tests force precisely $P(b)$.  The remaining Boolean, prefix, count
+and selected-phase row equations are exactly the macrovertex rules.
+If any is false, its folded or count check has the same exact gap.
+All tests are packed at the center; choosing one false relation in
+this argument entails no division by their number.  The minimum of
+the fixed code gaps and the product gap gives
+$\gamma_{\mathrm{per}}>0$ and proves both alternatives.
+
+There are $O(r)$ routed factor and row families before the scalar
+program expansions, a constant number of occurrence subsets per
+monomial, and polynomially many stages per transform.  Thus the
+number of full slots, recipes and local metadata is $\poly(r)$.
+The entry dimension and field bit length give a further fixed
+polynomial factor.  At one center the checker scans these lists,
+performs field operations and evaluates fixed-length control
+decisions, all in $\poly(r)$ bit operations.  It reads public encoded
+constants only at the publicly specified positions in $\Pi(k)$;
+arbitrary hidden-frame table lookup is never assumed.
+All public permutations, masks, coefficients, encodings and complete
+canonical arrays are constructible globally by polynomial-time
+combinatorial and linear-algebra algorithms.  Since
+$|\Gamma|=M_o|H|=O(N\operatorname{polylog} N)$ and every scalarized encoding system
+has polynomial dimension in $N$, this takes $\poly(N)$ time.
+The persistent word length is $O(N\operatorname{polylog} N)$ field-bit storage,
+with a fixed exponent in the polylogarithmic factor.  This completes
+the construction and proof.
+\end{proof}

@@ -1,0 +1,181 @@
+\section{Introduction}
+\label{sec:introduction}
+
+A noncommutative rational formula is a rooted tree whose leaves are variables or rational constants, whose binary gates are addition or ordered multiplication, and whose unary gates are inversion. Its size is its number of vertices, including leaves and inverse gates. At a tuple of square rational matrices, a scalar is interpreted as a scalar multiple of the identity. Evaluation is defined only when every inverse gate encounters an invertible matrix.
+
+Call a formula \emph{admissible} if it has a defined rational matrix evaluation of some positive dimension, and \emph{nonzero} if one of its defined rational matrix evaluations is nonzero. These operational definitions suffice for the hitting-list theorem; its proof does not need a construction of the free skew field. In particular, algebraic cancellations do not enlarge a formula's domain of evaluation.
+
+Identity testing asks whether an admissible formula is zero at every
+defined evaluation. Scalar substitutions cannot answer this question:
+for example, $x_1x_2-x_2x_1$ vanishes on all scalar tuples but is
+nonzero on matrices. A matrix hitting list is a fixed finite list of
+tuples that supplies a defined nonzero evaluation for each nonzero
+formula in the prescribed class. Such a list permits testing through
+evaluations without access to the formula tree. With inverse gates,
+the same tuple must satisfy every domain condition imposed by that
+tree, including conditions in branches that later cancel.
+In oracle terminology, an undefined evaluation is reported as such;
+only defined outputs are tested for zero.
+
+\begin{theorem}\label{thm:main}
+There are a deterministic Turing machine $G$ and fixed positive integers $C,k$ with the following property. Given $1^n,1^s$, where $n,s\geq1$, the machine outputs a finite list $\mathcal H_{n,s}$ of $n$-tuples of rational square matrices, in at most $C(n+s+1)^k$ bit operations. The entire output, with signed binary numerators and positive binary denominators, has at most $C(n+s+1)^k$ bits. For every nonzero admissible rational formula $\Phi$ in $n$ variables of size at most $s$, some tuple in $\mathcal H_{n,s}$ is a defined evaluation of $\Phi$ with invertible value.
+
+The same list works for all such formulas, regardless of the bit lengths of their rational constants or their inverse depth. The generator receives no formula, oracle, randomness, or advice.
+\end{theorem}
+
+The invertible-value conclusion is stronger than the nonzero-value requirement. All tuples produced below even have one common dimension depending only on $n,s$.
+
+\subsection{Context}
+The algebraic setting comes from the theory of rational identities
+and universal fields of fractions~\citep{Amitsur66,Cohn06}.
+Affine-matrix representations of free-field elements appear in
+Cohn and Reutenauer~\citep[Section~3.1]{CR94};
+Kaliuzhnyi-Verbovetskyi and Vinnikov give a systematic account of
+matrix evaluation domains and rational functions~\citep[Section~2]{KVV10}.
+The distinction between a rational function and an expression
+representing it matters here: equivalent expressions can impose
+different conditions on their intermediate inverses. Our operational
+formulation retains the original expression throughout.
+
+For division-free computation, Nisan's coefficient-matrix
+characterization made rank a central tool in noncommutative
+branching-program complexity~\citep{Nisan91}.
+Raz and Shpilka gave deterministic polynomial-time identity testing
+with access to a formula or branching program~\citep{RS05}.
+Bogdanov and Wee developed randomized black-box matrix evaluation
+for bounded-degree noncommutative polynomials~\citep{BW05}, and
+Forbes and Shpilka constructed deterministic quasipolynomial-size
+matrix hitting sets for noncommutative algebraic branching programs,
+a model including division-free formulas~\citep{FS13}.
+
+For computation with division, Hrube\v{s} and Wigderson developed
+the rational-formula model and its reduction to linear-matrix
+singularity testing~\citep{HW15}. Their inverse-matrix realizations
+and tests for the domains of gate subformulas are direct predecessors
+of our certificate construction. Deterministic polynomial-time
+algorithms with access to the input formula followed from operator
+scaling and constructive noncommutative-rank
+computation~\citep{GGOW16,GGOW20,IQS18}. These algorithms use the
+given coefficients, with their encoding lengths included in the
+bit model. Derksen and Makam established polynomial bounds on the
+dimensions needed for an admissible rational formula to have a
+defined evaluation, and derived randomized polynomial-time rational
+identity testing~\citep[Section~6]{DM17}. Small witnesses and
+algorithms that depend on the input coefficients leave open the
+construction of a universal deterministic list from size bounds alone.
+
+Arvind, Chatterjee, and Mukhopadhyay obtained deterministic
+quasipolynomial-size hitting sets for rational formulas of inversion
+height two~\citep[Theorem~1.1]{ACM22}.
+Their subsequent general result handles unrestricted inverse
+nesting with quasipolynomial-size rational matrix hitting
+sets~\citep{ACM26}; the quantitative bounds used in this comparison
+are Theorem~2, Corollary~3, and the paragraph following Remark~52
+of the specified preprint version~\citep{ACM25}. Thus rational matrix outputs and arbitrary
+inverse nesting already occur in the preceding literature.
+Invertible evaluations are also used in the division-algebra methods
+of these works~\citep{ACM22,ACM25}. Their general treatment states a
+depth reduction that preserves the input formula's evaluation
+domain~\citep[Fact~1]{ACM25}. Theorem~\ref{thm:main} gives polynomial
+bounds on construction time, total binary output length, and matrix
+dimension.
+Its complexity bound concerns generation of the list; the cost of
+evaluating an unknown formula with arbitrarily large rational
+constants is not included.
+
+The result resolves, over $\Q$, the explicit polynomial-size hitting-set
+problem for this formula model, and gives the polynomial matrix
+dimension asked for in the conclusion of~\citet{ACM25}.
+The proof of Theorem~\ref{thm:main} below establishes all the algebraic and algorithmic
+ingredients it uses.
+
+The proof also draws on established methods. The multiplicity
+argument for explicit subspace designs of Guruswami and
+Kopparty~\citep{GK16}, and the connection between subspace designs,
+rank condensers, and dimension expansion studied by Forbes and
+Guruswami~\citep{FG15}, provide context for our
+construction. The underlying Wronskian calculation is
+classical~\citep{BD10}. The common-subspace obstruction to
+invertibility belongs to noncommutative-rank
+theory~\citep{FR04}, while cyclic division algebras and rank
+divisibility underlie the regularity methods of Ivanyos, Qiao,
+and Subrahmanyam~\citep{IQS17,IQS18}. We prove the precise expansion,
+deformation, and domain statements needed here, without importing
+the stronger general algorithms from those works.
+
+\subsection{The construction and its logic}
+
+Write $\Mat_q(F)$ for the $q$ by $q$ matrices over a field $F$.
+The bridge from formula evaluation to linear algebra is an
+\emph{affine linear pencil}, a matrix
+\[
+ L(x)=A_0+\sum_{i=1}^n A_ix_i,\qquad A_i\in\Mat_q(\Q),
+\]
+of order $q$. Its evaluation at matrices $X_i\in\Mat_e(E)$ over an
+extension field $E/\Q$ is $A_0\otimes I_e+\sum_iA_i\otimes X_i$.
+Call the pencil \emph{feasible} if one such evaluation is invertible.
+Tensor products and ranks are taken over the indicated field.
+
+A size-$s$ formula gives at most $s+1$ pencils of order at most
+$B=2s+1$. Their simultaneous invertibility certifies that every
+inverse occurrence in the original tree is defined and that the
+final value is invertible. A nonzero admissible formula has a
+matrix evaluation over an extension field satisfying all these
+conditions. Section~\ref{sec:encoding} proves this reduction, including
+the exact conditions at the inverse gates. The construction therefore
+seeks a universal rational list on which each such finite family of
+feasible pencils is simultaneously invertible.
+
+Two obstacles remain: obtaining full rank at matrices independent of
+the pencil coefficients, and keeping all conditions valid when the
+parameters become rational numbers. The proof handles them in the
+following order.
+\begin{enumerate}
+\item Section~\ref{sec:expansion} constructs $n+1$ rectangular
+matrices over $\Q[t]$. They act on coefficient vectors of polynomials,
+reversing the Taylor expansion about the distinct points $0,\ldots,n$
+and weighting the Taylor coefficients by powers of $t$.
+A Wronskian bound shows that, for every nonzero subspace of dimension
+at most $B$, the sum of its images has dimension greater than $n$
+times its dimension, even when the subspace has Laurent-series
+coefficients. The resulting test for a feasible
+pencil is injective. Padding the test matrices to a common square
+order $M$ gives matrices $R_i(t)$ for which every feasible pencil of
+order $1\leq q\leq B$ satisfies
+\[
+ \rank\Bigl(\sum_{i=0}^n A_i\otimes R_i(t)\Bigr)>(q-1)M.
+\]
+\item Section~\ref{sec:division} uses two further parameters $p,r$
+to lift these matrices into a division algebra represented by
+$M\times M$ matrices. Ranks of block matrices over this algebra are
+multiples of $M$, so the strict inequality forces full rank.
+Dividing on the left by the lifted $R_0$ restores the constant term
+of an affine pencil. A separate application of the lift turns any
+defined nonzero formula evaluation into a defined invertible one
+over an extension field. This supplies the feasibility assertion
+needed for the certificates in Section~\ref{sec:encoding}.
+\item Section~\ref{sec:generator} represents multiplication in a
+finite-dimensional rational algebra by rational matrices, thereby
+replacing the root of unity used in the lift. All root components
+must be invertible simultaneously. For any fixed formula, the
+product of their determinant conditions is a nonzero polynomial
+of bounded degree in $t,p,r$. A fixed three-dimensional integer
+grid detects it. Exact rational arithmetic bounds both the
+generation time and the total binary output length.
+\end{enumerate}
+
+The witnesses, subspaces, and formula-specific determinant products in this proof certify the construction. None is computed by $G$. In particular, the dimension of an initial witness for a formula has no effect on the generator's resource bounds.
+
+The construction also hits every feasible rational affine pencil
+of bounded order; see Corollary~\ref{cor:pencil-hitting}.
+In particular, it answers the rational-coefficient version of the
+black-box \textsc{Singular} construction question for homogeneous
+pencils posed by Garg, Gurvits, Oliveira, and
+Wigderson~\citep[Section~6, p.~280]{GGOW20}.
+Section~\ref{sec:rank} then treats rectangular affine pencils.
+Their \emph{noncommutative rank} is their rank over the free skew
+field. Corollary~\ref{cor:rank-detecting-list} constructs a universal
+nonadaptive list whose normalized evaluation ranks recover this rank
+for every rectangular rational affine pencil with prescribed row,
+column, and variable counts. It permits exact matrix-value or
+ordinary-rank responses and accounts for their processing costs.

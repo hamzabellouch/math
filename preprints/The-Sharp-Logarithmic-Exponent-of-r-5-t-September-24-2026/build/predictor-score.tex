@@ -1,0 +1,634 @@
+\section{The Poisson score}
+\label{sec:predictor-score}
+
+We now construct the set promised by the predictor in the small-cell case.
+The training set and its assignment cells come from Lemma~\ref{lem:training}.
+The geometric estimates control dependence between tests through the same
+query point.  Our immediate task is to turn those estimates into a score
+which accepts many training points and few ambient points.
+
+Throughout this section write
+\begin{gather*}
+ n=|S|=q^{1+v},\qquad n'=|S'|\in[n/4,n],\qquad B=q^d/n',\\
+ \xi=L/100,\qquad \chi=P/100,\qquad \chi_0=P/10000.
+\end{gather*}
+We are in the case \(n>100qP\); the enumeration case was treated earlier.
+For a query point \(x\), let \(O_x\subseteq S'\) be its own set: the union
+of the assignment cells of the earliest flats containing \(x\) in the two
+captured lists.  An absent list contributes the empty set.  Its fraction
+\(f=|O_x|/n'\) is at most \(.08\).  The cell table determines this fraction,
+including the intersection of the two cells.  It also determines whether a
+sampled training point belongs to \(O_x\).
+
+Let \(\mathscr C\) contain the cells from each list and their cross
+intersections.  These are three partition systems, so
+\(\sum_{C\in\mathscr C}|C|/n'\le3\).  For a hyperplane \(H\), put
+\[
+ \lambda_H=\frac{q|S'\cap H|}{n'},\qquad
+ f_C=\frac{|C|}{n'},\qquad
+ \lambda_{H,C}=\frac{q|C\cap H|}{n'}.
+\]
+The exceptional hyperplanes form the deterministic set
+\begin{equation}
+ \mathcal E=\{H:|\lambda_H-1|>.1\}
+ \ \cup\!\bigcup_{C\in\mathscr C}
+       \{H:|\lambda_{H,C}-f_C|>.02\}.
+ \label{eq:exceptional-hyperplanes}
+\end{equation}
+A hyperplane is \emph{typical} if it does not belong to $\mathcal E$.
+The encoder may use this set in analyzing a row; the decoder will not need
+it to compute the score.
+
+A \emph{pencil} at $x$ is the family of all hyperplanes containing $x$.
+Take $R$ independent Poisson batches, each of mean $Lq$, whose points
+are independent and uniform in $S'$.  Let $Z\subseteq\mathcal E$ be the
+hyperplanes empty in every batch, put $z=|Z|$, and let $z_x$ count the
+members of $Z$ containing $x$.
+
+For each point \(x\), set \(b_0=e^{-L(1-f)}\).  Its score is
+\begin{equation}
+ A_x=\sum_{H\ni x}\prod_{r=1}^R
+ \mathbf1\{\text{batch }r\text{ has no point of }O_x\cap H\}
+ \bigl(\mathbf1\{\text{batch }r\text{ has no point of }(S'\setminus O_x)
+                                      \cap H\}-b_0\bigr).
+ \label{eq:poisson-score}
+\end{equation}
+The procedure includes every sampled point.  It includes an unsampled
+point exactly when \(A_x<.5z/q\).  The samples and cell data determine
+\eqref{eq:poisson-score}; only the integer \(z\) is additional information.
+
+The score will approximate $z_x$: empty exceptional hyperplanes give
+its main contribution, and centering suppresses typical hyperplanes.
+We will show that $z_x$ is small for most training points and large
+for most ambient points.
+
+\begin{lemma}[Score procedure]
+\label{lem:score-procedure}
+Assume the small-cell conclusions of Lemma~\ref{lem:training}
+and, when \(d\ge3\), the estimates of
+Lemma~\ref{lem:overlap-geometry} for outside-own radial lines and hyperplane
+pairs.  Assume also
+\[
+ |S||T|\ge q^{d+1}e^{-b},\qquad
+ \frac{e(S,T)}{|S||T|}\le\frac{\tau}{q},\qquad
+ b=O(D\sigma^{6\beta}),
+\]
+with the predictor's parameter ranges and \(2\le d\le4\).
+Take \(R\) independent Poisson batches, each of mean \(Lq\), sampled
+uniformly from \(S'\).  From the batches, the transmitted cell data and
+one additional integer \(z\), this score procedure computes a set
+\(W\) of points on the \(S\)-side.  With probability at least
+\(\exp[-C(P\tau+1)]\), the row has at most \(2qP\) samples and satisfies
+\[
+ |W|\le n e^{CP},\qquad |W\cap S'|\ge c n'.
+\]
+These are simultaneous assertions under the original Poisson sampling
+law.  The procedure does not condition on finding a successful row.
+\end{lemma}
+
+Here are the geometric inputs used in dimensions three and four, stated
+explicitly to fix the interface.  Apart from \(o(n)\) centers, the number of radial lines
+of outside-own strength at least \(a\) is at most
+\(q^{2-2v}e^\chi a^{-100}\).  Among any pencil family whose outside-own
+mass is at most two, the overlap graph at level \(a\) has ordered edge
+count and maximum degree at most
+\begin{equation}
+ E_a\le B^2e^{2\chi}a^{-200},\qquad
+ \Delta_a\le Be^{2\chi}a^{-200}.
+ \label{eq:score-geometric-inputs}
+\end{equation}
+For the ambient analysis, after excluding an additional \(ne^{O(P)}\)
+centers, its degree at \(t=1/(100p)\) is at most \(Be^{-3P}\), where \(p\)
+is an even integer in \([10000\sigma/P,10000\sigma/P+2]\).
+In the case \(g_1=(v-1)\sigma>\chi_0\), which occurs only in dimension
+four, outside-own strengths are at most \(Ce^{-g_1}\).  The global number
+of center--line incidences of strength at least \(a>e^{-.05g_0}\), where
+\(g_0=(v-.5)\sigma\), is at most \(Cq^2/a^2\).
+Lemma~\ref{lem:overlap-geometry} proves these statements without sampling.
+All dyadic levels below range from \(q^{-10}\) to two.  Every positive
+strength or overlap is at least \(q/n'\), so this range includes all
+nonzero quantities which occur.
+
+We shall repeatedly use the following consequences of the parameter
+hierarchy:
+\begin{equation}
+ \log\sigma=o(P),\quad R\log L=o(P),\quad
+ b+P\tau=o(L),\quad L=o(P),\quad P=o(\sigma).
+ \label{eq:score-parameter-slack}
+\end{equation}
+They hold uniformly in the allowed range of \(D\), for fixed \(\eta>0\)
+and sufficiently large \(q\).  In particular \(R/2>200\) and \(R>5000\).
+
+\subsection{Empty exceptional hyperplanes}
+\label{subsec:score-exceptional}
+
+The incidence variance identity gives
+\begin{equation}
+ \sum_H(\lambda_{H,C}-f_C)^2\le CqBf_C,
+ \qquad \sum_H(\lambda_H-1)^2\le CqB.
+ \label{eq:cell-variance}
+\end{equation}
+Replacing the exact means by \(f_C\) and one changes only a negligible
+term, since \(qp_d=1-1/Q_d\).  Summing the first estimate over the three
+partition systems, then using the thresholds in
+\eqref{eq:exceptional-hyperplanes}, gives
+\begin{equation}
+ |\mathcal E|\le CqB,\qquad
+ \sum_{H\in\mathcal E}\lambda_H\le CqB.
+ \label{eq:exceptional-mass}
+\end{equation}
+For the second assertion, use Cauchy--Schwarz and the full-set variance
+in \eqref{eq:cell-variance}.
+
+We call a pencil regular if it contains at most \(Be^\xi\) members of
+\(\mathcal E\), and if the pencil sum of each clipped squared deviation
+in \eqref{eq:cell-variance} is at most \(Be^\xi\). Here clipping replaces
+a squared deviation $u^2$ by $\min\{1,u^2\}$.  Only \(o(n)\) centers
+have an irregular pencil.  Indeed, a clipped weight \(w_H\in[0,1]\) has
+\(\sum_Hw_H\le CqBf_C\) and \(\sum_Hw_H^2\le\sum_Hw_H\).  Applying
+incidence variance in the opposite direction gives a total pencil
+variance at most \(Cq^dBf_C\), with mean \(O(Bf_C)\).  Chebyshev's
+inequality bounds its exceptional centers by \(Cn'e^{-2\xi}f_C\).
+Sum this bound using \(\sum_Cf_C\le3\); the full-set and exceptional-set
+indicator estimates have the same proof.  This argument pays for the
+number of cells through their total mass, not their cardinality.
+
+Poisson splitting makes the sample counts at different point--batch
+pairs independent.  The average of \(\lambda_H\) over
+\(H\in T\) is at most \(4\tau\).  Thus there is a fixed
+\(T_0\subseteq T\) with \(|T_0|\ge|T|/2\) and \(\lambda_H\le8\tau\)
+for every \(H\in T_0\).  For large \(q\), these hyperplanes lie in
+\(\mathcal E\), and the product-size assumption gives
+\(|T_0|\ge cqBe^{-b}\).
+If \(Y\) counts the members of \(T_0\) empty in all batches, then
+\[
+ \EE Y\ge |T_0|e^{-8P\tau},\qquad 0\le Y\le |T_0|.
+\]
+The second bound, rather than independence of empty-hyperplane events,
+yields
+\begin{equation}
+ \PP\{z\ge z_{\min}\}\ge\tfrac12e^{-8P\tau},
+ \qquad z_{\min}=cqB e^{-b-8P\tau}.
+ \label{eq:z-event}
+\end{equation}
+Here and below decrease the absolute constant \(c\) if necessary.
+
+We may require at the same time
+\begin{equation}
+ \sum_{H\in Z}\lambda_H\le .001z.
+ \label{eq:z-small-mass}
+\end{equation}
+The terms with \(\lambda_H\le10^{-4}\) contribute at most \(10^{-4}z\).
+For the others, \eqref{eq:exceptional-mass} gives expected contribution
+at most \(CqBe^{-10^{-4}P}\).  Markov's inequality at
+\(.0009z_{\min}\) fails with probability at most
+\(Ce^{b+8P\tau-10^{-4}P}=o(e^{-8P\tau})\), by
+\eqref{eq:score-parameter-slack}.
+
+For each resulting \(Z\), incidence variance shows that
+\begin{equation}
+ z_x\ge .8z/q
+ \quad\hbox{outside at most }Cq^{d+1}/z\hbox{ ambient points}.
+ \label{eq:z-ambient}
+\end{equation}
+On the training set,
+\[
+ \sum_{x\in S'}z_x=\frac{n'}q\sum_{H\in Z}\lambda_H\le .001n'z/q.
+\]
+Consequently at least \(.99n'\) training points satisfy \(z_x\le .1z/q\).
+
+
+The exceptional part of the score equals \((1-b_0)^Rz_x\), with error in
+absolute value at most \(b_0|\mathcal E\cap\{H:H\ni x\}|\).  For a member
+of \(Z\) every factor is \(1-b_0\).  For any other exceptional hyperplane,
+either an own hit makes its product zero or an outside-own hit supplies a
+factor \(-b_0\); every other factor has magnitude at most one.  At a
+regular pencil the error is at most \(Be^{-.91L}=o(z_{\min}/q)\), and
+\((1-b_0)^R=1-o(1)\).  It remains to control the sum \(T_x\) over the
+nonexceptional hyperplanes.  This is the only probabilistic issue left
+in separating the two bounds on \(z_x\).
+
+\subsection{The second moment on training points}
+\label{subsec:score-second-moment}
+
+Fix \(x\). The \emph{schedule} of a point or direction is the vector of
+its sample counts in the $R$ batches. Condition first on \(x\) being
+unsampled and then on the schedules of all points of
+\(O_x\setminus\{x\}\).  The own-empty
+multipliers in \eqref{eq:poisson-score} are now fixed zeros or ones.
+All remaining point counts are still independent Poisson variables.
+Group them by their radial lines \(\ell\) through \(x\), with strengths
+\[
+ a_\ell=\frac q{n'}|\ell\cap(S'\setminus(O_x\cup\{x\}))|.
+\]
+A line has a hit in a specified batch with probability \(1-e^{-La_\ell}\).
+For a typical hyperplane put
+\[
+ \lambda'_H=\sum_{\ell\subset H}a_\ell,\qquad
+ \delta'_H=\lambda'_H-(1-f),\qquad
+ \theta_{HH'}=\sum_{\ell\subset H\cap H'}a_\ell.
+\]
+The union defining \(O_x\) uses two cells minus their intersection.
+The exceptional thresholds therefore give
+\begin{equation}
+ \lambda'_H\ge .75,\qquad |\delta'_H|\le .17,\qquad
+ D_x:=\sum_{H\text{ typical}}(\delta'_H)^2\le CBe^\xi
+ \label{eq:typical-masses}
+\end{equation}
+at a regular pencil.  The last bound follows by summing the relevant
+clipped squares.  Removing \(x\) contributes at most
+\(O(q^{d-1}(q/n')^2)=O(B)\), since \(n'\ge n/4>25qP\).
+Also \(\lambda'_H\le\lambda_H\le1.1\), so the geometric input applies.
+
+Temporarily omit the fixed own multiplier and write the one-batch term as
+\[
+ X_H=\mathbf1\{H\text{ is outside-own empty}\}-b_0.
+\]
+Then
+\[
+ u_H:=\EE X_H=e^{-L\lambda'_H}-b_0,
+ \qquad |u_H|\le Le^{-.75L}|\delta'_H|,
+\]
+and for distinct \(H,H'\),
+\[
+ \EE X_HX_{H'}=u_Hu_{H'}+
+ e^{-L(\lambda'_H+\lambda'_{H'})}(e^{L\theta_{HH'}}-1).
+\]
+Since \(\lambda'_H+\lambda'_{H'}-\theta_{HH'}\ge .75\),
+\begin{equation}
+ |\EE X_HX_{H'}|\le L^2e^{-.75L}
+       (|\delta'_H\delta'_{H'}|+\theta_{HH'}),
+ \qquad \EE X_H^2\le2e^{-.75L}.
+ \label{eq:one-batch-moments}
+\end{equation}
+The fixed multipliers can only reduce the absolute bounds.
+More precisely, after the own schedules are fixed, the full product
+for a hyperplane is either identically zero or has all its own-empty
+multipliers equal to one.  Thus they do not alter the signed
+cancellation used below.
+
+In dimension two the overlaps vanish.  In higher dimensions,
+\eqref{eq:score-geometric-inputs} and dyadic summation give
+\[
+ \sum_{H\ne H'}\theta_{HH'}^R
+ \le B^2\exp(2\chi+O(R+\log\sigma)).
+\]
+For the deviation terms, \(R\ge2\) and \(|\delta'_H|<1\) give
+\(\sum_{H,H'}|\delta'_H\delta'_{H'}|^R\le D_x^2\).
+Finally \(Q_{d-1}=O(B^2)\), because
+\(n'\le n\le Cq^{(d+1)/2}\).  Summing
+\eqref{eq:one-batch-moments} to the \(R\)-th power and using
+\eqref{eq:score-parameter-slack} proves
+\begin{equation}
+ \EE T_x^2\le B^2e^{-.6P}.
+ \label{eq:validation-second-moment}
+\end{equation}
+This estimate is uniform in the conditioned own schedules.  It holds
+at all centers except the \(o(n)\) pencil and geometric exceptions;
+it uses none of the additional ambient exclusions.
+
+In dimension two, different pencil lines have disjoint outside-\(x\)
+samples.  Thus their score terms are independent under the same
+conditioning.  Their variance sum is at most \(Cqe^{-.6P}\), and their
+mean is at most \(Be^{-cP}\), by the one-batch mean bound and \(D_x\).
+Bernstein's inequality gives
+\begin{equation}
+ \PP\{|T_x|>z_{\min}/(10q)\}\le q^{-50}.
+ \label{eq:score-dimension-two}
+\end{equation}
+Indeed \(B\ge c\sqrt q\), \(P=o(\sigma)\), and \(e^{cP}\gg\sigma\).
+This settles the ambient tail in dimension two.  The next subsection
+treats dimensions three and four, where pencil tests share radial lines.
+
+\subsection{An ambient moment bound}
+\label{subsec:score-high-moment}
+
+Choose the even moment order \(p\) above, and put \(K_c=200\), \(J=5000\).
+If \(g_1>\chi_0\), let \(\mathcal G_x\) be the event that every
+outside-own radial line hits in fewer than \(J\) batches.  Otherwise
+\(\mathcal G_x\) is the whole sample space.  In the high case a line of
+strength \(a\) violates the condition with probability at most
+\((2Pa)^J\).  The global geometric line bound and the maximum strength
+\(Ce^{-g_1}\) give, after summing the dyads above \(e^{-.05g_0}\),
+\[
+ \sum_x\PP(\mathcal G_x^c)
+ \le Cq^2P^J e^{-(J-2)g_1+O(J)+O(\log\sigma)}+o(n)\le n.
+\]
+For the lower dyads, the elementary bound of \(Cq^7\) center--line pairs
+in dimensions at most four contributes at most
+\(Cq^7(CPe^{-.05g_0})^J=o(n)\); here \(g_0>.5\sigma\).
+These are probabilities under the fixed-point conditioning, uniformly
+in the own schedules.
+
+We prove, at every remaining ambient center,
+\begin{equation}
+ \EE\bigl[T_x^p\mathbf1_{\mathcal G_x}\bigr]
+ \le B^p e^{-.1pP}.
+ \label{eq:ambient-high-moment}
+\end{equation}
+Expand the power into ordered \(p\)-tuples of typical hyperplanes.
+Join two distinct tuple hyperplanes when their overlap exceeds
+\(t=1/(100p)\).  A component is a connected component of this graph.
+A simple singleton is an isolated hyperplane occurring in exactly one
+tuple position. A positive-strength radial direction is \emph{external}
+if it is contained in hyperplanes from two different components.
+A batch \emph{touches} a hyperplane when it has a hit on an external
+direction contained in that hyperplane. Thus sharing a direction always
+means containing that radial line, not merely intersecting it at $x$.  The total external mass in any tuple hyperplane is at
+most \((p-1)t<.01\): sum its overlap with tuple hyperplanes in other
+components.
+
+Condition on all external schedules.  Internal schedules belonging to
+different components are independent.  Directions contained in no tuple
+hyperplane contribute an independent truncation probability at most one,
+which can be omitted from the absolute expectation bound.  The remaining
+truncation condition splits into its external condition and one internal
+condition per component.
+The internal mass in every hyperplane is at least \(.74\).
+In a batch with no external hit the expected absolute value of its factor is at
+most \(2e^{-.74L}\).  If there is an external hit the factor has magnitude
+\(b_0\le e^{-.92L}\).  A component containing two distinct hyperplanes,
+or a singleton repeated in the tuple, consequently costs at most
+\begin{equation}
+ e^{-.7P}.
+ \label{eq:nonsimple-attenuation}
+\end{equation}
+To see this, keep only the absolute factors of one of its hyperplanes;
+all other absolute factors are at most one.  Drop its internal
+truncation and multiply the one-batch bounds.  This bound is uniform in
+the external schedules.
+
+For a simple singleton \(H\), let \(\theta_{\max}\) be its largest overlap
+with another tuple hyperplane, or zero if there is none.  The external
+mass is at most \(p\theta_{\max}\le .01\).  In an untouched batch its
+signed mean has magnitude at most
+\(Le^{-.74L}(|\delta'_H|+p\theta_{\max})\); a touched batch has factor
+\(-b_0\).  If fewer than half the batches are touched, the product of
+means is therefore bounded in absolute value by
+\begin{equation}
+ e^{-.68P}\bigl(|\delta'_H|^{R/2}+
+                         (p\theta_{\max})^{K_c}\bigr).
+ \label{eq:simple-signed-attenuation}
+\end{equation}
+Here \((CL)^R=e^{o(P)}\), and \(R/2\ge K_c\).
+If at least half are touched, the bound is instead
+\(e^{-.68P}\mathbf1_{\mathrm{BAD}(H)}\), where
+\(\mathrm{BAD}(H)\) denotes this condition on the external schedules.
+
+Internal truncation adds to \eqref{eq:simple-signed-attenuation} at most
+\begin{equation}
+ e^{-.68P}\sum_{\ell\subset H}(Pa_\ell)^J.
+ \label{eq:truncation-error}
+\end{equation}
+For a direct verification, union over a line with hits in \(J\) specified
+batches.  Each forced batch has score factor \(-b_0\) and probability at
+most \(La_\ell\).  Every remaining batch has absolute expectation at
+most \(2e^{-.74L}\).  Summing the choices of forced batches gives
+\((Pa_\ell)^J\) while retaining the displayed attenuation.  Thus no
+independence conditional on the truncation event is being asserted.
+
+We can now designate each simple singleton as a deviation, shift,
+truncation-error or BAD term according to these bounds.  The first three
+have respective weights
+\[
+ |\delta'_H|^{R/2},\qquad (p\theta_{\max})^{K_c},\qquad
+ \sum_{\ell\subset H}(Pa_\ell)^J;
+\]
+the last has its BAD indicator.  The truncation-error designation is absent
+when \(g_1\le\chi_0\), since \(\mathcal G_x\) is then the whole space.
+Every simple position retains
+\(e^{-.68P}\), including positions whose additional weight will be
+dropped in the counting below.
+
+\paragraph{Counting components and the first three designations.}
+Normalize all counts by \(B\) for each tuple position.
+Identifying repeated positions and choosing orders or component trees
+costs \(p^{O(p)}\).  Begin each component with at least two distinct
+hyperplanes by an ordered edge.  Its normalized count is at most
+\(e^{2\chi}(C/t)^{K_c}\).  Every subsequent distinct vertex along a tree
+costs at most \(\Delta_t/B\le e^{-3P}\); a repeated position costs
+\(1/B\).  A repeated singleton has normalized cost \(O(1)\) for its
+first two positions, since \(Q_{d-1}=O(B^2)\), and \(1/B\) thereafter.
+
+Encode all deviation and truncation-error singletons next.  The
+normalized sum of deviation weights is at most \(D_x/B\le Ce^\xi\).
+For the error weights, the number of pencil hyperplanes containing a
+fixed radial line is at most \(Cq^2\).  In the high case their normalized
+sum is consequently bounded by
+\[
+ \frac{Cq^2}{B}\sum_\ell(Pa_\ell)^J\le e^{2\chi}.
+\]
+Indeed use the local line-count estimate dyadically, the identity
+\((q^2/B)q^{2-2v}=O(e^{-g_1})\), and the maximum strength \(Ce^{-g_1}\).
+The resulting bound is
+\(\exp(\chi-(J-99)g_1+J\log P+O(J+\log\sigma))\), which suffices because
+\(g_1>\chi_0\gg\log P\).
+
+For a positive shift weight choose a neighbor attaining the largest
+overlap, and its dyad \(a\le\theta<2a\).  If the neighbor is already
+encoded, the normalized weighted choice costs at most
+\[
+ (\Delta_a/B)(2pa)^{K_c}\le e^{2\chi}(2p)^{K_c}.
+\]
+Otherwise encode the ordered pair using \(E_a/B^2\); the same
+cancellation holds.  The neighbor is then a shift or BAD singleton,
+because the other types have already been encoded.  Drop its extra
+weight, which is at most one, but retain its attenuation.  Each operation
+encodes one or two new vertices, so this procedure terminates even when
+the chosen-neighbor relation contains cycles.
+
+Only unencoded BAD singletons remain.  We next give the complete
+certificate count for their schedule requirements.
+
+\paragraph{Certificates for the BAD singletons.}
+For each external direction \(\ell\) and batch \(r\), the hit indicator
+has probability \(1-e^{-La_\ell}\le La_\ell\).  These indicators are
+independent.  We use a dictionary of directions, maintaining the
+following invariant: every dictionary direction belongs to an already
+encoded hyperplane and has at least one specified positive hit event.
+When a new direction is first specified, pay for its newly specified
+direction--batch events.  Later references to this dictionary entry
+impose no new hit requirement.  In particular they never pay for the
+same random event twice.
+
+This is a union bound over static descriptions.  For each fixed tuple
+and description, the retained positive requirements involve distinct
+direction--batch pairs and have probability at most the product of their
+\(La_\ell\)'s.  Absence requirements may be dropped.  The description
+chosen for an actual realization can depend on that realization; no
+conditional independence along this choice is needed.
+
+\paragraph{Stage 1: anchors.}
+First consider \(g_1\le\chi_0\).  If an unencoded vertex has a touched
+direction shared with an encoded hyperplane \(H_0\), use it as an anchor.
+For a new direction, the weighted sum of its direction and batch choices
+inside \(H_0\) is at most
+\begin{equation}
+ \sum_{r=1}^R\sum_{\ell\subset H_0}La_\ell\le 2P.
+ \label{eq:anchor-weight}
+\end{equation}
+For an old direction use a dictionary reference and drop its hit
+requirement.  The anchored hyperplane can be chosen in at most
+\(Cq^{d-2}\) ways, giving normalized cost
+\(Cq^{d-2}/B\le Cq^{v-1}\le Ce^{\chi_0}\).
+Encode it and add any new direction.
+
+If \(g_1>\chi_0\), apply this step only when there are two geometrically
+distinct touched directions shared with encoded hyperplanes.  Choose
+the two anchors in succession using \eqref{eq:anchor-weight} or dictionary
+references.  They span a projective plane, so the normalized number of
+possible hyperplanes is at most
+\(Cq^{d-3}/B\le Cq^{v-2}\).  The two encoded neighbors need not be
+distinct, but the two directions must be.  If this step is unavailable,
+there is at most one touched direction to the encoded set.  On
+\(\mathcal G_x\) it accounts for fewer than \(J\) batches.
+
+\paragraph{Stage 2: new pairs.}
+Recheck the anchor steps after every operation.  If no anchor step
+applies, and two unencoded vertices share hits in at least \(K_c\)
+distinct batches on directions contained in no encoded hyperplane, encode that
+ordered pair.  Choose an overlap dyad \(a\le\theta<2a\) and exactly
+\(K_c\) of those batches, with one witnessing direction in each.
+All these directions are outside the dictionary.  Their specified
+direction--batch events are distinct even if a direction repeats.
+For the fixed pair the sum of their probability weights is at most
+\((2Pa)^{K_c}\).  Combined with the pair count this costs at most
+\begin{equation}
+ (E_a/B^2)(2Pa)^{K_c}\le e^{2\chi}(2P)^{K_c}.
+ \label{eq:pair-certificate-cost}
+\end{equation}
+Add both vertices to the encoded set and the new directions to the
+dictionary, and resume the checks.  Restricting new-direction choices to entries outside the
+dictionary preserves independence.  Enlarging their positive weighted
+sum to all directions is only an upper bound on that sum; it does not
+turn repeated events into independent ones.
+
+\paragraph{Stage 3: residual roots.}
+Suppose none of these operations remains possible.  At each residual
+vertex, discard its fewer than \(J\) batches touching the encoded set
+in the high case; in the low case there are none.  Choose a witnessing
+direction and another residual vertex for each remaining touched batch.
+No neighbor occurs in \(K_c\) such batches, since that would allow the
+pair operation.  No direction occurs in \(K_c\) such batches either:
+fix any residual neighbor containing that direction to obtain the same
+contradiction.  Greedily selecting a witness and deleting those with
+either its neighbor or its direction gives at least
+\[
+ h_0=\left\lfloor\frac{R/2-J}{2K_c}\right\rfloor
+\]
+distinct neighbors on distinct directions for every residual vertex.
+
+There is a root set containing at most one tenth of the residual
+vertices such that every nonroot has two of these witness neighbors
+among the roots.  To prove this, select roots independently with
+probability \(1/20\).  A fixed witness list has fewer than two selected
+members with probability at most \((1+h_0)e^{-ch_0}\).  Its union bound
+over at most \(p\) vertices tends to zero, since \(R\gg\log p\).
+Markov's inequality gives probability at most \(1/2\) that more than one
+tenth are selected.  Thus both desired properties hold for some choice.
+A nonempty residual set has at least \(h_0+1\) vertices, so there is no
+small-set exception to this argument.
+
+Encode the roots freely, dropping their BAD indicators.  Encode every
+nonroot from two distinct directions to roots, as in the high-case
+anchor step, using dictionary references whenever possible.  If there
+are \(h\) residual vertices and \(r\le h/10\) roots, the aggregate
+normalized geometric cost is at most
+\begin{equation}
+ C^h q^{rv+(h-r)(v-2)}
+ =C^h q^{h(v-2)+2r}\le C'^h q^{-.3h},
+ \label{eq:root-cancellation}
+\end{equation}
+because \(v\le1.5+O(1/\sigma)\).  The geometric restrictions remain valid
+when a direction is already in the dictionary: reusing its name drops
+only a hit requirement, not the requirement that it lie in the new
+hyperplane.  In particular, two reused but distinct directions still
+span a plane.  Their previously paid hit events are not charged again,
+while the new hyperplane must still contain that plane.
+
+At most \(CK_cp\) dictionary entries and positive hit requirements have
+been recorded.  Orders, statuses, vertex names, batches, dictionary
+references and dyads, together with the powers of \(P\) in
+\eqref{eq:anchor-weight} and \eqref{eq:pair-certificate-cost}, cost at most
+\begin{equation}
+ (CpR\sigma P)^{CK_cp}=\exp(o(pP)).
+ \label{eq:certificate-overhead}
+\end{equation}
+The non-overhead factors are at most \(e^{2\chi+O(1)}\) per operation;
+\eqref{eq:root-cancellation} is favorable.  This completes the count of
+all residual BAD requirements.
+
+Some counting bounds enlarge the sum over valid descriptions by dropping
+geometric constraints.  The extra configurations need not have the
+original strong-component pattern: they are only positive summands in a
+numerical upper bound.  Attenuation is applied to valid tuples before
+their description sums are enlarged, not to these extra configurations.
+
+\paragraph{Completing the moment estimate.}
+All component attenuations were uniform in the external schedules.
+They therefore remain valid for every static certificate.  Only now
+integrate the external variables, dropping the external truncation
+indicator before using their product law.  There is no assertion that
+these variables are independent conditional on \(\mathcal G_x\).
+
+A nonsimple component pays for its first two positions by
+\(e^{-.7P+2\chi}\), apart from the overhead.  Each extra distinct position
+has factor \(e^{-3P}\), and each repeat has factor \(1/B\le e^{-P}\) for
+large \(q\).  Every simple position keeps \(e^{-.68P}\), with cost at most
+\(e^{2\chi+o(P)}\) per position.  Deviation costs \(e^\xi\) are smaller.
+After the overhead \eqref{eq:certificate-overhead}, these bounds give
+\eqref{eq:ambient-high-moment}, with room to spare.  The moment order is
+even, so Markov's inequality applies despite signed individual score
+terms.  Since \(z_{\min}/(10q)=cB e^{-b-8P\tau}\), it gives
+\begin{equation}
+ \PP\{|T_x|>z_{\min}/(10q),\ \mathcal G_x\}
+ \le \exp[-.1pP+p(b+8P\tau+O(1))]\le q^{-50}.
+ \label{eq:ambient-score-tail}
+\end{equation}
+
+\subsection{Simultaneous capture and size}
+\label{subsec:score-assembly}
+
+We finish the proof of Lemma~\ref{lem:score-procedure} under the original
+sampling law.  All fixed-point estimates above were conditional on the
+point being unsampled and uniform in its own schedules.  Multiplying by
+the probability that it is unsampled and then averaging the own
+schedules makes them unconditional upper bounds for failures at
+unsampled points.  Sampled points are included automatically.
+
+The deterministic pencil and local geometry exceptions contain
+\(o(n)\) points.  On the training set, the second moment
+\eqref{eq:validation-second-moment} gives expected typical-score failures
+at most \(n'e^{-cP}\).  Markov's inequality shows that more than \(.01n'\)
+such failures has probability \(e^{-c'P}\), which is negligible relative
+to \(e^{-8P\tau}\).  This validation estimate does not discard the
+additional \(ne^{O(P)}\) ambient centers.
+
+For the ambient size estimate, those additional centers may all be
+included.  Beyond all static exceptions, \eqref{eq:ambient-score-tail},
+\eqref{eq:score-dimension-two}, and the bound on
+\(\sum_x\PP(\mathcal G_x^c)\) show that the expected number of dynamic
+failures is \(O(n+1)\).  Markov's inequality permits at most \(ne^{CP}\)
+of them, except with probability \(e^{-cP}\), again negligible relative
+to \eqref{eq:z-event}.  The total Poisson sample count has mean \(qP\)
+and exceeds \(2qP\) with probability \(e^{-cqP}\).
+
+Intersect these events with \eqref{eq:z-event} and
+\eqref{eq:z-small-mass}.  Their probability is at least
+\(ce^{-8P\tau}\).  At least \(.99n'\) training points have
+\(z_x\le .1z/q\); after the \(o(n)\) static exceptions and the validation
+failures, a fixed positive fraction have score below \(.5z/q\) or are
+sampled.  They belong to \(W\).  Outside the ambient exceptions,
+\(z_x\ge .8z/q\), the exceptional-score error is \(o(z/q)\), and the
+typical score has magnitude at most \(z/(10q)\).  Such unsampled points
+have score above \(.5z/q\) and are excluded.
+
+Finally, the \(Z\)-dependent ambient exception in
+\eqref{eq:z-ambient} has size
+\[
+ Cq^{d+1}/z\le Cn'e^{b+8P\tau}\le ne^{CP}.
+\]
+The at most \(2qP\) sampled points, all other ambient exceptions and
+dynamic failures satisfy the same size allowance.  Thus
+\(|W|\le ne^{CP}\) and \(|W\cap S'|\ge cn'\) simultaneously on a set of
+rows of probability at least \(\exp[-C(P\tau+1)]\), proving the lemma.

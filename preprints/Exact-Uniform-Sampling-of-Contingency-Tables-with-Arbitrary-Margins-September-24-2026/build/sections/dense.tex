@@ -1,0 +1,597 @@
+\section{Sampling a dense completion block}\label{sec:dense}
+
+The completion distributions required by the small-state chain have large
+minimum margins, but their margins need not have comparable sizes.  We now
+give the sampling subroutine, using the global parameters in
+Equation~\eqref{eq:parameters}.  All random choices in its implementation
+use finitely many independent unbiased bits.
+
+\begin{theorem}[Dense completion draw]\label{thm:dense-draw}
+Let a rectangular block have at most $m$ rows and $n$ columns, nonnegative
+integer margins of equal total less than $C$, and every margin at least
+$L=d^{12}$.  For each integer $h\ge1$, there is an algorithm that always
+outputs a feasible integer table and whose law is within $2^{-h}$ in
+total variation of the uniform law on the block's feasible tables.
+Its worst-case bit running time is polynomial in $d,b,h$.  Empty blocks,
+and blocks having a single row or a single column, have deterministic
+completion algorithms with the same guarantee.
+\end{theorem}
+
+The proof first groups integer tables into scaled bins and gives a
+constant lower bound on rejection-sampling acceptance. A log-concave
+continuous density controls the bin normalizer and the conductance of the
+finite bin chain. We then implement its transitions and the within-bin offsets
+with bounded numbers of random bits.
+The scaled-coordinate and softened-density construction follows the
+geometric approach of Dyer, Kannan, and Mount~\cite[Sections~4--5]{DKM1997};
+expanded-polytope rounding is also central to Morris~\cite[Sections~1.3--2]{Morris2002}.
+The estimates and finite-bit sampler needed here are proved below.
+
+\subsection{Scaled coordinates and rejection from bins}
+
+The deterministic cases require no argument beyond the prescribed
+margins, so suppose the block has $a,c\ge2$ rows and columns.  Write its
+margins as $R_i,P_j$.  Reorder the rows and columns so that $R_a$ and $P_c$
+are maximum, breaking ties by their original indices, and restore the
+original order when returning a table.  The entries with $i<a,j<c$
+determine the entire table.  We group their possible integer values into
+intervals of lengths
+\begin{equation}\label{eq:dense-scales}
+ \begin{gathered}
+ s_{ij}=\min(R_i,P_j)\quad(1\le i\le a,\ 1\le j\le c),\\
+ B=d^8,\quad K_0=4B,\quad A=d^4,\\
+ w_{ij}=\left\lfloor\frac{s_{ij}}B\right\rfloor
+ \quad(i<a,\ j<c).
+ \end{gathered}
+\end{equation}
+There are $e=(a-1)(c-1)\le d$ free entries.  Since $s_{ij}\ge L\ge2B$,
+\begin{equation}\label{eq:width-bounds}
+ \frac{s_{ij}}{2B}\le w_{ij}\le\frac{s_{ij}}B.
+\end{equation}
+Each nonnegative integer free entry has a unique representation
+$X_{ij}=w_{ij}v_{ij}+\beta_{ij}$ with integer $v_{ij}\ge0$ and
+$0\le\beta_{ij}<w_{ij}$.  For a feasible table, $X_{ij}\le s_{ij}$,
+so $v_{ij}\le2B<K_0$.  Thus all feasible tables are represented by bins
+indexed by
+\[
+ \mathcal V=\{0,\ldots,K_0-1\}^e
+\]
+and an offset in each free coordinate.  The number of bins depends only
+on the dimensions, although an offset range can depend on the margins.
+We will give weight one to every bin containing a feasible table and
+choose the other weights by penalizing violations of nonnegativity.
+An ideal proposal then samples a weighted bin and uniform offsets,
+rejecting an infeasible table.
+
+To define these weights, pass temporarily to scaled real coordinates.
+For $u\in\R^e$, define the affine table $X(u)$ by
+\begin{align*}
+ X_{ij}(u)&=w_{ij}u_{ij} &&(i<a,\ j<c),\\
+ X_{ic}(u)&=R_i-\sum_{j<c}w_{ij}u_{ij} &&(i<a),\\
+ X_{aj}(u)&=P_j-\sum_{i<a}w_{ij}u_{ij} &&(j<c),\\
+ X_{ac}(u)&=R_a-\sum_{j<c}P_j+
+                    \sum_{i<a,\,j<c}w_{ij}u_{ij}.
+\end{align*}
+These formulas impose all the margins.  Let $T_{ij}=X_{ij}/s_{ij}$,
+including the dependent entries, and set
+\[
+ \mathcal P=\{u\in\R^e:T_{ij}(u)\ge0\text{ for every }i,j\}.
+\]
+Every free scale contributing to a dependent entry is at most that
+entry's scale.  For example, $s_{ij}\le s_{ic}$ follows from
+$P_j\le P_c$, $s_{ij}\le s_{aj}$ from $R_i\le R_a$, and
+$s_{ij}\le s_{ac}$ follows from both inequalities.  Thus every coefficient
+in each normalized affine entry has absolute value at most $1/B$, and
+there are at most $d$ of them.  Consequently
+\begin{equation}\label{eq:dense-lipschitz}
+ |T_{ij}(u)-T_{ij}(v)|\le\frac dB\norm{u-v}_\infty.
+\end{equation}
+Feasibility and Equation~\eqref{eq:width-bounds} imply
+$\mathcal P\subset[0,2B]^e$.  The integer representation above belongs
+to the closed unit bin $Q_v=v+[0,1]^e$, at the point with coordinates
+$u_{ij}=v_{ij}+\beta_{ij}/w_{ij}$.
+
+The feasible polytope has a point $u_*$ with uniform positive slack:
+\begin{equation}\label{eq:dense-interior}
+ T_{ij}(u_*)\ge\frac1{2d}.
+\end{equation}
+To construct it, first assign $s_{ij}/(2d)$ to every cell.  This uses at
+most $cR_i/(2d)\le R_i/2$ in row $i$ and at most
+$aP_j/(2d)\le P_j/2$ in column $j$.  The remaining nonnegative real
+margins have equal totals and can be completed by the greedy
+supply--demand construction.  The resulting table determines $u_*$.
+The strict slack and Equation~\eqref{eq:dense-lipschitz} also show that
+$\mathcal P$ has positive $e$-dimensional volume.
+
+On the cube $[0,K_0]^e$ define
+\begin{equation}\label{eq:dense-penalty}
+ p(u)=\max\bigl(0,\max_{ij}(-T_{ij}(u)-d/B)\bigr),
+ \qquad \rho(u)=2^{-Ap(u)}.
+\end{equation}
+The allowance $d/B$ makes $p$ vanish at the lower corner of every bin
+meeting $\mathcal P$, by Equation~\eqref{eq:dense-lipschitz}.
+The function $p$ is convex and $(d/B)$-Lipschitz in the sup norm;
+therefore $\rho$ is positive, continuous, and log-concave.  Comparison
+with $u_*\in[0,2B]^e$ gives $0\le p(u)\le4d$ on the cube.
+Assign the dyadic bin weights
+\begin{equation}\label{eq:dense-bin-weights}
+ E_v=\lfloor Ap(v)\rfloor,\qquad W(v)=2^{-E_v},
+ \qquad Z_B=\sum_{v\in\mathcal V}W(v).
+\end{equation}
+In particular $W(v)=1$ whenever $Q_v$ contains a feasible point, even
+on its boundary.  For $u\in Q_v$,
+\[
+ \bigl|Ap(u)-\lfloor Ap(v)\rfloor\bigr|
+ \le 1+Ad/B=1+d^{-3}<2,
+\]
+so
+\begin{equation}\label{eq:bin-density-comparison}
+ \tfrac14W(v)\le\rho(u)\le4W(v).
+\end{equation}
+This comparison lets integrals of $\rho$ control sums of bin weights;
+overlapping bin faces have zero volume in these integrals.
+
+An \emph{ideal trial} draws $v$ with probability $W(v)/Z_B$, then draws
+independent uniform offsets $\beta_{ij}\in\{0,\ldots,w_{ij}-1\}$ and sets
+\begin{equation}\label{eq:dense-offset-output}
+ X_{ij}=w_{ij}v_{ij}+\beta_{ij}\qquad(i<a,\ j<c).
+\end{equation}
+It fills the remaining entries to give the prescribed margins and
+accepts exactly when all entries are nonnegative.
+
+\begin{proposition}[Bin rejection]\label{prop:bin-acceptance}
+An ideal trial succeeds with probability at least $1/64$.  Conditional on
+success, its output is exactly uniform on the feasible integer tables.
+\end{proposition}
+\begin{proof}
+The unique bin-and-offset representation of a feasible integer table
+has a bin of weight one.  The table's probability before rejection is
+therefore
+\begin{equation}\label{eq:dense-equal-table-mass}
+ \frac1{Z_B}\prod_{i<a,\,j<c}\frac1{w_{ij}},
+\end{equation}
+independent of the table.  The dependent entries are integers because
+they are integer sums and differences.  This proves conditional
+uniformity, including tables on faces and widths of different sizes.
+
+For the success bound, let $n_{\rm full}$ be the number of bins whose
+entire closure is contained in $\mathcal P$.  Each has weight one and
+accepts every offset, so its contribution to the success probability is
+$1/Z_B$.  We compare $n_{\rm full}$ and $Z_B$ with $\vol(\mathcal P)$.
+Set
+$\mathcal P^- =\{u:T_{ij}(u)\ge2d/B\text{ for every }i,j\}$.
+The affine map
+$u\mapsto(1-\alpha)u+\alpha u_*$ with $\alpha=4d^2/B$
+sends $\mathcal P$ into $\mathcal P^-$ by
+Equation~\eqref{eq:dense-interior}.  Hence Bernoulli's inequality gives
+\begin{equation}\label{eq:dense-inner-volume}
+ \vol(\mathcal P^-)\ge(1-4d^2/B)^e\vol(\mathcal P)
+ \ge(1-4d^3/B)\vol(\mathcal P)
+ \ge\tfrac12\vol(\mathcal P).
+\end{equation}
+Except on grid boundaries, every point of $\mathcal P^-$ lies in a bin
+whose entire closure is in $\mathcal P$: the change of any normalized
+entry across that bin is at most $d/B$.  These bins cover $\mathcal P^-$
+up to a null set and each has volume one, so
+$n_{\rm full}\ge\vol(\mathcal P^-)\ge\vol(\mathcal P)/2$.
+
+To bound $Z_B$, for any $\gamma\ge0$ consider the entire relaxed
+polytope $\mathcal P_\gamma=\{u:T_{ij}(u)\ge-\gamma\text{ for all }i,j\}$
+in $\R^e$, without a cube restriction.  For $u\in\mathcal P_\gamma$ the
+point
+\[
+ z=\frac{u+2d\gamma u_*}{1+2d\gamma}
+\]
+belongs to $\mathcal P$, since the affine coefficients sum to one and
+each $T_{ij}(z)\ge0$.  Thus
+$\mathcal P_\gamma\subset
+u_*+(1+2d\gamma)(\mathcal P-u_*)$, and
+\begin{equation}\label{eq:dense-relaxed-volume}
+ \vol(\mathcal P_\gamma)
+ \le(1+2d\gamma)^e\vol(\mathcal P)
+ \le\exp(2d^2\gamma)\vol(\mathcal P).
+\end{equation}
+This argument also covers points with negative free coordinates.
+The sublevel set $\{p\le(j+1)/A\}$ inside the sampling cube is contained
+in $\mathcal P_{d/B+(j+1)/A}$.  Summing the upper bounds for the penalty
+layers and using Equation~\eqref{eq:bin-density-comparison} gives
+\begin{align*}
+ Z_B&\le4\int_{[0,K_0]^e}\rho(u)\,du\\
+ &\le4\sum_{j\ge0}2^{-j}
+       \exp\bigl(2d^2(d/B+(j+1)/A)\bigr)\vol(\mathcal P)
+ \le32\vol(\mathcal P).
+\end{align*}
+For the last numerical bound put $a_0=2/d^2$ and $b_0=2/d^5$.
+Since $a_0+b_0\le1/4$, both $\exp(a_0)$ and
+$\exp(a_0+b_0)$ are at most $4/3$.  The geometric sum is at most
+$4(4/3)/(1-(4/3)/2)=16$, which is stronger than asserted.
+Consequently
+\[
+ \Pp\{\text{success}\}\ge\frac{n_{\rm full}}{Z_B}
+ \ge\frac{\vol(\mathcal P)/2}{32\vol(\mathcal P)}=\frac1{64}.
+\]
+\end{proof}
+
+\subsection{An integral interpolation inequality}
+
+We supply the continuous inequality used to mix the bins.  It is an
+analytic proof device; the algorithm never integrates or samples a real
+density. This finite-box statement is a special case of the
+Pr\'ekopa--Leindler inequality~\cite{Leindler1972,Prekopa1973}. We include
+the one-dimensional transport argument and induction on slices to specify
+the regularity needed here.
+
+\begin{lemma}[Finite-box integral interpolation]\label{lem:integral-interpolation}
+Let $S_1,S_2,S_0$ be bounded finite unions of open axis-aligned boxes in
+$\R^q$, and let $0<t<1$, with
+$(1-t)S_1+tS_2\subset S_0$.  Let $f_1,f_2,f_0$ be positive continuous
+functions on a compact box containing the closures of these sets.
+If
+\[
+ f_0((1-t)x+ty)\ge f_1(x)^{1-t}f_2(y)^t
+ \quad(x\in S_1,\ y\in S_2),
+\]
+then
+\begin{equation}\label{eq:integral-interpolation}
+ \int_{S_0}f_0\ge
+       \left(\int_{S_1}f_1\right)^{1-t}
+       \left(\int_{S_2}f_2\right)^t.
+\end{equation}
+In particular, for finite unions $S,D_0$ of open boxes in the sampling
+cube,
+\begin{equation}\label{eq:dense-logconcave-interpolation}
+ \int_{(1-t)S+tD_0}\rho\ge
+       \left(\int_S\rho\right)^{1-t}
+       \left(\int_{D_0}\rho\right)^t.
+\end{equation}
+\end{lemma}
+\begin{proof}
+We first prove the one-dimensional integral assertion in the slightly
+larger class needed for slices.  Suppose $F,G,H$ are nonnegative,
+supported on bounded finite unions of intervals, and, after removal of
+finitely many endpoints, are continuous and either zero or bounded
+above and below by positive constants on each interval piece.  Assume
+$H((1-t)x+ty)\ge F(x)^{1-t}G(y)^t$ whenever $F(x)G(y)>0$, apart from
+possible source endpoints.  Source integrals zero give a trivial
+inequality; otherwise write $M_F=\int F>0$, $M_G=\int G>0$.
+
+Let $u(a),v(a)$, $0<a<1$, be the quantiles of $F/M_F$ and $G/M_G$.
+Split $(0,1)$ at the cumulative probabilities of the finitely many
+support endpoints and continuity breakpoints of both densities.  On
+each remaining open interval $I$, the quantiles are continuously
+differentiable, strictly increasing, and satisfy
+\[
+ u'(a)=\frac{M_F}{F(u(a))},\qquad
+ v'(a)=\frac{M_G}{G(v(a))}.
+\]
+These statements follow directly by inverting the continuously
+differentiable cumulative function on a positive interval piece, whose
+derivative is positive.  The function
+$z(a)=(1-t)u(a)+tv(a)$ is also strictly increasing and continuously
+differentiable on $I$.  Its images $z(I)$ for distinct pieces are
+disjoint.  Change of variables on each piece, followed by the weighted
+arithmetic--geometric mean inequality, yields
+\begin{align*}
+ \int H
+ &\ge\sum_I\int_I H(z(a))z'(a)\,da\\
+ &\ge\sum_I\int_I
+ F(u(a))^{1-t}G(v(a))^t
+ \left(\frac{M_F}{F(u(a))}\right)^{1-t}
+ \left(\frac{M_G}{G(v(a))}\right)^t da\\
+ &=M_F^{1-t}M_G^t.
+\end{align*}
+The pieces have total parameter length one.  A gap in a source support
+causes a quantile jump at one of the excluded parameter values; the
+corresponding gaps between image intervals merely omit nonnegative
+contributions to $\int H$.  Thus neither disconnected supports nor
+density jumps require continuity across a gap.
+
+The assertion for dimension $q=1$ follows by restricting the ambient
+continuous weights to their sets.  Induct on $q$.  For each first
+coordinate $x$, let $S_i(x)$ be the slice in the remaining $q-1$
+coordinates and put
+\[
+ F_i(x)=\int_{S_i(x)}f_i(x,x')\,dx'.
+\]
+Whenever $S_1(x)$ and $S_2(y)$ are nonempty, their interpolation is
+contained in $S_0((1-t)x+ty)$.  The induction hypothesis for these slices
+therefore gives
+\[
+ F_0((1-t)x+ty)\ge F_1(x)^{1-t}F_2(y)^t.
+\]
+To justify the one-dimensional step for the marginals, partition the
+first-coordinate axis by all endpoints of all the boxes.  On each open
+piece, a slice domain is a fixed union of boxes or is empty.  In the
+nonempty case it has fixed positive volume.  Each ambient weight has a
+positive minimum and finite maximum on the compact box, so its marginal
+is bounded above and below by positive constants there.  Uniform
+continuity of the weight on the compact box proves continuity of the
+marginal on that piece by integration over this fixed domain.  These are
+exactly the hypotheses of the one-dimensional argument just proved.
+Applying that argument and then iterated integration proves
+Equation~\eqref{eq:integral-interpolation}.
+
+Finally, the interpolation of two finite unions of open axis-aligned
+boxes is the finite union of all pairwise interpolations of their boxes,
+each again such a box.  Convexity of $p$ gives the required pointwise
+inequality for $f_0=f_1=f_2=\rho$, proving
+Equation~\eqref{eq:dense-logconcave-interpolation}.
+\end{proof}
+
+\subsection{Conductance of the bin chain}
+
+The following finite-chain estimate converts a cut bound into a mixing
+bound. We will use it for the bin chain here and for the small-state
+chain in Section~\ref{sec:algorithms}.
+
+\begin{lemma}[Conductance and mixing]\label{lem:mixing}
+Let $P$ be a reversible kernel on a nonempty finite set $V$, with
+stationary probabilities $\pi(x)>0$ and $P(x,x)\ge1/2$.
+Set $Q(x,y)=\pi(x)P(x,y)$ and
+\[
+ \mathcal E_P(H)=\sum_{\{x,y\}\subseteq V}
+ Q(x,y)(H(x)-H(y))^2,
+\]
+where unordered pairs have distinct endpoints.  If
+$\Var_\pi H\le K\mathcal E_P(H)$ for all $H$, with $K\ge1$, then,
+writing $\pi_{\min}=\min_{x\in V}\pi(x)$, for every integer $t\ge0$,
+\begin{equation}\label{eq:elementary-mixing}
+ \norm{P^t(x,\cdot)-\pi}_{\TV}
+ \le \pi_{\min}^{-1}e^{-t/K}.
+\end{equation}
+If, for some $\kappa>0$, every cut satisfies
+\[
+ Q(A,A^c):=\sum_{x\in A,\,y\notin A}Q(x,y)
+ \ge\kappa\min\{\pi(A),\pi(A^c)\},
+\]
+then the variance inequality holds with $K=2/\kappa^2$.
+\end{lemma}
+\begin{proof}
+For nonnegative $g$ with $\pi(g>0)\le1/2$, integrate the cut inequality
+over $A_u=\{x:g(x)^2>u\}$ to obtain
+\[
+ \kappa\norm{g}_{L^2(\pi)}^2
+ \le\sum_{\{x,y\}}Q(x,y)|g(x)^2-g(y)^2|
+ \le\bigl(2\mathcal E_P(g)\norm{g}_{L^2(\pi)}^2\bigr)^{1/2}.
+\]
+The last step is Cauchy--Schwarz and
+\[
+ \sum_{\{x,y\}}Q(x,y)(g(x)+g(y))^2
+ \le2\sum_x\pi(x)(1-P(x,x))g(x)^2
+ \le2\norm{g}_{L^2(\pi)}^2.
+\]
+Consequently $\norm{g}_{L^2(\pi)}^2\le2\kappa^{-2}\mathcal E_P(g)$,
+also when $g=0$.  Choose a $\pi$-median $a$ of $H$ and apply this to
+$(H-a)_+$ and $(a-H)_+$.  Their squared norms sum to
+$\norm{H-a}_{L^2(\pi)}^2$, and their energies sum to at most
+$\mathcal E_P(H)$, by the corresponding inequality on each edge.
+Since the variance is the minimum squared deviation from a constant,
+this proves the cut assertion.
+
+For mixing, reversibility makes $P$ self-adjoint on $L^2(\pi)$ and gives
+$\mathcal E_P(H)=\langle H,(I-P)H\rangle_\pi$.
+The stochastic kernel $2P-I$ is an $L^2(\pi)$ contraction by Jensen's
+inequality and stationarity.  Hence the eigenvalues of $P$ are in $[0,1]$.
+The variance inequality bounds those on the mean-zero subspace by
+$1-1/K\le e^{-1/K}$.  For
+$g_x(y)=\one_{\{y=x\}}/\pi(x)-1$, reversibility gives
+\[
+ (P^tg_x)(y)=\frac{P^t(x,y)}{\pi(y)}-1,
+ \qquad \norm{g_x}_{L^2(\pi)}^2=\pi(x)^{-1}-1.
+\]
+The $L^2$ contraction followed by Cauchy--Schwarz bounds the total
+variation distance by
+\[
+ \tfrac12\sqrt{\pi(x)^{-1}-1}\,e^{-t/K},
+\]
+which implies \eqref{eq:elementary-mixing}.
+On a singleton all asserted variances and
+distances vanish; it may simply be regarded as already mixed.
+\end{proof}
+
+Use the axis-neighbor Metropolis chain on $\mathcal V$.  Each of the
+$2e$ signed coordinate directions is proposed with probability
+\[
+ q_B=2^{-q_{\rm bin}},\qquad
+ q_{\rm bin}=\lceil\log_2(8d)\rceil;
+\]
+the unused probability, or a proposal leaving the cube, holds.  A
+proposal $v'$ within the cube is accepted with probability
+$\min(1,W(v')/W(v))$.  This chain is reversible for
+$\pi_B(v)=W(v)/Z_B$ and holds with probability at least $3/4$.
+
+\Needspace{8\baselineskip}
+\begin{proposition}[Bin conductance and mixing]\label{prop:bin-gap}
+For every nontrivial cut of the bin states, its stationary edge
+conductance divided by the smaller stationary side mass is at least
+\[
+ \kappa_B=\frac1{10^5d^2K_0}.
+\]
+Starting at any bin, after
+$H=d^{50}(h+1)^2$ steps the total-variation distance from $\pi_B$ is at
+most $2^{-4(h+d)}$.
+\end{proposition}
+\begin{proof}
+Write $\mu(E)=\int_E\rho$ and $D=(0,K_0)^e$.  For a cut
+$\mathcal V=V_1\sqcup V_2$, choose $S$ to be the union of the open bins
+on the side of smaller \emph{continuous} mass.  Then
+$0<\mu(S)\le\mu(D)/2$.  Set
+\[
+ t=\frac1{4dK_0},\qquad r=tK_0=\frac1{4d},\qquad
+ M=(1-t)S+tD.
+\]
+We have $S\subset M$, by writing $x=(1-t)x+tx$ for $x\in S$.
+Lemma~\ref{lem:integral-interpolation} gives
+\begin{equation}\label{eq:dense-mass-gain}
+ \mu(M\setminus S)\ge(2^t-1)\mu(S)
+                    \ge t\log(2)\mu(S).
+\end{equation}
+This is actual gained mass even though $S$ need not be convex.
+
+We next cover this gain by neighborhoods of cut faces.  Ignore the
+finite union of grid hyperplanes, a null set.  If $z\in M\setminus S$,
+write $z=(1-t)x+ty$ with $x\in S$, $y\in D$.  The segment from $x$ to
+$z$ stays inside the open convex cube and has sup-norm length less than
+$r$.  Its initial bin lies on the selected side and its terminal bin
+lies on the other side.  Follow the segment through its finitely many
+grid crossings.  At a crossing in several coordinates simultaneously,
+the incident bins are indexed by the two choices in each crossing
+coordinate, and are connected by axis-neighbor faces through that same
+point.  If the incoming and outgoing bins have different labels, a face
+path between them contains an opposite-label pair.  Its common closed
+face contains the crossing point.  Since some crossing changes the
+label, $z$ is at sup distance less than $r$ from a cut face.  No exterior
+face is needed: the entire segment lies in $D$.
+
+For such a closed unit face $F$, take its sup-distance-$r$ neighborhood
+intersected with $D$, denoted $F^{(r)}$.  Its volume is at most
+\[
+ 2r(1+2r)^{e-1}
+ \le\frac1{2d}\exp\left(\frac{e-1}{2d}\right)\le1.
+\]
+If $v$ is the lower corner of either bin adjacent to $F$, every point
+$z\in F^{(r)}$ satisfies $\norm{z-v}_\infty\le1+r$.  Hence
+\[
+ \rho(z)\le2^{(Ad/B)(1+r)}\rho(v)\le4W(v),
+\]
+and the same inequality holds for the other adjacent corner $v'$.
+Thus $\mu(F^{(r)})\le4\min(W(v),W(v'))$.  Combining the face cover with
+Equation~\eqref{eq:dense-mass-gain}, and writing
+$D_i=\sum_{v\in V_i}W(v)$, gives
+\begin{align*}
+ \sum_{\substack{vv'\text{ axis-neighbors}\\v\in V_1,\ v'\in V_2}}
+             \min(W(v),W(v'))
+ &\ge\frac{t\log(2)}4\mu(S)\\
+ &\ge\frac{t\log(2)}{16}\min(D_1,D_2).
+\end{align*}
+The second inequality follows from
+Equation~\eqref{eq:bin-density-comparison}: the selected continuous side
+has mass at least one quarter of its own discrete weight, which is at
+least $\min(D_1,D_2)$.  It does not require the two notions of smaller
+side to agree.  Stationary edge conductance is
+$q_B\min(W(v),W(v'))/Z_B$.  Since $q_B\ge1/(16d)$, the cut ratio is at
+least $\log(2)/(1024d^2K_0)\ge\kappa_B$.
+
+The weights satisfy $2^{-4Ad}\le W(v)\le1$, so
+\[
+ \pi_{B,\min}\ge\frac{2^{-4Ad}}{K_0^e},\qquad
+ \log\pi_{B,\min}^{-1}\le4d^5\log2+d\log(4d^8)\le4d^5.
+\]
+Lemma~\ref{lem:mixing} supplies inverse gap at most
+\[
+ K_B=2\kappa_B^{-2}=3.2\cdot10^{11}d^{20}\le d^{32}
+ \quad(d\ge14).
+\]
+It bounds the error at time $H$ by
+$\exp(4d^5-H/K_B)$.  Since $d^{18}\ge4d^5$ and
+$d^5h(h+2)\ge(d+1)h\ge h+d$, we have
+\[
+ \frac H{K_B}-4d^5\ge d^{18}(h+1)^2-4d^5
+ \ge4d^5h(h+2)\ge4(h+d)\log2.
+\]
+This proves the asserted error.
+\end{proof}
+
+\subsection{A bounded random-bit implementation}
+
+We finish the proof of Theorem~\ref{thm:dense-draw}, keeping explicit
+bounds that will also describe the finite output law in
+Section~\ref{sec:algorithms}.  Use the integer schedule
+\begin{equation}\label{eq:dense-schedule}
+ J=d^4(h+1),\qquad H=d^{50}(h+1)^2.
+\end{equation}
+Run at most $J$ independent trials, each running $H$ bin-chain steps from $0$.
+At the end of each bin walk use Equation~\eqref{eq:dense-offset-output},
+but obtain each offset from the bounded draw
+\begin{equation}\label{eq:dense-offset-bits}
+ \begin{gathered}
+ k_{ij}=\lceil\log_2(w_{ij}+1)\rceil+4(h+d),\quad
+ Z_{ij}\text{ uniform on }\{0,\ldots,2^{k_{ij}}-1\},\\
+ \beta_{ij}=\left\lfloor\frac{w_{ij}Z_{ij}}{2^{k_{ij}}}\right\rfloor.
+ \end{gathered}
+\end{equation}
+Return the first feasible table.  If all $J$ trials fail, return a fixed
+greedy feasible table with the required margins.
+
+Each offset probability differs from $1/w_{ij}$ by at most $2^{-k_{ij}}$:
+its number of preimages is either the floor or the ceiling of
+$2^{k_{ij}}/w_{ij}$.  Thus its total-variation error is at most
+$w_{ij}/2^{k_{ij}}\le2^{-4(h+d)}$.  Coupling the independent offsets
+coordinate by coordinate bounds their joint error by
+$d2^{-4(h+d)}$.  Proposition~\ref{prop:bin-gap} bounds the bin error by
+$2^{-4(h+d)}$, so a complete implemented trial, including its success
+flag, differs from an ideal trial by at most
+$(1+d)2^{-4(h+d)}$.
+
+Couple the $J$ independent trial records until the first discrepancy.
+This bounds the difference between the implemented first-success
+procedure and its ideal counterpart by
+$J(1+d)2^{-4(h+d)}$, without conditioning on an approximate success event.
+By Proposition~\ref{prop:bin-acceptance}, the ideal procedure has uniform
+law on success and failure probability at most $(63/64)^J$.  Its greedy
+fallback therefore changes the uniform law by at most this probability.
+The total error is at most
+\begin{equation}\label{eq:dense-total-error}
+ (63/64)^J+J(1+d)2^{-4(h+d)}\le2^{-h}.
+\end{equation}
+For explicit numerical bounds, $d^4\ge128$ gives
+$(63/64)^J\le\exp(-J/64)\le2^{-2(h+1)}\le2^{-h-2}$.
+Also $d\le2^{d/2}$, $d+1\le2^d$, and $h+1\le2^h$ give
+$J(1+d)2^{-4(h+d)}\le2^{-3h-d}\le2^{-h-2}$.
+All actual outputs are feasible by the acceptance test or the fallback.
+
+It remains to account for every computation in the bit model.
+At an integer bin corner $v$, the entries $X_{ij}(v)$ are integer sums
+of products $w_{ij}v_{ij}$ and margins.  Since $w_{ij}<C/B$ and
+$v_{ij}<4B$, their absolute values are at most a fixed multiple of $dC$;
+they have $O(b+\log d)$ bits.  The candidates for the maximum defining
+$p(v)$ are the rational numbers
+\[
+ 0\quad\text{and}\quad
+ \frac{-BX_{ij}(v)-ds_{ij}}{Bs_{ij}}.
+\]
+Cross multiplication, comparison, multiplication by $A$, and integer
+division compute $E_v=\lfloor Ap(v)\rfloor$ exactly with polynomial bit
+cost.  Denominators have $O(b+\log d)$ bits and there are at most $d$
+candidates.  In particular no evaluation of an exponential or integral
+is required.  We have $0\le E_v\le4Ad$, so a Metropolis acceptance is
+either certain or has probability $2^{-(E_{v'}-E_v)}$, implemented by
+requiring that many fresh unbiased bits to be zero.  The difference has
+absolute value at most $8Ad$, a convenient uniform allowance.  A draw
+of $q_{\rm bin}$ bits proposes each signed coordinate direction by one
+code, with the remaining codes holding; this implements the stated
+proposal exactly.
+
+The offset draw in Equation~\eqref{eq:dense-offset-bits} uses
+$O(b+h+d)$ bits and an integer multiplication and division on numbers
+of polynomial bit length.  Table construction, feasibility tests, the
+greedy fallback, and the bounded loop counters also use polynomially
+many operations on polynomial-length integers.  There are $JH$
+transitions and at most $dJ$ offsets.  Schoolbook integer arithmetic
+already yields a worst-case polynomial bound in $d,b,h$.
+
+For later use, a uniform upper bound on the number of bits per transition
+and per offset is respectively
+\begin{equation}\label{eq:dense-denominator-bounds}
+ \begin{gathered}
+ Q_0=q_{\rm bin}+8Ad,\qquad
+ r_{\max}=b+1+4(h+d),\\
+ R_1=HQ_0+dr_{\max},\qquad R_D=JR_1.
+ \end{gathered}
+\end{equation}
+Unused transition bits, missing free coordinates, and unused trials
+after the first success can be padded with unread independent bits.
+Thus a trial has probabilities with common denominator $2^{R_1}$, and
+the whole subroutine has probabilities with common denominator
+$2^{R_D}$.  This padding changes no output law.  For an offset of width
+$w$ and actual bit length $k$, its exact probability of value $\beta$ is
+\begin{equation}\label{eq:dense-offset-count}
+ 2^{-k}\left(
+ \left\lceil\frac{(\beta+1)2^k}{w}\right\rceil-
+ \left\lceil\frac{\beta2^k}{w}\right\rceil\right),
+ \qquad 0\le\beta<w.
+\end{equation}
+It can therefore be tabulated by integer arithmetic without enumerating
+the random bit strings.  The deterministic completion cases can use the
+same denominator allowances.  This completes the proof of
+Theorem~\ref{thm:dense-draw}.

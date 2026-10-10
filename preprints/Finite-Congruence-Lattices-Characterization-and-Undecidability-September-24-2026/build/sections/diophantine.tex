@@ -1,0 +1,340 @@
+\section{The Diophantine reduction}
+\label{sec:diophantine}
+
+We combine the effective counting theorem with the size readings of
+\Cref{sec:weighted}.  The distinction between their quantifiers is
+essential: the counting bound is computable from the number of units,
+whereas the literal numerical sizes used to exhibit a template need
+only exist when the Diophantine instance has a solution.
+
+\begin{definition}[Positive circuits]\label{n:positive-circuits}
+A positive circuit is a finite arithmetic circuit with positive integer
+input variables, constant $1$, and addition and multiplication gates.
+A \emph{value variable} records either an input or a gate value.
+A circuit equation requires equality of two designated outputs.
+\end{definition}
+
+Solvability of positive circuit equations is undecidable.  Indeed,
+the Davis--Putnam--Robinson--Matiyasevich Theorem gives undecidability
+of polynomial solvability over the nonnegative integers
+\citep{Matiyasevich1970,Matiyasevich1971}.  Replace each nonnegative variable $x$ by
+$y-1$ with $y$ positive, expand the resulting integer polynomial,
+and move its positive and negative coefficient terms to opposite
+sides.  Add $1$ to both sides, so each side is positive even when
+one collection of terms was empty.  Positive integer coefficients
+are made by sums of $1$, powers by products, and the resulting
+polynomials by positive circuits.  All these transformations are
+effective and preserve existence of a solution.
+
+\begin{lemma}[Encoding a circuit by weighted comparisons]
+\label{n:circuit-template}
+There is an absolute stock integer $S$ with the following property.
+For every positive circuit equation $\mathcal C$, one can compute
+an integer $t_S(\mathcal C)$ from its syntax such that every positive
+solution determines a weighted template $F$ with at most
+$t_S(\mathcal C)$ units.  In every size reading of this template
+supplied by \Cref{t:weighted-realization}, the actual raw sizes
+give a positive solution of $\mathcal C$ in the same cell alignment.
+If all cells in that reading have size at most $Q$, the resulting
+solution has all its value variables at most $Q$.
+\end{lemma}
+
+\begin{proof}
+For every value variable $v$, including all gate values, prescribe
+a full \emph{raw cohort} $R_v$ of size $v$ per unit and a full
+\emph{side cohort} $E_v$ of size $16v$ per unit.  These sizes are
+literal integers when a solution is given.  The relation between
+the two cohorts is recorded by a comparison of one side unit
+with sixteen distinct raw units.  For a constant value $v=1$,
+compare one side unit with sixteen distinct singleton markers.
+
+For each required square side, include the primary square cohort
+$Q_v$ of side $16v$, its auxiliary cohort of shape
+$(4v)\times2\times2$, the full axis-reference cohorts, and all
+required full offset cohorts.  A unit from $E_v$ itself may serve
+as the full side reference for $Q_v$.  Every extra full reference
+and every raw or side cohort receives its prescribed offset
+where required; an offset cohort requires no further offset.
+The formal square sides satisfy $8\mid16v$ and $16v\ge16$.
+The needed full references for bounded slots are included as
+well.  Distinct roles may use disjoint lots even when their
+numerical sizes happen to coincide.
+
+An addition gate $c=a+b$ is recorded by the comparison
+\begin{equation}\label{n:add-comparison}
+ E_c=E_a+E_b,
+\end{equation}
+where an equality of cohort symbols here means an equality of
+the indicated totals on chosen units.  For a multiplication
+gate $c=ab$, introduce a fresh value $d=a+b$, with its own raw
+and side cohorts and its side-to-sixteen-raw comparison.
+Require \Cref{n:add-comparison} for $d=a+b$, and use the
+square comparison
+\begin{equation}\label{n:product-comparison}
+ Q_d=Q_a+Q_b+32E_c.
+\end{equation}
+Whenever needed, add the square cohorts for $a,b,d$ and their
+associated roles.  The output equality is recorded using
+two distinct copies of each output side cohort.  Thus even
+an equality between two individual values is read as an
+equality between two-unit totals.
+
+Each comparison is between disjoint collections of a fixed
+bounded number of units, and at least one collection uses
+more than one unit.  In particular, \Cref{n:product-comparison}
+uses one unit against two square units and thirty-two side
+units, so thirty-five bounds the total support of every circuit
+comparison.  Repeated occurrences of the same variable within
+a comparison use distinct copies.  The pair-total reading
+in \Cref{t:weighted-equal-totals} equalizes all the actual
+sizes in a cohort, so these choices of copies do not change
+the values being read.  The same copies may be used again
+in another comparison.  The comparisons for constants
+use the common marker size one.
+
+Choose once and for all a stock $S$ large enough for
+\Cref{t:weighted-product-success,t:weighted-realization},
+including all bounded marker losses, all marker requests
+in the readings, and the bounded number of distinct copies
+needed in any one comparison.  Enlarge it by a fixed amount
+if necessary for the raw/side and output comparisons.
+With the comparison support and spare-copy needs fixed,
+neither the number of comparisons or cohorts nor any numerical
+size enters this choice.  Singleton raw units may also count
+as markers.  Include the global marker-loss bound in every
+cohort's stock, so enough copies survive even if all deletions
+fall in one raw cohort.  The same surviving copies can be
+used in different comparisons.
+
+The role list is computable from the circuit: take its
+value variables, the fresh sums for multiplication gates,
+the square and auxiliary roles they require, their full
+axis references, and their offsets.  Put the fixed stock
+in every role and include the fixed marker stock.  There
+are only finitely many prescribed roles per value or
+shape, and offsets introduce no further offset recursion.
+Counting these listed lots gives $t_S(\mathcal C)$.
+This calculation uses no solution values.  If sizes of
+different roles coincide, keeping the lots separate
+still gives this same bound on their total unit count.
+
+Now start with a positive solution and construct the
+literal weighted template using its values.  All the
+prescribed total equalities hold.  Apply the weighted
+size readings in their one common cell alignment.  Let
+$r_v$ and $e_v$ be the actual raw and side sizes; the
+cohort equalization makes these well-defined positive
+integers.  The raw/side and constant comparisons give
+\begin{equation}\label{n:read-side}
+ e_v=16r_v,\qquad r_v=1\ \hbox{for every unit constant}.
+\end{equation}
+In particular each side reference is even and at least
+sixteen, so \Cref{t:weighted-square} applies to every
+required primary square and reads its actual size as
+$e_v^2$.  Addition comparisons give $r_c=r_a+r_b$.
+At a multiplication gate, the fresh sum gives
+$r_d=r_a+r_b$ and \Cref{n:product-comparison} becomes
+\begin{equation}\label{n:factor-thirty-two}
+ \bigl(16(r_a+r_b)\bigr)^2
+   =(16r_a)^2+(16r_b)^2+32(16r_c).
+\end{equation}
+Subtracting the first two squares gives
+$512r_ar_b=512r_c$, hence $r_c=r_ar_b$.
+This explains the factor $32$: the cross term of
+the squared side sizes is $2\cdot16^2r_ar_b$, while
+one side unit for $c$ has size $16r_c$.
+The doubled output comparison gives the required
+output equality.  All equations concern the same
+actual raw sizes, because the size readings use one
+alignment simultaneously.  These sizes are themselves
+cell sizes, so their bound by $Q$ proves the last
+assertion.
+\end{proof}
+
+\begin{theorem}[Undecidability of finite representability]
+\label{n:undecidable}
+There is no algorithm which, given the tables of a finite
+lattice, decides whether it is isomorphic to the congruence
+lattice of a finite algebra.  Equivalently, there is no
+total computable bound, in terms of lattice cardinality,
+for the minimum carrier size among all representable
+finite lattices.
+\end{theorem}
+
+\begin{proof}
+Suppose that such a decider exists.  By
+\Cref{f:cor-witness-bound}, it gives a total computable
+nondecreasing function $M(N)$ that bounds a representing
+carrier for every representable lattice with at most
+$N$ elements.  Explicitly, enumerate the finitely many
+lattice tables on at most $N$ points, retain the YES
+instances using the decider, and search the finite
+colored-graph witnesses for each retained table until
+one is found.  The graph criterion supplies a finite
+algebra on that witness carrier.  Taking the maximum
+over these finitely many searches produces $M(N)$.
+
+Fix the absolute integer $S$ from \Cref{n:circuit-template}.
+Its existence is sufficient: the single integer $S$
+may be hardwired in the algorithm below.  This step
+does not assert an algorithm for extracting a sharp,
+or even a specified, sufficient stock from the
+structural arguments.  Once fixed, the function
+$t_S(\mathcal C)$ is computable from the circuit syntax.
+For an input circuit equation $\mathcal C$, compute
+\begin{equation}\label{n:computable-witness-bound}
+ \begin{aligned}
+  t&=t_S(\mathcal C),&
+  N&=\Phi(t),&
+  m&=M(N),&
+  Q&=60^m m!.
+ \end{aligned}
+\end{equation}
+
+We claim that if $\mathcal C$ has any positive solution,
+then it has one whose value variables are all at most
+$Q$.  Given an arbitrary positive solution, use
+\Cref{n:circuit-template} to exhibit its weighted
+template $F$.  Its literal size parameters may be much
+larger than the bounds just computed, but
+\Cref{n:template-bound} still gives $|F|\le N$.
+The template is representable by the coset action of
+its defining ordinary subgroup interval, as in
+\Cref{t:weighted-algebra}.  Hence it has a finite-algebra
+representation on at most $m$ points.
+
+Among the representations of all nontrivial lattice
+images of this $F$, take one with least carrier size
+$m_0$.  Since $F$ itself is one such image, $m_0\le m$.
+The nontrivial-image reduction of
+\Cref{t:weighted-algebra} gives an ordinary interval
+for the dual of a nontrivial image, with top group
+order at most
+\[
+ 60^{m_0}m_0!\le60^m m!=Q.
+\]
+The product-success and size-reading
+\Cref{t:weighted-realization} then provides the common
+actual cell alignment, after only the allowed bounded
+marker deletions.  Every read cell size is positive
+and at most this top-order bound; markers have size
+one.  \Cref{n:circuit-template}, with its preserved
+stocks, now extracts a positive solution of
+$\mathcal C$ all of whose value variables are at most
+$Q$.  The side sizes are multiples of sixteen by
+\Cref{n:read-side}, so every use of the square reading
+in this extraction satisfies its actual numerical
+hypothesis.
+
+Thus the complete quantifier implication is
+\begin{equation}\label{n:quantifier-chain}
+ \begin{aligned}
+ &\exists\,\mathbf v>0\quad\mathcal C(\mathbf v)
+ \\
+ &\quad\Longrightarrow\quad
+ \exists F\quad |F|\le N,\quad F\text{ representable}
+ \\
+ &\quad\Longrightarrow\quad
+ \exists A\quad \operatorname{Con}A\cong F,\quad |A|\le m
+ \\
+ &\quad\Longrightarrow\quad
+ \exists[H,G]\text{ as above with }|G|\le Q
+ \\
+ &\quad\Longrightarrow\quad
+ \exists\,\mathbf r\in\{1,\ldots,Q\}^{k}
+       \quad\mathcal C(\mathbf r).
+ \end{aligned}
+\end{equation}
+where the circuit determines $k$ and all quantities in
+\Cref{n:computable-witness-bound} are computed before
+any solution is known.  Auxiliary fresh sums can be
+included among the $k$ value variables; restricting
+back to the original values preserves the conclusion.
+The reverse implication from a bounded solution to
+some solution is immediate.
+
+An algorithm may therefore compute
+\Cref{n:computable-witness-bound} and search all positive
+assignments up to $Q$ to the finitely many value
+variables, checking each gate and the output equality.
+It terminates, and \Cref{n:quantifier-chain} makes its
+answer correct.  It never needs to construct a weighted
+template with unknown sizes: that template was used
+only to prove that an existing solution has a bounded
+replacement.  This would decide positive circuit
+solvability, contradicting the
+Davis--Putnam--Robinson--Matiyasevich Theorem.
+The equivalent carrier-bound formulation follows
+again from \Cref{f:cor-witness-bound}.
+\end{proof}
+
+The structural input to this reduction is precisely the
+weighted success theorem, whose exclusion arguments use
+the sufficiently-general subgroup theorem in the scope
+established earlier.  The reduction introduces no
+additional uniformity in the numerical weights beyond
+the computable counting bound proved in
+\Cref{n:template-bound}.
+
+\begin{corollary}[Undecidability of finite subgroup-interval recognition]
+\label{n:interval-undecidable}
+There is no deterministic Turing machine which, given the order table
+of a finite nonempty lattice $L$, always halts and decides whether
+$L\cong[H,G]$ for some finite group $G$ and subgroup $H\le G$, where
+$[H,G]$ consists of every subgroup $K$ with $H\le K\le G$, ordered by
+inclusion.  Equivalently, there is no total computable bound, in terms
+of lattice cardinality, on the least possible order of the top group
+$G$ among lattices admitting such a realization.
+\end{corollary}
+
+\begin{proof}
+Suppose first that such a decider exists.  For each $N\ge1$, enumerate
+all order-relation tables on sets of at most $N$ points, retain those
+which are nonempty lattice tables, and use the decider to select the
+affirmative ones.  For each selected table, enumerate finite
+multiplication tables in increasing carrier size.  Test the group
+axioms, enumerate the subgroups $H$, and for each $H$ enumerate every
+subgroup $K$ containing it.  Testing the finitely many bijections
+then decides whether the resulting full inclusion interval is
+isomorphic to the selected lattice.  Each selected search terminates.
+The maximum of the witness group orders found and $1$, followed by
+an increasing envelope if necessary, gives a total computable
+nondecreasing function $B(N)$ such that every affirmative lattice
+with at most $N$ elements has a realization $[H,G]$ with $|G|\le B(N)$.
+Conversely, any total computable bound on the least possible $|G|$
+gives a decider by the same finite tests restricted to group orders
+up to that bound.  Thus it suffices to contradict the existence of $B$.
+
+Fix the absolute stock integer $S$ of Lemma~\ref{n:circuit-template}; as
+in the preceding proof, this one integer may be hardwired.  For a
+positive circuit equation $\mathcal C$, compute from its syntax
+\[
+ t=t_S(\mathcal C),\qquad N=\Phi(t),\qquad Q=B(N).
+\]
+These quantities are computed before any solution is known.
+If $\mathcal C$ has a positive solution, Lemma~\ref{n:circuit-template}
+exhibits a weighted template $F$ with at most $t$ units, and
+\Cref{n:template-bound} gives $|F|\le N$.  This literal template is
+itself a full ordinary subgroup interval by Definition~\ref{t:weighted-template}.
+It is nontrivial: the circuit construction includes side units of
+size $16v\ge16$.  The bound $B$ therefore supplies an ordinary
+realization $F\cong[H,G]$ with $|G|\le Q$.
+
+Use the identity $F\to F$ as the nontrivial weighted image allowed
+by Convention~\ref{t:weighted-images}.  Apply the ordinary-input part of
+\Cref{t:weighted-realization} to this realization with its actual
+top order $M=|G|$.  It gives one common size reading whose positive
+cell sizes satisfy $u_j\le M\le Q$.  By Lemma~\ref{n:circuit-template},
+that reading yields a positive solution of the same equation
+$\mathcal C$ with every value variable at most $Q$.
+
+Consequently, if $\mathcal C$ has any positive solution, it has one
+in $\{1,\ldots,Q\}^{k}$, where $k$ is determined by the circuit and
+may include its finitely many auxiliary fresh sums.  The reverse
+implication is immediate.  Computing $Q$ and testing these finitely
+many assignments would decide positive-circuit solvability,
+contradicting the undecidability established at the start of this
+section.  The argument uses the existence of $F$ and of its reading
+only to prove a bounded replacement for a solution; it does not
+require either to be constructed without that solution.
+\end{proof}

@@ -1,0 +1,722 @@
+\section{Additive estimation and conditional prefix bounds}
+\label{sec:est}
+
+The bounded stochastic tables of Section~\ref{sec:atom} represent the exact
+hierarchy through their conditional means.  In this section, earlier
+estimates are input tables and vectors with those interfaces.  We define
+their sampled raw prefixes and derive bounds under the corresponding
+child-error hypotheses.  Two errors arise: the conditional mean can differ
+from the deterministic target, and a finite averaging walk leaves noise
+around that mean.  We bound them separately.
+
+These prefixes are intermediate arrays.  Final row outputs result from
+applying the atom functions to completed, compressed rows;
+Section~\ref{sec:fp-blocks} completes the recursive definition, including
+its endpoint-grouping rule.
+
+The scale and source-domain comparisons first determine the accuracy needed
+from each child.  We then average differences between consecutive child
+budgets.  Their conditional means telescope, while their small absolute
+norms allow finite conditional walks to suppress the noise.  The resulting
+prefix estimates are the input to the compression analysis in
+Section~\ref{sec:buf-compression}.  That section proves an error reserve
+under exact endpoint grouping; Section~\ref{sec:fp-blocks} constructs the
+comparison calculation to which the reserve will apply.
+
+\subsection{Tasks and dependency order}
+
+A row task specifies its input matrix, stage, iteration label, start rate
+$u$, end scale $a$, optional usage rate $t\le a$, channel roles, and fixed
+padding suffixes.  These parameters are common to its whole table.  A
+vector task specifies the analogous vertex domain.  Its argument is a
+vertex, rather than an additional parameter retained by another task.
+Each task has a nonnegative integer statistical budget $M$; $m$ will
+denote a child budget.  These budgets are distinct from the numerical
+digit places introduced in Section~\ref{sec:arith}.
+The ordinary and root discrepancy norms are defined in
+Equations~\eqref{eq:atom-row-norm} and~\eqref{eq:atom-vertex-norm}.
+We always take $s=8$.
+
+The source weight $X_u(x)/u$ has bounded expectation, and the factor
+$1/N$ normalizes the sum over source vertices.  Endpoint sums remain
+explicit: bounded row supports or incoming degrees, as appropriate,
+will control them.  A bound at one specified start consequently costs
+a factor $N$ in moment power; Lemma~\ref{lem:final-majority} makes and
+pays this conversion at the end of the proof.
+
+Here is a dependency order, with only a fixed number of task types at each
+stage.  First come the bin tasks for $C_l$.  At each pilot step come its
+input-score task $\mathcal S_i$, the detector vector $U_i$, and then the
+pilot correction task.  Next come the actual correction tasks in iteration
+order, the routed bin tasks for $D_l$, and the reward update.  Place the
+unnormalized preparation immediately before each normalized task of the
+same input.  The raw first channels of both these tasks refer only to
+earlier inputs in this order; the normalized task has in addition its
+preparation as the source of its second channel.
+
+For a correction task or its preparation, first complete its raw arrays
+and pre-incoming scores, then form its incoming gate from those scores.
+This assembly uses the current task's completed arrays; every recursive
+input to their raw calculation is an earlier task in the order just
+specified.
+
+\subsection{Raw sample terms}
+
+For a fixed row and endpoint let
+\[
+ \mathcal C_{xy}^{u,a}=\{X_u(x)=1,\ Y_a(y)=1\}.
+\]
+We use conditional means and conditional walks on this slice.  Write
+$\mathcal B_b$ for a normalized bin table and $\mathcal B_b^{(j)}$ for a
+bin with destination routing fraction already included; $\mathcal F$
+denotes a normalized correction table.  Their values are in atom units
+and are zero off their specified membership domains.  In all formulas
+below put $\tau=\min(a,b)$.
+
+The direct dense and correction--dense product terms, before division by
+the current first-channel scale $a$, are respectively
+\begin{align}
+ T_b(x,y)&=b\frac{\pi_a}{\pi_\tau}\mathcal B_b(x,y),
+ \label{eq:est-direct}\\
+ T_b^{\rm prod}(x,y)&=
+ b\frac{\pi_a}{\pi_\tau}\frac f{\pi_f}
+ \sum_{z:Z_f(z)=1}\mathcal F(x,z)\mathcal B_b(z,y).
+ \label{eq:est-product}
+\end{align}
+In the product, the left task has roles $X,Z$ and rates
+$(u;f,f)$, listed as start, end, and usage.  The right task has roles
+$Z,Y$ and rates $(f;b,\tau)$.  In the direct term the start rate stays $u$.
+The term $-E$ in $D$ is the negative of
+Equation~\eqref{eq:est-direct} with $b=f$ and $\mathcal F$ in place of
+$\mathcal B_b$.  Summing the direct and product terms gives the raw inputs
+$G_i,G_i'$; adding the negative term gives $D$.
+
+For a copy projection $x_i,y_j$ from stage $l+1$ to stage $l$, the raw term
+is
+\begin{equation}
+ r_i(x)b\frac{\pi_a}{\pi_\tau}\mathcal B_b^{(j)}(x,y).
+ \label{eq:est-projection}
+\end{equation}
+Partition by the fixed symbols $i,j$.  Append those symbols to the native
+hash arguments before the inherited suffixes on their respective channels.
+The parent-stage source multiplier is obtained from its detector vectors
+on the broad parent-stage vertex domain.  No child tuple contains the old
+source or a particular right endpoint as an extra parameter.
+
+For the second raw channel, use $\zeta$ times the preparatory table, take
+its conditional average on $\mathcal C_{xy}^{u,t}$, and extend the result
+by zero off $Y_t(y)$.  For a detector vector use the trial
+\begin{equation}
+ \operatorname{rank}_{J}
+       \{\mathcal S_i(x,y):X_f(x)=1\}
+ \quad\hbox{on the slice }Y_f(y)=1.
+ \label{eq:est-detector}
+\end{equation}
+Ranks include arbitrary zero padding.  For rewards, writing $f=b_l$, the
+two terms for $W_{l+1}(x_i)$ on its inherited source slice are
+\begin{equation}
+ r_i(x)W_l(x),\qquad
+ r_i(x)\frac f{\pi_f}
+       \sum_{z:Z_f(z)=1}\mathcal F(x,z)W_l(z).
+ \label{eq:est-reward}
+\end{equation}
+The first $W_l$ call keeps the inherited source domain; the second restarts
+on the midpoint domain.  Vector answers are finally clipped into $[0,1]$.
+
+\begin{lemma}[True sample means]\label{lem:est-true-means}
+Using true stochastic tables in
+Equations~\eqref{eq:est-direct}--\eqref{eq:est-reward} gives, after the
+indicated conditional averages, the prescribed raw inputs and vector
+values on their conditioning slices, with the stated zero extensions.
+In particular, the first row channel has target
+$d_y=G(x,y)/a$ and the second has target $\zeta q_y\mathbf1_{Y_t(y)}$.
+\end{lemma}
+\begin{proof}
+If $b\ge a$, the usage hit is already the conditioning hit.  The
+conditional normalization of a bin therefore turns $b\mathcal B_b$ into
+its deterministic bin contribution.  If $b<a$, nested origin boxes give
+\[
+ \mathbb E\left[\frac{\pi_a}{\pi_b}\mathbf1_{Y_b(y)}V
+                   \,\middle|\,\mathcal C_{xy}^{u,a}\right]
+   =\mathbb E[V\mid\mathcal C_{xy}^{u,b}]
+\]
+for every integrable $V$ on the narrower slice.  Thus the importance factor
+performs exactly the required change of conditioning.
+
+For a fixed midpoint in Equation~\eqref{eq:est-product}, first make this
+terminal change when necessary and then condition on $Z_f(z)=1$.
+Apart from membership indicators, the true right bin gate and denominator
+use only channel $Y$.  The true left correction uses only channels $X,Z$.
+These channels are independent, and the remaining true multipliers are
+deterministic.  The two normalizations can therefore be applied separately.
+In particular, after the midpoint hit is fixed, the shared role $Z$
+does not occur in the right bin's remaining random value.  This is an
+identity for the true atoms; the estimates will instead be compared by
+their joint error norms.
+The factor $f/\pi_f$ cancels midpoint sampling and converts its correction
+atom to the correction entry.  Summing midpoints proves the product
+formula.  The projection multiplies by deterministic $r_i(x)$ and includes
+the routing fraction in the bin, so the same argument applies on each
+fixed-symbol part.  Fixed-suffix invariance in Lemma~\ref{lem:env-ranks}
+justifies all inherited padding conventions.
+
+The second channel is its defining preparatory conditional mean, on its
+own narrower slice; it has no importance factor.  The detector mean is
+the definition of $U_i$.  True reward factors are deterministic, so the
+same midpoint argument proves Equation~\eqref{eq:est-reward}.
+\end{proof}
+
+To form a budget-$m$ sample term, replace all earlier inputs in the
+corresponding formula by budget-$m$ estimates, with their domains and
+common task parameters unchanged.  This includes the detector inputs
+to $r_i$; the primary factor $r_0=1$ remains constant.  Products, source
+functions, and ranks are evaluated before averaging.  We first compare
+this sample's conditional mean with the same formula using true atoms.
+The scale and source-domain costs of that comparison will determine
+how much accuracy a budget must provide.
+
+\subsection{Mean comparisons and the cost of releasing a source}
+
+Lemma~\ref{lem:est-true-means} identifies the exact conditional means.
+For estimated factors, the comparison has two distinct costs.  The
+factor $b/a$ converts a bin contribution to the current entry units.
+A right factor at a midpoint also replaces the old source domain of
+rate $u$ by the stage domain of rate $f$.  The following estimates
+account for both changes without assuming independence of the errors.
+
+For nonnegative $H,H'$ define
+\begin{equation}
+ \mathcal L(H,H')=
+ \begin{cases}|H-H'|^s/(H+H')^{s-1},&H+H'>0,\\0,&H=H'=0.
+ \end{cases}
+ \label{eq:est-loss}
+\end{equation}
+
+\begin{lemma}[Homogeneous loss]\label{lem:est-loss}
+The loss in Equation~\eqref{eq:est-loss} is comparable, by constants
+depending only on $s$, to $|H^{1/s}-(H')^{1/s}|^s$.  It contracts under
+sums and nonnegative mixtures.  If $H\le C_0G$ for a nonnegative $G$, then
+for every $a>0$ and $H'\ge0$,
+\begin{equation}
+ a\min\left\{1,\frac{|H-H'|}{a+G}\right\}^{s}
+       \le C\mathcal L(H,H'),
+ \label{eq:est-relative-loss}
+\end{equation}
+where $C$ depends only on $s,C_0$.
+\end{lemma}
+\begin{proof}
+Put $v=\max(H^{1/s},(H')^{1/s})$ and
+$w=\min(H^{1/s},(H')^{1/s})$.  Factoring $v^s-w^s$ bounds it between
+$v^{s-1}(v-w)$ and $sv^{s-1}(v-w)$; the denominator is between
+$v^{s(s-1)}$ and $2^{s-1}v^{s(s-1)}$.  This proves comparability.
+For a mixture, apply H\"older to
+$|H-H'|=\mathcal L(H,H')^{1/s}(H+H')^{(s-1)/s}$ and then integrate;
+the triangle inequality first bounds the absolute difference of the
+integrals.  This proves contraction, including finite sums.
+
+If $H'\le2H+a$, then $H+H'\le3C_0G+a\le C'(a+G)$, which proves
+Equation~\eqref{eq:est-relative-loss} directly.  If $H'>2H+a$, then
+$|H-H'|>H'/2$, $H+H'<3H'/2$, and $H'>a$.
+Thus $\mathcal L(H,H')\ge cH'\ge ca$, while the left side is at most $a$.
+\end{proof}
+
+Every unsigned true term of the signed formula for $D$ is bounded by a
+constant times $D$, by Lemma~\ref{lem:hier-residual}; the corresponding
+assertion for the other raw inputs follows from their nonnegative sums.
+Consequently the preceding lemma can be applied separately to all true
+contributions.  Triangle inequalities combine their clipped relative
+errors even when a contribution has a negative sign.
+
+\begin{lemma}[Scale and domain comparison]\label{lem:est-mean-comparison}
+Compare a budget-$m$ sample term with the same term using true stochastic
+inputs.  For a first-channel mean contribution use its clipped relative
+error against $1+d_y$.  In the bound for its $s$th-power norm, the scale
+factor multiplying a child root-discrepancy power is, up to fixed constants,
+\[
+ \begin{cases}
+ b/a,&b\ge a,\\
+ (b/a)^{s-1},&b<a.
+ \end{cases}
+\]
+A child that releases the old source and restarts on a stage-rate $f$
+domain costs in addition at most $f/u$ in norm power.  Direct children
+retaining that source have no such factor.  The same-scale vector and
+second-channel comparisons have constant scale cost, with $f/u$ only
+where a source is released.  No independence of estimated factors is
+required.
+\end{lemma}
+\begin{proof}
+First suppose $b\ge a$.  Apply
+Equation~\eqref{eq:est-relative-loss} after conditional expectation, and
+then the mixture contraction of Lemma~\ref{lem:est-loss} before it.
+Homogeneity supplies a factor $b/a$ after division by $a$.
+The factor $f/\pi_f$ in a product is bounded above and below by fixed
+constants.  For bounded nonnegative atoms a product-root difference splits
+into the factor-root differences, multiplied by fixed constants times
+support indicators of the unaffected factor in one of the two versions.
+
+To determine the source-domain factor, write
+$\Delta_s\mathcal F$ and $\Delta_s\mathcal B_b$ for the root discrepancies.
+After integration on the source/end slice, the relevant sums, besides
+$O(b/a)/N$, have the forms
+\begin{align*}
+ &\mathbb E\sum_{x,z,y}\frac{X_u(x)}u Z_f(z)Y_a(y)
+       |\Delta_s\mathcal F(x,z)|^s
+       \mathbf1_{\mathcal B_b(z,y)\ne0},\\
+ &\mathbb E\sum_{x,z,y}\frac{X_u(x)}u Z_f(z)Y_a(y)
+       \mathbf1_{\mathcal F(x,z)\ne0}
+       |\Delta_s\mathcal B_b(z,y)|^s.
+\end{align*}
+Either support indicator can come from either compared version.  In the
+first sum the right row cap eliminates $y$ at constant cost.  In the
+second sum the left incoming cap eliminates $x$ at cost $O(1/u)$.
+The right child's row metric has weight $1/f$, leaving exactly $O(f/u)$.
+Its tuple is the same for every old source, so this elimination compares
+the same right error throughout.  More explicitly, for either left
+support relation $\mathcal P$ with incoming degree at most $K_c$ and
+a common right discrepancy $e(z,y)$, the relevant inequality is
+\begin{align*}
+ &\frac1N\mathbb E\sum_x\frac{X_u(x)}u
+       \sum_{z:(x,z)\in\mathcal P}Z_f(z)
+       \sum_{y:Y_b(y)=1}|e(z,y)|^s\\
+ &\qquad\leq \frac{K_c}{Nu}\mathbb E\sum_z Z_f(z)
+       \sum_{y:Y_b(y)=1}|e(z,y)|^s\\
+ &\qquad=K_c\frac fu\,\|e\|_{f,b;s}^s,
+\end{align*}
+where the source channel in the last norm is $Z$.
+The incoming cap applies pointwise, so the discrepancy can depend on
+the same environment as $\mathcal P$.
+Using $Y_a\le Y_b$ enlarges the remaining
+endpoint domain to the child's own domain.  A direct term simply retains
+its source and endpoint sums.  In a projected term, the source-multiplier
+error eliminates $y$ by a row cap and changes the vertex weight from
+$1/u$ to $1/f_{\rm par}$; this costs $O(f_{\rm par}/u)$.
+Partitioning the fixed copy symbols keeps every tuple common during these
+sums.
+
+For $b<a$, change the terminal conditioning to $Y_b$ \emph{before}
+taking a power.  The normalized coefficient inside is then $b/a$.
+There are only constantly many nonzero left paths in the union of the
+two rows.  Ordinary bounded-factor difference inequalities and the
+finite-sum power inequality therefore apply with constant cost.  The
+integrated change from $Y_a$ to $Y_b$ leaves $\pi_a/\pi_b$ outside the
+power.  Its total factor is
+\[
+ (b/a)^s\frac{\pi_a}{\pi_b}=O((b/a)^{s-1}).
+\]
+The same row and incoming sums as above then apply, now with $Y_b$.
+Ordinary differences of bounded nonnegative values are controlled by
+their root differences.  Absolute mean error bounds clipped relative
+mean error, so this proves the fine-bin assertion.
+
+For the second raw channel, Jensen is applied directly on
+$\mathcal C_{xy}^{u,t}$.  Its integrated endpoint mask is $Y_t$, already
+contained in the preparatory norm's $Y_a$ domain.  There is no importance
+factor and hence no $\pi_a/\pi_t$ penalty.  The fixed scaling $\zeta$
+does not increase the cost.
+
+A rank discrepancy is at most the supremum of its input discrepancies.
+For the detector trial, summing its power over $Y_f/f$ is bounded by the
+score error sum over $X_f/f$ and $Y_f$; the rates match exactly.
+For rewards, the finite left-path count gives an ordinary product
+comparison, and the same incoming cap eliminates old starts for a
+right-vector error.  Source functions have bounded Lipschitz roots in
+their clipped detector inputs, so their costs are the broad vertex costs
+already computed.  Every estimate here is pointwise or follows from
+Jensen and summation; none uses independence of its errors.
+\end{proof}
+
+The preceding comparison measures errors in a retained sample term.
+Omitting a fine bin instead discards its whole true contribution; the
+next bound measures that loss.
+
+\begin{lemma}[Fine omission]\label{lem:est-omission}
+If one fine bin is omitted, the norm of its normalized contribution is at
+most $C(b/a)^{(s-1)/s}$.  This applies to direct terms, routed terms, and
+correction--bin products.
+\end{lemma}
+\begin{proof}
+The deterministic contribution $H$ has entries at most $Cb$ and bounded
+row mass.  For a product these bounds follow from
+Lemma~\ref{lem:hier-bin-products}.  Therefore
+\[
+ \sum_y\pi_a|H(x,y)/a|^s
+ \le \frac{\pi_a}{a^s}(Cb)^{s-1}\sum_yH(x,y)
+ \le C'(b/a)^{s-1}.
+\]
+Integrating source hits gives $\pi_u/u=O(1)$, and summing at most $N$ rows
+cancels the normalization $1/N$.
+\end{proof}
+
+\subsection{Choosing precision to pay for scale and domain changes}
+
+The preceding bounds explain the rate weights in the accuracy parameter.
+Write $h_b=\log_2(b/a)$ for the offset of a bin scale.
+In norm, the coarse-bin cost is $(b/a)^{1/s}$ and the fine-bin cost is
+$(b/a)^{(s-1)/s}$.  Since $s=8$, a weight $1/2$ between these two
+exponents leaves a geometric margin in both directions.  The same
+weight pays for the source-release cost $(f/u)^{1/s}$.  We now make
+this accuracy convention precise; the additive schedule will then
+trade lower child budgets for longer averaging walks.
+
+Assign positive integer ranks $i_*$ in the task order fixed above, so every
+dependency decreases rank by at least one.  The finite number of pilot steps and of
+preparations is an absolute constant, so $i_*=O(l+1)$.  A task at integer
+budget $M\ge0$ has implicit precision
+\begin{equation}
+ p=\frac{M}{K_{\rm prec}}-\frac12\log_2\frac1a
+        -\frac12\log_2\frac1u-A_*i_*.
+ \label{eq:est-precision}
+\end{equation}
+For a stage-$l$ vector use $a=f=b_l$; detector vectors also have $u=f$,
+whereas rewards retain their inherited start rate.  The constants
+$K_{\rm prec}$ and $A_*$ will be chosen below.  If $p\le0$, return the zero
+table or vector and empty access classes.  Otherwise the task is called
+active.  The intended induction bound is $C_b2^{-p}$ for every required
+ordinary vector norm and every required root discrepancy norm, including
+the pre-incoming scores and witnesses.  A fixed $C_b$ makes this assertion
+trivial for inactive tasks: values and row supports are uniformly bounded,
+and $\mathbb E X_u/u=\pi_u/u=O(1)$.
+
+At a normalized correction task, the column multiplier is assembled from
+earlier detector-vector estimates at budget $M-c_{\rm col}$, for a fixed
+positive integer $c_{\rm col}$.  This is a separate final assembly call.
+All other calls used in one additive sample term have the common
+budget denoted by $m$.
+
+Suppose a child at budget $m$ has parameters $a',u',i_*'$.  Subtracting
+Equation~\eqref{eq:est-precision} for the parent gives the exact identity
+\begin{equation}
+ p'-p=-\frac{M-m}{K_{\rm prec}}
+       +\frac12\log_2\frac{a'}a
+       +\frac12\log_2\frac{u'}u
+       +A_*(i_*-i_*').
+ \label{eq:est-child-precision}
+\end{equation}
+In a bin comparison $a'\ge c b$ for a fixed $c>0$: a bin child has
+$a'=b$, while a correction has $a'=f$ and $b\le K_f f$.
+The start is either retained or reset to the indicated broad stage rate.
+Fixed-stage changes in vector calls only change fixed constants.
+Thus, after taking $s$-th roots of the costs in
+Lemma~\ref{lem:est-mean-comparison}, the scale contribution times child
+accuracy is bounded by
+\begin{equation}
+ C C_b\,2^{-p-A_*+(M-m)/K_{\rm prec}}
+          2^{-3|h_b|/8}.
+ \label{eq:est-scale-slack}
+\end{equation}
+Indeed for $h_b\ge0$ the exponent is $h_b/s-h_b/2=-3h_b/8$;
+for $h_b<0$ it is $(s-1)h_b/s-h_b/2=3h_b/8$.
+For a child that restarts at rate $f$, the source-domain comparison costs
+$(f/u)^{1/s}$ in norm, while its precision gains
+$\frac12\log_2(f/u)$.  Multiplying the cost by the resulting accuracy
+factor gives
+$(f/u)^{1/s-1/2}=(f/u)^{-3/8}\le C$, using the allowed start-rate
+condition $u\le f$.
+
+For the separate final column-vector call, $a=f$, its child uses
+$a'=u'=f$, and $M-m=c_{\rm col}$.  Thus its norm cost times child
+accuracy is at most
+\[
+ C C_b2^{-p}\,2^{c_{\rm col}/K_{\rm prec}-A_*}
+       (f/u)^{-3/8}.
+\]
+The fixed rank separation pays this fixed budget loss.  This calculation
+also explains why the source-domain ratio is charged in the error
+analysis rather than inserted as a numerical coefficient in a sample.
+
+\subsection{The additive schedule}
+
+Every budget-zero task is inactive under the preceding precision rule.
+Hence a budget-zero sample term is zero: it contains at least one
+estimated table or vector factor.  Exact base terms $S(x,y)/a$ and
+$W_0(x)$ are inserted separately.
+
+For every first-channel term labelled by scale $b$, set
+$c_b=\lceil c_0(1+|h_b|)\rceil$, where $c_0$ is a fixed positive constant.
+This rule includes the sparse direct term $-E$ with $b=f$, as well as
+direct bins, products, and projection terms.  Every child factor in a
+term, including the detector-vector inputs to a projected source
+multiplier, uses that term's common budget $m$ and cutoff $c_b$.
+Use zero scale offset only for second-channel preparatory means,
+detector-vector trials, and reward terms with fixed stage-rate changes.
+The separate final column assembly retains its fixed drop
+$c_{\rm col}$.  Denote the corresponding normalized
+sample term at budget $m$ by $T_{b,m}$, including division by $a$ for the
+first row channel.  For $1\le m\le M-c_b$ form
+\begin{equation}
+ T_{b,m}-T_{b,m-1}.
+ \label{eq:est-difference}
+\end{equation}
+Apply to this difference the conditional walk of length
+$\ell(M-m)$, where $\ell$ is a sufficiently large fixed integer.  Use the
+same generator word and the same guessed wraps for its two parts.
+
+Group increments by dyadic slack
+$d\le M-m<2d$.  Add groups in decreasing powers of two $d\le M$ down to
+$1$, including empty groups.  Put exact base contributions in the first
+group.  Let $S_j$ be the uncompressed prefix through the group with slack
+$d_j$.  The conditional mean prefix is obtained by replacing each walk by
+uniform averaging on its slice; noise is the difference from that mean.
+For an available bin the last budget reached by this mean prefix is
+\begin{equation}
+ m_j(b)=\max\{0,M-\max(d_j,c_b)\}.
+ \label{eq:est-last-budget}
+\end{equation}
+This exact cutoff will matter in the error bound.  Bins with $c_b\ge M$
+have no layers and are omitted.
+
+
+The walk is applied to an array indexed by actual endpoints.  Thus,
+for each term and pair, its input is the single function
+\[
+ F_{xy}(\sigma)=T_{b,m}(x,y;\sigma)-T_{b,m-1}(x,y;\sigma),
+\]
+with all contributions at that endpoint already summed.  A path
+description is only a way to enumerate those contributions.  In
+particular, the two budgets must be grouped at the same actual
+endpoint before their difference is measured.  The following lemma
+establishes this identity for the path enumeration and also records
+the description length needed later by the controller.
+
+\begin{lemma}[Immediate paths]\label{lem:est-paths}
+At a row group of slack $d$, immediate candidates have descriptions of
+$O(d)$ bits.  With exact endpoint grouping their sums equal the specified
+conditional-walk increments.  A product visits its midpoint by a paired
+correction move before using any factor at that midpoint.  Its right-hand
+task tuple does not depend on the discarded old source.  Every child
+estimator in such a candidate has budget at most $M-d$.
+\end{lemma}
+\begin{proof}
+A descriptor records the finitely many formula and copy-part choices, its
+scale and budget offsets, its sign in Equation~\eqref{eq:est-difference},
+the generator word and guessed wraps, and a bounded number of constituent
+ports.  An included scale obeys $|h_b|=O(d)$, and the walk has length
+$O(d)$.  Lemma~\ref{lem:env-variants} therefore bounds all these records by
+$O(d)$ bits.  Port alphabets are fixed by Lemma~\ref{lem:atom-ports}.
+There are only $O((1+d)^2)$ choices of budgets and scales before the
+exponential word/variant choices.
+
+Check each constituent port, the outer source and endpoint memberships,
+and the guessed wraps at the vertices where their coordinates can be
+evaluated.  For a fixed endpoint and original generator word, unique wrap
+validation leaves exactly its genuine conditional transformation.
+Give the surviving term its original walk-word probability, multiplied
+by the formula coefficients and sign.  Guessed wraps do not change that
+probability.  Constituent ports enumerate entries once.  Hence summing
+over true equal endpoints is precisely the walk of the difference, even
+though its endpoint was not known when the variant was specified.
+
+The first factor of every product is a correction, whose retained ports
+have bounded degree in both directions.  Its paired move supplies the
+midpoint and a bounded return token.  The right factor can then be queried
+using the common $Z,Y$ tuple prescribed above; that tuple contains no old
+source.  A direct unbalanced terminal motion has no further factor query
+at its endpoint.  These are combinatorial access requirements; the
+controller section implements the pairing and terminal operations.
+Finally, the slack definition gives $m\le M-d$, also for the $m-1$ term.
+\end{proof}
+
+
+All reachable rate logarithms remain $O(B)$ when $M_{\rm top}=O(B)$:
+a scale extension at slack $d$ changes a reciprocal-rate logarithm by
+$O(d)$ and reduces budget by at least $d$.  Stage resets have only their
+fixed stage rates, usage rates are minima of available rates, and inherited
+padding has at most one symbol per stage above the task.  Summing along a
+dependency chain bounds all extensions by $O(M_{\rm top})$.  The field in
+the shared environment can therefore be chosen large enough for every
+used scale, including budget-zero endpoints of available differences.
+Omitted finer deterministic contributions need no hash tables.
+
+
+We can now estimate each mean prefix by telescoping the conditional
+means to budget $m_j(b)$.  Its deterministic omission error and its
+child-estimation error are treated separately.  The remaining noise
+will be bounded by applying the conditional spectral estimate to the
+endpoint functions $F_{xy}$ above.
+
+\begin{lemma}[Mean prefixes]\label{lem:est-mean-prefix}
+Assume all earlier table and vector bounds with coefficient $C_b$.
+For an active task there is a fixed $B_1$, independent of the later
+choice of $A_*$, such that every mean prefix has norm at most
+$c_*2^{-p+B_1d_j}$ against its target.  For the first channel the norm
+uses clipped relative discrepancy; for the second and for vectors it uses
+ordinary absolute discrepancy.  The coefficient $c_*$ can be made
+arbitrarily small by increasing $A_*$.
+\end{lemma}
+\begin{proof}
+\emph{Available scales.}  For an available scale, conditional expectations of
+Equation~\eqref{eq:est-difference} telescope to its term at
+$m=m_j(b)$ in Equation~\eqref{eq:est-last-budget}.  If this budget is
+zero, the term is zero and the inactive-child bound still applies.
+More generally, the child bound remains valid whenever its precision is
+nonpositive, by the bounded-output estimate for inactive tasks.
+In every case
+\[
+ M-m\le d_j+c_0(1+|h_b|)+1.
+\]
+Choose $K_{\rm prec}$ so that $c_0/K_{\rm prec}<1/8$.
+Equation~\eqref{eq:est-scale-slack} is then bounded by
+\[
+ C' C_b\,2^{-p-A_*+d_j/K_{\rm prec}}2^{-|h_b|/4}.
+\]
+The rate grid is geometric, so summing this bound over available scales
+costs a fixed constant.  There are only a fixed number of formula and
+factor types.  Unbinned calls use the same calculation without the scale
+sum.  Minkowski and subadditivity of clipped relative discrepancies
+combine all these terms.  Exact base contributions are already present
+in every prefix and have no error.
+
+\emph{Wholly omitted scales.}  A bin with $c_b\ge M$ contributes no
+layer.  We bound its deterministic contribution directly by
+Lemma~\ref{lem:est-omission}.  First we show that every such bin is fine.
+Put $r=\log_2(1/a)\ge0$.
+A coarse bin has $0\le h_b\le r$ because all grid rates are at most one.
+Activity gives
+$M>K_{\rm prec}(r/2+A_*i_*)$, even after discarding the nonnegative
+start-rate cost.  With $K_{\rm prec}/2>c_0$ and $A_*$ sufficiently large,
+this implies $M>\lceil c_0(1+r)\rceil$, so a wholly omitted bin is fine.
+For the sparse direct term $b=f$, the same argument gives availability
+when $f\ge a$.  When $f<a$, the admissibility condition $a\le K_f f$
+gives $|h_f|\le\log_2 K_f$, and increasing $A_*$ ensures $M>c_f$.
+Thus this term is never wholly omitted in an active task.
+The inequality $c_b\ge M$ implies
+\[
+ |h_b|\ge (M-1)/c_0-1.
+\]
+Lemma~\ref{lem:est-omission} and a geometric sum consequently bound all
+such omissions by
+$C2^{-(s-1)M/(s c_0)}$.  Since $p\le M/K_{\rm prec}$ and
+$K_{\rm prec}>s c_0/(s-1)$, this is at most
+$C2^{-p-\eta M}$ for some fixed $\eta>0$, after absorbing the fixed
+rounding offset.  Finally $M>K_{\rm prec}A_*i_*\ge K_{\rm prec}A_*$
+makes its coefficient arbitrarily small as $A_*$ increases.
+Taking, for example, any fixed $B_1>1/K_{\rm prec}$ proves the claim,
+including every last-budget and no-budget cutoff loss.
+\end{proof}
+
+\subsection{Absolute difference bounds and averaging noise}
+
+The conditional-mean errors are now bounded.  To control the noise left
+by finite averaging, we need an absolute norm bound on each paired
+difference before the walk is applied.  This coarser bound will also be
+used for the fingerprint comparison.
+
+\begin{lemma}[Absolute differences]\label{lem:est-raw-difference}
+At a slack-$d$ group, the ordinary raw norm of an unaveraged paired
+difference is at most
+\begin{equation}
+ C C_b\,2^{-p-A_*+C_0d},
+ \label{eq:est-raw-bound}
+\end{equation}
+where $C_0$ is fixed independently of the walk length coefficient.
+For two coupled versions of a budget-$r$ sample term, if the
+corresponding child discrepancies are bounded by
+$2^{-p'_r}\lambda_r$, their normalized raw difference is bounded by
+$2^{-p+C_0'd}\lambda_r$, summed over the finitely many child types.
+For a paired layer at budgets $m$ and $m-1$, apply this estimate to
+both parts. Its coupled discrepancy is consequently bounded by
+$2^{-p+C_0'd}(\lambda_m+\lambda_{m-1})$, after enlarging the fixed
+constant, or by the corresponding maximum over all children in the
+group. Every child in either part has budget at most $M-d$.
+For a fixed guessed measure-preserving variant and its valid endpoint
+restriction the same bounds hold.  Counting all variants separately may
+increase $C_0'$ by a constant depending on the chosen walk length.
+\end{lemma}
+\begin{proof}
+Subtract the \emph{same stochastic true-atom term} from the budget-$m$
+and budget-$(m-1)$ terms, and use the triangle inequality.  A product has
+only constantly many left paths in the union of the compared rows.
+Ordinary bounded-factor differences and the row and incoming caps
+therefore give the sums used in
+Lemma~\ref{lem:est-mean-comparison}, without any averaging.  For a coarse
+bin the absolute coefficient costs $b/a$ in the norm rather than its
+$s$-th root.  For a fine bin the importance factor can stay inside the
+power.  Both are bounded by $2^{O(|h_b|)}$.  Equation~\eqref{eq:est-child-precision}
+pays the only separate possibly large domain ratio, $f/u$, as before.
+All other scale and accuracy changes are $2^{O(d)}$ because
+$|h_b|=O(d)$ and $M-m=O(d)$ in this group.  Ranks and bounded source
+functions obey the same pointwise comparisons.  This proves
+Equation~\eqref{eq:est-raw-bound}.  Replacing comparison to truth by a
+comparison of the two coupled child versions gives the second assertion
+by the identical inequalities; independence is still unnecessary.
+
+For a fixed guessed variant, valid paths require the transformed
+memberships.  Change variables by its full-environment measure-preserving
+bijection and then discard surplus validity guards.  This leaves exactly
+the child-domain sums just bounded.  When combining the paired terms,
+combine their contributions at the same actual endpoint before measuring
+the difference.  The number of distinct variant descriptors is
+$2^{O(d)}$, so treating them separately merely enlarges the crude exponent.
+The estimate before such separate counting is a statement about the
+single-seed sample function and has no dependence on the eventual walk
+length coefficient.
+\end{proof}
+
+\begin{lemma}[Conditional prefix bounds]\label{lem:est-prefix}
+Assume exact local grouping, the earlier task error bounds, and that the
+sample functions depend only on variables varied by the conditional walk.
+Their uniform slice means are then deterministic at each indicated pair
+or vertex.  Write $S_j^{\rm mean}$ for a mean prefix and
+$S_j^{\rm noise}=S_j-S_j^{\rm mean}$ for its noise.  There are fixed
+$B_1$ and arbitrarily large prescribed $K_n$ such that
+\begin{align}
+ \left\|\min\left(1,
+       \frac{|S_j^{1,\rm mean}-d|}{1+d}\right)\right\|_{u,a;s}
+       &\le c_*2^{-p+B_1d_j},
+       \label{eq:est-prefix-mean}\\
+ \|S_j^{\rm noise}\|_{u,a;s}
+       &\le c_*2^{-p-K_nd_j}.
+       \label{eq:est-prefix-noise}
+\end{align}
+The second-channel mean uses its ordinary absolute norm, extended by zero
+off its usage domain, and satisfies the first bound.  Vector means and
+noises satisfy the corresponding vertex bounds.  The coefficient $c_*$
+can be chosen as small as needed by task separation and walk constants.
+\end{lemma}
+\begin{proof}
+The mean assertion is Lemma~\ref{lem:est-mean-prefix}.
+For a difference layer, write $F_{xy}$ for its sample function on
+$\mathcal C_{xy}^{u,a}$, $\mathcal A_{xy}$ for the conditional walk
+operator of length $\ell(M-m)$, and $\Pi_{xy}$ for uniform averaging
+on that slice.  Put
+$w_{xy}=\Pr(\mathcal C_{xy}^{u,a})/(Nu)$ and
+$r_{M-m}=C2^{-c\ell(M-m)}$.
+Lemma~\ref{lem:env-gap} gives a uniform operator bound, so
+\[
+ \sum_{x,y}w_{xy}
+   \|(\mathcal A_{xy}-\Pi_{xy})F_{xy}\|_{L_s}^s
+ \le r_{M-m}^s
+   \sum_{x,y}w_{xy}\|F_{xy}\|_{L_s}^s.
+\]
+The slice weights make the sum on the right precisely the integrated raw
+norm to the $s$th power, bounded by Lemma~\ref{lem:est-raw-difference}.
+Thus the uniform operator estimate applies directly to the integrated
+input bound, even when different slices have different input norms.
+For the second channel replace $Y_a$ by $Y_t$ in the slice and its
+weight; the mask stays $Y_t$ throughout.  Vectors use the same
+calculation on their one-vertex slices.  No extra conditioning factor
+appears.
+
+There are $O((1+d)^2)$ budget/scale terms in a group.  Choose $\ell$ so
+that the contraction dominates $2^{C_0d}$ and this polynomial, leaving
+at least $2^{-(K_n+1)d}$.  Summing groups with slack at least $d_j$ gives
+Equation~\eqref{eq:est-prefix-noise}.  Exact base terms have no noise.
+This contraction applies to the paired difference as one function of the
+same seed.  The sum of valid variants is the conditional walk, so the
+gap applies to that sum before any separate variant counting.
+Increasing $A_*$ supplies an
+arbitrarily small coefficient in both this estimate and the mean bound.
+\end{proof}
+
+The determinism hypothesis in Lemma~\ref{lem:est-prefix} applies at
+each fixed pair or vertex, in the task's effective environment as in
+Remark~\ref{rem:env-effective}.  Uniform averaging must integrate every
+coordinate on which its sample function depends.  In
+Section~\ref{sec:fp-blocks}, the clean calculation removes dependence
+on the current block's salt, while the parent walk varies all earlier
+salts used by lower-block calculations; Lemma~\ref{lem:fp-clean}
+verifies this hypothesis.  The resulting first-channel mean is a
+deterministic number, and the second-channel mean has only its prescribed
+$Y_t$ membership mask.  These are the means used in the conditional
+heavy-count argument of Lemma~\ref{lem:buf-rarity}.

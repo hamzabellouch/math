@@ -1,0 +1,787 @@
+\section{Learning a sparse support from a short row}
+\label{learn:section}
+
+The remaining low-dimensional description problem is the following.
+A set $S$ has unusually few incidences with a large opposite set $T$.
+We want a short message describing a set that captures a fixed fraction
+of $S$ and is not much larger than $S$. The decoder does not know either
+support. We first construct the desired set from a random row of points
+of a prepared subset of $S$, and then implement that row by searching a
+public table of proposals from the known domain.
+
+Two estimates have different roles. A second moment will show that the
+test retains most points of the hidden support. A higher moment will
+exclude almost all unwanted ambient points. Keeping these roles separate
+is essential: some geometric exceptions allowed in the ambient estimate
+are too large to discard from the support itself.
+
+\subsection{The prepared input and the sampling test}
+
+Use the parameters of Equation~\eqref{base:parameters}, with
+$\sigma=\log q$, and put
+\begin{equation}\label{learn:auxiliary-parameters}
+ \chi=P/100,\qquad \xi=L/100,\qquad
+ p\in[10000\sigma/P,10000\sigma/P+2]\cap2\mathbb Z,
+ \qquad t_*=(100p)^{-1}.
+\end{equation}
+Here $p$ is a moment order, not the characteristic; the field is $\F_q$
+with $q$ prime. In particular,
+\begin{equation}\label{learn:scale-use}
+ b+P\tau=o(L),\quad R\log L=o(P),\quad
+ \log\sigma=o(L),\quad R\gg\log(p+2),\quad P=o(\sigma).
+\end{equation}
+These relations follow from Lemma~\ref{base:scale-comparisons} whenever
+$b=O(K_*)$ and $\tau=O(\sigma^{-100\beta})$.
+
+We specify the geometric input to this section. Let $j\in\{2,3\}$,
+let $S,T$ be nonempty sets in opposite projective spaces of dimension
+$j$, and suppose that
+\begin{equation}\label{learn:support-hypotheses}
+ S\subseteq U_S,\qquad n=|S|\le |T|,\qquad
+ |S||T|\ge q^{j+1}e^{-b},\qquad
+ e(S,T)\le \frac{\tau}{q}|S||T|.
+\end{equation}
+The set $U_S$ is known to the decoder. Write
+$d_S=\log(|U_S|/n)$. We only need to treat
+$n>100qP$, since smaller supports can be enumerated.
+
+The prepared support is a subset $S'\subseteq S$ of size
+$n'\in[n/2,n]$. In dimension three there may also be an ordered list
+of projective planes $\Pi_1,\ldots,\Pi_J$. Its cells are
+\[
+ C_i=S'\cap\bigl(\Pi_i\setminus\textstyle\bigcup_{a<i}\Pi_a\bigr).
+\]
+The list is allowed to be empty; in dimension two it is always empty.
+The list and the sizes of its cells admit an $O(q)$-bit description, and
+every cell has size at most $.04n'$. For an ambient point $x$, let
+$O_x=C_i$ if $\Pi_i$ is the first listed plane containing $x$, and let
+$O_x=\varnothing$ if there is no such plane. Set
+\begin{equation}\label{learn:radial-definitions}
+ f_x=|O_x|/n',\quad X_x=S'\setminus(O_x\cup\{x\}),\quad
+ B=q^j/n',\quad n=q^{1+v}.
+\end{equation}
+Thus $0\le f_x\le .04$. Every line through $x$ is called a radial
+line at $x$, and has strength
+$a_\ell=q|\ell\cap X_x|/n'$.
+
+For each $x$, consider any family of hyperplanes $H$ through $x$ with
+$q|H\cap X_x|/n'\le2$. For two distinct members put
+$\theta_{HH'}=q|H\cap H'\cap X_x|/n'$. Let $E_a$ be the number of
+ordered distinct pairs with $\theta_{HH'}\ge a$, and let $\Delta_a$
+be the largest number of such neighbors of one member. The geometric
+preparation supplies a deterministic exceptional set $D_0$ of size
+$o(n)$ such that, outside $D_0$, simultaneously for dyadic
+$a\in[q^{-10},2]$,
+\begin{equation}\label{learn:overlap-input}
+ E_a\le B^2e^{2\chi}a^{-200},\qquad
+ \Delta_a\le Be^{2\chi}a^{-200}.
+\end{equation}
+There is a further deterministic set $D_1$, of size at most
+$n e^{C_0P}$, outside which, also excluding $D_0$,
+\begin{equation}\label{learn:strong-degree-input}
+ \Delta_{t_*}\le Be^{-3P}.
+\end{equation}
+The bounds apply to all the indicated families. In dimension two the
+overlaps vanish, so both assertions hold without geometric exceptions.
+Proposition~\ref{geom:preparation} establishes this prepared input after its
+enumeration and large-cell reductions, with the overlap bounds supplied
+by Lemma~\ref{geom:overlap}.
+
+\begin{proposition}[Short-row description]\label{learn:short-row}
+Fix the constants in \eqref{learn:support-hypotheses}, the bound on
+$b/K_*$, the bound on $\tau\sigma^{100\beta}$, and $C_0$.
+For every sufficiently large prime $q$, the prepared input just
+specified has the following description scheme. Using a fresh public
+table, it either declares failure or describes a set $W\subseteq U_S$
+satisfying
+\[
+ |W|\le n e^{CP},\qquad |W\cap S|\ge c n.
+\]
+Failure has probability at most $C e^{-cq}$, and the message has at most
+$CqP(d_S+1)+Cq+C\sigma$ bits. In particular this is within
+$CqP(d_S+d_T+P)$ for any $d_T\ge0$.
+The bounds are uniform in all supports and prepared inputs satisfying
+the hypotheses, including inputs fixed by earlier random history before
+the fresh table is sampled. The decoder uses only $U_S$, public
+parameters, and the new message; it need not know $S$, $T$, or $S'$.
+\end{proposition}
+
+Mixing in Lemma~\ref{base:incidence} and the smaller-side orientation
+give $n\le Cq^{(j+1)/2}$. Consequently the quantities used below obey
+\begin{equation}\label{learn:elementary-sizes}
+ \frac q{n'}<\frac1{50P},\qquad
+ Q_{j-1}=O(B^2),\qquad B^{-1}\le e^{-P},\qquad
+ v\le1+O(1/\sigma).
+\end{equation}
+The last bound will only be needed in dimension three.
+
+We first sample from the hidden set $S'$. Take $R$ independent batches.
+Each batch has Poisson size of mean $qL$, and, conditional on its size,
+has independent uniform entries in $S'$. Equivalently, the numbers of
+occurrences of the different point-batch pairs are independent Poisson
+variables of mean $qL/n'$. Indeed the joint probability of prescribed
+counts is obtained by multiplying the Poisson probability of their sum
+by the multinomial probability conditional on that sum; the factorials
+then factor over points. The total number of samples has mean $qP$.
+
+For a hyperplane $H$ and a cell $C$, define
+\[
+ \lambda_H=\frac{q|S'\cap H|}{n'},\qquad
+ \lambda_{H,C}=\frac{q|C\cap H|}{n'},\qquad f_C=\frac{|C|}{n'}.
+\]
+Call $H$ exceptional if $|\lambda_H-1|>.1$ or
+$|\lambda_{H,C}-f_C|>.02$ for at least one cell; let $\mathcal E$
+be this set. All other hyperplanes are typical. Let
+\begin{equation}\label{learn:empty-set}
+ Z=\{H\in\mathcal E:H\text{ has no sample in any batch}\},\qquad
+ z=|Z|,\qquad z_x=|\{H\in Z:x\in H\}|.
+\end{equation}
+These objects are used by the encoder; the decoder will receive only
+the integer $z$, not the hidden set $Z$.
+
+For a query point $x$, put $b_x=e^{-L(1-f_x)}$, and let $N_r(A)$
+denote the number of samples of batch $r$ in a point set $A$.
+For each hyperplane through $x$, we multiply $R$ batch tests.
+In each batch we center the emptiness indicator outside $O_x$ at $b_x$,
+and set the test to zero if $O_x\cap H$ contains a sample. Thus a
+hyperplane empty in every batch contributes $(1-b_x)^R$, whereas
+any other hyperplane has product of absolute value at most $b_x$.
+For typical hyperplanes, their normalized mass outside $O_x$ is close
+to $1-f_x$.
+Batch independence turns bounds on one-batch means and pair moments
+into $R$th-power bounds. The overlap estimates then control the sum
+over typical hyperplanes.
+Define the score by
+\begin{equation}\label{learn:score}
+ A_x=\sum_{H\ni x}\prod_{r=1}^R
+ \left[
+ 1_{\{N_r(O_x\cap H)=0\}}
+ \left(1_{\{N_r((S'\setminus O_x)\cap H)=0\}}-b_x\right)
+ \right].
+\end{equation}
+The random test includes every sampled point and every other point
+with $A_x<z/(2q)$. Both factors inside the brackets belong to batch
+$r$. Although the formula mentions hidden subsets, the decoder can
+evaluate it from the samples, the plane list, the cell sizes, and $z$:
+earliest membership in the list identifies each sample's cell and the
+cell $O_x$, if present. The size $n'$ is transmitted as well.
+The separate own-cell indicator also preserves the geometric benefit
+of removing $O_x$: once its sample counts and the absence of a sample
+at $x$ are fixed, the remaining randomness consists of independent
+counts on the radial lines in $X_x$. We use this conditioning when
+estimating the typical contribution.
+
+\subsection{Regular pencils and empty exceptional hyperplanes}
+
+The pencil at $x$ is the set of hyperplanes through $x$. We next discard
+a small deterministic set of pencils on which squared deviations are
+unusually concentrated. This is separate from all sampling events.
+
+\begin{lemma}[Regular pencils]\label{learn:regular-pencils}
+There is a deterministic set $D_2$ of size $o(n)$ such that, for
+$x\notin D_2$, its pencil contains at most $Be^\xi$ exceptional
+hyperplanes and satisfies
+\[
+ \sum_{H\ni x}\min\{1,(\lambda_H-1)^2\}\le Be^\xi,
+ \qquad
+ \sum_{H\ni x}\min\{1,(\lambda_{H,C}-f_C)^2\}\le Be^\xi
+\]
+for every cell $C$. The constants and the $o(n)$ estimate are uniform
+over the prepared inputs. We call these pencils regular.
+Moreover, for every regular pencil and its typical members, with
+\begin{equation}\label{learn:outside-mass}
+ \lambda'_H=\frac{q|H\cap X_x|}{n'},\qquad
+ \delta'_H=\lambda'_H-(1-f_x),
+\end{equation}
+we have
+\begin{equation}\label{learn:typical-bounds}
+ .75\le\lambda'_H<2,\qquad |\delta'_H|\le .18,\qquad
+ \sum_{\substack{H\ni x\\H\text{ typical}}}(\delta'_H)^2
+ \le CBe^\xi.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Weighted incidence variance gives
+\begin{equation}\label{learn:total-variance}
+ \sum_H(\lambda_H-1)^2\le CqB,\qquad
+ \sum_H(\lambda_{H,C}-f_C)^2\le CqBf_C.
+\end{equation}
+The exact means differ from $1$ and $f_C$ by the factors
+$qp_j=1-1/Q_j$, whose squared contributions satisfy the same bounds.
+Summing over cells and using $\sum_C f_C\le1$ proves
+\begin{equation}\label{learn:exceptional-size}
+ |\mathcal E|\le CqB,\qquad
+ \sum_{H\in\mathcal E}\lambda_H\le CqB.
+\end{equation}
+For the second assertion use Cauchy--Schwarz on
+$\sum_{H\in\mathcal E}(\lambda_H-1)$.
+
+For the clipped squared-deviation weight of a cell, the total weight is
+at most $CqBf_C$ and each weight is at most one. Its pencil sums have
+mean $O(Bf_C)$ and total squared deviation at most $Cq^jBf_C$, by
+Lemma~\ref{base:incidence}. For sufficiently large $q$, exceeding
+$Be^\xi$ therefore excludes at most
+\[
+ C\frac{q^jBf_C}{B^2e^{2\xi}}=Cn'f_Ce^{-2\xi}
+\]
+centers. Sum this estimate over cells, rather than multiplying by their
+number. The full-deviation weight and the exceptional-indicator weight
+have the same proof with fraction one. Their union is $D_2$.
+
+For a typical hyperplane, removing $O_x$ subtracts a quantity within
+$.02$ of $f_x$, when a cell is present. Removing $x$ subtracts at most
+$q/n'$. Thus $\lambda'_H\ge .9-.04-.02-q/n'>.75$ and
+$|\delta'_H|\le .1+.02+q/n'<.18$. The upper bound by 2 follows as well.
+On typical hyperplanes the relevant squared deviations are already
+below one. The inequality $(u+v+w)^2\le3(u^2+v^2+w^2)$ and regularity
+give the last bound in \eqref{learn:typical-bounds}; the removed center
+adds at most
+$O(q^{j-1}(q/n')^2)=O(B)$ by \eqref{learn:elementary-sizes}.
+\end{proof}
+
+\begin{lemma}[The empty exceptional set]\label{learn:empty-exceptional}
+There is a fixed $c_0>0$ such that, with probability at least
+$c e^{-8P\tau}$,
+\begin{equation}\label{learn:empty-good-event}
+ z\ge z_{\min}:=c_0qB e^{-b-8P\tau},\qquad
+ \sum_{H\in Z}\lambda_H\le .001z.
+\end{equation}
+For every $Z$ satisfying these two inequalities, at least $.99n'$
+points of $S'$ have $z_x\le .1z/q$, whereas all but
+$O(q^{j+1}/z)$ ambient points have $z_x\ge .8z/q$.
+At a regular pencil, the exceptional-hyperplane part of
+\eqref{learn:score} differs from $(1-b_x)^Rz_x$ by at most
+$b_xBe^\xi=o(z_{\min}/q)$, uniformly in the samples, and
+$(1-b_x)^R=1-o(1)$.
+\end{lemma}
+
+\begin{proof}
+The average of $\lambda_H$ over $T$ is at most $2\tau$.
+At least half of $T$ consequently has $\lambda_H\le8\tau$.
+These hyperplanes are exceptional, and their number $m$ is at least
+$c qB e^{-b}$ by \eqref{learn:support-hypotheses} and $n'\ge n/2$.
+Each is empty with probability at least $a=e^{-8P\tau}$.
+If $Y$ counts the empty members of this particular set, then
+$0\le Y\le m$ and $\E Y\ge ma$. Therefore
+$\Prob(Y\ge ma/2)\ge a/2$, without any independence assumption among
+the hyperplanes. Choose $c_0$ small enough to obtain the first inequality
+of \eqref{learn:empty-good-event} on this event.
+
+By \eqref{learn:exceptional-size}, the expected contribution from
+$\lambda_H\ge10^{-4}$ to $\sum_{H\in Z}\lambda_H$ is at most
+$CqB e^{-10^{-4}P}$. Markov's inequality at $.0009z_{\min}$ bounds
+the probability of a larger contribution by
+\[
+ C\exp\{b+8P\tau-10^{-4}P\}=o(e^{-8P\tau}).
+\]
+The remaining contribution is at most $.0001z$. Subtracting this
+failure probability proves the asserted simultaneous event.
+
+For fixed $Z$, incidence variance has mean $p_jz=(1-o(1))z/q$ and
+total squared deviation at most $q^{j-1}z$. This gives the ambient
+exception bound. On the hidden support, exact double counting gives
+\[
+ \sum_{x\in S'}z_x=\frac{n'}q\sum_{H\in Z}\lambda_H
+ \le .001n'z/q,
+\]
+which proves the $.99n'$ assertion by Markov's inequality.
+
+An exceptional hyperplane in $Z$ contributes $(1-b_x)^R$ to the score.
+For any other exceptional member of the pencil, an own-cell hit makes
+its product zero; otherwise an outside hit gives a factor $-b_x$,
+and all other factors have absolute value at most one. Its contribution
+has absolute value at most $b_x$. Regularity proves the error bound.
+Finally $b_x\le e^{-.96L}$, so
+$b_xBe^\xi\le Be^{-.95L}=o(z_{\min}/q)$ and $Rb_x=o(1)$ by
+\eqref{learn:scale-use}.
+\end{proof}
+
+The empty hyperplanes thus give a score that is small on most of $S'$
+and large on most ambient points. It remains to show that the typical
+hyperplanes do not obscure this distinction. Write $T_x^*$ for their
+contribution to \eqref{learn:score}.
+
+\subsection{Conditional moments of the typical contribution}
+
+Fix $x$ and condition on its being unsampled and on all point-batch
+counts in $O_x\setminus\{x\}$. Denote these conditioning data by
+$\mathcal O_x$; when $x\notin S'$, the unsampled condition is automatic.
+Every assertion below is uniform over conditioning values of positive
+probability. The own-cell multipliers in \eqref{learn:score} are now
+fixed zeros or ones. Counts on $X_x$ are unchanged independent Poisson
+variables. Grouping them by radial lines gives independent
+line-batch schedules, with hit probability at most $La_\ell$ for
+line $\ell$ in one batch. Distinct lines are disjoint in $X_x$ because
+the center has been removed.
+
+Temporarily omit a fixed own-cell multiplier and let
+$X_H=1_{\{H\cap X_x\text{ empty in the batch}\}}-b_x$.
+Its mean $u_H$ and its pair moments obey
+\begin{align}
+ u_H&=e^{-L\lambda'_H}-b_x,
+ &|u_H|&\le Le^{-.75L}|\delta'_H|,\label{learn:one-mean}\\
+ \E(X_HX_{H'})
+ &=u_Hu_{H'}+e^{-L(\lambda'_H+\lambda'_{H'})}
+                      (e^{L\theta_{HH'}}-1),\label{learn:one-covariance}\\
+ |\E(X_HX_{H'})|
+ &\le L^2e^{-.75L}(|\delta'_H\delta'_{H'}|+\theta_{HH'}),
+ &\E X_H^2&\le2e^{-.75L}.\label{learn:one-bounds}
+\end{align}
+The covariance identity is the Poisson emptiness formula for a union.
+For its bound, use
+$\lambda'_H+\lambda'_{H'}-\theta_{HH'}\ge .75$ and
+$e^u-1\le ue^u$ for $u\ge0$.
+
+\begin{lemma}[Second moment]\label{learn:second-moment}
+If $x\notin D_0\cup D_2$, then, conditional on $\mathcal O_x$,
+\[
+ \E\bigl((T_x^*)^2\mid\mathcal O_x\bigr)
+ \le B^2e^{-.6P}.
+\]
+This assertion does not exclude the set $D_1$.
+\end{lemma}
+
+\begin{proof}
+Batch independence raises the bounds in \eqref{learn:one-bounds} to
+the $R$th power. Fixed zero-one multipliers cannot increase their absolute
+values. By \eqref{learn:typical-bounds},
+\[
+ \sum_H|\delta'_H|^R\le CBe^\xi.
+\]
+For the overlap terms, \eqref{learn:overlap-input} and dyadic summation
+give, for $R>200$,
+\[
+ \sum_{H\ne H'}\theta_{HH'}^R
+ \le B^2\exp\{2\chi+O(R+\log\sigma)\}.
+\]
+Every positive overlap is at least $q/n'$ and at most 2, so it falls
+within the available dyadic range. There are $O(\sigma)$ dyads. The
+inequality $(u+v)^R\le2^{R-1}(u^R+v^R)$ handles their sum with the
+deviation terms. The diagonal contributes at most
+$Q_{j-1}(2e^{-.75L})^R$. Now use $Q_{j-1}=O(B^2)$,
+$2\chi=.02P$, and $R\log L=o(P)$ to obtain the claimed exponent.
+\end{proof}
+
+\begin{lemma}[High moment]\label{learn:high-moment}
+If $x\notin D_0\cup D_1\cup D_2$, then, conditional on
+$\mathcal O_x$,
+\[
+ \E\bigl((T_x^*)^p\mid\mathcal O_x\bigr)
+ \le B^p e^{-.1pP}.
+\]
+\end{lemma}
+
+\begin{proof}
+We expand into ordered $p$-tuples of typical hyperplanes and bound the
+absolute expectation of every summand. The evenness of $p$ will permit
+the final tail estimate. A tuple may contain repeated hyperplanes.
+Among its distinct hyperplanes, join $H,H'$ when
+$\theta_{HH'}>t_*$, and take the connected components of this graph.
+A component consisting of one hyperplane appearing once in the tuple
+is a \emph{simple singleton}. All other components are nonsimple.
+
+\paragraph{Component expectations.}
+A positive-strength radial line is external to the tuple if it is
+contained in hyperplanes in different components. The sum of the
+strengths of the external lines in any fixed tuple hyperplane is at
+most $pt_*=.01$: assign each such line to one other tuple hyperplane
+containing it, whose overlap is at most $t_*$. Condition further on
+all external line-batch schedules. The remaining schedules affecting
+different components are independent, and each hyperplane has internal
+mass at least $.75-.01=.74$. Call a hyperplane touched in a batch if
+one of its external lines has a hit in that batch.
+
+For a nonsimple component, all factor magnitudes are at most one.
+Keeping just the factors of one of its hyperplanes bounds its absolute
+product expectation. In an untouched batch the expected absolute
+factor is at most $2e^{-.74L}$; in a touched batch it is at most
+$b_x\le e^{-.96L}$. Independence between batches consequently bounds
+the entire component by
+\begin{equation}\label{learn:nonsimple-attenuation}
+ (2e^{-.74L})^R\le e^{-.7P}.
+\end{equation}
+
+For a simple singleton keep its signed expectation. Let
+$\theta_{\max}$ be the largest overlap $\theta_{HH'}$ over the other
+distinct hyperplanes $H'$ of the current tuple, taking zero if there
+are none. It is not a maximum over the whole pencil. In an untouched
+batch the mean has absolute value at
+most
+\[
+ Le^{-.74L}(|\delta'_H|+p\theta_{\max});
+\]
+in every batch it has absolute value at most $2e^{-.74L}$.
+Let $\mathcal B_H$ be the event that $H$ is touched in at least
+$R/2$ batches. If it is not, at least $R/2$ factors have the sharper
+bound. Since $p\theta_{\max}\le .01$, $R/2\ge200$, and
+$R\log(2L)=o(P)$, the resulting bound for a simple singleton is
+\begin{equation}\label{learn:simple-attenuation}
+ e^{-.68P}\left(
+ |\delta'_H|^{R/2}+(p\theta_{\max})^{200}+1_{\mathcal B_H}
+ \right).
+\end{equation}
+The fixed own multipliers do not change either estimate.
+
+We now sum these fixed-tuple bounds over the possible hyperplanes.
+For each valid tuple, retain $e^{-.7P}$ per nonsimple component and
+$e^{-.68P}$ per simple position, and expand the three terms in
+\eqref{learn:simple-attenuation} at each simple position. The resulting
+bounds are nonnegative. After averaging the external schedules, the
+only remaining probabilistic factor in each term is the conditional
+probability of the selected events $\mathcal B_H$ occurring together.
+We will bound the sum of these terms after dividing by $B^p$.
+
+The geometric choices have three forms. Nonsimple components are
+counted either from a strong pair and a spanning tree or from repetitions
+of one hyperplane; deviation and overlap terms use the corresponding
+pencil bounds; the remaining hit events
+are covered by static certificates. Each such certificate charges
+any independent direction-batch hit event at most once. We construct
+these certificates below and then verify the probability union bound.
+These descriptions count moment terms and are not part of the
+public-table message.
+
+The combinatorial descriptions use only $p^{O(p)}$ choices of names,
+partitions, and orders. Record the partition
+of positions into equal hyperplane names, the partition of distinct
+names into their strong components, and spanning trees and traversal
+orders inside those components. Do not record the full strong graph.
+For any geometric assignment its true graph determines whether these
+recorded components are valid; an invalid assignment initially contributes
+zero. Dropping such validity restrictions later only enlarges a positive
+sum after the attenuation bounds have been assigned.
+
+\paragraph{Nonsimple and deviation choices.}
+For a component with at least two distinct hyperplanes, start with a
+strong pair. By \eqref{learn:overlap-input}, its normalized count is
+at most
+\[
+ e^{2\chi}(C/t_*)^{200}.
+\]
+Each later distinct vertex along its tree costs at most $e^{-3P}$ by
+\eqref{learn:strong-degree-input}; a repeated position costs $1/B$.
+For a component consisting of one hyperplane repeated, its first two
+positions cost $Q_{j-1}/B^2=O(1)$, and further positions again cost
+$1/B$. These counts are combined with
+\eqref{learn:nonsimple-attenuation} once per component.
+
+A deviation choice has weighted normalized sum at most
+$Ce^\xi$ by \eqref{learn:typical-bounds}. Encode these and all nonsimple
+components first. The remaining choices are overlap shifts and events
+$\mathcal B_H$; their attenuation $e^{-.68P}$ has already been retained.
+
+\paragraph{Overlap shifts.}
+For an unencoded shift vertex, choose the name of a neighbor attaining
+its largest positive overlap and a dyad $a\le\theta<2a$. Zero weights
+need not be encoded. If the neighbor is encoded, the weighted normalized
+count is at most
+\[
+ (2pa)^{200}\Delta_a/B.
+\]
+If it is not, encode the ordered pair with count
+$(2pa)^{200}E_a/B^2$, dropping the neighbor's extra shift weight or
+event requirement, each bounded by one. Both vertices retain their
+attenuation. Equation~\eqref{learn:overlap-input} cancels $a^{200}$
+in either case and gives at most $e^{2\chi}$ times polynomial overhead.
+Summing dyads has the same type of overhead. Continue until all
+unencoded vertices carry the event requirement $\mathcal B_H$.
+
+\paragraph{Hit certificates and their probability weights.}
+Fix a tuple and external schedules for which these remaining requirements
+hold. We describe certificates witnessing enough of the hits to count
+the tuple. Maintain two objects: a dictionary of radial directions whose
+geometry is already recorded, and a set of charged direction-batch
+events. On first introduction of a direction, charge one positive hit
+event, except in the pair operation below, which charges 200 distinct
+batches at once. Once that direction enters the dictionary, any later
+reference to it imposes \emph{no new hit requirement}. In particular,
+no direction-batch event is charged twice.
+
+For a fixed tuple all charged events are external events, independent
+under the conditional law given $\mathcal O_x$. Thus their joint
+probability is at most the product of their $La_\ell$ weights. Keeping
+$\min(1,La_\ell)$ would also be valid, but is unnecessary. From an
+encoded hyperplane $H_0$, the weighted sum of choices of a new line
+and a witnessing batch is at most
+\begin{equation}\label{learn:line-charge}
+ \sum_{r=1}^R\sum_{\ell\subset H_0}La_\ell
+ =P\lambda'_{H_0}<2P.
+\end{equation}
+An old direction is specified by its dictionary index and requires no
+new probability factor. If the current dictionary has $m$ directions,
+these references have at most $m$ choices, each of incremental weight
+one. A direction choice, allowing either a new charge or an old
+reference, therefore has total weight at most $2P+m$. The construction
+below keeps $m=O(p)$, so these extra choices enter only the polynomial
+overhead.
+
+\paragraph{Anchors and pairs.}
+If an unencoded vertex has a touched direction shared with an encoded
+hyperplane, encode it using that direction as an anchor. A new direction
+is paid for by \eqref{learn:line-charge}; an old one is referenced.
+Given the direction, there are at most $Cq^{j-2}$ hyperplanes through
+it. The normalized geometric cost is therefore
+\[
+ O(q^{j-2}/B)=O(q^{v-1})=O(1).
+\]
+This uses $n'\asymp n$ and \eqref{learn:elementary-sizes}.
+In dimension two there are no positive external directions, and no
+such event requirements occur.
+
+If no anchor is available but two unencoded vertices share external
+hits in at least 200 distinct batches on directions in no encoded
+hyperplane, encode this pair. Choose an overlap dyad, 200 witnessing
+batches and one shared hit direction in each. These events are new and
+distinct, outside the direction dictionary. For a fixed pair their
+total probability weights, summed over the witness choices, are at
+most $(2Pa)^{200}$. The normalized pair count in
+\eqref{learn:overlap-input} then gives a cost at most
+$e^{2\chi}(2P)^{200}$. Add the vertices and witness directions to the
+encoded data. In dimension three the intersection direction of a
+pair is unique; repeated use of that direction in distinct batches
+still charges distinct independent events. Repeat the anchor and pair
+operations whenever either applies.
+
+\paragraph{The residual root set.}
+Suppose $h$ vertices remain. Each has at least $R/2$ touched batches,
+whose witnessing external directions are shared with residual vertices
+only; otherwise an anchor would be available. Select one witness per
+such batch. A fixed neighbor appears fewer than 200 times, and a fixed
+direction appears fewer than 200 times. Either violation would permit
+the pair operation. Greedily keeping one witness and discarding others
+with its neighbor or its direction removes fewer than 400 witnesses.
+Thus each residual vertex has at least $\lfloor R/800\rfloor$ witnesses
+with distinct neighbors and distinct directions.
+
+There exists a set of at most $h/10$ roots such that every nonroot has
+two of these witnesses to roots. To prove this, select each vertex
+independently with probability $1/20$. For any one witness list, the
+probability of fewer than two selected neighbors is at most
+$CR e^{-cR}$. Union over at most $p$ lists is $o(1)$ because
+$R\gg\log(p+2)$. Markov's inequality bounds the probability of more
+than $h/10$ selected vertices by $1/2$. The two conditions therefore
+hold simultaneously with positive probability. If a residual set is
+too small to have the displayed number of distinct neighbors, it could
+not have reached this case in the first place.
+
+Record the root names and choose their hyperplanes freely, dropping
+their extra event requirements. A root has normalized cost
+$Q_2/B=O(q^v)$. Encode each nonroot by two distinct directions in
+its two chosen root neighbors, using \eqref{learn:line-charge} for
+new directions and dictionary references for old ones. Two distinct
+radial lines determine at most one projective plane, so the nonroot's
+normalized geometric cost is $1/B=O(q^{v-2})$. Restrict to distinct
+directions for this uniqueness statement. Each pair operation introduces
+at most 200 dictionary directions, each anchor at most one, and each
+nonroot at most two. There are at most $p$ tuple vertices, so the
+dictionary always has at most $Cp$ entries. Conditional on previously
+recorded geometry, each of the two direction choices thus has total
+weight at most $2P+Cp$, including old references with unit incremental
+weight. After counting the unique plane, their positive weighted sum is
+bounded by $(2P+Cp)^2$; this is a polynomial overhead factor.
+If there are $r\le h/10$ roots, the aggregate
+geometric cost, apart from $C^{O(h)}$, is at most
+\begin{equation}\label{learn:root-saving}
+ q^{rv+(h-r)(v-2)}
+ =q^{hv-2h+2r}\le q^{-.8h+O(h/\sigma)}.
+\end{equation}
+This is favorable, and absorbs no attenuation assigned earlier.
+
+\paragraph{Justification of the enumeration.}
+The operations above are a way to choose a certificate from a realization,
+not an assertion of independence under adaptive choices. Take the union
+bound over all resulting static descriptions. More formally, for a fixed
+valid tuple, let $I$ be the set of its remaining event requirements and
+let $\mathfrak C$ be the family of certificates just described. Write
+$\mathcal L(c)$ for the charged direction-batch ledger of $c$, and
+$E_{\ell,r}=\{N_r(\ell\cap X_x)>0\}$. The construction proves the
+pointwise inequality
+\[
+ 1_{\bigcap_{H\in I}\mathcal B_H}
+ \le \sum_{c\in\mathfrak C}
+       \prod_{(\ell,r)\in\mathcal L(c)}1_{E_{\ell,r}}.
+\]
+Every ledger consists of distinct external events, so integration gives
+\[
+ \Prob\left(\bigcap_{H\in I}\mathcal B_H\,\middle|\,\mathcal O_x\right)
+ \le\sum_{c\in\mathfrak C}
+       \prod_{(\ell,r)\in\mathcal L(c)}La_\ell.
+\]
+Different certificates may overlap, which is harmless in this union
+bound. Exchange the nonnegative sums over tuples and certificates, and
+sum their numerical weights by the encoding order.
+Equations~\eqref{learn:overlap-input} and \eqref{learn:line-charge}
+give uniform bounds after previously encoded geometry is fixed.
+Every encoded hyperplane remains in the fixed typical pencil; in
+particular $\lambda'_H<2$ is retained wherever
+\eqref{learn:line-charge} is used. The local overlap constraints used
+in degree bounds are retained as well. For a residual nonroot, the two
+directions remain distinct until its unique plane has been counted;
+only their positive weighted sum is then bounded by the product of the
+two new-or-old choice bounds $2P+Cp$. Old dictionary references add
+multiplicity without adding a hit probability factor.
+Discarding other compatibility restrictions can only increase
+these weighted sums. This occurs after the component attenuations have been justified
+for valid tuples, and never treats an adaptive hit as a fresh event.
+
+There are $O(p)$ dictionary directions and charged events: a pair uses
+the fixed number 200, an anchor uses one, and a residual nonroot uses
+at most two. Names, traversal orders, component partitions, root choices,
+batches, dyads, dictionary references and all polynomial factors in
+$p,\sigma,P,R$ contribute at most
+$\exp(O(p\log(\sigma+2)))=\exp(o(pP))$.
+
+Finally, a nonsimple component pays for its first two positions by
+$e^{-.7P+2\chi}=e^{-.68P}$, and for each additional position by at
+most $e^{-P}$. A simple position retains $e^{-.68P}$; its normalized
+weighted choice costs at most $e^{2\chi}$ per position apart from the
+overhead, or less in \eqref{learn:root-saving}. The deviation factor
+$e^\xi$ is also at most $e^{2\chi}$. The weakest per-position saving
+comes from sharing $e^{-.68P}$ between the first two positions of a
+nonsimple component. It is $e^{-.34P}$ before negligible overhead. Summing
+the expansion proves the asserted $B^p e^{-.1pP}$ bound.
+\end{proof}
+
+\subsection{Capture, ambient size, and a public-table message}
+
+The two moment bounds now have their promised separate applications.
+The second moment controls support points without removing $D_1$;
+the high moment is used only for the ambient size.
+
+\begin{lemma}[A successful true-law row]\label{learn:row-success}
+For the Poisson batches sampled from $S'$, with probability at least
+$c e^{-8P\tau}$ their total size is at most $2qP$ and the test
+\eqref{learn:score}, including all sampled points, captures at least
+$c n$ points of $S$ and contains at most $n e^{CP}$ ambient points.
+The integer $z$ and the score are those determined by these same batches.
+\end{lemma}
+
+\begin{proof}
+Use the deterministic threshold $z_{\min}/(10q)$. By
+Lemma~\ref{learn:high-moment}, the probability that
+$|T_x^*|$ exceeds it, conditional on $\mathcal O_x$, is at most
+\[
+ \exp\{-.1pP+p(b+8P\tau+O(1))\}
+ \le e^{-.09pP}\le q^{-50}
+\]
+outside $D_0\cup D_1\cup D_2$. By
+Lemma~\ref{learn:second-moment}, the corresponding bound outside
+$D_0\cup D_2$ is $e^{-cP}$. Multiply each conditional estimate by
+the probability that $x$ is unsampled and average its own schedules.
+These bounds therefore hold for the event that $x$ is unsampled and
+its typical contribution exceeds the threshold.
+
+For training points, the expected number of these failures is at most
+$n'e^{-cP}$. With failure probability $O(e^{-cP})=o(e^{-8P\tau})$,
+there are fewer than $.01n'$ failures outside $D_0\cup D_2$.
+For ambient points, the expected number is at most $Q_jq^{-50}$,
+so Markov gives at most $n e^{CP}$ failures with a further
+$o(e^{-8P\tau})$ exceptional probability. Here $j\le3$ and
+$P\tau=o(\sigma)$. The static ambient exceptions $D_1$ are included
+by increasing $C$; $D_0\cup D_2$ has size $o(n)$.
+
+Intersect these events with \eqref{learn:empty-good-event}.
+Their failure probabilities are subtracted from that event's probability,
+not conditioned on its occurrence. The total sample count is Poisson
+with mean $qP$, and its exceeding $2qP$ costs $e^{-cqP}$ by
+Lemma~\ref{base:tails}, again negligible. The remaining probability
+is at least $c e^{-8P\tau}$.
+
+On this joint event, at least $.99n'$ training points satisfy
+$z_x\le .1z/q$. Apart from $o(n)$ static exceptions and $.01n'$
+unsampled failures, their exceptional and typical score contributions
+give $A_x<z/(2q)$, by Lemma~\ref{learn:empty-exceptional} and
+$z\ge z_{\min}$. Sampled points are included automatically. This
+retains a fixed fraction of $S'$ and hence of $S$.
+
+Conversely, an unsampled point with $z_x\ge .8z/q$, a regular pencil,
+and typical contribution of magnitude at most $z_{\min}/(10q)$
+has $A_x>z/(2q)$ for sufficiently large $q$. The further exception
+depending on $Z$ has size
+\[
+ O(q^{j+1}/z)\le Cn'e^{b+8P\tau}\le n e^{CP}.
+\]
+Together with the static exceptions, ambient failures, and at most
+$2qP$ sampled points, this proves the size bound after enlarging $C$.
+\end{proof}
+
+\begin{lemma}[Implementation by proposals]\label{learn:implementation}
+The true-law success in Lemma~\ref{learn:row-success} gives the
+description scheme of Proposition~\ref{learn:short-row}.
+\end{lemma}
+
+\begin{proof}
+Transmit the prepared plane list and cell sizes, the integers $n,n'$,
+and the choice of the present mode. These cost $O(q+\sigma)$ bits.
+The decoder can now generate a public-table proposal consisting of
+$R$ independent Poisson batch sizes of mean $qL$, with entries uniform
+in its known domain $U_S$. The table supplies independent repetitions
+of this entire proposal. It is fresh relative to the data used to
+prepare $S'$.
+
+The encoder accepts a proposal precisely if every entry belongs to
+$S'$ and the conclusion of Lemma~\ref{learn:row-success} holds for
+that row. The encoder knows the hidden data, so this is a well-defined
+finite test. For a specified ordered row with total count $m$ and all
+entries in $S'$, the proposal-to-true-law probability ratio is
+\[
+ \left(\frac{n'}{|U_S|}\right)^m.
+\]
+The Poisson probabilities of the batch sizes cancel exactly. On
+successful true-law rows $m\le2qP$ and $n'\ge n/2$, so summing these
+ratios over the successful rows proves proposal success probability
+at least
+\[
+ c e^{-8P\tau}e^{-2qP(d_S+\log2)}
+ \ge e^{-C_1qP(d_S+1)}.
+\]
+Choose a fixed $C_2>C_1$ and search at most
+\[
+ M=\left\lceil e^{C_2qP(d_S+1)}\right\rceil
+\]
+independent proposals, taking the first success and declaring failure
+if none exists. The failure probability is at most
+\[
+ \exp\{-M e^{-C_1qP(d_S+1)}\}
+ \le \exp\{-e^{(C_2-C_1)qP(d_S+1)}\}
+ \le C e^{-cq}.
+\]
+The successful index has a self-delimiting description of
+$O(qP(d_S+1))$ bits. The encoder also sends $z\le Q_j$, costing
+$O(\sigma)$ bits. The decoder reconstructs that proposal, computes
+the score from its samples and the transmitted list data, includes
+the sampled points, and intersects the resulting set with $U_S$.
+This intersection preserves all captured points of $S'$.
+
+The decoder neither repeats the acceptance test nor needs the hidden
+supports to evaluate the resulting score. The guarantee concerns the
+first accepted row within a finite cutoff; it does not assert that
+this accepted row has an unbiased true-law distribution. Any later
+validation procedure uses its own fresh table. Finally, conditional
+on arbitrary earlier readiness data, the fixed-input calculation above
+is unchanged. This proves the uniformity, length, and failure claims.
+\end{proof}
+
+\begin{proof}[Completion of Proposition~\ref{learn:short-row}]
+Lemmas~\ref{learn:row-success} and~\ref{learn:implementation} give
+the stated set, message bound, and failure probability.
+\end{proof}
+
+\begin{proof}[Completion of the description lemma]
+\label{learn:completion}
+The only unresolved branch in the proof of
+Lemma~\ref{geom:description} was the prepared small-cell case in
+projective dimension two or three. Its inputs satisfy exactly the
+hypotheses of Proposition~\ref{learn:short-row}, which supplies that
+branch at a cost bounded by the lemma's stated budget. Dimension
+two has no plane-list reduction and no external radial overlaps.
+The dimension-three large-cell reduction of
+Proposition~\ref{geom:preparation} invokes the now established
+dimension-two result. The bounded higher-dimensional projection
+induction of Proposition~\ref{geom:projection} then applies successively.
+Its validation calls use fresh
+tables, as stipulated in the preceding section. Hence all branches
+of Lemma~\ref{geom:description} are proved, with the specified
+one-sided capture, message length, and exponentially small failure.
+\end{proof}

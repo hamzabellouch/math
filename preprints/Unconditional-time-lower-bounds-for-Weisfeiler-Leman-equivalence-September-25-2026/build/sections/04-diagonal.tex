@@ -1,0 +1,220 @@
+\section{A language hard at every sufficiently large length}
+\label{diag:section}
+
+The diagonalization follows the classical padded-description method of
+Hennie and Stearns \cite[Section~6, Theorem~7]{HennieStearns1966}.
+Padding is essential here: each fixed machine must designate itself at
+every sufficiently large input length. We give the encoding and simulation
+in full to obtain the exact one-tape bounds used in the final transfer.
+
+We use deterministic machines with doubly infinite tapes, finite state sets,
+and finite tape alphabets.  The start, accept, and reject states are pairwise
+distinct, as are the blank symbol and the two input symbols.  The input is
+a binary word written at positions
+$0,\ldots,m-1$ of the first tape, all other cells are blank, and every head
+starts at position $0$.  A transition moves each head by $-1$, $0$, or $1$.
+Acceptance and rejection are designated halting states.  A machine, including
+its number of tapes and its alphabet, is fixed independently of the input
+length.  We first record the elementary simulation bound used below.
+
+\begin{lemma}[Quadratic simulation]
+\label{diag:simulation}
+For every fixed deterministic multitape machine $A$ there is a fixed
+deterministic one-tape machine $\widehat A$ with the same decisions such that,
+if $A$ halts after $T$ steps on an input of length $m$, then $\widehat A$
+halts within
+\[
+                    O_A\bigl((m+T+1)^2\bigr)
+\]
+steps on that input.
+\end{lemma}
+
+\begin{proof}
+Suppose that $A$ has $a$ tapes.  One cell of the simulating tape records the
+$a$ symbols at the corresponding position of the simulated tapes, together
+with a head marker on each track that has its head at that position.  Because
+$A$ is fixed, this product alphabet is finite.  Additional marker bits delimit
+the represented interval and distinguish old head markers from newly placed
+ones.  Initialization takes $O_A(m+1)$ steps.
+
+After $j$ simulated transitions, all nonblank cells and all head positions lie
+in an interval of length $O(m+j+1)$.  To perform the next transition, sweep
+this interval to read the $a$ marked symbols.  Their tuple and the simulated
+state fit in the finite control.  A further sweep performs the indicated
+writes and places the new head markers one cell to the left, at the current
+cell, or one cell to the right.  Old and new marker bits prevent a marker
+from being processed twice.  A further sweep removes the old markers and
+promotes the new ones.  Moving to a neighboring cell to place a marker costs
+only a bounded number of extra moves.  Extend the represented interval by a
+blank cell at either end when necessary.  Thus a fixed number of sweeps,
+each taking $O_A(m+j+1)$ steps, implements one transition.  Summing over
+$j<T$, including initialization and the final decision, gives
+\[
+ O_A\bigl((T+1)(m+T+1)\bigr)
+       =O_A\bigl((m+T+1)^2\bigr).
+\]
+The construction neither needs $T$ in advance nor assumes any bound on it.
+\end{proof}
+
+We next fix an explicit binary description of one-tape machines.  For a
+nonnegative integer $u$, let $\operatorname{un}(u)=1^u0$.  Number the states
+$0,\ldots,q-1$ and the tape symbols $0,\ldots,g-1$, where $q,g\geq 3$.
+States $0,1,2$ are respectively the start, accept, and reject states.  Tape
+symbol $0$ is blank, and symbols $1,2$ encode the input bits $0,1$.
+A description begins with $\operatorname{un}(q)\operatorname{un}(g)$.
+It then lists, in lexicographic order of the state and scanned symbol, all
+$qg$ transition entries.  Each entry consists of the unary codes for the
+new state, the written symbol, and a direction code in $\{0,1,2\}$, denoting
+left, stationary, and right.  The entries for the halting states are ignored
+by the operational semantics.  A description is valid only if it has exactly
+these entries, all indices are in range, and it contains no trailing bits.
+Every fixed one-tape machine in our model has such a description after
+renaming states and symbols; this renaming does not change its running time.
+
+If $b$ is a valid description of length $\ell$, its \emph{designation} is
+\[
+                        \pi(b)=1^\ell 0b.
+\]
+A word has at most one designation as a prefix: the initial unary field
+specifies exactly how many following bits constitute the description.
+Any remaining bits are unrestricted.  Crucially, a machine designated by
+a prefix is always simulated on the entire input word, including that
+prefix.
+
+\begin{theorem}[A diagonal language]
+\label{diag:language}
+For every integer $s\geq 1$ there is a binary language $H_s$ with the following
+properties.
+\begin{enumerate}
+\item There is a fixed deterministic one-tape decider $M_s$ and a constant
+$C_s$ such that, on every input of length $m\geq 0$, its running time is at
+most
+\[
+                       C_s(m+m^s+2)^{20}.
+\]
+\item If $D$ is any correct deterministic one-tape decider for $H_s$, then,
+for every sufficiently large integer $m$, the worst-case running time of
+$D$ on inputs of length $m$ is strictly greater than $m^s$.
+\item After their decisions have been recorded, the accepting and rejecting
+configurations of $M_s$ may be kept fixed forever.  This gives a stationary
+extension of its computation suitable for the local update representation.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+On an input $w$ of length $m$, set $t=m^s$.  If $w$ has no valid designation
+as a prefix, put $w\notin H_s$.  Otherwise let $D_b$ be the designated
+machine and define
+\begin{equation}
+\label{diag:definition}
+ w\in H_s
+ \quad\Longleftrightarrow\quad
+ D_b\text{ does not accept the full word }w\text{ within }t\text{ steps}.
+\end{equation}
+Acceptance within the cutoff includes entering the accepting state on the
+last permitted transition.  A rejecting halt never counts as acceptance.
+
+\paragraph{The lower bound.}
+Let $D$ be a correct one-tape decider for $H_s$, choose a description $b_D$
+of $D$, and write $L_D=|\pi(b_D)|$.  For every $m\geq L_D$ there is an input
+of length $m$ beginning with $\pi(b_D)$.  Indeed, every word
+$w=\pi(b_D)z$ of that length forces $D$ to run for more than $m^s$ steps.
+If $D$ accepted $w$ within the cutoff, Equation~\eqref{diag:definition}
+would exclude $w$ from $H_s$.  If $D$ rejected $w$ within the cutoff, then
+it would not accept within the cutoff, so the same definition would include
+$w$ in $H_s$.  Either possibility contradicts correctness.  Since $D$ is a
+decider, its only remaining possibility is to halt after the cutoff.  This
+proves the second assertion at every length $m\geq L_D$.
+
+\paragraph{A fixed universal procedure.}
+We give the upper bound with substantial slack.  Fix $s$ and write
+\[
+                          B=m+t+2.
+\]
+The procedure has a fixed finite number of work tapes and a fixed alphabet;
+neither depends on the machine described in the input.  A scan obtains
+$m$ in unary and extracts the proposed designation.  Parsing its explicit
+table and checking index ranges requires only polynomially many scans of
+strings of length $O(m+1)$.  For example, all proposed state and symbol
+counts are at most $m$, so even checking every potential entry with unary
+counters takes $O((m+1)^5)$ steps.  Malformed inputs are rejected.  When
+$m=0$, the input is malformed and this also gives the stated bound.
+
+The cutoff $t$ can be written in unary without any arithmetic oracle.  For
+$m\geq 1$, use $s$ nested counters, each ranging over $m$ values, and append
+one mark for each counter tuple.  The number of counters is fixed, and a
+counter update or reset takes $O_s(m+1)$ time.  This produces exactly $m^s$
+marks in $O_s((m+1)(t+1))$ steps.  Copies of these marks supply the loop
+budget and the bounds for the tape representation.
+
+For a valid input description, all simulated state and symbol names have
+unary length at most $m+1$.  Preallocate records for the tape positions
+\[
+                         -t-1,\ldots,m+t+1.
+\]
+There are $m+2t+3=O(B)$ records.  A record contains a symbol field padded
+to a fixed width $O(m+1)$ and a head marker; the current simulated state
+is stored separately in unary.  Delimiters and padding are symbols of
+the fixed simulator alphabet.  The entire configuration list consequently
+has length $O(B^2)$.  Initialize positions $0,\ldots,m-1$ with the bits of
+the full input $w$, put blanks elsewhere, and mark position $0$.  A head
+starting at $0$ cannot leave $[-t,t]$ in $t$ steps, so all simulated accesses
+are covered by the preallocated list.
+
+Here is a direct implementation of a simulated transition.  Scan the
+configuration list to find its marked record and copy the scanned symbol.
+Read the explicit transition table with unary state and symbol counters
+until the required entry is found, and copy its new state, symbol, and
+direction.  Rescan the configuration list to replace the symbol and move
+the marker to the adjacent record, or leave it stationary.  The fixed
+field widths ensure that no insertion into the list is necessary.  For a
+left move, the simulator may back up one record; for a right move it may
+advance one record.  Temporary marker flags distinguish this update from
+the next simulated transition.  Finally consume one budget mark and test
+whether the new state is accepting or rejecting.
+
+All these operations use scans, copies, and comparisons of explicitly
+written strings.  A deliberately inefficient implementation still costs
+$O_s(B^5)$ per simulated transition: the configuration list has length
+$O(B^2)$, and even a full-list scan for each symbol copied costs $O(B^4)$;
+table lookup, comparisons of unary fields, resets, and budget maintenance
+fit within one further factor $B$.  Validation, budget construction, and
+initialization fit within the same $O_s(B^5)$ bound.  Stop with answer no
+as soon as acceptance is detected.  Stop with answer yes on a rejecting
+halt or when all $t$ transitions have been simulated without acceptance.
+There are at most $t\leq B$ simulated transitions, so this fixed multitape
+procedure decides $H_s$ within $O_s(B^6)$ steps.
+
+Apply Lemma~\ref{diag:simulation} to this procedure.  Its one-tape
+implementation has time
+\[
+ O_s\bigl((m+B^6+1)^2\bigr)=O_s(B^{12})
+                                      \leq O_s(B^{20}).
+\]
+Increasing the constant covers every input length and yields the first
+assertion.  Denote this fixed one-tape decider by $M_s$.
+
+\paragraph{Stationary halts.}
+For subsequent recording of configurations, extend the transition rule of
+$M_s$ at either halting state by writing the scanned symbol unchanged,
+keeping the head stationary, and keeping the same state.  Reaching the
+state still records the decision at the original halting time, but all
+later configurations are identical.  The machine has a fixed finite
+alphabet and one head, so its configurations can be represented by tape
+symbols with an optional head-state marker.  The symbol at a position in
+the next configuration is determined by the three symbols at that
+position and its two neighbors: the old head may stay there, move in from
+a neighbor, or leave after writing.  On valid configurations these
+possibilities determine a unique update.  Extending the update arbitrarily
+to invalid triples gives the required finite local rule, and the extended
+halting configurations are fixed by it.
+\end{proof}
+
+\begin{remark}
+\label{diag:quantifiers}
+The lower-bound threshold in Theorem~\ref{diag:language} may depend on the
+decider $D$.  The language and its upper-bound machine depend only on the
+fixed integer $s$.  In particular, the theorem rules out running time at
+most $m^s$ on all inputs of any length above the threshold associated
+with $D$.
+\end{remark}

@@ -1,0 +1,182 @@
+\section{Details of the dimension-ten certificate}
+\label{app:arithmetic}
+
+\subsection{Finite arithmetic}
+
+This subsection gives the exact arithmetic support for the block identities
+\eqref{eq:block-symmetry} and the finite-field data in
+Section~\ref{sec:certificate}.  The Python 3 program below uses only the
+standard library and integer arithmetic.  Its input matrix entries are
+those of \eqref{eq:explicit-matrices}, with zero-based row indices in the
+code.
+
+The function \texttt{checksym} uses only $i<j$ and column indices $a<b$.
+The cases $i=j$ and $a=b$ vanish identically, while exchanging either pair
+of indices changes the sign of the same difference.  Thus these strict
+loops check every equality in \eqref{eq:block-symmetry}.
+
+The code variable \texttt{R} is the coefficient array $[D\mid H]$, and
+\texttt{T} is the reduction of $N$ modulo the current prime.  The program
+expands each determinant over the $4!$ permutations, collects coefficients
+in the order \eqref{eq:monomial-order}, and performs Gaussian elimination
+on $H$ modulo each prime.  The columns of \texttt{T} are the reductions of
+the columns in \eqref{eq:N}.
+
+For $f(z)=z^{20}+c_1z^{19}+\cdots+c_{20}$, with $c_0=1$, the program uses
+the Newton identities
+\[
+ k c_k=-\sum_{i=0}^{k-1}c_i\tr(N^{k-i})\qquad(1\leq k\leq20).
+\]
+Division by $k$ is valid at each of $41,131,139$.  Repeated $p$th powers
+modulo $\overline f$ then give the residues of $z^{p^k}$, and the polynomial
+Euclidean algorithm gives $d_p(k)$.  All inverses are taken in the stated
+prime field.  No floating-point approximation or heuristic search is
+involved.
+
+The program asserts the integer block identities and prints the modular
+data.  Verification of the modular certificate includes comparing the
+printed output with the recorded values below.  The operator, projective, and Galois deductions
+are proved in Sections~\ref{sec:geometry} and \ref{sec:certificate}, using
+the algebraic facts proved in the next subsection.  The program does not
+perform a general elimination or Galois-group computation.
+
+From the paper directory, run
+\texttt{python3 verification/exact\_certificate.py} with assertions enabled,
+without the \texttt{-O} or \texttt{-OO} optimization options, and with
+\texttt{PYTHONOPTIMIZE} unset.
+
+The listing uses an identical build copy of the verification source; its line numbers refer to that source file.
+
+\lstinputlisting[firstnumber=1,caption={Exact verification of the matrix identities and modular certificate.},label={lst:certificate}]{../../verification/exact_certificate.py}
+
+The file \texttt{verification/certificate-output.txt} records the values below; an identical build copy is used for typesetting.
+Coefficients of
+$\overline f$ are in leading-first order, and the gcd-degree lists are
+ordered by $k=1,\ldots,20$.  The first line for each prime gives $p$ and
+$\det H\bmod p$.
+
+\lstinputlisting[language={},numbers=none,basicstyle=\ttfamily\footnotesize,caption={Recorded output of the exact verification program.},label={lst:certificate-output}]{../../verification/certificate-output.txt}
+
+\subsection{Algebraic facts}
+\label{app:certificate-algebra}
+
+We prove the three general lemmas used in Section~\ref{sec:certificate}.
+The first supplies a common zero used to prove the affine quotient nonzero;
+the second accommodates rational coefficients with denominators prime to $p$;
+the third converts squarefree modular factor degrees into Galois permutations.
+
+\begin{proof}[Proof of Lemma~\ref{lem:six-bilinear}]
+Let $X_0,\ldots,X_3,Y_0,\ldots,Y_3$ be indeterminates, put $u_{ij}=X_iY_j$,
+and consider the finitely generated complex algebra
+\[
+ \mathcal R=\C[u_{ij}:0\leq i,j<4]
+ \subset\C[X_0,\ldots,X_3,Y_0,\ldots,Y_3].
+\]
+It is a Noetherian domain.  Its closed complex points are exactly the
+matrices of rank at most one.  Indeed, the identities
+$u_{ij}u_{k\ell}=u_{i\ell}u_{kj}$ force the values at any point to have
+rank at most one, and every such matrix is $xy^{\T}$ and defines an
+evaluation of $\mathcal R$.  The maximal ideal
+$\mathfrak m=(u_{ij}:0\leq i,j<4)$ corresponds to the zero matrix.
+
+For $1\leq a,b\leq4$, put
+$P_{a,b}=(u_{ij}:i\geq a\text{ or }j\geq b)$.  The quotient by $P_{a,b}$
+is the domain $\C[X_iY_j:0\leq i<a,\ 0\leq j<b]$.  To justify the
+identification, use the monomial basis $X^\alpha Y^\beta$ with
+$|\alpha|=|\beta|$ for $\mathcal R$: a monomial containing an excluded
+variable factors by an excluded generator, while the remaining monomials
+stay distinct.  Hence
+\[
+ 0=P_{4,4}\subsetneq P_{3,4}\subsetneq P_{2,4}\subsetneq P_{1,4}
+ \subsetneq P_{1,3}\subsetneq P_{1,2}\subsetneq P_{1,1}
+ \subsetneq\mathfrak m
+\]
+is a strict chain of prime ideals.  In particular,
+$\operatorname{ht}\mathfrak m\geq7$.
+
+Let $\ell_1,\ldots,\ell_6\in\mathcal R$ be the linear combinations of
+the $u_{ij}$ representing the six bilinear forms, and put
+$\mathfrak a=(\ell_1,\ldots,\ell_6)$.  If the only common zero on the
+rank-at-most-one matrices were the zero matrix, the Hilbert
+Nullstellensatz for the finite-type complex algebra $\mathcal R$ would
+give $\sqrt{\mathfrak a}=\mathfrak m$.  The prime $\mathfrak m$ would
+then be minimal over an ideal generated by six elements.  Krull's height
+theorem bounds the height of such a prime in a Noetherian ring by six,
+contradicting the chain above
+\cite[Tags 00FV and 0BBZ(1)]{Stacks}.  Thus a nonzero rank-one matrix
+$xy^{\T}$ annihilates all six forms.  Both factors are nonzero.
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lem:monic-local-reduction}]
+Normalize the valuation by $v_p(p)=1$.  In either pair its values on
+nonzero elements are integers, and $R_p/pR_p=\F_p$.  For a nonzero
+polynomial $a(z)=\sum_i a_i z^i$ over $\mathbb L$, put
+$\nu(a)=\min_{a_i\ne0}v_p(a_i)$.  Scaling nonzero polynomials $a,b$ by
+$p^{-\nu(a)}$ and $p^{-\nu(b)}$ makes their coefficients integral with
+least valuation zero.  Their reductions are nonzero and have nonzero
+product in the domain $\F_p[z]$.  Thus
+\[
+ \nu(ab)=\nu(a)+\nu(b).
+\]
+For monic $g,h$ one has $\nu(g),\nu(h)\leq0$, whereas the monic
+$P\in R_p[z]$ has $\nu(P)=0$.  Additivity forces
+$\nu(g)=\nu(h)=0$, so all coefficients of both factors are integral.
+Their leading coefficients remain one after reduction, which preserves
+their degrees; a monic constant factor is $1$ and retains degree zero.
+Any factorization of $P$ into two positive-degree polynomials over
+$\mathbb L$ can be normalized to monic factors, whose reductions would
+still have positive degree.  This contradicts irreducibility of the
+reduction of $P$.
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lem:local-frobenius}]
+Embed the coefficients of $F$ into $\mathbb Z_p$ and put
+$s=\operatorname{lcm}(s_1,\ldots,s_h)$.  Choose a monic irreducible
+$\overline g\in\F_p[X]$ of degree $s$ and a monic coefficient lift
+$g\in\mathbb Z_p[X]$; we use the standard finite-field fact that an
+irreducible polynomial of every positive degree exists.  Lemma
+\ref{lem:monic-local-reduction} for $(\Q_p,\mathbb Z_p)$ shows that $g$
+is irreducible over $\Q_p$.  If $\alpha$ is a root, put
+\[
+ E=\Q_p(\alpha),\qquad
+ \mathcal O=\mathbb Z_p[\alpha]\simeq\mathbb Z_p[X]/(g).
+\]
+The ring $\mathcal O$ is free of rank $s$ over $\mathbb Z_p$, hence
+complete and separated for the $p$-adic topology, and
+$\mathcal O/p\mathcal O\simeq\F_{p^s}$.  Every element with nonzero
+residue is a unit: lift an inverse modulo $p$ and correct it by a
+convergent geometric series.
+
+Every simple residue root of a polynomial in $\mathbb Z_p[z]$ lifts
+uniquely to a root in $\mathcal O$.  To see this, suppose $r_n$ is a
+root modulo $p^n$ whose derivative has nonzero residue.  The first-order
+Taylor congruence gives a unique residue class of $c$ such that
+$r_{n+1}=r_n+p^nc$ is a root modulo $p^{n+1}$.  Completeness gives a
+limiting root.  If two roots have the same simple residue, the polynomial
+difference factorization writes their difference times a unit as zero;
+the roots therefore coincide.
+
+Every root of $\overline F$ lies in $\F_{p^s}$ and is simple.  Lifting
+them gives $\deg F$ distinct roots of $F$ in $\mathcal O$, hence all
+the roots.  Finite fields are perfect, so $\overline\alpha^{\,p}$ is a
+simple root of $\overline g$.  Lift it to a root $\beta\in\mathcal O$ of
+$g$.  Sending $\alpha$ to $\beta$ defines a $\Q_p$-embedding $E\to E$,
+because $g$ is irreducible.  This embedding is an automorphism $\sigma$,
+as $E$ is finite-dimensional over $\Q_p$.
+
+Since $\beta\in\mathcal O$, we have $\sigma(\mathcal O)\subseteq\mathcal O$.
+The induced residue map fixes $\F_p$ and sends $\overline\alpha$ to
+$\overline\alpha^{\,p}$, so it is Frobenius on $\F_{p^s}$.  In a
+$\mathbb Z_p$-basis of $\mathcal O$, the matrix of this endomorphism
+reduces to an invertible residue matrix.  Its determinant is a $p$-adic
+unit, and therefore $\sigma(\mathcal O)=\mathcal O$.
+
+If $\rho_r$ is the lifted root of $F$ with residue $r$, uniqueness of
+lifting gives $\sigma(\rho_r)=\rho_{r^p}$.  Thus the permutation of the
+lifted roots has exactly the Frobenius cycle lengths on their residues,
+namely $s_1,\ldots,s_h$.  The subfield of $E$ generated over $\Q$ by
+these roots is a rational splitting field of $F$.  The automorphism
+$\sigma$ permutes its generating roots and hence preserves this subfield.
+Its restriction is the required rational Galois automorphism.  A
+$\Q$-isomorphism transports the statement to any chosen splitting field.
+\end{proof}

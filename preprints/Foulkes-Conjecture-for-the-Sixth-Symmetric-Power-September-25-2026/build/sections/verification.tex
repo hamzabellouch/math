@@ -1,0 +1,255 @@
+\section{Finite arithmetic, reproduction, and conclusion}\label{sec:verification}
+
+\subsection{Indexing and arithmetic in the certificate program}
+Appendix~\ref{app:certificate} lists the complete program used for
+Verification~\ref{ver:certificates}; it has no external data input.
+Its partition order reads parts from last to first. If \(p_j(u)\)
+counts partitions of \(u\) into at most \(j\) parts, the prefix table
+counts those whose last padded part is \(<k\), by
+\[
+ N_j(u,k)=N_j(u,k-1)+p_{j-1}(u-j(k-1)).
+\]
+The second summand subtracts the last part from all \(j\) positions.
+Negative arguments count as zero and \(p_0(0)=1\).
+Subtracting two prefix counts ranks the next part after the already
+fixed smaller neighbor. A shorter partition padded by zeros has the
+same rank. For the tail-restricted table, first group by its exact last
+three parts, subtract their largest part from the preceding three, and
+use the three-part rank. The grid similarly groups by \(w(m)\) and ranks
+the partition corresponding to its first five gaps.
+
+The allocated prefix array has size parameter \(1250\). Its terminal
+weight need not supply a complete unrestricted count; all counts used
+for multiplicities and grid indices have weight at most \(894\), strictly
+below that terminal boundary. The prefix entries are bounded by
+\(\binom{1254}{5}<2^{63}\).
+The actual largest complete levels used in six, four, and three variables
+have respectively \(1229120\), \(261072\), and \(67051\) partitions.
+The largest tail-restricted level has \(1263138\) entries, and the grid
+has \(6611697\). These ranks, offsets, and predecessor indices fit signed
+32-bit integers. Independently of these evaluated counts, coarse bounds
+for the three complete levels, the grid, and any tail level are
+\[
+ \max\left\{\binom{155}{5},\binom{333}{3},\binom{896}{2},
+             \binom{154}{5},\binom{21}{3}\binom{272}{2}\right\}<2^{31}.
+\]
+These count unrestricted weak compositions. For the grid,
+\(w(m)\le149\) implies \(\sum_i m_i\le149\); for a tail level there
+are at most \(\binom{21}{3}\) ordered tails of size at most \(18\), and
+each remaining three-part prefix has weight at most \(270\).
+
+Multiplicity arithmetic is signed 128-bit. The target recurrences check
+every accumulation for overflow, and test integrality and nonnegativity
+before division. For the source, only \(b\le25\) is needed.
+Each intermediate multiplicity is at most \(151^{10}\): it is bounded
+by its multiplicity in \((\Sym^b V)^{\otimes j}\), \(j\le6\), and the
+successive interlacing partitions have at most
+\(151^{0+1+2+3+4}\) choices. In one source Newton step, there are fewer
+than \(6\cdot151^4+6\) strip terms, by fixing one coordinate with the
+size constraint. Thus every signed accumulation is bounded absolutely by
+\[
+                   151^{10}(6\cdot151^4+6)<2^{127}.
+\]
+For \(U\), every width in every actual or high-residue call is at most
+\(920\). A chain has at most \(1+2+3+4=10\) width factors, so
+\[
+                      B_I\le920^{10}<Z=2^{100}.
+\]
+The minimum initialized at \(Z\) therefore never clips an upper bound,
+and summing class weights costs a factor at most \(720\).
+
+For the power bound, \(S\) has
+\(\dim\Sym^6\CC^6=\binom{11}{5}=462\) polynomial generators.
+Consequently \(\binom{d_0+461}{461}\ge Q(x)\), so the binomial search
+for \(z\), before its cap at \(18\), stops by \(461\).
+With \(C\le Z\) and \(d_0\le149\), its first crossing is at most
+\(150Z\); predivision multiplication costs at most another factor \(610\),
+still below \(2^{127}\). After the cap, the other binomials are at most
+\(\binom{167}{18}\). Products in the final lower bound are screened
+against \(Z\) before multiplication. Capping can only weaken a lower
+certificate. These observations cover the unchecked arithmetic as well
+as the program's explicit assertions.
+
+OpenMP distributes distinct coefficient destinations within one degree.
+All previous degrees are read-only, and each work-sharing loop has its
+barrier before the next degree. The mathematical result is therefore
+independent of the thread count.
+
+\subsection{Integer bounds for the band program}
+It remains to bound the signed 128-bit arithmetic before the
+arbitrary-precision division described in Section~\ref{sec:band}.
+For a Laurent series truncated to total tail degree at most \(27\),
+use the sum of absolute coefficients as its norm.
+The norm of \(L_j\) is bounded by
+\[
+ N=\sum_{n=0}^{27}[z^n]P(z),\qquad
+ P(z)=\prod_{h=1}^6(1-z^h)^{-M_h},\qquad
+ M_h=(7-h)\binom{h+3}{3}.
+\]
+Here \((M_1,\ldots,M_6)=(24,50,80,105,112,84)\).
+There is a convenient purely elementary estimate
+\begin{equation}\label{eq:normbound}
+                         N\le4^{27}P(1/4)<2^{79}.
+\end{equation}
+The first inequality follows from nonnegative coefficients.
+For the second, put \(r_h=4^h/2\). Bernoulli's inequality gives
+\((1-4^{-h})^{r_h}>1/2\).
+Thus the \(h\)-th factor of \(P(1/4)\) is at most
+\(2^{\lceil M_h/r_h\rceil}\), with strict total inequality.
+The six ceilings are \(12,7,3,1,1,1\), whose sum is \(25\);
+combine this with \(4^{27}=2^{54}\).
+
+Each four-coordinate source product has at most \(24\) geometric factors,
+each consuming at least one tail unit, so its norm is at most
+\[
+                         S_0=\binom{51}{24}<2^{51}.
+\]
+Using \(\|D\|_1\le64\), the quotient \(E_I\) has norm at most
+\[
+             Q_0=64\binom{21}{6}=3472896<2^{22}.
+\]
+Indeed dominate all reciprocal cycle factors by \((1-q)^{-6}\) and
+sum through degree \(15\). The partial quotient calculations through
+degree \(21\) have bound \(64\binom{27}{6}=18944640\), and the
+one-coordinate arrays \(A_J\) have coefficients at most
+\(\binom{32}{5}=201376\). Their additions fit signed 32-bit integers.
+Class-size divisions are exact: for each partial cycle multiset of
+size \(r\le6\), its centralizer order divides \(r!\), hence divides \(720\).
+
+The undivided Euler step costs at most \(27N\).
+The absolute weight of all target elementary masks is \(720\cdot64\),
+and the class-subset weight is
+\[
+ \sum_{I\vdash6}n_I2^{v(I)}
+  =\sum_{\sigma\in\SSS_6}2^{\#\text{cycles}(\sigma)}
+  =2\cdot3\cdot4\cdot5\cdot6\cdot7=5040.
+\]
+The last identity follows inductively by inserting the new largest
+element into an existing cycle or making it a new cycle.
+Cross multiplication including \(1-q\) has norm at most \(512\);
+alternation costs at most \(24\). A bound for every predivision
+coefficient, partial sum, and product is therefore
+\begin{equation}\label{eq:allbounds}
+        512\cdot24\bigl(27\cdot720\cdot64N+5040Q_0S_0\bigr)
+                         <2^{115}<2^{127}.
+\end{equation}
+The source convolutions have nonnegative factors before their final
+signs, so this also bounds their intermediate products.
+Potentially large products in the code already have a 128-bit operand.
+The row divisions and final sums then use arbitrary precision.
+Each output counter covers at most six degrees, \(1908\) tails, and
+\(448\) second parts per degree and tail. Thus even the coarse bound
+\(1908\cdot6\cdot448<2^{31}\) keeps these counters within signed
+32-bit range.
+
+\subsection{Recorded computations and reproduction}
+The reference output streams contain \(20\) base rows, \(21\) flag rows,
+and \(21\) band rows. Tables~\ref{tab:base} and~\ref{tab:band} present
+all \(62\) numeric rows, including every tested degree. The reproduction
+script checks these streams against fixed hashes and compares their
+numeric contents with both manuscript tables.
+
+A full reproduction compiled the two printed sources with
+GNU C++~13.3.0 and executed both programs over their entire stated ranges,
+with assertions enabled. The first used two OpenMP threads and the
+second was serial. Both exited with status zero, and all four output
+streams matched the reference streams byte for byte. This execution
+reproduced all \(62\) numeric rows in the tables.
+
+The programs retain the complete ranges \(6\le b\le149\).
+For the main proof using Corollary~\ref{cor:quadratic-range}, only the
+base comparisons \(6\le b\le25\) and the first row of
+Table~\ref{tab:band}, for \(26\le b\le29\), are required.
+That row contains \(29814\) flags and \(467068\) band coefficients;
+the band differences are nonnegative, with \(2114\) equalities.
+The later rows give the additional finite checks for the independent
+route through Proposition~\ref{prop:large}. Exact target tables at higher
+degrees are computed from the recurrences, not assumed from Foulkes'
+conjecture, so their use in lower certificates introduces no circularity.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{r|r|r|r|r}
+\(b\) range&flagged pairs&largest \(t_2\)&band coefficients&zero differences\\ \hline
+26--29&29814&25&467068&2114\\
+30--35&46805&25&872322&3621\\
+36--41&50091&25&1078386&4161\\
+42--47&54443&25&1284450&4701\\
+48--53&63027&25&1490514&5241\\
+54--59&74729&20&1696578&5781\\
+60--65&90684&18&1902642&6321\\
+66--71&109505&18&2108706&6861\\
+72--77&130920&19&2314770&7401\\
+78--83&155274&20&2520834&7941\\
+84--89&182871&21&2726898&8481\\
+90--95&214444&22&2932962&9021\\
+96--101&248073&23&3139026&9561\\
+102--107&285382&24&3345090&10101\\
+108--113&324614&25&3551154&10641\\
+114--119&366623&26&3757218&11181\\
+120--125&410723&26&3963282&11721\\
+126--131&457715&26&4169346&12261\\
+132--137&506088&26&4375410&12801\\
+138--143&557588&26&4581474&13341\\
+144--149&610285&27&4787538&13881\\ \hline
+total&4969698&27&57065668&177134
+\end{tabular}
+\caption{Full retained verification range. The first row is the residual
+range required with quadratic stabilization; subsequent rows support the
+independent chart route. All flags lie in the checked band, and no
+negative difference is found. The program's first row is labeled \(24\), the
+multiple of six below the first tested degree; the explicit degree
+ranges here avoid that convention.}\label{tab:band}
+\end{table}
+
+The supporting package contains the complete program sources, reference
+output streams, their hashes and numeric tables, and a reproduction
+script. A new full run creates its own compiler and execution metadata.
+The commands, run from the paper directory, are
+\begin{verbatim}
+python3 -B verification/verify_computations.py --check
+python3 -B verification/verify_computations.py --run --threads 2
+\end{verbatim}
+The first checks source and reference-stream identities, all \(62\)
+numeric rows, agreement with the manuscript tables, and the numerical
+bounds above; it does not execute the mathematical programs.
+The second compiles both unchanged sources with
+\texttt{-std=c++17 -O3 -UNDEBUG}, enables OpenMP only for the first,
+executes them, and requires both complete output streams to match
+the reference streams byte for byte. It keeps each run in a new external
+directory, with the compiler version, build and execution commands,
+exit statuses, timings, hashes, and captured streams. The option
+\texttt{--serial} may replace \texttt{--threads 2} to compile and run
+the first program without OpenMP.
+The two C++ files are also printed in full below, so every finite step
+is specified in this paper. The coefficient formulas, indexing
+arguments, and arithmetic bounds establish what they check; successful
+execution supplies the finite nonnegativity assertions.
+
+\subsection{Completion of the proof}
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Corollary~\ref{cor:quadratic-range} settles \(b\ge30\).
+Verification~\ref{ver:certificates} settles \(6\le b\le25\).
+Proceed by increasing \(b\) from \(26\) through \(29\).
+If \(d_6\ge6\), Lemma~\ref{lem:rectangles} reduces the comparison to
+degree \(b-6\ge20\). Otherwise \(d=r+6m\) lies in the exhaustive
+classification of Section~\ref{sec:certificates}. Every pair is either
+cleared there by a proved certificate or the chart, or flagged.
+The flags have \(t_2\le27\) and are covered by
+Verification~\ref{ver:band}. Hence \(Q(\lambda)\ge F(\lambda)\) for
+every source partition and every \(b\ge6\).
+The source has no constituents of length greater than six;
+specialization at extra variables zero transfers the comparisons to
+every finite dimension. Complete reducibility gives the required
+equivariant injection.
+\end{proof}
+
+\begin{remark}[The independent full-range route]
+The same finite argument, with no change of predicate or arithmetic,
+continues from \(b=30\) through \(b=149\), as recorded in the full
+tables. Combining it with Proposition~\ref{prop:large} for \(b\ge150\)
+proves the theorem without using the quadratic companion.
+The chart and certificate methods are therefore retained as a complete
+independent proof, while Corollary~\ref{cor:quadratic-range} gives the
+shorter large-degree route.
+\end{remark}

@@ -1,0 +1,1566 @@
+\section{Certified arithmetic}\label{sec:rounding}
+
+This section supplies the one-sided arithmetic estimates used in
+Sections~\ref{sec:seed}, \ref{sec:completion}, \ref{sec:phase-cover},
+\ref{sec:refinement}, and~\ref{sec:exclusion}.
+The source files, parameters, build, and completed execution are
+documented in Section~\ref{sec:execution}.  The estimates concern those entry points
+and parameters.  Auxiliary routines not called by those entry points are
+not additional exclusion tests.
+
+We distinguish an \emph{exact stored number}, meaning the real number
+represented by a binary64 datum, from the ideal mathematical quantity it
+approximates.  Proposed solve directions, proposed inverse matrices, and
+proposed changes of basis are usually used in the first sense.  Their
+accuracy is not assumed: finite bounds and residual inequalities are
+checked before a proposal can justify an exclusion or a covering step.
+For complex arrays, an entrywise error is an error in complex modulus.
+Matrix norms without a subscript are Euclidean operator norms.
+
+\subsection{Arithmetic premises and elementary estimates}
+\label{round:premises}
+
+The primitive-operation model is the binary64 specification of
+IEEE~754~\cite[Sections~3.4, 3.6, 4.3, 5.4.1 and~7.5]{IEEE7542019}.
+The accumulation estimates use the usual product-of-rounding-factors
+argument~\cite[Section~2.12 and Lemma~3.1]{Higham2002Accuracy}, with the
+explicit additive underflow allowance retained below.
+
+The arithmetic premises are separate, correctly rounded binary64
+addition, subtraction, multiplication, division, and square root in
+round-to-nearest mode, with binary64 evaluation of intermediate results.
+The build uses \texttt{-ffp-contract=off}, and does not use fast-math or
+reassociation that changes these operations.  Subnormal numbers are not
+flushed to zero, and denormal inputs are not treated as zero.  Floating
+exceptions are masked, so an unsuccessful heuristic calculation can
+produce an infinity or NaN and be rejected by its subsequent checks.
+The relevant integer types, numeric locale, and file representation are
+specified in Section~\ref{sec:execution}.
+
+The function \texttt{environment} sets and checks nearest rounding and
+checks the binary64 properties of \texttt{double}.  The A/B/C entry points
+also inspect MXCSR, rejecting a non-nearest mode, DAZ, FTZ, or unmasked
+exceptions.  The same no-DAZ/no-FTZ environment is required for
+\texttt{covout}, although its entry point does not itself inspect those
+bits.  The default-nearest premise also applies to constants and the
+global basis constructed before \texttt{main}.  These are explicit
+arithmetic premises, not a claim that a source-level static assertion
+formally verifies every compiler transformation.  The recorded build
+checks and their limits are described in Section~\ref{sec:execution}.
+
+The functions \texttt{nearbyint} and \texttt{floor} choose integers at
+finite bounded arguments.  The particular integer chosen at a boundary
+is permissible wherever the proof subsequently uses that integer lift.
+No accuracy premise is imposed on \texttt{atan2}: Candidate checks the
+unit exponential of the phase it proposes.  Decimal literals are either
+used as exact stored parameters, or allowed a relative translation error
+of at most $5\cdot10^{-16}$ when compared with a displayed decimal.
+
+Put
+\begin{equation}\label{round:unit}
+ u=2\cdot10^{-16},\qquad \tau=10^{-300},\qquad
+ \gamma_m=2.1\cdot10^{-16}(m+1).
+\end{equation}
+For a correctly rounded basic operation with finite exact result $z$ at
+the scales below,
+\begin{equation}\label{round:basic}
+ |\operatorname{fl}(z)-z|\le u|z|+\tau.
+\end{equation}
+The true binary64 relative unit roundoff is smaller than $u$, and the
+additive allowance is much larger than half the least positive
+subnormal.  Overflows are excluded for the certificate evaluations by
+the scale bounds proved below; they need not be excluded in an
+untrusted solve.
+
+\begin{lemma}[Accumulation and norm bounds]\label{round:accumulation}
+For $m\le2000$, a dot product on exact stored inputs, formed as separate
+products and successive additions, satisfies
+\begin{equation}\label{round:dot}
+ \left|\operatorname{fl}\!\left(\sum_{i=1}^m a_i b_i\right)
+                  -\sum_{i=1}^m a_i b_i\right|
+ \le \gamma_m\sum_{i=1}^m|a_i b_i|+4(m+1)\tau.
+\end{equation}
+An initial addend is included in the absolute sum and increases the
+small operation-count constant by one.  A product of three factors
+instead of two increases that constant by one more.
+For the square-sum/square-root norms used here,
+\begin{equation}\label{round:norm}
+ \left|\operatorname{fl}(\|a\|)-\|a\|\right|
+ \le 2.2\cdot10^{-16}(m+2)\|a\|+10^{-140}.
+\end{equation}
+If the computed components approximate other components, their
+Euclidean difference is added to this bound.
+\end{lemma}
+
+\begin{proof}
+For each product term, the product rounding and the additions through
+which it passes contribute at most $m+1$ multiplicative factors of the
+form $1+\delta$, $|\delta|\le u$.  In the stated range,
+$(1+u)^{m+1}-1<\gamma_m$.  Propagating the additive errors in
+\eqref{round:basic} costs less than $4(m+1)\tau$; all amplification
+factors here are less than $1.001$.  This proves \eqref{round:dot}.
+The same argument applies to positive sums and to three-factor products.
+For a sum of squares it gives relative error at most $\gamma_m$ and an
+additive error at most $4(m+1)\tau$.  Taking its square root, using
+$|\sqrt{1+t}-1|\le |t|/(1+\sqrt{1-|t|})$ for $|t|<1$, and then including
+the final square-root rounding gives \eqref{round:norm}.  The additive
+effect is bounded by $\sqrt{4(m+1)\tau}$ plus the square-root rounding;
+this is smaller than $10^{-140}$.  Finally
+$|\|a\|-\|b\||\le\|a-b\|$.  Thus no division by a small norm is needed
+to handle perturbed components.
+\end{proof}
+
+For exact stored complex numbers, the explicit source operations obey
+\begin{align}
+ |\operatorname{fl}(z+w)-(z+w)|
+   &\le u(|z|+|w|)+2\tau,\label{round:complex-add}\\
+ |\operatorname{fl}(zw)-zw|
+   &\le 10^{-15}|z||w|+8\tau.\label{round:complex-multiply}
+\end{align}
+For the latter, each real component uses two real products and an
+addition or subtraction.  Its error is bounded by
+$(2u+u^2)$ times the sum of the two absolute products, plus the additive
+allowance.  Cauchy's inequality bounds each such sum by $|z||w|$, and
+$\sqrt2(2u+u^2)<10^{-15}$.  Real scaling and division are componentwise
+instances of \eqref{round:basic}.  Squared moduli also satisfy the useful
+perturbation bound
+\begin{equation}\label{round:squared-perturbation}
+ \big||z+e|^2-|z|^2\big|\le2|z||e|+|e|^2,
+\end{equation}
+before their own multiplication/addition errors.
+
+The additive underflow terms can be retained throughout these
+inequalities.  The norm allowance $10^{-140}$ is deliberately loose.
+All subsequent certified divisions have the explicit lower bounds
+given below; in particular the residual test divides only by a gap
+of order $10^{-6}$ or larger.  Its norm factors and scale are at most
+the displayed $10^8$--$10^{11}$ scales, so its propagated additive
+terms remain below $10^{-120}$.  The second square root in the spectral
+estimate is handled separately by an absolute term of order
+$10^{-69}$.  That term is covered there before the result is reused.
+Other normalizations have denominators bounded below by $.148$, $.45$,
+or larger.  At each iterative upper-bound update the new local error is
+absorbed by its own positive margin.  There is therefore no unchecked
+chain of ill-conditioned divisions propagating a subnormal error: all
+such additive contributions are below $10^{-50}$ when they are
+absorbed in the strict budgets below.
+
+\subsection{Pi and unit exponentials}
+\label{round:exponentials}
+
+The source literal \texttt{0x1.921fb54442d18p+1} represents the
+binary rational
+\[
+ \widehat\pi=\frac{884279719003555}{281474976710656}.
+\]
+Here is an exact certificate for its error.  Write
+\[
+ A(x,n)=\sum_{j=0}^{n-1}\frac{(-1)^j x^{2j+1}}{2j+1},\qquad
+ s=16A(1/5,12)-4A(1/239,4).
+\]
+If $t=\arctan(1/5)$, then $\tan(2t)=5/12$ and
+$\tan(4t)=120/119$; subtracting $\arctan(1/239)$ gives tangent $1$
+in $(0,\pi/2)$.  This proves Machin's identity
+$\pi=16\arctan(1/5)-4\arctan(1/239)$.
+The alternating-series remainder gives
+\[
+ |s-\pi|\le \frac{16}{25\,5^{25}}+\frac{4}{9\,239^9}.
+\]
+Exact rational arithmetic gives
+\begin{equation}\label{round:pi-rational}
+ \widehat\pi-s=
+ \frac{-1204334632739641172855772829555432415587}
+ {10003273510806667494906565283020800000000000000000000000}.
+\end{equation}
+Adding the displayed rational remainder bounds and comparing integers
+proves
+\begin{equation}\label{round:pi-error}
+ |\widehat\pi-\pi|<1.225418\cdot10^{-16}<2\cdot10^{-16}.
+\end{equation}
+
+The range-reduction argument uses Sterbenz's exact-subtraction lemma
+\cite{Sterbenz1974FloatingPoint}; a statement including gradual
+underflow is given in~\cite[Theorem~2.5 and the following discussion]{Higham2002Accuracy}.
+The polynomial and argument-error estimates are proved here for the
+particular degree-$18/19$ implementation.
+
+\begin{lemma}[Unit-exponential error]\label{round:expair}
+At a finite stored $x$ with $|x|\le16$, \texttt{expair} differs from
+$e(x)=\exp(2\pi i x)$ in complex modulus by less than $2\cdot10^{-14}$.
+For all its uses in the certificate, including argument formation,
+the following common bound is valid:
+\begin{equation}\label{round:exp-budget}
+ \varepsilon_{\exp}=6\cdot10^{-14}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The multiplication $4x$ is exact.  Let $k$ be its nearest integer.
+Then $|x-k/4|\le1/8$.  If $k\ne0$, $x$ and $k/4$ have the same sign
+and their absolute values are within a factor two, so the subtraction
+is exact by Sterbenz's lemma.  If $k=0$ it is immediate.  Multiplication
+by the exact double $2\widehat\pi$ forms a stored angle $y$ with
+\[
+ |y-2\pi(x-k/4)|<3\cdot10^{-16},\qquad |y|<.786.
+\]
+The error follows from \eqref{round:pi-error}, the remainder bound $1/8$,
+and one multiplication rounding.
+
+The source evaluates cosine through degree 18 and sine through degree
+19.  In the $j$th nonconstant term, the error in $-y^2$ is reused $j$
+times, and there are $j$ further multiplications and $j$ divisions.
+The small integer denominators are exact.  Its relative error is
+therefore at most $(1+u)^{3j}-1<5.5\cdot10^{-15}$ for $j\le9$.
+For additive underflow errors, compare with a recurrence using the
+same multiplicative rounding factors but zero additive errors.
+Its terms have magnitude below two, and each recurrence contracts
+the previous additive error by a factor less than $1/2$:
+the numerator factor has magnitude below $.786^2$ and the smallest
+denominator is two.  Errors from that factor, the product, and the
+division give the conservative recurrence
+$E_j\le E_{j-1}/2+4\tau$, $E_0=0$.
+Thus $E_j<8\tau$; after both coordinates' nine additions their
+total contribution is below $10^{-295}$, including when $y^2$
+or a later term underflows.
+The absolute even-term sum at $.786$ is below $1.4$, its nonconstant
+part below $.4$; the odd-term sum is below $1$, its part after $y$
+below $.2$.  For the nonconstant even terms the successive ratio
+after the first is at most $.786^2/12$, and for the odd terms after y
+it is at most $.786^2/20$.  Their geometric majorants give the claimed
+absolute sums without evaluating a transcendental function.
+The first omitted cosine and sine terms
+are below $3.330\cdot10^{-21}$ and $1.247\cdot10^{-22}$, respectively;
+in particular both tails are below $4\cdot10^{-20}$.
+
+The term errors contribute less than $2.2\cdot10^{-15}$ in cosine and
+$1.1\cdot10^{-15}$ in sine.  Put
+$\alpha=(1+u)^9-1<1.81\cdot10^{-15}$ and
+$\rho=(1+u)^{27}-1<5.5\cdot10^{-15}$.
+Including the nine additions and the tails gives coordinate errors
+less than
+$.4\rho+1.4(1+\rho)\alpha+4\cdot10^{-20}<4.74\cdot10^{-15}$
+and
+$.2\rho+(1+\rho)\alpha+4\cdot10^{-20}<2.92\cdot10^{-15}$.
+Their Euclidean combination, the $3\cdot10^{-16}$ angle error,
+and the additive underflow term give complex error below
+$6\cdot10^{-15}$, hence below the asserted
+$2\cdot10^{-14}$.  The quadrant permutations and sign changes are exact.
+
+For a rational bin midpoint, division by the grid size, or multiplication
+of $b+1/2$ by the stored reciprocal of that size, has error below
+$5\cdot10^{-16}$ cycles.  The latter product has ideal magnitude at
+most one.  Subtraction of a phase of magnitude at most four, or a
+stored ball phase of magnitude at most two, brings the total argument
+error to less than $2\cdot10^{-15}$ cycles.  The Lipschitz constant of
+$e$ is $2\pi$, so this additional error fits inside
+\eqref{round:exp-budget}.  Dyadic unitary centers are exact; Stage A
+treats the stored seed phases as exact after enlarging the seed ball;
+\texttt{buildH} treats its stored $p$ as exact and compares row-edge
+exponentials with products of ideal unit entries.
+\end{proof}
+
+All relied-on arguments satisfy the range condition.  Seed and dyadic
+unitary phases are bounded near $[0,1]$; \texttt{gen} checks $|p_j|\le4$;
+Candidate checks $|P_j|\le.51$ before its exponential; C validates
+$|p_j|\le4$ and checks ball phases of magnitude at most two.
+The largest C difference has magnitude at most six.  The constants
+$\sqrt6$ and its reciprocal are formed by the indicated square root
+and division; $2\cdot10^{-15}$ is an ample absolute error bound for each.
+
+\subsection{Seed filtering and seed-ball reuse}
+\label{round:seed}
+
+Here $n=112$ and the stored $w$ approximates $1/n$.
+Midpoint-gap calculations contain only small integer arithmetic and
+a few products/subtractions; \eqref{round:basic} bounds their total
+error, including the comparison threshold, by $10^{-14}$.
+Their slack is $10^{-8}$.  The orientation filter is integral.
+
+For a list of five varying phases, the computed residual $c$ in
+\texttt{sumok} has component error below $2\cdot10^{-13}$.
+Indeed its five exponential errors, after division by $2\pi$, total
+less than $4.8\cdot10^{-14}$ in complex modulus, and the divisions,
+additions, and constant error cost less than $3\cdot10^{-15}$.
+The sharper componentwise bound $1.1\cdot10^{-13}$ will also be useful.
+Each test direction is regarded as an exact stored pair; its norm is
+less than $1.1$.  The five column perturbations, the residual
+perturbation, and ordinary arithmetic in \texttt{chk} cost together
+less than $10^{-11}$.  Its remainder coefficient approximates
+$5\pi/(4n^2)$ within $10^{-15}$.  The actual $10^{-8}$ comparison
+addition therefore preserves every feasible list.
+
+For \texttt{extend}, the stored direction has norm at most $1.01$.
+Let $v$, $a$, and $r$ denote its stored directional residual in grid
+units, shared coefficient, and support before inflation.  Their errors
+satisfy
+\begin{equation}\label{round:clip-errors}
+ |\Delta v|<3.3\cdot10^{-11},\qquad
+ |\Delta a|<10^{-13},\qquad |\Delta r|<10^{-12}.
+\end{equation}
+For the first bound, multiply the sharpened residual bound by $112$
+and by a direction of norm at most $1.01$, and include a two-term dot
+and one multiplication.  The other two follow from
+\eqref{round:exp-budget}, four absolute support terms, and a
+two-component norm.  If $|d_s|\le1/2$ is feasible, these estimates give
+\[
+ |v+a d_s|\le r+3.3\cdot10^{-11}
+                 +\tfrac12\cdot10^{-13}+10^{-12}+\text{rounding}.
+\]
+The source adds $10^{-7}$ to $r$ \emph{before} dividing by $|a|$.
+It skips $|a|<10^{-6}$; at an accepted divisor
+$|a|>.999\cdot10^{-6}$, allowing literal translation.
+The midpoint quotient has magnitude below $1.2\cdot10^8$ and the
+radius quotient below $3\cdot10^6$: the residual has magnitude below
+112, and the support before division is below three.  Their divisions
+and endpoint additions can move an endpoint by less than $10^{-7}$.
+The extra $10^{-5}$ on each endpoint is therefore sufficient.
+Intersecting these outward intervals retains the true shared value.
+
+In \texttt{supdual}, all proposed entries are checked by
+$|v_a|\le10^4$, with a negated comparison that also rejects NaN.
+They are then exact stored test coefficients.  The four right-hand
+side errors against $-nc$ are below $3\cdot10^{-11}$ each.  The signed
+term consequently has input error at most
+\[
+ 2\sum_{a=1}^4 |v_a|\,3\cdot10^{-11}
+ \le2.4\cdot10^{-6}<2.5\cdot10^{-6}.
+\]
+Its absolute term sum is below $10^7$, so its arithmetic error is below
+$10^{-7}$.  Each of the nine row-dot residuals has error below
+$4\cdot10^{-9}$: its four input contributions are at most
+$4\cdot10^4\varepsilon_{\exp}$, and its short dot costs less than
+$10^{-10}$.  Each pair norm has error below $10^{-10}$ by
+\eqref{round:norm}.  The remainder coefficient uses $1.251$ instead
+of $1.25$, which leaves positive slack after its own rounding.
+The final absolute scale is below $2\cdot10^7$.  Summing these
+contributions shows that the ideal support expression is at most the
+computed proposal plus $10^{-4}$.  The actual addition is $.01$.
+If no usable proposal improves the initial $10^{10}$ bound, that
+initial bound already exceeds the trivial support.
+
+Integer differences lie in $[-111,111]$, including those stored in
+\texttt{int8\_t}; all their squared/absolute sums are exact and small.
+The comparison radius is
+\[
+ \texttt{RN2}=\operatorname{fl}((\operatorname{fl}(.032\cdot112))^2)
+              -.0001
+\]
+with the source's indicated operation ordering.  The total possible
+error before the subtraction is below $10^{-12}$, so this is smaller
+than the ideal $(.032\cdot112)^2$.  This reasoning requires the
+\texttt{pow(x,2)} calls in \texttt{covout} to be lowered to binary64
+multiplication, as checked for the fresh build documented in
+Section~\ref{sec:execution}.  It is not a claim about an arbitrary
+library implementation of \texttt{pow}.  The other square-power value
+$T$, bucket reach, and integer cuts only select reuse attempts; missing
+an attempt does not discard the current bin pair.  A newly inserted
+midpoint needs radius only $1.5/112<.032$.  Finally, the nine
+division-rounded seed phases differ from their rational midpoints in
+norm by less than $10^{-14}$, which is absorbed when the A seed radius
+is increased to $.0320001$.
+
+\subsection{Frames, comparison blocks, and A exclusion tests}
+\label{round:frames}
+
+All ideal quantities in this subsection use exact unit exponentials
+at the specified centers, and the same coordinate indices selected by
+the code.  We never need the selected coordinate to maximize the
+\emph{ideal} projection score.
+
+For \texttt{frame}, the four-term sum $S$ has error below
+$2.5\cdot10^{-13}$; its squared modulus has error below
+$2.2\cdot10^{-12}$ by \eqref{round:squared-perturbation}, and its modulus
+below $2.6\cdot10^{-13}$ by \eqref{round:norm}.  If the stored
+$m=\sqrt{4-|S|}$ passes $m>1.25$, the ideal $m>1.24$.
+Using $|\sqrt a-\sqrt b|=|a-b|/(\sqrt a+\sqrt b)$ at these lower
+bounds gives errors below $3\cdot10^{-13}$ in $m$ and
+$\mathrm{top}=\sqrt{4+|S|}$.
+In particular $16-|S|^2>6.1$; its error is below
+$2.3\cdot10^{-12}$, so its reciprocal has error below
+$7\cdot10^{-14}$.  The two pseudoinverse numerators have modulus at
+most eight and error below $5.1\cdot10^{-13}$.  For example the
+row-times-$\overline S$ product contributes at most the row error
+times $|S|$, plus the $S$ error, plus
+\eqref{round:complex-multiply}.  Division/scaling then gives
+\begin{equation}\label{round:frame-g}
+ |\Delta G_{ij}|<10^{-12},\qquad |G_{ij}^{\rm ideal}|<.81,
+\end{equation}
+the second inequality following from the lower singular bound.
+
+The first constant basis column is exact.  The next column has
+numerator error below $1.3\cdot10^{-13}$ and denominator
+$\sqrt{4-|S|^2/4}>1.5$ with error below $2\cdot10^{-13}$.
+Its ideal entries have modulus at most one, so the quotient error is
+below $4\cdot10^{-13}$.  For each of the remaining two columns, use
+the actual selected coordinate projection $q$.  In the first such
+projection the earlier two products give entry error below
+$9\cdot10^{-13}$, and its norm error is below $2\cdot10^{-12}$.
+The accepted computed norm is greater than $.449999$, so the ideal
+projection is nonzero and normalization gives entry error below
+$7\cdot10^{-12}$.  In the last projection the extra column-product
+error gives entry error below $1.6\cdot10^{-11}$ and norm error below
+$3.5\cdot10^{-11}$.  The same denominator check gives entry error
+below $1.2\cdot10^{-10}$.  This argument inductively constructs the
+ideal orthonormal complements with the selected coordinates.
+The two-product kernel projector has entry error below
+$3\cdot10^{-10}$; multiplying two complement entries and $\sqrt6$
+gives a W entry error below $8\cdot10^{-10}$.
+
+The following table records the rest of the propagation, with the
+source array names.  Its errors include ordinary operation rounding.
+\begin{center}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{.22\linewidth}p{.23\linewidth}p{.45\linewidth}}
+\hline
+Quantity & Absolute error per entry & Ideal scale used\\
+\hline
+\texttt{base} & $10^{-11}$ & two factors of modulus at most 2 times G\\
+\texttt{fixed} & $2\cdot10^{-9}$ & projector times a factor at most 1.62\\
+\texttt{bm}, \texttt{cm} & $2\cdot10^{-12}$ & unit entry times G\\
+\texttt{uc.U}, angular derivatives & $2\cdot10^{-13}$ & products of unit phases/trig entries\\
+\texttt{K}, \texttt{D} & $4\cdot10^{-9}$ & four W products and base\\
+\texttt{mag} & $4\cdot10^{-8}$ & $|D|<4.6$\\
+$\sqrt{\texttt{mag}}$ & $5\cdot10^{-9}$ & norm Lipschitz\\
+\texttt{jac} & $10^{-8}$ & ideal modulus at most 6\\
+flat real J & $10^{-7}$ & dot of D and jac\\
+flat c & $5\cdot10^{-8}$ & $(|D|^2-1)/2$\\
+pre-equation c & $4\cdot10^{-13}$ & short unit-exponential sums\\
+pre-equation coefficients & $6\cdot10^{-14}$ & unit exponentials\\
+\hline
+\end{tabular}
+\end{center}
+To verify the larger entries, each base factor $1+c_i\overline a$ has
+error below $1.3\cdot10^{-13}$; its multiplication by G and the
+two-term sum give the listed base bound.  The larger fixed term uses
+the projector error times a factor at most $1.62$, plus a G/unit
+combination with error below $3\cdot10^{-12}$, leaving room inside
+$2\cdot10^{-9}$.  Four W products cost less than
+$4(8\cdot10^{-10})$ plus the unitary and base errors, below
+$4\cdot10^{-9}$.  The ideal K entry is at most $\sqrt6$, and the block
+operator estimate of Section~\ref{sec:completion} gives
+\[
+ \|D\|\le\max\{\sqrt6,\|C_0\|A_0/m_B\}<4.6.
+\]
+Each seed derivative has modulus at most $1.62+.81\cdot4.6<6$;
+the individual angular derivatives before the complement/$\sqrt6$
+factors have operator norm at most one.  Fixed error, moving-block
+error times $.81$, and coefficient error times $4.6$ fit inside
+$10^{-8}$.  The flat dot error is then less than
+$6(4\cdot10^{-9})+4.6(10^{-8})$ plus a short-dot rounding error,
+below $10^{-7}$.  Finally, each $||D_j|-1|\le3.6$; the 16 squared
+deviations have total error below $10^{-6}$.  The direct A flat-norm
+test adds $10^{-5}$ to its threshold.
+
+\paragraph{The bounds returned by \texttt{get}.}
+The stored lower singular bounds subtract $10^{-8}$ and remain
+greater than $1.239$.  The A bound adds $10^{-7}$, and L is recomputed
+with the inflated top and A bounds before adding another $10^{-7}$.
+The seed and angular radii have their explicit $10^{-9}$ and
+$10^{-10}$ additions.  They satisfy
+\[
+ R_s<.203,\quad h<.197,\quad A<2.001,\quad L<6.
+\]
+With $A_{\max}=\min(2,A+R_s+10^{-8})$ the relevant field scales are
+\begin{equation}\label{round:get-scales}
+ q<.32,\quad \mathrm{off}<.74,\quad \mathrm{pol}<.068,
+ \quad u_{\rm get}<1.26,\quad z<1.5,\quad E<1.
+\end{equation}
+For example
+$q\le .203^2(1+10/1.239^2)+10^{-7}<.32$,
+$\mathrm{off}\le .203(\sqrt6+2)/1.239+10^{-7}<.74$, and
+$\mathrm{pol}\le .32/(\sqrt6+\sqrt{6-.32})+10^{-7}<.068$.
+Then $u_{\rm get}=6h+\mathrm{pol}+10^{-9}$ and the two-dimensional
+norm give the z bound.  Substitution of the same bounds in
+\[
+ E_3=\tfrac12\sqrt{252}\,h^2+\mathrm{pol},\qquad
+ E_{\rm phase}=\frac{L+A+1}{2m}R_s^2,
+ \qquad e_{\rm off}=E_{\rm phase}+zR_s/m
+\]
+before their additions gives $E=\|(e_{\rm off},E_3)\|<1$.
+All displayed inequalities leave room for the literal/operation errors.
+
+Each field is evaluated from the then-current stored upper/lower
+inputs, which are treated as exact in this local step.  The scalar
+formulas contain fewer than twenty nonconstant elementary operations,
+positive sums/products, divisions by at least $1.239$, or by
+$\sqrt6+\sqrt{6-q}>4$, and square roots with arguments at least one
+except for norms.  In $6-q$ the relative amplification is less than
+$6/5$; norms use \eqref{round:norm}.  Applying
+\eqref{round:basic} with these bounds gives error below $10^{-12}$
+for each field before its explicit $10^{-9}$, $10^{-8}$, or $10^{-7}$
+addition.  The single multiplication error in $R_s^2$ is included.
+Positive substitution therefore preserves the upper bounds.
+In particular the invalid-$q$ branch cannot occur after a successful
+setup at the specified seed radius.
+
+\paragraph{Directional A exclusion.}
+\texttt{trial::certificate} rejects a nonfinite direction, then requires
+its maximum magnitude to lie between $10^{-100}$ and $10^{100}$.
+Division by that maximum produces an exact stored direction with
+$|y_i|\le1$.  Its computed constant pairing has error below
+$9\cdot10^{-7}$ and each of its 13 derivative pairings has error below
+$1.7\cdot10^{-6}$: there are 16 flat rows, four pre-equation rows,
+and short dots with ideal J magnitudes at most 28.  Hence the seed and
+angular linear supports can together be low by less than
+\[
+ (.203\sqrt9+.197\cdot4)1.7\cdot10^{-6}
+   <2.38\cdot10^{-6}<3\cdot10^{-6}.
+\]
+The norm $\sqrt{\texttt{sd}}$ approximates
+$\|D\circ y_D\|$ within $2\cdot10^{-8}$, by the positive square
+bound and the 16 D-entry errors.  All other positive products/norms
+and their addition cost less than $10^{-9}$ at these scales.
+Thus the actual $.0001$ margin exceeds the whole possible comparison
+error.  A failed or skipped proposal does not reject the cell.
+
+\subsection{Root certificates and normal-displacement constants}
+\label{round:root}
+
+This subsection verifies the numerical premises of the Root inequalities
+in Section~\ref{sec:phase-cover}.  It concerns only successful
+\texttt{patch} calls.  The stored center $P$ is exact for these
+calculations; \texttt{gen} rejects $|P_j|>4$ or a nonfinite phase.
+Each ideal row-edge product is a product of unit exponentials, so its
+computed error is below
+$2\varepsilon_{\exp}+10^{-15}(1+\varepsilon_{\exp})^2
+ <1.3\cdot10^{-13}$.
+The six-term edge sum has error below $8\cdot10^{-13}$.
+Across the 15 complex edges, division by $2\pi$ gives vector error
+less than
+\[
+ \frac{\sqrt{15}\,8\cdot10^{-13}}{2\pi}<5\cdot10^{-13}.
+\]
+The squared-modulus, scaling, sum, and final root add less than
+$10^{-13}$ at the bounded unit-sum scale.  Thus
+$\sqrt{\texttt{val}}$ approximates $\|F(P)\|$ within $10^{-12}$.
+The accepted value satisfies $\texttt{val}<10^{-18}$, and the stored
+$\mathtt{froot}=\sqrt{\texttt{val}}+10^{-9}$ is an upper bound.
+
+\paragraph{The stored inverse-like matrix M.}
+Regard every accepted \texttt{hvec}, \texttt{lvec}, and T entry as an
+exact stored number.  Their absolute values are checked to be at most
+two.  There are at most 25 good columns.  If $H_V,L_V$ denote these
+stored factor arrays, the accumulated M differs from $H_VL_V^*$ by
+less than $6\cdot10^{-13}$ per entry: a 25-term dot has absolute
+product sum at most 100, giving
+$\gamma_{25}100<5.5\cdot10^{-13}$.
+There are $36\cdot30$ entries, so the Frobenius difference is below
+$2.1\cdot10^{-11}$.
+
+The Gram dots for $H_V$ and $L_V$ have lengths 36 or 30 and absolute
+product sums at most 144.  Their errors are below $1.2\cdot10^{-12}$.
+After absolute values and at most 25 additions, each Gram row sum
+has error below $10^{-10}$: the input error contributes at most
+$3\cdot10^{-11}$ and addition error at the 3600 row scale is less
+than $2\cdot10^{-11}$.  Consequently the code's
+$\mathtt{ah}+10^{-8}$ and $\mathtt{al}+10^{-8}$ bound the largest
+eigenvalues of the exact stored-factor Grams.
+The product and square root forming
+\begin{equation}\label{round:mnorm}
+ \mathtt{mnorm}=
+  \sqrt{(\mathtt{ah}+10^{-8})(\mathtt{al}+10^{-8})}+10^{-8}
+\end{equation}
+have error below $5\cdot10^{-12}$, even before the acceptance check
+$\mathtt{mnorm}<2$: the root scale is at most 3601, and only a few
+positive operations occur.  The final $10^{-8}$ also covers the
+$2.1\cdot10^{-11}$ factor-product perturbation.  Hence
+\[
+ \|M_{\rm stored}\|\le\mathtt{mnorm}<2.
+\]
+The code's $\mathtt{n0}=\mathtt{mnorm}\,\mathtt{froot}+10^{-9}$
+is upward, and so is the first remainder coefficient
+$C=\widehat\pi\sqrt8\,\mathtt{mnorm}+10^{-7}$.
+
+\paragraph{Optional tensor improvement.}
+For the exact stored M, let $A_*$ be the $30$-by-$30$ row Gram of
+the tensor map $\mathcal S$ in Section~\ref{sec:phase-cover}.
+Its $(a,b)$ entry is an M-column dot product times
+\[
+ (\mathbf e_i-\mathbf e_j)\mathbin{\cdot}
+ (\mathbf e_{i'}-\mathbf e_{j'}),
+\]
+with the edge sign repeated for the two real edge parts.  The sign
+factor is an integer of magnitude at most two.  A length-36 dot with
+products bounded by four therefore has error below
+$3\cdot10^{-12}$ after that multiplication.  Since $\|M\|<2$,
+the ideal Gram entries have magnitude at most eight.
+
+The Jacobi output U is used only if all its stored entries have
+absolute value at most two.  For that exact stored U, the residual
+Gram $U^*U-I$ has computed entry error below $10^{-12}$, since its
+dots have length 30 and absolute sum at most 121 including the
+identity term.  Its 900 entry errors have Euclidean total at most
+$3\cdot10^{-11}$.  The residual Frobenius norm is at most 3631 at
+these loose entry bounds; its accumulation/root error is below
+$8\cdot10^{-10}$.  Thus
+\[
+ \mathtt{beta}=\operatorname{fl}(\|U^*U-I\|_F)+10^{-8}
+\]
+is an upper bound for the operator defect.
+
+The computed product X differs from $A_*U$ by less than
+$2\cdot10^{-10}$ per entry: input perturbation contributes at most
+$30\cdot2\cdot3\cdot10^{-12}$, and its dot has absolute product
+sum at most 481.  Exact product entries are at most 480.  The further
+product $U^*X$ differs from $U^*A_*U$ by less than
+$1.3\cdot10^{-8}$ per entry: at most
+$30\cdot2\cdot2\cdot10^{-10}$ comes from X, and the length-30
+dot contributes less than $2\cdot10^{-10}$.
+Each absolute row sum therefore has error below $10^{-6}$,
+including addition rounding at row scale below $900000$.
+
+If $\mathtt{beta}<.1$, the exact stored U is invertible and
+$\|U^{-1}\|^2\le(1-\mathtt{beta})^{-1}$.
+The exact matrix $U^*A_*U$ is symmetric.  The inflated computed
+absolute-row bound $\mathtt{row}+.0002$ therefore gives
+\[
+ \|A_*\|\le
+ \frac{\mathtt{row}+.0002}{1-\mathtt{beta}}.
+\]
+The update
+\begin{equation}\label{round:tensor-c}
+ C\leftarrow\min\left\{C,
+  \widehat\pi\sqrt{\frac{6(\mathtt{row}+.0002)}
+                              {1-\mathtt{beta}}}+.00001\right\}
+\end{equation}
+is consequently safe.  The denominator exceeds $.9$; at the displayed
+row scale the scalar evaluation error is below $10^{-8}$, smaller
+than its final $.00001$.  No eigensolver accuracy has been assumed.
+
+\paragraph{The horizontal-projector identity.}
+An entry of the exact double-centering projector is the product of
+the two appropriate centering-matrix entries.  The computed
+\texttt{PI} differs by less than $10^{-15}$ per entry.  In the
+matrix $L_P$, each row has only 12 nonzero entries, with error below
+$1.3\cdot10^{-13}$ from the edge products.  Forming
+\texttt{LP} gives error below $5\cdot10^{-12}$ per entry against
+$L_P\Pi$; the ideal entry magnitude is at most $8.4$.
+In the residual
+\[
+ \Pi-TT^*-M L_P\Pi
+\]
+each computed entry then has error below $10^{-9}$.
+The propagated LP error is at most
+$30\cdot2\cdot5\cdot10^{-12}=3\cdot10^{-10}$;
+the remaining PI, T-product, and short accumulation errors fit in
+the remainder of the budget, with absolute sum below 560.
+The 1296 entry errors have Frobenius total below $3.6\cdot10^{-8}$.
+Norm accumulation is below $10^{-8}$ even with residual norm 20161.
+Thus the actual $2\cdot10^{-6}$ addition in \texttt{id} suffices.
+
+For $T^*T-I$, length-36 dots have errors below
+$1.2\cdot10^{-12}$.  With $k\le10$, their aggregate and norm error
+is below $10^{-10}$.  Projecting a stored T column by the row/column
+mean formula has component error below $10^{-13}$: its row, column,
+and grand sums have lengths 6, 6, and 36 and entries bounded by two.
+The subtraction and Frobenius calculation of
+$(I-\Pi)T$ have error below $10^{-11}$.
+The $10^{-8}$ additions in \texttt{ort} and \texttt{hor} cover these.
+We have therefore established, on every successful Root path,
+\begin{align}
+ \|F(P)\|&\le\mathtt{froot},&
+ \|M\|&\le\mathtt{mnorm},&
+ \mathtt{mnorm}\mathtt{froot}&\le\mathtt{n0},\nonumber\\
+ \|\Pi-TT^*-ML_P\Pi\|&\le\mathtt{id},&
+ \|T^*T-I\|&\le\mathtt{ort},&
+ \|(I-\Pi)T\|&\le\mathtt{hor}.\label{round:root-invariants}
+\end{align}
+The acceptance thresholds are
+$\mathtt{id}<10^{-4}$,
+$\mathtt{ort},\mathtt{hor}<10^{-5}$, $C<20$, and
+$\mathtt{mnorm}<2$.  In particular
+\begin{equation}\label{round:t-operator}
+ \|T\|\le\sqrt{1+\mathtt{ort}}<1.00001.
+\end{equation}
+Signed permutation transport of stored P and T is exact before
+dephasing.  The transported inequalities of
+Section~\ref{sec:phase-cover} therefore use the same constants.
+
+\subsection{Integer lifts, dephasing, and sphere distances}
+\label{round:dephasing}
+
+For $|p_j|\le4$, the three operations in unwrapped dephasing
+$p_{ij}-p_{i0}-p_{0j}+p_{00}$ have entry error below
+$8\cdot10^{-15}$; their intermediate magnitudes are at most 8, 12,
+and 16.  Subtracting the integer selected by \texttt{nearbyint}
+gives error below $10^{-14}$ against the exact dephase minus that
+same integer.  A wrapped difference of two such arrays has error
+below $3\cdot10^{-14}$ per entry against the ideal difference with
+the combined selected integers.  The one-sided Candidate version,
+whose other array is already a stored dephased phase, has the same
+bound.  These comparisons do not assume identical rounding choices
+for an independently formed ideal phase.
+
+For a stored wrapped array, $|z_j|\le1/2$.  Its row and column sums
+have error below $4\cdot10^{-15}$, and its length-36 grand sum below
+$1.4\cdot10^{-13}$.  Dividing by 6 or 36 and combining the means
+gives projection-operation error below $10^{-14}$ per component.
+Projection contracts the prior input error.  Consequently the
+computed projected difference has Frobenius error below $10^{-11}$.
+All distance-square and norm errors at the successful cutoffs below
+are negligible compared with $10^{-7}$.
+
+Thus \texttt{Atlas::find}'s returned $\sqrt s+10^{-7}$ is an upper
+distance for the selected ideal projected lift.  A merge uses radius
+$r+\text{distance}+10^{-8}$ and checks a cap with $2\cdot10^{-8}$
+slack.  Its sum-rounding error is below $10^{-14}$.
+The same arithmetic applies to \texttt{assign} and to the local
+sphere-radius additions.  Searching only some buckets or transforms
+may miss a merge; it cannot certify a merge that fails these tests.
+
+\subsection{Candidate conversion and ellipsoidal coverage}
+\label{round:candidate}
+
+The coverage estimates here are needed only after successful
+Candidate preparation, at final unitary-grid levels $N_u\ge64$.
+Let $m_j=|D_j|$ denote an ideal comparison-block magnitude.
+The stored magnitude test $\sqrt{\texttt{mag}_j}>.15$ implies
+$m_j>.14999998$.  Normalizing D by its computed magnitude has
+unit-direction error below
+\[
+ \frac{2\cdot4\cdot10^{-9}}{.14999998}
+      +\text{norm/division rounding}<5.5\cdot10^{-8}.
+\]
+Candidate additionally checks a computed chord smaller than
+$10^{-7}$ between this normalized value and the exponential of its
+proposed phase.  With \eqref{round:exp-budget}, the true unit chord
+error is less than $1.56\cdot10^{-7}$.
+If a circular phase distance in cycles is $v\in[0,1/2]$, its chord
+is $2\sin(\pi v)\ge4v$.  Across 16 entries the phase-center
+correction therefore has norm below $1.56\cdot10^{-7}$, and in
+particular below the $2\cdot10^{-6}$ allowance used in
+Section~\ref{sec:phase-cover}.  The nine seed entries use exact stored
+seed centers and an exact integer subtraction.
+
+For the D-position coefficients X, the normalized-direction error
+times the Jacobian bound six, plus the $10^{-8}$ Jacobian error and
+short-dot rounding, is below $10^{-6}$ per entry.  The other used
+X entries are exact.  The $\mathtt{mi}$ subtraction of $10^{-6}$
+therefore gives a positive magnitude lower bound greater than $.148$,
+and
+$\mathtt{invmag}_j=1/(\widehat m_j-10^{-6})+10^{-9}$
+is an upper bound for $1/m_j$, below $6.8$.
+
+The flat-sum error is below $10^{-6}$, so the $10^{-5}$ addition in
+\texttt{slack}, followed by its additional $10^{-10}$, gives the
+required nonnegative weighted chord-square upper bound.  In the
+passed branch $q<3.8$ and $1-q/4>.049$.  The arithmetic in dividing
+\texttt{slack} by \texttt{mi} has error below $10^{-12}$:
+\texttt{slack}$<4.1$ and the denominator is above $.148$.
+The ratio $(1-q/4)^{-1/2}$ has error below $10^{-12}$ before its
+$10^{-7}$ addition; the denominator lower bound bounds the
+derivative, and $q/4$ is a binary scaling.  The remaining positive
+products/roots, and the division by $(2\pi)^2$ in \texttt{d2}, each
+have error below $10^{-12}$ before their $10^{-8}$ additions.
+In particular the stored quantities are upper bounds with
+\begin{equation}\label{round:candidate-scales}
+ \mathtt{arc}<8.8,\qquad \mathtt{weighted}<10,
+ \qquad \mathtt{invmag}_j<6.8.
+\end{equation}
+
+\paragraph{The direct distance bound.}
+If \texttt{nd}$\le.145^2$, the ideal horizontal difference $\Delta$
+has norm below $.146$.  Its computed squared norm has error below
+$10^{-10}$ by Section~\ref{round:dephasing}.
+Each pairing of $\Delta$ with an X column has error below
+$7\cdot10^{-7}$: the D-part column error has norm at most
+$4\cdot10^{-6}$, the ideal column norm is below 25, and
+\[
+ .146\cdot4\cdot10^{-6}+25\cdot10^{-11}
+      +\text{dot rounding}<7\cdot10^{-7}.
+\]
+At $R_s<.203$ and $h<.05$, the two linear support terms have combined
+error below $10^{-6}$.  The D-subnorm error is below
+$2\cdot10^{-11}$ and its infinity-norm error below $10^{-11}$;
+the latter remains harmless even after multiplication by
+$8.8^3/6$.  For the alternative support, the weighted norm on exact
+stored positive \texttt{invmag} has component perturbation at most
+$\sqrt{6.8}\,10^{-11}$, plus positive square/norm rounding.  The
+weights themselves are upper bounds.
+Thus either support can be low by less than $2\cdot10^{-6}$, and
+their minimum has the same property.
+
+The code adds $.0001$ to that minimum before division by $\pi$.
+This covers the support error, the $10^{-10}$ squared-distance error,
+the error in division by $\pi$, and the remaining positive additions
+in the square-root argument.  The final $.00001$ covers the center
+correction $2\cdot10^{-6}$ and square-root rounding.  Consequently
+\texttt{s0} is a valid upper bound for the true aligned solution
+distance.
+
+\paragraph{Tangent offsets and external errors.}
+The computed \texttt{off} approximates $2\pi T^*\Delta$ within
+$10^{-9}$ in norm, by \eqref{round:t-operator}, the projected
+difference error, and short-dot rounding.  The error in the whole
+X array is at most $\sqrt{208}\,10^{-6}$ in Frobenius norm; there are
+13 columns and 16 affected positions.  Multiplication by $T^*$ and
+the less than $2\cdot10^{-13}$ rounding of each dot give
+\begin{equation}\label{round:ab-error}
+ \|\mathtt{AB}-T^*X_{\rm ideal}\|<1.5\cdot10^{-5}.
+\end{equation}
+The parameter-vector norm is below
+$\sqrt{.203^2+4(\pi/64)^2}<.226$, so substitution of stored AB
+costs less than $3.4\cdot10^{-6}$ radians.  Formation of the corner
+offsets adds less than $10^{-11}$, using coefficients of magnitude
+below 25.  The same bound applies to convex combinations of these
+corners.
+
+Using raw rather than projected angular displacement costs at most
+\[
+ \mathtt{hor}\sqrt{R_s^2+\mathtt{arc}^2}<8.81\cdot10^{-5}
+ \quad\hbox{radians},
+\]
+and the center correction costs at most
+$2\pi\sqrt{1+\mathtt{ort}}\,2\cdot10^{-6}<1.27\cdot10^{-5}$
+radians.  The row-subnorm factor multiplying the sine remainder has
+downward arithmetic error below $10^{-10}$ even after its
+$\mathtt{arc}^3/6$ factor, by positive square/norm propagation.
+Adding these errors and \eqref{round:ab-error}'s effect gives less
+than $.00012$ radians in either appropriate tangent bound, excluding
+the covariance/ell error treated next.  The code adds $.00015$
+radians and then further cycle-unit slack of $.00002$.
+
+\paragraph{Covariance domination.}
+For the first covariance, compare the exact stored symmetric G with
+the mathematical covariance using the \emph{stored} AB, $R_s$, and E,
+and rational $\beta=.45$.  Each nine-term AB outer-product dot has
+absolute sum at most $9\cdot25^2=5625$ and error below
+$1.3\cdot10^{-11}$.  Its multiplier $1.45R_s^2$ is below $.06$.
+The D2 dots have 16 products, bounded even by four each.
+Including coefficient translation, products, sums, and the intended
+diagonal addition gives total entry error below $10^{-11}$.
+
+For the second covariance, use stored \texttt{weighted} and
+\texttt{invmag}, with rational $\beta=.8$.  Each Dweighted dot has
+absolute sum less than
+$16(1.00001)^2\cdot6.8<110$.
+Its two-product-per-term accumulation has error below
+$5\cdot10^{-13}$ by \eqref{round:dot} with one extra factor.
+The multiplying coefficient is below 225.  Coefficient translation
+and the subsequent arithmetic, even at absolute intermediate scale
+26000, give total entry error below $10^{-9}$.
+Both G arrays are explicitly stored symmetrically.  The added
+$10^{-7}I$ dominates $k$ times either entry-error bound for $k\le10$.
+Hence the exact stored G is positive semidefinite and dominates the
+required covariance in each case.  This conclusion does not depend
+on numerically observed positive eigenvalues.
+
+\subsection{The spectral and inverse-quadratic-form bounds}
+\label{round:ell}
+
+\begin{lemma}[The stored spectral upper bound]\label{round:spectral}
+For an exact stored symmetric $k$-by-$k$ matrix G with $k\le10$ and
+$|G_{ij}|\le10$, \texttt{spectralUpper} returns an upper bound for
+$\|G\|$.
+\end{lemma}
+
+\begin{proof}
+An absolute row sum has error below $3\cdot10^{-13}$ by
+\eqref{round:dot} or direct positive-sum propagation.  The code adds
+$10^{-10}$ to their maximum.
+For its other bound, put $m=\max_{ij}|G_{ij}|$ and $A=\|G^2\|_F$.
+Each computed G-squared dot has error below
+$3\cdot10^{-14}m^2+10^{-297}$: it has ten products and absolute sum
+at most $10m^2$.
+Symmetry implies $A\ge m^2$, because one diagonal sum of squares
+contains a term $m^2$.  The 100 dot errors and the norm evaluation
+therefore give
+\[
+ |\operatorname{fl}(\sqrt{\mathtt{fro4}})-A|
+       <4\cdot10^{-13}A+10^{-139}.
+\]
+This remains valid when individual off-diagonal dots cancel or
+underflow.  Taking the next square root, by the inequality used in
+Lemma~\ref{round:accumulation}, costs less than
+$4\cdot10^{-13}\sqrt A+10^{-69}$ before its own tiny rounding.
+Since $\sqrt A\le100$, the total possible downward error is less
+than $10^{-10}$.  The code adds $2\cdot10^{-7}$.
+The exact fourth-norm quantity $\sqrt{\|G^2\|_F}$ bounds $\|G\|$.
+Both returned candidates are upper bounds, so their minimum is also
+an upper bound.  In particular its value \texttt{gu} is nonnegative
+and at most $100.1$.
+\end{proof}
+
+The \texttt{ell} guard checks symmetry and $|G_{ij}|\le10$, and checks
+each offset component to have magnitude at most ten.  Its invalid
+return value 100 cannot certify a cell: after conversion to cycles
+it exceeds 10, so the associated bootstrap path returns its
+nonsuccess sentinel.  A different valid bound may still succeed.
+For valid data the initial triangle bound is
+$\sqrt{\mathtt{mx}}+\sqrt{\mathtt{gu}}+10^{-8}$.
+Here $\mathtt{mx}$ is the maximum squared offset norm.  Its norm
+error is below $10^{-13}$ and the triangle bound is upward and
+smaller than 43.
+
+For each proposed resolvent parameter, interpret stored
+$\mathtt{gam}=\gamma$ as exact.  The proposal formula and the input
+scales give $0<\gamma<418$.  Since \texttt{gu} is an upper spectral
+bound,
+\begin{equation}\label{round:gap}
+ \mathtt{gap}=\operatorname{fl}(\gamma-\mathtt{gu}-10^{-9})
+       \le\gamma-\lambda_{\max}(G).
+\end{equation}
+The two subtraction errors are below $2\cdot10^{-13}$, absorbed by
+$10^{-9}$.  Only a stored gap of at least $10^{-6}$ is used.
+Allowing literal translation still gives a gap above
+$.999\cdot10^{-6}$ for scale estimates.
+
+For one offset vector U, the trial solve is used only if each stored
+$|z_i|<10^8$.  Let $s_z=\max(1,\|z\|_\infty)$.
+Its exact residual is $r=U-\gamma z+Gz$.  The following local bounds
+hold:
+\begin{center}
+\small
+\begin{tabular}{p{.25\linewidth}p{.36\linewidth}p{.29\linewidth}}
+\hline
+Computed quantity & Error against exact stored-input expression & Scale\\
+\hline
+each residual component & $2\cdot10^{-12}s_z$ & absolute sum $\le528s_z$\\
+residual norm & $2\cdot10^{-11}s_z$ & norm $\le\sqrt{10}\,528s_z$\\
+U--z dot & $3\cdot10^{-13}s_z$ & absolute sum $\le100s_z$\\
+U norm & $10^{-13}$ & norm $\le\sqrt{1000}$\\
+\hline
+\end{tabular}
+\end{center}
+For example the component bound follows from at most twelve terms
+and the scale 528 using \eqref{round:dot}; its aggregate contributes
+at most $\sqrt{10}\,2\cdot10^{-12}s_z$ to the norm, and
+\eqref{round:norm} adds less than $5\cdot10^{-12}s_z$.
+The dot and U-norm bounds are the same lemmas at lengths ten.
+
+The exact inverse quadratic form satisfies
+\begin{equation}\label{round:resolvent-residual}
+ U^*(\gamma I-G)^{-1}U
+ \le U^*z+\frac{\|U\|\|r\|}{\gamma-\lambda_{\max}(G)}.
+\end{equation}
+Indeed $(\gamma I-G)^{-1}U=z+(\gamma I-G)^{-1}r$.
+The code forms the right-hand-side upper using
+\begin{equation}\label{round:ell-upper-code}
+ \big(\mathtt{dotv}+10^{-10}s_z\big)
+ +\frac{(\sqrt{\mathtt{un}}+10^{-10})
+         (\sqrt{\mathtt{res}}+10^{-10}s_z)}{\mathtt{gap}},
+\end{equation}
+with the shown binary64 operations.
+The rounded dot part exceeds $U^*z$ by at least
+$9\cdot10^{-11}s_z$ and has magnitude at most $101s_z$.
+The first rounded norm factor is at least
+$(1+2\cdot10^{-12})\|U\|$, because $\|U\|\le\sqrt{1000}$;
+the second is at least $\|r\|$.
+Together with \eqref{round:gap}, product/division rounding therefore
+leaves a quotient B such that the required exact quotient in
+\eqref{round:resolvent-residual} is at most $(1-10^{-12})B$.
+This quotient is finite and below $6\cdot10^{18}$ by the displayed
+norm scales and the gap lower bound.  The final addition's possible
+error is at most $u(101s_z+B)+\tau$, which is smaller than the
+surplus $9\cdot10^{-11}s_z+10^{-12}B$.
+Thus \eqref{round:ell-upper-code} is an upper bound even when its
+dot part is negative and cancellation occurs.
+
+Taking the maximum with zero and over the offsets gives
+\texttt{high}.  The ellipsoid formula of
+Section~\ref{sec:phase-cover} then uses
+$\sqrt{\gamma(1+\mathtt{high})}+10^{-6}$.
+There is no overflow at the stated scales.  If this candidate can
+lower the existing bound below 43, its exact unrounded root is less
+than 44; its scalar downward error is then below $10^{-12}$,
+covered by $10^{-6}$.  A candidate that cannot improve the existing
+upper need not have a tighter absolute estimate.  The routine adds
+another $10^{-6}$ at return.  Cholesky accuracy has not entered this
+argument; it merely proposes the checked stored z.
+
+\paragraph{Bootstrap and saved radii.}
+Together with Section~\ref{round:candidate}, this establishes the
+tangent upper whenever its bootstrap path is usable.
+The bootstrap guard requires $0\le\mathtt{init}<3$, $0\le t<10$,
+and $C<20$, with previously certified nonnegative Root constants.
+It first adds $.00002$ to t and $10^{-6}$ to the distance upper.
+At a current upper $s\le3.00001$, the normal polynomial
+$\mathtt{n0}+\mathtt{id}s+Cs^2$ is below 181.
+Its positive-operation error, the tangent-factor error, and the
+two-component norm error total less than $10^{-12}$; there are only
+a few products/sums, and \eqref{round:norm} applies at norm scale 181.
+The update's $10^{-8}$ addition is sufficient.  Accepting an
+improvement therefore preserves the upper inductively, and stopping
+keeps the preceding valid upper.  This is a finite sequence of up
+to 30 upper-bound improvements, not a convergence assertion.
+The subsequent positive additions in saved sphere radii preserve
+the same inequalities.
+
+\subsection{Refinement relations, tangent grids, and radius updates}
+\label{round:refinement}
+
+The B inputs are genuine earlier Root certificates.  In addition,
+\texttt{validate} enforces $0\le R\le.126$, $0\le C<20$,
+$0\le\mathtt{n0},\mathtt{froot}<10^{-6}$,
+$0\le\mathtt{id}<10^{-4}$,
+$0\le\mathtt{ort},\mathtt{hor}<10^{-5}$,
+$0\le\mathtt{mnorm}<2$, $0\le k\le10$, and $|p_j|\le4$.
+The stored T entries pass the range check $|T_{ja}|\le1.01$;
+their stronger operator bound is
+\eqref{round:t-operator}, supplied by the genuine Root certificate.
+
+\paragraph{The relation initialization.}
+On a passed raw-difference/cut path,
+Section~\ref{round:dephasing} gives a projected-difference error below
+$10^{-11}$ in norm, and the computed cutoff implies
+$\|d_q\|<.251$ for the ideal chosen lift.
+More precisely, \texttt{cut} is at most the stored \texttt{.249}.
+The passed norm check, with its \texttt{1e-6} allowance, therefore
+gives $\widehat{\|d_q\|}<.249002$, including literal and operation errors.
+Each computed $\eta_{q,a}=T_a^*d_q$ has error below
+$1.1\cdot10^{-11}$: multiply the projection error by the
+norm-$<1.00001$ T column and include a length-36 dot.
+For $n_q=\|(I-TT^*)d_q\|$, combine the $d_q$ error with
+\[
+ \|T\|\sqrt{10}\,1.1\cdot10^{-11}
+\]
+and the short entrywise products and final norm.  The result is below
+$5\cdot10^{-11}$.  The actual $10^{-8}$ addition to
+\texttt{nq} is sufficient.
+
+Writing $o=\mathtt{ort}_P$, the ideal quantities in
+Section~\ref{sec:refinement} are bounded by the stored fields
+\[
+ \begin{split}
+ \mathtt{total}&=R+\widehat{\|d_q\|}+10^{-8},\\
+ \mathtt{nu0}&=\mathtt{n0}_P+\mathtt{id}_P R+C_P R^2
+                    +\mathtt{nq}+10^{-8},\\
+ \mathtt{lam}&=\mathtt{id}_P+C_P\mathtt{total}+10^{-8},\\
+ \mathtt{e}&=\mathtt{mnorm}_P\mathtt{froot}_Q+10^{-7}.
+ \end{split}
+\]
+Their ordinary positive-operation errors are below $10^{-13}$,
+and their input errors have already been covered.
+The following loose scales hold on every passing path:
+\begin{equation}\label{round:b-init-scales}
+ \mathtt{total}<.377,\qquad \mathtt{nu0}<.58,\qquad
+ \mathtt{lam}<7.55,\qquad \mathtt{e}<2.2\cdot10^{-6}.
+\end{equation}
+For the second bound, use
+$\|I-TT^*\|\le1+o$ and $\|d_q\|<.251$; the parent normal polynomial
+at $R\le.126$ is below $.318$.
+For the first, the sharper stored-norm bound above gives
+\[
+ \mathtt{total}<.126+.249002+10^{-8}+10^{-12}<.375003<.377,
+\]
+where $10^{-12}$ covers literal translation and the two additions.
+The remaining inequalities follow from these range bounds.
+
+For the cross-normal factor $\sigma$, the code first projects each
+child T column, giving S, and then forms
+$W=(I-TT^*)S$.  A projected component has error below $10^{-13}$.
+Its dot with a parent column has error below $7\cdot10^{-13}$
+against the exact projected dot: the projection error has norm
+below $6\cdot10^{-13}$, and the remaining dot rounding is small.
+At most ten such terms in W give component error below $10^{-11}$.
+Exact W column norms are below $1.01$, since both projection and
+the checked T operators are bounded.  Thus the W-column Gram has
+entry errors below $2\cdot10^{-10}$: two column perturbations each
+of norm at most $6\cdot10^{-11}$, times $1.01$, plus a length-36
+dot suffice.  The spectral perturbation is below $2\cdot10^{-9}$.
+The Gram is explicitly stored symmetrically and passes
+$|G_{ij}|\le2$, so Lemma~\ref{round:spectral} applies.
+The returned
+\[
+ \mathtt{sig}=\sqrt{\mathtt{spectralUpper}(G)+10^{-7}}+10^{-8}
+\]
+is an upper bound.  The inner addition exceeds the Gram perturbation
+and any final scalar addition rounding; the outer one exceeds the
+square-root rounding.  Its value is below $4.6$, already from the
+absolute-row bound.  For zero child tangent columns, $\sigma=0$
+is exact.
+
+\paragraph{The upper-bound iteration and the rho search.}
+Interpret a passed input $t$ as an exact stored upper bound on the
+desired tangent distance, or as a threshold for the entire interval
+of distances below it.  The guard is $0\le t\le2$.
+The initial increase of $t$ by $2\cdot10^{-8}$ and the
+$10^{-9}$ addition in
+$z=\sqrt{1+o}\,t+10^{-9}$ ensure the parent tangent upper.
+Both initial distance choices, \texttt{total} plus $10^{-8}$ and
+$\operatorname{hp}(z,\mathtt{nu0})+10^{-8}$, are valid.
+With $o_c=\mathtt{ort}_Q$, each iteration forms upper bounds
+corresponding to
+\[
+ \begin{split}
+ v&=
+ \min\{\mathtt{nu0},(1+o)d,\mathtt{lam}\,d+\mathtt{e}\}
+                     +10^{-8},\\
+ e_p&=(1+o)\sqrt{(1+o)(1+o_c)}\,t+\mathtt{sig}\,v+10^{-8},\\
+ d_1&=\operatorname{hp}(z,v)+10^{-8},\\
+ d_2&=\operatorname{hp}\bigl(\sqrt{1+o_c}\,e_p,\,
+              \mathtt{n0}_Q+\mathtt{id}_Qd+C_Qd^2\bigr)+10^{-8}.
+ \end{split}
+\]
+Here v is a computed upper for the true normal distance.
+The distance update takes the minimum of the last two bounds only
+if it improves the previous upper.
+Throughout, the stored current distance is below $.378$,
+the normal upper below $.39$, $e_p<3.9$, and the child normal
+polynomial below $2.9$.
+The $(1+o)d$ choice alone supplies the normal scale.
+At these scales each positive product/sum, factor, and
+two-component norm has total local downward error below $10^{-13}$,
+including the child polynomial's error before its use in the norm.
+This follows from fewer than twenty elementary operations per field,
+the displayed magnitudes, and \eqref{round:norm}; no small norm
+appears in a denominator.  Thus every $10^{-8}$ addition, and the
+$10^{-9}$ in z, preserves the upper.  The final $10^{-8}$ addition
+also does so.
+
+If the rho search returns $\rho>10^{-7}$, a positive lower-endpoint
+update must have occurred.  Its final stored \texttt{lo} came from
+an actual trial with
+$\mathtt{eval}(\mathtt{lo})<\mathtt{target}-2\cdot10^{-7}$.
+Every actual tangent distance at most this \texttt{lo} is covered
+by that upper computation.  The returned
+$\rho=\max(0,\mathtt{lo}-10^{-8})$ is at most \texttt{lo};
+subtraction rounding at these scales is far smaller than $10^{-8}$.
+This argument requires no monotonicity of rounded evaluations and
+no assertion that bisection finds a maximal valid threshold.
+For child-radius growth, \texttt{eval} is directly recomputed at
+the assigned tangent-distance upper, inflated, and checked against
+the target.
+
+\paragraph{The base grid and the outside test.}
+Use the stored positive width $w_B$ as an exact grid parameter.
+The allowed range is $10^{-4}\le w_B\le.05$.
+The stored grid radius
+$E=\sqrt{1+\mathtt{ort}_P}\,R+10^{-7}$ exceeds the true tangent
+radius by more than $.999\cdot10^{-7}$.
+For $L=\lceil E/w_B+.500001\rceil$, the quotient scale is at most
+1261 and its error is below $10^{-12}$.
+The $.000001$ excess over the half-cell term is much larger,
+so the integer base range covers $[-E,E]$ in every coordinate.
+In particular $L\le1262$.
+Exact base centers have magnitude below $.203$ per coordinate.
+Their computed products have error below $10^{-16}$.
+Halving a stored width is exact here; after at most six subdivision
+levels, each computed center differs from the intended exact dyadic
+child center by less than $10^{-15}$ per coordinate.
+
+For a box center c and halfwidth h, its true minimum coordinate
+distance from zero is $(|c_a|-h)_+$.
+The code instead forms
+$(|\widehat c_a|-h-10^{-8})_+$, whose exact value is no larger than
+the true one after all center and elementary-operation errors.
+If a box intersects the true tangent ball of radius $E_0$,
+the exact sum of these squared lower distances is at most $E_0^2$.
+The square-sum rounding is below $4\cdot10^{-17}$ at
+$E_0\le.127$, while
+\[
+ E^2-E_0^2
+ \ge 2E_0(.999\cdot10^{-7})+(.999\cdot10^{-7})^2
+ >9.9\cdot10^{-15}.
+\]
+This also handles $E_0=0$.
+Rounding of $E^2$ is smaller still.  Consequently \texttt{outside}
+cannot reject an intersecting box.
+
+\paragraph{Farthest corners and marking.}
+The corner-distance norm before its final margin has error below
+$5\cdot10^{-11}$ against the exact box and exact $\eta_q$:
+use the $\eta_q$ component errors, center errors, and
+\eqref{round:norm}.  Its $10^{-8}$ addition is sufficient.
+For \texttt{markRec}, each coordinate radius
+\[
+ |\widehat c_a-\widehat\eta_{q,a}|+w_B/2+10^{-8}
+\]
+already exceeds the true farthest coordinate distance.
+The accumulated square sum s, followed by
+$\sqrt s+2\cdot10^{-8}$, therefore bounds the true farthest tangent
+distance, including its norm-rounding error.
+For $k>0$, the final accumulated s has also passed comparison with
+$(\rho-5\cdot10^{-8})^2$ and $\rho\ge5\cdot10^{-8}$.
+At $\rho<.13$, square/comparison/root rounding costs less than
+$10^{-14}$ in distance; hence
+\[
+ \sqrt s+2\cdot10^{-8}
+ \le \rho-3\cdot10^{-8}+10^{-14}<\rho.
+\]
+For $k=0$, the marked distance is $2\cdot10^{-8}$, which is below
+the required positive rho threshold.
+Thus a marked box is wholly covered, and the child-radius update
+receives a valid tangent upper within rho.
+Heuristic integer ranges can miss marks but cannot mark a box
+without this whole-box test.
+Split-box use of the separate corner test has an additional
+$10^{-8}$ comparison slack, and a direct successful snap assignment
+uses its own inflated \texttt{eval} return and target comparison.
+The triangle merges following assignment were certified in
+Section~\ref{round:dephasing}.
+
+\subsection{Single-vector filters and vector-ball construction}
+\label{round:single}
+
+The C stage validates its Root and $0\le r\le.03$.
+At every bin resolution $M\ge6$, the halfwidth, Euclidean bin
+radius X, one-norm bound, and infinity-norm bound are formed as
+\[
+ \begin{aligned}
+ a&=.5/M+10^{-12},&
+ X&=\sqrt{5-1/6}\,a+10^{-12},\\
+ x_1&=5a+10^{-12},&
+ x_\infty&=1.5a+10^{-12}.
+ \end{aligned}
+\]
+Their operations have error below $10^{-14}$, and their
+$10^{-12}$ additions are upward.
+They satisfy $X<.19$, $x_1<.42$, and $x_\infty<.126$.
+The stored tangent and normal bounds
+\[
+ r_t=\sqrt{1+\mathtt{ort}}\,r+10^{-9},\qquad
+ r_n=\mathtt{n0}+\mathtt{id}r+Cr^2+10^{-9}
+\]
+are upper bounds, with $r_t<.030001$ and $r_n<.019$.
+The square-root/product and positive-polynomial errors are below
+$10^{-13}$.
+The constant $K=1.00001$, even allowing its literal translation
+error, exceeds the needed operator bound: the Root residual gives
+\[
+ \|e(P)/\sqrt6\|
+ \le\sqrt{1+(2\pi\sqrt2/6)\,10^{-6}}
+ <1.00000075<K.
+\]
+
+For bin or ball centers, put, as in
+Section~\ref{sec:exclusion},
+\[
+ q_{ji}=e(u_j-P_{ji})/\sqrt6,\qquad S_i=\sum_jq_{ji},\qquad
+ c_i=(|S_i|^2-1)/(4\pi).
+\]
+Let $J_{ij}=-\Im(\overline S_iq_{ji})$ and
+$D_{ij}^{\rm re}=\Re(\overline S_iq_{ji})$.
+The following errors are uniform for the called arrays:
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Quantity & Entry error & Ideal magnitude bound\\
+\hline
+q & $10^{-13}$ & $1/\sqrt6$\\
+S & $7\cdot10^{-13}$ & $\sqrt6$\\
+$|S|^2$ & $4\cdot10^{-12}$ & 6\\
+$|S|$ & $10^{-12}$ & $\sqrt6$\\
+c, J, $D^{\rm re}$ & $10^{-12}$ & J and $D^{\rm re}$ at most 1\\
+B & $7\cdot10^{-12}$ & at most $\sqrt6\,1.00001$\\
+\hline
+\end{tabular}
+\end{center}
+Indeed the scaled exponential error is actually less than
+$2.5\cdot10^{-14}$ before the loose $10^{-13}$ allowance.
+Six terms and addition rounding give the S bound.
+Equation~\eqref{round:squared-perturbation} gives less than
+$2\sqrt6(7\cdot10^{-13})$ plus tiny arithmetic, below
+$4\cdot10^{-12}$.
+Norm Lipschitz gives the magnitude bound.
+The companion products cost at most
+$(7\cdot10^{-13})/\sqrt6+\sqrt6\,10^{-13}$
+plus product rounding, below $10^{-12}$.
+Finally $B_{ia}=\sum_jJ_{ij}T_{ji,a}$, where $T_{ji,a}$ is the
+entry at phase position $(j,i)$ in tangent column a, has six terms, each T
+entry bounded by $1.00001$, so its input and short-dot errors are
+below $7\cdot10^{-12}$.
+
+\paragraph{Direct bin filters.}
+The scalar magnitude-change bound
+$2\pi(x_1/\sqrt6+r)$ and its squared thresholds have arithmetic
+error below $10^{-10}$ at the displayed scales.
+The same holds for the aggregate norm threshold and the accumulated
+distance of $(|S_i|-1)_i$; the six magnitude errors, multiplied by
+bounded factors in their squares, are below $10^{-10}$ in total.
+The lower scalar test is used only when the computed magnitude-change
+bound is below one.
+If the required ideal bound crosses one solely because of rounding,
+the tested lower square is of order at most $(10^{-10})^2$,
+and the code subtracts $2\cdot10^{-7}$ from it.
+Otherwise the squared lower threshold can be propagated on the
+correct side of one with the same $10^{-10}$ allowance.
+Thus this conditional lower test is safe also at the crossing.
+
+The scalar linear-support sums use at most five absolute J
+coefficients and a six-component J norm.
+Their input errors, the two alternative Taylor remainders, and
+the error in the maximum S magnitude give total possible
+underestimation below $10^{-9}$.
+For example their linear input effects are at most
+$5\cdot10^{-12}a+\sqrt6\,10^{-12}r$; the remainder factors
+use only $X<.19$, $x_\infty<.126$, $r\le.03$, and
+$|S_i|\le\sqrt6$, and hence multiply the S/J perturbations by
+bounded factors below ten.
+The remaining positive scalar arithmetic is below $10^{-10}$.
+All these direct exclusions use a $2\cdot10^{-7}$ comparison margin.
+
+\paragraph{The directional single-vector support.}
+The heuristic solve is accepted only with finite coordinates and a
+maximum magnitude between $10^{-100}$ and $10^{100}$.
+After division by that maximum, regard the resulting stored
+$|y_i|\le1$ as the exact test direction.
+Define the exact stored-coefficient expressions
+\[
+ \begin{aligned}
+ a_y&=\sum_i y_i c_i,& h_a&=\sum_i y_iB_{ia},\\
+ z_j&=\sum_i y_iJ_{ij},&
+ \widetilde z_j&=\sum_i y_iD_{ij}^{\rm re},\\
+ N_J&=\sum_{i,j}y_i^2J_{ij}^2,& N_S&=\sum_i y_i^2|S_i|^2,\\
+ M_S&=\max_i y_i^2|S_i|^2,& m_y&=\max_i|y_i|,\\
+ M_z&=\max_j(z_j^2+\widetilde z_j^2).
+ \end{aligned}
+\]
+The support compared with $|a_y|$ is the stored evaluation of
+\begin{align}
+ &a\sum_{j>0}|z_j|+r_t\|h\|+r_n\sqrt{N_J}\nonumber\\
+ &\quad+\pi\left[
+ m_y(KX+r)^2+
+ \min\{\sqrt{M_z}\,X,K\sqrt{N_S}\,x_\infty\}X
+ +2\frac{\sqrt{N_S}}{\sqrt6}Xr
+ +\frac{\sqrt{M_S}}{\sqrt6}r^2
+ \right].\label{round:c-single-support}
+\end{align}
+This is the necessary support bound from
+Section~\ref{sec:exclusion}.
+Its coefficient errors against ideal arrays satisfy
+\[
+ |\Delta a_y|<7\cdot10^{-12},\qquad
+ |\Delta z_j|,|\Delta\widetilde z_j|<7\cdot10^{-12},\qquad
+ |\Delta h_a|<4.3\cdot10^{-11}.
+ \]
+The first two use six input errors and a short dot.
+The last uses six B errors and the same dot estimate.
+
+The square roots in \eqref{round:c-single-support} are norms, so
+they are stable also near zero.
+For example $\sqrt{N_J}$ is the norm of the 36 components
+$y_iJ_{ij}$; their perturbation norm is at most
+$6\cdot10^{-12}$ before arithmetic, below $10^{-11}$ overall.
+Similarly $\sqrt{N_S}$ is the norm of the complex components
+$y_iS_i$, and $\sqrt{M_S}$ their maximum modulus; their errors are
+below $10^{-11}$.
+Finally $\sqrt{M_z}$ is the maximum norm of the two-component pairs
+$(z_j,\widetilde z_j)$.
+Each such norm changes by at most
+$\sqrt2\,7\cdot10^{-12}<1.1\cdot10^{-11}$.
+A maximum and a minimum of a fixed collection of approximate scalar
+values have error at most the largest of their component errors;
+no agreement of the selected index is needed.
+
+For completeness, the linear h effect in
+\eqref{round:c-single-support} is below
+$.030001\sqrt{10}(4.3\cdot10^{-11})<4.1\cdot10^{-12}$;
+the z effect is below $5a(7\cdot10^{-12})<3\cdot10^{-12}$;
+the normal term contributes less than
+$.019\cdot10^{-11}$.
+The first Taylor-norm choice contributes less than
+$\pi(.19)^2(1.1\cdot10^{-11})<1.3\cdot10^{-12}$,
+and the alternative choice is smaller at the quoted scales.
+The mixed and pure-r terms contribute less than
+$2\pi(.19)(.03)10^{-11}/\sqrt6$ and
+$\pi(.03)^2 10^{-11}/\sqrt6$.
+The remaining positive-factor arithmetic is below $10^{-10}$,
+so the entire possible support undererror is below $10^{-9}$.
+Together with the constant-pairing error, this is well inside
+the actual $2\cdot10^{-7}$ comparison slack.
+
+\paragraph{Vector-ball radii.}
+A rational bin midpoint is formed with error below
+$5\cdot10^{-16}$ per variable.
+All stored centers used by clustering are finite and of magnitude
+at most two; this holds for new midpoint centers and is checked
+after each update.
+For a nonfar difference, wrapped subtraction and subtraction of
+its mean have Euclidean error below $2\cdot10^{-14}$ against the
+exact projection for the selected integer choices.
+The six-component distance norm costs less than $10^{-13}$ more.
+The last assignment therefore covers the entire bin by the radius
+\[
+ \sqrt{\mathtt{dst}}+\mathtt{layer.xnorm}+10^{-9}.
+\]
+For a newly inserted center, \texttt{dst} is zero and the midpoint
+error alone is already covered.
+The final assignment pass does not move its centers.
+Intermediate averaging passes are only proposals, and the last
+radii are recomputed from actual assignments.
+Nonfinite or oversized centers, a failed radius check, or a cluster
+cap cause failure, not an exclusion.
+
+\subsection{Pair edges and the joint directional test}
+\label{round:joint}
+
+Let two accepted vector balls have radii $s_0,s_1<.1$.
+The stored pair radius $r_e=s_0+s_1+10^{-10}$ is an upper bound
+for their sum and satisfies $r_e<.201$.
+Each product $Q_j$ of the two stored unit phases has complex error
+below $1.3\cdot10^{-13}$, its six-term sum S below
+$8\cdot10^{-13}$, and its squared modulus below
+$1.1\cdot10^{-11}$; the last uses $|S|\le6$ in
+\eqref{round:squared-perturbation}.
+The edge constants and derivatives, for either O or U, have error
+below $10^{-12}$ per real component.
+For the U derivative, for instance, the product of S with a unit
+coefficient is divided by six, leaving error at most
+\[
+ \frac{8\cdot10^{-13}+6(1.3\cdot10^{-13})}{6}
+       +\text{short product rounding}<10^{-12}.
+\]
+The O constant is S divided by $2\pi$, and the U constant is
+$(|S|^2/6-1)/(4\pi)$, which satisfy the same budget.
+
+The edge-remainder bounds are evaluated with an added
+$2\cdot10^{-8}$.
+Their positive-operation error, including the input error in $|S|$,
+is below $10^{-10}$; at $r_e<.201$ their uninflated values are
+below $.255$.
+The direct distance and support comparisons, including the O test
+in direction S and the norm $\sqrt{\mathtt{jj}}$, have combined
+possible error below $10^{-9}$.
+Indeed the latter norm has coefficient perturbation at most
+$\sqrt6\,10^{-12}$; its multiplier is at most $6r_e<1.206$,
+and the constant/norm-S effects are at most the displayed
+$1.1\cdot10^{-11}$ scale times bounded factors.
+Their actual comparison slack is $2\cdot10^{-7}$.
+
+For the joint test there are at most $6+6+2=14$ rows.
+The proposed direction is checked finite and normalized as before,
+so its stored entries have magnitude at most one.
+The constant pairing has error below $1.5\cdot10^{-11}$.
+Each accumulated shared-Hadamard coefficient has error below
+$9\cdot10^{-11}$, since it receives at most twelve B input errors
+of $7\cdot10^{-12}$ plus short-dot rounding.
+Each vector-phase coefficient, including its edge contribution,
+has error below $9\cdot10^{-12}$: six single-vector entries and at
+most two edge entries each contribute at most $10^{-12}$.
+
+Within each call to \texttt{single::support}, the vector-phase
+coefficient array starts at zero.  The pure-vector remainder is
+formed using its J sum and real companion sum before the joint
+routine adds the edge derivatives.
+Thus its maximum two-component coefficient norm has the same
+$1.1\cdot10^{-11}$ error bound as in
+Section~\ref{round:single}, with $X$ replaced by $s_t<.1$ and only
+the first coefficient-norm alternative retained.
+The weighting of the common B norm has input effect below
+\[
+ .030001\sqrt{10}\,9\cdot10^{-11}<8.6\cdot10^{-12}.
+\]
+Each vector-phase norm has perturbation at most
+$\sqrt6\,9\cdot10^{-12}$, multiplied by $s_t<.1$.
+The two single-vector residual supports have the norm-Lipschitz
+errors just proved; the edge residual upper multiplies a direction
+norm of at most $\sqrt2$ and has only ordinary bounded norm/product
+rounding.  Adding these contributions and the positive scalar
+arithmetic gives total possible support undererror below $10^{-8}$.
+The actual comparison adds $3\cdot10^{-7}$.
+Together with the constant-pairing error this certifies the joint
+rejection.
+No edge deletion depends on accuracy of the heuristic solves or
+their weight updates.
+
+\subsection{Finite paths and preservation of inconclusive cases}
+\label{round:finite}
+
+The preceding estimates apply to bounded finite certificate
+evaluations.  We finish by explaining why exceptional heuristic
+values cannot bypass those preconditions.
+\begin{enumerate}
+\item
+In the seed cover, all direct lists come from finite integer
+midpoints and \texttt{expair}.  The dual solver's entries must pass
+the negated bounded comparison $|v_a|\le10^4$; NaN and infinity
+fail it.  A failed proposal leaves the large safe support bound.
+Gap/hash/reach cuts that are not necessary feasibility tests select
+only possible reuse attempts.
+\item
+For A, a failed frame normalization makes setup fail, and the
+entry point records an unresolved seed ball.  It does not certify
+that seed ball empty.  The passed frames, fixed radius, and dyadic
+unitaries give finite bounded block coefficients.  The potentially
+ill-conditioned solves only propose directions; the final
+\texttt{trial::certificate} checks every direction entry and its
+maximum before use.
+\item
+The snapping iteration calls \texttt{gen}, which rejects
+nonfinite or out-of-range phases.  Root certification requires
+$\mathtt{val}<10^{-18}$, checks proposed eigenvalues finite,
+checks HV/LV before using them, and checks T before its certificate
+products.  Those bounded arrays make the products finite.
+The optional tensor change of basis is range-checked; an unusable
+one cannot lower the previously valid C bound.
+The final conjunction of strict Root thresholds also rejects NaN.
+\item
+Candidate's inverse-angle output passes a finite range condition
+before its exponential and a unit-direction comparison afterwards.
+Its magnitude and chord guards bound every normalization.
+Failure is an unsuccessful coverage proposal.
+In \texttt{ell}, the data are range/symmetry checked, invalid
+Cholesky pivots fail, and every final trial-solve coordinate is
+checked before a residual certificate is evaluated.
+The bounded residual scales exclude overflow.
+The explicit sentinel values are outside the usable bootstrap
+range or far above the target radius.
+\item
+B/C operate on genuine certified Records and also enforce the
+stated numeric ranges in \texttt{validate}.
+The read-time \texttt{finish} may form floating dephasings before
+validation, but performs no conversion of those values to an
+integer index; validation rejects invalid phases before they can
+reach indexed geometric searches.
+B's relation and grid formulas are then finite and bounded as
+proved above.  A failed relation only removes a coverage
+opportunity; a failed live-box solve keeps the parent unresolved.
+\item
+C's direct scalar and pair formulas have bounded finite inputs
+and nonnegative square-sum arguments, so explicit finite checks at
+every individual arithmetic operation are unnecessary.
+Every potentially ill-conditioned directional solve is separately
+checked and normalized.  Its failure keeps the bin or edge.
+Clustering checks final center and radius bounds; caps and
+incomplete graph searches report possibility/failure, as described
+in Section~\ref{sec:exclusion}, rather than a negative certificate.
+\end{enumerate}
+In particular, \texttt{min}/\texttt{max} are not used to turn an
+unchecked NaN from a heuristic solve into a valid small certificate.
+Within successful bound evaluations their inputs are finite, and
+a minimum of two established upper bounds remains an upper bound.
+Within proposal generation, a bad proposal is checked before it can
+justify an exclusion or cover.  These facts also explain why a
+less successful heuristic or a different valid rounding outcome
+may increase unresolved work without invalidating a successful
+certificate.
+
+\paragraph{Summary of the comparison margins.}
+The following table collects the numerical separation used above;
+\emph{error} means the entire adverse comparison error or the stated
+local upper-bound error, not the error of an untrusted solver.
+\begin{center}
+\small
+\begin{tabular}{p{.37\linewidth}p{.27\linewidth}p{.26\linewidth}}
+\hline
+Certificate path & Established adverse error & Explicit margin\\
+\hline
+seed gap / direct support & $10^{-14}$ / $10^{-11}$ & $10^{-8}$\\
+shared-coordinate numerator & $<3.5\cdot10^{-11}$ & $10^{-7}$\\
+shared-coordinate endpoints & $10^{-7}$ & $10^{-5}$\\
+seed dual support & $10^{-4}$ & $.01$\\
+A flat norm & $10^{-6}$ & $10^{-5}$\\
+A directional comparison & $<4\cdot10^{-6}$ & $.0001$\\
+Root identity Frobenius check & $<5\cdot10^{-8}$ & $2\cdot10^{-6}$\\
+Root orthogonal / horizontal checks & $10^{-10}$ / $10^{-11}$ & $10^{-8}$\\
+tensor transformed row bound & $10^{-6}$ & $.0002$\\
+Candidate direct support & $2\cdot10^{-6}$ & $.0001$\\
+Candidate external tangent error & $.00012$ radians & $.00015$ radians\\
+first / second G entry error & $10^{-11}$ / $10^{-9}$ & $10^{-7}I$\\
+spectral row / fourth-norm bound & $3\cdot10^{-13}$ / $10^{-10}$ &
+ $10^{-10}$ / $2\cdot10^{-7}$\\
+bootstrap update & $10^{-12}$ & $10^{-8}$\\
+B projected normal / local update & $5\cdot10^{-11}$ / $10^{-13}$ & $10^{-8}$\\
+B cross-Gram spectral perturbation & $2\cdot10^{-9}$ & $10^{-7}$ before root\\
+C direct / directional comparison & $10^{-9}$ & $2\cdot10^{-7}$\\
+C joint support & $10^{-8}$ & $3\cdot10^{-7}$\\
+\hline
+\end{tabular}
+\end{center}
+The resolvent signed-addition argument is given separately in
+Section~\ref{round:ell}, since its absolute scale can be large and
+its proof uses both an absolute dot surplus and a relative quotient
+surplus.  All margins in the table are used in the source at the
+places proved above; none is inferred merely from an observed
+distance from a threshold.

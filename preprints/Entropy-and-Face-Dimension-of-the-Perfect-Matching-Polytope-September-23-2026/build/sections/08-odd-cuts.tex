@@ -1,0 +1,203 @@
+\section{Computing an active odd-cut constraint}
+\label{d:sec-odd-cuts}
+
+The optimization in Section~\ref{d:sec-optimization} needs both the value of
+\(w(x)\) and an affine function attaining its defining maximum.
+The degree violations are immediate to compute.  We supply the remaining
+ingredient: an exact minimum odd cut, together with its vertex set.
+The use of minimum odd cuts for matching-constraint separation goes back
+to Padberg and Rao~\citep{PadbergRao1982}. We prove the recursion and its
+arithmetic bounds here.
+
+Throughout this section, an auxiliary graph has vertex set \(W\) and
+nonnegative integer capacities \(c_{ij}=c_{ji}\) for distinct \(i,j\in W\).
+Absent edges have capacity zero.  Parallel capacities are summed and loops
+are discarded.  Write
+\[
+ c(S)=\sum_{\substack{i\in S\\ j\in W\setminus S}}c_{ij},
+ \qquad
+ C=\sum_{\{i,j\}\subseteq W}c_{ij},
+ \qquad v=|W|.
+\]
+
+We use the classical augmenting-path method of Ford and Fulkerson
+\citep[Section~2]{FordFulkerson1957}, specialized here to unit
+augmentations. The capacity-dependent bound needed below is proved
+explicitly.
+
+\begin{lemma}[An integral two-terminal minimum cut]
+\label{d:lem-unit-mincut}
+For distinct \(a,b\in W\), a minimum cut separating \(a\) from \(b\)
+can be found deterministically using at most \(C\) unit augmentations
+and \(O(v^2(C+1))\) arithmetic operations on integers of
+\(O(\log_2(v+C+2))\) bits.
+\end{lemma}
+
+\begin{proof}
+Maintain integers \(b_{ij}=-b_{ji}\) such that
+\(b_{ij}\le c_{ij}\) in both directions and
+\(\sum_j b_{ij}=0\) for \(i\notin\{a,b\}\).
+The two directional inequalities give
+\(-c_{ij}\le b_{ij}\le c_{ij}\).
+Start with zero flow.  If a simple directed path from \(a\) to \(b\)
+uses only steps with residual capacity \(c_{ij}-b_{ij}>0\), increase
+the flow on each forward step by one and decrease its reverse by one.
+Integrality makes this feasible, conservation is preserved, and the
+net source outflow \(q=\sum_j b_{aj}\) increases by one.
+Since
+\[
+ q\le \sum_j c_{aj}\le C,
+\]
+there are at most \(C\) augmentations.
+
+When no such path exists, let \(S\) be the vertices reachable from \(a\)
+by positive-residual steps.  Then \(b\notin S\), and every step from
+\(S\) to its complement is saturated.  Antisymmetry cancels internal
+flows, so conservation gives
+\[
+ q=\sum_{\substack{i\in S\\j\notin S}}b_{ij}
+   =\sum_{\substack{i\in S\\j\notin S}}c_{ij}=c(S).
+\]
+For every other \(a\)--\(b\) cut, the same conservation identity and
+\(b_{ij}\le c_{ij}\) give capacity at least \(q\).  Thus \(S\) is minimum.
+A graph search with fixed vertex order finds a simple residual path,
+or the final reachable set, in \(O(v^2)\) operations.  There are at most
+\(C+1\) searches, and all flows and residual capacities have magnitude
+at most \(2C\).  The argument includes \(C=0\).
+\end{proof}
+
+\begin{lemma}[Minimum odd-terminal cut]
+\label{d:lem-odd-cut-oracle}
+Let \(U\subseteq W\) have positive even cardinality.  One can
+deterministically find a set \(S\subseteq W\) minimizing \(c(S)\)
+subject to \(|S\cap U|\) being odd.  The algorithm returns the set itself,
+uses at most \(|U|-1\) recursive instances, and requires
+\(O(|U|^3v^2(C+1))\) arithmetic operations on integers of
+\(O(\log_2(v+C+2))\) bits.
+\end{lemma}
+
+\begin{proof}
+Call a cut \emph{terminal-separating} if both sides meet \(U\).
+Compute a minimum cut for every pair of distinct terminals using
+Lemma~\ref{d:lem-unit-mincut}, and take the least-capacity result,
+with sides \(A\) and \(\overline A=W\setminus A\).
+This is a minimum terminal-separating cut: every such cut separates
+some terminal pair, and every recorded pair cut is terminal-separating.
+
+If \(|A\cap U|\) is odd, return \(A\).  Every admissible odd-terminal
+cut is terminal-separating, so this answer is optimal.
+Otherwise both \(A\cap U\) and \(\overline A\cap U\) have positive even
+cardinality.  Form two children:
+\begin{enumerate}[label=(\roman*),nosep]
+\item keep \(A\), contract \(\overline A\) to a new nonterminal, and
+      use terminal set \(A\cap U\);
+\item keep \(\overline A\), contract \(A\) to a new nonterminal, and
+      use terminal set \(\overline A\cap U\).
+\end{enumerate}
+For example, in the first child the capacity from \(i\in A\) to the
+new vertex is \(\sum_{j\in\overline A}c_{ij}\).
+Recurse on both children and return the better lifted cut.
+Every call strictly decreases the positive even terminal count;
+when \(|U|=2\), the first cut is already odd.
+
+\paragraph{Lifting cuts.}
+A child cut lifts by replacing its contracted vertex, if included,
+with the entire block it represents.  The crossing capacities are
+unchanged, and including that block adds an even number of parent
+terminals.  Thus the lift has the same capacity and is terminal-odd.
+
+This remains true through arbitrarily nested contractions.
+Relative to the initial instance, current vertices form a partition
+into blocks.  Every current terminal is an original terminal singleton,
+and every nonterminal block contains an even number of original terminals.
+Initially the latter count is zero; each contraction combines an even
+number of current terminals with blocks of even parity, preserving
+the assertion.  Capacities between current vertices are sums of
+original capacities between their blocks.
+Consequently every returned subset lifts to an original subset with
+the same capacity and terminal parity.
+Figure~\ref{d:fig-odd-cut-lift} illustrates the parity rule.
+
+\paragraph{Preserving an optimum.}
+Let \(S\) be an optimal odd-terminal side in the current instance.
+Exactly one of \(S\cap A\) and \(S\cap\overline A\) contains an odd number
+of terminals; exchange the names of the two sides so that it is \(S\cap A\).
+Because \(|A\cap U|\) is even, replacing \(S\) by its complement
+preserves this odd intersection.  Make this replacement if \(S\)
+contains all terminals of \(\overline A\).
+Now \(S\cup A\) contains terminals of \(A\) and omits a terminal of
+\(\overline A\), so
+\[
+ c(S\cup A)\ge c(A).
+\]
+For any two vertex sets, nonnegative undirected capacities satisfy
+\begin{equation}
+\label{d:eq-cut-submodularity}
+ c(S\cap A)+c(S\cup A)\le c(S)+c(A).
+\end{equation}
+Indeed, the right side minus the left side is twice the capacity
+between \(S\setminus A\) and \(A\setminus S\).
+It follows that \(c(S\cap A)\le c(S)\).
+The set \(S\cap A\) is a feasible odd-terminal side in the first child,
+avoiding its contracted vertex.  Hence at least one child has optimum
+at most the parent's.  Conversely, lifting shows that every child
+optimum is at least the parent's.  Induction on \(|U|\) proves that
+the better recursive answer attains the parent optimum.
+
+\paragraph{Size and running time.}
+Each nonleaf splits its terminal set into two disjoint nonempty even
+sets.  There are at most \(|U|/2\) leaves and hence at most \(|U|-1\)
+instances in this binary recursion tree.
+Each contracted side contains at least two terminals, so a child
+also has fewer vertices than its parent.
+Within any one instance, every surviving capacity sums a disjoint
+set of original edge capacities; original edges internal to blocks
+are discarded.  Its total capacity is therefore at most \(C\).
+Capacities in different children may overlap, and we account for them
+by multiplying the cost of an instance by the number of instances.
+
+There are at most \(O(|U|^2)\) pair computations per instance,
+each costing \(O(v^2(C+1))\) by Lemma~\ref{d:lem-unit-mincut}.
+Contractions and lifted-set bookkeeping fit within the same bound.
+This proves the stated running time.
+All comparisons and tie choices may use fixed orderings; zero
+capacities require no perturbation.
+\end{proof}
+
+\input{figures/odd-cut-recursion.tex}
+
+\paragraph{Recovering an active row in the original coordinates.}
+At an optimization trial point, \(D_0x_e\) is a nonnegative integer
+for every original complete-graph pair \(e\).
+Indeed, the initial point is zero, and an integral supergradient step
+of size \(1/D_0\), followed by clipping to \([0,1]\), preserves this grid.
+Apply Lemma~\ref{d:lem-odd-cut-oracle} with \(U=V\) and capacities
+\(c_e=D_0x_e\).  Store each contracted vertex's block of original
+vertices, so the returned cut yields an explicit original set
+\(S\subseteq V\) of odd cardinality.  It minimizes \(x(\delta(S))\).
+
+The corresponding affine function in the definition of \(w\) is
+\[
+ \ell_S(y)=1-\sum_{e\in\delta(S)}y_e.
+\]
+Its coefficient is \(-1\) on \emph{every} original pair crossing \(S\),
+including pairs with \(x_e=0\), and zero elsewhere.
+Thus the row is recovered by scanning the original pairs, even if
+zero-capacity edges were omitted during graph searches.
+Edges discarded as contraction loops have both endpoints in one
+block and do not cross a lifted cut.
+Comparing \(\ell_S(x)\) with zero and the two signed degree violations
+for every vertex gives \(w(x)\) and an affine row attaining it, as
+required in Section~\ref{d:sec-optimization}.
+
+Here the initial total capacity is at most \(pD_0\).
+A merged edge can exceed \(D_0\), but the bound on each instance's
+total capacity remains \(pD_0\); likewise a large reverse residual
+does not change the source-outflow bound in Lemma~\ref{d:lem-unit-mincut}.
+One complete violation computation therefore takes
+\[
+ O\!\left(n^5(pD_0+1)\right)
+\]
+arithmetic operations.
+The numerical bounds on \(D_0\) and the resulting bit complexity
+are recorded in Proposition~\ref{d:prop-bit-complexity}.

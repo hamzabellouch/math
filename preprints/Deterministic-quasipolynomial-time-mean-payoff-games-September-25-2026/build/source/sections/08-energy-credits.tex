@@ -1,0 +1,177 @@
+\section{Fixed- and minimum-credit energy games}
+\label{sec:energy-credits}
+
+The preceding algorithms also compute the initial credits needed in
+one-resource energy games. Retain the game model of
+Theorem~\ref{thm:main}. For a start $v\in V$ and an integer credit
+$c\ge0$, call
+$(v,c)$ \emph{energy-winning} if Max has a strategy such that, against
+every history-dependent Min strategy, the induced play satisfies
+\begin{equation}
+ c+\sum_{t=0}^{j-1}w(e_t)\ge0\qquad\text{for every }j\ge0.
+ \label{eq:energy-objective}
+\end{equation}
+There is one accumulated resource and no upper bound or saturation.
+Write $c_{\min}(v)$ for the least nonnegative integer credit for which
+$(v,c)$ is energy-winning, and put $c_{\min}(v)=\infty$ if there is
+none. A positional Max policy specifies one labelled outgoing edge at
+each Max vertex.
+
+The reductions connecting these problems to mean-payoff games are
+classical. Bouyer, Fahrenberg, Larsen, Markey, and Srba formulate the
+fixed-credit lower-bound problem and reduce it to mean payoff using
+adversary-controlled returns to the start
+\cite[Section~2.1 and Proposition~12]{BouyerEtAl2008}. Our construction
+places the initial credit on each return edge. Brim, Chaloupka, Doyen,
+Gentilini, and Raskin distinguish the unknown-credit and minimum-credit
+problems, record the unknown-credit/mean-payoff equivalence, and
+characterize minimum credits by an energy progress measure
+\cite[Section~2 and Theorems~3 and~5]{BrimEtAl2011}. The reset construction
+below lets us apply Corollary~\ref{cor:full-solution} to a prescribed-credit
+instance, recovering a policy when that instance is winning. A bound on
+finite minimum credits then permits exact binary search.
+
+\begin{corollary}[Fixed and minimum energy credits]
+\label{cor:energy-credits}
+Uniform deterministic algorithms have the following guarantees.
+\begin{enumerate}
+\item Given $v$ and a nonnegative binary integer $c$, decide whether
+$(v,c)$ is energy-winning. On a positive answer, return a positional
+Max policy satisfying Equation~\eqref{eq:energy-objective} from that
+start and credit against every history-dependent Min strategy.
+\item Given $v$, return the exact $c_{\min}(v)$, including the possible
+answer $\infty$. On a finite answer, return a positional Max policy
+winning from $v$ at credit $c_{\min}(v)$.
+\end{enumerate}
+The fixed-credit computation takes
+$2^{O((\log_2(L_c+2))^2)}$ bit operations, where $L_c$ is the full
+explicit input length including the start and credit. The
+minimum-credit computation takes $2^{O((\log_2(L+2))^2)}$ bit
+operations for the original game length $L$. Handling every vertex by
+separate per-start searches, including a separate policy
+for every finite answer, has the same form of total bit bound.
+
+Each policy may depend on the queried start and credit; it also wins
+from that same start at every larger credit.
+\end{corollary}
+
+\begin{proof}
+\noindent\textbf{Fixed credit by resetting.}\enspace
+For the fixed pair $(v,c)$ construct a mean-payoff game $R_{v,c}$.
+Replace every $u\in V$ by an entry $u_{\mathrm{in}}$ owned by Min and
+an exit $u_{\mathrm{out}}$ owned by the original owner of $u$. Add the
+two edges
+\[
+ u_{\mathrm{in}}\xrightarrow{c}v_{\mathrm{in}},
+ \qquad
+ u_{\mathrm{in}}\xrightarrow{0}u_{\mathrm{out}},
+\]
+and replace each labelled original edge $e:u\to z$ by its own edge
+\[
+ u_{\mathrm{out}}\xrightarrow{w(e)}z_{\mathrm{in}}.
+\]
+Start at $v_{\mathrm{in}}$. The game is total and has $2n$ vertices
+and $m+2n$ edges, where $m=|E|$. The reset at $u=v$ is a nonnegative
+self-loop, including when $c=0$, and distinct original parallel edges
+remain distinct. If $U(R_{v,c})$ denotes its zero-threshold winning
+set, then
+\begin{equation}
+ (v,c)\text{ is energy-winning in }G
+ \quad\Longleftrightarrow\quad v_{\mathrm{in}}\in U(R_{v,c}).
+ \label{eq:energy-reset-equivalence}
+\end{equation}
+
+For the forward implication, use an energy-winning strategy from
+$(v,c)$ and restart its history after each reset. In any transformed
+prefix, every completed segment has original-edge sum at least $-c$
+and then receives the reset weight $+c$. Its total is therefore
+nonnegative. The unfinished segment has sum at least $-c$; the
+intervening zero edges do not change this bound. Every transformed
+prefix sum is consequently at least $-c$. Dividing by its length
+shows that the lower limiting average is nonnegative. This argument
+also covers no resets and infinitely many resets, and does not assume
+that the original energy strategy is positional.
+
+Conversely, if $v_{\mathrm{in}}\in U(R_{v,c})$,
+Corollary~\ref{cor:full-solution} returns a positional Max strategy
+for $R_{v,c}$ guaranteeing nonnegative mean payoff from that start.
+Restrict its choices at Max exits to obtain a positional policy in
+$G$. Suppose a consistent original prefix of length $j$ from $v$ had
+weight $q<-c$. In the reset game Min can choose continuation at its
+entries, follow that prefix at its owned exits, and then reset. This
+is a closed walk from $v_{\mathrm{in}}$ with weight $q+c<0$ and
+length $2j+1$. Positionality of the Max strategy makes the same walk
+consistent on every repetition. Min could therefore repeat it forever,
+giving mean payoff $(q+c)/(2j+1)<0$, a contradiction. Thus all original
+prefixes have weight at least $-c$. This proves the equivalence and
+the positive-answer policy guarantee; only the Max strategy from the
+full-solution call is used.
+
+\par\medskip\noindent\textbf{A finite credit bound and exact search.}\enspace
+For the original weights put
+\begin{equation}
+ W_{\mathrm{in}}=\max_{e\in E}|w(e)|,
+ \qquad H=(n-1)W_{\mathrm{in}}.
+ \label{eq:energy-credit-bound}
+\end{equation}
+In particular $W_{\mathrm{in}}$ and $H$ may be zero. An energy winner
+with any finite credit is an original zero-threshold mean-payoff
+winner, since its prefix sums are bounded below. Conversely, the
+cycle-deletion estimate in the proof of
+Proposition~\ref{prop:game-reduction} gives a positional Max policy
+on the original winning region for which every consistent prefix has
+weight at least $-H$. Indeed, its permitted simple cycles have
+nonnegative original sum, and deleting such cycles from a prefix leaves
+at most $n-1$ edges, each of weight at least $-W_{\mathrm{in}}$.
+Consequently, for the original winning set $U(G)$,
+\begin{equation}
+ c_{\min}(v)<\infty\quad\Longleftrightarrow\quad v\in U(G),
+ \qquad
+ v\in U(G)\quad\Longrightarrow\quad 0\le c_{\min}(v)\le H.
+ \label{eq:energy-finite-equivalence}
+\end{equation}
+The algorithm uses this existence bound as a known winning endpoint;
+it need not compute the potential used in that proposition.
+
+Compute $U(G)$ once by Theorem~\ref{thm:main} and output $\infty$ for
+starts outside it. For a winning start, the fixed-credit predicate is
+monotone: a strategy that wins at $c$ still wins at every larger
+credit. Binary search with a formal losing lower endpoint $\ell=-1$
+and the known winning upper endpoint $h=H$. While $h-\ell>1$, query
+$\lfloor(\ell+h)/2\rfloor$ by
+Equation~\eqref{eq:energy-reset-equivalence} and replace the endpoint
+having the same answer. The sentinel itself is never queried. This takes at most
+$\lceil\log_2(H+1)\rceil$ fixed-credit decisions and returns the exact
+least winning integer. When $H=0$ the initial gap is one, so no search
+query is made and the answer is zero. This includes both $n=1$ and
+all-zero weights; any start without a finite credit has already been
+excluded by $U(G)$. To return a policy at the minimum, apply
+Corollary~\ref{cor:full-solution} to $R_{v,c_{\min}(v)}$ and restrict
+its Max choices as above.
+
+\par\medskip\noindent\textbf{Bit complexity and output size.}\enspace
+Let $b_c$ be the binary length of the supplied nonnegative credit,
+so $b_c=O(1+\log_2(c+1))$. The explicit reset game has encoding length
+\[
+ O\bigl(L+n(b_c+\log_2(n+1))\bigr),
+\]
+which is polynomial in $L_c$. The credit is copied into only $n$ edge
+records; no array indexed by its numerical value is constructed.
+Theorem~\ref{thm:main} decides membership in its winning set, and a
+single application of Corollary~\ref{cor:full-solution} on a positive
+answer supplies the policy, within the fixed-credit bound claimed.
+
+For minimum credits, $H$ and every queried credit have
+$O(1+\log_2(n+1)+\log_2(W_{\mathrm{in}}+1))=O(L+1)$ bits. All queried
+encodings therefore have polynomial length in $L+1$. For all vertices,
+the outer reduction makes at most $1+n\lceil\log_2(H+1)\rceil$ direct
+winning-set calls, including the original one, and at most one
+full-solution call for each requested finite-credit policy. These
+counts are polynomial in
+$L+1$. Polynomially many calls on polynomial-length inputs preserve
+$2^{O((\log_2(L+2))^2)}$ bit complexity. Computing $H$, the binary
+search arithmetic, and copying the policies have polynomial bit cost.
+The output also has polynomial length: each finite credit has the
+stated bit bound, and each per-start policy lists one original edge
+at each Max vertex. No energy-indexed array is used in the search.
+\end{proof}

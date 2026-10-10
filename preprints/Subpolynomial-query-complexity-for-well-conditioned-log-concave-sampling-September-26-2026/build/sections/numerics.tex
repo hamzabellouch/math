@@ -1,0 +1,779 @@
+\section{Finite formulas for the two flows}\label{sec:numerics}
+
+We now turn the probability transport and the stationary centering flow
+into finite formulas in conditional means.  The formulas must meet two
+requirements at once.  Their error on the prescribed input law must be
+small, and each new mean must be evaluated at a center that is an affine
+expression in earlier mean values, with scalar coefficients and controlled
+size.  The latter property permits the recursive implementation in the
+next section.
+
+The main conclusion is Theorem~\ref{thm:numerical-interface}.  Its proof
+has three numerical steps.  Global Picard iteration discretizes
+probability transport without making the dependency depth proportional
+to the number of time cells.  Short harmonic trajectories then give a
+formula for the vector $K(y)^TG$ in the centering velocity.  Finally,
+Picard iteration discretizes that stationary flow.  Two cancellations
+are needed in the middle step: a zero derivative removes the singularity
+at the lower endpoint of the kernel integral, and retaining only a
+forward transport \emph{correction} cancels its apparent inverse power
+of the primitive scale $r$.
+
+Polynomial collocation of Picard iteration was developed for sampling
+by \citet[Algorithm~2 and Theorem~2.3]{lee2018odes}; Gaussian smoothing
+and high-order Picard approximation also appear in
+\citet[Appendix~E, Algorithm~E.1 and Theorem~E.2]{chen2026picard}.
+Here we need, in addition, scalar affine formulas whose dependency depth
+can be fixed before their interpolation order.  An exact conditional
+mean is an analytical node throughout this section.  The next section
+replaces these nodes by finite oracle computations.
+
+Fix an integer $K_0\ge2$ and $t>0$ such that
+\begin{equation}\label{eq:numerical-parameters}
+ 40(K_0+2)t<\frac14,\qquad
+ R=\delta^t,\qquad \psi=\delta^{4t},\qquad h_0=\delta^w,\qquad 0<w<t.
+\end{equation}
+The iteration count will first fix a depth bound.  We then choose $w$
+and finally the interpolation orders; increasing those orders will not
+change the depth bound.  For the centering flow set $s=\sigma/2$, where
+$\sigma>0$ is the parent mean-noise parameter.  Thus the centering
+formula itself will approximate noise of standard deviation $\sigma/2$.
+Throughout its numerical analysis assume
+\begin{equation}\label{eq:numerical-size}
+ \max\{l,L/\sigma\}\le\polylog(d)\delta^b,\qquad b\ge\frac12.
+\end{equation}
+For probability transport alone only the corresponding bound on $l$ is
+required.  All probability-time intervals lie in
+$[0,(1-cR^2)^{1/2}]$, for a fixed $c>0$.  Constants may depend on fixed
+interpolation orders and fixed parameters, but not on the center,
+dimension, primitive scale $r$, noise parameter, or oracle.  A symbol
+$B_d$ below denotes a bound $C(1+\log d)^C$ with precisely this uniformity;
+the fixed exponent and constant in a size hypothesis are part of the
+fixed parameters.  All assertions are for sufficiently large $d$.
+
+\subsection{Probability transport by global Picard iteration}
+
+Partition a probability-time interval using equal steps of size at most
+$h_0$ in $-\log(1-\rho)$.  For a nonzero interval take the ceiling of
+its transformed length divided by $h_0$ as the number of cells.
+Cell lengths $\ell_c$ then obey
+$\ell_c\le C h_0(1-\rho)$ on that cell, and the number of cells is
+\[
+ O\bigl(1+h_0^{-1}(1+|\log R|)\bigr).
+\]
+A zero-length interval requires no operations.  On each cell interpolate
+at $m\ge2$ distinct equally spaced nodes, including both ends, and
+integrate the resulting degree-$(m-1)$ polynomial.  Include partial
+integrals to every state node.  By scaling the fixed Lagrange basis on
+$[0,1]$, its absolute value sum is at most $C_m$, and its order-$k$
+derivative absolute sum is at most $C_m\ell_c^{-k}$.
+Consequently every partial-integral row has absolute weight sum at most
+$C_m$, uniformly in the number of cells.
+
+Let $w_{ij}$ be these partial-integral weights from the starting time
+$\rho_{\mathrm{in}}$ to node $\rho_i$, with signed weights for backward
+integration.  Duplicate shared endpoints as labeled nodes if convenient.
+Given a starting position $y_{\mathrm{in}}$, use simultaneous updates
+\begin{equation}\label{eq:probability-update}
+ y_i^{[0]}=y_{\mathrm{in}},\qquad
+ y_i^{[k+1]}=y_{\mathrm{in}}-
+ r\sum_j w_{ij}M_{\rho_j}(y_j^{[k]}).
+\end{equation}
+This iteration integrates over the whole interval at every layer; it does
+not advance successively from cell to cell.
+
+\begin{proposition}[Probability-flow circuit]
+\label{prop:probability-circuit}
+If the input position has marginal law $\xi_{\rho_{\mathrm{in}}}$, then
+after $N_p$ iterations the maximum, over all state nodes, of the RMS
+error relative to the exact transport is at most
+\begin{equation}\label{eq:probability-picard}
+ C_m\polylog(d)\,l\sqrt d\,h_0^m
+       +(C_ml)^{N_p}CrD.
+\end{equation}
+Every computed state is globally Lipschitz in its initial position with
+constant $C_m$.  After subtracting the initial position, its Lipschitz
+constant is at most $C_ml$.
+\end{proposition}
+
+\begin{proof}
+Write $Y_\rho$ for the exact path from the given random input and
+$Q_\rho=M_\rho(Y_\rho)$.  The marginal identity in
+Proposition~\ref{prop:transport} and \eqref{eq:path-mean} give
+\[
+ \|Q_\rho^{(m)}\|_2\le B_dL\sqrt d(1-\rho^2)^{-m}.
+\]
+On a cell $I=[a_c,b_c]$ of length $\ell_c$, let $P$ be the
+Taylor polynomial of $Q$ of degree $m-1$ at $a_c$.  Minkowski's
+inequality applied to the integral remainder gives, at each $v\in I$,
+\begin{equation}\label{eq:numerical-taylor-remainder}
+ \|Q_v-P(v)\|_2
+ \le \frac1{(m-1)!}\int_{a_c}^v
+       (v-z)^{m-1}\|Q_z^{(m)}\|_2\,dz
+ \le C_mB_dL\sqrt d\,h_0^m.
+\end{equation}
+The last step uses $\ell_c\le Ch_0(1-z)$ on that cell and
+$1-z^2\ge1-z$.  The same estimate holds at the interpolation nodes.
+Because interpolation reproduces $P$ and its basis has bounded absolute
+sum, $\|Q_v-\mathcal I_cQ(v)\|_2$ obeys the same bound.
+Integrate this pointwise estimate over the cells, whose total length
+is at most one.  This proves the required quadrature error, for partial
+integrals and for either orientation.  No supremum of the random path
+has been taken.
+
+Let $e_k=\max_i\|y_i^{[k]}-Y_{\rho_i}\|_2$.  The global bound
+$\Lip(M_\rho)\le CL$, together with the absolute row sums, gives
+\[
+ e_{k+1}\le C_ml e_k+C_mB_dl\sqrt d\,h_0^m.
+\]
+On each exact transported marginal, conditional expectation and the
+primitive moment bound give $\|M_\rho\|_2\le CD$.  Integrating the
+velocity shows $e_0\le CrD$.  Since $C_ml<1/2$ for large $d$, summing
+the geometric recurrence proves \eqref{eq:probability-picard}.
+The norm here is the maximum of the nodewise RMS errors; it is not the
+RMS of their maximum.
+
+For deterministic inputs the same recurrence, now in maximum node norm,
+gives a bounded Lipschitz constant for every iterate.  In the correction
+$y_i^{[k+1]}-y_{\mathrm{in}}$, the factor $r$ and the $CL$-Lipschitz mean
+give the stronger constant $C_ml$.
+\end{proof}
+
+\subsection{The kernel action through harmonic trajectories}
+
+The position velocity in \eqref{eq:centering-flow} contains $K(y)^TG$.
+Approximating $K$ and then multiplying the error by an arbitrary momentum
+would not give the global Lipschitz property needed for Picard iteration.
+Instead we approximate the vector action directly, using short harmonic
+trajectories and forward transport corrections.
+
+For the kernel integral use the mesh on $[0,b_*]$ above.  Its cell lengths
+also satisfy $\ell_c\ge c'h_0(1-\rho)$ for all sufficiently large $d$;
+this follows from the ceiling construction because the transformed
+interval length tends to infinity.  Set
+$C_\rho(y)=B_\rho(y)-I$.  We first describe a circuit for
+$C_\rho(y)G$ at one probability node $\rho$.
+
+\paragraph{Backward position.}
+Apply Proposition~\ref{prop:probability-circuit} backward from input
+position $y$ at time $b_*$ to obtain an approximation $\widehat Y_\rho$
+to $Y_\rho(y)$.
+
+\paragraph{Short harmonic trajectories.}
+At fixed probability time $\rho$, the Hamiltonian equations with
+potential $H_\rho$ have position integral equation
+\begin{equation}\label{eq:harmonic-integral}
+ W_z=\cos(z)Y_\rho+\sin(z)G
+      -r\rho\int_0^z\sin(z-v)M_\rho(W_v)\,dv.
+\end{equation}
+For every requested angle $z$, interpolate on the single cell $[0,z]$.
+Let $z_i$ be its nodes and $\ell_j(v)$ its Lagrange basis, and set
+\[
+ w_{ij}^{\sin}=\int_0^{z_i}\sin(z_i-v)\ell_j(v)\,dv.
+\]
+Use the simultaneous Picard updates
+\begin{equation}\label{eq:harmonic-picard}
+ \begin{split}
+ W_i^{[0]}&=\cos(z_i)\widehat Y_\rho+\sin(z_i)G,\\
+ W_i^{[k+1]}&=\cos(z_i)\widehat Y_\rho+\sin(z_i)G
+      -r\rho\sum_jw_{ij}^{\sin}M_\rho(W_j^{[k]}).
+ \end{split}
+\end{equation}
+At angle zero there is no integral.  The free sine and cosine terms
+are retained exactly.
+
+\paragraph{Differentiate the transport correction.}
+Let $d_j$ be the weights differentiating at zero the polynomial
+interpolant on angle nodes $0,\psi,\ldots,(m-1)\psi$.  Their absolute
+sum is $C_m\psi^{-1}$.  At every such angle node, compute
+$T_\rho(W_z)-W_z$ by the forward probability-flow circuit, keeping only
+its integral correction at the output.  For exact paths,
+\begin{equation}\label{eq:kernel-action-derivative}
+ \left.\frac{d}{dz}(T_\rho-\mathrm{id})(W_z)\right|_{z=0}
+       =(B_\rho-I)G=C_\rho G,
+\end{equation}
+since $W_0=Y_\rho$ and $W'_0=G$.  The weighted sum with coefficients
+$d_j$ therefore approximates $C_\rho G$ using exact mean nodes only.
+
+Here and below the interpolation orders denoted by $m$ may be increased
+independently.  Using a common sufficiently large order merely simplifies
+the error displays.  For the next estimates use the same number
+$N_p\ge1$ of Picard layers in the backward, harmonic, and forward
+computations.
+
+\begin{lemma}[Errors in the angle computation]
+\label{lem:kernel-angle-errors}
+Let $y\sim\xi_*$ and $G\sim N(0,I_d)$ independently.  The exact-input
+angle differentiation in \eqref{eq:kernel-action-derivative} has RMS
+truncation error at most
+\begin{equation}\label{eq:angle-stencil-error}
+ C_m l\sqrt d\,\psi^{m-1}R^{-2m}
+       =C_ml\sqrt d\,\delta^{2tm-4t}.
+\end{equation}
+Before applying the angle differentiation weights, the RMS errors of the
+computed forward correction values are at most
+\begin{equation}\label{eq:kernel-value-error}
+ C_m\polylog(d)\,l\sqrt d\,(h_0^m+\delta^{2tm})
+       +(C_ml)^{N_p}CrD.
+\end{equation}
+Every such approximate correction is globally Lipschitz in $(y,G)$
+with constant at most $C_ml$.
+\end{lemma}
+
+\begin{proof}
+For exact inputs $(Y_\rho(y),G)$, harmonic motion
+$\dot W=P$, $\dot P=-\nabla H_\rho(W)$ preserves
+$\xi_\rho\otimes N(0,I_d)$.  The vector field is globally Lipschitz,
+and its weighted divergence vanishes.  Its Lie derivative is
+$\nabla^*A\nabla$ with constant skew coefficient whose $(W,P)$ block
+is $-I$.  Lemma~\ref{lem:stationary-derivatives} therefore applies with
+$\alpha=1$, with $a_0=l$ for $T_\rho-\mathrm{id}$, and with $a_0=L$
+for $M_\rho$.  Indeed Lemma~\ref{lem:transport-derivatives} and
+\eqref{eq:jets} give the required spatial bounds; changing a one-slot
+split bound to a Frobenius bound costs only $\sqrt d$.
+To apply the angle stencil, subtract the Taylor polynomial of
+$z\mapsto(T_\rho-\mathrm{id})(W_z)$ of degree $m-1$ at zero.
+Its derivative at zero is exact, and its remainder at each stencil
+node has RMS norm at most $C_ml\sqrt d\,\psi^mR^{-2m}$.
+Multiplication by the absolute stencil sum $C_m/\psi$ proves
+\eqref{eq:angle-stencil-error}.  This uses pointwise RMS
+remainders on the stationary harmonic path.
+
+For the harmonic state equation, interpolate $M_\rho(W_v)$ in
+\eqref{eq:harmonic-integral}.  Since $z\le(m-1)\psi$, its Taylor
+remainder, multiplied by the prefactor $r$, is bounded by
+$C_ml\sqrt d\,\psi^mR^{-2m}
+=C_ml\sqrt d\,\delta^{2tm}$; the additional integration factors are
+bounded and can be discarded.  The initial free-path error is at most
+$CrD$, and Picard contracts by $C_ml$.  The computed harmonic state is
+globally Lipschitz with bounded constant in its two inputs, by the same
+row-sum argument as before.
+
+Next compare the forward probability correction started at the exact
+harmonic state.  That state has marginal law $\xi_\rho$, so
+Proposition~\ref{prop:probability-circuit} applies.  Errors in its
+starting state then propagate through the approximate correction with
+factor $C_ml$, not a factor of order one.  This also controls the
+backward-position error transmitted through the harmonic computation.
+Combining these estimates proves \eqref{eq:kernel-value-error} and
+the asserted global Lipschitz bound.
+\end{proof}
+
+\subsection{The zero endpoint of the kernel integral}
+
+It remains to integrate the derivative of $C_\rho G$ against $1/\rho$.
+The exact identity $B'_0=0$ removes the apparent singularity, and we
+impose that identity on the interpolant as well.
+
+On all but the first probability cell use ordinary degree-$(m-1)$
+interpolation.  On the first cell use $m-1$ equally spaced value nodes
+including both endpoints and the additional Hermite condition that the derivative
+at zero is zero, for a total of $m$ conditions, with $m\ge3$.
+This uniquely determines a polynomial of degree at most $m-1$: a
+polynomial in the null space would have a double zero at zero and the
+remaining $m-2$ distinct zeros.  Let $q_i$ be the resulting weights on
+values when the derivative of this piecewise interpolant is integrated
+against $1/\rho$.
+
+\begin{lemma}[Derivative quadrature at zero]
+\label{lem:kernel-endpoint-quadrature}
+Let $y\sim\xi_*$ and $G\sim N(0,I_d)$ independently.
+For exact values of $C_\rho(y)G$, the RMS error of this quadrature for
+$\int_0^{b_*}B'_\rho(y)G\,d\rho/\rho$ is at most
+\[
+ C_m\polylog(d)\,l\sqrt d\,h_0^{m-2}.
+\]
+The value weights satisfy
+\begin{equation}\label{eq:kernel-weight-sum}
+ \sum_i|q_i|
+ \le C_mh_0^{-1}(1+|\log R|+|\log h_0|).
+\end{equation}
+These weights are well defined even if the supplied values are
+approximate: the derivative condition at zero remains exact.
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:transport-derivatives} and independence of $G$,
+the RMS norm of the order-$m$ derivative of $C_\rho(y)G$ is at most
+$\polylog(d)l\sqrt d(1-\rho^2)^{-m}$.  Here multiplication by the
+independent Gaussian converts the matrix norm to a Frobenius norm and
+costs at most $\sqrt d$.
+
+On an ordinary cell, Taylor expansion and scaling the interpolation
+basis bound the derivative error by this derivative bound times
+$C_m\ell_c^{m-1}$.  It is therefore at most
+$C_m\polylog(d)l\sqrt d h_0^{m-1}/(1-\rho)$.
+After integration against $1/\rho$, all ordinary cells contribute at
+most this prefactor times
+$C(1+|\log R|+|\log h_0|)$, which fits the claimed more conservative
+$h_0^{m-2}$ bound.
+
+For the first cell, subtract the Taylor polynomial at zero of degree
+$m-1$.  Its derivative at zero agrees with the exact zero derivative.
+The second derivative of the remainder, and that of the Hermite
+interpolant of the remainder, are bounded in RMS by
+$C_m\polylog(d)l\sqrt d\,\ell_c^{m-2}$.  Both first derivatives
+vanish at zero.  If $E$ is the difference between the exact function
+and its Hermite interpolant on this cell, then
+\[
+ \|E'(\rho)\|_2
+ \le\int_0^\rho\|E''(v)\|_2\,dv
+ \le C_mB_dl\sqrt d\,\rho\ell_c^{m-2}.
+\]
+Consequently the integral of $E'(\rho)/\rho$ over the first cell
+has RMS norm at most $C_mB_dl\sqrt d\,\ell_c^{m-1}$.
+This is within the stated, more conservative $h_0^{m-2}$ bound.
+
+On an ordinary cell the absolute coefficient sum of the interpolant
+derivative is at most $C_m/\ell_c$.  Integrating and using
+$\ell_c\ge c'h_0(1-\rho)$ gives a total bounded by
+\[
+ C_mh_0^{-1}\int_{\rho_{\mathrm{first}}}^{b_*}
+                   \frac{d\rho}{\rho(1-\rho)}.
+\]
+This gives the logarithms in \eqref{eq:kernel-weight-sum}.
+On the first cell, scale to the unit interval.  The polynomial
+derivative vanishes at zero and is bounded by distance to zero times
+the second derivative, so the integral of its absolute value divided
+by that distance is bounded.  Scaling back gives a weight sum
+$C_m/\ell_c\le C_mh_0^{-1}$.  This proves the claim.
+\end{proof}
+
+\subsection{A globally Lipschitz approximate centering velocity}
+
+Let $\mathrm{corr}_{ij}(y,G)$ denote the forward correction computed at
+probability node $i$ and angle node $j$ by the three operations above.
+The approximate position velocity is the explicit expression
+\begin{equation}\label{eq:kernel-approximate-velocity}
+ \widehat v_Y(y,G)=-\frac1{rs}\sum_iq_i\sum_jd_j
+                         \mathrm{corr}_{ij}(y,G).
+\end{equation}
+Each correction retains only the integral part of the forward Picard
+formula. Writing its weights as $w_{ijk}$ and its mean values as
+$M_{ijk}$ gives
+\[
+ \mathrm{corr}_{ij}=-r\sum_kw_{ijk}M_{ijk},
+\]
+and hence
+\begin{equation}\label{eq:kernel-scalar-expansion}
+ \widehat v_Y=\frac1s\sum_{i,j,k}q_i d_j w_{ijk}M_{ijk}.
+\end{equation}
+The apparent factor $1/r$ has canceled algebraically. There is no
+additive forward state left in this formula, and all coefficients
+multiplying mean values are deterministic scalars.
+Use the exact mean expression
+$\widehat v_G(y,G)=(M_*(y)-M_0)/s$ for the momentum velocity.
+In particular, the momentum occurs inside angle states; it is never
+multiplied by a separately approximated matrix at the output.
+
+\begin{proposition}[Kernel-action circuit]\label{prop:kernel-circuit}
+On the stationary product input law, the RMS error of
+$\widehat v=(\widehat v_Y,\widehat v_G)$ relative to
+\eqref{eq:centering-flow} is bounded by $\polylog(d)$ times
+\begin{equation}\label{eq:kernel-velocity-error}
+ \begin{split}
+ &\frac L\sigma\sqrt d
+ \left[h_0^{m-2}+h_0^{-1}\delta^{-4t}
+                      (h_0^m+\delta^{2tm})\right]\\
+ &\hspace{12mm}+\delta^{-4t-w}(C_ml)^{N_p-1}
+                           r\frac L\sigma D.
+ \end{split}
+\end{equation}
+It is globally Lipschitz, with constant at most
+\begin{equation}\label{eq:velocity-lipschitz}
+ C_m\polylog(d)\,(L/\sigma)\psi^{-1}h_0^{-1}.
+\end{equation}
+For every fixed $J\ge1$, its RMS error can be made at most
+$\polylog(d)\delta^J D$ with $N_p=O(J+1)$, independently of $w$
+and the interpolation orders.
+\end{proposition}
+
+\begin{proof}
+Combine Lemmas~\ref{lem:kernel-angle-errors} and
+\ref{lem:kernel-endpoint-quadrature}, and divide by $rs$.  The value
+errors are amplified only by $C_m\psi^{-1}$ and the weight sum
+\eqref{eq:kernel-weight-sum}.  The exact stencil truncation has factor
+$\psi^{m-1}R^{-2m}=\delta^{2tm-4t}$ and the same probability-quadrature
+weight sum.  Crucially,
+\[
+ \frac{l}{r\sigma}=\frac L\sigma,\qquad
+ \frac{l^{N_p}rD}{r\sigma}
+       =l^{N_p-1}r\frac L\sigma D.
+\]
+Thus neither division introduces a negative power of the potentially
+small scale $r$.  The resulting estimate is
+\eqref{eq:kernel-velocity-error}.
+
+Each forward correction has Lipschitz constant $C_ml$ in its inputs,
+and the backward and harmonic maps have bounded constants.  Applying
+the same absolute weight sums and using $l/(r\sigma)=L/\sigma$
+gives \eqref{eq:velocity-lipschitz}; the momentum component has the
+smaller Lipschitz bound $CL/\sigma$.
+
+For the last assertion, increase interpolation orders until the first
+line of \eqref{eq:kernel-velocity-error} is of the desired order.
+Under \eqref{eq:numerical-size}, sufficiently many $O(J+1)$ Picard
+layers make the second line of that order as well.  The explicit
+common choice given below verifies independence from interpolation
+orders and from $w$.
+\end{proof}
+
+\subsection{The mean formula and the order of parameter choices}
+
+We can now discretize the centering flow itself.  Interpolate on the
+single time cell $[0,1]$, using ordinary degree-$(m-1)$ interpolation
+and partial-integral rows $w_{ij}$.  With anchor $Z_0=(Y_0,G_0)$, set
+\[
+ Z_i^{[0]}=Z_0,\qquad
+ Z_i^{[k+1]}=Z_0+\sum_jw_{ij}\widehat v(Z_j^{[k]}).
+\]
+At the end keep the position components $y_j$ and output
+\begin{equation}\label{eq:mean-output}
+ sG_0+\sum_j\omega_jM_*(y_j),
+ \qquad \sum_j|\omega_j|\le C_m,
+\end{equation}
+where $\omega_j$ are the full-interval integration weights.
+
+\begin{proposition}[Mean-flow circuit]\label{prop:mean-circuit}
+For ideal independent anchors $Y_0\sim\xi_*$ and $G_0\sim N(0,I_d)$,
+and every fixed $J\ge1$, the circuit \eqref{eq:mean-output} can be
+chosen to differ in RMS by at most
+$\polylog(d)\sigma\delta^J D$ from the exact path integral
+\eqref{eq:centering-output}.  The approximate joint states have RMS
+errors at most $\polylog(d)\delta^JD$.  Every integration uses
+$O(J+1)$ Picard layers, with a bound independent of $w$ and all
+interpolation orders.
+\end{proposition}
+
+\begin{proof}
+First compare the exact flow to polynomial integration of its exact
+velocity.  Lemma~\ref{lem:stationary-derivatives}, applied to the state
+with one additional derivative, bounds this quadrature error by
+\[
+ C_m\sqrt d\,\bigl((L/s)R^{-2}\bigr)^{m+1}.
+\]
+The approximation error of $\widehat v$ at every exact trajectory
+node is bounded by Proposition~\ref{prop:kernel-circuit}, by
+stationarity.  Previous state errors propagate with its global
+Lipschitz constant and the absolute row sums.  The true centering
+velocity need not be globally Lipschitz in the joint variables; it is
+the approximate velocity's bound that is used in this recurrence.
+
+By \eqref{eq:numerical-parameters}, $b\ge1/2$ and $w<t$ give
+$b-4t-w>1/3$.  For sufficiently large $d$, fixed constants and
+polylogarithms in \eqref{eq:velocity-lipschitz} can therefore be
+absorbed so that the recurrence contracts by at most $\delta^{1/3}$.
+Its initial error is at most $C(L/s)\sqrt d$ by
+\eqref{eq:centering-initial-displacement}.  Choose the quadrature and
+velocity error orders sufficiently high, and then $O(J+1)$ Picard
+layers yield the state error claimed in the statement.
+
+For the output, apply Lemma~\ref{lem:stationary-derivatives} to $M_*$
+with $a_0=L$.  Its path quadrature error is at most
+$C_mL\sqrt d\,((L/s)R^{-2})^m$, which can be made at most
+$\polylog(d)\sigma\delta^JD$.  The additional error from evaluating
+on the approximate positions is bounded by their RMS error times
+$C_mL$, using the $CL$-Lipschitz bound for $M_*$.  Since $L/\sigma$
+is small, this is within the same budget.
+\end{proof}
+
+We first collect the accuracy and depth estimates.  We will then expand
+the actual formulas to obtain the coefficient and scale bounds required
+by the recursive implementation.
+
+\begin{corollary}[Accuracy without increasing dependency depth]
+\label{prop:exact-mean-circuits}
+Fix $J\ge1$.  In all the probability, harmonic, and centering
+integrations above, one may take at most
+\[
+ N=\lceil10(J+2)\rceil
+\]
+Picard layers.  After any fixed $w\in(0,t)$ is chosen, a common fixed
+interpolation order satisfying
+\begin{equation}\label{eq:interpolation-order-choice}
+ w(m-3)>J+10,\qquad t(m-3)>J+10,\qquad m>4(J+10)
+\end{equation}
+suffices for the following conclusions, for all sufficiently large $d$.
+Probability transport from its exact starting marginal has endpoint RMS
+error at most $\polylog(d)\delta^JD$; the same holds after division by
+an endpoint parameter bounded away from zero.  The mean circuit with
+ideal anchors has RMS error at most $\polylog(d)\sigma\delta^JD$
+relative to \eqref{eq:centering-output}.
+
+The number of layers of exact mean dependencies within either circuit
+is $O((N+1)^2)$, independently of $m$, $w$, and the number of mesh cells.
+All mesh nodes, interpolation weights, scalar parameters, and iteration
+counts are deterministic functions of the prescribed parameters and
+dimension.
+\end{corollary}
+
+\begin{proof}
+For large $d$, probability and harmonic Picard contractions
+$C_ml\le\polylog(d)\delta^b$ can be bounded by $\delta^{1/3}$.
+The only additional inverse powers in kernel evaluation are
+$\delta^{-4t-w}$, besides the divisions already canceled in
+Proposition~\ref{prop:kernel-circuit}.  The centering iteration also
+contracts by $\delta^{1/3}$.  The probability iteration remainder is
+at most $C\delta^{N/3}D$; after the kernel weights the iteration
+remainder is at most $C\delta^{N/3-4t-w}D$.  Both exponents exceed
+$J$ with a fixed positive margin.  For the truncation terms it suffices
+to check the exponents
+\[
+ wm,\quad w(m-2),\quad w(m-1)-4t,\quad
+ 2tm-4t-w,\quad (m+1)/3.
+\]
+The first four come respectively from probability quadrature, the
+zero-endpoint rule, its amplified probability-value error, and the
+harmonic and angle errors.  For the last one use
+$(L/s)R^{-2}\le\delta^{1/3}$ for large $d$ in both outer
+quadratures, dividing the mean-output error by $\sigma$ and using
+$L/\sigma\le\delta^{1/3}$.
+Every displayed exponent exceeds $J$ by
+\eqref{eq:interpolation-order-choice}.  The outer Picard remainder
+contracts by the same $\delta^{1/3}$ factor.  Thus fixed constants
+and polylogarithms, including those depending on $m$, fit within the
+strict exponent margins as $d\to\infty$.
+
+Within a probability or harmonic Picard layer, all nodes depend on
+only the preceding layer, regardless of the number of nodes.  A path
+through one kernel evaluation passes through a backward probability
+computation, a harmonic computation, and a forward probability
+computation, each having at most $N$ layers.  Such a path traverses at
+most $N$ layers of the outer centering iteration.  This gives depth
+$O((N+1)^2)$; final quadratures add a bounded number of layers.
+All weights integrate known polynomials, or polynomials against sine
+or $1/\rho$ with the stated zero-endpoint condition.  They require no
+oracle information and are allowable real constants in the model.
+\end{proof}
+
+The order of choices is essential: first fix the target error and the
+Picard depth, then the mesh exponent $w$, and finally the interpolation
+order.  The count of evaluations can depend on that order; the number
+of nested dependencies will not.
+
+\subsection{The exact circuit interface and its derivation}
+
+To display a primitive's parameters, for $x'\in\R^d$ and
+$0<r'\le1$ write
+\[
+ u_{x',r'}:=\int_{\R^d}g(x'+r'z)\,\nu_{x',r'}(dz).
+\]
+Thus $u_{x,r}=u$ for the primitive fixed above.
+
+We specify the two formulas to be implemented.  In this subsection
+$\mathcal C_M$ and $\mathcal C_S$ denote deterministic maps of their
+listed anchors, with exact primitive means available as analytical
+nodes.  The parameter $\sigma$ of $\mathcal C_M$ is the parent
+noise parameter, so its construction sets $s=\sigma/2$ exactly once.
+Define
+\begin{align}
+ \mathcal C_M(x,r,\sigma;y,G)
+   &=\frac\sigma2G+\sum_j\omega_jM_*(y_j),
+       \label{eq:exact-mean-circuit}\\
+ \mathcal C_S(x,r,\eta;y)
+   &=\rho_e^{-1}\widehat T_{0\to\rho_e}(y),
+ &\rho_e&=(1+\eta^2/4)^{-1/2},\quad R\le\eta\le1.
+       \label{eq:exact-sample-circuit}
+\end{align}
+The positions $y_j$ in the first line are the last centering Picard
+iterates with anchors $(y,G)$, using \eqref{eq:kernel-approximate-velocity}.
+The second line uses the probability formula
+\eqref{eq:probability-update}.  No additional Gaussian is included in
+either map.  The next section allocates additional noise and constructs
+the position anchor needed for $\mathcal C_M$.
+
+A \emph{mean dependency path} follows a mean node to a mean value used
+in its center expression, and then repeats.  Direct expression size
+counts occurrences in one such expression, before expanding the center
+expressions of its mean nodes.
+
+\begin{theorem}[Numerical circuit interface]
+\label{thm:numerical-interface}\label{lem:compiler-circuit}
+Fix $J\ge1$, the parameters \eqref{eq:numerical-parameters}, and
+$N=\lceil10(J+2)\rceil$.  Choose the fixed interpolation order by
+\eqref{eq:interpolation-order-choice}.  For all sufficiently large $d$,
+the maps \eqref{eq:exact-mean-circuit}--\eqref{eq:exact-sample-circuit}
+have the following properties.
+
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \emph{Deterministic scalar formulas.}
+Their exact mean nodes can be ordered as $M_1,\ldots,M_Q$, where
+\begin{equation}\label{eq:exact-affine-centers}
+ M_i=u_{E_i,r_i},\qquad
+ E_i=b_i+\sum_{j<i}a_{ij}M_j,\qquad
+ E_f=b_f+\sum_ja_{fj}M_j.
+\end{equation}
+All $a_{ij}$ and $a_{fj}$ are deterministic scalars.  The whole node
+list, its scales, and these coefficients can be formed without
+knowing a mean value or making an oracle query.
+
+\item \emph{Direct terms and scales.}
+Each node has $r_i=r\tau_i$ and
+\[
+ \tau_i=\sqrt{1-\rho_i^2}\ge R/\sqrt5,\qquad
+ b_i=x+r(\ell_i y+m_iG).
+\]
+For $\mathcal C_S$, the $G$ term is absent,
+$\rho_i\le\rho_e$, and $(\ell_i,m_i)=(\rho_i,0)$.
+For $\mathcal C_M$, $\rho_i\le b_*$ and the pair is either
+$(\rho_i,0)$ or $(\rho_i\cos z,\rho_i\sin z)$, with
+$|z|\le C_m\psi$.  In particular both coefficients have absolute
+value at most one.  A node for $M_0=u$ has center $x$ and scale $r$.
+Every mean occurring directly in the final expression for
+$\mathcal C_M$ is $M_*$ at a computed position and has scale exactly
+$rR$.  The final direct terms are
+$b_f=\sigma G/2$ and $b_f=y/\rho_e$, respectively.
+
+\item \emph{Coefficient sums and direct expression size.}
+There are positive declared bounds $A,A_f$ such that
+$\sum_{j<i}|a_{ij}|\le A$ and $\sum_j|a_{fj}|\le A_f$, namely
+\begin{equation}\label{eq:coefficient-bounds}
+ \begin{aligned}
+ A_M&=C_1(1+\log d)^{C_1}
+       \bigl[(r/\sigma)\delta^{-4t-c_1w}+r^2\bigr],
+ & A_S&=C_1r^2,\\
+ A_{f,M}&=C_1,
+ & A_{f,S}&=C_1r,
+ &c_1&=10.
+ \end{aligned}
+\end{equation}
+Here $C_1\ge1$ depends only on the fixed parameters and orders.
+Every direct expression has at most $B_d\delta^{-c_1w}$ terms.
+Every mean dependency path has length at most
+$D_0=3N^2+1$; using a larger absolute multiple of $(N+1)^2$ is harmless.
+This depth bound is independent of $w$, $m$, and the number of mesh cells.
+
+\item \emph{Errors on the ideal anchor laws.}
+Under \eqref{eq:numerical-size}, for independent
+$Y\sim\xi_*$ and $G\sim N(0,I_d)$,
+\begin{equation}\label{eq:ideal-mean-circuit-error}
+ W_2\bigl(\mathcal L(\mathcal C_M(x,r,\sigma;Y,G)),
+                  N(u,\sigma^2I_d/4)\bigr)
+       \le B_d\sigma\delta^JD(x).
+\end{equation}
+For $\mathcal C_S$ only $l\le B_d\delta^b$, $b\ge1/2$, is needed.
+With $Y\sim N(0,I_d)$,
+\begin{equation}\label{eq:ideal-sample-circuit-error}
+ W_2\bigl(\mathcal L(\mathcal C_S(x,r,\eta;Y)),
+                    \nu_{x,r}*N(0,\eta^2I_d/4)\bigr)
+       \le B_d\delta^JD(x).
+\end{equation}
+The coefficient and dependency assertions are deterministic, for every
+choice of anchors.  The distributional estimates require the specified
+ideal anchor laws.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+We expand only the additive state formulas, stopping whenever an earlier
+mean value is reached.  This convention is what makes the coefficient
+bounds local: the center expression inside that earlier mean is kept as
+its own node.
+
+\emph{The three transport formulas.}
+A probability Picard state has its input position as direct term and
+mean coefficients with absolute sum at most $C_mr$.  A harmonic state
+has direct term $\cos z$ times its input position plus $\sin z$ times
+its input momentum, with mean coefficients of absolute sum at most
+$C_mr$.  The sine-weighted row sums are bounded because their integration
+intervals have bounded length.  These assertions hold at every iteration:
+its additive direct term is the original input, not the preceding
+Picard iterate.
+
+For a kernel evaluation, the scalar expansion
+\eqref{eq:kernel-scalar-expansion} has absolute coefficient sum at most
+$B_d\sigma^{-1}\delta^{-4t-w}$, by the derivative-quadrature,
+angle-stencil, and forward-integral weight bounds.  The momentum
+formula $(M_*-M_0)/s$ has coefficient sum at most $C/\sigma$.
+A centering Picard update has the original anchor as direct term and
+bounded outer integral rows.  Its position and momentum corrections
+thus have the same respective coefficient bounds.
+
+\emph{Centers and their coefficients.}
+Consider a mean evaluation inside any of these formulas.  Its physical
+center is $x+r\rho v$ when its normalized position is $v$, by
+\eqref{eq:conditional-tilt}.  Substitute its direct starting states:
+a backward probability state starts at the current centering position;
+a harmonic state starts at that backward position and the current
+momentum; and a forward probability state starts at the harmonic
+position.  Stop each substitution at the mean terms just described.
+Only the free terms pass through this chain.  Thus their anchor
+coefficients are exactly $(\rho,0)$ or
+$(\rho\cos z,\rho\sin z)$.  For sampling there is only the first
+probability computation, so the coefficient is $(\rho,0)$.
+Multiplication by $r\rho$, with $\rho\le1$, bounds the center
+coefficient sum in the mean case by
+\[
+ B_d(r/\sigma)\delta^{-4t-w}+C_mr^2.
+\]
+The term $C_mr^2$ accounts for the backward, harmonic, and forward
+integral corrections.  In the sampling case the bound is simply
+$C_mr^2$.  Enlarging these positive upper bounds to
+\eqref{eq:coefficient-bounds} is convenient for the implementation.
+The mean output is the single quadrature in
+\eqref{eq:exact-mean-circuit}, so its coefficient sum is at most
+$C_m$ and its means all have probability time $b_*$.  For sampling,
+dividing a probability correction by $\rho_e\ge2/\sqrt5$ gives
+output coefficient sum at most $C_mr$.  These observations also give
+the stated final direct terms.
+
+The scale at probability time $\rho$ is
+$r\sqrt{1-\rho^2}$.  In the mean computation $\rho\le b_*$, giving
+$\tau\ge R$, including equality for the output means.  In the
+sampling computation,
+\[
+ \sqrt{1-\rho_e^2}=\frac\eta{\sqrt{4+\eta^2}}
+                 \ge\frac R{\sqrt5}.
+\]
+This proves every assertion about the anchors and scales.
+
+\emph{Expression size and depth.}
+Let $P\le B_d\delta^{-w}$ bound the number of nodes in any one
+probability mesh.  Angle stencils, harmonic quadratures, and outer
+centering quadratures have fixed numbers of nodes once $m$ is fixed.
+Formula \eqref{eq:kernel-scalar-expansion} has at most $C_mP^2$
+mean terms: one factor $P$ comes from probability-time derivative
+quadrature, and the other from the forward transport integral.
+A direct centering position has the same bound, and its momentum has
+only a fixed number of terms.  Substituting their free states into a
+backward, harmonic, or forward center adds at most one backward list,
+one harmonic list, and one forward list.  No substitution continues
+through a mean value.  Hence $B_d\delta^{-2w}$ already bounds the
+direct expression size; the exponent $c_1w=10w$ is a uniform
+conservative choice.
+
+All Picard updates at a fixed layer depend only on earlier layers.
+Order an internal kernel computation as backward transport, harmonic
+motion, and forward transport, after its input states.  A mean path
+within this computation adds at most $3N$ nodes above a path in those
+inputs.  There are at most $N$ outer Picard layers, and one final
+mean layer in \eqref{eq:exact-mean-circuit}.  Thus $3N^2+1$ bounds
+the depth.  The sampling path has depth at most $N$.  This gives an
+acyclic order for \eqref{eq:exact-affine-centers}.  Meshes, weights,
+angles and partial integral rows depend only on the prescribed scalar
+parameters; no exact mean is needed to form any of them.
+
+\emph{Ideal-law errors.}
+Couple the numerical mean formula and the exact centering path integral
+by the same ideal anchors.  Corollary~\ref{prop:exact-mean-circuits}
+bounds their RMS difference by $B_d\sigma\delta^JD(x)$, while
+Proposition~\ref{prop:centering-law} identifies the exact output as
+$N(u,\sigma^2I_d/4)$.  This coupling proves
+\eqref{eq:ideal-mean-circuit-error}.  For sampling, the exact
+probability transport from a standard Gaussian has law $\xi_{\rho_e}$.
+After division by $\rho_e$ this is the law of
+\[
+ Z+\frac{\sqrt{1-\rho_e^2}}{\rho_e}G
+       =Z+\frac\eta2G,
+ \qquad Z\sim\nu_{x,r},\quad G\sim N(0,I_d)\text{ independent}.
+\]
+The same-anchor RMS estimate and $\rho_e\ge2/\sqrt5$ prove
+\eqref{eq:ideal-sample-circuit-error}.
+\end{proof}
+
+For the implementation we use $J=K_0+2$.  The theorem fixes $N$ and
+$D_0$ before $w$; the implementation can therefore choose $w$ using
+its recursion count, and then choose $m$ by
+\eqref{eq:interpolation-order-choice}.  The formulas above introduce
+no random failure event.  Their errors are RMS estimates under the
+ideal input laws, and their algebraic structure holds for every input.

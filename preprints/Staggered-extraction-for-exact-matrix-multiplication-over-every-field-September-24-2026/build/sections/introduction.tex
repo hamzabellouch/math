@@ -1,0 +1,161 @@
+\section{Introduction}\label{sec:introduction}
+
+For a fixed field $\F$, the matrix multiplication exponent
+$\omega=\omega_\F$ is the infimum of the real numbers $\tau$ for which
+two $n\times n$ matrices over $\F$ can be multiplied using
+$O(n^{\tau+o(1)})$ scalar additions and multiplications.  This exponent
+measures the asymptotic arithmetic cost of a central bilinear operation
+and of many algorithms built from it.  The field is fixed throughout;
+constants in an arithmetic algorithm may depend on the field and on its
+chosen finite construction.
+
+Strassen's seven-product algorithm for $2\times2$ matrices gave the
+subcubic exponent $\log_2 7$~\cite{Strassen1969}.  Subsequent advances
+used tensors to record bilinear operations: tensor rank counts the
+products of linear forms needed to realize an operation.  Approximate
+bilinear identities and their conversion to exact algorithms
+\cite{Bini1980}, Sch\"onhage's asymptotic sum inequality
+\cite{Schonhage1981}, and Strassen's laser method
+\cite{Strassen1987} established the main ingredients of this approach.
+The sum inequality converts a low-rank direct sum of matrix tensors into
+an exponent bound.  The laser method constructs such direct sums by
+restricting powers of a tensor with low asymptotic rank.  Coppersmith and
+Winograd combined these ideas with progression-free sets and introduced
+the tensor family used here~\cite{CoppersmithWinograd1990}.
+
+Passing to a larger tensor power gives more freedom in choosing the
+intermediate pieces before extracting matrix tensors from them.
+Stothers analyzed the fourth power, in work subsequently published with
+Davie~\cite{Stothers2010,DavieStothers2013}.  Vassilevska Williams
+analyzed the eighth power, and Le Gall continued through the
+thirty-second power~\cite{VassilevskaWilliams2012,LeGall2014}.
+Alman and Vassilevska Williams then reduced the extraction loss that
+arises when prescribed marginal distributions permit several joint
+distributions, obtaining $\omega<2.3728596$
+\cite{AlmanWilliams2024}.
+
+A further source of loss is requiring entire variable blocks to be
+disjoint when the final matrix tensors need only disjoint subsets of
+those blocks.  Duan, Wu, and Zhou used asymmetric hashing to reduce this
+\emph{combination loss} in the recursive analysis
+\cite{DuanWuZhou2023}.  Vassilevska Williams, Xu, Xu, and Zhou allowed
+finer sharing of variables and extended recovery from deletions on all
+three sides to the restricted tensor products needed in the recursion
+\cite{VXXZ2023}.  Alman, Duan, Vassilevska Williams, Xu, Xu, and Zhou
+then introduced successive compatibility tests that treat all three
+sides differently~\cite{MoreAsymmetry2026}.  These tests underlie the
+extraction studied here.
+
+For a recent numerical comparison, Dupont et al.\ obtained
+$\omega<2.371177$ by optimizing the eighth-power instance of this
+asymmetric framework, combining modern optimization with AlphaEvolve
+\cite{Dupont2026}.  Version~3 of \emph{More Asymmetry Yields Faster
+Matrix Multiplication} records that improvement and credits the new
+parameters to Dupont et al.\ \cite[Table~1]{MoreAsymmetry2026}.
+We prove the following bound over every fixed field.
+
+\begin{theorem}\label{thm:main}
+Over every fixed field $\F$, the arithmetic exponent of square matrix
+multiplication satisfies
+\[
+ \omega_\F<2.371054886006746<2.371054887.
+\]
+\end{theorem}
+
+The construction gives exact arithmetic algorithms, including in positive
+characteristic.  Its finite choices are independent of the input matrices.
+The theorem concerns asymptotic arithmetic cost; the counting arguments
+and parameter choices do not give bit-complexity or practical crossover
+estimates.
+
+\subsection{Proof overview}
+
+We use the Coppersmith--Winograd tensor with parameter $5$, denoted
+$\CW_5$.  Section~\ref{sec:foundations} defines it and proves that the
+rank of its $m$th tensor power is at most $7^m$ times a polynomial in
+$m$, over the original field.  A \emph{strand of length $\ell$} is a
+copy of $\CW_5^{\otimes\ell}$.  On each side the variables of $\CW_5$
+are indexed by $0,\ldots,6$, with weights $0,1,1,1,1,1,2$.
+A strand variable is a word of these indices, and a \emph{shape} records
+the weight sums on the three sides.  We start with strands of
+length $8$ and split them successively into lengths $4$, $2$, and $1$.
+At each depth we restrict by shape.  A shape with a zero coordinate
+already gives a matrix multiplication tensor; positive shapes pass to
+the next split.
+
+\paragraph{Combining capacities across depths.}
+An extraction restricts a tensor to a direct sum of specified tensor
+products.  To make the outputs disjoint, its three side-assignment tests
+each impose a bound on the guaranteed logarithmic number of outputs;
+we call these bounds its \emph{directional capacities}.  The guarantee
+uses their minimum.  The constituent-stage analysis in
+\cite[Theorem~6.4]{MoreAsymmetry2026} already combines differently
+prescribed populations at one depth before taking this minimum.
+Our joint step also combines populations at different depths, provided
+their priority orders agree on the physical tensor sides.  For their
+weighted capacity vectors $v_r\in\mathbb R^3$, the benefit of pooling
+across depths is expressed by
+\[
+ \sum_r\min_W v_{r,W}\ \leq\ \min_W\sum_r v_{r,W}.
+\]
+Thus a shortage on one side at one depth can be offset by capacity from
+another depth.
+
+Section~\ref{sec:joint} proves this joint extraction by following the
+actual order of the tests.  On the first side, variables are grouped by
+their sequences of strand or half-strand weight sums; these groups are
+the \emph{coarse blocks}.  Each retained coarse block is assigned to a
+unique output.  Compatibility with that assignment then determines which
+complete variables on the second and third sides
+can be retained.  The result is a direct sum of the intended products
+with some variables deleted.  Populations retain their ancestry and
+physical placement throughout, so each subsequent split receives its
+own prescribed distributions.
+
+\paragraph{Recovering outputs with inherited restrictions.}
+Some variables are missing because an earlier extraction imposed type
+conditions, meaning conditions on empirical distributions of variable
+statistics.  Others are deleted to resolve competing assignments in the
+current extraction.  Earlier recovery arguments already treat
+three-side deletions and inherited type conditions
+\cite[Section~7]{VXXZ2023}, \cite[Section~6.5]{MoreAsymmetry2026}.
+Section~\ref{sec:recovery} proves the form needed for our joint step.
+With $N$ the large strand-count parameter, the extraction selects outputs
+in which every orbit of complete variables under the allowed position
+permutations loses at most $C/N$ of its variables, uniformly over the orbits.  Here $C$ depends only on
+the fixed population data and tolerances.  Independent symmetry shifts
+then cover the ideal tensor.  Partitioning variables by their presence
+in those shifts reconstructs every coefficient exactly once, over the
+original field.  Only a subexponential number of independent input copies
+is needed.  The recovered products can then be subdivided and used in
+further extractions.
+
+\paragraph{Staggering and the final rank comparison.}
+A \emph{lot} contains $N$ length-$8$ strands.  We stagger finitely many
+lots so that, at an interior time step, one lot is at each of the three
+splitting stages.  Stage priorities balance the summed directional
+capacities.  The work is partitioned among the six physical axis orders;
+one joint extraction acts on each part, and the six output counts
+multiply.  Section~\ref{sec:stagger} constructs this schedule, shown in
+Figure~\ref{fig:pipeline}, and computes its finite boundary loss.
+Section~\ref{sec:leaf-volumes} counts the common oriented dimensions
+of the terminal matrix tensors and combines these counts with the
+schedule to prove the total yield and rank comparison.
+
+Write $H_0$ for the initial logarithmic yield, $C_*$ for the contribution
+of the three staggered stages, and $S_*$ for the terminal logarithmic
+matrix volume, all normalized per initial length-$8$ strand.  The
+direct-sum rank inequality then gives
+\begin{equation}\label{eq:intro-constraint}
+ \omega_\F\leq\frac{3(8\log7-H_0-C_*)}{S_*}.
+\end{equation}
+For each fixed number of lots, we first take the divisible strand count
+$N$ to infinity and remove approximation losses; the number of lots
+tends to infinity last.  Thus the boundary cost vanishes without a
+uniform assertion for a growing schedule.  The explicit rational data
+in Section~\ref{sec:parameters} and Appendix~\ref{app:parameter-tables}
+certify $S_*>0$ and place the ratio in
+\eqref{eq:intro-constraint} below the bound in Theorem~\ref{thm:main}.
+The complete parameter verifier and its rational-logarithm interval
+certificate accompany the source.  The proof requires a single feasible
+choice of parameters, with no assertion that this choice is optimal.

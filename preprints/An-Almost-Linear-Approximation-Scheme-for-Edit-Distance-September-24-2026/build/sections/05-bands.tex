@@ -1,0 +1,388 @@
+\section{Predicted bands and the refined tables}\label{sec:bands}
+
+Starting from the fixed seed and the table $d_0=w_T$, we now define
+$d_1,\ldots,d_S$. The construction proceeds by node height: when defining
+the value at a parent and index $t$, all child tables through index $t$
+are already defined. This is a mathematical ordering, not a requirement
+to evaluate those tables in full. The algorithm will request only the
+entries needed by the choices below.
+
+There are two ways to choose a current-index action. A shared sample
+compares rounded actions at nearby representatives; extending the chosen
+cost by a cone gives a spatially regular estimate. An online rule uses
+earlier child values to choose an action with small expected accumulated cost
+relative to every fixed action in a predicted band. The parent update
+combines these two estimates. We first construct the band and its child
+cost bounds, then specify the online rule and the shared samples.
+
+\subsection{A band predicted from prefix costs}
+
+At a representative $(b,r)$ of a nonleaf, define
+\[
+ Z=\min_{\alpha\in\mathcal A_{b,r}}V_r(\alpha;m).
+\]
+Skip the band computations at this representative unless $Z$ is finite
+and strictly positive.  Otherwise set $\widehat v=z(I,r)/Z$, the net
+shift per unit of predicted cost. If shift accumulated proportionally to
+this cost along an alignment, a prefix of cost $C$ would end at shift
+$p_0+\widehat v C$. We use this relation to predict the shift at each
+child cut. We call $|\widehat v|\le1-\tau$ the
+\emph{velocity test}, and skip unless it holds.
+
+For an internal cut $1\le j<M$ and a real shift $p$, let
+$\Phi_j(p)$ be the minimum prefix cost using the first $j$ child
+restrictions of the wide action set.  More explicitly, minimize
+\[
+ |s_1^--r^-|+\sum_{i=1}^j m(I_i,s_i)
+ +\sum_{i<j}|s_{i+1}^--s_i^+|+|s_j^+-(l_j+p)|
+\]
+over such prefix states.  The wide action family is nonempty whenever
+the band reaches this step, so these prefix minima are finite.  Each
+function in the minimum is 1-Lipschitz in $p$, hence so is $\Phi_j$.
+
+The prefix cost depends on its proposed ending shift. The predicted
+shift therefore solves the approximate fixed-point relation
+$p=p_0+\widehat v\Phi_j(p)$. The velocity test keeps the Lipschitz
+constant of $\widehat v\Phi_j$ below one, so all sufficiently accurate
+solutions lie in a short interval. The band below imposes this relation
+at every cut.
+
+Let $\mathcal C_{b,r}$ be the following set of shared-endpoint actions
+on the scale-$b$ grid.  The outside endpoints are exactly $r$,
+consecutive child endpoints agree, all endpoint shifts are within
+$6b$ of $p_0=r^--l$, and the shift $p$ at every internal cut satisfies
+\begin{equation}\label{eq:band}
+ |p-p_0-\widehat v\Phi_j(p)|\le\tau\theta b/M.
+\end{equation}
+All child target states must be valid, so these shared endpoints are in
+nondecreasing order.  Skip if $\mathcal C_{b,r}$ is empty.
+
+The possible shifts at any fixed cut have diameter at most
+$2\theta b/M$.  In fact two allowed shifts obey
+\[
+ |p-p'|\le2\tau\theta b/M+
+ |\widehat v|\,|\Phi_j(p)-\Phi_j(p')|
+ \le2\tau\theta b/M+(1-\tau)|p-p'|.
+\]
+No convexity of the allowed shift set is needed.
+
+We need a uniform cost bound at each child for both action selection and
+rounding. For a nonempty band, let $h_i$ be the smallest power of two at least
+\[
+ \max\left\{b/M,\max_{\alpha\in\mathcal C_{b,r}}
+                  w_0(I_i,s_i(\alpha))\right\},
+ \qquad h_\Sigma=\sum_{i=1}^M h_i.
+\]
+Powers of two below one are allowed here. Every band state at child $i$
+has $w_0$ value at most $h_i$. These bounds will normalize the online
+costs and determine a common rounding spacing for each child scale.
+Skip if $h_\Sigma>64Fb$.
+Choose a canonical band action in a fixed ordering and round its two
+coordinates separately at child $i$ down to multiples of
+$\max\{1,\theta h_i\}$.  Denote the resulting action by
+$\beta(b,r)$. Different children may round a shared endpoint to different
+positions, so $\beta$ can have gaps or overlaps. It is used as a wide
+action with its connection charge, rather than as a band action.
+Finally, skip unless it belongs to $\mathcal A_{b,r}$
+and
+\begin{equation}\label{eq:rounded-guard}
+ |z(I_i,s_i(\beta))|\le2h_i\qquad(1\le i\le M).
+\end{equation}
+Representatives passing all these tests will be called unskipped.
+These tests affect only the band and rounded-action computations;
+they never remove an action or representative from
+$\mathcal B_I$.
+
+Under the fixed good seed, the last two guards on $\beta$ pass
+whenever the $h_\Sigma$ test passes.  Indeed,
+$\theta h_i\ge\theta b/M\ge b/P$.  All relevant quantities are
+powers of two, so the rounded spacing is a multiple of $g_b$.
+Rounding preserves the order of each child's two endpoints and the range
+$[0,|y|]$. If its
+spacing is one, its error is zero; otherwise each coordinate error is
+less than $\theta h_i$.  Since $|z|\le w_0\le h_i$ before rounding,
+\[
+ |z(I_i,s_i(\beta))|\le h_i+2\theta h_i\le2h_i.
+\]
+The endpoint shift radius after rounding is at most
+$6b+64F\theta b<10b$.  Section~\ref{sec:comparison} will prove the
+earlier $h_\Sigma$ test on the needed comparison nodes.
+
+\subsection{The finite-mixture interface for online choices}
+
+The online rule uses child values at indices less than $t$ to select
+one band action at time $t$. Its accumulated current-index cost will be
+compared with that of each fixed band action in Section~\ref{sec:regret}.
+We encode a mixture of actions by its child-state marginals, with weights
+chosen to recover the unnormalized sum of child costs.
+
+Fix one unskipped band $\mathcal C=\mathcal C_{b,r}$. Its coordinates
+are pairs $(i,s)$, one for each child and each state appearing at that
+child in a band action.  Let $d_{\mathcal C}$ be their number.  Map
+each action $\alpha$ to the probability vector $\rho(\alpha)$ that
+places mass $h_i/h_\Sigma$ at $(i,s_i(\alpha))$ for every child,
+and zero at its other coordinates.  Let
+$\mathcal Q=\operatorname{conv}\{\rho(\alpha):\alpha\in\mathcal C\}$.
+Every vector in this convex hull has the same total mass $h_i/h_\Sigma$
+on the coordinates of child $i$.
+
+Define coordinate vectors
+\begin{align*}
+ \widehat g_j(i,s)&=-d_{j-1}(I_i,s)/h_i,\\
+ \Delta_j(i,s)&=(d_{j-1}(I_i,s)-d_j(I_i,s))/h_i,\\
+ u_j&=\widehat g_j+(1-2\kappa)\Delta_j.
+\end{align*}
+Here $\widehat g_j$ predicts the negative normalized current cost from
+the preceding index, and $\Delta_j$ is the observed correction:
+\[
+ \widehat g_j(i,s)+\Delta_j(i,s)=-d_j(I_i,s)/h_i,
+ \qquad
+ -h_\Sigma\langle\widehat g_j,\rho(\alpha)\rangle
+ =\sum_i d_{j-1}(I_i,s_i(\alpha)).
+\]
+The fixed mass $h_i/h_\Sigma$ in each child block cancels the
+normalization by $h_i$. The objective below uses $\Delta_j$ only for
+$j<t$ and uses $\widehat g_t$, so its required child indices are all
+strictly earlier than $t$.
+
+With entropy $\mathcal H(\rho)=-\sum_k\rho_k\ln\rho_k$, using
+$0\ln0=0$, let $\rho_t$ maximize
+\begin{equation}\label{eq:online-objective}
+ \mathcal H(\rho)+
+ \eta\left\langle\sum_{j<t}u_j+\widehat g_t,\rho\right\rangle
+ \quad\hbox{over }\rho\in\mathcal Q.
+\end{equation}
+The algorithm computes a finite mixture of band actions whose vector
+of expected weights is within $H^{-3}$ in $\ell_1$ distance of
+$\rho_t$, then samples that mixture exactly.  Section~\ref{sec:numerics}
+constructs this mixture using rational arithmetic and proves its stated
+accuracy and sampling cost.  Thus~\eqref{eq:online-objective} specifies
+an input-output contract for a finite algorithm, not an optimization
+oracle.
+
+Only the child histories are needed for this rule, not a transcript of
+earlier queries at the parent.  Parent draws may be keyed by
+$(I,q,b,t)$ in addition to pass and copy identifiers.  Group choices
+and table values are cached on their complete keys, and every first
+parent draw uses a fresh source independent of the complete child
+tables.  Section~\ref{sec:work} makes the resulting deferred evaluation
+and its costs explicit.
+
+\subsection{Shared group samples and the update}
+
+For each node $I$, scale $b$, cell from
+Lemma~\ref{lem:cone-locality}, and time $1\le t\le S$, group all
+unskipped representatives in that whole cell.  The following procedure
+chooses one member of each nonempty group.  It is defined from complete
+child tables; later we evaluate its required entries on demand.
+
+Sampling and rounding work together here. Sharing the child draws
+across a cell lets all its representatives reuse the same queried child
+labels. Rounding then limits how many different states at one such child
+can occur across the group. This combination, rather than band width
+alone, bounds the number of current-index recursive calls.
+
+For each power of two $h$ in $[b/M,64Fb]$, set
+\[
+ k_h=\min\{M,\ceil{Q_1Mh/b}\}.
+\]
+For each member $(b,r)$, we estimate the child sum in
+$V_r(\beta(b,r);d_t)$ by separating the children according to their
+$h_i$.  If $k_h=M$, include the contribution with $h_i=h$ exactly.
+Otherwise draw $k_h$ independent uniform child indices with replacement,
+using the same draws for every member of this group at this scale.
+For each sampled child include its $d_t$ value if its $h_i=h$, and zero
+otherwise; multiply the sampled sum by $M/k_h$.  Add the connection
+charge exactly.  Select a member minimizing this estimate, breaking
+ties by a fixed ordering.  Then evaluate its actual action cost using
+all children.  Samples used for different parent groups and times are
+independent and are independent of descendant randomness.
+
+For example, when $k_h<M$, there are $O(Q_1Mh/b)$ sampled child
+labels, and at most $O(\theta^{-2}(1+b/h))$ rounded states at each
+label across the cell. Their product is $M\ell^{O(1)}$.
+Lemma~\ref{lem:current-index-budget} proves this count and the analogous
+bound for exact scales, including executions with inaccurate seeds.
+
+Let $\Pi_t(I,q)$ be the minimum of
+$\mathcal B_I(d_{t-1})(q)$ and the actual selected group costs, each
+extended from its selected representative by $L|q-r|_1$.  Compute this
+minimum by~\eqref{eq:local-scales} and whole-cell enumeration.  A
+group's choice is cached for the whole cell, independent of which
+query first requests it.  Lemma~\ref{lem:cone-locality} shows that this
+local computation equals the global cone minimum for a good seed.
+
+There is also an online action query at each scale passing
+\eqref{eq:local-scales}.  Put $r=r_b(q)$ and proceed only if this is
+an unskipped representative.  Draw one action
+$\alpha_t\in\mathcal C_{b,r}$ by the rule just defined,
+which uses child histories with index less than $t$.  Evaluate
+\[
+ L|q-r|_1+\sum_i d_t(I_i,s_i(\alpha_t)).
+\]
+Let $Y_t(I,q)$ be the minimum of these online query values, or
+$+\infty$ if there are none.  At a nonleaf define
+\begin{equation}\label{eq:refined-update}
+ d_t(I,q)=
+ \begin{cases}
+ 0,&w_0(I,q)=0,\\[2pt]
+ \displaystyle\min\left\{\Pi_t(I,q),
+       \max\left\{\frac{\Pi_t(I,q)}{1+\delta},Y_t(I,q)\right\}\right\},
+       &w_0(I,q)>0.
+ \end{cases}
+\end{equation}
+Leaves continue to use their exact values. At a positive $w_0$ state,
+this update truncates $Y_t$ to the interval
+$[\Pi_t/(1+\delta),\Pi_t]$: an inexpensive online action can improve
+the value only within this interval. The upper endpoint retains the
+Bellman comparison, while the lower endpoint transfers the spatial
+regularity of $\Pi_t$ to $d_t$ up to a factor $1+\delta$.
+For a fixed pass, these definitions are well founded by induction on
+node height: current-index values are requested only at children, and
+at a fixed node the remaining refinement values have earlier indices.
+Section~\ref{sec:work} gives the complete lazy evaluation order across passes.
+
+\subsection{Deterministic invariants}
+
+\begin{lemma}\label{lem:refinement-invariants}
+For a seed satisfying Theorem~\ref{thm:refinement}, every outcome of
+the refinement obeys
+\begin{align}
+ \max\{c/a,|z|\}&\le d_t\le d_{t-1}\le w_0,
+ \label{eq:refinement-invariants}\\
+ d_t(I,q)&\le(1+\delta)d_t(I,q')+L|q-q'|_1.
+ \label{eq:refinement-lipschitz}
+\end{align}
+At nonleaves one also has
+\begin{equation}\label{eq:bellman-sandwich}
+ \mathcal B_I(d_t)(q)\le d_t(I,q)
+           \le\mathcal B_I(d_{t-1})(q).
+\end{equation}
+For $d_0$, the spatial bound holds with Lipschitz constant $L$ and
+without the factor $1+\delta$.
+\end{lemma}
+
+\begin{proof}
+Induct on node height, and at a fixed node on $t$.  Every extra
+candidate in $\Pi_t$ is a current-value wide-action cone.  The Bellman
+candidate uses earlier child values, which are at least the current
+ones by induction.  Hence $\Pi_t\ge\mathcal B_I(d_t)$, whereas
+$\Pi_t\le\mathcal B_I(d_{t-1})$.  Each online candidate is a
+current-value wide-action cone too, so
+$Y_t\ge\mathcal B_I(d_t)$, including the empty case.  Taking the
+specified minimum and maximum in~\eqref{eq:refined-update} proves
+\eqref{eq:bellman-sandwich}.  In particular, no lower bound is inferred
+from $\Pi_t/(1+\delta)$ alone.
+
+At $t=1$, \eqref{eq:warmup-invariants} now gives $d_1\le d_0$.
+At later times the left inequality in~\eqref{eq:bellman-sandwich}
+at time $t-1$ gives $d_t\le d_{t-1}$.  The lower bound follows from
+Bellman preservation and the child induction.
+
+The global cone interpretation makes $\Pi_t$ $L$-Lipschitz, whether
+or not any group estimate is accurate.  Moreover
+$\Pi_t/(1+\delta)\le d_t\le\Pi_t$.  Thus
+\[
+ d_t(I,q)\le\Pi_t(I,q)
+ \le\Pi_t(I,q')+L|q-q'|_1
+ \le(1+\delta)d_t(I,q')+L|q-q'|_1.
+\]
+If $w_0(I,q)=0$, the Bellman and $\Pi_t$ values are zero, and the
+explicit zero branch agrees with these inequalities.  The assertions
+for $d_0$ follow from the warmup.
+\end{proof}
+
+For execution on an arbitrary seed, the local construction still gives
+nonnegative values at most its local $w_0$.  All representative lists
+and skipped-band tests remain finite.  We use these unconditional
+facts for work bounds, and do not extend the correctness invariants of
+Lemma~\ref{lem:refinement-invariants} to inaccurate seeds.
+
+\subsection{Accuracy of one group selection}
+
+For a band action define
+$x_t(\alpha)=\sum_i d_t(I_i,s_i(\alpha))$.
+Two band actions differ by at most $4\theta b/M$ in each child's
+endpoint-pair metric.  Rounding the canonical action adds at most
+$2\theta h_i$, so
+$|s_i(\alpha)-s_i(\beta)|_1\le6\theta h_i$.
+Also $\conn_r(\beta)\le2\theta h_\Sigma$, because the unrounded
+action has shared endpoints.  It follows that
+\begin{equation}\label{eq:rounded-action}
+ \begin{split}
+ V_r(\beta;d_t)&\le(1+\delta)x_t(\alpha)
+                    +(6L+2)\theta h_\Sigma,\\
+ d_t(I_i,s_i(\beta))&\le2h_i.
+ \end{split}
+\end{equation}
+The first inequality uses~\eqref{eq:refinement-lipschitz}.  For the
+second, use $d_t\le w_0$ and the $L_0$-Lipschitz bound to obtain
+$w_0(I_i,s_i(\beta))\le h_i+2L_0\theta h_i\le2h_i$.
+
+\begin{lemma}[One-group accuracy]\label{lem:group-accuracy}
+Under the seed hypothesis of Theorem~\ref{thm:refinement}, fix complete
+child tables and one group at time $t$.  With conditional
+probability at least $1-H^{-4}$, all action-cost estimates used to choose
+its representative are within $\gamma b$ of their actual costs.
+Consequently, for any specified unskipped member $(b,r)$ of this
+group, on the same event, simultaneously for every valid parent state
+$q$ and every $\alpha\in\mathcal C_{b,r}$,
+\begin{equation}\label{eq:group-accuracy}
+ \Pi_t(I,q)\le L|q-r|_1+(1+\delta)x_t(\alpha)+e_*b,
+ \qquad e_*=2\gamma+512LF\theta\le\kappa\delta.
+\end{equation}
+Here the inequality uses the global cone minimum, equivalently its
+local evaluation from Lemma~\ref{lem:cone-locality}.
+\end{lemma}
+
+\begin{proof}
+Conditioning fixes the bands, the $h_i$, the rounded actions, and all
+their child costs.  The parent's group samples remain independent of
+these data.  For a fixed member and sampled scale $h$, normalize one
+sample to
+\[
+ X=\frac Mb\ind_{h_i=h}\,d_t(I_i,s_i(\beta)),
+\]
+where $i$ is uniform in $\{1,\ldots,M\}$.  By
+\eqref{eq:rounded-action},
+\[
+ 0\le X\le2Mh/b,
+ \qquad \E X\le2h_\Sigma/b\le128F,
+ \qquad \operatorname{Var}(X)\le256FMh/b.
+\]
+When $k_h<M$, the number of independent samples is at least
+$Q_1Mh/b$.  Bernstein's inequality
+\cite[Theorem~4.16]{Tropp2021Probability}, with normalized error
+$\alpha_0=\gamma/(2\ell)$, gives a failure probability at most
+\[
+ 2\exp\left(-\frac{Q_1\alpha_0^2}{512F+4\alpha_0/3}\right)
+ \le2\exp(-\ell^{37}/3000).
+\]
+When $k_h=M$, the contribution is exact and has no failure event.
+There are at most $2\ell$ scales and at most $(P+1)^2$ group members.
+A union bound is at most $H^{-4}$ at the absolute cutoff.  Summing
+the errors over scales gives error at most $\gamma b$ for every
+member.  Shared samples between members cause no difficulty for this
+union bound.
+
+On this event, estimated-cost minimization followed by actual
+evaluation selects a cost at most that of the specified member plus
+$2\gamma b$.  The selected representative is in the same cell, so
+its endpoint-pair distance from $r$ is at most $2\theta b$.
+Using~\eqref{eq:rounded-action} and $h_\Sigma\le64Fb$ therefore
+gives~\eqref{eq:group-accuracy}, since its additive coefficient is
+at most
+\[
+ 2\gamma+(384LF+128F+2L)\theta
+ \le2\gamma+512LF\theta\le\kappa\delta.
+\]
+The comparison with every band action is simultaneous because
+\eqref{eq:rounded-action} is deterministic and uniform in that
+action.
+\end{proof}
+
+This is a conditional statement for one whole cell and time.  The
+accuracy proof will not require all group samples throughout the
+recursion to succeed together.  Instead it will charge each group's
+failure probability inside an expected regret bound at its comparison
+node.

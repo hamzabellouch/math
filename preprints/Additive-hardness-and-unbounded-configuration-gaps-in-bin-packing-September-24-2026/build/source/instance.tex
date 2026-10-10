@@ -1,0 +1,547 @@
+\section{The reduction instance}\label{sec:instance}
+
+\begin{theorem}[Graph-to-packing reduction]\label{thm:reduction}
+Fix an integer $c\ge0$ and a real constant $\rho>0$. There is a
+deterministic polynomial-time construction with the following property.
+Its input is an explicitly listed simple graph $G=(V,E)$, with
+$V=\{1,\ldots,n\}$ and $m=|E|\ge1$, and an integer $0\le k\le n$.
+Its output is an integer $B$ and an explicit list of $5B$ rational item
+sizes in $(1/6,1)$ such that:
+\begin{enumerate}
+ \item if $G$ has a vertex cover of size at most $k$, the items pack into
+       $B$ unit-capacity bins;
+ \item any packing into at most $B+c$ bins yields a vertex cover of size
+       at most $k+\rho n$.
+\end{enumerate}
+The running-time and output-length bounds are in ordinary binary
+encoding; their constants may depend on $c$ and $\rho$.
+\end{theorem}
+
+We give the construction and its elementary properties in this section.
+Propositions~\ref{prop:completeness} and~\ref{prop:soundness} prove the
+two implications of Theorem~\ref{thm:reduction}, respectively. Vertex
+listing is part of the input representation, so the input length is at
+least $n$.
+
+\subsection{Parameters and interval geometry}
+
+The integer $P_0$ below bounds a fixed score used to enforce the bin
+patterns. The allowance $K$ will bound items lost from those patterns
+when $c$ extra bins are available. Choose, once for the fixed pair
+$(c,\rho)$,
+\begin{equation}\label{eq:parameters}
+ \begin{gathered}
+  P_0=100^{11},\qquad K=25(c+1)(1+5P_0),\\
+  d\in\N,\qquad d\ge\max\{72K,120K/\rho\}.
+ \end{gathered}
+\end{equation}
+Apply Lemma~\ref{lem:competing-trees} to this $d$, obtaining
+$T^+,T^-$, common leaf depth $L\ge1$, and combined depth quotas
+$p_1,\ldots,p_L$. Put $P=\sum_{\ell=1}^L p_\ell$ and choose an integer
+$D_*\ge1$ bounding the number of children of any node in either tree.
+These quantities depend only on $c,\rho$. Set
+\[
+ R=100(P+nK+1).
+\]
+The $R$ repetitions of each incidence will make the later edge demand
+larger than both the local losses $P$ and the global losses proportional
+to $nK$.
+
+Order the graph edges as $e=1,\ldots,m$. A \emph{position} is a pair
+$r=(e,j)$ with $1\le j\le R$; positions are ordered lexicographically.
+Define
+\begin{equation}\label{eq:position-coordinates}
+ \begin{aligned}
+  \theta_e&=(R+1)^{e-1}-1,
+  &H_{e,j}&=j(R+1)^{e-1}-1,\\
+  g&=\frac{1}{16(R+1)^m},
+  &b_{(e,j)}&=\frac12+gH_{e,j},\qquad \beta_e=g\theta_e.
+ \end{aligned}
+\end{equation}
+Write $H_r=H_{e,j}$ when $r=(e,j)$. For each vertex $v$, let
+\[
+ \mathcal R_v=\{(e,j):v\text{ is an endpoint of }e,\ 1\le j\le R\}.
+\]
+
+Each vertex label $v$ uses its own copy of the following geometry.
+The roots of $T^+$ and $T^-$ are represented by the closed side cells
+$[0,1]$ and $[4,5]$. A node at depth $\ell\ge1$ has a closed cell of
+width
+\[
+ \lambda_\ell=g[100(D_*+1)]^{-\ell}.
+\]
+Within a parent with left endpoint $a$, the cell of its $j$th child at
+depth $\ell$ is
+$[a+4j\lambda_\ell,a+(4j+1)\lambda_\ell]$.
+Finally put $\Delta=\lambda_L/10$. For each $r\in\mathcal R_v$, add the
+closed \emph{job cell} $[b_r-\Delta,b_r]$ on the plus side.
+The \emph{test intervals} are the leaf cells of both trees and all the
+job cells, each taken left-closed and right-open. Denote their union by
+$\mathcal I_v$. Embedding cells remain closed whenever their geometric
+intersection or containment is discussed.
+
+\begin{lemma}[Geometry and coordinate order]\label{lem:geometry}
+The embedding has the following properties.
+\begin{enumerate}
+ \item Every child cell lies inside its parent. Every nonroot cell lies
+       in the first tenth of its root cell. Distinct depth-$\ell$ cells
+       across the two trees have gaps at least $3\lambda_\ell$.
+ \item The numbers $b_r$ belong to $[1/2,9/16)$, and distinct job cells
+       have gaps at least $g-\Delta$. All the test intervals of one
+       label are pairwise disjoint.
+ \item For $1\le\ell\le L$,
+       $\Delta\le\lambda_\ell/10$ and
+       $\lambda_1+2\Delta<g$. An interval of length at most
+       $\lambda_\ell+\Delta$ meets at most one depth-$\ell$ cell. If it
+       contains a point of a leaf cell, that depth-$\ell$ cell is the
+       leaf's ancestor. An interval of length at most
+       $\lambda_1+\Delta$ meets at most one job cell.
+ \item For $r=(e,j)$, the two independent order bounds are
+       \begin{equation}\label{eq:coordinate-order}
+        H_{r'}-H_r\ge\theta_e+1\quad(r'>r),\qquad
+        \theta_f-\theta_e\ge H_{e,R}+1\quad(f>e).
+       \end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+The right endpoint of the last child is at most
+$(4D_*+1)\lambda_\ell$ beyond its parent's left endpoint. For
+$\ell>1$ this is less than $\lambda_{\ell-1}$, since
+$4D_*+1<100(D_*+1)$. For $\ell=1$ it is less than $g/25<1/10$.
+Sibling gaps are $3\lambda_\ell$. Cells with different parents retain
+at least the gap between those parents, which is at least
+$3\lambda_{\ell-1}>3\lambda_\ell$; the two root cells are separated
+by $3$. Induction proves the first assertion, including all cousin
+cells, and descendants remain in their depth-one cells.
+
+Successive $H$ values within edge $e$ differ by $(R+1)^{e-1}$. The
+difference from $(e,R)$ to $(e+1,1)$ is the same number. Thus the first
+step after a position of edge $e$ is $\theta_e+1$, proving the first
+bound in Equation~\eqref{eq:coordinate-order}. Similarly,
+\[
+ \theta_{e+1}-\theta_e=R(R+1)^{e-1}=H_{e,R}+1,
+\]
+and later edges only increase this difference. Also
+$0\le H_r\le R(R+1)^{m-1}-1<(R+1)^m$, proving the range of $b_r$.
+Consecutive baselines differ by at least $g$, so job-cell gaps are at
+least $g-\Delta$.
+
+The widths decrease with depth, giving
+$\Delta\le\lambda_\ell/10$. Since $100(D_*+1)\ge200$,
+\[
+ \lambda_1+2\Delta\le\frac65\lambda_1
+ \le\frac{3g}{500}<g.
+\]
+In particular $\Delta<g\le1/16$. Job cells therefore lie strictly to
+the right of $1/10$ and strictly to the left of $1$; they meet neither
+tree's nonroot cells. Leaf cells have common depth $L$ and positive
+gaps, proving disjointness of all tests. Finally,
+$\lambda_\ell+\Delta\le(11/10)\lambda_\ell<3\lambda_\ell$, and
+$\lambda_1+\Delta<g-\Delta$. These strict inequalities and the stated
+gaps prove the intersection bounds. A point of a leaf belongs to its
+ancestor cell at every depth, so the uniquely intersected cell at depth
+$\ell$ must be that ancestor.
+\end{proof}
+
+The geometric separation has two uses. A local interval of length
+$\lambda_\ell$, even with the additional shortening $\Delta$, can
+intersect only one tree cell at depth $\ell$. The two coordinate-order
+bounds will separately control which row positions and which edge
+resources can be matched. We next realize these constraints through
+five-item bins.
+
+\subsection{Patterns and the complete item inventory}
+
+Items have five roles: rows $X$, anchors $A$, global auxiliaries $U$,
+local auxiliaries $D$, and flags $F$. Their subclasses are listed in
+Table~\ref{tab:patterns}. A \emph{tuple} consists of five distinct
+physical item copies. A \emph{table tuple} has one of the displayed
+subclass patterns. Its kind is $\mathrm M$ for the first three rows of
+Table~\ref{tab:patterns} and $\mathrm G$ for the last row. Only the roles $X,A,D$
+carry vertex labels. A table tuple is \emph{good} when these three
+labels are equal.
+
+\begin{table}[htbp]
+ \centering
+ \begin{tabular}{c c c c c c}
+  \toprule
+  Kind & $X$ & $A$ & $U$ & $D$ & $F$\\
+  \midrule
+  $\mathrm M$ & $\Tp$ & $\Zanc$ & $\Up$ & $\DM$ & $\FT$\\
+  $\mathrm M$ & $\Tm$ & $\Zanc$ & $\Um$ & $\DM$ & $\FT$\\
+  $\mathrm M$ & $\Srow$ & $\Zanc$ & $\Up$ & $\DM$ & $\FM$\\
+  $\mathrm G$ & $\Srow$ & $\Yanc$ & $\Waux$ & $\DG$ & $\FG$\\
+  \bottomrule
+ \end{tabular}
+ \caption{The four table patterns, with one subclass in each role.
+ Equal vertex labels on $X,A,D$ are a separate requirement for a good tuple.}
+ \label{tab:patterns}
+\end{table}
+
+The $\mathrm M$ patterns will compare a row's completion with an
+anchor deadline; the $\mathrm G$ pattern will match a job row to an
+anchor key. The inventory below gives every role the same total count
+and gives the three labeled roles the same count at each vertex.
+We specify every item copy and a rational coordinate $w(i)$; the actual
+size will be defined afterwards. The symbols $b,z$ and the auxiliary
+lengths below are attributes of individual items.
+
+\paragraph{Rows.}
+For each label $v$ and each node of either tree, \emph{including its
+root}, create $d$ rows with baseline $b$ equal to the cell's right
+endpoint and coordinate $w=b$. Their subclass is $\Tp$ on the plus
+side and $\Tm$ on the minus side. Add $P$ further $\Tp$ rows with
+baseline $1$. Thus the tree-row counts are
+\begin{equation}\label{eq:tree-row-counts}
+ t_{v,+}=d|V(T^+)|+P,\qquad
+ t_{v,-}=d|V(T^-)|,\qquad
+ t_v=t_{v,+}+t_{v,-}\ge P+2d.
+\end{equation}
+For each $r\in\mathcal R_v$, create $2d$ rows of subclass $\Srow$,
+all with baseline $b_r$. Of these, $d$ are \emph{short}, with
+$w=b_r-\Delta$, and $d$ are \emph{long}, with $w=b_r$.
+All these rows have label $v$. An intended packing sends $d$ rows at
+each position to kind $\mathrm M$ and the other $d$ to kind $\mathrm G$.
+Put
+\[
+ J_v=d|\mathcal R_v|=dR\deg(v),
+\]
+the number of job rows assigned to each kind in such a packing.
+
+\paragraph{Anchors.}
+For label $v$, form a baseline multiset $\mathcal B_v$ consisting of
+every tree-row baseline, including padding, and $d$ copies of $b_r$
+for each $r\in\mathcal R_v$. The latter are hypothetical baselines,
+so $|\mathcal B_v|=t_v+J_v$, rather than the total row count.
+For each test interval, replace $d$ copies of its right endpoint by
+its left endpoint. Leaf-row copies and the hypothetical job copies
+provide these replacements; the different tests use distinct designated
+copies. For each resulting deadline $z$, create a $\Zanc$ anchor of
+label $v$ with $w=-z$.
+
+Set $\ind\{E\}=1$ when condition $E$ holds, and $0$ otherwise.
+For $a\in\R$, let $B_v(a)$ be the number of members of $\mathcal B_v$
+at most $a$. Moving an endpoint from $r$ to $l<r$ changes its prefix
+indicator by
+$\ind\{l\le a\}-\ind\{r\le a\}=\ind\{l\le a<r\}$.
+Since the tests are disjoint, their deadline count satisfies exactly
+\begin{equation}\label{eq:deadline-prefix}
+ \#\{\Zanc\text{ anchors of label }v\text{ with }z\le a\}
+ =B_v(a)+d\,\ind\{a\in\mathcal I_v\}.
+\end{equation}
+There are also $d$ \emph{keys} of subclass $\Yanc$ for every position
+$r=(e,j)\in\mathcal R_v$, with label $v$ and coordinate
+$w=-b_r-\beta_e$. Their total number is $J_v$.
+
+\paragraph{Global auxiliaries.}
+These have no vertex label. Create
+$\sum_v(t_{v,+}+J_v)$ items of subclass $\Up$, exactly $dk$ of length
+$1$ and the rest of length $0$. Create $\sum_v t_{v,-}$ items of
+subclass $\Um$, exactly $d(n-k)$ of length $1$ and the rest of length
+$0$. An item of either subclass has coordinate $w=-\len(i)$.
+For each edge $e$, create $dR$ \emph{permits} of subclass $\Waux$ with
+$w=\beta_e$, and $dR$ \emph{nonpermits} of that same subclass with
+$w=\beta_e+\Delta$.
+
+\paragraph{Local auxiliaries.}
+For each label $v$, create $t_v+J_v$ items of subclass $\DM$.
+For each $\ell=1,\ldots,L$, exactly $p_\ell$ of them have length
+$\lambda_\ell$; the remaining $t_v+J_v-P$ have length $0$.
+Their coordinate is $w=-\len(i)$. Also create $J_v$ items of subclass
+$\DG$, with label $v$ and coordinate $0$.
+
+\paragraph{Flags.}
+Create $\sum_vt_v$ items of subclass $\FT$ and $\sum_vJ_v$ each of
+subclasses $\FM$ and $\FG$. They have no vertex label and coordinate
+$0$.
+
+All multiplicities are nonnegative. In particular,
+Equation~\eqref{eq:tree-row-counts} gives
+$t_v+J_v-P\ge2d+J_v$ zero-length local items, while the $d$ root rows
+on each side guarantee enough global items for the specified length-one
+stocks, including when $k=0$ or $k=n$. Define
+\begin{equation}\label{eq:inventory-total}
+ B=\sum_{v=1}^n(t_v+2J_v).
+\end{equation}
+Each role has exactly $B$ items. This is immediate for $X,A,D$ from
+their labelwise counts. For the other roles, use
+$\sum_vJ_v=2dmR$: the $\Waux$ inventory is exactly $\sum_vJ_v$, and
+the stated global and flag counts each sum to $B$ as well. The three
+labeled roles have equal inventories $t_v+2J_v$ at every label $v$.
+All coordinates satisfy $|w(i)|\le6$: cell endpoints lie in $[0,5]$,
+lengths are at most $1$, and $0\le\beta_e<1/16$.
+
+\subsection{Encoding the patterns and labels in rational sizes}
+
+Large-base aggregation of bounded integer equations is a classical
+arithmetic device; see Anthonisse~\cite[Theorem~6 and Section~5]{Anthonisse1973}.
+A recent use in bin-packing constructions appears in
+Jansen, Pirotton, and Tutas~\cite[Section~3]{JansenPirottonTutas2025}.
+We give the bounded five-item version explicitly and separately control
+the defects allowed by extra bins.
+
+The encoding has three tasks: keep every item above $1/6$, control
+departures from Table~\ref{tab:patterns}, and turn good-tuple feasibility
+into an inequality on the coordinates $w(i)$. Feasibility alone will
+allow some departures from the table. Conservation of the total scores
+will bound their number when at most $c$ extra bins are used.
+
+For a collection of items, let $N_s$ denote the count of subclass $s$
+and $N_r$ the count of role $r$. Consider the following ten homogeneous
+count equations: the five role equations
+$5N_r-\sum_sN_s=0$, in the order $r=X,A,U,D,F$, followed by
+\begin{equation}\label{eq:pattern-count-equations}
+ \begin{aligned}
+  N_{\Tp}+N_{\Tm}-N_{\FT}&=0,\\
+  N_{\Zanc}-N_{\FT}-N_{\FM}&=0,\\
+  N_{\Up}+N_{\Um}-N_{\FT}-N_{\FM}&=0,\\
+  N_{\DM}-N_{\FT}-N_{\FM}&=0,\\
+  N_{\Tm}-N_{\Um}&=0.
+ \end{aligned}
+\end{equation}
+Here $\sum_s$ is over all thirteen subclasses. Let $\delta_j(i)$,
+$0\le j<10$, be item $i$'s coefficient in these successive left sides,
+and define its integer primary score by
+\[
+ p(i)=\sum_{j=0}^9 100^j\delta_j(i).
+\]
+The coefficients depend only on the subclass. Each has absolute value
+at most $4$, so
+$|p(i)|\le4\sum_{j=0}^9 100^j<P_0$.
+
+For vertex labels set $Q_v=3^v$. The secondary score is $q(i)=Q_v$ for
+an $X$ or $D$ item of label $v$, $q(i)=-2Q_v$ for an $A$ item of that
+label, and $q(i)=0$ on the other roles. Give item $i$ the actual size
+\begin{equation}\label{eq:item-size}
+ \begin{gathered}
+  a_i=\frac15+\gamma p(i)+\mu q(i)+\nu w(i),\\
+  \gamma=\frac1{1000P_0},\qquad
+  \mu=\frac{\gamma}{1000Q_n},\qquad
+  \nu=\frac{\mu}{1000}.
+ \end{gathered}
+\end{equation}
+Roles and labels specify the construction and remain available as
+metadata for its analysis. The output consists of the rational sizes of
+the indexed physical copies; the argument requires no recovery of this
+metadata from a size and no numerical distinctness of different kinds
+of items.
+
+\begin{lemma}[Scalar encoding]\label{lem:encoding}
+Every item size belongs to $(1/6,1)$, so every feasible bin has at most
+five items. For a five-item tuple, zero total primary score is equivalent
+to following Table~\ref{tab:patterns}. A feasible five-item tuple has
+nonpositive total primary score; if that score is zero, its total
+secondary score is nonpositive. If both totals are zero, feasibility is
+equivalent to $\sum_iw(i)\le0$. The complete item inventory satisfies
+$\sum_i p(i)=\sum_iq(i)=0$.
+\end{lemma}
+
+\begin{proof}
+On a five-item tuple, every role-equation total belongs to $[-5,20]$
+and each remaining total belongs to $[-5,5]$. All ten are integers of
+absolute value less than $100$. If their radix-$100$ combination is
+zero, reducing modulo $100$ makes the first total zero: it is a
+multiple of $100$ strictly between $-100$ and $100$. Divide by $100$
+and repeat to obtain all ten equations. This argument applies to signed
+totals as well. The converse is immediate.
+
+The role equations now give exactly one item of each role. With flag
+$\FT$, the first subclass equation forces a tree row, the next three
+force $\Zanc$, one of $\Up,\Um$, and $\DM$, and the last equation
+pairs $\Tm$ precisely with $\Um$. With flag $\FM$, the row is
+$\Srow$, the anchor and local item are $\Zanc,\DM$, and the global
+item must be $\Up$. With flag $\FG$, the remaining subclasses are
+forced to be $\Srow,\Yanc,\Waux,\DG$. These are exactly the four
+patterns, each of which satisfies every equation.
+
+The perturbation of one item from $1/5$ is bounded by
+\[
+ |a_i-1/5|
+ \le\frac1{1000}+\frac{2}{10^6P_0}
+       +\frac{6}{10^9P_0Q_n}<\frac1{30}.
+\]
+Thus $a_i>1/6$ and $a_i<7/30<1$. For five items, the total absolute
+contribution below the primary scale is at most
+$10Q_n\mu+30\nu$, and
+\[
+ \frac{10Q_n\mu+30\nu}{\gamma}
+ =\frac1{100}+\frac{3}{100000Q_n}<1,
+ \qquad \frac{30\nu}{\mu}=\frac3{100}<1.
+\]
+An integer primary total at least $1$ would therefore make the bin's
+size exceed $1$. If the primary total is zero, the same argument at
+the secondary scale excludes a positive secondary total. When both
+vanish, the five copies of $1/5$ already sum to $1$, leaving exactly
+the asserted coordinate condition.
+
+Finally, the whole inventory satisfies all ten count equations. Every
+role has $B$ items; the tree-row and $\FT$ counts both equal
+$\sum_vt_v$; each of the $\Zanc$, combined $\Up,\Um$, and $\DM$
+counts equals $\sum_v(t_v+J_v)$; and the $\Tm$ and $\Um$ counts
+agree. Thus the primary total is zero. At each label the $X,A,D$
+inventories are equal, so its secondary contribution is
+$(1-2+1)Q_v(t_v+2J_v)=0$.
+\end{proof}
+
+\paragraph{Polynomial construction.}
+For fixed $c,\rho$, the trees and all their parameters are finite
+constants. In particular $t_v=t$ is a fixed constant, while
+$R=O(n+1)$ and
+$B=nt+4dmR$. Hence all positions and all item copies can be enumerated
+in polynomial time in the explicit graph input. The denominators
+\begin{equation}\label{eq:encoding-denominators}
+ \begin{aligned}
+  D_{\rm geom}&=160(R+1)^m[100(D_*+1)]^L,\\
+  D_{\rm size}&=10^9P_0 3^n D_{\rm geom}
+ \end{aligned}
+\end{equation}
+are common denominators for all coordinates $w(i)$ and all sizes $a_i$,
+respectively. Indeed, $D_{\rm geom}$ accommodates $g$, every
+$\lambda_\ell$, $\Delta$, all nested endpoints, and every baseline and
+$\beta_e$; Equation~\eqref{eq:item-size} then gives the second claim.
+Their bit lengths are
+$O(n+m\log(n+2))$, with constants depending on the fixed parameters.
+Since $0<a_i<1$, numerators over $D_{\rm size}$ have the same bound.
+Integer powering, arithmetic, item enumeration, and optional fraction
+reduction therefore take polynomial bit time. The choice of $d$ and the
+finite tree construction are fixed for each reduction; $\rho$ is not a
+real-valued runtime input.
+
+\begin{lemma}[Good anchors under an additive allowance]\label{lem:good-anchors}
+In any packing of the constructed instance into at most $B+c$ bins,
+fewer than $K$ items lie outside five-item table tuples. At each vertex
+label $v$, at most $3K$ anchors lie outside good tuples. This is a joint
+bound on its $\Zanc$ and $\Yanc$ anchors, and therefore applies to any
+subset of that label's anchors.
+\end{lemma}
+
+\begin{proof}
+If the packing has $N\le B+c$ bins, five-item capacity gives $N\ge B$.
+The number of unused five-item slots is $5(N-B)\le5c$. Hence there
+are at most $5c$ nonfull bins and at most $25c$ items in them. All full
+bins have nonpositive integer primary totals by
+Lemma~\ref{lem:encoding}. The whole primary total is zero, so the
+sum of the magnitudes of the negative full-bin totals is at most
+$25cP_0$, supplied by the nonfull items. There are consequently at most
+$25cP_0$ negative-primary full bins. The number of items outside
+primary-zero full bins is at most
+\begin{equation}\label{eq:primary-loss}
+ 25c+5(25cP_0)=25c(1+5P_0)<K.
+\end{equation}
+Those primary-zero bins are precisely the table tuples.
+
+In a table tuple write $v_X,v_D,v_A$ for its three labels. Its
+secondary score is
+$Q_{v_X}+Q_{v_D}-2Q_{v_A}\le0$. If $v_X>v_A$, then
+$Q_{v_X}\ge3Q_{v_A}$, already exceeding the negative contribution;
+the same argument applies to $v_D$. Thus
+\[
+ v_X\le v_A,\qquad v_D\le v_A.
+\]
+Equality of the secondary total occurs exactly when all three labels
+are equal.
+
+Here is the exact conservation law that controls smaller-label imports.
+Fix a prefix $S=\{1,\ldots,h\}$ and a role $r\in\{X,D\}$.
+Let $O_A(S)$ and $O_r(S)$ count items of the indicated role and labels
+in $S$ outside table tuples. Let $E_r(S)$ count table tuples whose
+role-$r$ item has label in $S$ and whose anchor has label outside $S$.
+The original inventories of either role in $S$ equal
+$\sum_{v\in S}(t_v+2J_v)$. Every table anchor in $S$ consumes a
+role-$r$ item in $S$. Subtracting this consumption from the available
+role-$r$ items gives
+\begin{equation}\label{eq:label-prefix-conservation}
+ E_r(S)=O_A(S)-O_r(S)\le O_A(S)\le K.
+\end{equation}
+This identity also holds for the empty prefix.
+
+For anchors of label $v$, any unequal row label must be below $v$ and
+is counted by $E_X(\{1,\ldots,v-1\})$. At most $K$ table anchors
+of label $v$ have this defect. At most another $K$ have a smaller
+local-auxiliary label. At most $K$ anchors of the label lie outside
+table tuples altogether. Their union has at most $3K$ members, proving
+the joint assertion. Summing this bound over labels permits a global
+loss of $3nK$.
+\end{proof}
+
+\subsection{Feasibility of good tuples}
+
+Lemma~\ref{lem:good-anchors} now lets us analyze an arbitrary packing
+through its good tuples, losing at most $3K$ anchors at each vertex.
+The loss is independent of the number of job positions. For good
+tuples, the remaining coordinate inequality has the following concrete
+meaning.
+
+\begin{lemma}[Completion and key inequalities]\label{lem:good-feasibility}
+A good tuple has zero primary and secondary totals. Its feasibility is
+therefore described exactly as follows.
+\begin{enumerate}
+ \item For kind $\mathrm M$, with row baseline $b$, deadline $z$,
+       and associated global and local items $U,D$, define
+       \begin{equation}\label{eq:completion-coordinate}
+        h=b-\Delta\ind\{\text{row is short}\}-\len(U)-\len(D).
+       \end{equation}
+       The tuple is feasible if and only if $h\le z$, and $h\le b$.
+       For any collection of such row--auxiliary assignments and any
+       $a\in\R$,
+       \begin{equation}\label{eq:completion-prefix}
+        \#\{h\le a\}=\#\{b\le a\}+\#\{h\le a<b\}.
+       \end{equation}
+       The last term counts coverage by the half-open intervals $[h,b)$.
+ \item For kind $\mathrm G$, let its key have position $r=(e,j)$,
+       its row have position $r'$, and its global item belong to edge
+       $f$. Feasibility is equivalent to
+       \begin{equation}\label{eq:key-feasibility}
+        b_{r'}-b_r+\beta_f-\beta_e
+        +\Delta\bigl(\ind\{\text{nonpermit}\}
+                      -\ind\{\text{row is short}\}\bigr)\le0.
+       \end{equation}
+       It implies both $r'\le r$ and $f\le e$. For an exact-position
+       long row, the global item must be a permit of edge $e$ or an
+       item of an earlier edge. At the exact position and edge, a
+       short row admits either a permit or a nonpermit, whereas a long
+       row admits only a permit.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+The table pattern gives zero primary score; equal labels give
+$Q_v+Q_v-2Q_v=0$. Apply Lemma~\ref{lem:encoding}. In kind
+$\mathrm M$, the five coordinates sum to $h-z$, proving the first
+criterion. All lengths and the shortening term are nonnegative, so
+$h\le b$. The events $\{b\le a\}$ and $\{h\le a<b\}$ partition
+$\{h\le a\}$, proving Equation~\eqref{eq:completion-prefix}, including
+the endpoints and the empty intervals when $h=b$.
+
+In kind $\mathrm G$, summing the row, key, global, local, and flag
+coordinates gives exactly the left side of
+Equation~\eqref{eq:key-feasibility}. If $r'>r$, then
+Equation~\eqref{eq:coordinate-order} gives a position increase at least
+$g(\theta_e+1)$. Since $\theta_f\ge0$, the $\beta$ difference is at
+least $-g\theta_e$. The final perturbation is at least $-\Delta$.
+The total is therefore at least $g-\Delta>0$, excluding $r'>r$
+without any condition on $f$.
+
+Independently, if $f>e$, the $\beta$ increase is at least
+$g(H_{e,R}+1)$. Since $H_{r'}\ge0$ and $H_r\le H_{e,R}$, the
+position difference is at least $-gH_{e,R}$. Again the total is at
+least $g-\Delta>0$, excluding $f>e$ without any condition on $r'$.
+For an exact-position long row, a same-edge nonpermit would leave
+the strictly positive sum $\Delta$, proving the resource restriction.
+For an exact-position, same-edge tuple, the sum is simply
+$\Delta(\ind\{\text{nonpermit}\}-
+\ind\{\text{row is short}\})$, which gives the remaining assertions.
+\end{proof}
+
+For later geometric use, an $\mathrm M$ interval with global length
+zero and local length $\lambda_\ell$ has length at most
+$\lambda_\ell+\Delta$. With both lengths zero it is empty, except
+for a short $\Srow$ row, whose interval is its job test interval.
+Thus the intersection bounds of Lemma~\ref{lem:geometry} apply even
+when the row's baseline is unrelated to the depth of its local item.
+Finally, a plus row has $b\le1$, while a minus row has $b\ge4$ and
+is never short. Subtracting a global length at most $1$ and a local
+length at most $\lambda_1<1/10$ leaves its completion greater than
+$1$. Consequently intervals on either side can cover test points
+only on that side.

@@ -1,0 +1,440 @@
+\section{Correctness of the recursive solver}
+\label{sec:solving}
+
+The orientation alternative now supplies the missing ingredient for
+\(\Solve\): each fixed admissible subsolution lies below its entire
+output with probability at least \(15/16\), and each fixed admissible
+supersolution lies above it with the same probability. We prove these
+two assertions separately by induction on \(d(R)\). The transformed
+operator and all global parameters remain fixed.
+
+The main continuation preserves rank, so its comparison guarantee is
+not yet available in this induction. Instead, we follow one comparison
+through the entire chain of main continuations. At each node, the
+local calls either establish the required inequality or pass one
+admissible comparison to the next node. Bounding the probability of
+the first local error along this finite chain closes the induction.
+Throughout the section, \(\varepsilon=2^{-J}\) is analysis notation.
+
+\subsection{Using a pointwise guarantee after earlier random choices}
+
+A transported comparison can depend on earlier outputs. What matters
+is that the comparison and its admissibility are settled before the
+fresh call that will test it. We record the conditioning rule explicitly.
+
+\begin{lemma}[Comparisons determined by the past]
+\label{sol:conditioning}
+Suppose a randomized procedure has failure probability at most \(\rho\)
+for every fixed input and every fixed comparison satisfying a specified
+qualification condition. Let \(\mathcal H\) be the history before a
+call. Assume that its input, proposed comparison, and qualification are
+determined by \(\mathcal H\), and that the call uses fresh randomness.
+Then
+\[
+ \Pr\bigl(\text{qualification holds and the comparison fails}
+              \mid\mathcal H\bigr)
+ \le \rho\,\mathbf 1_{\{\text{qualification holds}\}}.
+\]
+The same bound may be used after restricting to any event determined
+by this pre-call history.
+\end{lemma}
+
+\begin{proof}
+Condition on a possible history. If the comparison does not qualify,
+the event on the left is empty. Otherwise that history specifies one
+deterministic eligible input and comparison. The fresh bits retain
+their original distribution independently of the history, so the
+assumed pointwise bound applies. Averaging these conditional bounds
+proves the assertion, including its restriction to a pre-call event.
+\end{proof}
+
+We will use the lemma in a first-error argument. Suppose that an
+analysis requests at most \(M\) comparisons, ceasing its requests
+after the first failure. Each request and its qualification must be
+determined before the corresponding call. If every qualified request
+has conditional failure probability at most \(\rho\), the probability
+that a first failure occurs is at most \(M\rho\). Indeed, reaching a
+specified request with no earlier failure is a pre-call event. Apply
+Lemma~\ref{sol:conditioning} on that event and sum over the \(M\)
+possible positions, treating unreached positions as empty events.
+This argument requires only the single comparison at each position.
+
+Under the induction hypothesis for smaller ranks,
+Lemma~\ref{lem:ask-amplification} gives this rule for \(\Ask\) with
+\(\rho=\varepsilon\). Proposition~\ref{prop:orientation} and
+Lemma~\ref{lem:orient-plus} give it for \(\OrientPlus\) whenever the
+fixed comparison satisfies the required core condition. Those results
+use only smaller-rank solver guarantees; they are therefore available
+before we prove correctness at the current rank.
+
+\subsection{Preserving a comparison while tightening the box}
+
+Tightening has two roles. It transports the comparison through each
+change of bounds, and it ensures that a comparison threatened by the
+subsequent truncation has a heavy extreme core. That second property
+is precisely the hypothesis needed by the orientation alternative.
+
+\begin{lemma}[Tightening a fixed comparison]
+\label{sol:tightening}
+Assume the comparison guarantees at every smaller rank. Consider a
+\(\Solve\) tightening loop with \(B>128s\), and fix an admissible
+subsolution \(y^{\mathrm{in}}\) before the loop begins. Outside an
+event of probability at most \((16ns+2)\varepsilon\), its final box
+\([a,b]\) contains an admissible subsolution
+\(y\ge y^{\mathrm{in}}\), obtained by successive lower-bound
+projections, such that
+\begin{equation}
+ \max_i(y_i-a_i)>C
+ \quad\Longrightarrow\quad
+ \alpha\bigl(\{i:y_i\ge a_i+B-hB\}\bigr)>\eta k,
+ \qquad C=B-\delta.
+ \label{sol:tightened-high-core}
+\end{equation}
+Separately, for each admissible supersolution
+\(z^{\mathrm{in}}\) fixed before the loop, outside an event with the
+same probability bound, the final box contains an admissible
+\(z\le z^{\mathrm{in}}\) satisfying
+\begin{equation}
+ \max_i(b_i-z_i)>C
+ \quad\Longrightarrow\quad
+ \beta\bigl(\{i:z_i\le b_i-B+hB\}\bigr)>\eta m.
+ \label{sol:tightened-low-core}
+\end{equation}
+Both assertions also hold conditionally on any preceding history that
+determines the loop input and the initial comparison.
+\end{lemma}
+
+\begin{proof}
+We specify at most one comparison to request from each actual
+\(\Ask\) call. The analysis stops at its first failed request; the
+algorithm continues to execute its prescribed instructions on every
+tape.
+
+\paragraph{The subsolution.}
+Let \(y\) denote the current protected projection. Before a
+reduced-\(k\) call, the box, \(y\), and
+\(d=\max_i(y_i-a_i)\) are already determined. If \(d>C\), form
+\[
+ u=\max(y-d+\delta,a).
+\]
+By Lemma~\ref{lem:tightening-projection}, this is a subsolution of
+the current box. Its support is contained in
+\(I_y=\{i:y_i\ge a_i+B-hB\}\): at an active coordinate,
+\[
+ y_i-a_i>d-\delta>B-2\delta\ge B-hB.
+\]
+At a coordinate attaining \(d\), the projected value is
+\(u_i=a_i+\delta\). If \(\alpha(S_u)\le\eta k\), request that
+the call return a vector at least \(u\). The vector and this
+qualification are fixed before the call, and success forces a
+lower-bound update. If \(d\le C\), or if \(u\) fails to qualify,
+make no request at this call.
+
+Whenever the algorithm raises the lower bound to an output \(r\),
+replace the protected vector by \(\max(y,r)\). Both vectors lie
+below the unchanged upper bound. Lemma~\ref{lem:boundary-projections}
+therefore gives an admissible subsolution for the new box, with no
+larger support and no smaller coordinates. This projection needs only
+the unconditional fact that \(r\) lies in the old box.
+
+At every reduced-\(m\) call that is reached, request comparison with
+the current \(y\). Its full subsolution weights and budget are
+unchanged, so it qualifies. Success gives \(r\ge y\); lowering the
+upper bound to \(r\), if an update occurs, still contains \(y\)
+and leaves its defining support and inequalities unchanged.
+
+Consider now the final pass, in which neither bound changes. Its
+reduced-\(k\) call used the final box and the final protected vector.
+If \(d>C\) but \(\alpha(I_y)\le\eta k\), the candidate \(u\)
+at that call qualifies because \(S_u\subseteq I_y\). In the absence
+of a charged failure its output forces an update, contradicting that
+this was the final pass. This proves
+Equation~\eqref{sol:tightened-high-core}. Every candidate was fixed
+before its own call; identifying the final pass afterwards makes no
+additional probabilistic demand.
+
+\paragraph{The supersolution.}
+Let \(z\) now denote the current protected vector. At each
+reduced-\(k\) call request an output at most \(z\). The call
+retains the full supersolution parameters, and its successful output
+keeps \(z\) inside the box if the lower bound is raised.
+Before a reduced-\(m\) call, put \(e=\max_i(b_i-z_i)\). If
+\(e>C\), define
+\[
+ v=\min(z+e-\delta,b).
+\]
+Lemma~\ref{lem:tightening-projection} makes \(v\) a supersolution.
+Its support lies in \(I_z=\{i:z_i\le b_i-B+hB\}\), since an
+active coordinate satisfies
+\(b_i-z_i>e-\delta>B-2\delta\ge B-hB\).
+A coordinate attaining \(e\) has \(v_i=b_i-\delta\).
+Whenever \(v\) qualifies for the reduced budget, request an output
+at most \(v\); success forces an upper-bound update. After any
+upper-bound update to \(r\), project \(z\) to \(\min(z,r)\).
+Lemma~\ref{lem:boundary-projections} preserves admissibility and
+keeps the support from increasing. At the final pass, \(e>C\)
+together with \(\beta(I_z)\le\eta m\) would again force an update.
+This proves Equation~\eqref{sol:tightened-low-core}.
+
+\paragraph{The error count.}
+For either fixed side, every requested comparison qualifies and is
+determined before its call until the first error. There is at most
+one request per call. Proposition~\ref{prop:termination} bounds the
+loop by \(8ns\) updates, hence \(8ns+1\) passes and \(16ns+2\)
+calls. The first-error bound from Lemma~\ref{sol:conditioning} gives
+\((16ns+2)\varepsilon\). Conditioning first on the history before
+the loop gives the asserted conditional version.
+\end{proof}
+
+\subsection{A comparison after the choice of boundary}
+
+After successful tightening, fix the resulting comparison in the
+final box \([a,b]\). The orientation call and all reweighted calls
+use this same box. We next determine exactly which local comparisons
+suffice at this node. In each case, either a local answer supplies
+the desired inequality, or one admissible comparison remains for the
+main successor. We assume no correctness guarantee for that successor.
+
+\paragraph{A subsolution and the returned minimum or maximum.}
+Let \(y\) be the current subsolution. When
+\(\max_i(y_i-a_i)>C\), Equation~\eqref{sol:tightened-high-core}
+allows us to request the \(\OrientPlus\) guarantee for \(y\).
+This vector is fixed before the orientation randomness; the
+conditional failure probability is at most \(\varepsilon\).
+When \(\max_i(y_i-a_i)\le C\), no orientation guarantee is needed.
+
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=*]
+\item
+Suppose the choice is \(Y\), so the node returns a minimum.
+The reweighted calls change only the supersolution weights and
+budget. The vector \(y\) therefore qualifies in every one of them;
+request a lower comparison with \(y\) from each call. Define
+\[
+ a'=\max(a,b-C),\qquad y'=\max(y,a').
+\]
+By Lemma~\ref{lem:boundary-projections}, \(y'\) is an admissible
+subsolution in the main box \([a',b]\), with the unchanged
+subsolution parameters. If the main output is at least \(y'\) and
+all requested local outputs are at least \(y\), their minimum is
+at least \(y\). Pass the single comparison \(y'\) to the main
+successor.
+
+\item
+Suppose the choice is \(Z\), so the node returns a maximum, and put
+\(b'=\min(b,a+C)\). If \(y\le b'\), the same vector remains an
+admissible subsolution in \([a,b']\). An output at least \(y\)
+from the main successor suffices for the returned maximum. Pass this
+comparison to that successor; no reweighted output need be tested.
+
+If instead \(y\not\le b'\), then \(y\le b\) implies
+\(\max_i(y_i-a_i)>C\). A successful requested orientation
+guarantee supplies a listed set \(H\) satisfying
+\begin{equation}
+ \alpha(S_y\cap H)>\eta k.
+ \label{sol:witness-high}
+\end{equation}
+For the analysis, select the first such entry. The reweighting lemma
+makes \(y\) admissible for that entry's call. Request its lower
+comparison with \(y\). Success makes the returned maximum at least
+\(y\), whatever the main output may be. The obligation ends at
+this node.
+\end{enumerate}
+
+The selected witness in Equation~\eqref{sol:witness-high} is a
+function of the completed list and the vector fixed before orientation.
+Thus its index is determined before any reweighted call begins.
+The algorithm executes every list entry without computing this
+analysis-dependent index. Earlier entries may already have returned
+when the selected entry is reached, but its own bits are still fresh.
+Lemma~\ref{sol:conditioning} therefore applies to a witness chosen
+from the random list.
+
+\paragraph{A supersolution and the returned maximum or minimum.}
+For the current supersolution \(z\), request the orientation
+guarantee exactly when \(\max_i(b_i-z_i)>C\); the needed core
+condition is Equation~\eqref{sol:tightened-low-core}.
+The two output rules give the following obligations.
+
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=*]
+\item
+For choice \(Z\), all reweighted calls retain the supersolution
+parameters. Request an upper comparison with \(z\) from every
+entry. Put \(b'=\min(b,a+C)\) and \(z'=\min(z,b')\).
+Lemma~\ref{lem:boundary-projections} makes \(z'\) admissible in
+\([a,b']\). If the main output is at most \(z'\), and all
+reweighted outputs are at most \(z\), their maximum is at most
+\(z\). Pass \(z'\) to the main successor.
+
+\item
+For choice \(Y\), put \(a'=\max(a,b-C)\). If \(z\ge a'\),
+it remains admissible in \([a',b]\). A main output at most \(z\)
+already controls the returned minimum, so pass that comparison to
+the main successor.
+
+If \(z\not\ge a'\), the inequality \(z\ge a\) implies
+\(\max_i(b_i-z_i)>C\). Successful orientation supplies an entry
+\(H\) with \(\beta(S_z\cap H)>\eta m\). Select the first such
+entry before its call. Lemma~\ref{lem:reweighting} makes \(z\)
+admissible there. Its successful upper comparison forces the
+returned minimum to be at most \(z\), completing the obligation
+without a condition on the main output.
+\end{enumerate}
+
+The minimum for a subsolution under choice \(Y\), and the maximum
+for a supersolution under choice \(Z\), require all the reweighted
+comparisons just specified. The witness cases require only one.
+In either situation, Proposition~\ref{prop:termination} bounds the
+number of entries by \(J(2g+2)\) on every tape. Each entry has a
+fixed input and comparison before its own fresh call. Applying the
+first-error bound to these entries, together with the one possible
+orientation request, charges at most
+\begin{equation}
+ \bigl(1+J(2g+2)\bigr)\varepsilon
+ \label{sol:post-tightening-error}
+\end{equation}
+at this node for either protected side. The internal calls of
+\(\OrientPlus\) are included in its guarantee and contribute no
+second error charge here.
+
+\subsection{Closing the rank induction along a main chain}
+
+\begin{theorem}[Pointwise comparisons for the solver]
+\label{thm:solve-comparisons}
+Let \([a,b]\) be an allowed integer box with positive integer
+reference width \(B\le B_*\), and let the support weights and
+budgets be positive rationals. For the output \(p\) of \(\Solve\),
+each fixed admissible subsolution \(y\) and, separately, each fixed
+admissible supersolution \(z\) satisfy
+\[
+ \Pr(p\ge y)\ge 1-\frac1{16},
+ \qquad
+ \Pr(p\le z)\ge 1-\frac1{16}.
+\]
+These are whole-vector inequalities, as in
+Equation~\eqref{eq:comparison-guarantees}: a fixed comparison is
+chosen before the invocation, and its inequality holds at every
+coordinate on its success event.
+\end{theorem}
+
+\begin{proof}
+Induct on \(d(R)\), allowing every permitted box and all positive
+rational support parameters at each rank. Rank zero means \(R<1\),
+so Lemma~\ref{lem:small-rank} proves both assertions without error.
+At any rank, the small-width branch \(B\le128s\) returns the exact
+box solution. Lemmas~\ref{lem:box-comparison} and
+\ref{lem:box-solution} put it above every subsolution and below
+every supersolution.
+
+Now fix a positive rank and assume the assertions at all smaller
+ranks. Budget reductions and the reweightings of
+Lemma~\ref{lem:reweighting} strictly decrease rank. Thus the
+amplification and orientation results, and all conditional estimates
+proved above, are available. In particular, orientation correctness
+has already been established by its own width induction from these
+smaller-rank solver guarantees.
+
+Fix one admissible subsolution before the present invocation starts.
+Follow its obligation along the actual main chain according to the
+preceding subsection. On arrival at a node, the entry box and
+comparison are functions of the computations already completed.
+Until the first charged error, tightening preserves admissibility
+and increases the protected vector. The subsequent local work either
+completes its obligation or passes one admissible comparison to the
+main successor. In the latter case, we analyze that successor's
+local work next; we do not invoke an unproved same-rank guarantee.
+
+By Equation~\eqref{eq:main-chain-length}, every tape has at most
+\(K=8s(g+1)+1\) nodes in this chain. Combining the tightening count
+with Equation~\eqref{sol:post-tightening-error}, the first-error
+charge at any one reached node is at most
+\(\Lambda\varepsilon\), where
+\begin{equation}
+ \Lambda=16ns+3+J(2g+2)
+ \le 100s(n+1)+10J(g+2).
+ \label{sol:node-error}
+\end{equation}
+The \(16ns+2\) possible tightening requests give the first part of
+the count, followed by one orientation request and at most
+\(J(2g+2)\) reweighted requests. This conditional charge applies
+on precisely the histories that reach the node with no earlier
+error, for those histories retain the necessary comparison
+invariants. The first-error union bound over the whole chain gives
+total probability at most \(K\Lambda\varepsilon\).
+
+To verify success when no charged error occurs, start at the node
+that completes the obligation, or at the exact terminal solver if
+it is passed all the way to the end. Its output has the required
+inequality. Work backwards through the preceding nodes. Each has
+the local inequalities required by its maximum or minimum rule,
+and the main successor supplies the one passed inequality.
+Consequently its output dominates its protected vector. The
+tightening projections dominate the vector at that node's entry,
+so the inequality propagates to the initial comparison. The
+algorithm still executes a main call below a node that completes
+the obligation; that computation is irrelevant to this implication.
+
+For a fixed supersolution, follow instead the upper comparisons
+specified above. Tightening decreases the protected vector, the
+passed comparisons remain admissible, and the same backwards
+argument establishes the original upper bound. Its request count
+is again \(\Lambda\). This is a separate analysis for the chosen
+supersolution; no guarantee simultaneous over all admissible
+comparison vectors has been used.
+
+It remains to check the numerical error bound. Set \(Q=s(n+1)\).
+The global choices give \(Q\ge2\), \(g+2\le s\le Q\), and
+\(J=2Q^6+1\ge32\). In particular,
+\[
+ K\le 9Q^2,
+ \qquad
+ \Lambda\le100Q+10J(g+2)\le20JQ,
+\]
+where the last step uses \(J\ge10\). Since \(Q^3\le J\),
+\begin{equation}
+ K\Lambda\varepsilon
+ \le180JQ^3\,2^{-J}
+ \le180J^2\,2^{-J}
+ <\frac1{16}.
+ \label{sol:chain-error-bound}
+\end{equation}
+Indeed, \(J^2 2^{-J}\) decreases for integers \(J\ge3\), and
+\(180\cdot32^2 2^{-32}<1/16\). This proves both pointwise
+assertions at the current rank and completes the induction.
+\end{proof}
+
+\subsection{Recovering the entire top-box potential}
+
+The two pointwise inequalities can now be applied to one deterministic
+vector: the exact solution of the initial box. Their intersection
+recovers every coordinate, so the success probability needs no union
+bound over vertices.
+
+\begin{corollary}[Exact recovery of the top box solution]
+\label{cor:top-success}
+Let \(x\) be the box solution for \([0,B_*]\). Let \(p\) be the
+output of \(\Solve\) on that box with unit support weights,
+budgets \(k=m=n\), and reference width \(B_*\). Then
+\[
+ \Pr(p=x)\ge\frac78.
+\]
+Hence \(\{i:p_i>B_*/2\}\) is the complete winning set with
+probability at least \(7/8\).
+\end{corollary}
+
+\begin{proof}
+The vector \(x\) is both a subsolution and a supersolution, and
+each support has cardinality at most \(n\). It qualifies on both
+sides for the prescribed unit weights and budgets. Apply
+Theorem~\ref{thm:solve-comparisons} to this same deterministic
+vector in its two roles and to the same output \(p\). Then
+\[
+ \Pr(p=x)
+ =\Pr(p\ge x\text{ and }p\le x)
+ \ge1-\Pr(p\not\ge x)-\Pr(p\not\le x)
+ \ge1-\frac1{16}-\frac1{16}=\frac78.
+\]
+The intersection is equality of entire vectors; independence of the
+two events is unnecessary. On that event,
+Proposition~\ref{prop:game-reduction} identifies the thresholded
+output with the complete winning set.
+\end{proof}

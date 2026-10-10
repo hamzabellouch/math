@@ -1,0 +1,674 @@
+\section{Joint sampling of leaders and removals}
+\label{sam:section}
+
+This section constructs the prefixes used by the recovery algorithm.  Its
+input is a real solution $S$, an upper bound $M_0$ on the number of bad
+comparison centers, and guesses for two integers $P$ and $m$.  The comparison
+solution, its partition, and its proxies are used only in the analysis.
+For each guess, the algorithm samples a client proportionally to its current
+reference distance. A fair coin selects an attempt to add a guessed ball
+centered at that client or to delete its assigned original center.
+Every valid prefix is saved for completion; the comparison-dependent
+stopping rules below certify that one such prefix is useful.
+
+Distance-proportional sampling has a general clustering antecedent in
+\cite[Section~5]{ArthurVassilvitskii2007}.  The closer predecessor here
+is the recovery construction of \cite[Sections~4.2--4.4]{CGLSS2026},
+which samples leaders, guesses balls and deletes original centers.
+Our experiment interleaves these operations.  The population radii and
+their amortized menu cost are what make the dependence on the number
+of bad clusters single-exponential.
+
+All distances in the instance considered here are positive integers between
+distinct indexed points, with a polynomial upper bound.  The reduction to
+this case is proved in the preliminaries.
+
+Fix, for the analysis, a comparison solution $O$ with
+$|O|=|S|=h$ and $\operatorname{cost}(O)=P>0$.  Fix nearest assignments to $O$,
+write $C_i$ for the cluster of $i\in O$, and put
+\[
+ n_i=|C_i|,\qquad P_i=\sum_{p\in C_i}d_p^*,\qquad
+ d_p^*=d(p,O),\qquad
+ \bar d_i=P_i/n_i\quad(n_i>0).
+\]
+Give an empty cluster mean zero.  Let $\mathcal G$ and $\mathcal B$ be the
+good and bad centers, respectively, and suppose that $m=|\mathcal B|$ and
+there are distinct proxies $\phi_i\in S$, $i\in\mathcal G$, such that
+\begin{equation}
+ \sum_{i\in\mathcal G}\sum_{p\in C_i}d(p,\phi_i)
+ \le P_g+0.01P,
+ \qquad P_g=\sum_{i\in\mathcal G}P_i.
+ \label{sam:proxy-hypothesis}
+\end{equation}
+Thus
+\begin{equation}
+ S_0=S\setminus\{\phi_i:i\in\mathcal G\},\qquad |S_0|=m.
+ \label{sam:nonproxy-set}
+\end{equation}
+The set $S_0$ need not be found.  If $m=0$, the proxies exhaust $S$ and
+Equation~\eqref{sam:proxy-hypothesis} already gives
+$\operatorname{cost}(S)\le1.01P$.  In what follows $m\ge1$.
+The main recovery algorithm uses $\kappa=10^{-6}$.  Some geometric and
+probabilistic lemmas below allow any fixed rational $0<\kappa\le1$ so that
+they can also be used for the accuracy refinement.
+
+\subsection{Computable radii and reference metrics}
+
+For a client $w$ and $q\ge0$, let
+$\mathcal D(w,q)=\{p\in D:d(w,p)\le q\}$ be the closed client ball.
+Define
+\begin{equation}
+ r^0(w)=\min\{q\ge0:q|\mathcal D(w,q)|\ge P/m\}.
+ \label{sam:r0-definition}
+\end{equation}
+This radius depends only on the guessed $P,m$ and the input metric.
+
+\begin{lemma}[The computable radius]\label{sam:computable-radius}
+If $d_1\le\cdots\le d_n$ are the client distances from $w$, including the
+zero distance from $w$ to itself, then
+\begin{equation}
+ r^0(w)=\min_{1\le j\le n}\max\{d_j,P/(mj)\}>0.
+ \label{sam:r0-formula}
+\end{equation}
+In particular the minimum in Equation~\eqref{sam:r0-definition} is
+attained and its closed ball satisfies the defining population inequality.
+Suppose that $A\subseteq\mathcal B$ and each $i\in A$ has a client
+$w_i\in C_i$ with $r_i=d(w_i,i)\le a\bar d_i$, where $a>0$.  Then
+\begin{equation}
+ \begin{aligned}
+ r^0(w_i)&\le(a+2)\bar d_i+\frac{2P}{mn_i},\\
+ \sum_{i\in A}n_i r^0(w_i)
+ &\le(a+2)\sum_{i\in A}P_i+\frac{2|A|}{m}P
+ \le(a+4)P.
+ \end{aligned}
+ \label{sam:leader-radius-sum}
+\end{equation}
+The last bound is $5.2P$ when $a=1.2$, and is at most $5.5P$ when
+$a\le3/2$.
+\end{lemma}
+
+\begin{proof}
+For every $j$, the number $q_j=\max\{d_j,P/(mj)\}$ has at least $j$
+clients in its closed ball and $q_jj\ge P/m$, so it is feasible.  Conversely,
+if $q$ is feasible and $j=|\mathcal D(w,q)|$, then $j\ge1$,
+$d_j\le q$, and $P/(mj)\le q$.  Hence $\min_jq_j\le q$.  These two
+observations prove Equation~\eqref{sam:r0-formula}, attainment, and
+positivity.
+
+For a selected leader the cluster is nonempty.  At least $n_i/2$ of its
+clients have $d_p^*\le2\bar d_i$: otherwise their distances alone would
+sum to more than $P_i$.  When $\bar d_i=0$ all clients have zero distance,
+so the same assertion holds.  These clients are within
+$(a+2)\bar d_i$ of $w_i$.  At radius
+$(a+2)\bar d_i+2P/(mn_i)$ their population certifies feasibility in
+Equation~\eqref{sam:r0-definition}.  Multiply the resulting bound by $n_i$
+and sum.  Distinct leaders here belong to distinct bad clusters, so
+$|A|\le m$ and $\sum_{i\in A}P_i\le P$.
+\end{proof}
+
+Let $\Delta>0$ be the diameter of the original metric on $D\cup F$.
+Adjoin a permanent point $\delta_\infty$ at distance $\Delta$ from every
+original point.  For each selected pair $(w_i,R_i)$ with $R_i>0$, adjoin
+a distinct leaf $\delta_i$ at $w_i$ with edge length $R_i$.
+This leaf construction is used in \cite[Section~4.3.1]{CGLSS2026};
+we record its metric and tie-breaking properties for the present process.
+Write
+$\Lambda=\{\delta_i:i\in A\}$ and
+\begin{equation}
+ H=(S\setminus Q)\cup\Lambda\cup\{\delta_\infty\},\qquad
+ \mathcal F_i=\{x\in F:d(w_i,x)\le R_i\}.
+ \label{sam:reference}
+\end{equation}
+Here $Q$ is the set of original centers removed so far.  The labels $i\in A$
+describe a correct prefix; the algorithm stores only the list of leaders,
+radii, and leaves.
+
+\begin{lemma}[Dummy distances and ties]\label{sam:dummy-metric}
+The construction above extends the original metric without changing its
+distances.  For every original point $x$,
+\[
+ d(x,\delta_i)=d(x,w_i)+R_i,\qquad
+ d(\delta_\infty,\delta_i)=\Delta+R_i.
+\]
+If $R_i\ge d(w_i,O)$, then $d(x,\delta_i)\ge d(x,O)$ for every original
+point $x$.  If $x_i\in\mathcal F_i$, then
+$d(x,x_i)\le d(x,\delta_i)$ for every original point $x$.
+Every nonempty real solution similarly dominates the permanent dummy.
+
+There is a fixed assignment rule, independent of $O,S_0$, and $Q$, such
+that after any state in which further operations only add leaves, the
+client set assigned to any fixed subset of surviving original centers can
+only shrink.
+\end{lemma}
+
+\begin{proof}
+One may first form the complete graph on the original metric points with
+their metric edge lengths and join $\delta_\infty$ to all of them by edges
+of length $\Delta$.  A path through $\delta_\infty$ cannot shorten an
+original distance, since its two adjacent edges have total length
+$2\Delta$.  Taking the resulting shortest-path metric and then attaching
+leaves proves the distance formulas and all triangle inequalities.  In
+particular, for different leaves the distance is
+$R_i+d(w_i,w_j)+R_j$.
+
+The distance-to-set function is $1$-Lipschitz.  More directly,
+$d(x,O)\le d(x,w_i)+d(w_i,O)\le d(x,\delta_i)$, whereas
+$d(x,x_i)\le d(x,w_i)+d(w_i,x_i)\le d(x,\delta_i)$.
+Every original facility is within $\Delta$ of each original client, which
+proves the permanent-dummy assertion for a nonempty solution.
+
+Fix an order on the original facilities, put the permanent dummy after
+them, and order leaves by creation time.  Assign each client to the first
+nearest available reference point in this order.  Leaf addition preserves
+the distances and relative order of all existing choices.  A client whose
+chosen reference point was outside a given fixed subset of original
+centers cannot begin to choose a point in that subset after more choices
+are added.  This proves the assertion simultaneously for every such
+subset, including a subset unknown to the algorithm.
+\end{proof}
+
+All actual assignments below use this rule.  Write $J_s$ for the clients
+assigned to an original center $s\in S\setminus Q$, and put
+\[
+ W(H)=\sum_{p\in D}d(p,H).
+\]
+The reference is always nonempty because of $\delta_\infty$.
+
+\subsection{A finite radius experiment}
+
+We first specify a radius experiment that does not test any condition
+involving the unknown comparison solution.  Given $w$, put $q=r^0(w)$ and
+define the integers
+\[
+ \begin{aligned}
+ M_\kappa&=\lceil10/\kappa\rceil+1,&
+ J_{\kappa,m}&=1+\lceil2m/\kappa\rceil,\\
+ E_\kappa&=\min\{e\in\mathbb Z_{\ge0}:(1+\kappa)^e\ge10\}.
+ \end{aligned}
+\]
+Choose one of the following three menus with probability $1/3$ each.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Choose $j$ uniformly from $\{1,\ldots,M_\kappa\}$ and set
+      $R=j\kappa q$.
+\item If $\Lambda\ne\varnothing$, let $D_\Lambda=d(w,\Lambda)$,
+      choose $e$ uniformly from $\{0,\ldots,E_\kappa\}$, and set
+      $R=D_\Lambda/(1+\kappa)^e$.  If $\Lambda=\varnothing$, this menu
+      is undefined and ends the run.
+\item Choose $j\in\{1,\ldots,J_{\kappa,m}\}$ with probability
+      \[
+       \frac{2^{-j}}{\sum_{u=1}^{J_{\kappa,m}}2^{-u}}
+       =\frac{2^{J_{\kappa,m}-j}}{2^{J_{\kappa,m}}-1},
+      \]
+      and set $R=j\kappa q$.
+\end{enumerate}
+All radii in these menus are positive.  The algorithm may discard a branch
+if its facility ball is empty.  The first two menus have a number of entries
+depending only on the fixed $\kappa$; the third has $O_\kappa(m)$ entries.
+
+For the analysis, call a radius \emph{correct} at $w$ if, for
+$r=d(w,O)$,
+\begin{equation}
+ r\le R\le(1+\kappa)r+\kappa r^0(w).
+ \label{sam:upward-radius}
+\end{equation}
+On any history with correct previous radii, Lemma~\ref{sam:dummy-metric}
+gives $D_\Lambda\ge r$ whenever $\Lambda$ is nonempty.  Set
+$D_\Lambda=+\infty$ when it is empty, solely for the following analysis.
+We prescribe a correct menu and entry as follows:
+\begin{itemize}
+\item If $r\le10q$, use menu \textup{(1)} with
+      $j=\max\{1,\lceil r/(\kappa q)\rceil\}$.
+\item If $r>10q$ and $D_\Lambda\le10r$, use menu \textup{(2)} with the
+      largest $e\le E_\kappa$ for which
+      $D_\Lambda/(1+\kappa)^e\ge r$.
+\item If $r>10q$ and $D_\Lambda>10r$, use menu \textup{(3)} with
+      $j=\lceil r/(\kappa q)\rceil$.
+\end{itemize}
+The first entry belongs to its stated range and satisfies
+$r\le R\le r+\kappa q$, including $r=0$.  In the second case
+$r\le D_\Lambda\le10r$, so the prescribed exponent exists and gives
+$r\le R\le(1+\kappa)r$.  The next lemma proves that all prescribed
+third-menu entries also lie in their finite range.  Thus these prescriptions
+are analytical choices among actual branches, not tests performed by the
+algorithm.
+
+\begin{lemma}[Amortized radius guesses]\label{sam:radius-budget}
+Fix $0<\kappa\le1$.  Consider a sequence with at most $m$ ball additions,
+each using the prescribed correct radius above, and suppose that every
+previously added leaf remains present at every later addition.  Arbitrary
+removals of original centers may occur between additions.  Among additions
+using the third prescribed menu, the closed client balls
+$\mathcal D(w,r^0(w))$ are pairwise disjoint.  Writing $r=d(w,O)$ and
+$q=r^0(w)$ for these additions, one has
+\begin{equation}
+ \sum_{\text{third menu}}\frac rq\le\frac{10m}{9},
+ \qquad
+ \sum_{\text{third menu}}j
+ \le\left(\frac{10}{9\kappa}+1\right)m.
+ \label{sam:third-menu-budget}
+\end{equation}
+Consequently each prescribed third-menu index is at most
+$J_{\kappa,m}$.  There is a constant $c_\kappa\in(0,1]$ such that the
+product of the probabilities of all prescribed menu-and-entry choices is
+at least
+\begin{equation}
+ c_\kappa^m\,
+ 2^{-(10/(9\kappa)+1)m}=\exp(-O_\kappa(m)).
+ \label{sam:menu-probability}
+\end{equation}
+These statements do not require a fixed order of additions or a fixed
+rule for selecting their leaders.
+\end{lemma}
+
+\begin{proof}
+Consider two third-menu additions, with the first earlier than the second,
+and give their quantities subscripts $a,b$.  Suppose a client belongs to
+both closed client balls.  Then
+\[
+ d(w_a,w_b)\le q_a+q_b<\frac{r_a+r_b}{10}.
+\]
+Both inequalities $q_a<r_a/10$ and $q_b<r_b/10$ are strict because these
+are third-menu additions.  Lipschitzness of distance to $O$ gives
+$|r_a-r_b|<(r_a+r_b)/10$, and hence
+$9/11<r_a/r_b<11/9$.  The earlier persistent leaf is an available
+competitor in $D_\Lambda$ at the later step.  Its correct radius therefore
+gives
+\begin{align*}
+ D_\Lambda
+ &\le d(w_b,w_a)+R_a\\
+ &<\frac{r_a+r_b}{10}+(1+\kappa)r_a+\kappa r_a/10\\
+ &\le\left(\frac1{10}+
+       \frac{11}{9}\left(\frac{11}{10}+\frac{11\kappa}{10}\right)
+       \right)r_b
+ <3r_b<10r_b.
+\end{align*}
+Here the penultimate strict inequality uses $\kappa\le1$.
+This contradicts the condition for prescribing the third menu at $b$.
+Thus the client sets are disjoint; no ambient space containing whole
+geometric balls is needed.
+
+For a third-menu addition every $p\in\mathcal D(w,q)$ satisfies
+$d(p,O)\ge r-d(w,p)\ge r-q>0.9r$.  The attained population inequality
+from Lemma~\ref{sam:computable-radius} gives
+$|\mathcal D(w,q)|\ge P/(mq)$.  Disjointness now implies
+\[
+ P=\sum_{p\in D}d(p,O)
+ \ge0.9\sum_{\text{third menu}}r\,|\mathcal D(w,q)|
+ \ge\frac{0.9P}{m}\sum_{\text{third menu}}\frac rq.
+\]
+Cancel $P>0$ to obtain the first bound in
+Equation~\eqref{sam:third-menu-budget}.  For every third-menu entry,
+\[
+ j=\lceil r/(\kappa q)\rceil\le r/(\kappa q)+1.
+\]
+There are at most $m$ additions, so the second bound follows.
+In particular,
+\[
+ j\le\frac{10m}{9\kappa}+1\le\frac{2m}{\kappa}+1\le J_{\kappa,m}.
+\]
+Availability follows inductively: a proposed third-menu addition is
+disjoint from previous ones using only their radii, so the same population
+argument certifies its prescribed index before its radius is selected.
+
+Set
+\[
+ c_\kappa=\min\left\{\frac1{3M_\kappa},
+                  \frac1{3(E_\kappa+1)},\frac13\right\}.
+\]
+The prescribed choice in either of the first two menus has probability
+at least $c_\kappa$.  In the third it has probability at least
+$c_\kappa2^{-j}$, since the normalizing sum is less than one.
+Multiplication and Equation~\eqref{sam:third-menu-budget} prove
+Equation~\eqref{sam:menu-probability}.  If fewer than $m$ additions occur,
+replacing their number by $m$ only weakens the lower bound.
+\end{proof}
+
+\subsection{The experiment and adaptive guides}
+
+The radius estimate has removed any aspect-ratio loss from a sequence
+of correct guesses.  It remains to show that the random client draws
+can supply suitable leaders and removals with constant progress
+probability at each step.  We first give a likelihood argument that
+allows these suitable choices to depend on the whole past history.
+
+For guessed $P,m$ the actual experiment starts with $Q=\varnothing$ and no
+leaves.  It records its initial state and every subsequent valid state as
+a candidate prefix.  For at most $2m$ steps it performs the following
+operation.
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Compute $H$, its nearest assignments, and $W(H)$.  If $W(H)=0$,
+      end this run.
+\item Sample $w\in D$ with probability $d(w,H)/W(H)$ and independently
+      choose ball mode or removal mode, with probability $1/2$ each.
+\item In ball mode, run the finite radius experiment.  If it is defined
+      and $\mathcal F(w,R)=\{x\in F:d(w,x)\le R\}$ is nonempty,
+      append its ball and leaf.  In removal mode, remove the reference
+      point assigned to $w$ if it belongs to $S\setminus Q$, and add
+      it to $Q$.  An undefined operation ends the run.
+\item End the run if it would have more than $m$ balls or more than $m$
+      removals; otherwise record its new state.
+\end{enumerate}
+Only recorded states satisfying these observable size restrictions need be
+sent to completion.  Prefixes on which no feasible completion exists can
+be discarded.  The experiment never tests membership in $S_0$, the
+identity of a comparison cluster, or a comparison-dependent stopping
+condition.
+
+\begin{lemma}[Adaptive guided trajectories]\label{sam:probability}
+Fix $O,P,m$, $0<\kappa\le1$, and a number $\rho\in(0,1]$ independent of
+the instance size.  Suppose an analytical guided process uses the same
+initial state and, at each of its nonterminal histories, does the following:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item From that history it deterministically specifies ball mode or removal
+      mode and a set of eligible clients
+      such that, under the actual weighted client draw and fair mode
+      choice, the joint probability of this event is at least $\rho$.
+\item It draws the client from the actual law conditioned on that event.
+      It performs exactly the actual update for the sampled outcome.
+      Thus a removal deletes the original reference center assigned to
+      that client, which must be a previously unremoved member of $S_0$.
+      A ball
+      addition has a leader in a previously uncovered bad cluster and uses
+      its prescribed correct menu and entry.
+\end{enumerate}
+Suppose the guide stops after at most $2m$ steps on every supported
+trajectory.  Leaves are retained throughout, and there are at most $m$
+ball additions and $m$ removals.  The eligible sets, modes, and stopping
+rules may depend on the entire preceding augmented history and on $O$;
+they may also have several successive stages, with their stage determined
+by that history.  Then the actual experiment records a
+terminal state of this guide with probability at least
+\begin{equation}
+ \rho^{2m}c_\kappa^m
+       2^{-(10/(9\kappa)+1)m}
+ =\exp(-O_{\kappa,\rho}(m)).
+ \label{sam:guided-likelihood}
+\end{equation}
+The same conclusion, with a changed constant in the exponent, holds with
+a polynomial-time implementation using a bounded number of random bits
+per operation.
+\end{lemma}
+
+\begin{proof}
+First use the exact rational distributions.  Include the sampled client,
+mode, menu, and menu entry in the history; entries irrelevant to a removal
+are omitted.  Fix a guide-supported nonterminal history $\gamma$.
+Let $E_\gamma$ be its prescribed mode-and-client event and let
+$p_\gamma\ge\rho$ be that event's probability in the actual experiment.
+For a particular eligible client, the ratio of its actual mode-and-client
+probability to its guided conditional probability is exactly $p_\gamma$.
+For a ball addition multiply this ratio by the probability of its
+prescribed menu and entry, since the guide makes that choice deterministically.
+Correct upward radii ensure that the ball contains the corresponding
+comparison center.  Thus no supported operation is rejected for an empty
+facility ball or for exceeding the observable limits.
+
+Along any terminal guided trajectory $\gamma$ of length at most $2m$,
+multiply these conditional ratios.  Lemma~\ref{sam:radius-budget} applies
+to its full adaptive sequence and bounds the product of its menu losses.
+Consequently the actual cylinder probability of $\gamma$ is at least the
+right-hand side of Equation~\eqref{sam:guided-likelihood} times its guided
+probability.  The terminal guided histories form a prefix-free family:
+once the guide's stopping rule holds, it makes no further draws.
+Their corresponding cylinders in the actual history tree are therefore
+disjoint.  Summing over them, and using that the guide stops with total
+probability one, proves the bound.  This summation does not select one
+fixed sequence of leaders; it integrates over every client history generated
+by the guide.  Nor does it require the actual algorithm to know the
+stopping predicate: it records all prefixes, including the terminal one
+on every one of these cylinder events.
+
+For the finite-bit assertion, the rational-arithmetic and dyadic
+implementation proved below preserves the probability of every elementary
+transition from below by a factor $1/2$.  At most $2m$ such factors change
+Equation~\eqref{sam:guided-likelihood} by at worst $2^{-2m}$, which has
+the asserted form.
+\end{proof}
+
+\subsection{Near clients and the main stopping rule}
+
+The following elementary bound also allows a variable cutoff.
+\begin{lemma}[Near-client witnesses]\label{sam:near-clients}
+Let $n_i>0$, $a>1$, and
+$N_i(a)=\{p\in C_i:d_p^*\le a\bar d_i\}$.  For any nonempty reference
+set in a metric extension, set $T_i(a)=\sum_{p\in N_i(a)}d(p,H)$.
+Then
+\begin{equation}
+ |N_i(a)|\ge(1-1/a)n_i,\qquad
+ d(i,H)\le a\bar d_i+
+              \frac{T_i(a)}{(1-1/a)n_i}.
+ \label{sam:general-near-bound}
+\end{equation}
+For the main cutoff $N_i=N_i(1.2)$ and
+$T_i=\sum_{p\in N_i}d(p,H)$ one also has
+\begin{equation}
+ d(i,H)\le1.02\bar d_i+\frac{60T_i}{n_i},\qquad
+ d(p,H)\le1.85d_p^*+\frac{60T_i}{n_i}\quad(p\in C_i\setminus N_i).
+ \label{sam:far-client-bound}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+If $\bar d_i>0$, fewer than $n_i/a$ clients have distance strictly greater
+than $a\bar d_i$, by summing their distances.  If $\bar d_i=0$, all
+clients belong to $N_i(a)$.  This proves the population bound in both
+cases.  Choose a client in $N_i(a)$ minimizing its reference distance;
+that distance is at most $T_i(a)/|N_i(a)|$.  The triangle inequality
+through this client proves Equation~\eqref{sam:general-near-bound}.
+
+Apply the population argument with cutoff $1.02=51/50$.  The set of
+clients with $d_p^*\le1.02\bar d_i$ has at least $n_i/51\ge n_i/60$
+members and is contained in $N_i$.  Its member of minimum reference
+distance gives the first inequality in Equation~\eqref{sam:far-client-bound}.
+For $p\notin N_i$, one has $d_p^*>1.2\bar d_i$, so
+\[
+ d(p,H)\le d_p^*+d(i,H)
+ \le\left(1+\frac{1.02}{1.2}\right)d_p^*
+       +\frac{60T_i}{n_i}
+ =1.85d_p^*+\frac{60T_i}{n_i}.
+\]
+If the mean is zero, there are no clients outside $N_i$, and this last
+assertion is vacuous.
+\end{proof}
+
+A \emph{correct main state} has $Q\subseteq S_0$, a set
+$A\subseteq\mathcal B$ of distinct covered centers, and exactly one
+correct ball per $i\in A$, with leader $w_i\in N_i$.
+Let $B=\mathcal B\setminus A$ be the uncovered bad centers and put
+\begin{equation}
+ \begin{split}
+ T_{\rm near}(H)&=\sum_{i\in B}\sum_{p\in N_i}d(p,H),\\
+ R^*&=S_0\setminus Q,\qquad
+ I(H)=\sum_{s\in R^*}\sum_{p\in J_s}d(p,H).
+ \end{split}
+ \label{sam:stopping-quantities}
+\end{equation}
+For empty clusters let $N_i=\varnothing$ and $T_i=0$.
+The analytical stopping rule is
+\begin{equation}
+ T_{\rm near}(H)\le\kappa P,
+ \qquad I(H)\le\kappa P.
+ \label{sam:stopping-rule}
+\end{equation}
+
+\begin{lemma}[Sampling mass]\label{sam:sampling-mass}
+At every correct main state with $\kappa=10^{-6}$,
+\begin{equation}
+ W(H)\le3.42P+61T_{\rm near}(H).
+ \label{sam:weight-bound}
+\end{equation}
+If the first stopping inequality fails, the joint event of sampling a
+client in $\bigcup_{i\in B}N_i$ and choosing ball mode has probability
+at least
+\begin{equation}
+ \rho_\kappa=\frac{\kappa}{2(3.42+61\kappa)}>0.
+ \label{sam:progress-constant}
+\end{equation}
+If the first stopping inequality holds and the second fails, the same
+lower bound holds for sampling a client assigned to $R^*$ and choosing
+removal mode.
+\end{lemma}
+
+\begin{proof}
+Every proxy remains in $S\setminus Q$ because $Q\subseteq S_0$.
+The reference distances of good clients therefore sum to at most
+$P_g+0.01P$.  For a covered bad cluster, its leaf gives the pointwise
+bound
+\begin{equation}
+ d(p,H)\le d_p^*+r_i+R_i\qquad(p\in C_i).
+ \label{sam:covered-client-bound}
+\end{equation}
+Use Equation~\eqref{sam:upward-radius}, $r_i\le1.2\bar d_i$, and
+Lemma~\ref{sam:computable-radius} to obtain, with $P_A=\sum_{i\in A}P_i$,
+\[
+ \sum_{i\in A}\sum_{p\in C_i}d(p,H)
+ \le(3.4+1.2\kappa)P_A+5.2\kappa P.
+\]
+For an uncovered nonempty cluster, retain its near-client cost $T_i$
+and sum Equation~\eqref{sam:far-client-bound} over the others.  Their
+number is at most $n_i$, so this cluster contributes at most
+$1.85P_i+61T_i$.  Empty clusters contribute zero.  With
+$P_B=\sum_{i\in B}P_i$ this yields
+\begin{align*}
+ W(H)
+ &\le P_g+0.01P+(3.4+1.2\kappa)P_A+5.2\kappa P
+                         +1.85P_B+61T_{\rm near}(H)\\
+ &\le(3.41+6.4\kappa)P+61T_{\rm near}(H)
+ <3.42P+61T_{\rm near}(H).
+\end{align*}
+Here $P_g+P_A+P_B=P$.
+
+If $T=T_{\rm near}(H)>\kappa P$, the ball event has probability
+\[
+ \frac{T}{2W(H)}\ge\frac{T}{2(3.42P+61T)}\ge\rho_\kappa.
+\]
+If instead $T\le\kappa P$ and $I(H)>\kappa P$, then
+$W(H)\le(3.42+61\kappa)P$.  The removal event has probability
+\[
+ \frac{I(H)}{2W(H)}>\frac{\kappa}{2(3.42+61\kappa)}=\rho_\kappa.
+\]
+In either nonterminal case $W(H)>0$, so
+the client distribution is defined.
+\end{proof}
+
+\begin{theorem}[A successful sampling prefix]\label{sam:successful-prefix}
+Assume the equal-size comparison setup and
+Equation~\eqref{sam:proxy-hypothesis}, with $1\le m\le M_0$, and use
+$\kappa=10^{-6}$.  Given $S$ and the correct guesses $P,m$, one run of the
+actual experiment has, with probability at least $\exp(-C_\kappa m)$ for
+an absolute constant $C_\kappa<\infty$, a recorded prefix with the
+following properties:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item $Q\subseteq S_0$, and the balls correspond to distinct
+      $i\in A\subseteq\mathcal B$, one per such cluster, with
+      $w_i\in N_i$ and
+      \[
+       r_i=d(w_i,i)=d(w_i,O)\le R_i
+       \le(1+\kappa)r_i+\kappa r^0(w_i).
+      \]
+      Consequently $i\in\mathcal F_i$ and
+      $\sum_{i\in A}n_i r^0(w_i)\le5.2P$.
+\item For $H$ in Equation~\eqref{sam:reference}, $B=\mathcal B\setminus A$,
+      $R^*=S_0\setminus Q$, and the nearest assignment sets $J_s$,
+      \[
+       \sum_{i\in B}\sum_{p\in N_i}d(p,H)\le\kappa P,
+       \qquad
+       \sum_{s\in R^*}\sum_{p\in J_s}d(p,H)\le\kappa P.
+      \]
+\item The reference retains every good proxy.  The covered-client bound
+      in Equation~\eqref{sam:covered-client-bound} holds, and for each
+      uncovered nonempty cluster the far-client bound in
+      Equation~\eqref{sam:far-client-bound} holds with
+      $T_i=\sum_{p\in N_i}d(p,H)$.
+\end{enumerate}
+The run has at most $2m+1$ recorded prefixes and takes polynomial time
+for fixed $\kappa$, with rational numbers of polynomial bit length.
+Neither its input nor its stopping decisions require $O$, its partition,
+the proxies, or $S_0$.
+\end{theorem}
+
+\begin{proof}
+Define the guide as follows.  At a correct state satisfying
+Equation~\eqref{sam:stopping-rule}, stop.  Otherwise, if the first
+inequality fails, condition the actual client-and-mode draw on ball mode
+and a client in $\bigcup_{i\in B}N_i$.  Such a client has a unique
+assigned comparison cluster $i\in B$; add it to $A$ with the prescribed
+correct radius and its leaf.  If only the second inequality fails,
+condition on removal mode and a client assigned to $R^*$, and delete
+that original center.  Lemma~\ref{sam:sampling-mass} supplies the same
+fixed positive lower bound $\rho_\kappa$ on both conditioning events.
+Every guided ball addition covers a new nonempty bad cluster, and every
+guided removal deletes a new member of $S_0$.  Thus all its states remain
+correct and all good proxies persist.
+
+There are at most $m$ possible removals and at most $m$ distinct clusters
+that can receive balls.  If all nonempty bad clusters have received balls
+and all of $S_0$ has been removed, both stopping quantities are zero.
+More generally, a nonterminal state always has one of the progress
+operations just described.  Each such operation increases $|A|+|Q|$ by
+one, a quantity at most $2m$.  The guide therefore stops within $2m$
+steps.  Empty bad clusters can remain in $B$ throughout; they never
+contribute to the stopping quantities or to any division by $n_i$.
+
+Apply Lemma~\ref{sam:probability} with $\rho=\rho_\kappa$.  Its
+exponential probability bound gives a recorded terminal prefix, and
+the guide's invariants give all the stated properties, including
+Lemma~\ref{sam:computable-radius} for the radius sum.  The arithmetic and
+running-time assertions follow from the implementation below.
+\end{proof}
+
+\subsection{Enumeration, precision, and running time}
+
+Here are full implementation details for the finite experiments above.
+Let the largest original distance be the positive integer $\Delta$.
+For every comparison solution $P$ is an integer satisfying
+$1\le P\le n\Delta$.  Enumerating this whole range and
+$m\in\{1,\ldots,\min\{\lfloor M_0\rfloor,h\}\}$ includes the
+correct pair.  The $m=0$ candidate is simply $S$.  These ranges have
+polynomial size on the integral instance, and the experiment for any
+guessed pair has the same polynomial running-time bound, whether or not
+that guess is correct.
+
+Equation~\eqref{sam:r0-formula} computes $r^0(w)$ by sorting $n$ original
+integer distances and taking the minimum of $n$ rational numbers.  Thus
+it has polynomial bit length.  The first and third menus multiply it
+by a rational $j\kappa$, with $j=O_\kappa(m+1)$.  The relative menu
+uses a distance $d(w,w')+R'$ to an existing leaf and divides it by
+$(1+\kappa)^e$, where $e\le E_\kappa$ is fixed independently of the
+input size.  In a sequence of at most $2m$ steps, each such dependency
+therefore increases numerator and denominator bit lengths by at most
+the bit length of one original distance plus a constant depending on
+$\kappa$.  All radii have polynomial bit length, including on incorrect
+histories.  Distances to leaves, reference minima, client assignments,
+the total weight, and facility-ball membership are consequently computable
+in polynomial time with rational arithmetic.  Taking a common denominator
+for a polynomial number of polynomial-bit weights still uses polynomially
+many bits: the product of their denominators is already such a common
+denominator, and its bit length is the sum of theirs.
+
+For completeness, exact rational distributions need not be implemented by
+an unbounded rejection loop.  At a state, enumerate the full finite
+one-step outcomes: a client and removal mode, or a client, ball mode,
+menu, and entry.  Include undefined choices as outcomes that end the run.
+This is a polynomial number of outcomes for fixed $\kappa$, and their
+exact rational probabilities $p_1,\ldots,p_t$ have polynomial bit length.
+Choose an integer $b$ such that $2^{-b}\le p_j/2$ for every positive
+$p_j$; polynomial bit length makes a polynomial value of $b$ sufficient
+and computable.  Assign to outcome $j$ initially
+$\lfloor2^bp_j\rfloor$ of the $2^b$ equiprobable binary strings, and
+assign the leftover strings to any one outcome.  The resulting dyadic
+probability is at least $p_j/2$ for every positive $p_j$.  Cumulative
+integer counts implement the draw using exactly $b$ random bits and
+polynomial arithmetic.  All actual transitions retain their specified
+form, and Lemma~\ref{sam:probability} already accounts for the factor
+$1/2$ lost at each transition.  This proves a polynomial worst-case
+running-time bound with a bounded number of random bits.
+
+Finally, the factor $\exp(O_\kappa(m))$ is polynomial when
+$m\le M_0=O(\log N)$ and $\kappa$ is fixed.  Repeating the experiment
+$\exp(O_\kappa(M_0))\log(1/\zeta)$ times makes the probability of
+missing all successful prefixes at most $\zeta$.  Each run saves only
+$2m+1$ states.  The completion procedure can therefore examine every
+saved state, retain its cheapest feasible output together with the
+fallback $S$, and amplify its own additional success probability without
+ever recognizing the analytical stopping conditions.

@@ -1,0 +1,238 @@
+\section{The randomized lower bound}
+\label{sec:classical}
+
+We compare a distribution with one zero in every column to a coupled
+distribution in which one uniformly chosen column is made a winner.
+An algorithm can distinguish them only by finding the zero that was
+removed or by reaching the newly filled certificate cell.  The first
+event requires searching many columns; the second requires either many
+Forrelation queries in the chosen column or a successful guess of its
+entire address.
+
+\subsection{Independent answers under adaptive queries}
+
+We first record the precise amplification fact needed for address
+guessing.  We use the capped direct-product argument developed by
+Drucker~\cite[Section~1.3 and Lemmas~3.1--3.2]{Drucker12}, following
+earlier work of Shaltiel~\cite{Shaltiel03}.  Its query limit is imposed
+separately on each input, while queries to different inputs may be
+interleaved adaptively.
+
+\Needspace{12\baselineskip}
+\begin{lemma}\label{lem:adaptive-product}
+Let $P\colon\mathcal D\to\bits$, where $\mathcal D\subseteq\bits^n$, let
+$\mu$ be a distribution on $\mathcal D$, and let $L$ be a nonnegative
+integer.  Suppose every deterministic algorithm making at most $L$
+queries computes $P$ under $\mu$ with success probability at most $\beta$.
+If $U_1,\ldots,U_r$ are independent samples from $\mu$, every classical
+algorithm making at most $L$ queries to each $U_h$ has probability at most
+$\beta^r$ of outputting
+\[
+ (P(U_1),\ldots,P(U_r)).
+\]
+The algorithm may be randomized, choose its queries adaptively among the
+$r$ inputs, and receive arbitrary additional information independent of
+$(U_1,\ldots,U_r)$.
+\end{lemma}
+
+\begin{proof}
+Fix the additional information and all internal random coins, leaving a
+deterministic algorithm.  At any transcript $\tau$ of positive
+probability, the conditional law of $(U_1,\ldots,U_r)$ is a product of
+their separate conditional laws.  Indeed, the event of obtaining $\tau$
+requires exactly the observed bit values in each input.  Any tuple
+satisfying these requirements follows the same query schedule, since
+the next query is determined by the preceding answers.  Thus this event
+is a Cartesian product of constraints on the individual inputs.
+
+For each $h$, let $q_h$ be the number of queries already made to $U_h$,
+and let $V_h(\tau)$ be the largest success probability for computing
+$P(U_h)$ from its current conditional law using at most $L-q_h$ further
+queries.  This maximum is attained because the domain and the remaining
+query budget are finite.  If the next query addresses $U_h$, optimality
+gives
+\begin{equation}\label{eq:bellman-query}
+ \mathbb E[V_h(\tau')\mid\tau]\leq V_h(\tau),
+\end{equation}
+where $\tau'$ includes its answer: making that particular query and
+then using an optimal continuation is one allowed strategy in the
+definition of $V_h(\tau)$.  The conditional laws and budgets of the
+other inputs do not change.  Hence
+\[
+ \mathbb E\!\left[
+   \prod_{j=1}^r V_j(\tau')\,\middle|\,\tau
+ \right]
+ \leq \prod_{j=1}^r V_j(\tau).
+\]
+The product is therefore a supermartingale over the successive queries.
+There are at most $rL$ such queries; a run that stops earlier can be
+extended by steps leaving all values unchanged.
+
+At the final transcript, the conditional probability that the algorithm's
+chosen answer vector is correct is at most
+\[
+ \prod_{h=1}^r
+   \max_{b\in\bits}\Pr(P(U_h)=b\mid\tau)
+ \leq \prod_{h=1}^r V_h(\tau).
+\]
+The first inequality uses the product conditional law, and the second
+uses the option of making no further queries.  Initially every $V_h$
+is at most $\beta$.  Taking expectations proves the bound $\beta^r$.
+Averaging over the fixed information and coins proves the full statement.
+\end{proof}
+
+Return to $P=P_{k,m}$ and $L$ from \eqref{eq:L-def}, with $m$ large
+enough that $1\leq L<\R(P)$.  There are finitely many deterministic
+decision trees of depth at most $L$ on this finite domain.  A randomized
+algorithm of that query depth is a distribution on these trees. Finite
+minimax, in its query-complexity formulation~\cite{Yao77}, applied to the
+payoff that the answer is correct, gives
+\[
+ \begin{aligned}
+ &\max_{\text{distributions on depth-$L$ trees}}
+       \min_{x\in\operatorname{dom}P}\Pr(\text{correct on }x)\\
+ &\hspace{2em}=
+ \min_{\mu}\max_{\text{depth-$L$ trees }T}
+       \Pr_{x\sim\mu}(T(x)=P(x)).
+ \end{aligned}
+\]
+The left-hand side is less than $2/3$, since its maximum is attained
+and $L<\R(P)$.  Consequently there is a distribution $\mu$ on
+$\operatorname{dom}P$ for which every such deterministic tree has
+success probability at most $2/3$.  Lemma~\ref{lem:adaptive-product}
+therefore bounds the success probability of guessing $r$ independent
+answers by $(2/3)^r$.
+
+\subsection{Coupled zero and one inputs}
+
+\begin{proposition}\label{prop:classical}
+For each fixed integer $k\geq2$ and every sufficiently large power of
+four $m$, the total function of Section~\ref{sec:construction} satisfies
+\begin{equation}\label{eq:classical-lower}
+ \R(F_{k,m})>
+ G:=\left\lfloor\frac{mL}{100}\right\rfloor,
+ \qquad
+ L=\left\lfloor\frac{m^{1-1/k}}{(\log_2m)^2}\right\rfloor.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Generate a \emph{dummy input} $Y^{(0)}$ as follows.  Independently for
+each $i\in[m]$, choose $J_i$ uniformly from $[m]$ and put a single zero
+at position $J_i$ in $X_i$, setting its other bits to 1.  Draw all
+$A_{i,h}$ independently from $\mu$, independently also of the $J_i$.
+Set all cells $B_{i,s}$ to one fixed blank bit pattern.  Since each $X_i$
+has a zero, $F_{k,m}(Y^{(0)})=0$.
+
+Choose $I$ uniformly from $[m]$, independently of the entire dummy
+input.  Form a \emph{planted input} $Y^{(1)}$ by setting $X_I=1^m$ and
+filling its true-address cell $B_{I,s_I}$ with the correct circuit
+transcripts and the pointers $p_{I,s_I,j}=J_j$ for $j\ne I$.
+All $A$-strings are in the domain of $P$, so $s_I$ is well defined.
+Column $I$ is a winner, and therefore $F_{k,m}(Y^{(1)})=1$.
+
+Fix a deterministic algorithm making at most $G$ queries, and consider
+its run on $Y^{(0)}$.  The coupled inputs can differ only at the bit
+$X_I[J_I]$ and inside the cell $B_{I,s_I}$.  Until one of these locations
+is queried, the two executions have identical answers and hence
+identical subsequent queries.  It follows that the difference between
+their output-1 probabilities is at most
+\begin{equation}\label{eq:coupling-events}
+ \Pr(\text{the dummy run queries }X_I[J_I])
+ +\Pr(\text{the dummy run queries any bit of }B_{I,s_I}).
+\end{equation}
+Counting every visit to the indicated cell is an upper bound even if
+the queried bit happens to agree with its blank value.
+
+\paragraph{Finding the removed zero.}
+Let $Z$ be the number of columns whose zero is discovered in the dummy
+run.  Before the zero in a column is found, its location is uniform
+among the positions in that column not yet queried.  This remains true
+conditional on the full adaptive transcript: the other $X$-strings and
+all $A$-strings are independent of its zero location, and the blank
+cells supply no information about that location.
+
+Call a discovery early if fewer than $m/2$ distinct positions in its
+column were queried before it.  Conditional on the preceding transcript,
+each query has probability at most $2/m$ of an early discovery.  Thus
+the expected number of early discoveries is at most $2G/m$.  Each
+remaining discovery occurs in a column that receives at least $m/2$
+queries, and there are at most $2G/m$ such columns.  Hence
+\[
+ \mathbb E Z\leq\frac{4G}{m}.
+\]
+The dummy run is independent of $I$, so
+\begin{equation}\label{eq:zero-hit}
+ \Pr(\text{the dummy run queries }X_I[J_I])
+ =\frac{\mathbb E Z}{m}\leq\frac{4G}{m^2}.
+\end{equation}
+
+\paragraph{Reaching the planted cell.}
+Call a column heavy if, over the entire dummy run, the algorithm makes
+more than $L$ queries in total to its strings $A_{i,1},\ldots,A_{i,r}$.
+There are at most $G/L$ heavy columns.  Independence of $I$ gives
+\begin{equation}\label{eq:heavy-probability}
+ \Pr(I\text{ is heavy})\leq\frac{G}{mL}.
+\end{equation}
+For the other columns we use Lemma~\ref{lem:adaptive-product}.  The
+following simulation bounds a joint event and does not condition the
+input distribution on a column being nonheavy.
+
+Fix $i\in[m]$ and a time $t\in\{1,\ldots,G\}$.  Give a simulator all
+the dummy input outside $A_{i,1},\ldots,A_{i,r}$ for free.  This
+information is independent of those $r$ strings.  The simulator runs
+the deterministic algorithm up to its proposed $t$th query, but aborts
+before making an $(L+1)$st query to these $r$ strings in total.  If it
+reaches time $t$ and the proposed query is to a cell $B_{i,s}$, it outputs
+the address $s$ as its guess for the vector of $r$ answers.  Otherwise,
+including if the simulated run stops or aborts, it outputs any fixed
+vector.
+
+The simulator makes at most $L$ queries in total to the target strings,
+and in particular at most $L$ to each one.  By
+Lemma~\ref{lem:adaptive-product}, its probability of guessing $s_i$
+correctly is at most $(2/3)^r$.  Whenever the original dummy run queries
+$B_{i,s_i}$ at time $t$ and column $i$ is nonheavy, this simulator has
+not aborted and outputs the correct address.  Thus
+\begin{equation}\label{eq:capped-address}
+ \Pr\bigl(i\text{ is nonheavy and the $t$th query is in }B_{i,s_i}\bigr)
+ \leq (2/3)^r.
+\end{equation}
+Union bounding over $t$ and averaging over the independent uniform
+choice of $I$, then adding \eqref{eq:heavy-probability}, yields
+\begin{equation}\label{eq:cell-hit}
+ \Pr(\text{the dummy run queries }B_{I,s_I})
+ \leq\frac{G}{mL}+G(2/3)^r.
+\end{equation}
+
+Equations~\eqref{eq:coupling-events}, \eqref{eq:zero-hit}, and
+\eqref{eq:cell-hit} bound the difference of output probabilities by
+\begin{equation}\label{eq:classical-distinguishing}
+ \frac{4G}{m^2}+\frac{G}{mL}+G(2/3)^r.
+\end{equation}
+For all sufficiently large $m$, we have $1\leq L\leq m$ and
+$G\leq mL/100$.  The first two terms are therefore at most $4/100$
+and $1/100$, respectively.  Moreover, \eqref{eq:r-def} gives
+\[
+ G(2/3)^r
+ \leq\frac1{100}m^{\,2-20\log_2(3/2)}=o(1).
+\]
+In particular, \eqref{eq:classical-distinguishing} is strictly less
+than $1/3$ for large $m$.
+
+The same bound holds for a randomized algorithm of worst-case query
+cost $G$, by fixing its coins and then averaging.  Such an algorithm,
+if it had worst-case error at most $1/3$, would output 1 with probability
+at most $1/3$ on $Y^{(0)}$ and at least $2/3$ on $Y^{(1)}$.  Their
+output-1 probabilities would differ by at least $1/3$, contradicting
+the preceding estimate.  Hence $\R(F_{k,m})>G$.
+\end{proof}
+
+For fixed $k$, Proposition~\ref{prop:classical} implies
+\[
+ \R(F_{k,m})=
+ \Omega_k\!\left(\frac{m^{2-1/k}}{(\log m)^2}\right).
+\]
+The heavy-column estimate pays for learning an address, while the
+independent-answer estimate makes guessing an unlearned address
+negligible even over all $G$ adaptive queries.

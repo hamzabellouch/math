@@ -1,0 +1,227 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Given positive integers $a_1,\ldots,a_n$ and a nonnegative target $t$,
+\emph{Subset Sum} asks whether there is a set of indices
+$I\subseteq\{1,\ldots,n\}$ such that $\sum_{i\in I}a_i=t$.
+Repeated values are allowed, and the empty set is a possible solution.
+The parameter $n\ge2$ counts the input integers, not their total
+encoding length. We study the memory needed to solve this problem
+while retaining running time polynomial times $2^{n/2}$.
+
+The classical meet-in-the-middle algorithm of Horowitz and
+Sahni~\cite{HS74} splits the indices in half, lists the subset sums
+of each half, and searches for two complementary weights. Its time
+and space are $O^*(2^{n/2})$, where $O^*$ suppresses factors polynomial
+in the input length. Schroeppel and Shamir~\cite{SS81} retained this
+time bound with space $O^*(2^{n/4})$: four smaller stored lists suffice
+to generate the two large lists in sorted order. Their construction
+makes the distinction between generated information and stored
+information central to the time--space question.
+
+Nederlof and W\k{e}grzycki~\cite{NW21} reduced the space bound to
+$O^*(2^{0.249999n})$ with a randomized worst-case algorithm combining
+multiple decompositions of a solution with searches for disjoint sets
+of complementary weight. Belova, Chukhin,
+Kulikov, and Mihajlin~\cite{BCKM24} obtained
+$O^*(2^{0.246n})$ space at the same time bound, for input integers
+of magnitude $2^{O(n)}$. Polynomial-factor improvements to the
+running time are also known in specific word-RAM models, through the work of
+Chen, Jin, Randolph, and Servedio~\cite{CJRS23}. The question here is
+how far the space can be reduced at the half-exponential time scale.
+
+\subsection{Model and main result}
+
+We give a uniform algorithm with ordinary $O(2^{n/5})$ working space
+under each fixed polynomial bound on the input-integer bit length.
+The distinction between ordinary and polynomial-suppressed space
+requires us to specify the model. Put
+\[
+\begin{gathered}
+ b=\max\left(1,\left\lceil
+ \log_2\bigl(1+\max(t,a_1,\ldots,a_n)\bigr)\right\rceil\right),
+ \qquad u=n+b+2,\\
+ w=\left\lceil4\bigl(n+b+\log_2(n+2)\bigr)\right\rceil.
+\end{gathered}
+\]
+The input occupies read-only random-access memory, one integer per
+word. Unit-cost operations are word reads and writes, indirect
+addressing, comparisons, addition, subtraction, multiplication,
+integer quotient and remainder with nonzero divisor, bitwise Boolean
+operations, and shifts. Each operation has a constant number of
+$w$-bit inputs and outputs; arithmetic exceeding these limits must
+be implemented and charged as multiple operations. A fresh independent
+uniform $w$-bit random word costs one operation.
+
+Every writable register, address, counter, stack, table, seed, and
+retained random value counts toward working space. Old randomness can
+be reused only if it remains in this counted storage. The only
+uncharged storage is the read-only input and the fixed finite program;
+there is no random oracle, advice, or externally supplied table
+depending on $n$ or the input. All preprocessing, input accesses,
+table construction, and random sampling count toward running time.
+Space is the maximum number of writable words simultaneously in use.
+
+Our polynomial-bit convention fixes a positive integer $c$ and
+considers inputs with $b\le n^c$. The algorithm is not given $c$.
+Its asymptotic resource constants and threshold may depend on $c$,
+whereas correctness is required on every individual input.
+
+\begin{theorem}
+\label{thm:main}
+There is a single uniform classical randomized algorithm in this model that
+never answers YES incorrectly and answers each YES instance correctly
+with probability at least $2/3$. For every fixed positive integer $c$,
+there are a constant $A_c>0$ and positive integers $k_c,N_c$ such that,
+whenever $n\ge N_c$ and $b\le n^c$, every outcome of the algorithm's
+randomness uses at most
+\[
+ A_c n^{k_c}2^{n/2}\quad\text{operations}
+ \qquad\text{and}\qquad
+ A_c(n+b+2)^{15}2^{0.199n}\quad\text{writable words}.
+\]
+The algorithm does not depend on $c$.
+\end{theorem}
+
+\begin{corollary}
+\label{cor:target}
+For every fixed $\rho>0.199$, the same algorithm has ordinary
+$O_{c,\rho}(2^{\rho n})$ word space under each fixed polynomial-bit
+convention, with the time and correctness guarantees of
+Theorem~\ref{thm:main}. In particular, it has
+$O_c(2^{n/5})$ word space.
+\end{corollary}
+
+For fixed $c$ and $\rho>0.199$, the factor $(n+b+2)^{15}$ is absorbed
+by $2^{(\rho-0.199)n}$. At the endpoint $0.199$ the polynomial
+factor remains. The resource bounds apply simultaneously on each run,
+including unsuccessful runs. Randomness affects the probability of
+finding a solution; it does not permit the algorithm to exceed its
+time or memory budget.
+
+\subsection{Representations and their predecessors}
+
+A representation method gives a solution many decompositions, then
+keeps only decompositions satisfying selected congruences. The
+multiplicity creates room to filter the search without losing every
+copy of the solution. Howgrave-Graham and Joux~\cite{HJ10} used this
+idea, including recursive representations and modular filtering, for
+random hard-knapsack instances. Dinur, Dunkelman, Keller, and
+Shamir~\cite{DDKS12} developed recursive dissection tradeoffs for
+knapsack under randomness assumptions. Austrin, Kaski, Koivisto, and
+M\"a\"att\"a~\cite{AKKM13} adapted that dissection framework to
+worst-case Subset Sum using randomized modular reductions and explicit
+resource controls.
+
+For the present argument, the number of \emph{distinct} partial sums
+matters as much as the number of decompositions. The residue-coverage
+argument of Austrin, Kaski, Koivisto, and
+Nederlof~\cite[Proposition~3.5]{AKKN16}, extended to product moduli by
+Nederlof and W\k{e}grzycki~\cite[full version, Lemma~3.2]{NW21},
+turns many distinct weights into many occupied residue classes.
+Nederlof and W\k{e}grzycki also combined multilevel representations
+with weighted disjointness tests. Their construction uses separating
+sets that contain one choice and avoid the other, building on the
+separating collections of Fomin, Lokshtanov, Panolan, and
+Saurabh~\cite[Section~4.2]{FLPS16}. We use the additional-prime
+filtering of Belova et al.~\cite[full version, Sections~1.2.3 and~4.1]{BCKM24},
+together with their separator cost estimate for the required range of
+mask sizes~\cite[full version, Section~4.7]{BCKM24}.
+The proofs below supply the modified enumeration, probability, and
+workspace arguments needed for our construction.
+
+\subsection{Two trials and the proof strategy}
+
+For a set $V$ of input indices, let $N(V)$ be the number of distinct
+subset sums on $V$, and define its \emph{deficiency} by
+\[
+ d(V)=|V|-\log_2N(V).
+\]
+A block of large deficiency has a short list of distinct weights;
+a block of small deficiency supplies many distinct choices for a
+representation. We analyze two trials according to the mean deficiency
+of a uniformly chosen block of a fixed size. The algorithm does not
+compute that mean: each round runs both trials with fresh randomness.
+
+\paragraph{Compress repeated sums.}
+The first trial chooses seven disjoint blocks and retains the distinct
+subset sums in each. In the high-mean case, concentration makes these
+lists short with high probability. Their disjoint domains allow us to
+forget which subset produced a retained weight. Sorted pair-sum streams
+combine the lists without storing their full Cartesian products. A
+random prime partitions the left combinations into residue classes;
+the trial stores one class at a time and skips it if its dictionary
+exceeds capacity. Success requires only the class containing a fixed
+solution's left weight to fit.
+
+\paragraph{Create and filter representations.}
+The second trial uses three disjoint blocks $M_0,M_L,M_R$. Its two
+partial solutions, called \emph{parents}, may both use indices of
+$M_0$. Each parent is itself a join of two \emph{children}, which
+may overlap on $M_L$ on the left or $M_R$ on the right. All remaining
+indices belong to disjoint background parts. Every join checks
+disjointness on its shared block. Each child is generated from two
+stored lists, giving eight \emph{leaf lists} altogether. Within each
+parent, every index of $M_0$ belongs to exactly one leaf domain.
+
+For a fixed solution to have many such decompositions, first choose a
+uniform set $F$ of indices, negate its weights, and replace the target
+by $t'=t-\sum_{i\in F}a_i$, using the original weights in the sum.
+An original solution $S$ becomes the
+uniform subset $S\mathbin{\triangle}F$ of the signed instance, while
+all deficiencies stay unchanged. In the low-mean case, suitable pieces
+of this signed solution have many distinct sums. Splitting those pieces
+among the parents and children gives representations that survive
+nested modular filters with inverse-polynomial probability.
+
+\paragraph{Separate generation work from stored records.}
+A parent record consists of its exact weight and its set
+$D\subseteq M_0$ of shared indices, encoded as a membership mask.
+Equal weights with different masks
+remain different records because they can have different compatibility
+with the opposite parent. Generation examines raw tuples of four leaf
+occurrences before rejecting local overlaps and deduplicating records.
+Its work therefore depends on tuple counts, not only on dictionary size.
+
+An additional independent prime subdivides the filtered parents into
+buckets. Different weights are unlikely to collide in the solution's
+bucket. Equal weights, however, always stay together. The prescribed
+left-mask size bounds their number below capacity, so a left bucket
+can simply be skipped if it overflows. On the right, overflow instead
+fixes successive bits of the $M_0$ mask and regenerates each part.
+Each restriction is imposed in the leaf lists before joining them.
+Consequently every raw tuple belongs to at most one task at each
+prefix depth, including tuples later rejected for overlap. Its repeated
+processing is therefore charged by depth. Leaf regeneration and
+child-stream scans are still paid per task; bounds on bucket and distinct
+record counts control those task starts and the repeated matching checks.
+
+\paragraph{Match disjoint masks within the budget.}
+The final check seeks records $(x,D)$ and $(y,E)$ with
+$x+y=t'$ and $D\cap E=\varnothing$. Partition $M_0$ into four
+blocks and sample separating sets on each block. Fixing, on every
+block, a sampled set containing the restriction of $D$ and avoiding the
+restriction of $E$ leaves only an exact two-sum test on weights.
+A depth-first traversal stores only
+small intermediate arrays; the expected number of appearances of each
+record controls its work.
+
+The success proof fixes a representation before exposing the extra
+prime or separating families. Because representation survival is rare,
+it bounds resource failure unconditionally and subtracts that bound
+before applying the later random choices. Dictionary capacities bound
+space on every run, and bounded sampling and an operation counter
+bound time. Independent repetitions then give Theorem~\ref{thm:main}.
+
+\paragraph{Reading path.}
+Section~\ref{sec:preliminaries} establishes the counting and sorted-stream
+tools. Section~\ref{sec:compression} gives the complete compressed-block
+trial. Section~\ref{sec:representation} specifies the representation layout,
+filters, and bounded dictionaries, then proves the deterministic accounting
+for prefix refinement. Section~\ref{sec:separator} supplies the
+weighted-disjointness procedure. Section~\ref{sec:survival} combines
+representation survival, joint resource estimates,
+the additional prime, and the separating families; it is here that
+the accounting bounds receive their numerical estimates.
+Finally, Section~\ref{sec:implementation} implements the sampling and arithmetic, enforces
+the budgets, and completes the amplification argument.

@@ -1,0 +1,1006 @@
+\section{Outer index groups and systematic square codes}\label{sec:outer-codes}
+
+The outer code has two roles.  Its systematic coordinates carry the data
+on which the representation computes, and its redundant coordinates make
+local consistency imply proximity in the metric that counts an entire
+stored symbol as one position.  We construct the code, including its
+matrix twists and simultaneous systematic encoders.  All vector-valued
+statements below use joint support: a coordinate is erroneous when any
+component is erroneous.  Their constants do not depend on the number of
+components or stored slots.  The notation in this section is local to the
+outer construction; in particular, the group constructed here is not the
+affine group used later for the inner construction.
+
+The index group must provide commuting left and right moves, constant
+expansion, and only polylogarithmically many frequencies in each relevant
+orbit. The first two properties support local consistency; the orbit
+bound makes the local filling in Lemma~\ref{lem:outer-fill} possible.
+The code and correction guarantees are summarized in
+Theorem~\ref{thm:outer-codes} and Lemma~\ref{lem:outer-uncertainty}.
+
+\subsection{A group of quasilinear order}
+
+Let $h=2^\ell=O(N)$ be the padded tape length supplied by
+Lemma~\ref{lem:macrograph}.  Fix a sufficiently large absolute integer
+$C$, and choose an even $r$ with
+\begin{equation}\label{oc:outer-size}
+ \ell+C\le r\le\ell+C+2,
+ \qquad M_o=2^r,\qquad G_0=\F_2^r.
+\end{equation}
+We increase $C$ whenever a fixed lower cutoff is needed.  Thus $4h\le M_o$,
+$M_o=O(N)$, and $r=O(\log(N+2))$.  The bits of $x\in G_0$ are ordered
+from least to most significant; $\underline{x}\in[0,M_o)$ denotes the
+integer they represent.
+
+Helfgott's ternary Goldbach theorem says that every odd integer greater
+than five is a sum of three primes \cite[Main Theorem]{Helfgott2013}.
+For our even $r$ we can therefore find primes
+$p_1,p_2,p_3$ with $r-3=p_1+p_2+p_3$, by exhaustive search in $[r]$.
+They need not be distinct or comparable in size.  Partition the $r$ bit
+positions into blocks of lengths $p_a+1$, and let
+\begin{equation}\label{oc:group}
+ H=\prod_{a=1}^3\operatorname{PGL}_2(\F_{p_a}),
+ \qquad \Gamma=G_0\rtimes H.
+\end{equation}
+Each factor acts on its projective line, hence permutes its block of bit
+positions.  Since
+$|\operatorname{PGL}_2(\F_q)|=q(q^2-1)$, we have
+\begin{equation}\label{oc:group-order}
+ |H|\le r^9,\qquad |\Gamma|=M_o|H|\le M_or^9.
+\end{equation}
+A generator of $\F_{p_a^2}^{\times}$, acting on its one-dimensional
+$\F_{p_a}$-subspaces, induces a cycle $R_a$ of length $p_a+1$:
+the scalar subgroup has order $p_a-1$ and its quotient acts freely and
+transitively on these subspaces.  Label each block in this cycle order,
+and denote its first unit vector by $e_a$.  The three finite fields,
+permutation groups, cycles, and their tables have size polynomial in $r$
+and can be found by exhaustive finite-field computations of that size.
+
+The product is $(g,u)(w,v)=(g+uw,uv)$.  It is useful to write a group
+element $k=(g,u)$ instead as $(x,u)$, where $x=u^{-1}g$.
+Left and right multiplication by $(w,v)$ then have the formulas
+\begin{equation}\label{oc:actions}
+ (x,u)\longmapsto (x+u^{-1}v^{-1}w,vu),
+ \qquad
+ (x,u)\longmapsto (v^{-1}(x+w),uv),
+\end{equation}
+respectively.  These formulas also give polynomial-in-$r$ Boolean
+algorithms for multiplication and inversion, using the small tables for
+$H$ rather than a table for $\Gamma$.
+
+\begin{lemma}[Uniform expansion]\label{oc:expansion}
+For every fixed $0<\lambda<1$, the groups $\Gamma$ in
+\eqref{oc:group} admit symmetric labelled Cayley multisets of a fixed
+degree whose averaging operator has norm at most $\lambda$ on mean-zero
+functions.  The same assertion holds for $H$.  Their labels can be
+constructed deterministically in time polynomial in $N$ and represented
+with $\operatorname{polylog}(N)$ bits of public data.  Multiplicities and identity
+labels are permitted.
+\end{lemma}
+
+\begin{proof}
+First consider a factor of $H$.  The reductions of the upper and lower
+unit elementary matrices, with their inverses, have a uniform Cayley
+gap in $\operatorname{SL}_2(\F_p)$.  This is the elementary-generator
+case of the congruence gap discussed in \cite[p.~626]{BG2008}, and also
+follows directly from \cite[Theorem~1]{BG2008}, since the corresponding
+fixed subgroup of $\operatorname{SL}_2(\mathbb Z)$ is non-elementary.
+Passing to the quotient by the center preserves the upper gap.  A
+half-lazy walk has a uniform absolute gap.  The finitely many small
+primes are absorbed by decreasing this fixed gap.
+
+For odd $p$, the subgroup $\operatorname{PSL}_2(\F_p)$ is normal of
+index two in $\operatorname{PGL}_2(\F_p)$.  Add a representative of the
+nonsquare determinant class and its inverse; in the index-one case pad
+with identities.  To check a uniform gap, work in an arbitrary unitary
+representation.  The preceding subgroup gap bounds the distance of a
+vector to its subgroup-invariant projection by a fixed multiple of its
+maximum displacement under the subgroup labels.  Normality makes that
+invariant subspace invariant under the extra label, which controls its
+quotient of order at most two.  Thus distance to the full invariant
+subspace is bounded by a fixed multiple of the maximum displacement
+under all these labels.  The three factor projections commute; applying
+this argument to the three factors gives the same statement for $H$,
+with a fixed-size generating list.  The regular-representation gap used
+here applies to every representation of the finite group, by its
+decomposition into irreducible representations.
+
+We next give a bounded list of translations which, together with these
+$H$ labels, expands $\Gamma$.  Consider a block of $n'$ bits with cycle
+$R$.  For a nonzero frequency $y\in\F_2^{n'}$, let $d'$ be the dimension
+of the span of its cyclic shifts.  Identifying vectors with polynomials
+modulo $Z^{n'}-1$, this span is a cyclic ideal.  Every such ideal of
+dimension $d'$ is specified by a complementary monic divisor of degree
+$d'$.  There are at most $2^{d'}$ such divisors and at most $2^{d'}$
+vectors in each ideal.  In particular, there are at most $2^{2d'}$
+frequencies with this span dimension.  This argument uses only the
+ideal structure of the polynomial quotient and remains valid when
+$Z^{n'}-1$ has repeated factors in characteristic two.
+
+For a uniform seed $a\in\F_2^{n'}$, the correlation vector
+$(y\cdot R^ta)_{t=0}^{n'-1}$ is uniform on a shift-invariant linear
+space of dimension $d'$.  Take $j_0$ independent seeds.  In the product
+of these spaces, the subset with total weight less than $j_0n'/4$ is
+invariant under cyclic shifts and permutation of the seeds.  If this
+subset is nonempty, its uniform distribution has the same marginal at
+every coordinate, with probability of one at most $1/4$.  An information
+set of $j_0d'$ coordinates determines a vector in the product space.
+Entropy subadditivity consequently bounds the size of this subset by
+$2^{j_0d'\mathcal H(1/4)}$, where $\mathcal H$ is binary entropy.
+The subset of weight greater than $3j_0n'/4$ has the same bound, by the
+marginal entropy estimate with probabilities at least $3/4$; it is
+unnecessary for the space to be closed under complementation.
+Thus a fixed sufficiently large $j_0$ makes the probability of any
+failure at any nonzero frequency at most
+\begin{equation}\label{oc:seed-bound}
+ 2\sum_{d'\ge1}
+   2^{-\{j_0(1-\mathcal H(1/4))-2\}d'}<1.
+\end{equation}
+There exist $j_0$ seeds whose cyclic translates have absolute Walsh
+bias at most $1/2$ at every nonzero frequency.  Enumerating all seed
+tuples and checking their biases constructs them in time $2^{O(r)}$,
+which is polynomial in $N$.
+
+Take the Cartesian product of the three block seed lists.  Averaging
+its translations under $\langle R_1\rangle\times\langle R_2\rangle
+\times\langle R_3\rangle$ has absolute Walsh bias at most $1/2$ off
+zero: the three factors multiply, and a nonzero frequency has a nonzero
+block.  Averaging further over cosets in $H$ preserves this bound.
+Denote by $T$ the average of the resulting $H$-conjugates of seed
+translations.  On the orthogonal complement of $G_0$-invariants, $T$
+has all eigenvalues in $[-1/2,1/2]$, by Fourier decomposition for $G_0$.
+
+Let $v$ be a unit vector in a representation of $\Gamma$, and let
+$\eta$ be its maximum displacement under the fixed $H$ labels and the
+fixed product-seed translations.  The $H$-invariant projection $v_H$
+satisfies $\|v-v_H\|\le K\eta$ for an absolute $K$.  Its displacement
+under any seed translation is at most $(1+2K)\eta$.  Since $v_H$ is
+$H$-invariant, the same holds for every $H$-conjugate of a seed.
+Writing $P_{G_0}$ for projection to $G_0$-invariants gives
+\[
+ \|v_H-P_{G_0}v_H\|^2
+ \le 2\langle v_H,(I-T)v_H\rangle
+ \le (1+2K)^2\eta^2.
+\]
+Normality of $G_0$ implies that $P_{G_0}v_H$ is also $H$-invariant.
+Distance to the $\Gamma$-invariant subspace is therefore at most a
+fixed multiple of $\eta$.  The symmetric half-lazy average on our
+fixed generating list has a uniform positive gap: its Dirichlet form
+is the average of squared label displacements divided by a fixed
+constant.  Its spectrum is nonnegative.  A fixed power of this walk
+has mean-zero norm at most the requested $\lambda$.  Reversing words
+shows that the powered list remains symmetric.  Its length is fixed,
+and the same conclusion holds for left and right regular actions.
+\end{proof}
+
+\subsection{Common scalar local codes}
+
+The distance and agreement estimates in this subsection hold over an
+arbitrary field $J$, conditional on the scalar check matrices satisfying
+the stated minor conditions.  We will choose the special outer field
+and those matrices after fixing the constants in these estimates.
+
+The local agreement constant must be fixed before the outer Cayley
+degree is chosen.  To obtain this order, we make the label positions
+the edges of a separate expander.  For every integer $s_b\ge1$, consider
+the Margulis--Gabber--Galil multigraph~\cite{Margulis1973,GabberGalil1981}
+on $\mathbb Z_{s_b}^2$ with the
+eight labelled moves
+\[
+ (x\mathbin\pm2y,y),\quad (x\mathbin\pm(2y+1),y),\quad
+ (x,y\mathbin\pm2x),\quad (x,y\mathbin\pm(2x+1)).
+\]
+Its normalized mean-zero norm is at most $5\sqrt2/8$ for every positive
+integer modulus, including composite moduli.  The primary formal
+development \cite[\texttt{mgg\_graph\_step},
+\texttt{mgg\_numerical\_radius}]{MGGAFP} proves exactly this labelled,
+symmetric, all-modulus statement.  Add eight identity labels for
+half-laziness and take a sufficiently large fixed power.  Viewing the
+result as a bipartite graph between two copies of $\mathbb Z_{s_b}^2$
+gives a graph $B_0$ with fixed degree $d_0$, permutation labels
+$1,\ldots,d_0$, and mean-zero cross-part norm
+\begin{equation}\label{oc:base-parameters}
+ \lambda_0<10^{-4},\qquad
+ c_0=\lfloor d_0/16\rfloor,\qquad \delta_0=1/16.
+\end{equation}
+Take the fixed power large enough that $c_0\ge1$.
+Let $n_b=s_b^2$ and $d=d_0n_b$.  Each of the $d$ edge coordinates
+is named by its left base vertex and permutation label.  Both ends
+of an outer edge use these same coordinate names.
+
+For each of the four types $C_A^0,C_A^1,C_B^0,C_B^1$, choose two
+$c_0\times d_0$ scalar matrices, one for each base side.  Impose the
+corresponding checks at every base vertex, with incident edges in
+permutation-label order.  There are eight check matrices in total;
+their entries are shared by all stars of the same type.  We require
+every $c_0$-column minor to be nonzero.  Section~\ref{oc:encoders-subsec}
+constructs matrices meeting these conditions and the global encoder
+conditions simultaneously.  Until then the following conclusions hold
+for every choice satisfying the stated minors.  For a finite-dimensional
+$J$-space $U$, notation such as $C_A^s(U)$ means that the scalar
+constraints are applied componentwise to a word in $U^d$.
+
+\begin{lemma}[Local distance and tensor agreement]\label{oc:local-agreement}
+Set
+\begin{equation}\label{oc:delta-one}
+ \delta_1=\delta_0(\delta_0-\lambda_0)>0.
+\end{equation}
+Every nonzero word of any of the four local codes, over any
+finite-dimensional $J$-space $U$, has at least $\delta_1d$ nonzero
+coordinates.  There is a constant $C_0<\infty$, depending only on
+$d_0,\delta_0,\lambda_0$, with the following property for every $s_b$,
+every field and check matrices as above, every $U$, and every $s,t$.
+If $F$ is a $d\times d$ table with rows in $C_B^t(U)$ and $D$ is such
+a table with columns in $C_A^s(U)$, and their joint cell-disagreement
+fraction is $z$, there is a table $W$ whose rows and columns obey both
+codes and such that
+\begin{equation}\label{oc:tensor-agreement}
+ \Pr_i[W(i,\cdot)\ne F(i,\cdot)]
+ +\Pr_j[W(\cdot,j)\ne D(\cdot,j)]\le C_0z.
+\end{equation}
+In particular, $C_0$ is independent of $d$, $|J|$, and $\dim_JU$.
+\end{lemma}
+
+\begin{proof}
+The maximal-minor condition gives star distance at least
+$c_0+1\ge\delta_0d_0$: a nonzero word of smaller support would give a
+linear dependence among at most $c_0$ columns, which could be enlarged
+to a dependence among $c_0$ columns.  This also proves the assertion
+for vector entries, either by applying a nonzero scalar component or
+by solving the independent-column equations componentwise.
+
+For a nonzero whole local word, let $l,u$ be the fractions of left and
+right base vertices incident to its support, and let $a=\max(l,u)$.
+Its edge-support fraction $e$ obeys, by star distance and mixing,
+\[
+ \delta_0a\le e\le lu+\lambda_0\sqrt{lu}
+ \le a(a+\lambda_0).
+\]
+Hence $a\ge\delta_0-\lambda_0$ and $e\ge\delta_1$.  Mixing here and
+below follows by subtracting the two constant means and applying the
+cross-part operator norm to the indicator functions.
+
+For agreement, apply the A-base checks to the columns of $F$.  Mark
+every base star at which any check syndrome is nonzero.  Each nonzero
+syndrome, as a row indexed by the $d$ columns, is a scalar linear
+combination of B-code rows, and is therefore a nonzero B-codeword over
+$U$.  Its support has size at least $\delta_1d$.  In each such column
+there must be a discrepancy with $D$ on an edge incident to the marked
+star, since $D$ satisfies that star's check.  A discrepancy cell is
+incident to at most two base stars.  If $w_0$ is the total marked-star
+count divided by $n_b$ (counting both base sides), then
+\begin{equation}\label{oc:marked-size}
+ w_0\le \frac{2zd^2}{\delta_1dn_b}
+       =\frac{2d_0z}{\delta_1}.
+\end{equation}
+
+We now confine every low-discrepancy difference column to edges inside
+a small set of base vertices.  Deleting those row indices, together
+with the columns having large discrepancy, will leave a rectangle on
+which $F$ and $D$ agree.
+
+Close the marked set by adding a vertex whenever at least
+$(\delta_0/2)d_0$ incident edges lead to the set.  If the initial set
+is empty it stays empty.  Otherwise suppose its normalized size first
+reaches $w\ge2w_0$.  A single addition is at most $1/n_b\le w_0$, so
+$w\le3w_0$.  Edges made internal by additions give internal edge
+fraction at least $(\delta_0/2)(w-w_0)$.  Mixing gives the upper bound
+$w^2/4+\lambda_0w/2$.  Since $w\ge2w_0$, these inequalities imply
+$\delta_0\le w+2\lambda_0$.  They are incompatible when
+$3w_0<\delta_0-2\lambda_0$.  For sufficiently small $z$, therefore,
+the final closure $T$ satisfies $|T|/n_b\le2w_0$, with strict
+inequality when $w_0>0$.
+Every star outside $T$ still satisfies all checks on $F$, and fewer
+than $(\delta_0/2)d_0$ of its edges enter $T$.
+
+Fix a constant
+\[
+ 0<z_0<\delta_0(\delta_0/2-\lambda_0).
+\]
+Consider a column whose discrepancy fraction is less than $z_0$.
+The difference between its $F$ and $D$ columns satisfies all checks
+outside $T$.  An outside vertex incident to its support consequently
+has at least $\delta_0d_0$ support edges in total and more than
+$(\delta_0/2)d_0$ support edges to other outside vertices.  The left
+and right fractions of such outside vertices are each at most
+$z_0/\delta_0$, by counting their total support edges.  If $a$ is
+their maximum fraction, mixing on the outside support would give
+\[
+ (\delta_0/2)a\le a(a+\lambda_0),
+ \qquad a\le z_0/\delta_0<\delta_0/2-\lambda_0.
+\]
+Thus $a=0$.  The difference column vanishes on every edge having an
+endpoint outside $T$.
+
+Delete the row indices corresponding to edges internal to $T$, and
+delete columns with discrepancy fraction at least $z_0$.  The former
+fraction is at most $|T|/(2n_b)\le w_0$, since each internal edge consumes
+two incidences in $T$, and the latter fraction is at most $z/z_0$.
+The two tables agree on the complementary rectangle.  Choose a fixed
+$z_*>0$, depending only on the base parameters, so small that for
+$z<z_*$ the closure inequality holds and each deleted fraction is
+less than $\delta_1$.  Puncturing either scalar local code to its
+retained coordinates is then injective by distance.  Its inverse
+on the image is a scalar linear map.  Lift the common rectangle in
+the B direction and then in the A direction.  Applying scalar linear
+maps in one direction preserves the constraints in the other; hence
+the resulting table belongs to the full tensor code.  By injectivity
+it agrees with every retained whole row of $F$ and every retained
+whole column of $D$.  This gives \eqref{oc:tensor-agreement} with
+$2d_0/\delta_1+1/z_0$ for $z<z_*$.  For $z\ge z_*$, use the zero
+tensor table and the bound $2\le(2/z_*)z$.  The maximum of these two
+constants is a suitable $C_0$.  All lifting maps and all support
+counts act on joint vector entries, so no dimension factor occurs.
+\end{proof}
+
+We now fix, once and for all,
+\begin{equation}\label{oc:lambda-choice}
+ 0<\lambda\le\min\{(8C_0)^{-1},\delta_1/16\}.
+\end{equation}
+Apply Lemma~\ref{oc:expansion} to obtain an outer Cayley list of degree
+$D$.  Choose $s_b$ to be a positive multiple of $D$.  Then
+$d=d_0s_b^2$ is divisible by $D$, so label the $d$ local coordinates
+by a balanced repetition of the outer list.  This repetition changes
+neither averaging operator nor its norm.  Use such lists
+$(a_i)_{i=1}^d$ and $(b_j)_{j=1}^d$ for the A and B directions.
+All of $d_0,c_0,\lambda_0,\delta_1,C_0,\lambda,s_b,d$ are now fixed
+constants.  We now specialize $J$; the field choice will not change
+these constants.
+
+Choose an odd characteristic independently of the primes $p_a$
+and independently of the characteristic-two translation group.  Put
+$m=M_o$.  Linnik's theorem, for example the effective bound in
+\cite[Theorem~1.1]{Xylouris2011}, supplies a prime
+\begin{equation}\label{oc:prime}
+ p\equiv1\pmod m,\qquad m<p\le C_Lm^{L}
+\end{equation}
+for absolute constants $C_L,L$.  Searching integers and testing
+primality, even by trial division, takes polynomial time in $m$.
+Search the prime field for an element $\zeta$ of exact order $m$;
+such an element exists because its multiplicative group is cyclic.
+Since $m$ is a power of two, testing $\zeta^m=1$ and
+$\zeta^{m/2}\ne1$ suffices.  We will use
+\begin{equation}\label{oc:field}
+ J=\F_{p^4}.
+\end{equation}
+The proof below verifies that degree four supplies enough room for
+every simultaneous outer-code choice.  One can find an irreducible
+quartic by enumeration and represent $J$ as its polynomial quotient.
+Field operations and the root $\zeta$ then use $O(\log N)$ bits and
+polynomial-in-$\log N$ Boolean computations.  Our fixed lower cutoff
+also ensures $p>m>|H|$, so both $m$ and $|H|$ are invertible in $J$.
+
+\subsection{Twists and simultaneous systematic extension}
+\label{oc:encoders-subsec}
+
+There are four outer parts
+\[
+ V=\Gamma\times\{0,1\}\times\{0,1\}.
+\]
+At $(k,s,t)$ a full slot stores a $d\times d$ matrix $W_k^{st}$ over
+a finite-dimensional $J$-space $U$, with columns in $C_A^s(U)$ and
+rows in $C_B^t(U)$.  The A and B edges impose, respectively,
+\begin{equation}\label{oc:edge-equations}
+ W_{a_ik}^{1t}(i,j)=\alpha_i W_k^{0t}(i,j),
+ \qquad
+ W_{kb_j}^{s1}(i,j)=\beta_j W_k^{s0}(i,j).
+\end{equation}
+The maps $\alpha_i,\beta_j$ are invertible $J$-linear maps on $U$,
+independent of $k,s,t$, and satisfy
+$\alpha_i\beta_j=\beta_j\alpha_i$ for every $i,j$.  An A edge of
+label $i$ transports the entire B-coded row $i$, while a B edge of
+label $j$ transports the entire A-coded column $j$.  A reverse edge
+uses the inverse map.  At their intersection the two transports give
+\[
+\begin{array}{ccc}
+ W_k^{00}(i,j)&\xrightarrow{\ \alpha_i\ }&W_{a_i k}^{10}(i,j)\\
+ {\scriptstyle\beta_j}\big\downarrow&&
+       \big\downarrow{\scriptstyle\beta_j}\\
+ W_{k b_j}^{01}(i,j)&\xrightarrow{\ \alpha_i\ }&W_{a_i k b_j}^{11}(i,j).
+\end{array}
+\]
+Left and right multiplication on $\Gamma$ commute, so the two routes
+reach the same index; commuting entry maps give the same entry value.
+
+The scalar type has $U=J$ and identity twists.  The programs in
+Section~\ref{sec:outer-programs} will also need to multiply scalar
+data $v:\Gamma\to J$ by $(-1)^{e\cdot x}$ for a distinguished bit
+$e=e_a$.  The matrix types below supply edge equations compatible
+with this operation.  The programs will use them to retain one axis
+of code constraints while changing the other.
+For each of the three distinguished bits $e=e_a$, define a
+representation on the basis
+$({\bf e}_{t'})_{t'\in H}$ by
+\begin{equation}\label{oc:rho}
+ \rho_e(g,u){\bf e}_{t'}
+   =(-1)^{(ut'e)\cdot g}{\bf e}_{ut'}.
+\end{equation}
+Its entries are signed permutation entries in the prime field.
+Indeed, for $k=(g,u)$ and $k'=(g',u')$, the exponent in
+$\rho_e(k)\rho_e(k'){\bf e}_{t'}$ is
+\[
+ (u't'e)\cdot g'+(uu't'e)\cdot g
+  =(uu't'e)\cdot(g+ug'),
+\]
+which proves multiplicativity.  In a matrix type let
+$U=\operatorname{Mat}_{|H|}(J)$ and independently choose each axis
+to be untwisted or to use
+\begin{equation}\label{oc:matrix-twists}
+ \alpha_i D=\rho_e(a_i)D,
+ \qquad \beta_j D=D\rho_e(b_j).
+\end{equation}
+Left and right matrix multiplication commute.  Right multiplication
+in \eqref{oc:matrix-twists} specifies edge maps; no convention about
+its order as a group representation is needed.  This gives at most
+$1+3\cdot4=13$ full types.  Finite tuples, with arbitrary repetitions
+of these types, use direct sums of their entry spaces and block
+diagonal twists.
+
+On either local-label graph, let the parity set consist of all edges
+with permutation number in $[4c_0]$.  Its size and complement are
+\begin{equation}\label{oc:parity-set}
+ q_{\rm par}=4c_0s_b^2,\qquad
+ I_A=[d]\setminus\text{A-parity set},\qquad
+ I_B=[d]\setminus\text{B-parity set}.
+\end{equation}
+Both systematic sets are nonempty; in fact they contain at least
+$3d/4$ labels.
+
+\begin{lemma}[Simultaneous systematic encoders]\label{oc:systematic}
+One can choose the eight scalar check matrices over $J$ so that all
+their maximal minors are nonzero and every A and B one-axis system
+of the thirteen types above is systematically invertible.  Precisely,
+arbitrary data at the systematic labels of part zero have a unique
+extension to both parts satisfying that axis's local checks and edge
+equations.  Consequently arbitrary data on
+$\Gamma\times I_A\times I_B$ in part $(0,0)$ have a unique full
+extension satisfying both axes, and the two orders of axis extension
+give the same answer.  The matrices and the full encoders are
+deterministically constructible in polynomial time in $N$.  These
+assertions continue to hold for arbitrary finite direct sums of the
+listed types, without any further field or check-matrix choices.
+\end{lemma}
+
+\begin{proof}
+Consider one A-axis system.  Eliminate part-one variables with the
+A-edge equations.  At each $k$, the two types of base-star checks in
+part zero contribute $2c_0s_b^2$ equations; those in part one contribute
+the same number after substitution.  There are exactly
+$q_{\rm par}=4c_0s_b^2$ parity-label variables at part zero for each
+$k$, so the resulting parity system is square, also after scalarizing
+$U$.  Its entries are linear polynomials in the entries of the four
+A check matrices.
+
+Its determinant polynomial is nonzero in the prime characteristic.
+For this purpose partition the $4c_0$ parity permutation numbers into
+four disjoint sets of $c_0$ numbers, one for each pair consisting of an
+outer part and a base side.  Specialize each associated check matrix
+to selectors of its set.  For a fixed permutation number, every
+label-index edge occurs exactly once at the specified base side.
+At outer part zero its selected coordinate is unshifted; at part one
+it is pulled back through an invertible group shift and an invertible
+entry twist.  Thus every scalarized parity coordinate is selected
+exactly once, up to an invertible block and a permutation.  The
+specialized parity matrix is invertible.  The same proof works for
+the B axis and for every allowed twist type.  It does not require
+this selector specialization itself to have the desired maximal
+minors: it separately witnesses that each determinant is a nonzero
+polynomial.  Each maximal-minor polynomial is also nonzero.  Their
+product is nonzero because a polynomial ring over a field is an
+integral domain.
+
+Here is a degree bound that justifies this field choice without
+reference to any future number of slots.  There are exactly
+\begin{equation}\label{oc:number-variables}
+ 8c_0d_0
+\end{equation}
+scalar indeterminates.  Scalarizing a one-axis parity matrix gives
+dimension at most
+\begin{equation}\label{oc:parity-dimension}
+ q_{\rm par}|\Gamma|\dim_JU
+ \le q_{\rm par}m|H|^3\le q_{\rm par}mr^{27}.
+\end{equation}
+Its determinant has degree at most this number.  At most
+$2(1+3\cdot4)=26$ axis systems cover every required type, with
+redundancies harmless.  The product of the maximal minors of the
+eight check matrices has degree $8c_0\binom{d_0}{c_0}$.  Thus the
+total degree is at most
+\begin{equation}\label{oc:determinant-degree}
+ 26q_{\rm par}mr^{27}+8c_0\binom{d_0}{c_0}<m^3.
+\end{equation}
+For the last inequality increase the fixed cutoff so that
+$r^{27}\le m$, $m\ge2\cdot26q_{\rm par}$, and
+$m^2\ge2\cdot8c_0\binom{d_0}{c_0}$.  The first term is then at
+most $m^3/2$ and the second at most $m^2/2<m^3/2$.
+The exponent three is independent of $s_b$; only the cutoff depends
+on the already fixed local degree.
+
+A nonzero polynomial of total degree less than a finite field's
+cardinality cannot vanish on every tuple over that field.  For
+completeness, view it as a polynomial in the last variable; by
+induction choose the other variables so that a nonzero leading
+coefficient remains nonzero, and then use the univariate root bound.
+Since $|J|=p^4>m^3$, such a tuple exists in $J$.  Enumerate all tuples
+of the fixed number \eqref{oc:number-variables} of field elements,
+testing maximal minors and parity ranks, until one succeeds.  The
+field cardinality and every matrix dimension are polynomial in $N$,
+so this is a deterministic polynomial-time algorithm with a fixed
+exponent.  A direct sum of already invertible parity systems is
+invertible with the direct sum of their inverses.  It introduces no
+new polynomial condition, even when the number of slots grows with
+$N$.
+
+It remains to justify two-axis extension.  Regard an A parity matrix
+as a matrix of operators on $U^\Gamma$: each entry is a scalar
+combination of left translations and A twists.  B entries are scalar
+combinations of right translations and B twists.  They commute
+entrywise across axes.  An invertible A parity matrix $L_A$ therefore
+intertwines the diagonal actions of any B-entry operator $T$ on its
+domain and codomain.  From $L_AT=TL_A$ one obtains
+$L_A^{-1}T=TL_A^{-1}$, with the same indexed domain and codomain
+interpretation.  Thus the operators making up either axis encoder
+commute with every entry operator of the other axis encoder, including
+its inverse parity solve.
+
+Start with the systematic rectangle at part $(0,0)$.  Extend along A
+for every systematic B column and then along B for every resulting
+A row.  The second extension preserves all first-axis constraints
+by this commutation.  Both encoders leave their systematic entries
+unchanged.  Reversing their order gives the same map.  Finally, one-axis
+uniqueness applied in both directions shows that a full word is
+uniquely determined by its systematic rectangle.  Gaussian elimination
+computes these extensions in polynomial time in $N$, or in polynomial
+time in the total explicit input size for an arbitrary direct sum.
+\end{proof}
+
+For $v:\Gamma\to U$, give every systematic cell in part $(0,0)$ the
+same value $v(k)$.  Its full extension is denoted
+\begin{equation}\label{oc:encoder}
+ E_{\alpha,\beta}v,
+\end{equation}
+or $Ev$ when its type is specified.  We call this the
+\emph{duplicated-payload} encoder.  It is linear and injective, and
+its rate in field coordinates is exactly $1/(4d^2)$: its domain has
+$|\Gamma|\dim_JU$ coordinates and its stored word has
+$4d^2|\Gamma|\dim_JU$ coordinates.  In the largest individual type
+the entry dimension is $|H|^2\le r^{18}$.  Therefore one full slot
+occupies $\operatorname{polylog}(N)$ bits at each of $|\Gamma|=O(N\operatorname{polylog} N)$
+sites.  Any fixed power of $\log(N+2)$ slots preserves this size form.
+
+\begin{remark}[Operator invariance]\label{oc:orbit-invariance}
+The preceding inverse argument also justifies restriction to frequency
+orbits, as required by the local filling algorithms.  Expand a function
+of $(x,u)$ in the Walsh characters $(-1)^{\nu\cdot x}$, using $m^{-1}$
+for the inverse transform over $J$.  By \eqref{oc:actions}, a left pull
+preserves each $x$-frequency, with a phase depending on $u$, whereas
+a right pull permutes frequencies by $H$.  Constant entry twists do
+not change the frequency.  For any $H$-orbit $O\subseteq G_0$, both
+the $O$-frequency subspace and its complementary frequency subspace
+are invariant under each parity operator.  Its domain and codomain
+have equal dimensions on this subspace: the parity-label and
+check-label counts are both $q_{\rm par}$.  Global invertibility
+therefore implies invertibility of the restriction.  Its scalar
+dimension is at most $q_{\rm par}|O||H|\dim_JU\le
+q_{\rm par}|H|^4$, polynomial in $r$, so the restriction and its
+inverse can be computed by polynomial-in-$\log N$ field operations.
+This is an algebraic consequence of the explicit parity matrices;
+it does not require reading unspecified global values of a word.
+\end{remark}
+
+\subsection{Proximity and one-axis gaps}
+
+Write $\dist_V$ for relative Hamming distance on the four-part vertex
+set $V$.  When all four parts at the same $k$ are packed into one
+symbol, write $\dist_\Gamma$.  For any two words,
+\begin{equation}\label{oc:packing-metric}
+ \dist_V\le\dist_\Gamma\le4\dist_V.
+\end{equation}
+An \emph{A-only word} retains the A local constraints and A agreements
+at all four parts; any other label indices and any collection of slots
+are regarded as coordinates of a single row symbol.  No B validity
+or B agreement is asserted.  Define B-only words symmetrically.
+
+For a tuple of full slots a local check rejects when any component
+fails its scalar local checks, and an edge is conflicting when any
+slot fails its agreement on the whole row or column carried by that
+edge.  In particular, a growing tuple does not enlarge the set of
+address maps or cause separate per-slot error charges.
+
+\begin{lemma}[Full-code proximity]\label{oc:full-proximity}
+There are fixed $\theta_*>0$ and $K_*<\infty$ such that the following
+holds for every finite tuple of allowed full types and every received
+word.  Check local validity and all A and B agreements at a uniformly
+random packed center, rejecting if any check there fails.  If the
+rejection fraction is $\theta\le\theta_*$, the word is at packed
+distance at most $K_*\theta$ from a word satisfying every local and
+edge constraint.  The constants are independent of the tuple length,
+the field size, and the entry dimensions.  Duplicated-payload
+constraints are addressed separately below.
+\end{lemma}
+
+The proof uses the decreasing-disagreement method of
+\cite[Section~4.2, Algorithm~1 and Propositions~4.7--4.8]{DEL+2022}.
+We prove the version for joint tuples with commuting twists needed here.
+
+\begin{proof}
+First replace every locally invalid whole tuple at a vertex by zero.
+There are at most $\theta|V|$ such vertices.  Initially at most
+$d\theta|V|$ undirected edges conflict, and this replacement creates
+at most $2d\theta|V|$ further conflicts.  Starting with this locally
+valid word, repeatedly replace a whole vertex by a locally valid tuple
+whenever that strictly decreases its number of incident conflicting
+edges.  The total integer conflict count strictly decreases, so at
+most $3d\theta|V|$ replacements occur.  This argument establishes
+existence and termination; it is not asserted to be an efficient
+search through the alphabet.  At most $(1+3d)\theta|V|$ vertices have
+been touched, and the final conflict count is no larger than the
+count before the replacements.
+
+At a stable vertex $v$, let $p_A(v),p_B(v)$ be the fractions of its
+A and B edges that conflict, and put
+$p(v)=p_A(v)+p_B(v)$ and $\mu=\E_Vp$.  Neighbors across A edges
+suggest rows, transported by the appropriate twist or inverse twist.
+They are valid B-code rows.  Neighbors across B edges similarly
+suggest valid A-code columns.  At cell $(i,j)$ these suggestions
+agree unless at least one of the two opposite square edges conflicts:
+the common far corner and commuting twists supply the equality when
+both opposite edges agree.  If $P_A,P_B$ average over the respective
+neighbor maps, their cell-disagreement fraction is at most
+$P_Ap_B(v)+P_Bp_A(v)$.  Lemma~\ref{oc:local-agreement} gives a local
+replacement whose incident conflict fraction is at most $C_0$ times
+this number.  Stability therefore gives pointwise
+\begin{equation}\label{oc:stability}
+ p\le C_0(P_Ap_B+P_Bp_A)\le C_0(P_Ap+P_Bp).
+\end{equation}
+
+All norms and inner products in this proof use uniform normalized
+counting measure on $V$.  Let $\bar p$ be the function equal to the
+mean of $p$ on each of the four parts.  Nonnegativity gives
+$\|\bar p\|_2\le2\mu$.  Each neighbor operator permutes the part
+means and has norm at most $\lambda$ on their orthogonal complement.
+Consequently \eqref{oc:stability} implies
+\[
+ \|p\|_2\le2C_0(2\mu+\lambda\|p\|_2),
+ \qquad \|p\|_2\le C_1\mu,\quad C_1=8C_0,
+\]
+by \eqref{oc:lambda-choice}.  This bound has no dependence on $d$.
+
+Fix an A label $i$, let $S_i$ be the vertices whose incident A edge
+of that label conflicts, and let $p_i=\Pr_V(S_i)$.  At such an edge
+the difference of its two transported rows is a nonzero B-codeword,
+so it has at least $\delta_1d$ nonzero cells.  In each corresponding
+B direction, either a B edge conflicts at one A endpoint or an
+$i$-label A edge conflicts at the opposite B neighbor.  The
+involution exchanging the two A endpoints preserves $S_i$.  Averaging
+this implication, and then subtracting the four part means in the
+mixing term, yields
+\begin{align}
+ \delta_1p_i
+ &\le 2\E_V[1_{S_i}p_B]
+      +\langle1_{S_i},P_B1_{S_i}\rangle \notag\\
+ &\le 2\E_V[1_{S_i}p_B]+4p_i^2+\lambda p_i.
+ \label{oc:conflict-propagation}
+\end{align}
+Indeed, the squared norm of the four part means of $1_{S_i}$ is at
+most $4p_i^2$, and the squared norm of its remaining part is at most
+$p_i$.  Also $p_i\le d\mu$.  For sufficiently small $\mu$, depending
+on the now fixed $d$, we have $4d\mu+\lambda<\delta_1/2$.
+Average \eqref{oc:conflict-propagation} over $i$ and repeat the
+argument with A and B exchanged.  It follows that
+\begin{equation}\label{oc:stable-zero}
+ (\delta_1/2)\mu
+ \le4\E_V[p_Ap_B]\le4\E_V[p^2]\le4C_1^2\mu^2.
+\end{equation}
+If $0<\mu<\delta_1/(8C_1^2)$ this is impossible.  Since the initial
+zeroing left at most $3d\theta|V|$ conflicts, stability has
+$\mu\le6\theta$.  For example, choose $\theta_*$ so that
+$6\theta_*<\min\{\delta_1/(32d),\delta_1/(16C_1^2)\}$.
+Then $\mu=0$.  The final word is exact, and
+\eqref{oc:packing-metric} gives $K_*=4(1+3d)$ as a permissible
+proximity constant for this normalization.  Common scalar local
+checks, block diagonal twists, and joint conflict events justify
+every step for an arbitrary tuple without a slot-count factor.
+\end{proof}
+
+\begin{lemma}[One-axis distance and exact comparisons]\label{oc:one-axis}
+Let $\Delta_A=(\delta_1-\lambda)/4>0$.  Every nonzero A-only or
+B-only word with the specified local constraints and invertible twists
+has relative vertex support at least $\Delta_A$ on $V$.  The same
+holds for differences of two words with the same axis constraints,
+and for arbitrary finite joint tuples.  It also holds for full words.
+
+Among exact full words, the duplicated-payload condition has a fixed
+gap under the following checks: at $s=0$, compare all systematic A
+rows as whole rows, at both values of $t$; at $t=0$, compare all
+systematic B columns as whole columns, at both values of $s$.
+If any payload is not duplicated, the packed-center rejection
+fraction is at least $\Delta_A$.  The tests accept every word $Ev$.
+
+More generally, suppose an expression $X$ and a full target $Y=Ev$
+both obey the same A constraints, and the systematic rectangle of
+$X$ is duplicated with payload $w$.  Equality of their whole
+systematic B columns at $t=0$, including both $s$ parts, holds if
+and only if $v=w$.  If $v\ne w$, the comparison rejects at least a
+$\Delta_A$ fraction of packed centers.  The symmetric assertion
+holds for a shared B axis and comparisons of whole systematic A
+rows at $s=0$.  No constraint on the other axis of $X$ is needed.
+\end{lemma}
+
+\begin{proof}
+For one A slice with fixed $t$, a nonzero vertex has at least
+$\delta_1d$ nonzero row symbols by local distance.  Each is carried
+to a nonzero symbol at its opposite endpoint, because twists are
+invertible.  If $l,u$ are the two vertex-support fractions and
+$a=\max(l,u)$, the fraction $e$ of nonzero carried edges obeys
+\[
+ \delta_1a\le e\le lu+\lambda\sqrt{lu}\le a(a+\lambda).
+\]
+Thus $a\ge\delta_1-\lambda$.  Support on these two parts is at
+least $(\delta_1-\lambda)/2$ in their own normalization and at least
+$\Delta_A$ in the four-part normalization.  At least one slice is
+nonzero.  The argument for B, differences, and joint entries is
+identical.
+
+For two systematic A row labels, their difference at $s=0$, considered
+over both $t$ parts and all $k$, is a B-only word: the scalar B checks
+and B twists are the same for both rows.  If nonzero it has the
+distance just proved.  Differences between systematic B columns are
+A-only words.  A nonduplicated systematic rectangle contains two
+unequal entries connected either by a change of its A label or a
+change of its B label, so one of these comparisons is nonzero.
+Conversely, for a duplicated payload, B-axis uniqueness extends the
+same systematic row data identically at every systematic A label,
+and A-axis uniqueness does the analogous thing for columns.
+
+For the last assertion, if $v=w$, A-axis uniqueness identifies the
+two whole columns at every systematic B label.  If $v\ne w$, a
+systematic payload cell differs somewhere, so one of the compared
+column differences is a nonzero A-only word and has support at least
+$\Delta_A$.  The B-sharing assertion is proved in the same way.
+These comparisons use whole one-axis codewords, which is why an
+arbitrary localized payload disagreement has a constant exact gap.
+\end{proof}
+
+The next estimate will control a growing tuple of A-only scratch
+slots against one exact reference.  It uses the tuple's joint edge
+conflicts, with no factor for its number of components.
+
+\begin{lemma}[One-axis near-code estimate]\label{oc:near-code}
+Let $W$ and $V_0$ be locally A-valid joint tuples on $V$, and suppose
+$V_0$ has exact A agreement with the same twists as $W$.  Let
+$p=\dist_V(W,V_0)$ and let $z_A$ be the A-edge conflict fraction of
+$W$, normalized as the probability that a uniform vertex and a
+uniform A label give a conflict.  Then
+\begin{equation}\label{oc:near-code-inequality}
+ \delta_1p\le z_A+4p^2+\lambda p.
+\end{equation}
+In particular, if $p\le\delta_1/16$, then
+$p\le2z_A/\delta_1$.  Both statements hold for every finite tuple
+of A-only and full slots, uniformly in its size.  They also hold
+with A and B exchanged.
+\end{lemma}
+
+\begin{proof}
+Let $S$ be the joint vertex-disagreement set.  At each vertex in $S$,
+local distance gives at least $\delta_1d$ nonzero difference rows.
+For each corresponding label, either the other endpoint also lies
+in $S$, or agreement of $V_0$ forces an actual conflict of $W$.
+Consequently
+\[
+ \delta_1p\le z_A+\langle1_S,P_A1_S\rangle
+ \le z_A+4p^2+\lambda p,
+\]
+by the four-part mixing bound used above.  For
+$p\le\delta_1/16$ and \eqref{oc:lambda-choice},
+$4p+\lambda<\delta_1/2$, giving the stated rearrangement.
+The proof concerns one fixed received word and one joint reference.
+It can be applied to successively larger prefixes of a tuple without
+modifying the received word or accumulating a number-of-prefixes
+loss.
+\end{proof}
+
+We also allow a clock or control tuple repeated identically at every
+$k$.  For any received tuple, let its distinct-value class proportions
+be $u_j$.  Equality across an expanding symmetric A list has probability
+at most
+\begin{equation}\label{oc:clock-gap}
+ \sum_j u_j^2+\lambda\left(1-\sum_j u_j^2\right).
+\end{equation}
+This follows by applying the mean-zero bound to each class indicator
+and summing.  If the equality rejection is $\eta$, then
+$1-\max_j u_j\le1-\sum_j u_j^2\le\eta/(1-\lambda)$.
+Thus a small rejection fraction implies proximity to one constant
+tuple, irrespective of its bit length.
+
+Use unique bit representations of field elements and canonical zero
+padding.  At a packed center check parsing, ranges, and padding.
+Replace a malformed symbol by a fixed parsable default when reasoning
+from acceptance.  If all checks read from one fixed finite list
+$\Pi$ of permutation addresses, modifying a set of $u|\Gamma|$
+symbols can change their center outcomes on at most
+$|\Pi|u|\Gamma|$ centers, by taking the union of inverse images.
+This applies even when many slots are checked together or branches
+use only subsets of the list.  Combining this observation with
+Lemma~\ref{oc:full-proximity}, \eqref{oc:clock-gap}, and the
+duplicated-payload gap of Lemma~\ref{oc:one-axis} gives proximity
+to exact duplicated full encodings and a repeated clock whenever
+the total packed rejection is sufficiently small.  Indeed, the
+one-time repair changes only $O(\theta)$ centers and hence leaves
+duplication rejection $O(\theta)$; choose its threshold below the
+fixed exact gap.  Any required public range for a corrected clock
+is likewise enforced, since a constant illegal value fails its
+local range test everywhere.  These constants may depend on the
+fixed address-list size, but not on the slot count.
+
+\begin{theorem}[Outer-code interface]\label{thm:outer-codes}
+There exist fixed constants $d$, $\delta_1>0$, $C_0<\infty$,
+$\lambda>0$, $\theta_{\mathrm{out}}>0$, and $K_{\mathrm{out}}<\infty$, with
+$\lambda\le\min\{(8C_0)^{-1},\delta_1/16\}$, having the following
+uniform properties for every input length $N$ and its padded tape
+length $h=O(N)$, after the fixed padding in \eqref{oc:outer-size}.
+\begin{enumerate}[label=(\roman*)]
+\item The group $\Gamma=\F_2^r\rtimes H$ has
+$|\Gamma|\le M_or^9=O(N\operatorname{polylog} N)$, where $M_o=2^r=O(N)$.
+Its A and B label lists are symmetric, of degree $d$, and have
+mean-zero norm at most $\lambda$.  There is a field
+$J=\F_{p^4}$ with $p>M_o>|H|$, $p\equiv1\pmod{M_o}$, and a
+primitive $M_o$-th root $\zeta\in\F_p$.  All public group and field
+data and the common scalar check matrices are deterministically
+constructible in polynomial time in $N$, and the data needed at an
+index have $\operatorname{polylog}(N)$ size and Boolean computation cost.
+\item Each of the scalar and three matrix-representation families,
+with either axis independently twisted or untwisted as specified
+in \eqref{oc:matrix-twists}, has the simultaneous systematic
+encoder \eqref{oc:encoder}.  Arbitrary systematic rectangle data
+extend uniquely; the A and B extensions commute.  Duplicated payload
+encoding is injective, linear, and has rate $1/(4d^2)$ in field
+coordinates.  A full slot has $\operatorname{polylog}(N)$ bits per packed site.
+Arbitrary finite tuples reuse the same checks and inverses.
+\item The local distance and tensor-agreement statement of
+Lemma~\ref{oc:local-agreement} holds uniformly in field size and
+joint vector dimension.  Local validity, edge agreement, and
+duplicated-payload comparisons have perfect completeness.  For
+every finite tuple of full slots, if their joint packed-center
+rejection fraction is $\theta\le\theta_{\mathrm{out}}$, their packed
+distance to a tuple of exact duplicated encodings is at most
+$K_{\mathrm{out}}\theta$.  Canonical parsing and a repeated control
+tuple can be included with the same form of conclusion, changing
+only the fixed constants.
+\item The one-axis distance and shared-axis comparison gaps of
+Lemma~\ref{oc:one-axis} hold with $\Delta_A=(\delta_1-\lambda)/4$.
+For every actual and reference joint tuple satisfying the hypotheses
+of Lemma~\ref{oc:near-code},
+$\delta_1p\le z_A+4p^2+\lambda p$ and, when
+$p\le\delta_1/16$, $p\le2z_A/\delta_1$.  A-only slots require
+no B constraints for these conclusions.  The symmetric B assertions
+hold as well.
+\end{enumerate}
+All constants are independent of $N$ and of the number of later
+program slots.  The field search has only $8c_0d_0$ indeterminates,
+at most $26$ parity determinant factors, and total degree less than
+$M_o^3$; in particular it causes no feedback into $C_0$, $\lambda$,
+or $d$.
+\end{theorem}
+
+\begin{proof}
+Parts (i) and (ii) follow from Lemmas~\ref{oc:expansion} and
+\ref{oc:systematic}, the field construction, and the coordinate
+count after \eqref{oc:encoder}.  Part (iii) is
+Lemma~\ref{oc:local-agreement}, Lemma~\ref{oc:full-proximity}, and
+the parsing and exact-gap argument following \eqref{oc:clock-gap}.
+Decrease $\theta_{\mathrm{out}}$ and increase $K_{\mathrm{out}}$ once to
+cover those fixed costs.  Part (iv) is
+Lemmas~\ref{oc:one-axis} and \ref{oc:near-code}.  The degree and
+dependency assertions are \eqref{oc:number-variables}--
+\eqref{oc:determinant-degree} and the parameter order fixed in
+\eqref{oc:lambda-choice}.  No external local-testability theorem is
+used for these specialized conclusions.
+\end{proof}
+
+\subsection{Correction with value-independent uncertainty supports}
+
+The next guarantee is stronger than correction of a single fixed
+word.  It tracks a set on which values are wholly unspecified, and
+therefore applies to separate bounded-cone simulations with different
+choices on that set.
+
+\begin{lemma}[Outer uncertainty shrinkage]\label{lem:outer-uncertainty}
+Fix the data in Theorem~\ref{thm:outer-codes}, and any finite tuple of
+full or A-only slots with their allowed A twists.  Optionally include
+a control tuple constant over $\Gamma$ and canonical padding.
+There is a deterministic synchronous local correction map $\mathcal C$
+with the following property.  Let $V_0$ be any reference word satisfying
+all A local constraints and A agreements, with constant control and
+canonical parsing.  Let $S\subseteq\Gamma$ and let $W$ be any input
+equal to $V_0$ outside $S$, with arbitrary values or malformed symbols
+on $S$.  Then $\mathcal C W=V_0$ outside
+\begin{equation}\label{oc:uncertainty-set}
+ S'=
+ \left\{k:\frac1d\#\{i:a_ik\in S\}\ge\delta_1/2\right\}
+ \ \cup\
+ \left\{k:\frac1d\#\{i:a_i^{-1}k\in S\}\ge\delta_1/2\right\}.
+\end{equation}
+In particular, $S'$ depends on $S$ alone.  If $u=|S|/|\Gamma|<\delta_1/4$,
+then
+\begin{equation}\label{oc:uncertainty-shrink}
+ \frac{|S'|}{|\Gamma|}
+ \le\frac{2\lambda^2u}{(\delta_1/2-u)^2}\le u/2.
+\end{equation}
+The local map uses a fixed number of permutation addresses and time
+polynomial in the symbol bit length and the public local-parameter
+length, with total default behavior on arbitrary inputs.
+
+For every fixed integer $q\ge0$, the $q$-round map has a bounded
+input cone consisting of fixed permutations of its target; the bound
+may depend on $q$ but not on $N$.  For an arbitrary initial $S$, the
+recursively defined supports contain the errors simultaneously for
+all completions on $S$.  If $|S|/|\Gamma|<\delta_1/4$, their densities
+are at most $2^{-q}|S|/|\Gamma|$ after $q$ rounds.  Different target-cone
+simulations may use different such completions, provided each simulation
+assigns one consistent initial value to every address repeated within
+that cone.  Under this small-initial-support hypothesis,
+$O(\log|\Gamma|)$ rounds correct the whole word exactly in time
+polynomial in its explicit size and $N$.
+\end{lemma}
+
+\begin{proof}
+At a target part $(k,0,t)$, take the row of label $i$ from
+$(a_ik,1,t)$ and apply $\alpha_i^{-1}$.  At $(k,1,t)$, take it from
+$(a_i^{-1}k,0,t)$ and apply $\alpha_i$.  Combine all other indices
+and all slots into one row-symbol vector.  Decode these $d$ row
+suggestions in $C_A^s$ up to strictly fewer than $\delta_1d/2$
+joint row errors.  There is at most one such local word by the
+distance in Lemma~\ref{oc:local-agreement}.  A total deterministic
+implementation enumerates all subsets $T\subseteq[d]$ with
+$|T|>d-\delta_1d/2$, solves the local scalar constraints together
+with the suggested values on $T$ componentwise, and verifies that
+the candidate has fewer than $\delta_1d/2$ joint row errors.
+Such a puncturing is injective by local distance, so each consistent
+system gives at most one candidate.  If the distance promise holds,
+the set of all correct suggestions is one enumerated $T$ and gives
+the required word.  Return zero if no candidate passes.  Malformed
+neighbor symbols are first replaced by the fixed parsable default.
+Restore each control bit by majority on the forward A-neighbor list,
+with fixed tie behavior, and write canonical padding.
+
+If $k\notin S'$, each relevant list contains fewer than
+$\delta_1d/2$ positions of $S$.  Every other row suggestion equals
+the corresponding row of $V_0$, by its exact A agreement.  Thus the
+local decoder recovers all four reference parts and all slots
+jointly.  The same good-neighbor count is strictly below $d/2$, so
+control majorities are also correct.  This proves the support
+containment for every assignment of values on $S$.
+
+For either forward or inverse averaging operator $P$ on $\Gamma$,
+the mean-zero bound gives
+\[
+ \E_k(P1_S(k)-u)^2
+ \le\lambda^2u(1-u)\le\lambda^2u.
+\]
+When $u<\delta_1/4$, Chebyshev's inequality at threshold
+$\delta_1/2-u>0$ and a union bound for the two lists prove the first
+inequality in \eqref{oc:uncertainty-shrink}.  Its right side is then
+at most $32\lambda^2u/\delta_1^2\le u/2$ by
+\eqref{oc:lambda-choice}.
+
+Iterate the deterministic operation on supports in
+\eqref{oc:uncertainty-set}.  The preceding reasoning holds for every
+completion at each step, so the same iterated supports contain all
+possible errors.  A depth-$q$ dependency cone is obtained by
+composing at most $q$ forward or inverse A moves, with the finite
+part and slot bookkeeping.  For fixed $q$ this is a fixed finite
+list of permutations.  A consistent assignment to repeated initial
+addresses in one cone extends to a global initial word agreeing
+with $V_0$ outside $S$.  Applying the global support statement to
+that extension proves the claimed result for that cone.  This
+argument can use a different global extension for each target.
+
+Assume now $|S|/|\Gamma|<\delta_1/4$.  Every iterated support stays
+in this regime, so its integer cardinality decreases by a factor of
+at least two while nonempty.  More than $\log_2|\Gamma|$ rounds make
+it zero.  Running these rounds synchronously on the complete array
+uses $O(|\Gamma|\log|\Gamma|)$ local calls, each of polynomial
+bit complexity as established above.  This proves polynomial-time
+global correction without using the existential greedy repair in
+Lemma~\ref{oc:full-proximity} as an algorithm.
+\end{proof}

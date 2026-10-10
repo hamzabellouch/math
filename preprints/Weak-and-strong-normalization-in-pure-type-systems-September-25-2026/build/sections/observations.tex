@@ -1,0 +1,732 @@
+\section{Observation spaces and substitution-stable candidates}
+\label{obs:section}
+
+We now construct the candidate interpretation for the remaining primary
+component.  Throughout this section, $S$ is the current component of the
+primary graph and $U$ is its predecessor-closed processed part.  We retain
+the hypothesis of weak normalization for every legal expression.  We use
+the preceding profile and candidate lemmas, including
+$G_T=\operatorname{Ty}(T)\cap\mathrm{SN}_\beta$ when $\pi(T)\in U$.
+The new input will be the exclusion of a particular finite graph
+configuration, stated below and proved in the next part of the argument.
+No strong-normalization hypothesis is imposed on substitutions in this
+section.
+
+The interpretation of a neutral type must account for substitutions
+that replace its head by a product.  We therefore give variables parameters
+that record candidates, and interpret the syntax of a substituted term
+to determine which candidate to read.  At a function type
+$T=\Pi x:D.E$, such a parameter records a base observation.  The
+construction supplies spaces only at selected types; whenever the
+instantiated result $(E[q/x])^\#$ has a space, a normal argument
+$q:D$, together with a parameter for $q$ when its type requires one,
+selects a next value in that result space.  The function's space can
+therefore depend on the spaces for both its arguments and its results.  These dependencies
+can cycle, so ordinary recursion on the displayed type does not suffice.
+
+The graph below identifies which spaces are needed and separates two
+ways to construct them.  Some admit a description by finite observation
+paths or a decreasing count of type nodes.  For the others we build two
+spaces together: unrestricted tables on one side and tables with a
+uniform finite bound on their payload dependence on the other.  After
+constructing the spaces, we prove that every finite typed syntax tree
+can be evaluated in them.  Substitution and reduction require an
+additional condition, called goodness, which holds for the normal
+syntax used to define our candidates.  That final transport result will
+supply the specialization property of
+the candidate interface.
+
+\subsection{Which values require observations?}
+\label{obs:graphs}
+
+There are two different profiles to keep apart.  A neutral type sorted
+at $s$ has expression profile $\{s\}$; a value interpreting that type
+is indexed by its expected type $s$, whose profile is
+$\operatorname{Ax}(s)$.  These axiom profiles are the starting points
+for deciding which parameter spaces are needed.  The remaining graph
+definitions follow the dependencies of those spaces toward
+domains that are tested by products within $S$.
+
+Let $H$ be the closure under primary positive paths of
+\[
+ \{\operatorname{Ax}(s):\{s\}\in S,
+                         \ \operatorname{Ax}(s)\ne\varnothing\}.
+\]
+The \emph{secondary graph} has vertex set $H$.  It retains all primary
+positive edges between these vertices.  It retains the negative edge
+$I\longrightarrow K$ belonging to a profile triple $(I,J,K)$ precisely
+when $I,J,K\in H$.  A vertex $I\in H$ is \emph{direct} if some profile
+triple $(I,J,K)$ has $J,K\in S$; here $J,K$ need not belong to $H$.
+A vertex is \emph{active} if it has a secondary path to a direct vertex.
+Only the induced graph on active vertices will be used below.
+
+An active vertex is \emph{plain} if paths from it to direct vertices
+occur with both parities.  Otherwise it is \emph{free}; its sign is $+$
+if those paths are even and $-$ if they are odd.  A path of length zero
+is even, so a free direct vertex has sign $+$.
+
+This last observation will control the later uniform bounds.  A product
+test whose product and instantiated codomain profiles remain in $S$
+has its open codomain profile in $S$ as well, by their positive ascent.
+A domain profile that is active is therefore direct.  Such a test may
+quantify over parameters at plain or free plus profiles, but never at
+free minus profiles.
+This fact will let one finite dependence bound survive all the parameter
+choices in a product test.
+
+\begin{lemma}[Signs and dependencies]\label{obs:graph-lemma}
+An active predecessor of a plain vertex is plain.  Along an edge between
+free vertices, the sign is preserved on a positive edge and reversed on
+a negative edge.
+
+Let $T=\Pi x:D.E$ be a normalized actual type, put
+$I=\pi(D)$, $J=\pi(E)$, and $K=\pi(T)$, and let
+$q\in\operatorname{Ty}(D)$.  Put $T_q=(E[q/x])^\#$ and $L=\pi(T_q)$.
+If $K,L$ are active, then $J$ is active, and $I$ is active whenever
+$I\in H$.  If instead $K,L\in S$, then $J\in S$ and every active $I$
+is direct.
+\end{lemma}
+\begin{proof}
+Prepending the edge in question to paths to a direct vertex proves the
+sign statements.  Profile growth and the product edge give the positive
+path
+\[
+                         L\longrightarrow J\longrightarrow K,
+\]
+where the first edge is omitted when $L=J$.  Since $L\in H$ and $H$ is
+positive-path closed, $J\in H$.  Its path to the active vertex $K$ makes
+$J$ active.  If $I\in H$, the negative edge of $(I,J,K)$ is retained,
+so $I$ is active too.  When $K,L\in S$, the displayed path cannot leave
+their primary strongly connected component.  Thus $J\in S$, and the
+definition of direct applies.
+\end{proof}
+
+The \emph{layer} of a type $T$ is $\pi(T)$.  A type is active, plain, or
+free of a given sign when its layer is so; an empty layer is inactive.
+These terms concern the type of a value, not the profile of the value
+itself.
+
+Here is the promised graph hypothesis.
+\begin{equation}\label{obs:forbidden}
+\begin{gathered}
+\text{There is no plain active secondary strongly connected component $C$}\\[-2pt]
+\text{with an internal negative edge, a profile triple $(I,J,K)$ with $J,K\in C$,}\\[-2pt]
+\text{and a sort $s$ such that $\{s\}\in C$, $\operatorname{Ax}(s)\ne\varnothing$, and}\\[-2pt]
+                  \operatorname{Ax}(s)\longrightarrow I
+                  \text{ by a primary positive path.}
+\end{gathered}
+\end{equation}
+All results in this section are conditional on
+\eqref{obs:forbidden}.  The later typed contradiction will derive this
+condition from the same system-wide weak-normalization hypothesis.
+
+\subsection{Actual frames and plain observation spaces}
+\label{obs:plain-spaces}
+
+Let $\mathcal B$ be the set of assignments choosing one candidate at
+every actual type.  Its distinguished member $\mathbf t$ chooses every
+top candidate.  All types and expressions here are syntax over finite
+prefixes of $\Omega$, modulo $\alpha$-equivalence, so their collections
+and $\mathcal B$ are sets.
+
+We construct a nonempty set $\mathcal K_T$ of parameters for every
+active actual type $T$.  For a plain type we require the following
+precise prefix description.  If $T=\Pi x:D.E$, a \emph{legal frame at
+$T$} consists of a normal term $q\in\operatorname{Ty}(D)$ for which
+$T_q=(E[q/x])^\#$ is active, together with a parameter
+$v\in\mathcal K_D$ if $D$ is active.  If $D$ is inactive there is one
+absent-payload symbol in place of $v$.  Its target is $T_q$.  A
+nonproduct type has no legal frames.  Write $\mathcal F_T$ for this
+set of frames.  The desired description is the bijection
+\begin{equation}\label{obs:plain-prefix}
+ \mathcal K_T\ \simeq\
+ \mathcal B\times
+       \prod_{a\in\mathcal F_T}\mathcal K_{\operatorname{target}(a)}.
+\end{equation}
+We call its first coordinate the base and its $a$-coordinate the next
+value.  By Lemma~\ref{obs:graph-lemma}, all active spaces occurring on
+the right are plain when $T$ is plain, and their secondary components
+precede or equal that of $T$.
+
+\begin{lemma}[Construction of plain spaces]\label{obs:plain-construction}
+Under \eqref{obs:forbidden}, the plain spaces admit
+\eqref{obs:plain-prefix}.  They also admit distinguished values whose
+bases are $\mathbf t$ and whose next values are distinguished values.
+\end{lemma}
+\begin{proof}
+Process the finitely many plain secondary components in source order.
+Suppose first that a component $C$ has no internal negative edge.
+Every active domain used by a legal frame at a type of layer in $C$
+then lies in an earlier component: otherwise the frame's triple, whose
+open codomain is active, would contribute an internal negative edge.
+Thus all frame alphabets can be specified without using a space whose
+layer belongs to $C$.
+
+For $\pi(T)\in C$, consider finite paths of legal frames beginning at
+$T$.  A continuing path has all its target layers in $C$, and includes
+the empty path.  An exiting path has all but its final target layer in
+$C$ and its final target in an earlier component.  Define $\mathcal K_T$
+to be the set of tables assigning a member of $\mathcal B$ to each
+continuing path and a member of the final target space to each exiting
+path.  Split a table according to the empty path and the first frame.
+For a frame staying in $C$, its suffix table is exactly a table of the
+same kind starting at its target.  For an exiting frame its output is
+already a value of the target space.  This gives the bijection
+\eqref{obs:plain-prefix} in both directions.  The constant top outputs
+and previously chosen exit defaults define the distinguished table.
+
+Now let $C$ have an internal negative edge.  For every normalized type
+$T$ of layer in $C$, define a positive integer $p_C(T)$ as follows.
+Count its root.  At a product with child layers $I,J$, continue into
+the codomain when $J\in C$, and into the domain when $I\in C$ and
+$J$ is active.  Apply the same rule recursively at counted children,
+using the binder context in the codomain.  This counts a subset of a
+finite syntax tree.  Profile invariance makes the count independent of
+the prefix and unchanged by valid thinning or context conversion.
+
+For a legal frame at $T=\Pi x:D.E$, write
+$I=\pi(D)$, $J=\pi(E)$, $K=\pi(T)$, and $L=\pi(T_q)$.
+A same-$C$ domain has smaller count.  We claim
+that its same-$C$ target also satisfies
+\begin{equation}\label{obs:potential-drop}
+               p_C(T_q)\le p_C(E)<p_C(T).
+\end{equation}
+Here $J\in C$ follows from the positive ascent in
+Lemma~\ref{obs:graph-lemma}; hence $p_C(E)$ is defined.
+
+To prove the first inequality, thin $T$ and $q$ to a common prefix,
+choosing the displayed binder fresh.  Associate to every counted node
+of $(E[q/x])^\#$ its position string.  We show that the same position
+is a counted node of $E$.  The induction along a position maintains
+that the corresponding pre- and post-substitution parent profiles both
+lie in $C$; at the root these are $J$ and $L$.  At a pre-substitution
+product the post normal form is a product with componentwise substituted
+normal forms.  Write $I_0,J_0,K_0$ for its pre domain, codomain, and
+parent profiles, and $I_1,J_1,K_1$ for the post profiles.  Profile growth
+gives $I_1\supseteq I_0$ and $J_1\supseteq J_0$, also under binders
+after context conversion.
+
+If the post codomain is counted, then $J_1\in C$, and the positive
+path $J_1\longrightarrow J_0\longrightarrow K_0$ has both endpoints
+in $C$.  Hence $J_0\in C$, so the pre codomain is counted too.  If
+the post domain is counted, then $I_1\in C$ and $J_1$ is active.
+The inclusion paths put $I_0,J_0$ in $H$.  Since $K_0\in C\subseteq H$,
+the pre triple has a retained negative edge $I_0\longrightarrow K_0$.
+The path
+\[
+                  I_1\longrightarrow I_0\longrightarrow K_0
+\]
+again has endpoints in $C$, so $I_0\in C$.  Also the positive edge
+$J_0\longrightarrow K_0$ makes $J_0$ active.  Thus the pre domain is
+counted.  In either case the pre- and post-substitution profiles of the
+selected child lie in $C$, which preserves the induction invariant for
+the next position.  Inclusion edges in these paths are omitted when
+the profiles are equal.
+
+The association could fail only if a pre neutral leaf became a product.
+Sorts are unchanged, and a neutral with any other head remains neutral
+after substitution and normalization.  Its head must therefore be the
+substituted variable $x$.  Let its singleton profile be $\{s\}$;
+this lies in $C$.  The sort $s$ is sorted, so
+$\operatorname{Ax}(s)\ne\varnothing$.  Trace the original $x$-headed
+spine backward through its normalized successive typing products.
+At each application the result layer has a primary positive path to
+the function layer.  Starting with the layer
+$\operatorname{Ax}(s)$ of its type $s$, concatenate these paths to
+obtain a positive path to $\pi(D)=I$.  The outer product has
+$J,K\in C$.  This is forbidden by \eqref{obs:forbidden}.  No leaf
+therefore expands.  Position strings give the required injection of
+counted nodes and prove \eqref{obs:potential-drop}.
+
+Define \eqref{obs:plain-prefix} by induction on $p_C(T)$, simultaneously
+for all types with the same count.  Every same-component space on its
+right is already constructed by the strict inequalities just proved;
+all other spaces come from earlier components.  The product of the
+specified nonempty sets is nonempty, with the explicit element whose
+base is $\mathbf t$ and whose next values are the already specified
+defaults.  This completes the construction.
+\end{proof}
+
+\input{sections/observation-free-spaces.inc.tex}
+
+\subsection{Finite typing trees and environments}
+\label{obs:trees}
+
+Evaluation must remember the particular product used to type an
+application.  We therefore equip the finite syntax tree of a judgment
+$\Gamma\vdash M:T$ with generation data.  At each node we store its
+expected-type judgment and a core typing converting to that expectation:
+the declaration at a variable; the axiom target at a sort; the two child
+sorts and the formation triple at a product; the annotation sort, body
+type and supporting product typing at a lambda; and the function's
+exact product expectation and the argument's domain expectation at an
+application.  We include the annotation's typing at a lambda.  These
+data exist by generation; their witnesses are finite.  They do not
+require uniqueness of sorts or formation rules.
+
+The following operations on these trees will be used.  Valid thinning
+and context conversion transport all judgments and generation witnesses.
+At a variable the implicit core declaration is changed accordingly.
+Retargeting a root changes its expected type to a convertible type at
+which the same expression is typed; it retains the core data and all
+children.  Capture-avoiding substitution transports the stored judgments
+and grafts copies of the argument tree at occurrences of the substituted
+variable, thinning and retargeting those copies as needed.  These
+operations use only the previously established metatheory.
+
+An environment for a finite generic context $\Gamma$ is a typed
+substitution $\xi:\Gamma\to\Omega$, with arbitrary raw term images,
+together with a parameter $\theta_x\in\mathcal K_{(A\xi)^\#}$ for each
+declaration $x:A$ whose actual type $(A\xi)^\#$ is active.  Declaration
+types are evaluated at their prefixes.  The notation $A\xi$ may also
+use the whole substitution, since no later variable is free in $A$.
+An extension by $x:=n$ is typed whenever $n$ has the actual normalized
+domain type; conversion gives its required raw type.  At an active
+domain it may be accompanied by any parameter in the corresponding
+space.  At an inactive domain no parameter is supplied.
+
+Two environments are \emph{compatible} if their raw images are
+pointwise convertible and their corresponding parameters are equal.
+Their actual normalized types are equal, so this equality of parameters
+is well-typed.  All prefix changes are understood by thinning.
+
+\subsection{Evaluation and reading candidates}
+\label{obs:evaluation}
+
+For a typing tree $t$ of $M:T$ and an environment $(\xi,\theta)$, define
+\[
+ \operatorname{Val}(t;\xi,\theta)\in\mathcal K_{(T\xi)^\#}
+ \quad\text{when $(T\xi)^\#$ is active.}
+\]
+For a tree of $M:s$ with literal expected sort, define
+$\operatorname{Read}(t;\xi,\theta)$ to be a candidate at the actual
+expression $(M\xi)^\#$.  The two constructions are distinct: the
+space index of the first is the actual \emph{type}; the candidate index
+of the second is the actual \emph{expression}.
+
+Every active space has a base in $\mathcal B$: its prefix base when
+plain, and its empty-stack output when free.  Write
+$\operatorname{base}(v)[A]$ for the candidate at actual type $A$ selected
+by that base.
+
+First specify the product candidate used in both constructions.
+For a product tree with children $D:a,E:b$, put
+\[
+ D_0=(D\xi)^\#,
+ \qquad A=((\Pi x:D.E)\xi)^\#,
+ \qquad A_n=(E\xi[x:=n])^\#.
+\]
+The binder is chosen fresh for the images.
+When $\pi(A)\in S$, define $\mathcal P(t;\xi,\theta)$ to consist of
+the strongly normalizing $h\in\operatorname{Ty}(A)$ satisfying the
+following test.  The tester $n$ ranges over
+\[
+ \begin{cases}
+ \operatorname{Read}(D:a;\xi,\theta),&\pi(D_0)\in S,\\
+ \operatorname{Ty}(D_0)\cap\mathrm{SN}_\beta,&\pi(D_0)\notin S.
+ \end{cases}
+\]
+If $\pi(A_n)\in S$, require
+\begin{equation}\label{obs:product-test}
+ h\,n\in\operatorname{Read}(E:b;\xi[x:=n],\theta[x:=v])
+\end{equation}
+for every $v\in\mathcal K_{D_0}$ when $D_0$ is active, and for the
+unique parameter-free extension otherwise.  If $\pi(A_n)\notin S$,
+require just that $h\,n$ be strongly normalizing at its exact type
+$A_n$.  Normalization and conversion identify $A_n$ with the
+instantiation of the normalized product $A$.  The candidate test lemma
+therefore shows that $\mathcal P$ is a candidate whenever its child
+Reads are defined.
+
+The clauses for $\operatorname{Val}$ are as follows.
+\begin{enumerate}
+\item A variable looks up its parameter.  A sort has the distinguished
+      value of its actual type.
+\item At a product with literal core sort $s$, start with the
+      distinguished value.  If $\{s\}\in S$ and the profile of the
+      actual product expression is in $S$, replace its base coordinate
+      at that expression by $\mathcal P$.  All other coordinates and
+      later observations stay distinguished.
+\item At a lambda $\lambda x:D.P$, the base is $\mathbf t$.
+      If its actual type is plain, prescribe its next value at every
+      legal frame $(q,v)$ to be
+      \begin{equation}\label{obs:lambda-equation}
+       \operatorname{Val}(P;\xi[x:=q],\theta[x:=v]).
+      \end{equation}
+      The absent-payload convention applies when the domain is
+      inactive.  Product compatibility gives the asserted target type.
+
+      At a free actual type, give the following behavior on raw stacks.
+      For a nonempty stack, check that its first key $q$ is a normal
+      term at the actual normalized domain and that its next actual
+      type is active.  Check its payload: absent at an inactive domain,
+      an opposite-sign free value at a free domain, or a plain value
+      with exactly the domain's type tag at a plain domain.  Finally
+      require a continue flag exactly when the next type is free, and
+      an exit flag exactly when it is plain.  Lemma~\ref{obs:graph-lemma}
+      gives the same sign at a free next type and the opposite sign at
+      a free domain.  On a valid continue frame, observe
+      \eqref{obs:lambda-equation} on the remaining stack.  On a valid
+      exit frame, return that value tagged with its plain target type.
+      On an invalid stack, return the distinguished output for its
+      ending.  The finite-bound lemma below proves that this behavior
+      represents a member of the minus space when the lambda is minus.
+\item At an application $F\,N$ with active actual result type, return
+      its distinguished value if the function's actual type is
+      inactive.  Otherwise use the frame with key $(N\xi)^\#$ and
+      payload $\operatorname{Val}(N)$ when its actual domain is active.
+      At a plain function take its next value.  At a free function take
+      a continue slice when the result is free.  When the result is
+      plain, take the exit output and project its correctly tagged
+      value, using the distinguished target value for a missing or
+      wrong tag.  The graph lemma and subject reduction make this a
+      legal frame with the asserted target.
+\end{enumerate}
+
+The clauses for $\operatorname{Read}(M:s)$ are these.  If the actual
+expression profile is outside $S$, or if $M$ is a literal sort, use the
+top candidate.  At product syntax with actual profile in $S$, use
+$\mathcal P$.  At all other syntax with actual profile in $S$, use
+\begin{equation}\label{obs:read-base}
+ \operatorname{base}(\operatorname{Val}(M:s))[\,(M\xi)^\#\,]
+\end{equation}
+if $\{s\}\in S$ and $\operatorname{Ax}(s)$ is active; use top otherwise.
+The layer required for the Val in \eqref{obs:read-base} is exactly
+$\operatorname{Ax}(s)$.
+
+Val calls Read only on strict syntax children.  Read may call Val at
+the same root.  Thus the intended recursion order is syntax size,
+with Val preceding Read at a fixed size.  The next lemma establishes
+totality as well as the only representability issue, at a minus lambda.
+It also establishes compatible-image invariance without assuming that
+the raw images are strongly normalizing.
+
+\input{sections/observation-bounds.inc.tex}
+
+\begin{lemma}[Structural invariance]\label{obs:structural-invariance}
+Compatible environments give identical Val and Read outputs.  Valid
+thinning and context conversion, with transported trees and compatible
+old environments, preserve both outputs.  Retargeting a root to a
+convertible expected type preserves Val.  All these operations commute with capture-avoiding renaming of generic
+declared and bound variables, reindexing the substitution and parameters
+while leaving their actual images and values unchanged.
+\end{lemma}
+\begin{proof}
+For compatible environments, apply the finite-bound lemma.  Plain,
+minus, and Read equality follows at once.  For plus equality, fix any
+finite raw stack.  Its finitely many minus payloads lie in some common
+$C_k$; equality through level $k$ gives equality on that stack.  Thus
+the tables are equal.
+
+For the structural operations, induct in the Val/Read syntax order.
+Actual normalized types and frame keys agree.  At a binder, the raw
+domain types are equal or convertible sorted types, so the same actual
+term gives a typed extension on both sides and the induction hypothesis
+applies for every matching payload.  This proves equality of all
+prefix coordinates or raw observations.  At a product candidate it
+proves equality of domain tests and, for every raw tester and payload,
+of the codomain candidates.  The application clause then extracts the
+same coordinate or slice.  The other clauses are immediate from lookup,
+defaults, and base projection.  Retargeting changes no core clause or
+child and leaves the actual index unchanged.  Bound variables may be chosen fresh throughout. Reindexing a generic
+declaration leaves its actual image, parameter, and every subsequent actual
+type unchanged; the same induction therefore also proves equivariance
+under renaming generic declarations.
+\end{proof}
+
+\subsection{Good evaluations and substitution}
+\label{obs:goodness}
+
+Arbitrary stored trees need not respect substitution: the default used
+at an inactive function can hide syntax that later becomes relevant.
+We identify the trees for which this cannot occur.  Goodness will
+depend on the raw images $\xi$, but never on their parameters $\theta$.
+
+For an active Val evaluation, define goodness by the following clauses.
+A lambda is good if its body is good under every typed raw extension
+$x:=n$ for which the actual next type is active.  An application with
+inactive actual function layer is good if its syntactic head is a
+variable.  An application with active function layer is good if the
+function is good and the argument is good whenever its actual layer is
+active.  A product whose base is overridden is good if its product
+candidate is good.  Lookups and all other default clauses are good
+without further conditions.
+
+The goodness of a used product candidate means that its domain Read is
+good when used, and its codomain Read is good under \emph{every} typed
+raw extension having actual codomain profile in $S$.  There is no
+candidate-membership restriction on these extensions.  For Read,
+defaults outside actual profile $S$, and sorts, are good.  A product
+Read in $S$ is good when its product candidate is good.  A remaining
+Read in $S$, with expected sort $s$, is good if $\{s\}\in S$ and,
+when $\operatorname{Ax}(s)$ is inactive, its syntactic head is a
+variable; when that layer is active, its Val must be good.
+These are again definitions by the Val/Read syntax order, and their
+binder clauses quantify over raw terms, not over reduction sequences.
+
+\begin{lemma}[Basic goodness facts]\label{obs:goodness-basic}
+Goodness has the structural invariances of
+Lemma~\ref{obs:structural-invariance}.  If the actual expression profile
+and $\{s\}$ are in $S$ and $\operatorname{Ax}(s)$ is active, then
+Read$(M:s)$ is always the base projection
+\eqref{obs:read-base}, at every syntactic shape, and its goodness is
+equivalent to Val goodness.
+
+Every normal syntax tree is good for active Val, under every typed raw
+substitution.  A normal tree $M:s$ is good for Read whenever its generic
+expression profile belongs to $U\cup S$.
+\end{lemma}
+\begin{proof}
+Structural invariance follows by the same recursion as for evaluation,
+matching all typed raw binder extensions by conversion.  For the base
+projection assertion, the sort case gives top on both sides, the
+product case is exactly the override, and all other cases use
+\eqref{obs:read-base}.  In the product case its literal core sort equals
+$s$ because it is convertible to $s$.  The goodness clauses agree for
+the same reason.
+
+Prove the normal-syntax claims simultaneously in the Val/Read syntax
+order and universally over typed raw substitutions.  Normal applications
+are variable-headed, so skipped ones are good.  Lambda bodies are
+normal and the induction hypothesis applies to every typed extension.
+At an overridden normal product, its generic profile contains the
+core sort $s$, with $\{s\}\in S$.  The positive inclusion edge places
+that generic profile, and hence both child profiles, in $U\cup S$.
+The child Read induction hypotheses prove all required goodness
+conditions.  The same predecessor argument applies at product Read.
+For a nonsort, nonproduct normal Read whose actual profile is in $S$,
+the generic profile cannot be in $U$, since growth from $U$ stays in
+$U$.  It is therefore in $S$.  The normal expression is neutral and
+has singleton generic profile $\{s\}$, giving exactly the required
+Read condition; its Val, when needed, is good by induction.
+\end{proof}
+
+\begin{lemma}[Substitution of a good value]\label{obs:substitution}
+Let a tree over $\Gamma,x:D,\Delta$ be given, and let $u$ be a tree of
+$\Gamma\vdash N:D$.  Substitute $u$ capture-avoidably at occurrences
+of $x$, transporting the context, expectations, and generation data.
+Give the resulting context a typed environment, and give the original
+context a compatible environment whose image of $x$ is convertible to
+the actual expression $N\xi$.  Require the remaining corresponding
+parameters to agree.
+
+Let $I=\pi((D\xi)^\#)$.  Assume that $I$ is active whenever $I\in H$.
+If $I$ is active, assume Val$(u;\xi)$ is good and use its value as the
+original parameter of $x$.  Then a good Val or Read evaluation before
+substitution is good after substitution, and the two outputs are equal.
+\end{lemma}
+\begin{proof}
+Composition of capture-avoiding substitutions makes corresponding
+actual images convertible and corresponding actual types equal.
+Induct on the original tree in the Val/Read order.  An active lookup
+of $x$ is exactly the chosen value of $u$; thinning and retargeting
+preserve it by structural invariance.  Other lookups agree.
+
+At a binder, rename its variable fresh for $N$.  The same raw binder
+image and payload extend both environments, the hypotheses on $I$
+remain unchanged, and the induction hypothesis applies.  This gives
+equality at every legal frame or every raw observation and proves all
+universally quantified goodness requirements.  At a product the root
+persists.  Domain Reads agree by induction; for every raw tester and
+payload the codomain Reads agree by the binder argument.  Thus the
+entire product candidates agree and remain good.  At an unskipped
+application, the evaluated children agree by induction and its normal
+argument keys agree by conversion, so it extracts the same output.
+
+It remains to justify the skipped clauses, where an arbitrary change of
+head would invalidate the argument.  Suppose a skipped, variable-headed
+application had head $x$.  Trace its successive actual typing products
+backward along the spine.  There is a primary positive path from its
+active result layer to $I$, passing through its supposedly inactive
+function layer.  The path stays in $H$ by positive closure.  By
+hypothesis $I$ is active; consequently every vertex on the path reaches
+a direct vertex and is active.  This is a contradiction.  The head is
+therefore a different variable and persists under substitution, so the
+skipped application stays good and keeps its default.
+
+For a skipped nonproduct Read, goodness supplies $\{s\}\in S$ and a
+variable head.  If that head were $x$, the same spine argument would
+start at $\operatorname{Ax}(s)$.  This is nonempty because a neutral
+typed at $s$ has sorted $s$, and it is a seed in $H$.  It would reach
+the active vertex $I$, forcing $\operatorname{Ax}(s)$ active, contrary
+to this being a skipped Read.  Thus that head also persists.  In the
+active case use the all-shape base projection of
+Lemma~\ref{obs:goodness-basic} and the Val induction already proved,
+even if substitution changes the root shape.  Read outside actual
+profile $S$ stays the same default.  This exhausts the clauses.
+\end{proof}
+
+\subsection{Reduction and normal-tree independence}
+\label{obs:reduction}
+
+\begin{lemma}[Reduction transport]\label{obs:reduction-transport}
+A one-step full beta reduction of a typed expression transports its
+tree to a tree of the reduct at the same expected type.  For every
+environment, good Val and Read evaluations remain good and their
+outputs are preserved.  This includes reductions in annotations.
+\end{lemma}
+\begin{proof}
+Construct the transported tree independently of its environment.  At
+contextual steps transport the changed child.  A change in a product
+domain context-converts its open codomain tree.  A change in a lambda
+annotation also transports the supporting product typing by subject
+reduction and context-converts the open body.  A change in an
+application argument changes its core result type to a convertible
+one; subject reduction retains the root expectation.
+
+Induct on the reduction position, simultaneously for Val and Read.
+At evaluated children use the induction hypothesis.  At binders apply
+it under every typed raw extension required by goodness; structural
+invariance handles the context-converted unchanged children.  Actual
+types, gates, and argument keys are unchanged.  At a skipped
+variable-headed spine, a reduction can only be inside its arguments;
+the head and skipped condition persist.  Ignored children need no
+semantic property, only the transported typing.  For a remaining Read
+with active base projection, apply the Val statement already proved
+at the same root.  A Read outside actual profile $S$ remains default.
+
+At a root contraction $(\lambda x:D.P)N\longrightarrow P[N/x]$,
+generation and product compatibility align the lambda annotation and
+body type with the application's stored product.  Retarget the
+argument to the annotation type, substitute its tree in the body, and
+retarget the result to the old expectation.
+
+Consider a good active Val.  The application cannot have been skipped,
+since its syntactic head is a lambda.  Let $K,L$ be the actual function
+and result layers, respectively.  They are active.  By
+Lemma~\ref{obs:graph-lemma}, the actual domain layer $I$ is active
+whenever it belongs to $H$.  The argument is good if $I$ is active.
+Evaluation uses the valid normal key $(N\xi)^\#$ and, when required,
+the payload Val$(N)$.  The lambda equation gives its body value with
+this key, including at an exit where the lambda supplied the correct
+tag.  The raw image $N\xi$ is convertible to its normal form.
+Structural invariance therefore identifies this body value with the
+one at the raw image, with the same payload.  Lambda goodness supplies
+body goodness for both typed extensions.  Lemma~\ref{obs:substitution}
+now identifies that value with the beta contractum and proves its
+goodness.  No strong normalization of $N\xi$ was used.
+
+For a Read with actual profile in $S$, a skipped clause at the root is
+impossible because the head is a lambda.  Its goodness therefore
+provides the active all-shape base projection, and the preceding Val
+argument applies.  This proves the root case and the lemma.
+\end{proof}
+
+\begin{lemma}[Independence on normal syntax]\label{obs:normal-independence}
+On a fixed normal expression in a fixed generic context, Val is
+independent of its stored tree whenever the root expectations are
+convertible.  Read is independent of the stored tree and of its chosen
+literal expected sort.
+\end{lemma}
+\begin{proof}
+Induct in the Val/Read syntax order, comparing the same environments.
+Variables use the same declaration parameter and sorts use defaults.
+For product Val, convertible expected types force its two literal core
+sorts to agree.  The override condition is therefore identical.  For
+product Read, the product candidate compares the child Reads
+independently of their sort choices, by induction.  Its raw extensions
+and actual indices agree, so the candidates are equal.
+
+For a lambda, product compatibility aligns the body expectations up to
+conversion.  The annotation is fixed syntax.  The body Val induction
+therefore compares every frame and observation.  In a normal
+application the function is variable-headed, so its generic type is
+unique up to conversion.  Product compatibility aligns the domains and
+codomains in the two application trees.  The function and argument
+Val induction hypotheses give the same keys, payloads, and selected
+outputs.  Finally, a normal nonsort, nonproduct expression is neutral
+and has a unique literal sort.  Thus any nondefault Read uses the same
+Val base.  These are all normal syntactic shapes.  Only neutral type
+uniqueness has been used; functionality of the specification is not
+assumed.
+\end{proof}
+
+\subsection{The candidate interface}
+\label{obs:interface}
+
+We can now return from raw observations to the candidate interpretation.
+For a generic normalized type $T$ with $\pi(T)\in S$, choose any
+literal sort typing of $T$ and put
+\begin{equation}\label{obs:R-definition}
+        R_T(\xi,\theta)=\operatorname{Read}(T;\xi,\theta).
+\end{equation}
+It is independent of the choice by
+Lemma~\ref{obs:normal-independence}.  At generic profiles outside $S$
+use the typed-SN top, as in the candidate interface.  At actual
+profiles in $U$, all candidates are top by the already established
+equality with $G$.
+
+\begin{proposition}[Observation interpretation]\label{obs:interface-theorem}
+Assume system-wide weak normalization and \eqref{obs:forbidden}.
+Then \eqref{obs:R-definition} gives candidates with the required
+weakening and context-conversion invariance and nonempty parameter
+extensions.  It has the product test clause and the specialization
+property: if $T=\Pi x:D.E$ is generic normalized of profile in $S$,
+$\Gamma\vdash N:D$, and $N\xi$ passes its domain test, then the test
+of a candidate member $h$ entails
+\[
+                   h\,(N\xi)\in R_{(E[N/x])^\#}(\xi,\theta).
+\]
+The ordinary typed-SN clause applies when the instantiated actual
+profile lies in $U$.
+\end{proposition}
+\begin{proof}
+Candidate membership and the product clause are the Read construction
+and the candidate test lemma.  The interpretation's invariances follow
+from structural invariance and normal-tree independence.  Every active
+space has its distinguished member, so arbitrary context extensions
+can always be supplied with parameters.
+
+For specialization, if the actual product profile is in $U$, its
+candidate is the top and hence equals $G$.  The domain tester is
+strongly normalizing.  Propagation of $G$ along this typed argument
+gives the required typed strong normalization at the instantiated
+profile, which also lies in $U$.  We may therefore suppose the actual
+product profile $K$ is in $S$.  First suppose that the actual
+instantiated codomain profile $L$ is in $S$, and let $I$ be the actual
+domain profile.  Lemma~\ref{obs:graph-lemma} places the open codomain profile in $S$.
+Thus if $I\in H$, the definition makes $I$ direct and hence active;
+in particular, every active $I$ is direct.  Normalize the generic argument
+$N$ to $N^\#$, retaining its type $D$ by subject reduction.  If $I$ is
+active, choose as binder payload
+\[
+                     v=\operatorname{Val}(N^\#:D;\xi,\theta).
+\]
+This exists and is good by normal-syntax goodness.  The product test
+quantifies over every payload and therefore includes this choice.
+
+Its open codomain $E$ is normal, with generic profile in $U\cup S$,
+so its Read is good.  Apply Lemma~\ref{obs:substitution} to substitute
+$N^\#$ there, using the raw image $N\xi$.  This image is convertible
+to $N^\#\xi$, as required.  The lemma identifies the tested open
+codomain Read with the good Read of the generic expression
+$E[N^\#/x]$.  This expression is typed by substitution and hence
+weakly normalizing by the system hypothesis.  Transport its tree along
+a normalizing sequence using Lemma~\ref{obs:reduction-transport}.
+Its normal form is precisely $(E[N/x])^\#$, because $N$ and $N^\#$
+are convertible.  Normal-tree independence identifies the final Read
+with \eqref{obs:R-definition} at that type.
+
+For completeness, its generic profile belongs to $U\cup S$: it has a
+positive ascent to the original product profile.  It cannot belong
+to $U$ when its actual profile is $L\in S$, because profile growth
+from $U$ stays in $U$.  Thus \eqref{obs:R-definition} is indeed the
+appropriate generic $S$ entry.  If the actual instantiated profile is
+in $U$, the test demands typed strong normalization and the processed
+component identity identifies this with the required top candidate.
+These are the only actual profiles reached from the current component.
+\end{proof}
+
+Nothing in this construction requires $H$ to be nonempty.  If it is
+empty there are no active spaces or parameters.  A normal neutral Read
+of generic profile in $S$ would have profile $\{s\}$ with sorted $s$,
+which would supply the nonempty seed $\operatorname{Ax}(s)$ in $H$.
+Thus that case cannot occur, and the sort/product clauses complete the
+same construction without an extra assumption.
+
+The uses of weak normalization in this section are now explicit.  It
+provides the normal forms of actual types, argument keys, and raw typed
+substitutions, and it normalizes the generic expressions used in the
+specialization proof.  Strong normalization enters only through the
+candidate tests already specified in the normalization interface.  The
+remaining task is to derive \eqref{obs:forbidden} from weak normalization.

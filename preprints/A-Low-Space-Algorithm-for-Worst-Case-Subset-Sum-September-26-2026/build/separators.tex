@@ -1,0 +1,419 @@
+\section{Weighted disjointness in bounded space}\label{sec:separator}
+
+The parent schedule produces two arrays of records, each consisting of
+an actual weight and a top-mixer mask. We want one record from each
+array whose weights sum to a given target and whose masks are disjoint. A separating set
+turns this into an ordinary weight search: retain the left records whose
+sets lie inside it, and the right records whose sets lie outside it.
+Every pair of retained records is then disjoint. Sorting their weights
+finds an exact complementary pair, if one exists.
+
+The simplest illustration uses a block of $g$ indices, with $g$ divisible
+by four. Suppose each side of a fixed disjoint pair occupies $g/4$
+indices. A uniformly sampled set of size $g/2$ separates this pair with
+probability
+\[
+ \frac{\binom{g/2}{g/4}}{\binom{g}{g/2}}.
+\]
+Indeed, the sampled set must include the left $g/4$ indices, exclude
+the right $g/4$ indices, and choose its remaining $g/4$ elements from
+the $g/2$ unused indices. Sampling a family whose size is a constant
+times the reciprocal of this probability gives a constant chance of
+covering the fixed pair. An individual record can occur in several
+members of this family; those occurrences determine the work.
+
+We will apply this idea on four blocks. The left and right cardinalities
+may differ, so the sampled set size is biased to control occurrences on
+both sides. We first specify the distribution. We then show how to
+search its useful index tuples without storing all tuples or testing
+all pairs of records.
+
+This construction follows the separating-set approach of Nederlof and
+W\k{e}grzycki~\cite[full version, Section~6]{NW21}, which builds on the
+separating collections of Fomin, Lokshtanov, Panolan, and
+Saurabh~\cite[Section~4.2, Definition~4.3 and Lemma~4.5]{FLPS16}.
+We use the affine bias from Nederlof and W\k{e}grzycki's
+construction~\cite[full version, Lemma~6.6]{NW21}, with the
+cardinality-range extension of its entropy estimate by Belova, Chukhin,
+Kulikov, and Mihajlin~\cite[full version, Section~4.7]{BCKM24}.
+The rounding, traversal, and exact estimate required here are proved below.
+
+\subsection{Inputs and sampled families}
+
+Recall the parameters $u,m,g,C$ from \eqref{eq:parameters}. The four
+blocks in the representation layout give the partition
+\[
+ M_0=T_1\sqcup T_2\sqcup T_3\sqcup T_4,\qquad |T_i|=g.
+\]
+Write $k=k_0/m\in[1/6,1/4]$, where $k_0$ is the prescribed left
+mask size. To recall the balanced block counts explicitly, write
+$k_0=4d+r$ with $0\le r<4$ and put $c_i=d+1$ for $i\le r$ and
+$c_i=d$ otherwise. Then $\sum_i c_i=k_0$ and $|c_i-kg|<1$.
+The left array $\mathcal L$ and right array
+$\mathcal R$ are nonempty and have lengths at most $C$. Their records
+are $(x,D)$ and $(y,E)$, respectively, with $D,E\subseteq M_0$ and
+\begin{equation}\label{sep:cardinalities}
+ |D\cap T_i|=c_i,\qquad |E\cap T_i|=g/2-c_i
+ \quad(1\le i\le4).
+\end{equation}
+These conditions do not assert that an arbitrary pair is disjoint.
+For the transformed target $t'$, the required output is YES only if some
+pair satisfies
+\begin{equation}\label{sep:target}
+ D\cap E=\varnothing,\qquad x+y=t'.
+\end{equation}
+Array lengths count occurrences; distinct records are not required.
+
+The actual weights and target have magnitude below
+$2^{b+\lceil\log(n+2)\rceil+4}$. The exact arithmetic, masks, and
+array indices used here fit in a constant number of the words specified
+in Section~\ref{sec:introduction}; all stored tables and retained
+random choices count as workspace. The space bound for this check
+will hold on every outcome of the randomness.
+
+Let
+\[
+ \alpha=\log 3,\qquad
+ \alpha_m=\frac{\lfloor\log(3^m)\rfloor}{m},\qquad
+ e=\left\lfloor g\left(\frac12+
+              \alpha_m\left(k-\frac14\right)\right)\right\rfloor.
+\]
+The logarithm floor in $\alpha_m$ is the bit length of the integer
+$3^m$ minus one; no real-number oracle is needed. For each block set
+\begin{equation}\label{sep:families}
+ \nu_i=\left\lceil
+  10\binom{g}{e}\bigg/\binom{g/2}{e-c_i}
+ \right\rceil,
+ \qquad \mathcal F_i=(S_{i,1},\ldots,S_{i,\nu_i}).
+\end{equation}
+All $S_{i,j}$ are independent, and $S_{i,j}$ is a uniform $e$-element
+subset of $T_i$. The families are indexed: equal sampled sets retain
+their separate indices. The arrays and target are fixed independently
+of all four families.
+
+The binomial arguments in \eqref{sep:families} are feasible for
+large $n$. To see this, put
+\[
+ \zeta=\frac12+\alpha\left(k-\frac14\right),\qquad
+ Y=\zeta-k=\frac14+(\alpha-1)\left(k-\frac14\right).
+\]
+Then $e=\zeta g+O(1)$ and $c_i=kg+O(1)$, uniformly in
+$k\in[1/6,1/4]$. Since $1<\alpha<2$, $Y$ stays strictly between
+$0$ and $1/2$ throughout this interval.
+
+As in Lemma~\ref{lem:entropy}, $h$ denotes binary entropy and
+$h_*=h(1/4)$.
+
+\begin{lemma}[Weighted disjointness]\label{lem:separator}
+For the input and independent families just specified, there is a
+weighted-disjointness check with the following guarantees, for all
+sufficiently large $n$.
+\begin{enumerate}
+\item It returns YES only for a pair satisfying
+\eqref{sep:target}. For every fixed pair satisfying that relation,
+the probability that the check finds a solution is at least
+$1-4e^{-10}$.
+\item Preprocessing the families takes at most
+$\poly(n)2^{2g}$ operations and words. Thereafter the expected check
+work is at most
+\[
+ (|\mathcal L|+|\mathcal R|)\,u^{22}2^{(1-h_*)m}.
+\]
+\item Workspace, including preprocessing, is deterministically at most
+$O(nC+n^2+2^{2g})$ words. Any execution stopped early has no
+larger work or space usage than the complete traversal used in these
+bounds.
+\end{enumerate}
+The probability statements concern the stated ideal uniform families.
+Generating them with at most $n^3$ attempts per ordinary rejection
+draw also has deterministic cost $\poly(n)2^{2g}$, or reports sampling
+failure. It can be coupled to the ideal families with failure
+probability $\exp(-\Omega(n^2))$.
+\end{lemma}
+
+\begin{proof}
+We first check coverage of one fixed pair. We then describe a traversal
+whose workspace is bounded for every family outcome. Its time will be
+charged to individual occurrences of input records, and an entropy
+estimate will bound their expectation.
+
+\paragraph{Coverage of one pair.}
+Fix a pair satisfying \eqref{sep:target}. On block $T_i$, a sampled
+set must contain its left mask and avoid its right mask. Their union
+has size $g/2$, so the separation probability is exactly
+\[
+ \theta_i=\binom{g/2}{e-c_i}\big/\binom{g}{e}.
+\]
+Equation~\eqref{sep:families} gives $\nu_i\theta_i\ge10$.
+The probability that no family member separates the pair on this
+block is at most $(1-\theta_i)^{\nu_i}\le e^{-10}$.
+A union bound over the four blocks shows that some tuple of family
+indices separates the whole pair with probability at least
+$1-4e^{-10}$. This is coverage of a fixed pair; no simultaneous
+coverage assertion for every pair is needed.
+
+\paragraph{Preprocessing and the traversal.}
+A left record is compatible with index $j$ on block $i$ when
+$D\cap T_i\subseteq S_{i,j}$; a right record is compatible when
+$(E\cap T_i)\cap S_{i,j}=\varnothing$.
+For every mask on each block, store both sorted lists of compatible
+indices, one for containment and one for avoidance. Since
+$\binom{g/2}{e-c_i}\ge1$,
+\[
+ \nu_i\le10\cdot2^g+1.
+\]
+Store a block mask and a family index in one word each. For each block
+and each of its $2^g$ masks, the two incidence lists together need at
+most $2\nu_i$ index words; their offsets and lengths use only a
+constant number of words. Across the four blocks, a flat array of
+capacity at most $8\cdot2^g(10\cdot2^g+1)$ suffices for their
+contents. Generating the families needs $O(2^g+n)$ words, including
+the current permutation. Local-index maps and other control data
+use at most $O(n^2)$ words. Thus the families and incidence tables
+occupy $O(2^{2g}+n^2)$ words. Filling the lists in increasing index
+order costs $\poly(n)2^{2g}$ operations.
+A binary search in the stored list decides whether a record has a compatible index in
+any given interval of family indices.
+
+Process the blocks in order. For the current block, begin with its
+whole index interval $[1,\nu_i]$. Filter both received arrays to
+records having a compatible index in this interval. If either filtered
+array is empty, finish this branch. Otherwise split a nonsingleton
+interval into two nearly equal intervals and visit both children. At
+a singleton, fix that family index and enter the next block with the
+filtered arrays. After fixing all four indices, sort the two arrays
+by actual weight and search for weights summing exactly to $t'$.
+
+Every pair at this last search is disjoint, because its left mask lies
+inside the chosen set and its right mask lies outside it on every
+block. Thus a reported YES is valid. A fixed pair separated by a tuple
+of indices remains in both arrays on the entire path to that tuple.
+It therefore reaches an exact-weight search, unless a previous search
+has already returned YES. This proves the coverage guarantee.
+
+Use depth-first traversal and retain the parent arrays until their
+children finish. Each depth has its own buffers, written only up to
+their current lengths. In particular, a small filtered array does
+not require clearing a length-$C$ buffer. The combined depth of the
+four interval trees is at most
+\[
+ 4+\sum_{i=1}^4\lceil\log\nu_i\rceil\le m+20=O(n).
+\]
+At each depth at most two arrays of length $C$ are retained, and each
+record occupies a constant number of words. The retained-buffer term
+is therefore $O(nC)$ words, including the input arrays. Sorting at a
+terminal branch uses only $O(C)$ additional words, and stack control
+uses $O(n)$ words. Together with the incidence tables this gives the
+explicit bound
+\begin{equation}\label{sep:workspace}
+ O(nC+n^2+2^{2g})\quad\text{writable words}.
+\end{equation}
+This bound applies to every choice of the families and every feasible
+input array. Any other arrays retained by the caller are additional.
+
+\paragraph{Charging the visited occurrences.}
+Fix one input occurrence, and let $t_i$ be its number of compatible
+indices in family $i$. For a compatible prefix of previously fixed
+indices, the occurrence is scanned at the next block's root. If
+$t_i=0$, that scan removes it. If $t_i>0$, it can pass the filter only
+on paths to its $t_i$ compatible leaves. The union of these paths has
+$O(t_i(1+\log\nu_i))$ nodes; scans into their children have the same
+order of cost. There are at most $\prod_{r<i}t_r$ compatible
+prefixes before block $i$. Its scans at that block are consequently
+bounded by a polynomial factor times
+\[
+ \left(\prod_{r<i}t_r\right)(1+t_i).
+\]
+The term $1$ is necessary even when $t_i=0$.
+
+An interval predicate costs $O(n)$ operations, including binary
+search and local-mask extraction, and each tree has depth $O(n)$.
+After the fourth block, sorting and searching cost $O(n)$ operations
+per surviving occurrence. These costs give an $O(n^2)$ factor in
+the preceding scan count.
+Node overhead can be charged to scans because a child or new block is
+entered only with nonempty arrays. For sufficiently large $n$, the
+complete charge to this input occurrence is at most
+\begin{equation}\label{sep:charge}
+ u^4\sum_{j=0}^4\prod_{i=1}^j t_i,
+\end{equation}
+where the empty product equals one. This charge bounds a traversal
+which completes all branches even after finding a solution. Stopping
+at a YES, an operation limit, or any earlier point can only reduce
+its work.
+
+\paragraph{Expected incidences on one block.}
+For a fixed left mask of size $c=c_i$, the probability of containment
+in a uniform $e$-set is
+$\binom{g-c}{e-c}/\binom{g}{e}$. Since
+$\nu_i\le11/\theta_i$,
+\begin{equation}\label{sep:incidence}
+ \E t_i\le
+ 11\binom{g-c}{e-c}\bigg/\binom{g/2}{e-c}.
+\end{equation}
+Apply the binomial bounds of Lemma~\ref{lem:entropy}.
+Set
+\[
+ X=1-k,\qquad
+ Y=\frac14+(\alpha-1)\left(k-\frac14\right),\qquad
+ E(k)=Xh(Y/X)-\frac12h(2Y).
+\]
+Those bounds show that the logarithm of the
+right-hand side of \eqref{sep:incidence} is at most
+\begin{equation}\label{sep:entropy-rate}
+ gE(k)+O(\log n).
+\end{equation}
+The bound is uniform in $k\in[1/6,1/3]$. Indeed, $Y$ lies between
+$k$ and $1/4$, and $Y/X$ and $2Y$ stay away from zero and one on
+this compact interval. Their entropy derivatives are bounded in a
+fixed neighborhood. The $O(1)$ rounding of $c$ and $e$ therefore
+changes each binomial entropy exponent by only $O(1)$. The lower
+binomial bound for the denominator contributes at most
+$\log(g/2+1)$ in addition to constants.
+
+For right records use the complements of the sampled sets. Write
+\[
+ k'=\frac12-k,\qquad c'=g/2-c,\qquad e'=g-e.
+\]
+The complemented sets are uniform $e'$-sets. Their ideal bias is
+$1-\zeta=1/2+\alpha(k'-1/4)$, and rounding again costs only a
+bounded amount. The family-size denominator stays the same because
+\[
+ e'-c'=g/2-(e-c),\qquad
+ \binom{g/2}{e'-c'}=\binom{g/2}{e-c}.
+\]
+Thus \eqref{sep:incidence}--\eqref{sep:entropy-rate} apply to
+right records with $k'\in[1/4,1/3]$. It remains to prove one sharp
+entropy bound covering both sides.
+
+\paragraph{The exact entropy bound.}
+We claim
+\begin{equation}\label{sep:sharp}
+ E(k)\le1-h_*\qquad(1/6\le k\le1/3).
+\end{equation}
+Let $F=(\ln2)E$, $Z=X-Y$, and $W=1/2-Y$. Expanding entropy gives
+\[
+ F=X\ln X-Z\ln Z-\frac12\ln\frac12+W\ln W.
+\]
+Consequently
+\[
+ F'=\ln\frac{Z}{X}+(\alpha-1)\ln\frac{Z}{W},
+ \qquad
+ F''=\frac1X-\frac{\alpha^2}{Z}
+                  +\frac{(\alpha-1)^2}{W}.
+\]
+All denominators are positive even on $[0,1/2]$: explicitly,
+\[
+ Z=\frac{2+\alpha}{4}-\alpha k,
+ \qquad W=\frac\alpha4-(\alpha-1)k,
+ \qquad 1<\alpha<2.
+\]
+The ratio $Z/W$ decreases on this interval, since
+\[
+ \left(\frac{Z}{W}\right)'=\frac{\alpha-2}{4W^2}<0.
+\]
+Hence $Z/W\le(2+\alpha)/\alpha$. Also $Z/X\le1$, since
+$Y>0$. Multiplying the second derivative by $Z$ now gives
+\[
+ ZF''=\frac{Z}{X}-\alpha^2+(\alpha-1)^2\frac{Z}{W}
+ \le1-\alpha^2+(\alpha-1)^2\frac{2+\alpha}{\alpha}
+ =-2+\frac2\alpha<0.
+\]
+Thus $E$ is strictly concave. At $k=1/4$ we have
+$X=3/4$, $Z=1/2$, and $W=1/4$, so
+$F'=\ln(2/3)+(\alpha-1)\ln2=0$. Its maximum is therefore
+\[
+ E(1/4)=\frac34h(1/3)-\frac12=1-h(1/4).
+\]
+The last identity follows from
+$h(1/3)=\log3-2/3$ and $h(1/4)=2-(3/4)\log3$.
+This proves \eqref{sep:sharp} without a positive error in its
+exponential rate.
+
+Combining \eqref{sep:incidence}--\eqref{sep:sharp}, for either
+side and every block,
+\[
+ \E t_i\le u^4 2^{(1-h_*)g}
+\]
+for sufficiently large $n$. The four block families are independent,
+so expectations of the products in \eqref{sep:charge} factor.
+Since $1-h_*>0$ and $m=4g$, each of the five terms in
+\eqref{sep:charge} has expectation at most
+$u^{20}2^{(1-h_*)m}$. Their sum is at most
+$u^{22}2^{(1-h_*)m}$ for large $n$. Summing over input occurrences proves the
+expected work bound. The preceding construction already proved the
+deterministic space bound.
+
+Finally, a uniform $e$-set is obtained by taking the first $e$
+positions of a uniform permutation of its block. Generate each
+permutation from fresh successive range draws, with the bounded
+implementation of Lemma~\ref{lem:samplers}. Across all four families
+there are at most
+\[
+ 4g(10\cdot2^g+1)
+\]
+such calls. Its conditional per-call bound gives a coupling failure
+probability at most $4g(10\cdot2^g+1)2^{-n^3}$, which is
+$\exp(-\Omega(n^2))$. The bound uses the ideal product law and
+subtracts the coupling failure; it does not condition that law on
+successful bounded sampling. Allowing all $n^3$ attempts per draw
+adds only a polynomial factor to the generation work, which fits
+$\poly(n)2^{2g}$ together with preprocessing.
+\end{proof}
+
+\subsection{Reusing the same families}
+
+The check can be called repeatedly with the same four families.
+Different calls are then correlated, but their work still adds by
+linearity of expectation. The necessary condition is that the full
+list of their input arrays be fixed independently of those families.
+
+\begin{corollary}[Reusing the families]\label{cor:separator-reuse}
+Fix a finite list of checks satisfying the input conditions of
+Lemma~\ref{lem:separator}, with common block parameters, and let
+\[
+ N_{\mathrm{check}}=\sum_{\text{checks}}(|\mathcal L|+|\mathcal R|).
+\]
+The list may itself be random, provided that, conditional on the list
+and its parameters, the four families have the independent
+distributions \eqref{sep:families}. In the ideal experiment, the
+expected total check work conditional on the list and its parameters
+is at most
+\[
+ W_0=N_{\mathrm{check}} u^{22}2^{(1-h_*)m}.
+\]
+Preprocessing is paid once. Processing checks one at a time uses the
+check workspace of Lemma~\ref{lem:separator}, in addition to any
+storage retained by the caller. For any $0<\delta<1$, total
+check work exceeds $W_0/\delta$ with probability at most $\delta$.
+Suppose a designated check and a solution pair in it are also chosen,
+and that conditional on the list, its parameters, and these choices,
+the families still have the independent distributions
+\eqref{sep:families}. Then with probability at least
+$1-4e^{-10}-\delta$ the pair is covered and the total check work is
+at most $W_0/\delta$.
+\end{corollary}
+
+\begin{proof}
+An empty list has $N_{\mathrm{check}}=0$ and zero check work. Otherwise
+condition on the complete list and its parameters, and apply Lemma~\ref{lem:separator}
+to each input occurrence and sum expectations. Markov's inequality
+gives the work bound. For the last assertion, condition additionally
+on the designated check and pair. The family law is unchanged, so
+the same expected-work bound holds and the pair has coverage
+probability at least $1-4e^{-10}$. A union bound intersects the
+coverage and work events; those events need not be independent.
+\end{proof}
+
+In the Subset Sum application, continue parent generation as if checks
+never returned YES and as if no operation cap were present, retaining
+all dictionary overflow rules. This defines the complete check list
+without consulting the separating families. Conditional on the layout,
+their sampled product law is independent of all parent-generation
+choices. It therefore remains unchanged after fixing that list and a
+designated check and witness selected from it using only those choices.
+Corollary~\ref{cor:separator-reuse} applies once
+Section~\ref{sec:resources} bounds the total input length of this list.
+The actual run visits only an initial portion of its work; the list
+itself is never stored, and coverage is required only for the selected
+pair.

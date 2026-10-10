@@ -1,0 +1,255 @@
+\section{Introduction}\label{s:introduction}
+
+An exact linear equation may contain arbitrarily fine real information.
+Indeed, \(d\) independent Gaussian equations determine a vector in
+\(\R^d\) almost surely, because their coefficient matrix has full rank.
+A streaming learner with finitely many persistent states cannot retain
+the equations themselves at arbitrary precision. We study how many
+fresh equations it needs to estimate a direction when the information
+passed from one observation to the next is bounded in bits.
+
+\begin{definition}[Finite-state Gaussian stream]\label{s:model}
+Fix integers \(d\ge2\), \(M\ge0\), and \(T\ge0\), and an accuracy
+\(0<\epsilon\le1/10\). For a signal \(s\in S^{d-1}\), the observations
+are
+\[
+ X_t\sim N(0,I_d),\qquad Y_t=\ip{X_t}{s},\qquad 1\le t\le T,
+\]
+with the \(X_t\) independent. The learner reads these pairs in order.
+At every sample index its persistent state has at most \(2^M\) possible
+values. Its transition and stopping rules may depend on the index,
+\(d,M,T,\epsilon\), the current state, the entire current pair, and
+fresh randomness. Computation within a transition is unrestricted.
+All information retained for a later sample must be in the finite state.
+
+The learner stops at an index \(\tau\in\{0,\ldots,T\}\) and returns
+\(\widehat s\in S^{d-1}\). Its output law depends only on the terminal
+state, \(\tau\), and fresh randomness. Thus the last pair affects the
+output only through the terminal state.
+
+A shared random seed may choose the rules before the stream starts. The pair consisting of this seed
+and the initial state is jointly independent of the signal and all
+sample rows; in particular, conditional on the seed, initialization
+carries no signal or sample information. Conditional on the seed,
+fresh transition and output randomness has no additional signal or
+sample information, and the rules have only the arguments just listed.
+
+The original randomized experiment is required to be jointly
+measurable in the signal, pre-generated rows, seed, initialization,
+and fresh transition and output randomness. For almost every fixed
+seed, pair-input probabilities may be Borel measurable, or measurable
+in the completion of
+\(\gamma_d(dx)\,dy\), where \(\gamma_d=N(0,I_d)\) and \(dy\) is
+Lebesgue measure. Joint measurability of the original experiment is
+required also in the latter case; separate measurability assertions
+for individual seeds do not by themselves define its mixture.
+The sample bound \(T\) is a deterministic finite horizon.
+\end{definition}
+
+The model charges persistent bits rather than real registers. It
+permits a different rule at every index and does not limit the work
+performed on the current sample.
+
+\begin{theorem}[Explicit noiseless precision bound]\label{s:main}
+Let \(M:\mathbb N\to\mathbb Z_{\ge0}\) satisfy \(M(d)=o(d^2)\).
+There is a dimension threshold depending only on this memory sequence
+such that, for every larger \(d\), every \(0<\epsilon\le1/10\), and
+every learner in Definition~\ref{s:model}, the following implication
+holds. If \(S\) is uniform on \(S^{d-1}\), independently of the
+Gaussian rows and learner randomness, and
+\[
+ \Prob\{\arccos\ip{\widehat s}{S}\le\epsilon\}\ge\frac23,
+\]
+then
+\begin{equation}\label{s:main-bound}
+ T\ge 2^{-16}d\log_2(1/\epsilon).
+\end{equation}
+\end{theorem}
+
+\begin{corollary}[Guarantees for every signal]\label{s:worst-signal}
+Under the memory assumption of Theorem~\ref{s:main}, suppose a learner
+satisfies
+\[
+ \Prob_s\{\arccos\ip{\widehat s}{s}\le\epsilon\}\ge\frac23
+ \qquad\text{for every }s\in S^{d-1},
+\]
+where \(\Prob_s\) averages its observations and randomness at the fixed
+signal \(s\). Then \eqref{s:main-bound} holds at the same dimension
+threshold.
+\end{corollary}
+\begin{proof}
+Integrate the displayed guarantee over a uniform signal, then apply
+Theorem~\ref{s:main}.
+\end{proof}
+
+The dimension threshold is uniform in the accuracy; no relation between
+accuracy and memory is assumed. For example, when
+\(\epsilon=d^{-r}\le1/10\), the conclusion is
+\(T\ge2^{-16}r d\log_2 d\).
+
+\subsection*{Context and ancestry}
+
+
+Memory restrictions affect statistical risk already in sparse noisy
+regression, as shown by Steinhardt and Duchi
+\cite[Section~1.1, equation~(2)]{SteinhardtDuchi2015}.
+Steinhardt, Valiant, and Wager related bounded-memory inference to
+communication and statistical-query models and posed a quadratic-memory
+versus exponential-sample question for parity learning
+\cite[Section~1.1, Conjecture~1]{SVW2016}. Raz established the
+qualitative separation through finite-width branching programs
+\cite[Theorem~1]{Raz2016}. These works make explicit the distinction
+between information in a current observation and information that a
+finite state can carry forward.
+
+The closest continuous-regression comparison among these sources is
+Sharan, Sidford, and Valiant \cite{SSV2019}. Their Theorem~1 uses
+independent isotropic Gaussian covariates and independent uniform
+additive noise of half-width \(2^{-d/5}\). At Euclidean accuracy
+\(\epsilon=d^{-r}\), for \(r\le O(d/\log d)\) in the range specified
+there, at most \(d^2/4\) bits and success probability at least \(2/3\)
+require \(\Omega(d\log r)\) samples
+\cite[Theorem~1]{SSV2019}. Their proof experiment draws the target
+uniformly on the sphere \cite[Section~2]{SSV2019}. The exact labels in
+Definition~\ref{s:model} are more informative than noisy labels, so
+that noisy lower bound alone does not give Theorem~\ref{s:main}.
+The condition-number conjecture in their Section~1.1 concerns a
+different, ill-conditioned Gaussian experiment at constant accuracy.
+
+Dagan, Kur, and Shamir give related space lower bounds for distinct
+linear-prediction tasks \cite{DKS2019}. Their published Theorem~3 asks
+for an approximate null vector of independent Gaussian rows. Their
+Theorem~10 concerns empirical residual error on a finite equation
+system formed from jointly conditioned rows and one fixed equation.
+Those targets and observation laws differ from the fixed-signal
+precision problem considered here.
+
+Our block analysis uses high moments of several directions drawn in
+one random subspace. The use of independent copies and successive
+orthogonalization has a close predecessor in the high-moment
+calculation of Sharan, Sidford, and Valiant
+\cite[Section~7, Lemma~12]{SSV2019}. Their calculation concerns a noisy
+interval projection under a global \(L^2\) density hypothesis. The
+local argument below instead conditions an exact Gaussian block and
+controls its residual subsphere. Classical beta laws for random
+projections are discussed by Frankl and Maehara
+\cite{FranklMaehara1990}; all normalized densities, conditional laws,
+and inequalities used here are proved locally.
+
+\subsection*{Exact observations and residual subspheres}
+
+For a Euclidean linear space \(H\), write \(S(H)\) for its unit sphere
+and \(\sigma_H\) for uniform probability on that sphere. We test the
+success probability of a learner on affine subspheres
+\begin{equation}\label{s:affine-sphere}
+ z+rS(H),\qquad z\perp H,\quad r>0,\quad \norm z^2+r^2=1.
+\end{equation}
+The dimension of this test means the linear dimension \(D=\dim H\).
+Fix the shared seed and the learner's rules. At a block boundary, let
+\(g_v(s)\) be the success probability of the
+remaining computation started in state \(v\), using fresh samples.
+This function is defined even when \(v\) is unreachable at target
+\(s\). The proof bounds its average on every test
+\eqref{s:affine-sphere} of sufficiently large dimension.
+
+To evaluate one such average, draw the target uniformly on the affine
+test, independently of fresh block rows. A block of \(1\le b<D\)
+Gaussian rows identifies the target's projection
+\(p\) onto their row span in \(H\). Conditional on the full block
+data, the target is uniform on
+\[
+ z+p+\rho S(K),\qquad \rho^2=r^2-\norm p^2,
+\]
+where \(K\) is the perpendicular complement of that row span in
+\(H\). When the experiment is instead conditioned on the observed
+projection \(p\), the space \(K\) is uniform among the
+\((D-b)\)-dimensional subspaces of \(E=H\cap p^\perp\).
+Thus the block leaves a random residual subsphere, even though the
+learner may process its exact real data without computational limits.
+Section~\ref{s:residual-spheres} proves these conditional laws.
+
+The state chosen after the block may depend on its entire matrix and
+all its labels. We account for this choice before averaging away the
+matrix data: the resulting success probability is bounded by the
+maximum over the possible continuation states. For fixed \(p,\rho\),
+write
+\[
+ F_v(K)=\int g_v(z+p+\rho u)\,d\sigma_K(u).
+\]
+If the block can choose among at most \(W\) states, then for every
+positive integer \(h\),
+\[
+ \E_K\max_v F_v(K)
+ \le\left(\sum_v\E_K F_v(K)^h\right)^{1/h}.
+\]
+A bound on the \(h\)-th moment therefore charges state selection by
+\(W^{1/h}\). The moment is an average over \(h\) directions drawn
+independently in the same random space \(K\); those directions are
+correlated after \(K\) is averaged out.
+
+\subsection*{Proof of the precision bound}
+
+The central task is to control this correlation without spending a
+new test dimension for every direction. Conditional on preceding
+directions with span \(V\), the next direction has more mass near
+\(V\) than a uniform direction in \(E\). The comparison in
+Section~\ref{s:beta-mixture} bounds its law by an exponential factor
+times two simpler probability laws. The first is uniform on
+\(S(E)\). The second chooses one direction in \(V\) and then draws a
+uniform direction on a latitude perpendicular to it. Both laws can
+be bounded by the same suffix estimate on affine subspheres: the
+first uses dimension \(D-1\), and the second dimension \(D-2\).
+Every factor in the moment uses these same tests. Thus a block costs
+only two test dimensions, although it contains a number of samples
+proportional to \(d\).
+
+The residual radius and the comparison-latitude radii contribute
+inverse-radius moments. Their squared radius fractions have beta
+laws, and finite beta products bound these moments explicitly.
+Together with a moment order proportional to \(d\), this gives a
+uniform upper bound on success that can be propagated backward over
+the blocks. The terminal bound is a spherical cap estimate.
+
+There is still a dimension constraint: this induction is useful only
+while the test spheres remain large. Section~\ref{s:stopping} supplies
+that constraint from the learner model. There are at most
+\((T+1)2^M\) terminal index-state pairs. Counting their cap
+probabilities shows that a successful putative run with
+\(T=O(d\log(1/\epsilon))\) must have
+\(\log(1/\epsilon)=o(d)\) when \(M=o(d^2)\). Such a run contains
+only \(o(d)\) blocks, so the induction has sufficient dimensions.
+A full-data residual estimate handles bounded precision.
+
+The direct proof of Theorem~\ref{s:main} therefore proceeds through
+the continuation and residual laws in Section~\ref{s:residual-spheres},
+the cap and common-subspace direction facts in
+Section~\ref{s:subspace-moments}, the stopping reductions in
+Section~\ref{s:stopping}, and the beta-mixture comparison in
+Section~\ref{s:beta-mixture}.
+
+\subsection*{Further analytic formulations}
+
+The same geometric setup also gives bounds that apply to arbitrary
+bounded continuation functions, whether or not they arise from a
+learner. Section~\ref{s:weighted-proof} develops a second way to
+control the correlated directions. A cap estimate bounds mass in a
+tube around the preceding span, and summing shells controls the
+singular conditional density. This yields
+Theorem~\ref{s:weighted-theorem}: a block selecting among at most
+\(W\) continuations increases their radius-weighted subsphere means
+by at most \(W^{1/h}C^d\), with \(h=\lfloor d/16\rfloor\),
+while lowering the test dimension by two.
+Its terminal bound gives the same precision rate at success
+probability \(1/2\), with an unspecified absolute coefficient.
+
+Section~\ref{s:affine-invariant} gives an explicit version of the
+suffix estimate simultaneously on all admissible affine subspheres.
+An even radius exponent lets its inverse-radius moment be evaluated
+by a finite beta product, retaining explicit constants throughout.
+Section~\ref{s:fixed-length} gives a different extension: its
+induction compares actual learners in different ambient dimensions
+and permits arbitrary Euclidean outputs at every positive error
+tolerance. The key step simulates a latitude target by a smaller
+Gaussian learner without increasing its state set. These are
+additional formulations of the method; the numerical coefficient in
+Theorem~\ref{s:main} comes from the beta-mixture proof.

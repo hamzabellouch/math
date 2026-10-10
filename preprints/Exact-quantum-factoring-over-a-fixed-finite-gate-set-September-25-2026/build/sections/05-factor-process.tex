@@ -1,0 +1,288 @@
+\section{Factoring with verifiable auxiliary data}\label{sec:process}
+
+We next organize the order trial into a factoring process.  Its successful
+output contains enough auxiliary information to compute, retrospectively,
+the exact probabilities of all its useful transitions.  This information
+is produced by the process itself; it is not supplied as advice.
+Throughout this section, $n$ and $B=2^n$ retain their values for the original
+input $N$, even when we work on a smaller integer.  We use $K$ repetitions
+within each randomized transition, at most $L$ transition slots, and $W$
+bits per transition output, where
+\begin{equation}\label{eq:process-parameters}
+ K=n^5,\qquad L=n^{10},\qquad W=n(K+1).
+\end{equation}
+
+For $M\ge2$, define $\D(M)$ to be the following rooted occurrence tree.
+The root records $M$ and its distinct prime factors in increasing order,
+together with their positive exponents.  For each distinct odd prime $p$ in that factorization, it has one
+child containing $\D(p-1)$; the children are ordered by $p$.  Equal labels
+under different parents are separate occurrences.  There is no child for
+$p=2$.  Every descent decreases the label, so this defines unique finite
+data.  We write $\D=\D(N)$.
+For example, the root of $\D(21)$ has children $\D(2)$ and $\D(6)$,
+associated with its prime factors $3$ and $7$. The second child has its
+own $\D(2)$ child, associated with the prime factor $3$ of $6$; the two
+occurrences of $\D(2)$ remain separate.
+
+The recursive $p-1$ structure recalls Pratt's succinct primality
+certificates~\cite{Pratt}. Here there are no primitive-root witness fields:
+prime labels are checked by Lemma~\ref{lem:primality}, and the auxiliary
+factorizations instead determine exact orders and transition probabilities
+retrospectively. The order-to-gcd splitting mechanism follows the
+Miller--Shor reduction~\cite{Miller,Shor}; its required unconditional
+counting argument is included in the proof below.
+
+\begin{proposition}[A process with verifiable transition probabilities]
+\label{prop:process}
+There is a uniformly polynomial-time process, using the order trial of
+Proposition~\ref{prop:order-trial}, with the following properties.
+\begin{enumerate}
+\item It either aborts or generates $\D$.  A deterministic polynomial-time
+verifier accepts exactly these complete data.  The process's classical controller
+makes at most $L$ transitions, and completed runs are padded to exactly $L$
+by constant-output dummy transitions.  Each transition output has a fixed
+$W$-bit encoding.
+\item Given $\D$ and the recorded classical input of a transition, one can
+compute a good-output predicate, one canonical good encoding, and the exact
+probability $s$ that an ordinary execution of that transition has a good
+output.  The probability $s$ is dyadic, has polynomial bit length, and obeys
+\[
+ s\ge1-2^{-2n}.
+\]
+For a dummy transition, its constant output is good and canonical, and
+$s=1$.
+\item Every evolution whose transition outputs are all good completes the
+tasks and generates $\D$ without aborting or reaching a resource cap.  This
+assertion also holds when good outputs are supplied directly.  The work is
+polynomially bounded on arbitrary output sequences as well, with malformed
+outputs causing an abort.
+\end{enumerate}
+Only the transition output is included in its $W$-bit encoding.  Internal
+order-trial registers and recorded computational history are separate
+workspace and may be retained.
+\end{proposition}
+
+The $W$-bit output is the string consumed by the controller. The completed
+tree supplies the arithmetic information for later tests, while the
+separate history and quantum work registers are retained for the inverse
+circuit. These are three different records; the output width does not
+bound the whole workspace.
+
+\begin{proof}
+We construct the process and verify these properties in turn.
+Each transition uses fresh work registers and fresh randomness.  Its
+classical output is copied to a history register before the controller
+uses it; earlier quantum work is retained as inactive workspace.
+Consequently, conditional on any recorded classical prefix, the next
+transition has exactly the distribution specified by its recorded
+classical inputs, even if earlier work registers remain entangled.
+
+\paragraph{The information contained in $\D$.}
+Suppose that a subfactor $m$ is being split while factoring a node $M$.
+From $\D$ we can factor $m$ by division from the prime list for $M$.
+Moreover, $\D$ supplies the factorization of $p-1$ for every odd prime
+$p\mid m$.  Thus it supplies the factorization of
+\begin{equation}\label{eq:totient-from-data}
+ \varphi(m)=\prod_{p^e\parallel m}(p-1)p^{e-1}.
+\end{equation}
+Here the formula follows by counting units modulo a prime power and using
+the Chinese remainder bijection; the latter follows from B\'ezout's
+identity.  The contribution from $p=2$ needs no child.
+
+Given this factorization and a unit $a$ modulo $m$, its order is computable
+exactly.  Start with exponent $v=\varphi(m)$.  For each prime $q$ in its known
+factorization, repeatedly replace $v$ by $v/q$ while $q\mid v$ and
+$a^{v/q}\equiv1\pmod m$.  The order divides
+$\varphi(m)$ by the coset proof of Lagrange's theorem.  Throughout the
+procedure it divides $v$, and at termination no excess prime factor can
+remain.  Hence the final $v$ is the order, and the remaining prime
+exponents give its factorization.  There are polynomially many modular
+powerings.  The same procedure applies to each prime-power component of
+$m$.  These are retrospective computations: they are used to evaluate
+recorded transitions once the data have been generated.
+
+We shall use the elementary bound
+\begin{equation}\label{eq:totient-lower-bound}
+ \frac{\varphi(d)}d\ge\frac1{n+1}\qquad(1\le d<B).
+\end{equation}
+Indeed, if $p_1<\cdots<p_k$ are the distinct prime divisors of $d$, then
+$k\le n$ and $p_i\ge i+1$, so the product formula gives
+$\varphi(d)/d\ge\prod_{i=1}^k i/(i+1)=1/(k+1)$.
+The empty product covers $d=1$.
+
+\paragraph{The controller and its two transitions.}
+To factor a node, apply the deterministic primality test in
+Lemma~\ref{lem:primality} to each current factor.  A prime is recorded;
+an even composite can be split by $2$; and a composite perfect power can
+be split by finding an integral root.  Root searches for exponents at
+most $n$ take polynomial time.  Consequently the remaining case is an odd
+$m$ having at least two distinct prime divisors.  We use the following two
+kinds of transition for this case.
+
+A list output consists of $K$ fields of $b_m=\lceil\log_2m\rceil$ bits,
+followed by zero padding to width $W$; an order output consists of one
+$n$-bit integer followed by zero padding to width $W$.  A dummy output is
+the all-zero $W$-bit string.  The controller rejects malformed padding,
+and every good-output predicate below requires a valid encoding.
+
+First, a \emph{list transition} generates $K$ independent uniform
+$b_m$-bit integers.  Entries outside
+$[0,m)$ and nonunits are ignored.  A list is good if some usable entry $a$
+has unequal values of
+\[
+ \nu_2\bigl(\ord_{p^e}(a)\bigr),\qquad p^e\parallel m,
+\]
+where $\nu_2$ denotes the exponent of $2$ in a positive integer.
+We now compute its good probability without enumerating residues.
+
+The nonzero elements of a prime field form a cyclic group.  For
+completeness, let $T$ be the least common multiple of their orders.
+Lagrange's theorem gives $T\mid p-1$, while the root bound for $X^T-1$
+gives $p-1\le T$.  The exponent of a finite abelian group is attained:
+for each prime power dividing that exponent, take a suitable power of an
+element whose order contains that prime power, then multiply these
+elements of pairwise coprime orders.  Thus there is an element of order
+$T=p-1$.
+
+Write $p-1=h2^\ell$, with $h$ odd.  In this cyclic group the counts at
+levels $0,1,\ldots,\ell$ are
+$h,h,2h,\ldots,2^{\ell-1}h$.  Reduction of units modulo $p^e$ to units
+modulo $p$ has an odd kernel of size $p^{e-1}$.  The order of an element
+and the order of its reduction therefore have the same $2$-adic level,
+and each residue has $p^{e-1}$ lifts.  The corresponding counts modulo
+$p^e$ are
+\begin{equation}\label{eq:level-counts}
+ p^{e-1}h,\quad p^{e-1}h,\quad
+ 2p^{e-1}h,\quad\ldots,\quad 2^{\ell-1}p^{e-1}h.
+\end{equation}
+No level has more than half the units.
+
+Let $c_i(t)$ be these counts for the prime-power components of $m$,
+extended by zero outside their ranges.  The Chinese remainder bijection
+makes the levels independent for a uniform unit.  Since there are at
+least two components, the probability that all levels agree is at most
+$1/2$: for the first two level laws $q_1,q_2$,
+$\sum_t q_1(t)q_2(t)\le\max_t q_1(t)\le1/2$.
+The number of favorable residues is therefore exactly
+\[
+ F=\varphi(m)-\sum_t\prod_i c_i(t)\ge\frac{\varphi(m)}2.
+\]
+There are at most $n$ components and $n+1$ levels, so this formula is
+polynomial-time computable from $\D$.  By
+\eqref{eq:totient-lower-bound} and $2^{b_m}\le2m$, the list's exact good
+probability is
+\begin{equation}\label{eq:list-good-probability}
+ s=1-\left(1-\frac{F}{2^{b_m}}\right)^K,
+ \qquad \frac{F}{2^{b_m}}\ge\frac1{4(n+1)}.
+\end{equation}
+A canonical good list has first entry equal to the Chinese remainder
+residue that is $1$ on the component corresponding to the smallest prime
+and $-1$ on all others, followed by zeros.  Its first entry has levels $0$ and $1$.
+
+Second, for every usable entry $a$, an \emph{order transition} runs $K$
+independent order trials.  It outputs the smallest returned candidate,
+or $0$ if there was none.  If $r=\ord_m(a)$, goodness means that this
+output is $r$, which is also the canonical good output.  By
+Proposition~\ref{prop:order-trial}, every nonempty candidate is a positive
+multiple of $r$, and the probability of the candidate $r$ in one trial is
+$\varphi(r)\lambda(r)$, where
+$\lambda(r)=2^{-\lceil\log_2r\rceil-10}$.  Consequently
+\begin{equation}\label{eq:order-good-probability}
+ s=1-\bigl(1-\varphi(r)\lambda(r)\bigr)^K,
+ \qquad \varphi(r)\lambda(r)\ge\frac1{2048(n+1)}.
+\end{equation}
+The last bound follows from \eqref{eq:totient-lower-bound} and
+$2^{\lceil\log_2r\rceil}\le2r$, also when $r=1$.
+
+Equations~\eqref{eq:list-good-probability} and
+\eqref{eq:order-good-probability} give exactly computable dyadics.
+Their denominator exponents are at most $nK$ and $(n+10)K$, respectively.
+For either transition, the lower bound on the one-trial success parameter
+$x$ gives
+\[
+ Kx\ge\frac{n^5}{2048(n+1)}
+       \ge\frac{n^4}{4096}\ge2n
+       \qquad(n\ge128).
+\]
+Thus $(1-x)^K\le e^{-2n}<2^{-2n}$, proving the required uniform bound on
+$s$.  The good predicates, probabilities, and canonical outputs are all
+computable from $\D$ and the classical inputs $m$ or $(m,a)$.
+
+\paragraph{Why good transitions produce a split.}
+For every positive even order output $r'$, try
+$\gcd(a^{r'/2}-1,m)$ and accept it only if it is a proper nontrivial
+divisor.  If no entry produces a split, abort.
+If the list and its order transitions are good, choose an entry with
+unequal local levels and let $r$ be its true order.  By the Chinese
+remainder bijection,
+\[
+ r=\operatorname*{lcm}_{p^e\parallel m}\ord_{p^e}(a).
+\]
+The largest local $2$-adic level is positive.  The local orders at smaller
+levels divide $r/2$, whereas
+at a largest-level component $a^{r/2}$ has order two.  The only square
+roots of $1$ modulo an odd prime power are $1$ and $-1$: in
+$(x-1)(x+1)\equiv0\pmod{p^e}$ the entire odd prime power divides one
+factor.  Hence $a^{r/2}$ equals $1$ on the smaller-level components and
+$-1$ on the largest-level components.  The gcd is a proper nontrivial
+divisor.  This proves that all-good outputs prevent an abort at every
+split, regardless of how those outputs were obtained.
+
+After completely factoring a node, the controller creates its specified
+children and factors them in a fixed order.  Once all these tasks have
+finished, it fills unused transition slots with dummy transitions.
+
+\paragraph{Size bounds and verification.}
+The binary splitting tree for one node $M$ has at most $\log_2M$ leaves:
+all leaf labels are at least two and their product is $M$.  A partial run
+has at most $\log_2M$ split attempts as well, including a possible final
+failed attempt.  At each auxiliary-tree descent,
+\[
+ \sum_{\substack{p\mid M\\p>2}}\log_2(p-1)
+ \le\sum_{p\mid M}\log_2p\le\log_2M.
+\]
+Thus the total logarithmic size at any depth is at most $\log_2N<n$.
+In two successive descents $M\to p-1\to q-1$, the intermediate label is
+even and $q>2$ divides it, so $q-1<(p-1)/2<M/2$.
+There are therefore fewer than $2n+2$ levels.  Since every node label is
+at least two, each contributes at least one to the logarithmic size;
+the tree has at most $(2n+2)n$ node occurrences.  Summing the split-attempt
+bound over the same levels gives at most $(2n+2)n$ split tasks.
+Each uses at most $K+1$ transitions, whence
+\[
+ \#\{\text{list and order transitions}\}
+ \le(2n+2)n(K+1)\le6n^7<n^{10}=L.
+\]
+All deterministic work and all $K$ trials within an order transition
+also have polynomial bounds.
+
+These bounds hold even for bad output sequences.  Only genuine gcd
+splits are accepted, prime leaves are verified, and children are created
+only from the resulting actual prime factors.  An abort only shortens
+the work.  Fixed polynomial caps on work and storage can therefore be
+imposed without excluding any all-good evolution.  Each node's prime
+list has at most $n$ entries of polynomial bit length, so the occurrence
+bound also bounds the storage for the complete data.  A list has at most
+$nK$ unpadded bits, and an order value, including zero, has $n$ bits.
+Thus the specified encodings fit within $W$ bits and give each canonical
+output a unique string.
+The controller depends only on these classical outputs, and internal
+quantum work can be retained without being treated as part of an output.
+
+Finally, the complete data are polynomially verifiable.  Require the root
+label to be $N$. Before arithmetic, reject node labels outside $[2,B)$,
+proposed prime labels outside $[2,M]$ at a node $M$, exponents outside
+$[1,n]$, and lists or trees exceeding the preceding polynomial size caps.
+At a node $M$, require strictly increasing prime labels, check primality
+using Lemma~\ref{lem:primality}, and check the factorization's product.
+Then require exactly the ordered children $p-1$ for the distinct odd primes
+in that list and apply the same
+checks recursively.  Reject missing or extra children and malformed or
+oversized records; a partial product may be rejected as soon as it exceeds
+$M$. These guards make the verification polynomial even on arbitrary
+invalid records, and no true data violate them.
+Unique prime factorization implies that an accepted tree is exactly
+$\D(N)$; only the operational split history may vary.  The all-good
+splitting argument ensures that every all-good evolution supplies this
+complete tree.  This proves the proposition.
+\end{proof}

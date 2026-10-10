@@ -1,0 +1,238 @@
+\section{The algorithm and its guarantee}
+\label{d:sec-algorithm}
+
+We now assemble the preceding constructions into a deterministic algorithm.
+The input consists of a vertex set \(V=\{1,\ldots,n\}\) and nonnegative
+integer multiplicities \(k_{\{i,j\}}\) for distinct vertex pairs, written in
+binary; an omitted pair has multiplicity zero.  Listing parallel edges
+individually is also allowed, since their multiplicities can first be
+counted.  Let \(N\) be the number of perfect matchings, with parallel
+edge choices distinguished.  Fix the vertex and pair orderings, and use
+the deterministic cut procedure of Section~\ref{d:sec-odd-cuts}.
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+\item \textbf{Handle the elementary cases.}
+If \(n=0\), return \(1\).  If \(n\) is odd, return \(0\).
+If \(n=2\), return \(k_{\{1,2\}}\).
+Sort the endpoint labels occurring in positive-multiplicity pair records
+and count the distinct labels. If fewer than \(n\) occur, an isolated
+vertex forces the count to be zero; return \(0\).
+This test uses the input records even when \(n\) is supplied in binary,
+before allocating any array indexed by all vertices or pairs.
+
+\item \textbf{Set up the complete-pair objective.}
+Now \(n\ge4\) is even.  Use all \(p=\binom n2\) pair coordinates.
+Compute \(b_{\max},L,\beta\) from Equation~\eqref{d:eq-completion-weights},
+and let \(K\) be the least nonnegative integer with \(2^K\ge p\).
+Define \(\psi\) and \(f\) by Equations~\eqref{d:eq-dyadic-chords}
+and~\eqref{d:eq-surrogate-objective}.
+Set \(A_0=10n^2\), define \(w\) by Equation~\eqref{d:eq-max-violation},
+and compute \(M_0,\Phi,D_0\) from Equation~\eqref{d:eq-penalty-parameters}.
+Set
+\[
+                 N_{\mathrm{it}}=pD_0,\qquad a^{(0)}=0\in\mathbb Z^p.
+\]
+The integer vector \(a^{(j)}\) represents \(x^{(j)}=a^{(j)}/D_0\).
+
+\item \textbf{Evaluate and update \(N_{\mathrm{it}}\) trial points.}
+For \(j=0,\ldots,N_{\mathrm{it}}-1\), do the following.
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item Apply Lemma~\ref{d:lem-odd-cut-oracle} to the integral capacities
+\(a^{(j)}_e\), with every vertex terminal, obtaining a minimum-capacity
+odd cut \(S_j\).  At \(x=x^{(j)}\), compare
+\[
+ 0,\quad x(\delta(1))-1,\quad 1-x(\delta(1)),\quad\ldots,\quad
+ x(\delta(n))-1,\quad 1-x(\delta(n)),\quad 1-x(\delta(S_j)).
+\]
+Their maximum is \(w(x)\).  Select the first maximizing expression in
+this list and let \(r^{(j)}\in\{-1,0,1\}^p\) be its linear coefficient
+vector.  Evaluate \(\Phi(x)\) exactly and retain the largest trial value
+seen so far.
+\item In each coordinate choose the right-hand slope \(\sigma_e^{(j)}\)
+of \(\psi\) at \(x_e^{(j)}\), using the left-hand slope at \(1\).
+Set
+\[
+             g_e^{(j)}
+                =\sigma_e^{(j)}+\beta_e-M_0r_e^{(j)}.
+\]
+These are the integral supergradients from
+Lemma~\ref{d:lem-exact-penalty}.
+\item Update the integer numerators by
+\[
+ a_e^{(j+1)}
+       =\min\!\left\{D_0,\,
+             \max\{0,a_e^{(j)}+g_e^{(j)}\}\right\}
+       \qquad(e\in E(K_n)).
+\]
+\end{enumerate}
+
+\item \textbf{Return the estimate.}
+Let
+\[
+           R=\left\lfloor
+                  \max_{0\le j<N_{\mathrm{it}}}\Phi(x^{(j)})
+              \right\rfloor.
+\]
+If \(R<-10n\), return \(0\).  Otherwise return
+\[
+                      A=2^{\rho},
+             \qquad \rho=\max\{0,R-5n\}.
+\]
+\end{enumerate}
+
+The slope convention and the ordering in Step~3 settle all remaining
+ties.  The numerator update is exactly the clipped step
+\(x^{(j)}+g^{(j)}/D_0\) of Lemma~\ref{d:lem-projected-ascent}.
+
+\begin{proof}[Approximation guarantee in Theorem~\ref{thm:algorithm-guarantee}]
+The elementary cases return the exact count, so suppose \(n\ge4\) is
+even and the algorithm reaches the optimization.
+Lemma~\ref{d:lem-projected-ascent}, Lemma~\ref{d:lem-dyadic-entropy}, and
+Corollary~\ref{d:coarse-weighted} give, respectively,
+\[
+ R\le f^*\le R+2,\qquad
+ f^*\le q^*\le f^*+n,\qquad
+ q^*-4n\le\log_2 Z_\beta\le q^*+n.
+\]
+Combining them yields
+\begin{equation}
+\label{d:eq-algorithm-partition-bracket}
+       R-4n\le\log_2 Z_\beta
+              \le R+2n+2\le R+3n.
+\end{equation}
+If \(N=0\), Lemma~\ref{d:lem-penalized-count} gives
+\(\log_2 Z_\beta\le-20n\), hence \(R\le-16n<-10n\).
+If \(N>0\), the same lemma gives \(Z_\beta\ge1\), hence
+\(R\ge-3n>-10n\).  Thus the zero test is exact.
+
+Now let \(N>0\).
+The inequalities \(Z_\beta\le2N\) and
+\(Z_\beta\ge2^{-n/2}N\), again from
+Lemma~\ref{d:lem-penalized-count}, imply
+\begin{equation}
+\label{d:eq-algorithm-count-bracket}
+ R-5n
+   \le R-4n-1
+   \le\log_2 N
+   \le R+\frac{7n}{2}
+   \le R+4n.
+\end{equation}
+Also \(\log_2N\ge0\), so
+\(\rho=\max\{0,R-5n\}\le\log_2N\).
+Since \(\rho\ge R-5n\), Equation~\eqref{d:eq-algorithm-count-bracket} gives
+\(\log_2N-\rho\le9n\).
+Exponentiating proves \(A\le N\le2^{9n}A=512^nA\).
+\end{proof}
+
+\begin{proposition}[Bit complexity]
+\label{d:prop-bit-complexity}
+The algorithm above is uniform and deterministic, and its running time
+and output length are polynomial in the input bit length.
+\end{proposition}
+
+\begin{proof}
+The elementary cases require only integer operations on the input.
+In the remaining case put \(\tau=n+b_{\max}+1\), so \(\tau\ge5\).
+The parameters have polynomial numerical magnitude, not just polynomial
+bit length.  Indeed \(p\le\tau^2\), \(K\le n\le\tau\),
+\(2^K<2p\), \(L=100\tau^3\), and \(A_0\le10\tau^2\).
+Consequently
+\begin{equation}
+\label{d:eq-parameter-size-bounds}
+\begin{aligned}
+ M_0
+   &=p(K+L)(2+A_0)
+        \le1212\,\tau^7,\\
+ D_0
+   &=p(K+L+M_0)^2
+        \le1313^2\,\tau^{16},\\
+ N_{\mathrm{it}}
+   &=pD_0
+        \le1313^2\,\tau^{18}.
+\end{aligned}
+\end{equation}
+Here \(K+L\le101\tau^3\) and \(2+A_0\le12\tau^2\) give the first
+inequality, and \(K+L+M_0\le1313\tau^7\) gives the second.
+The exponent of each positive multiplicity is obtained from its binary
+length: \(\lfloor\log_2 k_e\rfloor=\operatorname{bitlen}(k_e)-1\).
+No logarithm is evaluated numerically.
+
+The update preserves
+\(a_e^{(j)}\in\{0,\ldots,D_0\}\), because every supergradient coordinate is
+integral.  Thus every iterate has denominator dividing \(D_0\).
+On a noninitial dyadic interval the affine formula for \(\psi\) is
+\((k-1)t+2^{-k}\), and on the interval next to zero it is \(Kt\).
+The intercept denominators therefore divide \(2^K\).
+Every degree or cut sum, and hence \(w(x^{(j)})\), has denominator
+dividing \(D_0\).  A single common denominator for all trial objectives is
+\begin{equation}
+\label{d:eq-fixed-objective-denominator}
+                             Q=D_0\,2^K.
+\end{equation}
+This denominator does not grow with the number of iterations or with
+changes of dyadic piece.  The piece comparisons, objective comparisons,
+and the final floor can all be made by exact integer arithmetic.
+
+For an explicit bound on the operands, \(0\le w(x)\le n\) on the box,
+and
+\[
+        |f(x)|\le p(1+L),\qquad
+        |\Phi(x)|\le p(1+L)+nM_0,
+        \qquad x\in[0,1]^p.
+\]
+Together with Equation~\eqref{d:eq-parameter-size-bounds} and
+\(2^K<2p\), these bounds show that all objective numerators with
+denominator \(Q\) have polynomial magnitude in \(\tau\).
+The supergradients, scaled capacities, and counters do as well.
+Their bit lengths are therefore \(O(\log\tau)\).
+
+At any trial point, the cut oracle receives capacities \(a_e^{(j)}\),
+not the original multiplicities.  Their total is at most \(pD_0\).
+After any sequence of contractions, each surviving capacity is a sum
+of original capacities between two disjoint vertex blocks; internal
+edges are discarded.  Every original edge contributes to at most one
+surviving pair, so the same total bound holds throughout the recursion.
+By Lemma~\ref{d:lem-unit-mincut}, each terminal-pair computation uses at
+most \(pD_0\) unit augmentations.  Lemma~\ref{d:lem-odd-cut-oracle} uses
+\(O(n)\) recursive calls, each with \(O(n^2)\) terminal-pair
+computations.  Dense residual path searches take \(O(n^2)\) elementary
+operations.  The entire optimization thus uses at most
+\[
+            O\!\left(N_{\mathrm{it}}\,n^5(pD_0+1)\right)
+                         =O(\tau^{41})
+\]
+elementary graph and arithmetic operations, on integers of
+\(O(\log\tau)\) bits.  Standard integer arithmetic gives a polynomial
+bit bound.
+
+It remains to bound the length of the explicit integer output.
+Lemma~\ref{d:lem-projected-ascent} gives \(R\le f^*\).
+Since \(\psi(t)\le -t\log_2t\le1\) on \([0,1]\),
+\(\beta_e\le b_{\max}\), and \(\sum_e x_e=n/2\) on \(P(K_n)\),
+we have \(f^*\le p+b_{\max}n/2\).  This upper bound is nonnegative, so the
+clamped exponent satisfies
+\begin{equation}
+\label{d:eq-clamped-output-size}
+ \rho=\max\{0,R-5n\}
+       \le\max\{0,R\}
+       \le\max\{0,f^*\}
+       \le p+\frac{b_{\max}n}{2}.
+\end{equation}
+Writing \(2^\rho\) as a binary integer therefore takes
+\(O(n^2+nb_{\max}+1)\) bits and operations.  The zero and exact elementary
+outputs also have polynomial length.
+
+For an explicit vertex list, both \(n\) and \(b_{\max}\) are bounded by the
+input bit length.  The same conclusion holds when \(n\) is given in
+binary and only positive pair records are listed. The coverage test in
+Step~1 takes polynomial time in the input bit length. If it does not
+return zero, every vertex appears in a record, so \(n\) is at most twice
+the number of positive pair records. Thus the complete-pair allocation
+and the optimization are polynomial in this encoding as well.
+\end{proof}
+
+Theorem~\ref{thm:algorithm-guarantee} and
+Proposition~\ref{d:prop-bit-complexity} give both the approximation
+guarantee and its uniform polynomial bit implementation.
+If an upper estimate is preferred, \(512^nA\) lies between \(N\)
+and \(512^nN\).

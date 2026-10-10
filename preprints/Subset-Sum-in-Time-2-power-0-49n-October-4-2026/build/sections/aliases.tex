@@ -1,0 +1,450 @@
+\section{Extracting the modular aliases}
+\label{sec:aliases}
+
+The modular checksum includes subsets whose integer sum is not the target.
+This section lists precisely those unwanted subsets, so that their phase
+contributions can be subtracted.  We use multiple representations of a subset
+by two masks on a small common block, together with modular filtering.  This
+representation method and the distinction between many and few distinct
+subset sums have precedents in
+\cite{HGJ2010,AKKN2016,NederlofWegrzycki2021}.  The additional feature here is
+an exclusion rule: pairs with the exact target weight are skipped without
+being visited, even when their masks overlap.  That rule is what makes the
+number of visited pairs small.
+
+Throughout this section, fix the transformed weights $c_i$ and targets $t_s$
+from \eqref{eq:transformed}.  Their bit lengths are $O(b+\log n)$.
+The low-deficiency condition \eqref{eq:low-deficiency} will be used only
+to prove coverage; the list and pair bounds hold without it.  The algorithm
+does not test this condition.  It is the case in which the preliminary
+exact procedure need not already decide the instance.  For the present
+construction we impose the input-length guard
+\begin{equation}
+ b\le 2^{.00001n}.
+ \label{eq:bit-guard}
+\end{equation}
+The final algorithm uses an exact fallback when this guard fails.
+
+Choose a prime $P$ uniformly from
+$[2^{\lfloor\eta n\rfloor},2^{1+\lfloor\eta n\rfloor})$, where
+$\eta=.51772$, and put $b_i=c_i\bmod P\in\{0,\ldots,P-1\}$.
+For a target $t_s$, define its set of \emph{aliases} by
+\begin{equation}
+ \mathcal A_s(P)=
+ \left\{I\subseteq[n]:
+     \sum_{i\in I}c_i\equiv t_s\pmod P,
+     \quad \sum_{i\in I}c_i\ne t_s\right\}.
+ \label{eq:alias-definition}
+\end{equation}
+
+\begin{theorem}[Alias extraction]
+\label{thm:aliases}
+There is one randomized procedure with the following properties for all
+sufficiently large $n$.  Its input consists of the transformed integers
+$c_i=Ca_i+u_i$ and targets $t_s=Ct+s$, $0\le s\le nN_0$, of
+\eqref{eq:transformed}, with the input-length guard \eqref{eq:bit-guard}.
+It chooses $P$ uniformly from
+$[2^{\lfloor\eta n\rfloor},2^{1+\lfloor\eta n\rfloor})$
+among the primes and returns either failure or $P$ together with a
+deduplicated list of genuine aliases for each target.
+If $\mathbb E_{|V|=\lfloor n/2\rfloor}d(V)\le .01004n$, then, with
+probability $1-o(1)$ over $P$ and the remaining random choices, it does not
+fail and its lists equal
+$\mathcal A_s(P)$ simultaneously for every $s$.  The error bound is uniform
+over the transformed inputs satisfying these assumptions.
+
+For every outcome of its random choices, the procedure stores and visits at
+most $2^{\lceil\tau n\rceil}\operatorname{poly}(n)$ records, where
+$\tau=.48996$, and takes
+$2^{\tau n}\operatorname{poly}(n+b+2)$ elementary bit operations, apart
+from the implementation of exact uniform finite draws.  Those draws admit
+the bounded implementations in Section~\ref{sec:implementation}.
+\end{theorem}
+
+We first construct the filtered lists and show why the exact-integer
+exclusion keeps their enumeration small.  We then prove coverage: a
+random prime preserves the distinctions needed for many representations
+of each alias, and the smaller-modulus filter retains one of them with
+sufficient probability.
+
+\subsection{Representations and filtered lists}
+
+Set
+\begin{equation}
+ m=2\left\lfloor\frac{.0567n}{2}\right\rfloor,
+ \qquad \gamma=.48925.
+ \label{eq:alias-parameters}
+\end{equation}
+Thus $m$ is even.  All arguments below concern sufficiently large $n$,
+so $m>0$ and $17m/2\le\lfloor n/2\rfloor$.
+Write $h(x)=-x\log x-(1-x)\log(1-x)$ for binary entropy, with
+$h(0)=h(1)=0$.
+The numerical bounds $h(.0567)+.0567<.40$ and $h(1/4)<.81128$ used
+below follow, for example, from the logarithm series
+\eqref{eq:certificate-log}, after scaling its argument into $[1,2]$.
+
+Every alias $I$ of $t_s$ has a carry $q\in\{0,\ldots,n\}$ such that
+\begin{equation}
+ \sum_{i\in I}b_i=T_{s,q},
+ \qquad T_{s,q}=(t_s\bmod P)+qP.
+ \label{eq:alias-carry}
+\end{equation}
+For each $s$ and every $q=0,\ldots,n$, perform $n^{10}$ independent trials,
+conditional on $P$ and the transformed input.  A trial chooses a uniform
+$m$-element set $M\subseteq[n]$ and an independent uniform subset
+$F\subseteq[n]$.  These two draws have the same law for every $P$ and
+use randomness independent of it.
+The block $M$ supplies multiple representations: selected positions in
+it will be split between two masks.  For any fixed subset $I$, the flipped
+set $J=I\mathbin\triangle F$ selects exactly half of this block with
+inverse-polynomial probability, independently of the original cardinality
+of $I$.
+Introduce signed weights and translated targets
+\begin{equation}
+ \begin{aligned}
+  b_i^F&=(-1)^{\mathbf1_{i\in F}}b_i,
+  &T^F&=T_{s,q}-\sum_{i\in F}b_i,\\
+  c_i^F&=(-1)^{\mathbf1_{i\in F}}c_i,
+  &t_s^F&=t_s-\sum_{i\in F}c_i.
+ \end{aligned}
+ \label{eq:alias-flip}
+\end{equation}
+For every subset $I$, these definitions give
+\[
+ \sum_{i\in J}b_i^F=\sum_{i\in I}b_i-\sum_{i\in F}b_i,
+ \qquad
+ \sum_{i\in J}c_i^F=\sum_{i\in I}c_i-\sum_{i\in F}c_i.
+\]
+Thus flipping is a bijection, not a relaxation of the subset problem.
+
+Within the trial, consider every $k=0,\ldots,m/2$.  Partition the positions
+outside $M$ into ordinary left and right sets $L,R$, of sizes $l,r$,
+where $l+r=n-m$.  Choose $l$ so that
+\begin{equation}
+ N_L=2^l\binom mk,
+ \qquad N_R=2^r\binom m{m/2-k}
+ \label{eq:alias-raw-sizes}
+\end{equation}
+are within a factor of two.  Such a choice follows by rounding
+\[
+ l=\frac{n-m+\log\binom m{m/2-k}-\log\binom mk}{2}
+\]
+to the nearest integer.  The unrounded value lies between
+$(n-2m)/2$ and $n/2$, so the required partition exists.  The choice can
+be made by exact comparisons of integers, without logarithmic arithmetic.
+For definiteness, take the first $l$ positions of $[n]\setminus M$ as $L$.
+
+A left record is a pair $(A,X)$ with $A\subseteq L$, $X\subseteq M$,
+$|X|=k$; a right record is a pair $(B,Y)$ with $B\subseteq R$,
+$Y\subseteq M$, $|Y|=m/2-k$.  Each record stores both its signed reduced
+weight, obtained using $b_i^F$, and its signed unreduced weight, obtained
+using $c_i^F$.  At this point $X$ and $Y$ need not be disjoint.
+If they are disjoint, their union with $A,B$ represents a subset with
+exactly $m/2$ selected positions in $M$.
+
+For this $k$, independently draw a prime
+\[
+ P'\in[2^{\lfloor\gamma m\rfloor},2^{1+\lfloor\gamma m\rfloor})
+\]
+uniformly and then draw a uniform residue $j'\bmod P'$.  Keep left records
+whose signed reduced weight is $j'\bmod P'$, and right records whose
+signed reduced weight is $T^F-j'\bmod P'$.
+Only these filtered records are formed explicitly.
+
+To generate a filtered list, split its ordinary coordinate set into two
+parts as evenly as possible.  Enumerate subsets of one part together with
+all its permitted masks in $M$, and enumerate subsets of the other part.
+Sorting these two lists by their weights modulo $P'$ permits their
+matching pairs to be emitted in time polynomial in $n+b+2$ times the
+sum of their lengths and the number of emitted records.  Indeed, for each
+entry in one list, a binary search finds the interval of complementary
+residues in the other, after which only output records are visited.
+The setup work for both sides is at most
+\begin{equation}
+ \operatorname{poly}(n+b+2)
+     2^{m+\lceil\max(l,r)/2\rceil}
+ \le \operatorname{poly}(n+b+2)2^{.3067n+O(1)}.
+ \label{eq:alias-generation}
+\end{equation}
+Here $\max(l,r)\le n/2+O(1)$ follows from the balancing rule.
+
+\paragraph{The exact-integer exclusion.}
+From the filtered lists, enumerate only pairs whose signed reduced
+weights add to $T^F$ as integers and whose signed unreduced weights
+do \emph{not} add to $t_s^F$ as integers.  Both sums count mask positions
+with their multiplicities, including a position selected by both masks.
+The excluded pairs need not be generated: group the right records by
+signed reduced weight, and within each group sort by signed unreduced
+weight.  For a left record, locate the group with the required reduced
+weight.  The forbidden unreduced equality is a single contiguous interval
+inside that group.  Two binary searches locate its endpoints, and the
+algorithm visits only records outside that interval.
+
+For each visited pair, test whether $X\cap Y=\varnothing$.  If so,
+undo the flip on $A\cup B\cup X\cup Y$, check
+\eqref{eq:alias-definition} directly, and save the resulting alias for
+target $s$.  Deduplicate the saved subsets separately for each $s$.
+In particular, every saved record is a genuine alias, whether or not
+the procedure eventually finds all aliases.
+
+\subsection{Why the visited lists and pairs are small}
+
+The next estimates concern the uncapped construction.  They hold without
+the low-deficiency assumption and average over the original random
+choice of $P$.  In particular, we do not restrict $P$ to primes for
+which the later coverage argument succeeds.
+
+Conditional on all choices except $j'$, any fixed left or right record
+survives with probability $1/P'$.  Balancing
+\eqref{eq:alias-raw-sizes}, the entropy bound for binomial coefficients,
+and concavity of $h$ give
+\begin{align}
+ \log\mathbb E[\text{one filtered list length}]
+ &\le \frac{n-m}{2}
+    +\frac m2\left(h(k/m)+h(1/2-k/m)\right)
+    -\gamma m+O(1)\notag\\
+ &\le \frac n2+\left(h(1/4)-\frac12-\gamma\right)m+O(1)
+ <.48992n
+ \label{eq:alias-list-bound}
+\end{align}
+for sufficiently large $n$.  The last inequality uses $h(1/4)<.81128$;
+the coefficient obtained from this upper bound is $.489909101$.
+
+To bound visited pairs, fix $s,q,k$, the block $M$, the flip $F$, and
+two \emph{raw} records.  The indices $s,q,k$ range over predetermined
+integers; in particular $q$ is fixed while $P$ is averaged.
+These records and their ordinary-coordinate
+partition can be fixed independently of $P$.  Let $\mu_i\in\{0,1,2\}$
+be their combined multiplicity at position $i$, and define
+\begin{equation}
+ D=\sum_i(-1)^{\mathbf1_{i\in F}}\mu_i c_i
+       -t_s+\sum_{i\in F}c_i.
+ \label{eq:alias-fixed-difference}
+\end{equation}
+This is a fixed integer independent of $P$; in particular neither the
+reduced weights nor the carry target occurs in its definition.
+The exact-integer exclusion requires $D\ne0$.  The reduced-weight equality
+implies $P\mid D$, because $T_{s,q}\equiv t_s\pmod P$ and
+$b_i\equiv c_i\pmod P$.
+The integer $D$ has $O(b+\log n)$ bits, even when masks overlap.
+Lemma~\ref{lem:prime-collision} therefore gives
+\begin{equation}
+ \Pr_P[\text{both integer tests hold}]
+ \le\operatorname{poly}(n)(b+\log n)2^{-\eta n}.
+ \label{eq:alias-large-modulus-bound}
+\end{equation}
+For $D=0$ the pair is always excluded, so its contribution is zero.
+
+Conditional on $P,P',M,F$ and the raw records, the smaller-modulus filters
+can both hold for at most one value of $j'$.  Their probability is
+therefore at most $1/P'\le 2^{1-\gamma m}$, regardless of whether the
+reduced-weight equality holds.  Combining this bound with
+\eqref{eq:alias-large-modulus-bound} and summing over the $N_LN_R$ raw
+pairs yields
+\begin{align}
+ \mathbb E[\text{visited pair count}]
+ &\le \operatorname{poly}(n)(b+\log n)
+      2^{n+(2h(1/4)-1-\gamma)m-\eta n}\notag\\
+ &<2^{.48988n}
+ \label{eq:alias-pair-bound}
+\end{align}
+uniformly under \eqref{eq:bit-guard}, for sufficiently large $n$.
+Indeed, using $h(1/4)<.81128$ and the guard, the coefficient of $n$
+before polynomial factors is at most $.489848677$.
+
+This is the reason to exclude exact equalities before testing mask
+disjointness.  If exact equalities for overlapping pairs were visited,
+they could have $D=0$ and would not satisfy the nonzero-divisor estimate.
+The sorted-interval exclusion avoids their cost entirely.
+
+Cap each filtered list and each visited-pair count at
+\begin{equation}
+ C_{\mathrm{alias}}=2^{\lceil\tau n\rceil}.
+ \label{eq:alias-cap}
+\end{equation}
+The procedure returns failure before emitting a record that would exceed
+a cap.  There are only polynomially many choices of $s,q$, trial, and
+$k$.  Markov's inequality and
+\eqref{eq:alias-list-bound}--\eqref{eq:alias-pair-bound} show that a cap
+is exceeded with probability $o(1)$, uniformly over guarded inputs.
+On every execution, including one that fails, list generation,
+interval searches, mask checks, storage, and deduplication take at most
+$2^{\tau n}\operatorname{poly}(n+b+2)$ bit operations, by
+\eqref{eq:alias-generation} and the caps.
+
+\subsection{Why every alias is recovered}
+
+It remains to prove that the constructed representations cover every
+alias.  The low-deficiency condition will provide many distinct mask
+weights on a randomly selected block.  We first show that, with high
+probability, reduction modulo $P$ preserves all distinctions of this kind.
+
+\begin{lemma}[Sparse distinctions]
+\label{lem:sparse-distinction}
+With probability $1-o(1)$ over $P$, the following implication holds
+simultaneously for every $v\in\{-1,0,1\}^n$ with at most $m$ nonzero
+coordinates:
+\begin{equation}
+ \sum_i v_ic_i\ne0
+ \quad\Longrightarrow\quad
+ \sum_i v_ic_i\not\equiv0\pmod P.
+ \label{eq:sparse-distinction}
+\end{equation}
+The error is uniform under \eqref{eq:bit-guard}.
+\end{lemma}
+
+\begin{proof}
+There are at most
+\[
+ \sum_{j=0}^m\binom nj2^j
+ \le 2^{(h(.0567)+.0567)n+O(\log n)}
+ <2^{.40n}
+\]
+such vectors for sufficiently large $n$.  Every nonzero integer
+$\sum_i v_ic_i$ has $O(b+\log n)$ bits.  Lemma~\ref{lem:prime-collision}
+therefore bounds the probability that $P$ divides any one of them by
+$\operatorname{poly}(n)(b+\log n)2^{-\eta n}$.
+A union bound, followed by \eqref{eq:bit-guard}, gives a total error at most
+$\operatorname{poly}(n)2^{-(\eta-.40-.00001)n}=o(1)$.
+\end{proof}
+
+In particular, fix any block of at most $m$ positions and any assignment
+of signs on that block.  Distinct integer subset sums of the signed $c_i$
+remain distinct modulo $P$ on the event of
+Lemma~\ref{lem:sparse-distinction}.  Differences of two such sums have
+coefficients in $\{-1,0,1\}$ on that block.  Consequently they also give
+distinct \emph{integer} subset sums of the corresponding signed $b_i$.
+The event covers all blocks and all sign assignments at once, including
+those chosen by the random trials.
+
+Assume now the low-deficiency condition \eqref{eq:low-deficiency}, and fix
+a prime satisfying Lemma~\ref{lem:sparse-distinction}.  We continue in
+the uncapped experiment.  Fix a target $s$ and an alias
+$I\in\mathcal A_s(P)$, and use its carry $q$ in
+\eqref{eq:alias-carry}.  The constants in the following probability bounds
+do not depend on $I,s$, or the chosen prime.
+
+\paragraph{A block with many distinct sums.}
+In one trial, $J=I\mathbin\triangle F$ is a uniform subset of $[n]$
+independent of $M$.  Hence
+\begin{equation}
+ \Pr[|J\cap M|=m/2]
+   =2^{-m}\binom m{m/2}\ge\frac1{m+1}.
+ \label{eq:alias-half-block}
+\end{equation}
+Conditional on this event, $S=J\cap M$ is uniform among the $m/2$-element
+subsets of $[n]$.  To bound its expected deficiency, take a uniform
+$\lfloor n/2\rfloor$-element set and partition it uniformly into
+17 disjoint sets of size $m/2$ and a remainder.  Each of the 17 sets
+has the same marginal law as $S$.  Superadditivity and nonnegativity of
+deficiency, from Lemma~\ref{lem:deficiency}, therefore imply
+\[
+ 17\mathbb E d(S)
+ \le\mathbb E_{|V|=\lfloor n/2\rfloor}d(V)
+ \le .01004n.
+\]
+Markov's inequality now gives, for all sufficiently large $n$,
+\begin{equation}
+ \Pr[d(S)\le .0106m\mid |J\cap M|=m/2]
+ \ge 1-\frac{.01004n}{17(.0106)m}>.005.
+ \label{eq:alias-useful-block}
+\end{equation}
+The limiting lower bound is greater than $.017$.
+
+On this event the $c_i$ on $S$ have at least
+$2^{(.5-.0106)m}=2^{.4894m}$ distinct subset sums.
+For every realized $S,F$, changing signs translates their support:
+\[
+ \left\{\sum_{i\in X}c_i^F:X\subseteq S\right\}
+ =\left\{\sum_{i\in X}c_i:X\subseteq S\right\}
+       -\sum_{i\in F\cap S}c_i.
+\]
+The same number of distinctions survives for signed reduced integer
+weights, by the fixed prime's sparse-distinction property.
+Partitioning these subsets by cardinality, there is a
+$k\in\{0,\ldots,m/2\}$ whose masks give at least
+\begin{equation}
+ B\ge\frac{2^{.4894m}}{m+1}
+ \label{eq:alias-many-weights}
+\end{equation}
+distinct signed reduced weights.
+
+For this $k$, fix the corresponding ordinary partition $L,R$ and combine
+each such mask $X\subseteq S$ with $J\cap L$.  The resulting left records
+still have $B$ distinct weights.  Every one has the complementary right
+record $(J\cap R,S\setminus X)$; their masks have the prescribed sizes
+and are disjoint.  Thus the representations all give the same flipped
+alias $J$.  It remains to show that the independent smaller modulus
+preserves enough of these choices to hit a random filter residue.
+
+\paragraph{A random smaller modulus hits a representation.}
+Let $w_1,\ldots,w_B$ be the distinct signed reduced weights just obtained.
+They lie in $[-nP,nP]$, so every nonzero difference has $O(n)$ bits.
+The choice of $k$ and these weights depends only on
+$P,M,F,I$, not on the independent $P',j'$ used for that layer.
+For a fixed $P'$, let
+\[
+ z_a=|\{j:w_j\equiv a\pmod {P'}\}|,
+ \qquad a\in\mathbb Z/P'\mathbb Z.
+\]
+Applying Lemma~\ref{lem:prime-collision} to each nonzero difference gives
+\begin{equation}
+ \mathbb E_{P'}\sum_a z_a^2
+ \le B+K_0 n^2B^2 2^{-\gamma m}
+ \label{eq:alias-collision-moment}
+\end{equation}
+for an absolute constant $K_0$ and sufficiently large $n$.
+Since $.4894>\gamma=.48925$, \eqref{eq:alias-many-weights} implies
+$B\ge2^{\gamma m}$ for sufficiently large $n$.  The first term can
+therefore be absorbed into the second by increasing $K_0$.
+With probability at least $1/2$ over $P'$, Markov's inequality gives
+\[
+ \sum_a z_a^2\le 2K_0n^2B^2 2^{-\gamma m}.
+\]
+On this event, Cauchy--Schwarz shows that the number of occupied residues
+is at least
+\[
+ \frac{(\sum_a z_a)^2}{\sum_a z_a^2}
+ \ge \frac{2^{\gamma m}}{2K_0n^2}.
+\]
+As $P'<2^{1+\gamma m}$, a uniform $j'$ hits one of these residues
+with probability at least $1/(4K_0n^2)$.
+
+Whenever this happens, the corresponding left record survives, and its
+complementary right record survives because their integer reduced weights
+sum to $T^F$.  Their unreduced weights sum to
+$\sum_{i\in I}c_i-\sum_{i\in F}c_i\ne t_s^F$, since $I$ is an alias.
+Thus this pair is not excluded, is visited, passes the disjointness test,
+and saves $I$.
+
+Combining \eqref{eq:alias-half-block},
+\eqref{eq:alias-useful-block}, and the smaller-modulus probability, a
+single trial recovers $I$ with probability at least
+\[
+ \frac{.005}{m+1}\cdot\frac12\cdot\frac1{4K_0n^2}
+ \ge n^{-4}
+\]
+for sufficiently large $n$.  The useful layer may depend on the alias
+and on the trial: every layer is tried, with independent smaller-modulus
+randomness, so no choice of that layer is required by the algorithm.
+
+\paragraph{Simultaneous coverage and the caps.}
+Conditional on $P$ and the transformed input, the $n^{10}$ trials for
+the fixed $s,q$ are independent.  The probability of missing $I$ in all
+of them is at most
+$(1-n^{-4})^{n^{10}}\le e^{-n^6}$.
+There are at most $(nN_0+1)2^n$ target--subset pairs.  A union bound
+therefore shows that all aliases are recovered with conditional
+probability $1-o(1)$.  This assertion holds for every prime satisfying
+Lemma~\ref{lem:sparse-distinction}.
+
+Finally couple the capped procedure to this uncapped experiment, using
+the same random choices until a cap is exceeded.  The probability of
+such an exceedance is $o(1)$ by the unconditional size estimates.  We do
+not condition those estimates on a favorable prime or on successful
+coverage.  Adding the sparse-distinction, coverage, and cap failure
+probabilities proves the simultaneous conclusion of
+Theorem~\ref{thm:aliases}.  Its every-execution operation bound was proved
+above; bounded implementations of the finite draws add only the stated
+implementation overhead and a further uniformly vanishing failure
+probability.

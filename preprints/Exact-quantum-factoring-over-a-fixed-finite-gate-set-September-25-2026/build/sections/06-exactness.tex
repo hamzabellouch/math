@@ -1,0 +1,137 @@
+\section{From verified runs to certain output}\label{sec:exactness}
+
+The process in Proposition~\ref{prop:process} has two useful properties: every transition has a high probability of a good output, and a completed run supplies the data needed to calculate that probability exactly. We now use these data only after they have been generated. The aim is a preparation whose success probability is known before it runs. There are two normalization stages. First, every transition will have the same retained mass $z$, so $L$ slots have known success probability $z^L$. A second correction, applied to the complete preparation, will make that probability exactly $1/4$.
+
+\subsection{Equalizing one transition}
+
+We first equalize a transition's passing probability by rounding its retention downward and filling the remaining mass with a rare uniform guess. The distinguished output used to retain a guess need not be known when the guess is made.
+
+\begin{lemma}[Dyadic completion]\label{lem:completion}
+Let $W$ be a nonnegative integer. Consider an ordinary transition with output in $\{0,1\}^W$, a designated set of good outputs of dyadic probability $0<s\le1$, and a specified good output $y_0$. Let $\delta,z$ be dyadic rationals with $0<\delta<1$ and $0<z\le A:=(1-\delta)s$, and suppose $\delta=2^{-t}$ for a positive integer $t$. With probability $1-\delta$ run the ordinary transition, and otherwise guess a uniform $W$-bit output. For $E=W+t+2$, define
+\begin{equation}\label{eq:completion}
+ C=2^{-E}\left\lfloor 2^E\frac{z}{A}\right\rfloor,
+ \qquad R=z-CA.
+\end{equation}
+In the ordinary branch require a good output and retain with probability $C$. In the guessing branch require the particular output $y_0$ and retain with probability $R2^W/\delta$. These are valid dyadic retention probabilities, and the total probability of passing is exactly $z$. These arithmetic computations have polynomial bit complexity whenever the input dyadics have polynomial-size representations and the values of the integers $W,t$ are polynomially bounded.
+\end{lemma}
+\begin{proof}
+Since $z/A\le1$, we have $0\le C\le1$. Downward rounding gives
+\[
+ 0\le R<A2^{-E}\le2^{-E},
+ \qquad 0\le R2^W/\delta\le\tfrac14.
+\]
+The two passing masses are $AC$ and
+\[
+ \delta\,2^{-W}\,(R2^W/\delta)=R,
+\]
+whose sum is $z$. Although $z/A$ need not be dyadic, computing its scaled floor is an exact integer division. Every probability that is actually sampled is dyadic. The products, subtraction, and denominator exponents have polynomial size.
+\end{proof}
+
+\subsection{Filters computed after completion}
+
+Use the process, output width, and slot bound of Proposition~\ref{prop:process}:
+\[
+ K=n^5,\qquad L=n^{10},\qquad W=n(K+1).
+\]
+Every completed execution has exactly $L$ slots, with constant-output dummy transitions after its real work. Their good probability is $1$. Set
+\begin{equation}\label{eq:delta-z}
+ \delta=2^{-2n},\qquad z=1-2^{-n},\qquad E=W+2n+2.
+\end{equation}
+At each slot run the ordinary transition with probability $1-\delta$, and otherwise guess its $W$-bit output uniformly. Record the branch and the output. Subsequent deterministic computation uses that output in the usual way. Malformed encodings may abort, and a proposed divisor is always checked before a split is made. In an ordinary order transition the internal trial registers are retained separately; the guessed string encodes only the transition's classical output.
+
+The actual algorithm does not yet test whether these outputs are good. It first attempts to complete all the factorizations defining $\D(N)$. If it aborts or its generated data fail the complete verification in Proposition~\ref{prop:process}, it sets its success flag to zero. Otherwise, for every recorded slot it reconstructs the transition inputs and computes, from the verified data, the good-output predicate, its probability $s$, and the canonical output $y_0$. It then applies the two filters of Lemma~\ref{lem:completion}, using fresh independent dyadic coins. Success requires every filter to pass.
+
+The filters are well-defined: writing $\varepsilon=2^{-n}$, the transition bound gives
+\begin{equation}\label{eq:completion-bound}
+ (1-\delta)s\ge(1-\varepsilon^2)^2\ge1-\varepsilon=z.
+\end{equation}
+Indeed the difference on the right is $\varepsilon-2\varepsilon^2+\varepsilon^4>0$ for the present range. The same bound holds in dummy slots. Exact dyadic sampling is provided by Lemma~\ref{lem:dyadic}.
+
+\begin{proposition}[Known probability from deferred filters]\label{prop:known-probability}
+The implemented preparation just described has success probability exactly
+\begin{equation}\label{eq:p-star}
+ p_*=(1-2^{-n})^{n^{10}}.
+\end{equation}
+Every successful branch outputs the correct prime factorization of $N$. The preparation has polynomial worst-case time and workspace, and $p_*>1/2$ is an initially known dyadic with polynomial bit length.
+\end{proposition}
+\begin{proof}
+Fix the true mathematical data $\D(N)$ for the purpose of analysis only. Allocate fresh filter coins in advance, with a common polynomial bound on their lengths. Consider the event obtained by testing each slot immediately against these true data, using the same coins that the actual algorithm will use after completion. Declare this analytical event false on a run that aborts before all $L$ slots are recorded. These hypothetical tests only mark an event on the same recorded runs; their outcomes do not alter the controller's evolution.
+
+Condition on a recorded controller prefix of fewer than $L$ slots together with the coins used by its previous filters, all of which have passed. No later filter coins are exposed. Every output in this prefix is good; choosing canonical good outputs whenever another transition is requested gives an all-good evolution. Proposition~\ref{prop:process} therefore ensures that the controller reaches the next real or dummy slot.
+
+Its transition inputs are fixed. Its new ordinary transition uses fresh registers, so its good-output probability is $s$, even if unobserved old quantum work is entangled; this is the consequence of Lemma~\ref{lem:records} explained in Section~\ref{sec:model}. The branch choice, uniform guess, and next filter coins are also fresh. Lemma~\ref{lem:completion} therefore gives conditional passing probability exactly $z$ for this prefix. This statement holds separately for every passing prefix and for every dummy slot. Induction over the $L$ slots gives probability $z^L$ for the analytical event.
+
+We must identify this event with the one the algorithm implements. Every analytical passing transition has a good output. Proposition~\ref{prop:process} then guarantees completion of the full true data, without abort or truncation by a cap. Such a run passes the actual data verification, and its deferred thresholds and canonical outputs agree with those in the analytical event. Conversely, if an implemented run passes, its verified complete prime factorizations are precisely the true data, by unique factorization. Every deferred test is consequently the corresponding true-data test on the same output and the same coins. The two events coincide on each recorded run. In particular, the conditional calculation above never conditions on eventual completion, and the implementation never uses data it has not generated.
+
+The retained records also justify the probability calculation in a unitary implementation. Every result used for later classical control has an immutable orthogonal history copy. Distinct histories cannot interfere during the preparation; internal interference within a quantum trial is preserved because its pre-interference labels are not copied. All filtering computations are classical controls and fresh-coin comparisons. Thus Lemma~\ref{lem:records} preserves the event probability just established.
+
+The underlying process has polynomial caps on every branch. The $s$ values have $O(nK)$ denominator bits, and the rounded filters have polynomial bit length. There are $L$ of them, so evaluating all deferred tests and retaining their histories still has polynomial cost. The dyadic $p_*$ has at most $nL$ denominator bits and can be computed exactly by integer powering. Finally, Bernoulli's inequality yields
+\[
+ p_*\ge1-n^{10}2^{-n}>\tfrac12.
+\]
+At $n=128$ the subtracted term is $2^{-58}$, and $x^{10}2^{-x}$ decreases for real $x\ge128$, since its logarithmic derivative is $10/x-\log_e2<0$.
+\end{proof}
+
+Figure~\ref{fig:same-history-events} isolates the two implications that identify the implemented event with the event used in the probability calculation. Both are predicates on one recorded run and the same fresh coins.
+
+\begin{figure}[tb]
+\centering
+\input{figures/same-history-events}
+\caption{Two descriptions of one acceptance event. The probability calculation conditions on passing prefixes. The implementation evaluates its filters after generating and verifying the required data; the analytical tests leave the controller evolution unchanged.}
+\label{fig:same-history-events}
+\end{figure}
+
+There is no exception for early completion. A run that finishes after $t$ real transitions still undergoes the same construction for its $L-t$ dummy slots, each with $s=1$ and one fixed canonical string. For example, $N=2$ can have only dummy slots. A prime root greater than $2$ must first generate its required $p-1$ descendants.
+
+\subsection{A known quarter of success and one amplification step}
+
+The target probability $1/4$ is the one-step exact-amplification case
+of the standard reflection formula~\cite[Section~2]{BHMT}, used explicitly
+for exact transforms by Mosca and Zalka~\cite[Section~2.1]{MZ}. The task here
+is to reach that probability with the fixed gates. The remaining rounding
+is independent of the factoring process. Encode the root factorization by $n$ entries of $n$ bits each: positive primes in nondecreasing order with multiplicity, followed by zeros. Put $J=n^2$. Because $N<2^n$, there are fewer than $n$ prime factors with multiplicity, and each prime is below $2^n$. Exactly one $J$-bit string is valid. Lemma~\ref{lem:primality}, the ordering check, and the product check recognize it in polynomial time. The product of an arbitrary guessed list has at most $n^2$ bits, so this verification is also polynomial on invalid guesses.
+
+\begin{lemma}[Quarter-success preparation]\label{lem:quarter}
+There is a polynomial-size uniform unitary preparation $V_N$ whose flag is $1$ with probability exactly $1/4$ and whose flagged output is always the fixed encoding of the prime factorization of $N$.
+\end{lemma}
+\begin{proof}
+With probability $1/2$, run Proposition~\ref{prop:known-probability} and retain its success with the further probability
+\[
+ c_*=2^{-(J+2)}
+       \left\lfloor\frac{2^{J+2}}{2p_*}\right\rfloor.
+\]
+With probability $1/2$, guess a uniform $J$-bit string, require it to be the valid root factor list, and retain with probability
+\[
+ 2^{J+1}e,\qquad e=\frac14-\frac{p_*c_*}{2}.
+\]
+Since $1/2<p_*\le1$, we have $0\le c_*\le1$. Rounding gives
+\[
+ 0\le e< p_*2^{-(J+3)},\qquad
+ 0\le2^{J+1}e\le\frac14.
+\]
+Thus both retentions are valid polynomial-bit dyadics. The first branch contributes $p_*c_*/2$, and the unique valid guess contributes
+\[
+ \frac12\,2^{-J}\,2^{J+1}e=e.
+\]
+Their sum is exactly $1/4$. Place the same fixed-encoding root factor list in the output register on either successful branch. All work and flags are retained when applying Lemma~\ref{lem:records}, which gives the unitary $V_N$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Let $\psi=V_N\ket{0}$, let $\Pi$ project onto flag $1$, and put $g_*=\Pi\psi$. By Lemma~\ref{lem:quarter}, $\|g_*\|^2=1/4$. First apply the sign flip $I-2\Pi$, and then the reflection $2\ket{\psi}\bra{\psi}-I$. Since
+\[
+ \langle\psi,\psi-2g_*\rangle=1-2\|g_*\|^2=\frac12,
+\]
+the resulting state is
+\begin{equation}\label{eq:one-reflection}
+ (2\ket{\psi}\bra{\psi}-I)(\psi-2g_*)=2g_*.
+\end{equation}
+It has norm one and lies entirely in the successful subspace. Every basis outcome in that subspace has the correct factor list, so measuring the output gives the factorization with certainty.
+
+Both reflections are exact over our finite gates. The success sign is a bit test. For fixed classical input $N$, the other reflection is
+\[
+ V_N(2\ket{0}\bra{0}-I)V_N^{-1},
+\]
+where the middle test concerns all initially zero workspace, and the read-only input is held fixed. Its sign convention may differ by an irrelevant global minus sign from a sign flip on zero. Multi-control signs use the reversible gates and $S^2$ described in Section~\ref{sec:model}. A circuit for inputs of a fixed bit length performs these same operations controlled by the unchanged input bits, so its description remains polynomial-time uniform. Inverting $V_N$ includes all of its work and history registers; none needs to be erased separately.
+
+Each use of $V_N$ or its inverse has polynomial size and workspace. Equation~\eqref{eq:one-reflection} is a single amplification step at the exactly known probability $1/4$, the corresponding special case of amplitude amplification~\cite[Section~2]{BHMT}. No arbitrary-angle rotation or unbounded repetition is involved. This proves the asserted worst-case bound and exact output.
+\end{proof}

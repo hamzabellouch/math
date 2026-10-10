@@ -1,0 +1,238 @@
+\section{Coupling the finite and independent tests}
+\label{sec:coupling}
+
+Fix a graph $G$ satisfying Proposition~\ref{prop:prefix}.
+The independent probabilities from Proposition~\ref{prop:unfolding}
+approximate survival only if repeated uses of a finite triangle priority
+are sufficiently rare.  We first give an exact coupling and then reduce
+its failure to a graph configuration supported on two visited call paths.
+Throughout this section, a \emph{triangle type} means a member of $\cT$,
+as distinguished from its possibly many occurrences in an unfolding.
+
+Fix $k\in\{1,2\}$.  Sample $k$ independent uniform oriented edges of $G$,
+with replacement and independently of all priorities.  There are $2m$
+possible oriented edges.  The orientation names the two endpoints and
+does not affect the test.  With these roots, compare two experiments:
+the finite tests sharing one priority for each triangle type, and the
+independent unfoldings with disjoint occurrence trees for different
+roots.  Every root has threshold $1$.  Execute the roots in a fixed
+order, including every root regardless of the preceding answers.
+
+At each visited call, expose the priorities of \emph{all} candidates in
+a fixed type order before sorting them for the test.  Thus an exposed
+list includes candidates above the threshold and candidates never
+traversed because an earlier child returned true.  In the independent
+experiment, let $\mathcal C_k$ be the event that a triangle type appears
+at least twice among all these exposed lists.  There is no repetition
+within one list: a candidate meeting both edges of a pair focus would
+be its omitted parent triangle.
+
+\begin{lemma}[Coupling by exposed triangle types]
+\label{lem:coupling}
+Let $X^{\mathrm{fin}},X^{\mathrm{ind}}\in\{0,1\}^k$ be the vectors of
+root answers in the two experiments, where $1$ denotes true.
+For every $H\subseteq\{0,1\}^k$,
+\[
+ \bigl|\Prb(X^{\mathrm{fin}}\in H)
+       -\Prb(X^{\mathrm{ind}}\in H)\bigr|
+ \le \Prb_{\mathrm{ind}}(\mathcal C_k).
+\]
+\end{lemma}
+
+\begin{proof}
+Assign independent uniform priorities $U_T$, $T\in\cT$, for the finite
+experiment, and an independent supply of fresh uniform variables.
+Run the unfolding tests as follows.  At the first exposure of a type
+$T$, use $U_T$; at each later exposure of that type, use a fresh
+variable instead.
+
+This procedure has the independent-unfolding law.  Indeed, the type
+queried next is determined by $G$, the root labels and the execution
+history.  If $Q$ is the set of types exposed so far, that history
+depends only on $(U_T:T\in Q)$ and on the fresh variables already
+used.  Every recursive computation contributing to a returned answer
+is part of this history, with its candidate lists exposed explicitly.
+Conditional on the history, the variables $(U_T:T\notin Q)$ are still
+independent uniforms.  A fresh variable used for a repeated type is
+independent of the same history.  Induction over exposures therefore
+gives independent uniform occurrence priorities.  The unused
+occurrence variables may be filled in independently afterward.
+
+The evaluations terminate almost surely by Section~\ref{sec:queries}.
+Until a repeated type is exposed, the unfolding and finite executions
+use the same priority at every candidate.  They consequently have the
+same sorted lists, recursive calls, thresholds, answers and stopping
+decisions.  On $\mathcal C_k^c$ this agreement holds for the whole
+execution of all roots.  The stated inequality follows from this
+coupling of the answer vectors.
+\end{proof}
+
+\subsection{The graph of visited calls}
+
+We now work entirely in the independent experiment.  Its visited calls
+form a finite rooted forest almost surely.  Construct a graph $\Gamma$
+and a label map $\lambda:V(\Gamma)\to V(G)$ from this forest.
+Each root contributes two new \emph{formal} vertices $x,y$, the edge
+$xy$, and labels given by its sampled ordered endpoints.  Distinct
+roots have disjoint formal vertices even if their labels coincide.
+If a visited child is attached through a formal focus edge $xy$ of its
+parent, introduce a new formal vertex $z$, label it by the third
+vertex of the child's triangle type, and add the edges $xz,yz$.
+These two new edges are the child's focus.  If $xy$ is ordered, order
+them as $(x,z),(y,z)$, so subsequent choices of focus edge have fixed
+names.
+
+The \emph{birth call} of a formal vertex or edge is the call that
+introduced it.  Order the construction with all roots first and every
+parent before its children.  The following properties hold in any such
+order:
+\begin{enumerate}[label=(\roman*)]
+\item Every formal edge has adjacent labels in $G$, and the three
+vertices in any one gluing have distinct labels.
+\item Every formal edge is focused at exactly one call, its birth
+call.  An attachment edge is not in the child's focus.
+\item No step adds an edge between two vertices already present.
+\item The only triangles of $\Gamma$ are the triangles introduced by
+the gluings.
+\end{enumerate}
+For the last property, consider the latest vertex of a formal
+triangle.  The initial disjoint root edges contain no triangle.  A
+non-root vertex has exactly two older neighbours, namely the endpoints
+of its attachment edge, so the triangle must be its gluing triangle.
+
+Figure~\ref{fig:call-graph} shows the distinction between a visited call
+and an exposed candidate. The formal graph records the former, but an
+extra adjacency between its labels can account for repetitions among
+the latter.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+ call/.style={draw=black!65,rounded corners=2pt,fill=white,
+               inner sep=5pt,font=\small},
+ vertex/.style={circle,fill=black,inner sep=1.6pt},
+ every label/.style={font=\small}]
+\node[font=\small\bfseries] at (0,.6) {Visited call path};
+\node[call] (root) at (0,0) {focus $\{ab\}$};
+\node[call] (first) at (0,-1.25) {focus $\{ac,bc\}$};
+\node[call] (second) at (0,-2.5) {focus $\{ad,cd\}$};
+\draw[-{Stealth},black!65] (root)--node[left,font=\small] {$abc$} (first);
+\draw[-{Stealth},black!65] (first)--node[left,font=\small] {$acd$} (second);
+\node[font=\small,align=left,anchor=west] at (1.5,0)
+ {$abd$ exposed\\through $ab$};
+\node[font=\small,align=left,anchor=west] at (1.5,-2.5)
+ {$abd$ exposed\\through $ad$};
+\begin{scope}[xshift=6.5cm]
+\node[font=\small\bfseries] at (0,.6) {Formal graph};
+\coordinate (a) at (-1.35,-1.25);
+\coordinate (b) at (0,0);
+\coordinate (c) at (1.35,-1.25);
+\coordinate (d) at (0,-2.5);
+\fill[black!3] (a)--(b)--(c)--cycle;
+\fill[linkblue!7] (a)--(c)--(d)--cycle;
+\draw[black!65] (a)--(b)--(c)--(a)--(d)--(c);
+\draw[dashed,linkblue,thick] (b)--(d);
+\node[vertex,label=left:$a$] at (a) {};
+\node[vertex,label=above:$b$] at (b) {};
+\node[vertex,label=right:$c$] at (c) {};
+\node[vertex,label=below:$d$] at (d) {};
+\end{scope}
+\end{tikzpicture}
+\caption{A portion of the visited construction, with distinct labels
+written as the formal vertex names. The left arrows are parent--child steps:
+traversing $abc$ introduces $c$, and traversing $acd$ introduces $d$.
+The solid edges on the right are the corresponding edges of $\Gamma$.
+The dashed segment $bd$ denotes an edge between labels in $G$ that is
+absent from $\Gamma$. The type $abd$ is exposed at the root through $ab$
+and at the last displayed call through $ad$. The collision is therefore detected from
+these two candidate lists, regardless of whether either occurrence is
+traversed. Other calls are not shown.}
+\label{fig:call-graph}
+\end{figure}
+
+For a formal vertex $a$, its \emph{ancestral call path} is the path
+from a root to the birth call of $a$, including both ends.  Given two
+formal vertices $a,b$, let $\Gamma_{a,b}$ be the graph constructed from
+the union of their ancestral call paths, using the root edges and
+gluings on those paths.  All its calls are visited.  We call $(a,b)$
+an \emph{extra-edge witness} if $a,b$ are distinct and nonadjacent in
+$\Gamma$, their labels are adjacent in $G$, and $\lambda$ is injective
+on $V(\Gamma_{a,b})$.
+
+\begin{lemma}[A geometric witness for a collision]
+\label{lem:witness}
+If the initial root labels are all distinct, then every occurrence of
+$\mathcal C_k$ produces an extra-edge witness.  Moreover, uniformly
+over the graphs under consideration,
+\begin{equation}
+\label{eq:collision-witness}
+ \Prb_{\mathrm{ind}}(\mathcal C_k)
+ \le O(n^{-1})+
+ \Prb_{\mathrm{ind}}(\text{an extra-edge witness exists}).
+\end{equation}
+The $O(n^{-1})$ term may be omitted when $k=1$.
+\end{lemma}
+
+\begin{proof}
+First suppose that $\lambda$ is injective on all of $\Gamma$.
+If an edge of $G$ between two labels is absent from the formal graph,
+its two formal endpoints give the required witness.  It remains to
+show that a collision is impossible when there is no such extra edge.
+
+Suppose that a triangle type $T$ is exposed at two calls.  It cannot
+occur twice in one list, so the exposing calls are distinct.  Their
+responsible focus edges are distinct by property~(ii), and their
+images are distinct by injectivity.  Those two edges already represent
+all three vertices of $T$, even if neither candidate occurrence is
+traversed.  Since there are no extra edges between labels, the three
+formal vertices form a triangle of $\Gamma$.  By property~(iv), it is
+a gluing triangle.  Its two new edges are focused only at that
+gluing's child call, which omits the triangle as its parent.  Its
+attachment edge is focused at only one call.  Hence the triangle can
+appear in at most one candidate list, a contradiction.
+
+Next suppose that the labels are not injective.  Choose the first
+repetition in a construction order with roots first and parents
+before children.  The distinct-root assumption means that this
+repetition occurs when a new vertex $z$ is attached through an edge
+$xy$.  Write $w$ for the earlier vertex with $\lambda(w)=\lambda(z)$.
+All earlier labels are distinct.  Property~(i) shows that $x,y,w$ are
+distinct and that $\lambda(x)\lambda(w)$ and
+$\lambda(y)\lambda(w)$ are edges of $G$.
+
+If either $xw$ or $yw$ is absent formally, it gives an extra edge
+among the earlier vertices.  The ancestral paths of its endpoints
+are entirely earlier in the construction, so their labels are
+injective.  Property~(iii) ensures that the pair remains nonadjacent
+in the completed graph.  This is the desired witness.
+
+Otherwise $xyw$ is a formal triangle and hence an earlier gluing
+triangle.  There are two possibilities for its latest vertex.
+If it is $x$ or $y$, then $xy$ was born at this gluing.  The current
+call focusing $xy$ is exactly its birth call, and omits the triangle
+$xyw$ as its parent.  It therefore cannot have the proposed child
+with the same triangle type.  If the latest vertex is $w$, then $w$
+was attached through $xy$.  The children introducing $w$ and $z$
+would belong to the same unique call focusing $xy$, and would have
+the same triangle type.  That call contains this candidate only once
+and traverses it at most once, again a contradiction.  Thus a first
+repeated label always produces an earlier extra edge.
+
+Finally, either endpoint of a uniform oriented root has distribution
+\[
+ \pi(v)=\frac{\deg_G(v)}{2m},
+ \qquad \max_v\pi(v)=O(n^{-1}),
+\]
+by the degree estimate and $2m=n^2p$.  For two independent roots, any
+fixed pair of their endpoints coincides with probability
+$\sum_v\pi(v)^2\le\max_v\pi(v)$.  There are four pairs to consider;
+the two endpoints within each root are distinct.  A union bound
+therefore gives the term $O(n^{-1})$ in
+\eqref{eq:collision-witness}.
+\end{proof}
+
+The root experiment still samples with replacement; we have only
+charged its overlaps to the error bound.  The remaining task is to
+bound the probability of a visited, injectively labelled pair of call
+paths whose two marked vertices have an extra edge.  This uses both
+the template estimates for $G$ and the independent-test probabilities.

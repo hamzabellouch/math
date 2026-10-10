@@ -1,0 +1,707 @@
+\section{The annealing algorithm and its implementation}
+\label{sec:algorithm}
+
+We now combine the preceding estimates into a single algorithm.  The
+transversal distribution at parameter \(j\) is denoted by
+\(\mu_j=f_j/C(j)\).  It does not depend on the defect multipliers.
+The underlying Metropolis kernel with parameter \(j\) and multiplier
+collection \(w\) is denoted by \(P_{j,w}\).  We use the warm trace
+restarts of Section~\ref{sec:transport} to estimate successive partition
+function ratios while learning the defect multipliers. Balancing
+defect classes by estimated weights during annealing is an important
+feature of the permanent approximation algorithm of Jerrum, Sinclair,
+and Vigoda~\cite[Section~3]{JSV2004}. Here the observable-variance and trace bounds
+needed for the two-lift weights were proved in
+Section~\ref{sec:transport}.
+
+The feasibility test and tightening from Section~\ref{sec:scales} are
+performed first.  An infeasible instance returns zero.  Throughout this
+section the instance is feasible, so \(Z\geq 1\).  Recall that
+\[
+ p=\sum_{s\ {\rm small}}b_s,
+ \qquad
+ M_f=\prod_{s\ {\rm free}}(b_s+1).
+\]
+An empty product equals one.  If \(p=0\), we call
+Proposition~\ref{prop:weight-oracle} once to estimate
+\(h_H(\varnothing)=C(H)\), with relative tolerance \(\epsilon/32\)
+and failure probability \(1/16\).  This branch, including the case of
+an empty retained cell graph, is completed in the proof of
+Theorem~\ref{thm:main} below.  Until then suppose that \(p\geq 1\).
+All logarithms without a subscript are natural logarithms.
+
+\subsection{Initialization and comparison of adjacent parameters}
+
+\begin{lemma}[Exact initialization]
+\label{lem:initialization}
+For every state of the enlarged binary state space and
+\(0\leq j<H\),
+\begin{equation}
+ \frac12\leq\frac{f_{j+1}}{f_j}\leq 1.
+ \label{eq:alg-adjacent}
+\end{equation}
+Consequently the ideal multiplier \(C(j)/c_{il}(j)\) changes by a
+factor in \([1/2,2]\) between consecutive parameters, and
+\(\mu_j\leq 2\mu_{j+1}\) pointwise.  Moreover,
+\begin{equation}
+ \min_{S\in\mathcal A}\mu_j(S)
+ \geq 2^{-(H+p+K)}
+ \qquad (0\leq j\leq H).
+ \label{eq:alg-minimum-mass}
+\end{equation}
+The values \(C(0)\) and \(c_{il}(0)\), and hence all initial ideal
+multipliers, are computable exactly in polynomial bit time.  The law
+\(\mu_0\) has the following finite-choice description: independently
+for each small cell \(s\), choose a uniform integer
+\(k_s\in\{0,\ldots,b_s\}\), and then a uniform \(k_s\)-element subset
+of its \(b_s\) labeled pairs to use their row elements.
+\end{lemma}
+
+\begin{proof}
+Lemma~\ref{lem:forest} gives \(0\leq D\leq H\).  Each summand in
+\(h_{j+1}\) is therefore between one half and one times the
+corresponding summand in \(h_j\), proving
+\eqref{eq:alg-adjacent}.  The factorial factor in \(f_j\) is
+independent of \(j\).  Summing the same inequalities over any type
+gives
+\[
+ \frac12\leq \frac{C(j+1)}{C(j)}\leq 1,
+ \qquad
+ \frac12\leq \frac{c_{il}(j+1)}{c_{il}(j)}\leq 1.
+\]
+These bounds imply the multiplier comparison and
+\(\mu_j\leq 2\mu_{j+1}\).
+
+On a transversal the factorial factor is
+\(\prod_s\binom{b_s}{x_s}^{-1}\geq 2^{-p}\).
+Also \(h_j(x,y)\geq M_f2^{-H}\), while
+\[
+ C(j)\leq M_f\prod_{s\ {\rm small}}(b_s+1)
+ \leq M_f2^K.
+\]
+Their quotient proves \eqref{eq:alg-minimum-mass}.
+
+At parameter zero, \(h_0=M_f\), so
+\begin{equation}
+ C(0)=M_f\prod_{s\ {\rm small}}(b_s+1).
+ \label{eq:alg-initial-total}
+\end{equation}
+We give an explicit formula for every defect total.  Fix distinct
+pair labels \(i,l\), with \(i\) empty and \(l\) full.  For each small
+cell \(s\), let
+\[
+ u_s=\mathbf 1_{\{i\text{ belongs to }s\}},\qquad
+ v_s=\mathbf 1_{\{l\text{ belongs to }s\}},\qquad
+ n_s=b_s-u_s-v_s.
+\]
+There are \(n_s\) singly occupied pairs left in that cell.  If exactly
+\(k\) of these use their row elements, then
+\(x_s=k+v_s\), \(y_s=n_s-k+v_s\), with multiplicity
+\(\binom{n_s}{k}\).  Hence
+\begin{equation}
+ c_{il}(0)
+ =M_f\prod_{s\ {\rm small}}
+ \left[
+ \frac{1}{b_s!}
+ \sum_{k=0}^{n_s}
+ \binom{n_s}{k}(k+v_s)!(n_s-k+v_s)!
+ \right].
+ \label{eq:alg-initial-defect}
+\end{equation}
+This includes the case in which \(i,l\) lie in the same cell:
+then \(u_s=v_s=1\) and \(n_s=b_s-2\geq 0\).
+All factorial arguments are at most \(p\), and all sums have at most
+\(p+1\) terms.  Using the common denominator \(b_s!\) within each
+bracket, the numerators and denominators in
+\eqref{eq:alg-initial-defect} have
+\(O(L+p\log(p+1))\) bits.  There are at most \(p(p-1)\) such
+totals.  The multipliers
+\[
+ w_{il}^{(0)}=\frac{C(0)}{c_{il}(0)}
+\]
+are therefore positive rationals of polynomial bit length and are
+computable by bounded integer arithmetic.
+In fact the local bracket in \eqref{eq:alg-initial-defect} equals
+\(b_s+1\), \(1\), \((b_s+1)(b_s+2)/6\), or
+\((b_s+1)/6\), according as the cell contains neither designated
+pair, only the hole, only the full pair, or both.  If \(s(i)\)
+denotes the cell containing pair \(i\), the equivalent initializer is
+\[
+ w_{il}^{(0)}
+ =
+ \begin{cases}
+ 6,&s(i)=s(l),\\[2mm]
+ \displaystyle\frac{6(b_{s(i)}+1)}{b_{s(l)}+2},
+       &s(i)\ne s(l).
+ \end{cases}
+\]
+
+Finally, the asserted sampler assigns any particular transversal
+probability
+\[
+ \prod_{s\ {\rm small}}
+ \frac{1}{(b_s+1)\binom{b_s}{x_s}}
+ =\frac{f_0(S)}{C(0)}.
+\]
+This proves its distribution.  The finite-choice description will be
+implemented with bounded fair-bit draws below.
+\end{proof}
+
+\subsection{A reference experiment with exact transition probabilities}
+
+We first analyze a reference experiment using exact weights and
+probabilities.  It is an auxiliary probability model; the implemented
+algorithm in the next subsection uses only the explicit weight
+evaluation procedure and independent fair bits.
+
+To see which statistics a phase must collect, fix a parameter
+\(0\le j<H\) and positive multipliers \(w\), and let \(\pi\)
+be the stationary law of \(P_{j,w}\). Write \(p_T\) for the
+stationary probability of type \(T\), where \(T=0\) denotes
+\(\mathcal A\) and \(T=(i,l)\) denotes \(\mathcal A_{il}\).
+Define
+\[
+ G_j(S)=\mathbf 1_{\mathcal A}(S)\frac{f_{j+1}(S)}{f_j(S)},
+ \qquad u=\mathbb E_\pi G_j.
+\]
+The transversal mass is \(C(j)\), and the multiplied mass of
+defect type \(il\) is \(w_{il}c_{il}(j)\). Therefore
+\begin{equation}
+ \frac{u}{p_0}=\frac{C(j+1)}{C(j)},\qquad
+ w_{il}\frac{p_0}{p_{il}}=\frac{C(j)}{c_{il}(j)}.
+ \label{eq:alg-observable-identities}
+\end{equation}
+Thus one trajectory can estimate both the next counting ratio and
+the multipliers needed to balance the next phase. The type indicators
+are constant on each defect class, and \(G_j\) vanishes there; all
+these observables are fixed by \(\mathcal Q\), so the time-average
+bound of Lemma~\ref{lem:time-average} applies when the multipliers
+are good and the initial law is dominated by \(\pi\).
+
+The stored multipliers depend on earlier trajectories. We therefore
+start each phase with fresh randomness, using a new \(\mu_0\) draw
+and trace stages at parameters \(1,\ldots,j\) with the multipliers
+already learned. The actual restart has a deterministic transition
+budget. For analysis we also consider the same restart without that
+budget. Conditional on a past history in which the learned multipliers
+are good, adjacent-parameter comparison and trace mixing give the
+required domination for this virtual restart. Its cap failure is
+bounded separately, without conditioning the endpoint law on meeting
+the cap.
+
+Let \(C_{\rm p},C_{\rm d},K_{\rm obs}\) have the values in
+Section~\ref{sec:transport}, so in particular
+\[
+ K_{\rm obs}=10p^4(9C_{\rm p}+2C_{\rm d}).
+\]
+Choose the following integer time bounds and relative tolerance:
+\begin{equation}
+\begin{split}
+ \eta&=\frac{\epsilon}{200(H+1)},\\
+ \tau&=2K_{\rm obs}(H+p+K+5),\\
+ B_{\rm ret}&=2000p^2(H+1)^2\tau,\\
+ N_{\rm av}
+ &=\left\lceil
+ \frac{10^8p^8K_{\rm obs}(H+1)}{\eta^2}
+ \right\rceil.
+\end{split}
+\label{eq:alg-phase-parameters}
+\end{equation}
+The quantities defining \(\tau\) and \(B_{\rm ret}\) are integers.
+Initialize \(w^{(0)}\) by Lemma~\ref{lem:initialization}.  For
+\(j=0,\ldots,H-1\), carry out the following phase.
+
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+\item
+\emph{Restart on transversals.}
+Draw a fresh state from \(\mu_0\).  For \(a=1,\ldots,j\), run
+\(\tau\) successive trace steps of \(P_{a,w^{(a)}}\), continuing
+from the transversal reached at the preceding stage.  A trace step
+ends at the next transversal after a strictly positive number of
+underlying transitions.  Across this entire restart, allow at most
+\(B_{\rm ret}\) underlying transitions.  If another transition is
+needed after that budget is exhausted, abort the run and output zero.
+For \(j=0\), the fresh \(\mu_0\) draw is the restart endpoint.
+
+\item
+\emph{Observe the current chain.}
+From this endpoint, run \(P_{j,w^{(j)}}\) for \(N_{\rm av}\)
+consecutive observed states, including the starting state.  For each
+type \(T\), let \(n_T\) be its number of occurrences and
+\(\widehat p_T=n_T/N_{\rm av}\).
+Also form the empirical mean \(\widehat u\) of \(G_j\).
+If any type count is zero, abort the run and output zero.
+
+\item
+\emph{Estimate the ratio and update the multipliers.}
+Set
+\begin{equation}
+ \widehat R_j=\frac{\widehat u}{\widehat p_0}.
+ \label{eq:alg-ratio-estimate}
+\end{equation}
+If \(j+1<H\), store
+\begin{equation}
+ w_{il}^{(j+1)}
+ =w_{il}^{(j)}\frac{\widehat p_0}{\widehat p_{il}}
+ =w_{il}^{(j)}\frac{n_0}{n_{il}}.
+ \label{eq:alg-multiplier-update}
+\end{equation}
+\end{enumerate}
+
+If no abort occurs, the reference output is
+\[
+ Z_{\rm ref}=C(0)\prod_{j=0}^{H-1}\widehat R_j.
+\]
+Every phase uses fresh randomness.  In particular, its initial
+\(\mu_0\) sample and its chains do not reuse the final state of an
+earlier observation trajectory.
+
+\begin{proposition}[Accuracy of the reference experiment]
+\label{prop:annealing}
+With probability at least \(1-1/50\), the reference experiment does
+not abort, every stored multiplier collection is good at its own
+parameter in the sense of \eqref{eq:good-multipliers}, and
+\begin{equation}
+ \left|\log\frac{Z_{\rm ref}}{C(H)}\right|
+ \leq 4H\eta.
+ \label{eq:alg-reference-error}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+We make the conditioning in the argument explicit.  Let
+\(\mathcal F_j\) be the sigma-field generated by the completed
+trajectories, transition decisions, and counts of phases before
+\(j\) in the capped reference experiment.  The stored multipliers
+and the event that all these earlier phases were successful are
+\(\mathcal F_j\)-measurable.  Fix a past history on that event.
+The multipliers \(w^{(0)},\ldots,w^{(j)}\) are now fixed and good;
+this will follow inductively from the update calculation below.
+The current phase uses independent fresh randomness.
+
+For analysis of this one phase, define a virtual experiment that
+continues its restart without a transition cap, and then takes its
+\(N_{\rm av}\) observations using fresh randomness.  Write
+\(M=H+p+K\).  Lemma~\ref{lem:trace} and
+\eqref{eq:alg-minimum-mass} imply that, from any starting
+transversal, a stage of \(\tau\) trace steps has pointwise relative
+error at most
+\[
+ 2^M\exp(-\tau/K_{\rm obs})
+ =2^M\exp(-2(M+5))<1.
+\]
+Its endpoint law is consequently at most \(2\mu_a\).
+At the entrance to stage \(a=1\), the law is
+\(\mu_0\leq 2\mu_1\).  At every later stage it is at most
+\(2\mu_{a-1}\leq 4\mu_a\).  Invariance of the trace law preserves
+the bound \(4\mu_a\) throughout that stage.
+
+For good multipliers, \(\pi(\mathcal A)\geq 1/(5p^2)\).
+The warm return-cost bound of Lemma~\ref{lem:trace} therefore
+bounds the expected number of underlying transitions in each trace
+step by \(20p^2\).  The virtual restart uses at most \(H\tau\)
+trace steps, so its expected total cost is at most
+\(20p^2H\tau\).  Markov's inequality gives
+\begin{equation}
+ \mathbb P\{\text{virtual restart cost}>B_{\rm ret}
+                \mid\mathcal F_j\}
+ \leq \frac{H}{100(H+1)^2}
+ \leq \frac{1}{100(H+1)}.
+ \label{eq:alg-cap-probability}
+\end{equation}
+For \(j=0\), the cost is zero and the same upper bound holds.
+
+The virtual restart endpoint is at most \(2\mu_j\), including
+\(j=0\).  Since \(\mu_j\) is the conditional law of the current
+stationary distribution \(\pi\) on \(\mathcal A\), this endpoint
+law is at most \(10p^2\pi\) on the full state space.
+Each type indicator and \(G_j\) is fixed by the projection
+\(\mathcal Q\) of Section~\ref{sec:transport}.  They take values
+in \([0,1]\).  Their stationary means \(p_T,u\), given by
+\eqref{eq:alg-observable-identities}, are at least \(1/(20p^2)\):
+this is the type probability bound for defect types, while
+\(p_0\geq 1/(5p^2)\) and \(C(j+1)/C(j)\geq 1/2\).
+
+By Lemma~\ref{lem:time-average}, each empirical mean in the virtual
+observation trajectory has mean squared error about its stationary
+mean at most
+\[
+ \frac{20p^2K_{\rm obs}}{N_{\rm av}}.
+\]
+There are \(p(p-1)+2\leq 2p^2\) observables.  Markov's
+inequality and a union bound therefore give
+\begin{equation}
+\begin{split}
+ &\mathbb P\{\text{some virtual empirical mean has
+ relative error greater than }\eta
+               \mid\mathcal F_j\}\\
+ &\hspace{12mm}\leq
+ \frac{16000p^8K_{\rm obs}}{N_{\rm av}\eta^2}
+ \leq\frac{1}{100(H+1)}.
+\end{split}
+\label{eq:alg-empirical-probability}
+\end{equation}
+These bounds concern the virtual, uncapped current phase.  Whenever
+its restart cost is at most \(B_{\rm ret}\), it agrees with the
+actual capped phase.  Thus failure of the capped phase is contained
+in the union of the two virtual failure events in
+\eqref{eq:alg-cap-probability} and
+\eqref{eq:alg-empirical-probability}.  In particular, we never
+condition the endpoint law on surviving the cap.
+
+It remains to check that empirical success maintains the induction
+and controls the output.  Because \(\eta<1/4\), empirical success
+makes every type count positive. By
+\eqref{eq:alg-observable-identities}, the exact ratio
+\(w_{il}^{(j)}p_0/p_{il}\) is the current ideal multiplier
+\(C(j)/c_{il}(j)\). The relative errors in
+\(\widehat p_0,\widehat p_{il}\) change this value by a factor between
+\((1-\eta)/(1+\eta)\) and its reciprocal, both lying in
+\([1/2,2]\).  Lemma~\ref{lem:initialization} changes the ideal
+multiplier by at most another factor two at the next parameter.
+Equation~\eqref{eq:alg-multiplier-update} therefore satisfies
+\eqref{eq:good-multipliers} for \(j+1\).  The update estimates the
+current ideal multiplier directly; its error does not multiply the
+earlier error in \(w^{(j)}\).
+
+The same empirical bounds, and
+\(u/p_0=C(j+1)/C(j)\), give
+\[
+ \left|\log\frac{\widehat R_j}{C(j+1)/C(j)}\right|
+ \leq 4\eta.
+\]
+Initialization is good by Lemma~\ref{lem:initialization}.
+For every successful fixed past, the conditional probability of a
+current failure is at most \(2/[100(H+1)]\).  Summing the
+probabilities of the first failing phase gives total failure
+probability at most
+\[
+ \frac{2H}{100(H+1)}<\frac1{50}.
+\]
+On the complementary event, the ratio product telescopes and its
+logarithmic errors sum to \eqref{eq:alg-reference-error}.
+\end{proof}
+
+\subsection{A bounded implementation using fair bits}
+
+All parameters and counters below are represented exactly.  Set
+\begin{equation}
+ J_*=100(H+1)(B_{\rm ret}+N_{\rm av}+p+d+1),
+ \qquad
+ \xi=\frac{\eta}{1000J_*}.
+ \label{eq:alg-bit-parameters}
+\end{equation}
+To evaluate any individual \(f_j(S)\), call
+Proposition~\ref{prop:weight-oracle} with
+\(\xi_{\rm in}=\theta=\xi\) and the small-count profile of \(S\),
+using fresh bits on every call, and multiply by the exact factorial
+factor in \eqref{eq:lifts}.  The evaluation is positive on every
+execution.  For a valid proposed move, compute the ratio of the two
+resulting rational \(\lambda\)-weights, clip it at one, and use a
+dyadic acceptance threshold.  Use the analogous ratio of fresh
+evaluations in each nonzero observation of \(G_j\).  Type counts and
+the updates \eqref{eq:alg-multiplier-update} remain exact integer
+and rational computations.  The restart transition caps are
+unchanged.
+
+For every finite-choice draw from \(\{0,\ldots,v-1\}\), apply
+Lemma~\ref{lem:dyadic-integer-draw} with \(M=v\) and \(\zeta=\xi\).
+This uses a fixed number of fair bits and has total variation error
+at most \(\xi\).
+For the subset draw in Lemma~\ref{lem:initialization}, take
+\(v=\binom{b_s}{k_s}\) and decode an index in a fixed order of
+the subsets.  Successive binomial inclusion/exclusion counts do
+this with at most \(b_s\) decisions.  Thus the initial sampler uses
+at most two finite-choice draws per small cell.  The choices of a
+current element and a complementary element in a Metropolis proposal
+likewise require only two scalar draws.
+
+If \(\alpha\in[0,1]\) is a computed rational acceptance
+probability, use
+\(\lceil\log_2(1/\xi)\rceil\) fair bits and the downward-rounded
+dyadic threshold for \(\alpha\).  Its probability differs from
+\(\alpha\) by at most \(\xi\).  A single fair bit implements the
+half hold exactly.  These procedures use fixed bit counts at their
+requested resolutions and no rejection loop.
+
+\begin{samepage}
+\begin{lemma}[Coupling and bounded computation]
+\label{lem:bounded-implementation}
+The implemented run uses a number of bit operations bounded, on
+every execution, by a fixed polynomial in \(L\) and
+\(\epsilon^{-1}\).  It returns a nonnegative rational of polynomial
+bit length.  It can be coupled to the capped reference experiment
+so that, except on an event of probability at most \(10J_*\xi\),
+all state trajectories, type counts, cap decisions, and stored
+multipliers agree, every requested weight evaluation meets its
+relative tolerance, and each positive observed term of \(G_j\)
+differs from its reference value by a factor whose logarithm has
+absolute value at most \(4\xi\).
+\end{lemma}
+\end{samepage}
+
+\begin{proof}
+We first bound the number of outer random actions.  Let
+\(s_{\rm sm}\) be the number of positive small cells, so
+\(s_{\rm sm}\leq\min(p,d)\), and put
+\[
+ T_{\max}=H(B_{\rm ret}+N_{\rm av}).
+\]
+This bounds all underlying transitions in the capped run.
+Each transition needs at most two weight evaluations, four outer
+draws (a hold coin, two element choices, and an acceptance threshold),
+and one transition count.  Each of at most \(HN_{\rm av}\)
+observations needs at most two additional weight evaluations.
+Initial sampling needs at most \(2s_{\rm sm}\) outer draws per
+phase.  Consequently
+\begin{equation}
+\begin{split}
+ &\#\{\text{evaluation calls, outer draws, and transitions}\}\\
+ &\quad\leq
+ 7T_{\max}+2HN_{\rm av}+2Hs_{\rm sm}\\
+ &\quad\leq
+ 9H(B_{\rm ret}+N_{\rm av})+2H(p+d)<J_*.
+\end{split}
+\label{eq:alg-action-budget}
+\end{equation}
+A visited state has a single type, whose counter is incremented.
+There is no separate sampling for each defect type.  Initializing
+the \(p(p-1)\) counters and computing their updates are additional
+deterministic polynomial computations.
+
+For the coupling, expose the completed joint history of both
+processes immediately before each requested evaluation or draw.
+The event that the processes have matched so far, and the current
+evaluation input, are measurable in this history.  A new evaluation
+uses a fresh bit stream independent of that history.  Its conditional
+failure probability is therefore at most \(\xi\), uniformly over
+the requested profile.  This conclusion remains valid after earlier
+matching and accuracy events, because they concern only already
+exposed randomness.
+
+Before a discrepancy, both runs have the same state and stored
+multipliers.  Couple their initial and proposal draws at total
+variation cost at most \(\xi\) per finite choice.  Conditional
+on matching proposals and accurate evaluations, let \(r\) be the
+reference acceptance ratio before clipping and \(r'\) the computed
+ratio.  The exact factorial and multiplier factors are the same in
+both runs, and hence
+\[
+ \frac{1-\xi}{1+\xi}\leq\frac{r'}r
+ \leq\frac{1+\xi}{1-\xi}.
+\]
+It follows, regardless of the magnitude or quality of the
+multipliers, that
+\[
+ \big|\min(1,r')-\min(1,r)\big|
+ \leq \frac{2\xi}{1-\xi}<4\xi.
+\]
+The dyadic threshold adds at most \(\xi\) to this absolute
+probability difference. To realize a common-uniform coupling, let
+\(Y\) be the actual fresh uniform \(k\)-bit integer used for the
+acceptance decision, and write its dyadic threshold as \(m/2^k\).
+In the proof alone, introduce \(V\) uniform on \([0,1)\), independent
+of \(Y\), the completed joint past, and the current weight evaluations.
+Then \(U=(Y+V)/2^k\) is uniform on \([0,1)\), and the implemented
+test \(Y<m\) is exactly \(U<m/2^k\). Use \(U<\min(1,r)\) for
+the reference decision. Their mismatch probability is the absolute
+difference of these thresholds, with the bound just obtained.
+The auxiliary variable \(V\) is never sampled by the algorithm.
+
+The coupling preserves the reference transition marginal
+conditional on the completed joint past.  We do not condition the
+reference process on the event that the entire coupling eventually
+succeeds.  Matching paths have exactly the same integer type counts,
+and the update \eqref{eq:alg-multiplier-update} depends only on
+those counts.  Thus their stored multipliers remain exactly equal,
+even though their observations of \(G_j\) need not be equal.
+Trace return times and cap decisions are functions of the matched
+state paths, so they also agree.  A union bound over
+\eqref{eq:alg-action-budget}, charging evaluation failures and
+draw or acceptance discrepancies, is at most \(10J_*\xi\).
+On the remaining event, each positive observed weight ratio has
+logarithmic relative error at most \(4\xi\).  Zero observations
+are zero in both runs.
+
+We next prove the unconditional resource bound.  Since all input
+cells are listed explicitly and the parameters are included in
+the input length, \(d,K=O(L)\).  The definitions in
+\eqref{eq:parameters} give, for example,
+\[
+ A=O(L^3\epsilon^{-1}),\quad
+ B=O(L^5\epsilon^{-1}),\quad
+ W=O(L^6\epsilon^{-1}),\quad
+ H=O(L^{11}\epsilon^{-2}),\quad
+ p\leq dW.
+\]
+All quantities in \eqref{eq:alg-phase-parameters} and
+\eqref{eq:alg-bit-parameters}, including \(\xi^{-1}\), are
+therefore bounded by fixed polynomials in \(L,\epsilon^{-1}\).
+Their rational encodings have polynomial length.  The state can be
+stored using \(2p\) membership bits or \(p\) element labels;
+the small counts and state type can be recovered by bounded scans.
+
+There is also a uniform size bound for stored multipliers on
+unsuccessful histories.  Let \(B_0=O(L+p\log(p+1))\) bound the
+initial numerator and denominator lengths obtained from
+\eqref{eq:alg-initial-defect}.  On every nonaborting history,
+\[
+ w_{il}^{(a)}
+ =w_{il}^{(0)}
+   \prod_{r=0}^{a-1}\frac{n_0^{(r)}}{n_{il}^{(r)}},
+ \qquad
+ 1\leq n_0^{(r)},n_{il}^{(r)}\leq N_{\rm av}.
+\]
+Thus, even without fraction reduction, its numerator and denominator
+each have at most
+\begin{equation}
+ B_0+H\left\lceil\log_2(N_{\rm av}+1)\right\rceil
+ \label{eq:alg-multiplier-length}
+\end{equation}
+bits, up to a fixed additive constant.  A zero count causes an
+abort before any such division.  This bound does not assume good
+multipliers or accurate weight calls.
+
+Proposition~\ref{prop:weight-oracle} supplies a deterministic
+polynomial bound on the work and output length of each evaluation,
+including its statistically unsuccessful executions.  More
+explicitly, its ratio averages always lie in \([1/2,1]\) and its
+rounded correction average always lies in \([1/16,8]\), so every
+call at parameter \(j\) returns a number in
+\[
+ [\,M_f2^{-j}/16,\ 8M_f\,].
+\]
+Its bounded dyadic precision and bounded numbers of rational
+operations give a polynomial representation length as well.
+The inputs of this subroutine are \(j\), a valid small-count
+profile, and the fixed tolerances; multiplier values are not
+subroutine inputs.  Multiplication by the exact factorial factor
+adds only \(O(p\log(p+1))\) bits.  Combining this bound with
+\eqref{eq:alg-multiplier-length} proves that every Metropolis
+ratio and threshold comparison has polynomial-sized operands.
+
+For the output arithmetic, let \(B_f\) be an unconditional
+polynomial bound on the lengths of evaluated \(f\)-weights.
+Each observation ratio has \(O(B_f)\)-bit numerator and
+denominator.  Adding \(N_{\rm av}\) such rationals using their
+product as a common denominator requires
+\(O(N_{\rm av}B_f+\log(N_{\rm av}+1))\) bits.  Dividing by
+a nonzero empirical type probability adds only
+\(O(\log(N_{\rm av}+1))\) bits.  The product of the \(H\)
+phase estimates and \(C(0)\) therefore has polynomial bit
+length.  Ordinary integer arithmetic on these bounded operands,
+including the output operation, has polynomial cost.
+
+Finally, every outer loop has its displayed deterministic cap,
+and the evaluation subroutine itself has bounded loops and finite
+bit draws.  Initialization and counter updates add at most
+polynomially many operations on the bounded integers just described.
+No part of this resource argument conditions on empirical accuracy,
+on successful coupling, or on survival of a restart.  An abort
+outputs the rational zero; otherwise all estimates are positive
+rationals.  This proves the claim on every execution.
+\end{proof}
+
+\subsection{Relative error and amplification}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+For an infeasible input the preliminary deterministic test returns
+zero on every execution, as required.  Suppose that the input is
+feasible.
+
+First let \(p\geq 1\).  Combine
+Proposition~\ref{prop:annealing} with
+Lemma~\ref{lem:bounded-implementation}.  Except on an event of
+probability at most \(1/50+10J_*\xi\), there is no abort,
+reference and implemented paths agree, and every positive
+observation differs from its reference counterpart by a factor
+between \(\exp(-4\xi)\) and \(\exp(4\xi)\).  The same bounds
+hold for sums of these positive observations.  Since type counts
+agree exactly, each implemented ratio estimate differs from its
+reference ratio by at most that same logarithmic amount.  The
+implemented output \(\widehat Z\) consequently satisfies
+\begin{equation}
+ \left|\log\frac{\widehat Z}{C(H)}\right|
+ \leq H(4\eta+4\xi)\leq\frac{\epsilon}{16}.
+ \label{eq:alg-final-log-error}
+\end{equation}
+The failure bound is less than \(1/4\), since
+\(10J_*\xi=\eta/100\).
+
+Proposition~\ref{prop:contamination} gives
+\[
+ Z\leq C(H)\leq (1+\epsilon/32)Z.
+\]
+Together with \eqref{eq:alg-final-log-error}, this implies the
+desired relative inequalities.  Indeed,
+\(e^{-\epsilon/16}\geq 1-\epsilon/16\), and for
+\(0<\epsilon<1\),
+\[
+ e^{\epsilon/16}(1+\epsilon/32)
+ \leq (1+\epsilon/8)(1+\epsilon/32)
+ \leq 1+\epsilon.
+\]
+Thus a single implemented run succeeds with probability greater
+than \(3/4\).
+
+The case \(p=1\) is already included in this argument.  The
+enlarged state space then consists of the two transversals, the
+defect-type family and multiplier updates are empty, and
+\(\pi(\mathcal A)=1\).  Only the type-zero indicator and
+\(G_j\) are observed.  All denominators and time bounds used
+above remain defined.
+
+If \(p=0\), there is a single small-count profile and
+\(C(H)=h_H(\varnothing)\).  The call specified at the start of
+this section returns a positive rational satisfying
+\[
+ (1-\epsilon/32)C(H)
+ \leq \widehat Z
+ \leq (1+\epsilon/32)C(H)
+\]
+with probability at least \(15/16\).  The contamination bound
+again places this interval inside
+\([(1-\epsilon)Z,(1+\epsilon)Z]\).  The evaluation procedure
+covers zero free coordinates as well, in which case its sum and
+bin space each have one element.  This branch invokes none of
+the \(p\)-dependent chain parameters and has the same required
+polynomial bit bound.
+
+It remains to obtain the requested failure probability.  Put
+\[
+ s=\left\lceil\log_2(\delta^{-1})\right\rceil,\qquad
+ R=10s+1,
+\]
+run the appropriate constant-success algorithm independently
+\(R\) times, and return the median of its nonnegative rational
+outputs.  Let \(F\) be the number of runs outside the desired
+relative interval.  Independence and the single-run failure
+bound \(1/4\) give
+\[
+ \mathbb E\,2^F\leq(5/4)^R.
+\]
+A bad median requires at least half the runs to fail, so
+\[
+ \mathbb P\{\text{bad median}\}
+ \leq \left(\frac{5}{4\sqrt2}\right)^{10s+1}
+ \leq 2^{-s}\leq\delta.
+\]
+The middle inequality follows, for example, from
+\((5/(4\sqrt2))^{10}<1/2\).
+
+Lemma~\ref{lem:bounded-implementation}, or
+Proposition~\ref{prop:weight-oracle} for \(p=0\), bounds the work
+and output length of every run by one fixed polynomial in
+\(L,\epsilon^{-1}\).  The number of repetitions is
+\(O(\log(\delta^{-1}))\); exact comparisons and median selection
+on their polynomial-length rational outputs also have polynomial
+bit cost.  Ceilings of binary logarithms used for the parameters
+and bit counts are computable by integer shifts and comparisons.
+All randomness in the implemented procedure consists of
+independent unbiased bits.  Partition functions, defect totals
+away from parameter zero, proof-only conditioning trees, and
+transport flows are never queried or enumerated.  The only weight
+evaluation used is the bounded procedure proved in
+Proposition~\ref{prop:weight-oracle}.  This establishes a uniform
+FPRAS with the stated bound on every execution.
+\end{proof}

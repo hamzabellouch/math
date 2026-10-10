@@ -1,0 +1,273 @@
+\section{Small degrees by exact character calculation}
+\label{sec:finite}
+
+The capacity calculations apply to the fixed large-degree candidate.
+For the remaining small degrees we instead calculate exact character
+residues, checking one self-conjugate candidate against every target.
+A nonzero residue certifies a positive integer multiplicity; no estimate
+or reconstruction of that integer is needed. We give the invariant of
+the calculation and its implementation bounds. The source is reproduced
+in Appendix~\ref{app:smallcode}.
+
+\begin{proposition}\label{prop:finite-check}
+For every integer $1\leq n\leq64$ other than $2,4,9$, there is a
+self-conjugate partition $\lambda\vdash n$ such that
+\[
+  g(\lambda,\lambda,\nu)>0\qquad\text{for every }\nu\vdash n.
+\]
+\end{proposition}
+
+\subsection{A recurrence for the entire coefficient vector}
+
+Write $\chi^\lambda(\rho)$ for the character of $S^\lambda$ on the
+conjugacy class of cycle type $\rho$. If $m_j(\rho)$ is the number of
+parts of size $j$, put $z_\rho=\prod_j j^{m_j(\rho)}m_j(\rho)!$.
+The character inner-product formula gives
+\begin{equation}\label{eq:finite-character}
+ g(\lambda,\lambda,\nu)
+ =\sum_{\rho\vdash n}
+   \frac{\chi^\lambda(\rho)^2\chi^\nu(\rho)}{z_\rho},
+\end{equation}
+since symmetric-group characters are real. The program computes this
+sum for every $\nu\vdash n$ at once, recursively selecting the parts
+of $\rho$ in decreasing order.
+
+Calculations take place in $\mathbb F_p$, where
+$p\in\{1000000007,1000000009\}$. Both numbers are prime, as is checked by
+trial division through $31622$. Since $n\le64<p$, every denominator
+in \eqref{eq:finite-character} is invertible modulo $p$.
+All character values and vectors below are interpreted in this field.
+For $s\geq0$, let $\mathcal P_s$ be the partitions of $s$, including
+the empty partition when $s=0$. For a vector
+$v=(v_\lambda)_{\lambda\in\mathcal P_s}$, write
+\[
+  \chi_v(\rho)=\sum_{\lambda\in\mathcal P_s}v_\lambda\chi^\lambda(\rho).
+\]
+Let $[\lambda]$ denote the coordinate vector with entry one at $\lambda$
+and zero elsewhere, so $\chi_{[\lambda]}=\chi^\lambda$.
+
+A border strip is an edge-connected skew diagram containing no $2\times2$
+square; its leg length is one less than its number of occupied rows.  Let
+$R_k$ denote the matrix that adds a border strip of size $k$, with entry
+$(-1)^{\text{leg length}}$ for each permitted addition.  Its source and target
+degrees will be understood from context. For $v$ of degree $s$ and
+$\rho\vdash s-k$, the Murnaghan--Nakayama rule
+\cite[Chapter~I, \S7, Example~5]{Macdonald}\cite[Rule~21.1]{James} gives
+\begin{equation}\label{eq:finite-mn}
+  \chi_{R_k^{\mathsf T}v}(\rho)
+     =\chi_v((k)\cup\rho),
+  \qquad
+  \sum_\mu (R_k)_{\nu\mu}\chi^\mu(\rho)
+     =\chi^\nu((k)\cup\rho).
+\end{equation}
+
+In a call \texttt{calc(s,k,e,v)}, the remaining cycle type has total
+size $s$ and no part larger than $k$; $e$ counts the size-$k$ parts
+already selected. The extra counter records the factorial in
+$z_\rho$ when several equal parts are selected successively.
+Reached states have $0\le s\le64$, $k\ge1$, and $e\ge0$.
+Set $\rho_1=0$ for the empty partition and abbreviate $m_j=m_j(\rho)$.
+Define $F_{s,k,e}(v)$ by its $\nu$ coordinate
+\begin{equation}\label{eq:finite-invariant}
+ F_{s,k,e}(v)_\nu
+  =\sum_{\substack{\rho\vdash s\\\rho_1\leq k}}
+   \chi_v(\rho)^2\chi^\nu(\rho)
+   \frac{e!}{k^{m_k}(e+m_k)!}
+   \prod_{1\leq j<k}\frac{1}{j^{m_j}m_j!}.
+\end{equation}
+Only states with $e+m_k\leq64$ are reached, so all displayed denominators
+are invertible.  For $2\leq k\leq s$, separating the terms with $m_k=0$
+from those with $m_k>0$ yields
+\begin{equation}\label{eq:finite-recursion}
+ F_{s,k,e}(v)
+   =F_{s,k-1,0}(v)
+     +\frac{1}{k(e+1)}R_k
+        F_{s-k,k,e+1}(R_k^{\mathsf T}v).
+\end{equation}
+Indeed, \eqref{eq:finite-mn} supplies the three character factors, while for
+$m=m_k>0$ the coefficient of the second term is
+\[
+ \frac{1}{k(e+1)}
+ \frac{(e+1)!}{k^{m-1}(e+m)!}
+   =\frac{e!}{k^m(e+m)!}.
+\]
+When $m_k=0$, the counter contributes only $e!/e!=1$, so the first
+term resets it to zero. The counter is needed precisely when another
+part of size $k$ is selected.
+Each recursive call decreases $(s,k)$ in lexicographic order: either
+the largest permitted part decreases, or the remaining degree decreases.
+The recursion therefore terminates.
+
+The base cases are exact.  At degree zero the answer is $v_\varnothing^2$.
+If $0<s<k$, no size-$k$ part remains, so
+$F_{s,k,e}(v)=F_{s,s,0}(v)$: the factor involving $e$ in
+\eqref{eq:finite-invariant} is then $e!/e!=1$.  Calls with $k=1$ always have
+$e=0$, since this case is returned immediately rather than recursed into.
+Writing $d_s=(\dim S^\nu)_{\nu\vdash s}$ gives
+\begin{equation}\label{eq:finite-base}
+ F_{s,1,0}(v)=\frac{1}{s!}\,d_s(d_s^{\mathsf T}v)^2.
+\end{equation}
+The vector $d_s$ is computed by successive applications of $R_1$ to the
+empty partition: the resulting Young-lattice chains are standard tableaux.
+The array named \texttt{fac} in the source stores inverse factorials.
+Finally, a zero vector $R_k^{\mathsf T}v$ contributes zero to the second
+term of \eqref{eq:finite-recursion}; omitting that branch is therefore
+valid even if the vector is zero only modulo $p$.
+
+The recurrence and base cases prove by induction on $(s,k)$ that
+\texttt{calc(s,k,e,v)} returns $F_{s,k,e}(v)$.
+At the initial call $s=k=n$ and $e=0$, the weight in
+\eqref{eq:finite-invariant} is $1/z_\rho$. Thus
+\eqref{eq:finite-character} identifies the output as
+\begin{equation}\label{eq:finite-output}
+ F_{n,n,0}([\lambda])_\nu
+   =g(\lambda,\lambda,\nu)\pmod p.
+\end{equation}
+
+\subsection{Exact implementation}
+
+Pad a partition $\lambda$ with zero parts to length $64$, and encode it by
+the beta set
+\[
+ B_\lambda=\{64+\lambda_j-j:1\leq j\leq64\}
+          \subseteq\{0,\ldots,127\}.
+\]
+There are $64$ beads, and their positions sum to $2016+|\lambda|$.
+The partition enumeration starts with $B_\varnothing=\{0,\ldots,63\}$
+and moves the $j$th bead to $64+\lambda_j-j$ while selecting nonincreasing
+parts.  It enumerates every partition exactly once.
+
+Moving a bead from $x$ to an empty position $x+k$ adds a border strip of
+size $k$.  If the bead passes $r$ other beads, the strip occupies $r+1$
+rows, giving the sign $(-1)^r$.  For the bit mask $b$ of $B_\lambda$, the
+expression
+\[
+ b\mathbin{\&}((\mathord{\sim}b)\mathbin{\gg}k)
+\]
+selects just the permitted starting positions.  Its top $k$ bits are zero,
+so every selected position satisfies $x+k\leq127$.  With $m=2^x$ and
+$t=2^{x+k}$, the mask $t-2m$ has exactly the bits strictly between the two
+positions.  Thus \texttt{cnt((t-m-m)\&b)} supplies precisely the strip leg
+length.  The routine \texttt{op} implements $R_k$ or its transpose according
+to its direction argument.
+
+The finite beta-set identity
+\[
+ B_{\lambda^t}=\{0,\ldots,127\}
+                 \setminus\{127-x:x\in B_\lambda\}
+\]
+shows that \texttt{sym} tests self-conjugacy by requiring opposite bits at
+positions $i$ and $127-i$.  Searching only these diagrams is legitimate;
+indeed
+\[
+ g(\lambda,\lambda,(1^n))
+   =\langle\chi^\lambda,\chi^\lambda\sgn\rangle
+   =\begin{cases}1,&\lambda=\lambda^t,\\0,&\lambda\ne\lambda^t.\end{cases}
+\]
+The floating-point score orders candidates by the logarithm of their hook
+product.  It is finite and affects only search order, never the arithmetic
+certificate or the list of available candidates. The search stops as
+soon as one candidate passes the test for every target.
+
+We record the implementation bounds to make the use of machine arithmetic
+explicit.  Residues lie in $[0,p-1]$; their sum is at most $2000000016$,
+within a signed $32$-bit integer, and their product fits a signed $64$-bit
+integer.  All mask shifts are between $0$ and $127$ and use unsigned
+$128$-bit arithmetic.  The possible final enumeration argument
+\texttt{pos=-1} occurs only after the last part has been placed, and the
+routine returns before shifting.  Bit scans receive nonzero masks.
+All degree indices lie in $[0,64]$.  In a non-base recursive step $k\geq2$,
+at most $32$ parts of size $k$ can be selected, so the inverse-array indices
+are also in range.
+
+The partition-count recurrence, adding parts of sizes $1,2,\ldots,64$,
+gives
+\[
+  |\mathcal P_{64}|=1741630,
+  \qquad \sum_{s=0}^{64}|\mathcal P_s|=12308139.
+\]
+The largest padded hash table has $4194304$ entries and is at most half
+full.  Hash arithmetic wraps only in unsigned types; collisions are
+resolved by equality of complete $128$-bit masks.  To see that every queried
+mask occurs in its table, sort its $64$ occupied positions as
+$b_1>\cdots>b_{64}\geq0$.  The numbers $b_j-64+j$ are nonnegative and
+nonincreasing, hence form a partition.  Moving one bead by $k$ increases
+their sum by $k$, so the lookup is in precisely the enumerated target
+degree.  Conversely, a size-at-most-$64$ partition never requires a
+position outside the mask.
+
+\begin{proof}[Proof of Proposition~\ref{prop:finite-check}]
+For each self-conjugate candidate $\lambda$, the program evaluates
+\eqref{eq:finite-output} modulo one or, if needed, both of the two
+primes. Its array
+\texttt{ok} is initialized afresh for that candidate, and records whether
+each coordinate has a nonzero residue for at least one prime.  Therefore
+a successful return for an eligible degree certifies one and the same
+$\lambda$ for all target partitions $\nu$.  Since each Kronecker
+coefficient is a nonnegative integer, a nonzero residue implies positive
+multiplicity.  No bound on the coefficient sizes or reconstruction from
+the two moduli is required.
+A residue that vanishes for both primes is inconclusive: this is a
+sufficient test for positivity, and an unsuccessful search would not
+prove nonexistence.
+
+The recorded calculation compiled the source in
+Appendix~\ref{app:smallcode} with GNU C++~13.3.0 and executed it
+for exactly the $61$ eligible degrees
+$\{1,3,5,6,7,8\}\cup\{10,11,\ldots,64\}$.
+Every invocation returned success. The complete execution record is
+\path{verification/computation/character-61-degrees.log};
+\path{verification/computation/RESULTS.json} records the source and log identities.
+These successful invocations
+establish the required existence statement in every eligible degree of
+the finite range. The record contains exit statuses rather than the
+selected partitions; their meaning is the successful return condition
+of the source just analyzed.
+\end{proof}
+
+\subsection{Reproducibility and independent checks}
+
+The files \texttt{smallcode\_submitted.cpp},
+\texttt{smallcode\_dump.cpp}, and \texttt{smallcode\_verify.py} accompany
+this proof under \path{verification/code/}; the execution records are under
+\path{verification/computation/}. From \path{verification/code/}, the complete check can be
+reproduced in Bash by
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\footnotesize]
+g++ -O3 -std=c++17 smallcode_submitted.cpp -o smallcode_submitted
+python3 smallcode_verify.py runs 1 3 {5..8} {10..64} \
+  --seconds 300 --log ../computation/recheck.log
+\end{lstlisting}
+Each child has a $1536$-MiB address-space limit, a $300$-second wall
+limit and a $301$-second CPU limit. The driver returns failure if any
+child fails or times out. The complete expected set of eligible degrees
+must be checked: the three excluded degrees are deliberately skipped by
+the C++ program and their zero exit statuses do not certify a square.
+
+As an independent check of the implementation, the dump harness exposes
+every square vector at degrees $1$ through $12$, together with dimensions,
+self-conjugacy flags, and a nontrivial mixed input vector.  The Python
+verifier computes integer characters by enumerating contained grid
+diagrams and testing border strips for connectivity and the absence of a
+$2\times2$ square.  Thus its strip enumeration and signs do not reuse the
+bead implementation.  It checks character orthogonality, computes exact
+integer Kronecker coefficients using conjugacy-class sizes, and compares
+every exposed coefficient modulo both primes.  Every comparison passed,
+including the dimensions and mixed vectors; the exact calculation also
+finds no covering square in degrees $2,4,9$. The dump harness ran through
+degree $12$ with undefined-behavior sanitization enabled and reported
+no failure. These checks
+are recorded in \path{verification/computation/character-independent-1-12.log}
+and can be repeated with
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\footnotesize]
+g++ -O2 -std=c++17 -fsanitize=undefined \
+  -fno-sanitize-recover=all smallcode_dump.cpp -o smallcode_dump_ubsan
+python3 smallcode_verify.py compare {1..12} \
+  --log ../computation/recheck-independent.log
+\end{lstlisting}
+Before comparing coefficients, the Python verifier requires every
+expected record to occur exactly once, including every square vector
+under both moduli. Its fault-injection tests reject missing or duplicate
+records even when the child exits successfully. These tests can be run with
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\footnotesize]
+python3 -m unittest -v test_smallcode_verify.py
+\end{lstlisting}

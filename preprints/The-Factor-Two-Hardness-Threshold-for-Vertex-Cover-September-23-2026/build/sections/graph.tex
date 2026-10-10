@@ -1,0 +1,351 @@
+\section{The graph and completeness}\label{graph:section}
+
+Fix a source instance and the construction parameters from
+\Cref{sec:source}. Each vertex will specify source constraints on the
+pairs of \(d\) positions and weights on the labels available at each
+position. We first define when local labels fit together and use their
+coordinate sums to define a norm. A satisfying source labeling will
+then provide a linear functional whose values above \(t\) select an
+independent set.
+
+\subsection{Queries and compatible labels}
+
+Let $\mathcal E=\binom{[d]}2$ be the set of unordered pairs of distinct
+positions.  A query of type $j\in[d]$ has the form
+\[
+ i=\bigl(j,(q_{jk})_{k\in[d]\setminus\{j\}}\bigr),
+ \qquad
+ q_{jk}\in
+ \begin{cases}
+  V,&k<j,\\
+  U,&k>j.
+ \end{cases}
+\]
+The tuple is ordered by increasing $k$.  Let $\mathcal Q$ be the set
+of all such queries of all types, and let $P(i)\subseteq U\cup V$ be
+the set of distinct variables appearing in $i$.  The side of each
+variable is part of its identity, since $U$ and $V$ are disjoint.
+Repeated entries in the tuple contribute only one variable to $P(i)$;
+thus $|P(i)|\leq d-1$.
+
+A label $\lambda$ for $i$ assigns a symbol from the appropriate
+alphabet to each variable of $P(i)$ and satisfies every source
+constraint occurrence whose two endpoints belong to $P(i)$.  Write
+$\Lambda_i$ for the set of these labels.  This set may be empty, for
+example when constraints internal to the scope are inconsistent.
+There are at most $q^{|P(i)|}\leq r$ labels.  Fix orders on variables
+and alphabet symbols, and list the valid assignments in lexicographic
+order to define an injection
+\[
+ \operatorname{slot}_i:\Lambda_i\longrightarrow[r].
+\]
+This is the empty map when $\Lambda_i=\varnothing$.  Slots outside
+its image will play no role in an increment.
+
+Define the finite coordinate set
+\[
+ \mathcal P=\{(i,\lambda):i\in\mathcal Q,\ \lambda\in\Lambda_i\}.
+\]
+A \emph{compatible selection} is a subset $I\subseteq\mathcal P$
+with at most one label per query, such that the selected labels agree
+on overlaps and their induced labeling satisfies every source
+constraint whose two endpoints lie in
+\[
+ P(I)=\bigcup_{(i,\lambda)\in I}P(i).
+\]
+Let $\mathcal I$ be the family of compatible selections, including
+the empty selection. Agreement on overlaps alone is not enough:
+constraints joining variables from different selected scopes must
+also be satisfied. Thus labels on any two selected queries satisfy every source
+constraint between their scopes.
+Compatibility imposes no condition on a constraint with an endpoint
+outside $P(I)$; the induced labeling need not extend to a satisfying
+labeling of the entire instance.
+
+For $z\in\R^{\mathcal P}$, define
+\begin{equation}\label{graph:norm-definition}
+ \norm{z}=\max_{I\in\mathcal I}
+       \left|\sum_{(i,\lambda)\in I}z_{i,\lambda}\right|.
+\end{equation}
+For a query $i$ and a vector $s\in\R^r$, let $z(i,s)$ be supported on
+its query block, with
+\[
+ z(i,s)_{i,\lambda}=s_{\operatorname{slot}_i(\lambda)}
+ \quad\text{for }\lambda\in\Lambda_i.
+\]
+All coordinates in other query blocks are zero.  In particular,
+$z(i,s)=0$ for a query with no valid label.
+
+\begin{lemma}[Compatibility norm]\label{graph:norm}
+The family $\mathcal I$ is hereditary and contains every coordinate
+singleton.  Formula~\eqref{graph:norm-definition} defines a norm.
+For each fixed query $i$, the increment is linear in $s$ and obeys
+\begin{equation}\label{graph:increment}
+ \norm{z(i,s)}\leq\|s\|_\infty.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Removing labels preserves agreement and can only shrink the scope
+union.  Every constraint internal to the smaller union was therefore
+satisfied before removal.  This proves heredity.  Every singleton
+belongs to $\mathcal I$ by the definition of a valid query label.
+The maximum of absolute linear forms is absolutely homogeneous and
+satisfies the triangle inequality; the singleton forms ensure that
+it vanishes only at zero.  If the coordinate set is empty, this is
+the unique norm on the zero-dimensional space.  Finally, a compatible
+selection contains at most one coordinate of the $i$-block, proving
+\eqref{graph:increment}.  Linearity follows from the coordinate formula.
+\end{proof}
+
+\subsection{Vertices and edges}
+
+A seed tuple is an indexed family
+$\mathbf c=(c_e)_{e\in\mathcal E}\in[M]^{\mathcal E}$.
+For $e=\{j,k\}$ with $j<k$, seed $c_e$ gives endpoint $x_{c_e}$ to
+position $j$ and endpoint $y_{c_e}$ to position $k$.  It thereby
+specifies queries $i_j(\mathbf c)$ through
+\[
+ q_{jk}=x_{c_{\{j,k\}}},\qquad
+ q_{kj}=y_{c_{\{j,k\}}}\qquad(j<k).
+\]
+A query retains its type and its ordered endpoint questions.  It does
+not retain the sampled occurrence indices, the sampled projection
+maps, or the opposite endpoint in any pair.  Different seed tuples
+can give the same queries.  Queries of different position types are
+nevertheless distinct, even if some endpoint values coincide.
+The source instance used to define labels and slots is fixed; the
+seed-dependent data in a query are only its endpoint questions.
+
+Use the symmetric grid
+\begin{equation}\label{graph:grid}
+ \mathcal T=\left\{\frac{2u}{p}:u=-d,-d+1,\ldots,d\right\},
+ \qquad p=2d+1.
+\end{equation}
+These are the midpoints of the $p$ equal consecutive subintervals of
+$[-1,1]$.  The vertex set consists of all pairs
+\[
+ v=(\mathbf c,\mathbf s),\qquad
+ \mathbf c\in[M]^{\mathcal E},\quad
+ \mathbf s=(s_1,\ldots,s_d)\in(\mathcal T^r)^d.
+\]
+Each indexed pair is one vertex, including when another pair produces
+the same queries or the same vector
+\begin{equation}\label{graph:sum-vector}
+ S_v=\sum_{j=1}^d z(i_j(\mathbf c),s_j).
+\end{equation}
+For two distinct vertices, declare
+\begin{equation}\label{graph:edge}
+ \{v,w\}\in E(G)
+ \quad\Longleftrightarrow\quad
+ \norm{S_v+S_w}\leq2t.
+\end{equation}
+This defines a finite simple undirected unweighted graph.  Its order is
+\begin{equation}\label{graph:size}
+ n=|V(G)|=M^{\binom d2}p^{rd}\geq p>2m,
+\end{equation}
+where the inequalities use $M,r\geq1$ and
+\Cref{src:dimension-bounds,src:construction-parameters}. Choosing a uniform vertex is exactly
+choosing all seeds independently and uniformly from $[M]$ and all
+weight entries independently and uniformly from $\mathcal T$.
+There is no identification of equal vectors in this probability law.
+
+\begin{lemma}[Local evaluation of the norm]\label{graph:local-norm}
+Let $\mathcal B\subseteq\mathcal Q$ be a set of query blocks
+supporting $z\in\R^{\mathcal P}$.  Then
+\begin{equation}\label{graph:local-formula}
+ \norm{z}=\max_{\substack{I\in\mathcal I:\\
+                          (i,\lambda)\in I\ \Longrightarrow\ i\in\mathcal B}}
+       \left|\sum_{(i,\lambda)\in I}z_{i,\lambda}\right|.
+\end{equation}
+For $z=S_v+S_w$, this maximum can be evaluated by at most
+$(1+r)^{2d}$ choices, each checked by a scan of the source constraints.
+\end{lemma}
+\begin{proof}
+Intersect any compatible selection with the blocks in $\mathcal B$.
+Heredity preserves compatibility, and the sum is unchanged because
+all other blocks of $z$ vanish.  Conversely, each selection on the
+right of \eqref{graph:local-formula} is a selection in the full
+maximum.  This proves equality.
+
+For a pair of vertices there are at most $2d$ distinct query blocks.
+First aggregate the coordinate contributions of all occurrences of
+each repeated query.  For each distinct query $i$, enumerate the at
+most $q^{d-1}\leq r$ assignments on its scope, and keep exactly those
+satisfying every source constraint internal to that scope.  This
+computes $\Lambda_i$ and its slots.  Next choose either no label or
+one of these labels in each block.  There are at most $(1+r)^{2d}$
+choices.  For each choice, test agreement on repeated variables and
+scan the source list to test every constraint internal to the union
+of the chosen scopes.  This union has at most $2d(d-1)$ variables.
+The surviving choices are precisely the selections on the right of
+\eqref{graph:local-formula}, and their absolute coordinate sums give
+the required maximum.  Neither the labels nor the compatibility test
+requires satisfying any constraint outside the indicated scope union.
+\end{proof}
+
+\begin{proposition}[Deterministic polynomial construction]
+\label{graph:polynomial}
+For a fixed integer $m\geq4$, a fixed even square $d$ satisfying
+\Cref{src:dimension-bounds}, and fixed source alphabets,
+the graph $G$ can be output explicitly in deterministic time
+polynomial in the source bit length.  Every edge test is exact.
+\end{proposition}
+\begin{proof}
+Let $L$ be the source bit length. The fixed integers $m,d$ determine
+$p$ and the rational number $t$ by \Cref{src:construction-parameters}.
+The fixed alphabets determine $q$ and $r=q^{d-1}$. All these
+quantities are therefore computable constants independent of $L$.
+Since the
+constraint list is explicit, $M=O(L)$, and
+\eqref{graph:size} gives $n=O(L^{\binom d2})$.  A vertex description
+contains a fixed number of source indices and grid entries.  Thus all
+vertices can be enumerated and assigned identifiers of
+$O(1+\log n)$ bits.
+
+Apply \Cref{graph:local-norm} to each unordered pair of distinct
+vertices.  All label and selection enumerations have a fixed number
+of choices.  Variable comparisons, sorting, constraint scans, and
+projection-map evaluations take polynomial bit time in $L$.
+The arithmetic of the edge test uses only rational grid entries.
+In fact, every coordinate of $S_v+S_w$ has denominator $p$, after
+summing all repeated-block contributions.  The local maximum is
+therefore $\zeta/p$ for a nonnegative integer $\zeta$.  By
+\eqref{graph:increment} and the triangle inequality,
+$\zeta/p\leq2d$, so its numerator and denominator have bit lengths
+bounded solely in terms of the fixed parameters.  Since
+$t=\sqrt d/(4m)$ and $\sqrt d$ is an integer, the edge test is precisely
+\[
+ 2m\zeta\leq p\sqrt d.
+\]
+Both sides are integers, so the test involves no approximation of a
+real number.
+
+Checking all pairs and writing every qualifying edge takes
+\[
+ O\bigl((1+n^2)\operatorname{poly}(L+\log n)\bigr)
+\]
+bit operations, with constants depending only on the fixed parameters
+and alphabets.  Formula~\eqref{graph:size} also computes $n$ by integer
+arithmetic with $O(1+\log n)$ output bits.  Thus the construction has
+polynomial bit complexity, including its explicit vertex and edge
+lists.  It runs on every source instance with these alphabets,
+regardless of whether the gap promise holds.
+\end{proof}
+
+\subsection{Completeness}
+
+A satisfying source assignment will give a linear functional whose
+value exceeds \(t\) on an independent set. To show that this set
+occupies nearly half the vertices, we first bound the corresponding
+tail of a sum of independent uniform grid variables.
+
+\begin{lemma}[Midpoint-grid tail]\label{graph:anticoncentration}
+If $T_1,\ldots,T_d$ are independent uniform elements of $\mathcal T$,
+then
+\begin{equation}\label{graph:tail}
+ \Pr\left[\sum_{j=1}^dT_j>t\right]
+ >\frac12-\sqrt2\left(a+\frac1{\sqrt d}\right)
+ >\frac12-\frac1m.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Take independent uniform $C_1,\ldots,C_d$ on $[-1,1]$, and round each
+to the midpoint of its subinterval in the partition defining
+$\mathcal T$.  Boundary choices have probability zero.  The rounded
+variables have the required independent laws, and
+\[
+ \left|\sum_jT_j-\sum_jC_j\right|\leq\frac dp<\frac12.
+\]
+Put $A=t+d/p=a\sqrt d+d/p$.  We bound the central probability
+$\Pr[|\sum_jC_j|\leq A]$.
+
+Each $C_j$ may be generated as $(L_j+U_j)/2$, where $L_j$ is a fair
+sign and $U_j$ is uniform on $[-1,1]$, all independent.  The two sign
+choices give uniform distributions on the two half intervals of
+$[-1,1]$, so this is indeed the uniform distribution on the full
+interval.  Conditional on $(U_1,\ldots,U_d)$, the event
+$|\sum_jC_j|\leq A$ places $\sum_jL_j$ in an interval of length
+\[
+ 4A=4a\sqrt d+4d/p<4a\sqrt d+2.
+\]
+The possible sign sums are spaced by two.  An interval of length
+$D$ contains at most $D/2+1$ values from such a lattice, so this
+interval contains fewer than $2a\sqrt d+2$ possible sign sums.
+
+Write $d=2d_0$.  The sign-sum probabilities are
+$4^{-d_0}\binom{2d_0}{v}$, for $0\leq v\leq2d_0$.
+Consecutive ratios $(2d_0-v)/(v+1)$ show that the largest is the
+central one.  It satisfies
+\[
+ 4^{-d_0}\binom{2d_0}{d_0}
+ =\prod_{u=1}^{d_0}\left(1-\frac1{2u}\right)
+ \leq\frac1{\sqrt{d_0+1}}
+ <\frac{\sqrt2}{\sqrt d}.
+\]
+For the middle inequality, square the product and use
+\[
+ \left(1-\frac1{2u}\right)^2\leq\frac{u}{u+1}
+ \qquad(u\geq1);
+\]
+indeed the right side minus the left side is
+$(3u-1)/(4u^2(u+1))>0$, and the resulting product telescopes.
+The conditional central probability, and therefore its average,
+is bounded by
+\[
+ \Pr\left[\left|\sum_jC_j\right|\leq A\right]
+ <\sqrt2\left(2a+\frac2{\sqrt d}\right).
+\]
+Symmetry gives
+\[
+ \Pr\left[\sum_jC_j>A\right]
+ =\frac12\left(1-
+    \Pr\left[\left|\sum_jC_j\right|\leq A\right]\right)
+ >\frac12-\sqrt2\left(a+\frac1{\sqrt d}\right).
+\]
+On this event, rounding leaves $\sum_jT_j>t$.  Finally,
+$\sqrt d>4m=1/a$ by \Cref{src:dimension-bounds}, and hence
+\[
+ \sqrt2\left(a+\frac1{\sqrt d}\right)
+ <2\sqrt2\,a<3a=\frac3{4m}<\frac1m.
+\]
+This proves both inequalities in \eqref{graph:tail}.
+\end{proof}
+
+\begin{proposition}[Completeness]\label{graph:completeness}
+If $\val(\Phi)=1$, then $G$ has an independent set of size greater
+than $(1/2-1/m)n$.  Consequently,
+\[
+ \tau(G)<\left(\frac12+\frac1m\right)n.
+\]
+\end{proposition}
+\begin{proof}
+Let $A$ be a labeling satisfying every source constraint.  Its
+restriction $\lambda_{A,i}$ to $P(i)$ belongs to $\Lambda_i$ for
+every query $i$.  The selection
+\[
+ I_A=\{(i,\lambda_{A,i}):i\in\mathcal Q\}
+\]
+belongs to $\mathcal I$: the labels agree on overlaps, and every
+constraint internal to their scope union is satisfied by $A$.
+Keep precisely the vertices for which
+\begin{equation}\label{graph:keep-rule}
+ \sum_{j=1}^d
+ s_{j,\operatorname{slot}_{i_j(\mathbf c)}
+                  (\lambda_{A,i_j(\mathbf c)})}>t.
+\end{equation}
+For a uniform vertex, conditional on the seed tuple, the selected
+slot in each weight vector is fixed.  Its entries are independent
+uniform elements of $\mathcal T$, one from each independent $s_j$.
+Coincident endpoint questions or slot numbers do not change this
+independence.  By \Cref{graph:anticoncentration}, more than a
+$(1/2-1/m)$ fraction of vertices are kept.
+
+For two distinct kept vertices $v,w$, evaluating $S_v+S_w$ on $I_A$
+gives exactly the sum of their two expressions in
+\eqref{graph:keep-rule}.  This includes all contributions even when
+the same query appears in both vertices.  The sum exceeds $2t$, so
+\eqref{graph:norm-definition} rules out the edge in
+\eqref{graph:edge}.  The kept vertices are therefore independent.
+Their complement is a vertex cover of size less than
+$(1/2+1/m)n$.
+\end{proof}

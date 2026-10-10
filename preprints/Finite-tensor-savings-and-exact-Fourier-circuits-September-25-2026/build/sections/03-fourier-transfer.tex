@@ -1,0 +1,443 @@
+\section{From a finite win to exact Fourier circuits}
+\label{fft:transfer}
+
+The amplification in \cref{lem:amplification} concerns tensor powers of
+one fixed matrix.  To use it for Fourier transforms of different widths,
+we first construct shallow matrix words without enlarging those widths.
+A \emph{pair layer} is a direct sum, after a coordinate permutation, of
+invertible two-coordinate matrices and one-coordinate identities.  A
+\emph{monomial layer} is an invertible monomial matrix on the whole
+coordinate set.  During a recursive construction we also permit a
+\emph{mixed round}: on disjoint regions it performs monomial layers or
+pair layers.  Such a round splits into at most two layers of the stated
+types, since the operations on different regions commute.
+
+\subsection{Convolutions and borrowed coordinates}
+
+We will use the following elementary circuit fact.  A convolution with a
+fixed vector, including truncations and reversals of its inputs or
+outputs, has a linear DAG with
+\[
+ O\bigl(v\log(2+v)\bigr)\quad\text{gates},\qquad
+ O\bigl(\log(2+v)\bigr)\quad\text{depth},
+\]
+where $v$ is the sum of the input and kernel lengths.  Moreover its
+variable inputs and gates have bounded fan-out, including uses at the
+outputs, with an absolute bound.  Here and below depth counts scalar
+arithmetic gates.
+
+For nonempty vectors of lengths $a,e\ge1$, pad both by zeros to the
+least power of two $L\ge a+e-1$; then $L<2(a+e-1)$.
+Empty operands give the zero map and may be omitted.  At $L=1$ the
+Fourier maps are identities.  At
+the $L$th roots of unity, ordinary convolution becomes pointwise
+multiplication; the transform of the fixed vector is part of the
+prechosen constants.  The binary Fourier recursion transforms even and
+odd positions separately and combines each pair of transformed entries
+$a,b$ as $a+\omega b,a-\omega b$.  It uses at most three scalar gates
+per pair, $O(L\log(2L))$ gates in total, and $O(\log(2L))$ depth.
+Every recursion input feeds one leaf; each transformed entry is used in
+only its own pair of outputs at the next level.  The inverse uses
+inverse roots and a final scaling by $L^{-1}$, with the same bounds.
+Padding zeros require no variable input.  The intervening diagonal
+multiplications and the output selections preserve bounded fan-out.
+This also proves the same estimates for a fixed number of such
+convolutions, compositions, and sums.  All scalar multiplications in
+these estimates are charged.
+
+The padded DAG in this argument need not itself be in place.  The next
+lemma explains how its workspace can be supplied by existing
+coordinates carrying arbitrary values.
+The forward, output, and reverse sweeps follow the uncomputation pattern
+of Bennett \citep{bennett1973}. The arbitrary initial values also connect
+this construction with transparent computation
+\citep[Section~3]{buhrmanEtAl2014}. The second replay below removes their
+contribution and supplies the precise shear and layer counts used here.
+
+\begin{samepage}
+\begin{lemma}[Dirty-coordinate replay]\label{fft:dirty-layers}
+Let $M:\C^e\to\C^a$ have a linear DAG with $\ell$ gates and depth $H$.
+Suppose every variable input and gate has fan-out at most $\delta$,
+counting designated output uses.  On disjoint source coordinates $x$,
+target coordinates $y$, and $\ell$ further coordinates $z$, there is a
+word of coordinate shears realizing
+\[
+ (x,y,z)\longmapsto(x,y+Mx,z).
+\]
+It uses at most $8\ell+2a$ shears and
+$O\bigl((\delta+1)(H+1)\bigr)$ pair layers.  The initial values of $z$
+are arbitrary, and may depend on $x,y$ or other data.
+\end{lemma}
+\end{samepage}
+
+\begin{proof}
+Assign one distinct coordinate $z_v$ to each gate $v$, ordered
+topologically.  To simulate the gate, add its prescribed linear
+combination of predecessors into $z_v$.  A scalar gate requires one
+shear, and an addition or subtraction requires at most two.  An edge
+from the literal input zero is omitted.  Predecessors are either
+original source coordinates or earlier gate coordinates; in particular
+none is the coordinate being updated.  The forward sweep therefore
+has the form
+\begin{equation}\label{fft:dirty-forward}
+ z\longmapsto Uz+Tx,
+\end{equation}
+where $U$ is unit lower triangular in the chosen order.  Write the
+designated output reads as $Fz_{\rm current}+Dx$; this includes outputs
+that are original inputs, and a zero output contributes no read.  Each
+nonzero output is one designated read.  Starting with zero gate
+coordinates computes the original DAG, so
+\begin{equation}\label{fft:dirty-output}
+ FT+D=M.
+\end{equation}
+Run the forward sweep, add its outputs into $y$, and undo every shear
+of that sweep in reverse order.  The net effect on $y$ is addition of
+\[
+ F(Uz+Tx)+Dx=Mx+FUz,
+\]
+and every scratch coordinate returns to its initial value.  Next run
+the same forward sweep with \emph{all} edges from original source
+coordinates omitted.  Omit the direct-source output term $Dx$ as well.
+This sweep sends $z$ to $Uz$.  Subtract its outputs $FUz$ from $y$ and
+undo the sweep.  This leaves exactly $y+Mx$ and restores $z$ once more.
+The target coordinates are never read by either sweep.  These identities
+hold for independent formal variables $x,y,z$, hence remain valid after
+substituting correlated values for the initial scratch.
+
+To obtain the layer bound, assign gates their longest-path depth
+levels.  Within a level, all destinations are new gate coordinates and
+all predecessors belong to earlier levels or to the sources.  The
+undirected multigraph of shear edges has maximum degree at most
+$\Delta=\max\{2,\delta\}$: a destination has at most two incoming
+edges and a predecessor has at most $\delta$ uses.  Repeated edges can
+be combined, or retained with their bounded multiplicity.  Greedy edge
+coloring uses at most $2\Delta-1$ colors, because an edge meets at most
+$2\Delta-2$ other edges.  Each color is a disjoint-pair layer.  These
+shears can be reordered by colors because no destination in this
+level is a predecessor in the same level.  Output additions have the
+same bounded-degree property on source or gate coordinates and target
+coordinates.  Reversing the colored levels gives the exact inverse
+sweep.  Thus four sweeps and two output rounds need at most
+$4(2\Delta-1)H+2(2\Delta-1)$ layers.  Each sweep uses at most
+$2\ell$ shears and each output round at most $a$, proving the count.
+\end{proof}
+
+\subsection{An exact-width factorization}
+
+The structured-matrix step uses the displacement-rank method of Kailath,
+Kung, and Morf \citep[Lemmas~1--2]{kailathKungMorf1979}: a matrix whose
+difference from a shifted copy has low rank can be reconstructed from
+convolution factors. We give the rectangular reconstruction in the proof,
+then place its workspace inside the original coordinate set.
+
+\begin{lemma}[Triangular Toeplitz layers]\label{fft:toeplitz-layers}
+Every invertible lower triangular Toeplitz matrix of width $r$ has a
+factorization on exactly $r$ coordinates into
+$O(1+\log^4 r)$ monomial and pair layers.  The implied constant is
+absolute and independent of its entries.
+\end{lemma}
+
+\begin{proof}
+Write $T_r=(h_{i-j})_{0\le j\le i<r}$, with zero entries above the
+diagonal and $h_0\ne0$.  Let $g_0,g_1,\ldots$ be the coefficients of
+the inverse formal series to $\sum_{j\ge0}h_jz^j$, extending the
+specified $h_j$ arbitrarily beyond those needed.  Split at
+$s=\lfloor r/2\rfloor$, and put
+\[
+ T_r=\begin{pmatrix}T_s&0\\ B&T_{r-s}\end{pmatrix}.
+\]
+First apply its two diagonal blocks recursively and in parallel.  To
+finish, add from the first block into the second by $C=BT_s^{-1}$.
+With global row and column indices its entries are
+\begin{equation}\label{fft:cross-block}
+ C_{ij}=\sum_{\nu=j}^{s-1}h_{i-\nu}g_{\nu-j},
+ \qquad s\le i<r,\quad 0\le j<s.
+\end{equation}
+
+Partition the source and target ranges into consecutive chunks, of a
+size to be specified below, and consider a chunk matrix $M$ of size
+$a\times e$.  Let $S_a,S_e$ be lower-shift matrices, with ones in
+positions $(u,u-1)$.  For entries away from the first row and first
+column of the chunk, \cref{fft:cross-block} gives
+\[
+ M_{uv}-(S_aMS_e^{\mathsf T})_{uv}
+ =C_{ij}-C_{i-1,j-1}=-h_{i-s}g_{s-j}.
+\]
+The right side is an outer product on those entries.  Extending this
+outer product to the whole chunk leaves only its first row and first
+column to correct; these have rank at most one each.  Consequently
+\begin{equation}\label{fft:displacement}
+ E=M-S_aMS_e^{\mathsf T}
+   =\sum_{\nu=1}^{\rho}v^{(\nu)}(w^{(\nu)})^{\mathsf T},
+ \qquad \rho\le3.
+\end{equation}
+Nilpotence of the shifts gives the terminating telescoping identity
+\[
+ M=\sum_{l\ge0}S_a^lE(S_e^{\mathsf T})^l.
+\]
+For one outer product $vw^{\mathsf T}$ its summand matrix has entries
+$\sum_{l\ge0}v_{u-l}w_{j-l}$, with both vectors zero-extended.
+It applies to $x\in\C^e$ by the two maps
+\begin{equation}\label{fft:two-convolutions}
+ b_l=\sum_{j=l}^{e-1}w_{j-l}x_j\quad(0\le l<e),
+ \qquad
+ c_u=\sum_{l=0}^{e-1}v_{u-l}b_l\quad(0\le u<a).
+\end{equation}
+The first is a convolution after reversing the input and selecting
+coefficients; the second is a truncated convolution.  Sum the at most
+three resulting vectors.  The preceding binary-FFT construction
+therefore supplies a DAG for $Mx$ satisfying, for absolute constants
+$C_0,C_1,\delta_0$,
+\begin{equation}\label{fft:chunk-dag}
+ \ell\le C_0(a+e)\log_2(2+a+e),\qquad
+ H\le C_1\log_2(2+a+e),\qquad
+ \delta\le\delta_0.
+\end{equation}
+These bounds include the sums of the at most three terms and all
+output uses.  In particular, copying the input to these three fixed
+networks multiplies its fan-out by only a constant.  The constants do
+not depend on the Toeplitz entries or the chosen outer products.
+
+Choose once and for all $D\ge16C_0+16$ and, for sufficiently large
+$r$, take chunk size
+\[
+ h=\left\lfloor\frac{r}{D\log_2r}\right\rfloor.
+\]
+Choose a fixed threshold $r_0$ so that, for all $r\ge r_0$,
+$h\ge r/(2D\log_2r)\ge1$.  The final chunk in either range may be
+shorter.  For every chunk pair,
+\[
+ a+e\le\frac{2r}{D\log_2r}\le\frac r8,
+ \qquad
+ \log_2(2+a+e)\le2\log_2r,
+ \qquad
+ \ell\le\frac{4C_0r}{D}<\frac r4.
+\]
+At least $7r/8$ coordinates of this very recursion block lie outside
+the source and target chunks.  They suffice for the $\ell$ scratch
+coordinates in \cref{fft:dirty-layers}.  No extra coordinate is
+introduced for the padded FFT: its zero inputs require no register,
+and every gate requiring a register is already counted in $\ell$.
+The lemma implements addition of this chunk's contribution in
+$O(\log r)$ pair layers and restores every other coordinate.
+
+Process the chunk pairs serially.  Source chunks remain unchanged,
+target additions accumulate, and coordinates in other chunks can be
+borrowed again with their current values, even if already updated.
+There are at most $r/h+2=O(\log r)$ chunks in total and hence
+$O(\log^2r)$ pairs.  The cross-block update needs
+$O(\log^3r)$ layers.  For $r<r_0$, elimination expresses $T_r$ using
+scalings and coordinate shears on the same coordinates, at a bounded
+cost depending only on the fixed $r_0$.
+
+Let $d(r)$ denote the worst mixed-round depth of this construction.
+The child recursions use only their own disjoint blocks, so their
+depths take a maximum, and
+\[
+ d(r)\le\max\{d(\lfloor r/2\rfloor),
+                  d(\lceil r/2\rceil)\}
+             +O(1+\log^3r).
+\]
+Summing along the $O(\log r)$ balanced recursion levels gives
+$d(r)=O(1+\log^4r)$.  Splitting mixed rounds into at most two layers
+finishes the proof, still on exactly $r$ coordinates.
+\end{proof}
+
+The Fourier-to-Toeplitz identity used next is the geometric-Vandermonde
+$LDL^{\mathsf T}$ factorization of \citet[Theorem~1]{kuznetsov2018},
+specialized to a primitive root of unity. For the general Vandermonde
+factorization through Newton interpolation, see also
+\citet[Theorem~2.1]{orucPhillips2000}. We derive the identity here to fix
+our conventions, then apply the preceding layer construction to its
+triangular factors.
+
+\begin{lemma}[Exact-width Fourier layers]\label{lem:fourier-layers}
+For every integer $r\ge1$, the unnormalized Fourier matrix $F_r$ has
+a factorization on exactly $r$ coordinates into
+$O(1+\log^4r)$ monomial and pair layers, with an absolute implied
+constant.
+\end{lemma}
+
+\begin{proof}
+The case $r=1$ is identity.  For $r\ge2$ put $u=\zeta_r$, and let
+$P$ have as its $k$th column the coefficients of the monic Newton
+polynomial $\prod_{j=0}^{k-1}(X-u^j)$, for $0\le k<r$.
+Thus $P$ is unit upper triangular.  Evaluating these polynomials gives
+$N=F_rP$, a lower triangular matrix, with
+\begin{equation}\label{fft:newton}
+ N_{ik}=\prod_{j=0}^{k-1}(u^i-u^j)
+   =(-1)^k u^{k(k-1)/2}\frac{H_i}{H_{i-k}}\quad(i\ge k),
+ \qquad
+ H_j=\prod_{e=1}^j(1-u^e),\quad H_0=1.
+\end{equation}
+Only $H_0,\ldots,H_{r-1}$ occur, all nonzero since $u$ is a primitive
+$r$th root.  In particular $N$ is invertible and
+\[
+ N=\diag(H_i)\,T\,
+       \diag\bigl((-1)^ku^{k(k-1)/2}\bigr),
+ \qquad T_{ik}=\begin{cases}1/H_{i-k},&i\ge k,\\0,&i<k.\end{cases}
+\]
+The middle matrix is invertible triangular Toeplitz, and the outer
+factors are invertible diagonal matrices.
+
+Let $D_N=\diag(N_{00},\ldots,N_{r-1,r-1})$ and
+$L=ND_N^{-1}$.  Then
+$F_r=L D_N P^{-1}$ is a unit-lower/diagonal/unit-upper
+factorization.  Such a factorization, when it exists, is unique: on
+equating two, a unit lower triangular matrix equals an upper
+triangular matrix, hence is identity, after which the diagonal and
+upper factors agree.  Since $F_r=F_r^{\mathsf T}$, transposition
+supplies another such factorization.  Uniqueness gives
+$P^{-1}=L^{\mathsf T}$, and therefore
+\begin{equation}\label{fft:fourier-toeplitz}
+ F_r=N D_N^{-1}N^{\mathsf T}.
+\end{equation}
+Apply \cref{fft:toeplitz-layers} to $T$ and include its two diagonal
+factors to factor $N$.  Transposing a product reverses its factor
+order; the transpose of each monomial or pair layer is again of that
+type.  Thus \cref{fft:fourier-toeplitz} has the asserted factorization.
+\end{proof}
+
+\subsection{Prime factors and synchronized generation}
+
+The Chinese remainder tensor identity used below is the classical
+coprime-factor Fourier decomposition
+\citep[Section~12]{good1958}
+\citep[Equations~(6)--(10)]{cooleyLewisWelch1967}.
+We include the index calculation to specify the root powers and the
+coordinate permutations needed for synchronization.
+
+\begin{proposition}[Transfer of a finite win]\label{prop:win-to-fourier}
+If a finite win exists, there are integers $n_m\to\infty$ and exact
+linear circuits for $F_{n_m}$ whose scalar gate counts satisfy
+\[
+ L(n_m)=o(n_m\log_2n_m).
+\]
+In particular the conclusion is in the model charging additions,
+subtractions, and multiplication by every prechosen complex scalar.
+\end{proposition}
+
+\begin{proof}
+Fix the winning matrix $A$ of width $q$, the winning tensor exponent,
+and the entire winning word.  Since $A$ is nonmonomial, $q\ge2$.
+By \cref{lem:amplification}, there are fixed constants $C$ and
+$0<\alpha<1$ such that $A^{\otimes k}$ has a scalar circuit of
+size at most $Cq^k(k+1)^\alpha$ for every $k\ge0$.
+All constants depending on this win remain fixed from now on.
+
+We first obtain enough moderately sized, distinct primes by an
+elementary estimate.  If $\pi(v)$ counts primes at most $v$, then
+\[
+ \binom{2h}{h}\ge\frac{4^h}{2h+1},\qquad
+ \binom{2h}{h}\le(2h)^{\pi(2h)}.
+\]
+The first inequality follows because the central binomial coefficient
+is the largest of the $2h+1$ coefficients whose sum is $4^h$.
+For the second, the exponent of a prime $p$ in that coefficient is
+\[
+ \sum_{j\ge1}\left(
+       \left\lfloor\frac{2h}{p^j}\right\rfloor
+          -2\left\lfloor\frac{h}{p^j}\right\rfloor\right)
+ \le\lfloor\log_p(2h)\rfloor.
+\]
+Here each term is zero or one, and the formula itself follows by
+counting the multiples of $p,p^2,\ldots$ in a factorial.  The total
+power contributed by each prime is consequently at most $2h$.
+It follows that
+\[
+ \pi(2h)\ge
+ \frac{h\log4-\log(2h+1)}{\log(2h)}.
+\]
+With $h=m^2$, this exceeds $m+\pi(2q)$ for all sufficiently large
+$m$.  Let $r_1<r_2<\cdots$ be the primes greater than $2q$ and put
+$n_m=\prod_{i=1}^m r_i$.  Thus $r_m\le2m^2$ eventually,
+$n_m\to\infty$, and $\log n_m\ge m\log2$.
+
+For clarity, the Chinese remainder factorization here involves only
+permutations.  Write $n=n_m$ and choose integers $e_i$ whose residue
+is one modulo $r_i$ and zero modulo every other $r_j$.  These satisfy
+$e_i^2=e_i$, $e_ie_j=0$ for $i\ne j$, and $\sum_i e_i=1$, all
+modulo $n$.  The bijections
+$j=\sum_i e_i j_i$, $k=\sum_i e_i k_i$ yield
+\[
+ \zeta_n^{jk}=\prod_{i=1}^m(\zeta_n^{e_i})^{j_ik_i}.
+\]
+For example, take $e_i=(n/r_i)d_i$, where
+$(n/r_i)d_i\equiv1\pmod {r_i}$; then
+$\zeta_n^{e_i}=\zeta_{r_i}^{d_i}$ and $d_i$ is a unit modulo $r_i$.
+Permuting $k_i$ by this unit converts the corresponding factor to
+$F_{r_i}$.  Hence $F_n$ is $\bigotimes_{i=1}^mF_{r_i}$ up to input
+and output permutations.
+
+By \cref{lem:fourier-layers}, each factor has at most
+\[
+ T=O(1+\log^4m)
+\]
+layers, uniformly for these $r_i$.  Pad the shorter sequences in
+time by identity layers.  We next refine a synchronized time step by
+a bounded number of slots depending only on $A$.
+
+First reserve a monomial slot: on an axis whose current layer is
+monomial perform it, and on the other axes perform identity.  On a
+pair-layer axis of width $r_i$, there are at most
+$\lfloor r_i/2\rfloor$ pairs.  Split them into at most $q$ batches
+of at most $\lfloor r_i/q\rfloor$ pairs each.  Indeed
+$\lfloor r_i/q\rfloor\ge r_i/(2q)$, so the required number of
+batches is at most $q$.  Within a batch with $t$ pairs, choose a
+disjoint $q$-tuple containing each pair: the $2t$ pair coordinates
+are already distinct and there are enough remaining coordinates
+because $qt\le r_i$.  The desired map on that tuple is its prescribed
+pair operation together with identity on the $q-2$ spectators.
+
+By \cref{lem:generation}, every such map has an implementation using
+the same fixed sequence of positive $A$-call slots and monomial
+slots; denote its total number of slots by $s_A$.  Run these words in
+parallel on the disjoint tuples.  At a
+monomial slot their disjoint union, with identity on unused
+coordinates, is monomial.  At an $A$-call slot the layer is a disjoint
+union of embedded $A$ calls and identity on unused coordinates.
+Use the same slots for every axis, padding to $q$ batches and using
+identity throughout empty batches or axes.  The number of refined
+slots per original time is at most $1+qs_A$, independently of $m$
+and the $r_i$.
+
+The spectator coordinates may belong to pairs processed in later
+batches.  A completed tuple word is exactly the required pair map
+direct-sum identity, so every spectator is restored before the next
+batch on its axis.  For simultaneous execution on different axes,
+the exact product identity
+\begin{equation}\label{fft:synchronized-products}
+ (\bigotimes_i W_{i,s})\cdots(\bigotimes_i W_{i,1})
+       =\bigotimes_i(W_{i,s}\cdots W_{i,1})
+\end{equation}
+proves correctness even though intermediate spectator values change.
+We implement each tensor slot as a complete linear map; no assumption
+about intermediate values on other axes is required.  Throughout,
+the coordinate width remains exactly $n$.
+
+It remains to charge these refined slots in the scalar model.  A
+tensor product of monomial layers is itself monomial and costs at
+most $n$ scalar multiplications; permutations merely reindex
+available values.  At an $A$-call slot, decompose each axis into its
+active $q$-tuples and its unused singleton coordinates.  Distributing
+the tensor product over these blocks expresses that slot, up to
+permutation, as a direct sum of matrices $A^{\otimes K}$ with
+$0\le K\le m$.  A sector of width $q^K$ costs at most
+$Cq^K(K+1)^\alpha\le Cq^K(m+1)^\alpha$.  The sector widths sum
+to $n$, so the whole slot costs at most $Cn(m+1)^\alpha$.
+The $K=0$ sectors are identities and need no gates.
+
+Thus the complete circuit, including all monomial scalings, has size
+\begin{equation}\label{fft:final-size}
+ O\bigl(n_m(1+\log^4m)(m+1)^\alpha\bigr).
+\end{equation}
+The constants in tensor monomials, Fourier convolutions, and
+generation words may all be prechosen, as permitted by the
+nonuniform model.  A shear uses at most a scalar multiplication and
+an addition, and each binary fixed-coefficient combination uses at
+most three charged gates; no unbounded-fan-in operation is used.
+Finally, division of \cref{fft:final-size} by
+$n_m\log_2n_m$ gives
+$O\bigl((1+\log^4m)(m+1)^\alpha/m\bigr)\to0$.
+All matrix identities and all circuits used above are exact.
+\end{proof}

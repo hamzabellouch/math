@@ -1,0 +1,707 @@
+\section{Priced logarithmic steps}\label{sec:engine}
+
+This section constructs the optimization primitive used by the matching
+algorithm and the local projection procedure.  The primitive maintains
+exact values implicitly, while exposing sufficiently accurate coordinate
+registers to its client.  Its progress guarantee depends on the length of
+the actual path representation returned by a cycle data structure.  In
+particular, cancellation in the resulting circulation does not reduce the
+motion charged to a step or to a register refresh.
+
+Approximate minimum-ratio circulations serve as optimization directions
+in the almost-linear flow framework of Chen et al.~\cite{FlowRandomized}.
+The step estimate below is proved for the logarithmic objective and the
+raw-motion convention used here.
+
+\subsection{The interface}\label{engine:interface}
+
+Fix a master bound $S=2^s$ and integer parameters $a\ge1000$ and
+$\sigma\ge0$.  Recall
+\begin{equation}\label{engine:parameters}
+ B=2^{\lceil s/a\rceil},\qquad q=B^{-100},\qquad
+ \delta=S^{-1000},\qquad \varepsilon=S^{-3000}.
+\end{equation}
+Every asymptotic estimate in this section is for fixed parameters.  The
+constants multiplying $1/a$ in exponents are absolute; an $o_a(1)$ term
+may include logarithmic powers whose exponents depend on $a$ and
+$\sigma$.  We use deterministic prerequisite checks, including
+$q\ge S^{-1}$.  An inadequate prerequisite suspends the parameter branch
+without producing an answer.  A detected stochastic failure is a distinct
+outcome, with the probability bound stated below.
+
+Let a changing oriented multigraph have real edge variables $f_e$ on the
+grid $\varepsilon\mathbb Z$.  Loops and individual parallel edge copies
+are allowed.  Its separable objective $\Phi(f)=\sum_e\phi_e(f_e)$ has one
+of the following terms on each edge:
+\begin{equation}\label{engine:objectives}
+ \log f,\qquad
+ \log(f-D_1)+\log(D_2-f),\qquad
+ -W\log(T-f),\quad 1\le W\le S^{20},
+\end{equation}
+where $W$ is an integer.  The endpoints $D_1,D_2,T$ lie on the same grid
+as the values.  Write $g_e=\phi'_e(f_e)$, and let $\lambda_e$ be the sum
+of the absolute derivatives of the individual logarithmic terms on that
+edge, including their weights.  Thus, for the two-sided term,
+\[
+ g_e=\frac1{f_e-D_1}-\frac1{D_2-f_e},\qquad
+ \lambda_e=\frac1{f_e-D_1}+\frac1{D_2-f_e}.
+\]
+All data and values have magnitude at most $S^{20}$, and the positive
+arguments at pricing and refresh states lie between $\delta/10$ and
+$S^{20}$.  Small additional relative margins immediately after a step
+are harmless in these bounds.  The applications maintain the stricter
+pre-step margins established in the preceding sections.
+
+The client may add, remove, or retarget edges and vertices, change a
+descriptor or value on one coordinate, and request an exact point value.
+Its explicit value settings need not be circulations.  Between such
+edits, all increments performed by the primitive must be circulations.
+The values themselves need not have zero divergence.
+
+\begin{lemma}[Priced logarithmic steps]\label{lem:priced-steps}
+Suppose a nominal bound $R$ counts the logical vertex and edge births and
+endpoint insertions over one instance, including retargetings.  Mere
+value or price changes on retained topology need not be counted as new
+incidences.  Assume
+\begin{equation}\label{engine:nominal-size}
+                         R+B\le S^{1+2/a}.
+\end{equation}
+There is a uniform implementation with the following properties.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item A pricing call may return \textnormal{\textsc{Low}}, but it cannot do so if
+there is a nonzero circulation $d$ satisfying
+\begin{equation}\label{engine:high-direction}
+                    g^{\mathsf T}d\ge\tfrac12\|\lambda d\|_1,
+\end{equation}
+unless it reports a detected failure or suspends.
+\item A call not returning \textnormal{\textsc{Low}}, failure, or suspension performs
+an exact increment $h\in\varepsilon\mathbb Z^E$ that is a circulation and
+satisfies
+\begin{equation}\label{engine:step-guarantee}
+       \|\lambda h\|_1\le q/100,
+       \qquad g^{\mathsf T}h\ge q^2/1000.
+\end{equation}
+It leaves all logarithmic arguments positive and increases $\Phi$ by
+$\Omega(q^2)$.
+\item The implementation exposes registers $\widehat f_e$.  After
+settling updates and before the next pricing call, the descriptors are
+valid at these registers and
+\begin{equation}\label{engine:register-guarantee}
+       \lambda_e(\widehat f_e)|f_e-\widehat f_e|\le q/100.
+\end{equation}
+An explicit client setting can reanchor the coordinate exactly.
+Apart from such client settings, the number of refresh notifications is
+at most the number of successful pricing steps times
+$S^{O(1/a)+o_a(1)}$.  Notifications are supplied as a list of dirty
+coordinates.  Maintaining the representation without taking a step
+causes no implicit primal motion.
+\item With $Q$ external pricing, point, and edge operations, total time,
+excluding the client's own work, is
+\begin{equation}\label{engine:time}
+                     (R+B+Q)S^{O(1/a)+o_a(1)}.
+\end{equation}
+The bound is on every computation path and includes initialization,
+arithmetic, random bits, and all representation changes.  Polynomially
+many operations are allowed, with a loose guard $Q\le S^{100}$.
+\end{enumerate}
+The conditional probability of detected failure in the entire instance
+is at most $2^{-\sigma}S^{-60}$, including when the instance is chosen
+adaptively.  Deterministic size, precision, and representation checks may
+suspend, but none does so for all sufficiently large $S$ at each
+sufficiently large fixed $a$ and each fixed $\sigma\ge0$ within the
+stated hypotheses.
+\end{lemma}
+
+The objective conclusion in part~\textup{(ii)} follows directly from its
+two inequalities once positivity is established.  The sum of absolute
+relative argument changes is at most $\|\lambda h\|_1$.  For a positive
+logarithm, $\log(1+z)\ge z-z^2$ when $|z|\le q/100$; the sum of these
+squared relative changes is at most $q^2/10000$.  A negative logarithm
+in~\eqref{engine:objectives} is convex and lies above its supporting
+tangent.  Hence the total increase is at least
+$q^2/1000-q^2/10000$.
+
+\subsection{A backend with explicit forest paths}\label{engine:backend-interface}
+
+We use the following fully dynamic backend.  Its construction, rather
+than a dynamic optimization oracle, is given in
+Sections~\ref{sec:backend-quality} and~\ref{sec:backend-updates}.  The
+minimum-ratio-cycle and hierarchical-routing viewpoint is related to
+the flat-forest cycle machinery of~\cite{IncrementalGraphs}.  We give a
+complete construction for the precise interface below, including its
+raw path length and explicit forest recourse guarantees.
+
+\begin{lemma}[Flat-cycle backend]\label{lem:flat-cycle}
+Let $M=2^u$, where $u$ is divisible by $2a^2$, and suppose
+\begin{equation}\label{engine:backend-size-range}
+                         S^{1/a}\le M\le S^2.
+\end{equation}
+Consider a dynamic undirected graph with reference orientations and
+fixed vertex slots, of total current size at most $M$ and maximum degree
+at most three.  It has positive integral lengths $\ell_e$ and integral
+signed gradients $\gamma_e$, both of magnitude at most $M^{1200a}$.
+Insertions and deletions are arbitrary; a price replacement is a
+deletion followed by an insertion.  Put
+\[
+ \OPT=\max_{d\ne0,\ d\text{ a circulation}}
+          \frac{|\gamma^{\mathsf T}d|}{\|\ell d\|_1},
+\]
+with value zero if there is no nonzero circulation.
+
+The backend exposes a forest.  Every forest vertex maps to an input
+vertex slot; every forest edge either maps to a current input edge with
+specified endpoint correspondence, or is null and joins equal images.
+The multiplicity over each input slot is at most $M^{10/a}/4$.
+A query returns a list of oriented single input edges and oriented
+forest paths, the latter specified by endpoints.  Each piece is used
+with unit multiplicity, with repeated pieces listed separately.  Their
+signed physical projection is a circulation $c$.  Its \emph{raw length}
+$V$ is the sum of input lengths over all mapped edge traversals with
+repetition; a null forest traversal contributes zero.  If $\OPT>0$, the
+answer has $V>0$ and
+\begin{equation}\label{engine:flat-quality}
+                   \frac{|\gamma^{\mathsf T}c|}{V}
+                       \ge M^{-10/a}\OPT.
+\end{equation}
+An empty or missing answer is permitted when $\OPT=0$.
+There are $M^{O(1/a)+o_a(1)}$ pieces in an answer.
+
+Initialization costs $M^{1+O(1/a)+o_a(1)}$.  Amortized edit and query
+costs, including explicitly exposed forest logs, are
+$M^{O(1/a)+o_a(1)}$, with bounds on every path.  Retained forest
+occurrences and edges have stable lifetimes.  Endpoint or mapping changes
+are replacements, and removals are exposed before the old mappings or
+input data are invalidated.  Transactions permit deletion-first
+old-to-final updates with no intervening path query.
+
+The bounds apply over the polynomial lifespans required by
+Lemma~\ref{lem:priced-steps}, and against adaptive clients.  Reliability
+can be chosen so that detected failure in an entire engine instance has
+conditional probability at most $2^{-\sigma}S^{-60}$.  A flagged state
+has no quality requirement.  Deterministic prerequisite checks may
+suspend, with eventual adequacy as in Lemma~\ref{lem:priced-steps}.
+\end{lemma}
+
+\subsection{Degree reduction and integer pricing}\label{engine:pricing}
+
+For each logical edge insertion, create a fresh port at each endpoint;
+a loop receives two distinct ports.  The ports belonging to one logical
+vertex lifetime form a path, extended on further endpoint insertions.
+Retargeting uses fresh ports.  A retired port may remain on its path, and
+a retired vertex may leave a wholly inactive path after all its real
+incidences have disappeared.  Distinct vertex lifetimes have distinct
+paths.  Mere value or price changes retain the ports.  Give every path
+connector length one and gradient zero.  The resulting graph has maximum
+degree three and linear lifetime size in $R$.
+
+Choose $M$ by rounding $16(R+B)$ upward to a power of two whose exponent
+is divisible by $2a^2$.  For fixed $a$ this introduces only a fixed
+factor.  Reserve, for example, $M/2$ vertex slots; the ports and any
+isolated logical-vertex representatives fit these slots, and slots plus
+edges fit the backend bound.  These counts and
+\eqref{engine:backend-size-range} are checked.  They hold eventually by
+\eqref{engine:nominal-size}.  Identifiers can be renumbered using
+dictionaries.
+
+Summing conservation over one port path cancels its connectors and
+recovers conservation at the logical vertex.  Conversely, a logical
+circulation $d$ lifts to the port graph by routing its incidence
+imbalances along each path.  The total absolute connector coefficient is
+at most
+\begin{equation}\label{engine:connector-cost}
+                   2M\sum_{e\text{ real}}|d_e|.
+\end{equation}
+Indeed each real incidence contributes its coefficient to at most $M$
+connector positions, and each real edge has two incidences.  No connector
+primal value needs to be stored; connectors represent conservation of
+increments only.
+
+An anchor of coordinate $e$ records its exact current value
+$\widehat f_e$.  Set $H=S^{100}$ and price real edges by
+\begin{equation}\label{engine:integer-prices}
+  \ell_e=\bigl\lceil H\lambda_e(\widehat f_e)\bigr\rceil,
+  \qquad
+  \gamma_e=\operatorname{round}\bigl(Hg_e(\widehat f_e)\bigr).
+\end{equation}
+The sum or difference of at most two reciprocals of positive dyadic
+arguments, with the allowed integer weight, can be priced by exact
+bounded-length integer quotient arithmetic.  No logarithm is evaluated.
+At anchors,
+\begin{equation}\label{engine:derivative-range}
+             S^{-20}\le\lambda_e(\widehat f_e)\le S^{1022}.
+\end{equation}
+The small post-step margins do not affect this loose upper estimate.
+Since $S\le M^a$, these prices fit the backend range $M^{1200a}$.
+
+For the moment assume the register estimate
+\eqref{engine:register-guarantee}.  Put $\tau=q/100$.  An individual log
+argument $r$ with weight $W\ge1$ changes by a relative amount at most
+$\tau/W\le\tau$ between an anchor and a pricing call.  Its derivative
+magnitude changes by at most $\tau/(1-\tau)$ times its anchored
+magnitude.  Summing these errors term by term remains valid when the
+signed derivatives nearly cancel.  Together with rounding error at most
+$1/(2H)$ and $\ell_e\ge S^{80}$, this gives, at every pricing call,
+\begin{equation}\label{engine:price-accuracy}
+ \left|g_e(f_e)-\frac{\gamma_e}{H}\right|
+       \le\frac q{10}\frac{\ell_e}{H},\qquad
+  .9\frac{\ell_e}{H}\le\lambda_e(f_e)
+       \le1.1\frac{\ell_e}{H}.
+\end{equation}
+The guard $q\ge S^{-1}$ makes the integer rounding error negligible
+uniformly in the coordinate.  These inequalities require no scan of
+the exact current vector: anchors are checked locally, and the
+displacement invariant below supplies the intervening estimate.
+
+If~\eqref{engine:high-direction} holds, its lift has integer-priced ratio
+at least $1/4$.  To see this, the numerator in units of $H$ is at least
+\[
+ \tfrac12\|\lambda d\|_1
+       -\frac q{10}\sum_{e\text{ real}}\frac{\ell_e}{H}|d_e|,
+\]
+whereas~\eqref{engine:price-accuracy} compares the real length sum with
+$\|\lambda d\|_1$.  The additional connector length in
+\eqref{engine:connector-cost} is negligible, since
+$2M\le2S^2$ while every real length is at least $S^{80}$.
+The bound $1/4$ follows with room to spare for sufficiently large checked
+sizes.  We also check
+\begin{equation}\label{engine:quality-margin}
+                         M^{-10/a}/4>2q.
+\end{equation}
+It holds eventually: $M\le S^2$, whereas
+$q=2^{-100\lceil s/a\rceil}\le S^{-100/a}$.
+
+Compute the exact gradient sum and raw length of a backend answer using
+the path aggregates constructed below.  Accept it precisely when
+\begin{equation}\label{engine:accept}
+                         V>0,\qquad
+                  |\gamma^{\mathsf T}c|\ge2qV;
+\end{equation}
+otherwise return \textsc{Low}.  Lemma~\ref{lem:flat-cycle} and
+\eqref{engine:quality-margin} show that this cannot miss
+\eqref{engine:high-direction} in an unfailed proceeding computation.
+
+Reverse every piece of an accepted answer if necessary so that
+$\gamma^{\mathsf T}c>0$, and delete its connector coordinates from the
+logical increment.  If $N_e$ counts every real
+traversal of $e$ in its pieces, then $|c_e|\le N_e$.  In particular,
+\eqref{engine:price-accuracy} and~\eqref{engine:accept} imply
+\begin{equation}\label{engine:accepted-direction}
+       g^{\mathsf T}c\ge qV/H,\qquad
+       \sum_{e\text{ real}}\lambda_e N_e\le1.1V/H.
+\end{equation}
+The first bound could be strengthened to $1.9qV/H$; the weaker version
+is convenient.  With $c$ now oriented for ascent, choose a positive power
+of two $\mu$ with
+\begin{equation}\label{engine:step-scale}
+                     q/400\le \mu V/H\le q/200.
+\end{equation}
+The interval has ratio two and therefore contains such a power.
+Applying $\mu$ along all pieces gives $h=\mu c$, with
+\[
+          g^{\mathsf T}h\ge q^2/400,
+          \qquad \|\lambda h\|_1\le1.1q/200.
+\]
+These are stronger than~\eqref{engine:step-guarantee}.
+Moreover, the second inequality of
+\eqref{engine:accepted-direction} bounds the sum of absolute partial
+motions during the entire list of traversals, not just its net motion.
+Every individual argument consequently stays within relative distance
+$1.1q/200$ of its starting value, and within that distance divided by its
+weight for a weighted term.  All arguments remain positive.  The whole
+step is applied before repricing or servicing client changes; individual
+pieces need not themselves be circulations.  Exact grid compatibility
+of $\mu$ is verified below.
+
+\subsection{Oriented forest operations}\label{engine:dynamic-trees}
+
+We implement path sums, path increments, and threshold detection with
+link-cut trees~\cite{DynamicTrees}.  Signed path updates, separate absolute
+accumulation, and length-weighted threshold reporting are the dynamic-tree
+operations in~\cite[Lemma~2.7]{IncrementalGraphs}.  Its flow-maintenance
+construction also transfers implicit forest contributions into explicit
+edge values when mapped edges change~\cite[Theorem~3.6]{IncrementalGraphs}.
+For our interface, the signed-value and absolute-motion invariants must
+survive dormant-copy reuse and repricing transactions.  We give the
+augmentation and amortization here, then specify the copy transfers and
+reset ordering in Sections~\ref{engine:exact-values} and~\ref{engine:refresh}.
+
+Subdivide each forest edge by an edge node.  The other nodes are
+occurrence vertices, and represented roots are always occurrence
+vertices.  On an edge node $c$ mapping to an oriented actual edge, let
+$s_c=+1$ when its represented-parent side is its tail and $s_c=-1$ when
+that side is its head.  A null edge may receive either reference
+orientation.  A real-variable copy stores two different accumulations:
+\begin{itemize}
+\item $h_c$ is signed accumulation since its creation, in the fixed
+orientation of the mapped actual edge;
+\item $A_c$ is absolute accumulation since the coordinate's most recent
+anchor or the copy's creation, whichever occurred later.
+\end{itemize}
+After everting an occurrence vertex $v$ and exposing the path to $w$,
+the signs $s_c$ describe traversal from $v$ to $w$.  A path increment
+uses
+\begin{equation}\label{engine:path-add}
+                    h_c\leftarrow h_c+\mu s_c,
+                    \qquad A_c\leftarrow A_c+|\mu|
+\end{equation}
+on real-variable copies.  Connector and null copies do not need these
+primal accumulations.
+
+Preferred-path aggregates store the signed sum
+$\sum_c s_c\gamma_c$ and the raw sum $\sum_c\ell_c$ on mapped nonnull
+edges.  They also store a witnessed minimum of $\theta_c-A_c$ over
+enabled real copies, where the thresholds are specified in
+Section~\ref{engine:refresh}.  Ineligible nodes are omitted from this
+minimum.  Disabled real copies still receive the updates in
+\eqref{engine:path-add}.
+
+Evert flips signs on edge nodes of the reversed exposed path, but does
+not negate their stored $h_c$.  The reversal, signed-addition, and
+absolute-addition tags have the constant-size algebra
+\begin{equation}\label{engine:tag-algebra}
+ (s_c,h_c,A_c)\longmapsto
+       (r s_c,\ h_c+\alpha s_c,\ A_c+\beta),\qquad r\in\{-1,+1\},
+\end{equation}
+together with reversal of path order when appropriate.  Applying one
+such transformation and then another composes their signed offsets as
+$\alpha_1+r_1\alpha_2$.  Thus a later reroot does not retroactively
+negate an earlier physical increment.  The gradient aggregate changes
+sign on reversal, the raw length does not, and the enabled minimum
+shifts by the absolute-addition tag with its witness retained.  Tags are
+pushed before modifying children or point fields.  Only preferred-path
+aggregates are combined; no virtual-subtree aggregate is used for these
+operations.
+
+Access at a node does not change any represented-parent direction; it
+only changes which represented edges are preferred.  Thus it does not
+alter the signs $s_c$.  Point accesses without evert recover exact
+individual data.  To insert an edge node, link it as a new child on its
+tail side, initializing sign $+1$; evert the head endpoint in its
+separate component and link that endpoint below the edge node.  To
+delete an edge node, inspect its sign by point access, cut its child
+endpoint from its parent, and then cut the edge node from its parent.
+No evert at an edge node is needed.  Forest transactions give deletions
+before invalidation and insertions into the final forest, so every link
+joins different components.
+
+\begin{lemma}[Augmented forest cost]\label{engine:tree-cost}
+On a forest of at most $N_f$ subdivided nodes, the preceding operations
+use $O(\log N_f)$ amortized tree primitives per link, cut, evert, expose,
+point operation, or lazy path update.  Reporting and disabling a
+witnessed threshold violation costs the same amortized amount per
+reported node.  Each primitive uses a constant number of operations on
+the stored fields.
+\end{lemma}
+
+\begin{proof}
+Use auxiliary splay trees in down-path order for preferred
+paths~\cite[Section~6]{SplayTrees1985}. Their
+roots keep path-parent pointers to the represented parents of their path
+tops.  Access at $v$ starts at $v$ and repeatedly splays the current node
+$y$, replaces its right subtree by the path exposed so far, and advances
+to its previous path parent.  The demoted path receives path parent $y$.
+A final splay of $v$ exposes the represented-root-to-$v$ path.  Evert
+reverses that path.  A cut from parent accesses its endpoint and detaches
+the left ancestor subtree.  A link accesses its endpoints and installs a
+path-parent pointer for a represented root.  The stated tags require
+only bounded work during each pointer or aggregate change.
+
+For the amortization, give a node weight one plus the sum of represented
+subtree sizes of its nonpreferred children.  Let $s(x)$ be its auxiliary
+subtree weight and $r(x)=\log_2 s(x)$, and use
+$\Phi=\sum_x r(x)$.  Node weights stay fixed during a splay.  The usual
+rotation inequalities from the access lemma~\cite[Lemma~1]{SplayTrees1985}
+can be recalled briefly.  In a double rotation
+with node $x$, parent $y$, and grandparent $z$, we have $r'(x)=r(z)$ and
+$r(y)\ge r(x)$.  For zig-zag,
+$r'(y)+r'(z)\le2r'(x)-2$ by disjoint child weights.  For zig-zig,
+$r(x)+r'(z)\le2r'(x)-2$ by the disjoint old-$x$ and new-$z$ subtrees,
+and $r'(y)\le r'(x)$.  Thus two rotations plus their change in potential
+cost at most $3(r'(x)-r(x))$; a final single rotation adds at most one.
+
+At a preferred-path switch, the total weight of a detached or attached
+auxiliary path equals the represented subtree size of the demoted or
+promoted child.  The change in the splayed root's own weight compensates
+exactly, so the switch does not change $\Phi$.  Along an upward access,
+the next node's initial auxiliary weight contains the preceding exposed
+path through its dashed-child weight.  The rank differences therefore
+telescope to $O(\log N_f)$, apart from a constant per access iteration.
+
+To pay for those iterations, call a represented edge heavy if its
+child's subtree has more than half its parent's size, and add a
+sufficiently scaled count of dashed heavy edges to the potential.
+A represented root path has at most $\log_2 N_f$ light edges.  Access
+promotes every dashed edge it traverses.  A heavy off-path edge is
+demoted only opposite a light preferred child on the accessed path, or
+at its endpoint.  The iteration count plus the change in this additional
+potential is consequently $O(\log N_f)$.
+
+It remains to check represented-tree changes.  After access, write the
+weight of a path vertex as one plus the sizes of its off-path dashed
+subtrees.  These weights are unchanged by reversing the complete
+exposed path.  Recursive left-right swapping in its auxiliary splay tree
+preserves each auxiliary subtree's vertex set and total weight, hence
+preserves $\Phi$.  If an off-path child becomes heavy after reversal,
+the next edge down the reversed path must be light, or the vertex is
+the path endpoint.  There are only $O(\log N_f)$ such events.  Cutting
+an accessed parent edge similarly leaves the path weights unchanged,
+does not increase $\Phi$, and charges newly heavy off-path children to
+light edges of the shortened path.  Linking a root below an accessed
+vertex increases only that auxiliary root's weight sum; its rank grows
+by at most $\log N_f$.  Existing off-path children of its ancestors
+cannot newly become heavy as ancestor subtrees grow, and the new dashed
+edge contributes at most one.  All potentials are nonnegative and the
+initial singleton state has zero potential.  This proves the bound,
+also under recycling of a fixed node pool.
+
+For threshold reporting, expose the updated path, read a witnessed
+nonpositive minimum, access that node, and disable it at a point.
+Repeating these operations costs the claimed amount per actual disable.
+\end{proof}
+
+\subsection{Preserving exact values under forest changes}
+\label{engine:exact-values}
+
+Set
+\begin{equation}\label{engine:copy-bound}
+                              D=M^{10/a}.
+\end{equation}
+There are at most $D$ current forest copies of any actual edge.  Indeed,
+the two endpoint occurrence sets have at most $D/2$ vertices together,
+and the copies between them form a forest.  For a loop the same argument
+uses just one occurrence set.  The constant slack in the vertex
+multiplicity bound is more than sufficient.
+
+Maintain a list of current copies for each actual edge.  For each real
+coordinate keep an explicit signed base, with invariant
+\begin{equation}\label{engine:value-invariant}
+                   f_e=\mathrm{base}_e+
+                           \sum_{c\text{ a current copy of }e} h_c.
+\end{equation}
+An explicit single-edge traversal changes the base.  Before deleting a
+copy, read its $h_c$ and flush it into the base; a new copy starts with
+$h_c=0$.  This procedure is used also on price replacements and
+retargetings, with old mapped data retained until all removals have been
+processed.  A client value setting to $f_e^{\rm new}$ sets the base to
+$f_e^{\rm new}-\sum_c h_c$.  Consequently a point read, point setting,
+or sweep of all copies costs $O(D)$ tree point operations, plus
+dictionary work.
+
+The invariant is independent of the copy's present role in the backend.
+In particular, the public-forest construction in
+Section~\ref{sec:backend-updates} may reassign a dormant arm slot to a
+different child occurrence at the same label.  Its internal mapped edges
+retain their lifetimes and physical images.  Their $h_c$ are therefore
+retained, not restarted.  A previous increment need not be a circulation
+in the current representation of the forest: its already performed
+physical increment is recorded by~\eqref{engine:value-invariant}.
+Every \emph{new} step is a circulation in the current mapped graph.
+Thus representation maintenance alone neither changes a value nor loses
+an earlier increment.
+
+\subsection{Drift detection and refresh accounting}\label{engine:refresh}
+
+Absolute counters have a separate purpose.  At an anchor of edge $e$,
+reset all its current copy counters $A_c$ and one additional bucket.
+This bucket stores absolute motion of explicit single-edge traversals
+and absolute counts flushed from copies that subsequently die.  Choose
+a power-of-two threshold $\theta_e$ with
+\begin{equation}\label{engine:threshold}
+          \frac{qH}{800D\ell_e}\le\theta_e
+                          \le\frac{qH}{400D\ell_e}.
+\end{equation}
+The interval has ratio two, so it contains such a power.  Each copy
+and the bucket use this same threshold.  A new copy starts
+with $A_c=0$ and the current threshold.  Copy death transfers $A_c$ to
+the bucket before removal, as well as transferring $h_c$ to the base.
+
+On an updated path, report every enabled copy reaching threshold using
+the witnessed minimum, and disable it pending service.  A disabled copy
+continues to accumulate both signed and absolute motion.  The whole
+circulation update is completed before any client change or reprice is
+serviced.  An explicit traversal or a bucket flush is tested directly.
+Each threshold event sets a coalesced pending flag on the \emph{variable},
+not just on the copy.  The flag survives deletion of the copy that
+caused it.
+
+Service a pending variable by an exact point read and anchor/price
+refresh, with a notification to the client.  The ordering is important:
+first reset every current absolute counter and the bucket, reenable all
+current copies, and clear the old pending flag; then process the backend
+replacement and its forest logs.  The current register, prices, and
+thresholds are installed consistently with this no-motion reset.  Its
+own old-copy removals therefore flush zero absolute mass for that
+coordinate.  Other coordinates flagged by those logs are queued for
+later service, after the current transaction finishes.  Explicit client
+settings and descriptor changes reanchor in the same way and either
+service or subsume an old pending flag.  Stale queue entries are skipped
+or coalesced.
+
+All old mapped edge data remain available through removals.  New copies
+receive their current mapped prices and thresholds before a path can be
+used again.  Drain pending engine flags and return the register-update
+list; the client can then settle its local changes before asking for
+another pricing step.  Further notifications arising in that settlement
+are handled by the same rule.  No motion occurs during these
+transactions.
+
+\begin{lemma}[Register accuracy and notification bound]
+\label{engine:refresh-bound}
+After settlement, \eqref{engine:register-guarantee} holds.  The total
+number of engine refresh reports and copy-disable events is $O(D)$ times
+the number of successful pricing steps, apart from explicit client
+operations.  The assertion is unaffected by arbitrary forest churn,
+dormant-slot reuse, or client reanchoring.
+\end{lemma}
+
+\begin{proof}
+The signed displacement since the most recent anchor is bounded by the
+sum of current absolute copy counters and the bucket.  This is true
+initially, preserved by path updates and explicit traversals, and
+preserved by transfer on copy death.  Dormant retained copies keep their
+counters.  At a settled state there are at most $D$ copies and one
+bucket, each below threshold.  Since
+$\lambda_e(\widehat f_e)\le\ell_e/H$, we obtain
+\[
+ \lambda_e(\widehat f_e)|f_e-\widehat f_e|
+ \le \frac{\ell_e}{H}(D+1)\theta_e
+ \le \frac{q(D+1)}{400D}\le q/200.
+\]
+This is stronger than~\eqref{engine:register-guarantee}.
+
+For the cost bound, partition raw real-edge motion into intervals between
+successive anchors of each coordinate.  Its price is fixed on such an
+interval.  An engine report consumes at least
+\[
+                       \theta_e\ell_e/H\ge q/(800D)
+\]
+of that interval's raw priced absolute motion.  The consumed intervals
+are disjoint for one coordinate, and different coordinates consume
+different real-edge motion.  Absolute mass moves between copies and the
+bucket without duplication.  It is reset before price-replacement logs,
+so it cannot be charged again at a new price.  A client anchor may
+discard old drift credit, but does not create new credit and is charged
+as an external operation.
+
+Similarly, a disable event can charge the motion of its copy since
+creation or its latest reset.  A copy is disabled at most once during
+that uninterrupted accumulation; reenabling at an anchor resets it.
+These disable charges are disjoint within this second charge category.
+Counting both report charges and disable charges only introduces a
+constant factor.  By~\eqref{engine:step-scale}, a successful step creates
+at most $q/200$ of raw priced absolute motion.  The claimed $O(D)$
+amortized bound follows.
+
+Finally, a no-motion refresh cascade is finite.  A queued variable can
+consume its extant absolute mass once; after its reset, all its absolute
+locations are zero and remain so until new motion.  Its own replacement
+logs cannot recreate that mass.  Other variables may expose previously
+accumulated mass, but their reports have the disjoint charges just
+described.  Pending flags are per variable, so copy deletion loses
+neither the required service nor its charge.  This proves both
+termination of settlement and the notification bound.
+\end{proof}
+
+\subsection{Precision, total cost, and completion of the engine proof}
+\label{engine:implementation}
+
+All quantities maintained by the engine can be represented exactly with
+charged multiword arithmetic.  The only nonintegral input values and
+increments are on the common dyadic grid.  In particular, a positive
+logarithmic argument is $k\varepsilon$ for an integer $k>0$ with
+$O(\log S)$ bits, since the argument is at most $S^{20}$ and
+$\varepsilon=S^{-3000}$.  Its reciprocal is
+$\varepsilon^{-1}/k$.  Each price uses at most two such fractions and
+one bounded integer weight, so their products, sums, and quotient
+operations still have $O(\log S)$-bit inputs and outputs.
+Rational comparisons of scores and scale choices likewise use bounded
+integer operations.  No barrier value or ideal real-valued probability
+is evaluated.
+
+For a concrete precision check, bound the total number of traversals in
+a returned representation by $S^{20}$, using its piece count and the
+forest-size bound rather than expanding its paths.  The check holds
+eventually for each fixed sufficiently large parameter, since
+$M\le S^2$ and both piece count and occurrence overhead have exponent
+$O(1/a)+o_a(1)$.  Equations~\eqref{engine:derivative-range} and
+\eqref{engine:integer-prices} then give the loose bound
+\begin{equation}\label{engine:precision-bounds}
+                 V/H\le S^{1044},\qquad
+                 |\mu|\ge S^{-1045}/400.
+\end{equation}
+For sufficiently large checked $S$, a power of two satisfying
+\eqref{engine:step-scale} is therefore an exact multiple of
+$\varepsilon=S^{-3000}$.  Each piece has integral signed traversal
+coefficients, so every partial update and the final circulation are on
+the grid, with no rounding of conservation equations.  Thresholds fit
+the same grid: even using $D\le S^2$ gives
+$\theta_e\ge S^{-1025}/800$.  These inequalities can be checked
+directly, with suspension at inadequate sizes.
+
+Since $V\ge1$, step scalars have magnitude at most $S^{100}$.
+There are at most $Q\le S^{100}$ successful steps, each with at most
+$S^{20}$ raw traversals.  Thus their total unweighted absolute motion is
+at most $S^{220}$.  Transfers between copies and bases or buckets do not
+duplicate this motion; anchors reset absolute counters, and client
+settings replace values of magnitude at most $S^{20}$.  Signed and
+absolute tags, sums, buckets, and bases consequently have polynomial
+magnitudes on the common grid.  Their bit lengths are $O_a(\log S)$ at
+fixed parameters; exact pricing and key operations add only
+logarithmic-power overhead.  The backend separately accounts
+for its arithmetic and imported static flow calls.  As in the final
+uniform implementation, larger logical integers in branches with varying
+parameters are digit arrays whose construction and operations are
+incrementally charged, not atomic unbounded-word instructions.
+
+Reserve and recycle a pool of
+$N_f=O(M^{1+10/a})$ subdivided forest nodes.  The initial pool and forest
+cost fit $M^{1+O(1/a)+o_a(1)}$.  By
+Lemma~\ref{engine:tree-cost}, processing each exposed forest-log record
+or path piece costs logarithmic amortized overhead.  A coordinate read,
+reset, or price change uses at most $O(D)$ point operations for its copy
+list.  By Lemma~\ref{engine:refresh-bound}, successful steps cause only
+$O(D)$ reports and disables amortized.  Repricing those reported
+coordinates invokes only that many backend replacements, each with the
+cost and explicit recourse of Lemma~\ref{lem:flat-cycle}.  Thus the total
+of backend work, forest-log processing, path operations, copy sweeps,
+and threshold service is
+\[
+                   (M+Q)M^{O(1/a)+o_a(1)}.
+\]
+Using the chosen rounding of $M$ and
+\eqref{engine:nominal-size} gives~\eqref{engine:time}.  A
+\textsc{Low} attempt uses the same query overhead and no scan of all
+coordinates.  Explicit changes and all notifications are settled before
+the next query; no hidden full-vector update is involved.
+
+\begin{proof}[Proof of Lemma~\ref{lem:priced-steps}]
+Apply Lemma~\ref{lem:flat-cycle} to the port graph with prices
+\eqref{engine:integer-prices}.  Exact point operations and forest updates
+preserve~\eqref{engine:value-invariant}.  The refresh procedure proves
+\eqref{engine:register-guarantee}, and therefore validates
+\eqref{engine:price-accuracy} before each pricing call.  The lifting,
+quality margin, and acceptance test prove part~\textup{(i)}.
+Equations~\eqref{engine:accepted-direction}--\eqref{engine:step-scale},
+the partial-motion bound, and the grid check prove part~\textup{(ii)},
+including exact circulation and positivity.  The objective estimate
+following the statement proves its progress assertion.
+Lemma~\ref{engine:refresh-bound} proves part~\textup{(iii)}, and the
+preceding cost accounting proves part~\textup{(iv)}.
+
+Backend failures are explicitly propagated.  Its conditional instance
+budget gives $2^{-\sigma}S^{-60}$ for the whole engine instance; the
+remaining operations are deterministic.  Representation, anchor-range,
+and precision prerequisites are checked on their local inputs, with
+counts maintained incrementally.  During a whole step, the already
+proved raw-motion bound supplies the required relative margins; no
+global scan is needed to certify them.  The operation and record guards
+are applied to prefixes, and the preceding bounds hold through a
+putative first guard-reaching operation.  For each sufficiently large
+fixed $a$ and each fixed $\sigma\ge0$, these bounds fall below the loose polynomial caps, and
+the size and quality inequalities hold for all sufficiently large $S$.
+Together with the backend's guarded-prefix guarantees in
+Section~\ref{sec:backend-updates}, this proves eventual adequacy on
+every path, independently of whether a stochastic routine ultimately
+reports failure.  Such a failure is propagated promptly and is never
+reclassified as a deterministic suspension.
+\end{proof}

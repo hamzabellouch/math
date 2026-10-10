@@ -1,0 +1,529 @@
+\section{Source games and inverse matrix structure}
+\label{sec:preliminaries}
+
+This section supplies the three external ingredients of the reduction and
+the precise matrix consequence that we will use.  A perfect-completeness
+PCP and parallel repetition give a source game of arbitrarily small
+constant value.  Grassmann expansion gives a dense constant-value slice
+of a matrix table that often agrees across a rank-one step.  We prove
+the extensions needed for tables with arbitrarily many possible values,
+for small column spaces, and for finding a slice by random row advice.
+
+Throughout, $\F$ denotes the field with two elements.  All vector spaces are finite-dimensional
+over $\F$, and all unspecified uniform distributions are on finite sets.
+For probability measures $\mu,\nu$ on a common finite set, write
+$\TV(\mu,\nu)=\frac12\sum_x|\mu(x)-\nu(x)|$; in particular, every event
+has probabilities differing by at most $\TV(\mu,\nu)$.
+
+\subsection{Finite projection games and the source gap}
+
+A \emph{finite projection game} $G$ consists of disjoint finite question
+sets $U,V$, nonempty finite answer sets $L_u,R_v$, a nonempty finite set
+of edge occurrences $\mathcal E$, and a probability distribution $\mu$
+on $\mathcal E$.  An occurrence $e$ has endpoints $u(e),v(e)$ and a
+total map $\pi_e:L_{u(e)}\to R_{v(e)}$.  Distinct occurrences may have
+the same endpoints and different maps.  A deterministic strategy is a
+pair of functions selecting $a(u)\in L_u$ and $b(v)\in R_v$, and
+\[
+ \val(G)=\max_{a,b}\Pr_{e\sim\mu}
+       [\pi_e(a(u(e)))=b(v(e))].
+\]
+Thus each player receives only its own question, and neither receives
+the edge occurrence unless that information is already determined by
+its question.  Question-dependent legal answer sets are part of the
+definition.  Zero-weight occurrences may be discarded.  Isolated
+questions, when retained to define auxiliary tables, do not affect value.
+Independent private randomness, or shared randomness independent of the
+sampled edge, cannot increase value: fix complete answer functions for
+all questions using the random tapes, and average their deterministic
+success probabilities.
+
+For $k\geq1$, the game $G^{\otimes k}$ samples $k$ independent
+occurrences.  Each player receives its ordered tuple of questions and
+returns a tuple of legal answers; acceptance requires all $k$
+constraints.  The answer coordinates remain separate even when a
+question is repeated.  We also set $\val(G^{\otimes0})=1$.
+
+\begin{theorem}[Perfect-completeness PCP gap]
+\label{thm:pcp}
+There is a constant $\gamma_0>0$ and a deterministic polynomial-time
+map taking any Boolean $3$-CNF formula $\varphi$ to a nonempty $3$-CNF
+formula $\Psi$ such that every clause of $\Psi$ uses three distinct
+variables.  If $\varphi$ is satisfiable, then $\Psi$ is satisfiable.
+If $\varphi$ is unsatisfiable, every assignment violates at least a
+$\gamma_0$ fraction of the clauses of $\Psi$.
+Clause occurrences are explicitly listed, and the binary encoding
+length of $\Psi$ is polynomial in that of $\varphi$.
+\end{theorem}
+
+\begin{proof}
+The PCP theorem originates in the work of Arora--Safra and
+Arora--Lund--Motwani--Sudan--Szegedy
+\cite{AroraSafra1998,AroraLundMotwaniSudanSzegedy1998}.
+We use Dinur's perfect-completeness formulation
+\cite[Definition~8.1 and Theorem~8.1, February 13, 2007 author manuscript]{Dinur2007}.
+It gives, in deterministic polynomial time, an explicitly listed family of
+$N$ predicates of bounded arity over a fixed finite alphabet, with a
+satisfying assignment in the YES case and a fixed rejected fraction
+$\theta>0$ under every assignment in the NO case.
+We spell out the conversion to clauses, since perfect completeness must
+survive every local encoding.
+
+Encode each alphabet symbol injectively by a fixed number of bits.  For
+each predicate, require both that its queried bit blocks encode valid
+symbols and that the decoded symbols satisfy the predicate.  A satisfying
+symbol assignment satisfies all these Boolean predicates.  Conversely,
+decode every invalid block to a fixed default symbol.  Whenever an original
+predicate rejects this decoded assignment, the corresponding Boolean
+predicate rejects the bit assignment: either a queried block is invalid,
+or all are valid and the original rejection is unchanged.  Thus every
+Boolean assignment still violates at least $\theta N$ predicates on a
+NO input.  After identifying repeated queried variables, each predicate
+involves at most a fixed number $k_0$ of distinct bits.
+
+For each rejecting assignment of a Boolean predicate, form the clause that
+excludes precisely that assignment.  The conjunction of these at most
+$2^{k_0}$ clauses is exactly the predicate.  Each clause has width at most
+$k_0$; a rejecting zero-bit predicate contributes the empty clause.
+For a clause $\ell_1\vee\cdots\vee\ell_k$ with $k\ge4$, introduce fresh
+variables $y_1,\ldots,y_{k-3}$ and replace it by
+\[
+ (\ell_1\vee\ell_2\vee y_1),\qquad
+ (\neg y_j\vee\ell_{j+2}\vee y_{j+1})\ (1\le j\le k-4),\qquad
+ (\neg y_{k-3}\vee\ell_{k-1}\vee\ell_k).
+\]
+If all $\ell_h$ are false, the first clause forces $y_1=1$, each middle
+clause propagates this value, and the last clause fails.  If the original
+clause is true, setting $y_j=1$ exactly when
+$\ell_1,\ldots,\ell_{j+1}$ are all false satisfies every displayed clause.
+Use disjoint auxiliary variables for every such replacement.  Clauses of
+width at most three are retained.  Consequently an accepting predicate
+admits a satisfying extension, whereas a rejecting predicate forces a
+violated clause for every extension.  There is a fixed bound $B\ge1$ on
+the number of clauses per predicate.  The resulting formula has at most
+$BN$ clauses and at least $\theta N$ violated clauses under every assignment
+on a NO input, so its gap is at least $\widehat\gamma=\theta/B>0$.
+
+Here is the further normalization, including its gap loss.  Remove
+tautological clauses and simplify repeated literals in each remaining
+clause.  A resulting clause $C$ on $k\leq3$ distinct variables is
+replaced by all $2^{3-k}$ clauses obtained by adjoining every sign
+pattern on $3-k$ fresh variables, used only for this occurrence.  If
+$C$ is true, every extension is true.  If $C$ is false, exactly one
+extension is false for every assignment to the fresh variables.
+This also handles an empty clause, using all eight sign patterns on
+three fresh variables.  Consequently every violated original clause
+still contributes a violated clause, while the number of clauses
+increases by at most eight.  The gap is therefore at least
+$\widehat\gamma/8$, and completeness remains one.  If normalization
+leaves no clauses, use a single satisfiable clause on three fresh
+variables; this case cannot occur for a NO output of the gap reduction.
+An input with no clauses can likewise be sent directly to this fixed
+satisfiable formula.  All steps are deterministic and polynomial.
+\end{proof}
+
+\begin{theorem}[Weighted projection-game repetition]
+\label{thm:repetition}
+Let $G$ be any finite projection game with the conventions above.
+For $0<g<1$ and every integer $k\geq1$,
+\begin{equation}
+ \val(G)\leq1-g
+ \quad\Longrightarrow\quad
+ \val(G^{\otimes k})\leq(1-g^2/16)^k.
+ \label{eq:prelim-repetition}
+\end{equation}
+The bound is uniform in the question sets, answer sets, and probability
+distribution on edge occurrences.
+\end{theorem}
+
+Raz proved exponential decay under parallel repetition for general two-player
+games~\cite{Raz1998}; Holenstein simplified that proof~\cite{Holenstein2009},
+and Rao obtained an alphabet-independent bound for projection games
+\cite{Rao2011}.  The precise estimate above is the parallel repetition theorem
+of Dinur and Steurer
+\cite[Corollary~1.2]{DinurSteurer2014}.  Their Sections~2.1--2.2
+allow nonnegative weights and parallel edges and use independent
+products of questions.  Interchanging the players matches our
+projection direction.  To express question-dependent answer sets in
+their common-alphabet convention, embed all legal answers in one
+finite alphabet and give illegal answers no accepting pairs.  Such
+partial projection constraints are allowed there, and legal defaults
+show that this extension does not change value.  Thus the stated
+version applies directly to our games.
+
+We now specify the source questions, because their exact local domains
+will matter in the construction.  For a normalized clause occurrence
+$C$, let $\mathcal A_C\subseteq\F^3$ be its seven satisfying
+assignments, recorded as \emph{variable bits}, including the signs of
+the clause only in the definition of $\mathcal A_C$.  The game
+$G_\Psi$ samples a uniform clause occurrence $C$ and a uniform
+position $h\in\{1,2,3\}$.  The left question is $C$, with answer
+domain $\mathcal A_C$; the right question is the variable ID at
+position $h$, with answer domain $\F$; and the projection selects
+the $h$th bit.  The occurrence and selected position remain with the
+verifier.
+
+A satisfying assignment to $\Psi$ gives value one.  Conversely,
+fix any right labeling, hence an assignment to the variables of
+$\Psi$.  At every clause it violates, any legal left answer differs
+from that assignment in at least one position.  Therefore
+\begin{equation}
+ \varphi\text{ unsatisfiable}
+ \quad\Longrightarrow\quad
+ \val(G_\Psi)\leq1-\gamma_0/3.
+ \label{eq:prelim-clause-gap}
+\end{equation}
+For any required constant $\sigma>0$, choose a fixed integer $t$ with
+$(1-\gamma_0^2/144)^t\leq\sigma$ and take
+\begin{equation}
+ G_{\mathrm{src}}=G_\Psi^{\otimes t}.
+ \label{eq:prelim-source-game}
+\end{equation}
+Theorem~\ref{thm:repetition} gives source soundness at most $\sigma$,
+with perfect completeness.  Its left question is an ordered tuple of
+clause occurrences, its answer domain is the product of their
+$\mathcal A_C$, its right question is the corresponding tuple of
+variable IDs, and its right answer domain is always $\F^t$.
+In particular, a repeated variable ID in a right question imposes no
+equality condition on the corresponding answer coordinates.
+Both answer-domain sizes, $7^t$ and $2^t$, are constants, and the
+explicit game has polynomial size because $t$ is fixed.
+
+Each $\mathcal A_C$ projects onto both bits at any single position and
+onto all four bit pairs at any two distinct positions.  Indeed, a
+clause excludes just one of the eight triples, and any prescribed pair
+has two extensions.  Taking products proves that every source
+projection is surjective.  The pair-surjectivity observation will also
+make the support reduction of function queries unambiguous.
+
+\subsection{Matrix slices and the Grassmann input}
+
+Let $H$ be a finite vector space, put $K=\F^\ell$, and identify
+$K\otimes H$ with $\Hom(H^*,K)$.  Thus a matrix $M$ is a list of
+$\ell$ rows in $H$, and $Mq\in K$ evaluates those rows at
+$q\in H^*$.  For a linear map $A:K\to\F^a$, the notation $AM$
+denotes its $a$ specified combinations of rows.  A \emph{row and
+column slice} is a nonempty affine set
+\begin{equation}
+ \mathcal S=
+ \{M\in K\otimes H: AM=U,\ Mq_b=t_b\ (1\leq b\leq c)\},
+ \label{eq:prelim-slice}
+\end{equation}
+where $U\in\F^a\otimes H$, $q_b\in H^*$, and $t_b\in K$.
+There is no independence requirement on the rows of $A$ or on the
+$q_b$.  We count specified row combinations and column values, rather
+than their ranks; redundant equations can always be removed.  A slice
+with no column constraints is a \emph{row fiber}.
+
+For $a\in K$ and $h\in H$, write $ah=a\otimes h$.
+The matrix step used below is
+\[
+ M\longmapsto M+ah,
+ \qquad M\text{ uniform},\quad
+ a\text{ uniform in }K\setminus\{0\},\quad h\text{ uniform in }H,
+\]
+with the three choices independent.  This step is stationary: both
+endpoints are uniform.  The possibility $h=0$ is retained.
+
+We recall the precise structural theorem behind the matrix argument.
+The Grassmann graph on an $N$-dimensional binary vector space has
+the $\ell$-dimensional subspaces as its vertices; distinct vertices
+are adjacent when their intersection has dimension $\ell-1$.
+For a nonempty vertex set $S$, its \emph{retention} is the probability
+that a uniform vertex of $S$ has a uniformly chosen neighbor in $S$.
+
+\begin{theorem}[Grassmann expansion consequence]
+\label{thm:prelim-grassmann}
+For each $0<\zeta<1$, there are $\alpha>0$, an integer $r\geq1$,
+and $\ell_0$ such that, for every $\ell\geq\ell_0$ and then every
+sufficiently large $N$, the following holds.  Every nonempty set of vertices
+with retention at least $\zeta$ has density at least $\alpha$ in an
+interval
+\[
+ \{L:A_0\subseteq L\subseteq B_0,\ \dim L=\ell\},
+ \qquad \dim A_0+\operatorname{codim}B_0\leq r.
+\]
+The constants $\alpha,r,\ell_0$ depend only on $\zeta$; the
+threshold for $N$ may also depend on $\ell$.
+\end{theorem}
+
+For sets of density at most $1/2$, this is Theorem~1.12 of
+Khot--Minzer--Safra in ECCC TR18-006, revision~2
+\cite{KhotMinzerSafra2018}, with expansion written as one minus retention;
+Definitions~1.8 and~1.10 give the expansion and interval conventions.
+If the set has density greater than $1/2$, take $A_0=\{0\}$ and
+$B_0=\F^N$.  This whole interval has co-order zero and density greater
+than $1/2$, so replacing the cited density constant by its minimum with
+$1/2$ proves the statement in that case too.
+The order of the dimension quantifiers is important.  We
+next give the matrix-chart argument, as in
+\cite[Section~3]{BarakKothariSteurer2018}, and then remove the
+column-dimension requirement explicitly.
+
+\begin{lemma}[Matrix set extraction in large dimension]
+\label{lem:prelim-matrix-set}
+For every $0<\eta<1$ there are $\alpha>0$, $r\geq1$, and
+$\ell_0$, depending only on $\eta$, such that for each
+$\ell\geq\ell_0$ and all sufficiently large $m$ the following holds.
+If a nonempty set $S\subseteq\Mat_{\ell,m}(\F)$ satisfies
+\[
+ \Pr_{M\text{ uniform in }S,\ a\ne0,\ h}
+       [M+ah^{\mathsf t}\in S]\geq\eta,
+\]
+where $a\in\F^\ell\setminus\{0\}$ and $h\in\F^m$ are
+independent uniform vectors, then $S$ has density at least $\alpha$
+in a nonempty row and column slice with at most $r$ equations of each
+kind.
+\end{lemma}
+
+\begin{proof}
+Increase the lower threshold on $m$ so that $2^{-m}\leq\eta/2$.
+The step has $h=0$ with probability $2^{-m}$.  Its retention
+conditional on $h\ne0$ is therefore at least
+$(\eta-2^{-m})/(1-2^{-m})\geq\eta/2$.
+
+Associate to $M$ its graph subspace
+\[
+ L_M=\{(x,M^{\mathsf t}x):x\in\F^\ell\}
+       \subseteq\F^\ell\oplus\F^m.
+\]
+These subspaces form the chart $\mathcal C$ on which projection to the
+first summand is invertible, and $M\mapsto L_M$ is a bijection onto
+that chart.  The identity
+$\dim(L_M\cap L_{M'})=\ell-\rank(M-M')$ shows that chart neighbors
+are precisely the nonzero rank-one changes.  Over $\F$, each nonzero
+rank-one matrix has exactly one factorization $ah^{\mathsf t}$ with
+both factors nonzero.  The degree within the chart is thus
+$(2^\ell-1)(2^m-1)$.
+
+For comparison, a vertex of the full Grassmann graph has
+$(2^\ell-1)(2^{m+1}-2)$ neighbors: choose a hyperplane in the vertex,
+then a one-dimensional extension in its quotient, excluding the
+original vertex.  Exactly half the neighbors of every chart vertex
+therefore remain in the chart.  The set
+$\widetilde S=\{L_M:M\in S\}$ has full Grassmann retention at least
+$\eta/4$.  Apply Theorem~\ref{thm:prelim-grassmann} with
+$\zeta=\eta/4$.  It supplies an interval $[A_0,B_0]$ of bounded
+co-order on which $\widetilde S$ has density at least $\alpha$.
+Its intersection with $\mathcal C$ is nonempty, and restricting the
+denominator to this intersection cannot decrease that density,
+since $\widetilde S\subseteq\mathcal C$.
+
+It remains to identify the intersection as a slice.  A basis of
+$A_0$ consists of vectors $(d_b,s_b)$, and its containment in $L_M$
+is exactly $d_b^{\mathsf t}M=s_b^{\mathsf t}$ for every basis vector.
+Using the standard dot product, a basis $(t_b,q_b)$ of $B_0^\perp$
+gives the equations $Mq_b=t_b$ for containment $L_M\subseteq B_0$.
+Thus there are at most $r$ row equations and at most $r$ column
+equations.  The Grassmann theorem fixes $\alpha,r,\ell_0$ using
+only $\eta$; after fixing $\ell$, its ambient-dimension threshold
+is met by taking $m$ sufficiently large.
+\end{proof}
+
+Our eventual matrices may have very small column spaces, including
+quotient spaces of dimension zero.  Adding unused columns preserves
+the matrix test, but a dense slice in the enlarged space can mix real
+and dummy columns.  The next lemma describes its projection exactly.
+
+\begin{lemma}[Eliminating dummy columns]
+\label{lem:padding}
+Let $H,D,K$ be finite binary vector spaces, and write a matrix on
+$H\oplus D$ as $(X,Y)$, with $X\in\Hom(H^*,K)$ and
+$Y\in\Hom(D^*,K)$.  Suppose the nonempty affine slice
+\begin{equation}
+ \widetilde{\mathcal S}=
+ \{(X,Y):AX=U_H,\ AY=U_D,\
+       Xq_b+Yd_b=t_b\ (1\leq b\leq c)\}
+ \label{eq:prelim-padded-slice}
+\end{equation}
+has $A:K\to\F^a$, $q_b\in H^*$, and $d_b\in D^*$.
+Its image $\mathcal S$ under $(X,Y)\mapsto X$ is a nonempty row
+and column slice with the same $a$ row combinations and at most $c$
+column values.  Every $X\in\mathcal S$ has equally many lifts in
+$\widetilde{\mathcal S}$.  In particular, a uniform point of the
+padded slice projects to a uniform point of $\mathcal S$.
+\end{lemma}
+
+\begin{proof}
+Put $W=\ker A$.  Encode all dependencies among the column equations
+by the linear maps
+\[
+ q:\F^c\to H^*,\quad q(\lambda)=\sum_b\lambda_bq_b,
+ \qquad
+ d:\F^c\to D^*,\quad d(\lambda)=\sum_b\lambda_bd_b,
+ \qquad
+ t(\lambda)=\sum_b\lambda_bt_b.
+\]
+We claim that the image consists exactly of the matrices $X$ obeying
+\begin{equation}
+ AX=U_H,\qquad Xq(\lambda)=t(\lambda)
+                         \quad(\lambda\in\ker d).
+ \label{eq:prelim-projected-slice}
+\end{equation}
+A basis of $\ker d$ gives at most $c$ column equations, whether or
+not their real arguments are independent.  Necessity follows by
+taking linear combinations of the original column equations whose
+dummy arguments vanish.
+
+For sufficiency, fix one point $(X_*,Y_*)$ of the original nonempty
+slice, and let $X$ satisfy Equation~\eqref{eq:prelim-projected-slice}.
+The row equations give $A(X_*-X)=0$.  Define on $\im d$ the candidate
+linear map
+\begin{equation}
+ L_0(d(\lambda))=(X_*-X)q(\lambda).
+ \label{eq:prelim-dummy-extension}
+\end{equation}
+It is well-defined: if $d(\lambda)=0$, the projected equations for
+$X$ and $X_*$ give $(X_*-X)q(\lambda)=0$.  Its values lie in $W$
+because $A(X_*-X)=0$.  Extend $L_0$ arbitrarily to a linear map
+$L:D^*\to W$, and put $Y=Y_*+L$.  Then $AY=U_D$, and
+\[
+ Xq(\lambda)+Yd(\lambda)
+ =Xq(\lambda)+Y_*d(\lambda)+(X_*-X)q(\lambda)
+ =t(\lambda)
+\]
+for every $\lambda$.  This gives a lift.  It also shows explicitly
+why the row compatibility and all dependent column equations suffice.
+
+Every lift is obtained this way, since its difference from $Y_*$
+takes values in $W$ and must restrict to $L_0$ on $\im d$.  The
+number of such extensions is
+\[
+ 2^{\dim W\, (\dim D-\rank d)},
+\]
+independent of $X$.  Thus all projection fibers have the same size,
+which proves the uniform-measure assertion.  The argument permits
+zero dimensions and rank-deficient $A$ throughout.
+\end{proof}
+
+\subsection{Partial tables and many row fibers}
+
+A partial table with finite range $\mathcal Y$ is a function
+$f:K\otimes H\to\mathcal Y\cup\{\bot\}$, where $\bot\notin\mathcal Y$
+means undefined.  A \emph{defined equality} requires both endpoints to
+have the same value in $\mathcal Y$; two undefined values never count.
+
+\begin{theorem}[Inverse theorem for a finite-range partial table]
+\label{thm:inverse}
+For every $0<\eta<1$, there are $\alpha>0$, integers $r\geq1$ and
+$\ell_0$, depending only on $\eta$, with the following property.
+For every $\ell\geq\ell_0$, every finite binary vector space $H$,
+every finite set $\mathcal Y$, and every partial table
+$f:K\otimes H\to\mathcal Y\cup\{\bot\}$, where $K=\F^\ell$,
+if
+\begin{equation}
+ \Pr_{M,a,h}[f(M)=f(M+ah)\ne\bot]\geq\eta,
+ \label{eq:prelim-defined-equality}
+\end{equation}
+for independent uniform $M$, $a\in K\setminus\{0\}$, and $h\in H$,
+then some $y\in\mathcal Y$ has density at least $\alpha$ on a
+nonempty slice with at most $r$ row combinations and at most $r$
+column values.  The constants are independent of both $\dim H$ and
+$|\mathcal Y|$.
+\end{theorem}
+
+\begin{proof}
+Use the constants of Lemma~\ref{lem:prelim-matrix-set} for $\eta$.
+Add a dummy space $D$ so that $\dim(H\oplus D)$ meets its column
+threshold, and define $\widetilde f(X,Y)=f(X)$.  A uniform padded
+matrix projects to a uniform real matrix; likewise, a uniform step
+factor in $H\oplus D$ projects to a uniform factor in $H$.
+Thus the defined-equality probability is unchanged, even when $H=0$.
+
+For a defined value $y$, let $S_y=\widetilde f^{-1}(y)$, let
+$\mu_y$ be its uniform matrix measure, and let $\theta_y$ be its
+retention under the padded matrix step.  Empty fibers can be omitted.
+Partitioning according to the first value gives exactly
+\begin{equation}
+ \Pr[\widetilde f(\widetilde M)
+       =\widetilde f(\widetilde M+a\widetilde h)\ne\bot]
+ =\sum_{y\in\mathcal Y}\mu_y\theta_y.
+ \label{eq:prelim-fiber-average}
+\end{equation}
+Since $\sum_y\mu_y\leq1$, a value $y$ has $\theta_y\geq\eta$.
+This averaging, also used in
+\cite[Lemma~2.3]{BarakKothariSteurer2018}, incurs no factor for
+the number of fibers.  Lemma~\ref{lem:prelim-matrix-set} supplies a
+padded slice on which that fixed value has density at least $\alpha$.
+Project the slice using Lemma~\ref{lem:padding}.  Its uniform measure
+projects uniformly, and $\widetilde f$ depends only on the projected
+matrix.  The same value therefore has the same density on the
+resulting slice in $K\otimes H$, with no increase in either count of
+constraints.
+\end{proof}
+
+We will need random row advice to encounter such a slice, rather than
+merely the existence of one slice somewhere in the table.  The next
+erasure argument supplies exactly this averaged guarantee.
+
+\begin{lemma}[Many good row fibers]
+\label{lem:many-fibers}
+Fix $0<\eta<1$, and let $\alpha,r,\ell_0$ be constants from
+Theorem~\ref{thm:inverse} with threshold $\eta/2$.
+Suppose $\ell\geq\ell_0$ and a partial table on $K\otimes H$ has
+defined-equality probability at least $\eta$.  For each linear map
+$A:K\to\F^r$, call a nonempty row fiber $\{M:AM=U\}$
+\emph{good} if there are at most $r$ column specifications and a
+defined value $y$ such that the resulting slice is nonempty and has
+$f=y$ on at least an $\alpha$ fraction of its uniform points.
+Then
+\begin{equation}
+ \Pr_M[\text{$M$ lies in a good row fiber for some $A$}]
+ \geq\eta/4.
+ \label{eq:prelim-good-union}
+\end{equation}
+Consequently, for independent uniform $A\in\Hom(K,\F^r)$ and
+$M\in K\otimes H$,
+\begin{equation}
+ \Pr_{A,M}[\text{the fiber of $AM$ for $A$ is good}]
+ \geq (\eta/4)2^{-r\ell}.
+ \label{eq:prelim-many-fibers}
+\end{equation}
+The witnesses can be chosen deterministically from $f,A,U$ alone.
+For every good row fiber, any chosen nonempty slice defined by at most
+$r$ column values has conditional uniform probability at least
+$2^{-r\ell}$ inside that row fiber.
+\end{lemma}
+
+\begin{proof}
+Let $T$ be the union of all good row fibers, over all the
+$2^{r\ell}$ possible row maps.  Suppose its uniform measure were
+less than $\eta/4$.  Erase the table on $T$, obtaining $f_0$.
+Stationarity of the matrix step gives
+\[
+ \Pr[f_0(M)=f_0(M+ah)\ne\bot]
+ \geq \Pr[f(M)=f(M+ah)\ne\bot]
+          -\Pr[M\in T]-\Pr[M+ah\in T]
+ >\eta/2.
+\]
+Theorem~\ref{thm:inverse} gives a defined value of $f_0$ of density
+at least $\alpha$ on a nonempty slice with at most $r$ row and $r$
+column specifications.  Pad its row map by zero output coordinates
+to make its codomain $\F^r$.  Because $f_0$ is a restriction of
+$f$, this slice certifies that its row fiber is good for $f$.
+That entire fiber belongs to $T$, where $f_0$ is undefined, a
+contradiction.  This proves Equation~\eqref{eq:prelim-good-union}.
+
+For each $M\in T$, at least one of the $2^{r\ell}$ maps has a
+good fiber through $M$.  Averaging the number of such maps gives
+Equation~\eqref{eq:prelim-many-fibers}.  No statement for every
+particular row map is needed or asserted.
+
+All vector spaces and value sets involved are finite.  After fixing
+orders on them, select the first witnessing list of columns, values,
+and $y$ for each $(f,A,U)$.  This choice uses the row advice and
+the table, without inspecting any further part of $M$.
+Finally, the column equations restricted to a nonempty row fiber form
+an affine linear system with at most $r\ell$ scalar equations.
+Whenever it is consistent its solution set has relative size
+$2^{-b}$, where $b\leq r\ell$ is the rank of that system.  This
+proves the stated conditional probability, including all dependent
+and zero-rank cases.
+\end{proof}
+
+All three matrix conclusions apply to quotient spaces without any
+change of constants.  In particular, when $H$ is replaced by $H/B$,
+the column functionals produced above belong to $(H/B)^*$; their
+pullbacks to $H$ annihilate $B$.  The proof adds dummy columns to the
+quotient itself and removes them by Lemma~\ref{lem:padding}, so no
+functional outside this annihilator is introduced.

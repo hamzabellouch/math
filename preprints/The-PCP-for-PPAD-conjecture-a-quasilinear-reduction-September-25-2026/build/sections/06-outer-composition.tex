@@ -1,0 +1,1183 @@
+\section{Binary composition and the robust outer circuit}\label{sec:outer-composition}
+
+We now convert the symbol representation into a generalized circuit. Two
+features of the conversion require separate arguments. A local Boolean
+function may inspect polynomially many bits of a bounded number of symbols;
+its implementation must tolerate failures among its own gates. Moreover,
+sharing such implementations must not allow one corrupted physical value
+to spoil an unbounded number of decisions. We state the first interface,
+proved in Section~\ref{sec:inner-gadget}, and then give the construction and
+all the counting and synchronization arguments for the second.
+The same sequence is used inside a decision gadget in
+Section~\ref{sec:inner-gadget}: first obtain replica synchronization without
+trusting decisions, then bound unstable comparisons and failed computations,
+and finally use the clipped mean displacement to locate an endpoint.
+At the outer scale, a completed decision is shared by a group of output
+replicas, called a cohort; its internal gates and external read occurrences are charged separately from
+each output's own remaining gates.
+
+Throughout this section, a distance between words is relative Hamming
+distance, unless a norm is displayed. A constant may depend on previously
+fixed accuracies, but never on the End-of-Line input or its length. A
+``fixed branch'' of a randomized answer tree means that the earlier
+hypothetical answers are fixed when the randomized algorithm is described.
+It does not mean conditioning the probability space on receiving those
+answers. This distinction applies also to branches never executed.
+
+\subsection{A fixed port and a robust Boolean decision}
+
+The port family will encode every raw symbol in the same binary format.
+Its tester lets us recognize symbols close enough to use, and its recovery
+radius is fixed before we know how many symbols a corrected local
+computation will inspect. Once that arity is fixed, the robust-decision part of
+the interface realizes one Boolean output of such a computation. It
+provides many designated copies of the answer, so the guarantee remains
+useful even when failed gates concentrate on designated outputs.
+
+\begin{theorem}[Standardized ports and robust decisions]\label{thm:port-gadget}
+For every fixed positive integer exponent allowance $c_{\rm allow}$, there
+are a cutoff $L_{\rm port}$ and a uniform family of injective binary
+encodings, for $L\geq L_{\rm port}$,
+\[
+ \mathcal D:\{0,1\}^{L}\longrightarrow\{0,1\}^{S_0},
+ \qquad S_0=\poly(L),
+\]
+with fixed positive relative distance $d_B$, satisfying \textup{(i)}--
+\textup{(ii)} below. The radius $\nu_B$ in \textup{(iii)} is fixed with
+this port family; the actual-gadget assertions in that part have the
+separate later cutoff specified there.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Every coordinate of $\mathcal D(s)$ is a multilinear polynomial in
+the bits of $s$ over $\F_2$, of degree at most $10$. Its coefficient list
+is computable in time polynomial in $L$. The degree bound is independent
+of $c_{\rm allow}$. Encoding and exact recovery from a fixed positive
+relative-error radius are deterministic polynomial-time algorithms.
+\item A perfect-completeness tester makes a bounded number of bit queries
+and performs bounded Boolean answer processing. Its public randomness has
+an enumerable polynomial-size rational support and polynomial bit
+complexity. For every fixed $a>0$, there are a fixed $\theta_B(a)>0$
+and a cutoff $L_B(a)\geq L_{\rm port}$, allowed to depend on $a$, such
+that for every $L\geq L_B(a)$ rejection below $\theta_B(a)$ implies
+distance less than $a$ from $\mathcal D(\{0,1\}^L)$.
+A word at distance $a$ from an encoding has
+rejection at most $C_Ba$, for a fixed $C_B$. Each fixed-branch query has a
+bounded-density marginal relative to the uniform distribution on the
+block. These assertions include arbitrary words and all hypothetical
+branches.
+\item There is a constant $0<\nu_B<d_B/4$ determined with this encoding,
+before any arity is specified. Subsequently fix an arity bound $k$, a
+size factor $C_f$, and a desired output loss $\upsilon>0$. There is a
+further cutoff $L_g$, allowed to depend on these fixed choices, such that
+all actual-gadget assertions below hold for every
+$L\geq\max\{L_{\rm port},L_g\}$. Consider any single-bit Boolean
+function of at most $k$ length-$L$ strings, described
+by an acyclic fan-in-at-most-two circuit over a fixed Boolean basis with
+public constants, of size at most $C_f L^{c_{\rm allow}}$. Some inputs
+may be declared public $0^L$.
+
+There is a uniform generalized subcircuit for this function, with a
+common count scale $G_0=\poly(L)$ for all padded functions under these
+bounds, at most $C_gG_0$ gates, and a set of $W$ designated output wires
+produced by its gates, where
+\begin{equation}\label{out:designated-count}
+ c_gG_0\leq W\leq C_gG_0.
+\end{equation}
+Here $c_g,C_g>0$ are fixed. Each nonpublic external input is a block of
+physical reads $X=3x-1$, with $x\in[0,1]$, compared to a public common
+rational threshold $\xi\in[2/5,3/5]$. Every external comparison occurrence
+in the complete unfolded subcircuit can be routed separately to an
+external replica.
+For each external port position, the total number of these occurrences is
+at most
+\begin{equation}\label{out:port-occurrence}
+ C_{\rm occ}G_0/S_0,
+\end{equation}
+uniformly over $\xi$, the function, and its public parameters. This counts
+all hypothetical branches, including unsuccessful and default branches.
+
+There are fixed $\delta_g,\gamma_g,\eps_g>0$ with the following universal
+soundness property. Fix logical strings $s_1,\ldots,s_k$ and ideal binary
+port words $y_j$ satisfying
+$\dist(y_j,\mathcal D(s_j))\leq\nu_B$ for each nonpublic port.
+For any subsequently chosen fixed physical margin $\omega>0$, use
+\[
+ 0<\eps\leq\eps_g,\qquad \eps<\omega/1000.
+\]
+Suppose at most $\gamma_gG_0$ external comparison occurrences fail to
+have a physical value on the side of $\xi$ specified by the corresponding
+bit of $y_j$, at gap greater than $\omega$. Repeated occurrences need not
+have consistent physical values. Then every assignment of the internal
+nodes in $[0,1]$ with at most $\delta_gG_0$ failed gates makes all but
+$\upsilon W$ designated wires correct near-bits for $f(s_1,\ldots,s_k)$:
+at most $\eps$ for zero and at least $1-\eps$ for one.
+\end{enumerate}
+The port construction and $\nu_B$ are independent of $k,C_f,\upsilon$.
+The later constants, the gate-count bounds, and the topology bounds may
+depend on these fixed choices, but not on $L,\xi$, or the later margin
+$\omega$. The threshold may appear as a rational gate parameter.
+Construction and other parameter computations take polynomial time in
+$L$ and the supplied description lengths, including the bit length of
+$\xi$; all parameter lengths are bounded by a polynomial in these
+quantities. In particular an arbitrarily long externally supplied
+threshold is charged for its bits.
+\end{theorem}
+
+Sections~\ref{sec:inner-algebra} and~\ref{sec:inner-binary} construct the
+algebraic and binary ingredients. Proposition~\ref{prop:dummy-port}
+proves the fixed encoding, tester, and recovery assertions. The remaining
+construction in Section~\ref{sec:inner-gadget} proves the physical occurrence
+bound~\eqref{ig:external-load}, gate count~\eqref{ig:gate-count}, and robust
+output guarantee~\eqref{ig:extraction-loss}, using the independent geometric
+procedures proved in Section~\ref{sec:geometry}. None of these constructions
+uses the outer circuit constructed here.
+
+\subsection{Port substitution, validation, and average correction}
+
+Apply Theorem~\ref{thm:outer-representation}, writing its raw encoding as
+$R_w=(s_k)_{k\in\Gamma}$, with
+\[
+ \ell_N=\lceil\log_2(N+2)\rceil,\qquad
+ L=(\ell_N+C_{\rm base})^{C_L},\qquad
+ |\Gamma|=O(N\ell_N^{O(1)}).
+\]
+Choose $c_{\rm allow}>c_{\rm raw}+12$, with any additional fixed local
+polynomial overhead absorbed in this inequality, and construct
+$\mathcal D$ before choosing correction rounds. Put
+\begin{equation}\label{out:binary-encoding}
+ E_w=(\mathcal D(s_k))_{k\in\Gamma},\qquad m=|\Gamma|S_0.
+\end{equation}
+The product of the two relative distances is a positive Hamming-distance
+bound; write $d_*>0$ for its square root, a lower bound on normalized
+Euclidean separation. The distinguished source and its actual successor are publicly computable in polynomial time.
+
+There is a fixed radius $\rho_{\rm dec}>0$ from which these words can be
+decoded globally. Indeed, let $r_B>0$ be a port recovery radius and
+$r_{\rm raw}>0$ a raw recovery radius. If the whole binary distance is
+less than $r_Br_{\rm raw}/2$, at most an $r_{\rm raw}/2$ fraction of port
+blocks can be at distance at least $r_B$ from their true block. Decode
+all ports, using a fixed default on an invalid or unsuccessful decoder
+output, and then use the raw decoder. An incorrect decoding at a bad
+site need not be detectable; the raw error bound already charges all
+such sites. Fix a smaller radius $\rho_{\rm dec}$ if necessary.
+
+The graph in Theorem~\ref{thm:outer-representation} has indegree and
+outdegree at most one, no self-edges, and no isolated vertices. Write
+$w_*$ for its distinguished source, which has an actual successor, and
+call every other missing-neighbor vertex a desired endpoint. The
+geometric construction applies to this encoded graph. For an edge
+$u\to v$, its four-block polygon successively changes the second, third,
+first, and third blocks:
+\[
+ \begin{aligned}
+ (E_u,E_u,0,0)&\longrightarrow(E_u,E_v,0,0)
+ \longrightarrow(E_u,E_v,1,0)\\
+ &\longrightarrow(E_v,E_v,1,0)
+ \longrightarrow(E_v,E_v,0,0).
+ \end{aligned}
+\]
+Here a scalar in a block denotes its constant repetition. The corners
+are rounded, and a segment in the fourth block enters the distinguished
+source from $(E_{w_*},E_{w_*},0,2)$.
+Theorem~\ref{thm:geometry} constructs a displacement field on
+\[
+ \mathcal B=[-1,2]^{4m},\qquad
+ \norm{U}_{\rm b}^2=\frac1m\sum_i U_i^2,
+\]
+where all distances to subsets of $\mathcal B$ use this norm. Each point
+of its endpoint set $\mathcal E$ has first block exactly $E_w$ for a desired
+endpoint $w$; the top of the extra segment is excluded. For any sufficiently
+small fixed rational $\tau>0$, chosen to meet the validation and
+global-recovery bounds in \eqref{out:tau}, there are constants
+$B_1,c_*,\beta_0>0$ and a field
+$v$ such that, after increasing $B_1$ to an integer,
+\begin{equation}\label{out:geometry-displacement}
+ \norm{v(U)}_\infty\leq B_1-1,\qquad
+ \norm{\clip_{\mathcal B}(U+\beta v(U))-U}_{\rm b}\geq c_*\beta
+\end{equation}
+whenever $\dist(U,\mathcal E)>10\tau$ and $0<\beta\leq\beta_0$.
+These constants precede estimator accuracy and the step $\beta$.
+The circuit will keep many replicas of each physical coordinate and
+force their mean vector close to $\mathcal E$; rounding the first block
+will then permit global recovery.
+
+To approximate the field locally, the numerical procedure of
+Lemma~\ref{lem:geometric-procedures} rounds the first two blocks at one
+common threshold $\xi\in[2/5,3/5]$. Each rounded word is a seed for
+validation. On good decisions an accepted seed must identify one fixed
+reference vertex, independent of the random acceptance decision and of
+the requested confidence or numerical accuracy; a seed in the intermediate
+region may be accepted or rejected. If one of the first two physical
+blocks is within $5\tau$ of a valid word, its seed must be accepted with that
+reference on good decisions for every allowed threshold. The procedure
+then asks for incident-edge flags, bits of each reference and its actual neighbors,
+and bits of the distinguished source and its successor. Each word-bit
+request uses either the coordinate matching the field component being
+estimated or a preallocated uniform coordinate for a bounded scalar
+statistic. Each reference and its neighbors determine a bounded list of
+incident path pieces; a fixed mesh and estimates of their scalar data
+approximate the field near those pieces. Scalar reads use fixed-width
+quantization with a public offset. We next supply these calls. Their
+number is fixed once the geometric mesh, scalar sample counts and
+numerical tolerances have been chosen, before the smaller bit-error
+budgets are assigned.
+
+\begin{lemma}[Protecting functional inputs]\label{out:flags}
+There are constants $0<a_1<a_2<\nu_B$, fixed before the arity of any
+functional invocation, with the following property. A bounded Boolean
+flag routine on an arbitrary binary port block can have arbitrarily
+small fixed failure probability, unflagging every block within $a_1$ of
+an encoding and flagging every block at distance at least $a_2$ from all
+encodings. In a functional invocation replace flagged ports by public
+$0^L$. Except on the union of the completed flag routines' failure
+events, every nonpublic input of every selected invocation is within
+$\nu_B$ of its intended encoding.
+\end{lemma}
+\begin{proof}
+Choose $a_2<\nu_B$ and then $a_1$ so small that
+$C_Ba_1<\theta_B(a_2)/4$. Estimate port-tester rejection by a fixed
+number of independent trials and compare to $\theta_B(a_2)/2$.
+Bounded independent variables give any fixed confidence by increasing
+the fixed sample count. In the interval between the two promises either
+Boolean result is permitted. An unflagged block on the good event is
+within $a_2$ of an encoding, unique because $a_2<d_B/4$; take its logical
+string as the intended input. A flagged input is explicitly a public
+zero, so it requires no external near-port premise. A union bound is
+applied to the finite list of completed flag promises, after that list
+has been fixed. Their internal tester answer trees are not counted as
+new logical promises.
+\end{proof}
+
+Fix a physical vector $U$ and initially fix its rounding threshold and
+scalar offset. A rounded seed $y=(y_k)_{k\in\Gamma}$ is now a fixed
+binary word; use bit one at equality with the threshold. For analysis, define a global nearest-symbol convention
+$s^*(k)$ at every site within $a_2$ of a port encoding, and choose a
+fixed arbitrary string elsewhere. An ideal functional call computes
+its Boolean function on these symbols at unflagged inputs and on
+$0^L$ at flagged inputs. Within one correction cone, deduplicate repeated
+raw sites and share their flag and initial logical value. Different
+cones may make different choices at uncertain sites.
+
+\begin{lemma}[Binary validation]\label{out:validation}
+There are fixed $0<\rho_{\rm comp}<\rho_{\rm acc}$, with
+$\rho_{\rm acc}$ smaller than the uniqueness radius of
+\eqref{out:binary-encoding}, and a finite ideal Boolean validation
+procedure such that, with arbitrarily high fixed probability, acceptance
+implies distance less than $\rho_{\rm acc}$ from a unique valid $E_w$,
+and distance less than $\rho_{\rm comp}$ implies acceptance with the
+true reference. The procedure uses port flags, port tests, and bounded
+raw-checker functional calls. It remains valid with averaged stationary
+expander-walk sampling as described below.
+\end{lemma}
+\begin{proof}
+Choose $\rho_{\rm acc}$ small enough that
+$\rho_{\rm acc}/a_1$ is within the raw uncertainty-correction radius.
+Choose $\alpha<\rho_{\rm acc}/4$ and take the raw gap
+$0<\theta_\alpha\leq1$ from Theorem~\ref{thm:outer-representation}.
+Writing $q=|\Pi|$ for its bounded checker-neighborhood size, choose
+$0<a<a_1$ and $b_0>0$ satisfying
+\begin{equation}\label{out:validation-constants}
+ \alpha+a+b_0<\rho_{\rm acc},\qquad
+ qb_0<\theta_\alpha/16,
+ \qquad p_{\max}=b_0\theta_B(a)>0.
+\end{equation}
+Decrease $p_{\max}$ if necessary. Let $p$ be the average port-tester
+rejection over all sites. Estimate $p$, and independently simulate the
+raw checker at sampled centers using the flagged/substituted inputs.
+Accept when the first estimate is at most $p_{\max}/2$ and the simulated
+raw rejection estimate is at most $\theta_\alpha/2$.
+
+On statistics of error less than $p_{\max}/4$, acceptance gives
+$p<p_{\max}$. Consequently the fraction of sites not within $a$ of any
+port encoding is less than $b_0$. At a center whose entire neighborhood
+avoids these sites, good flag promises leave all inputs unflagged and
+make the simulated checker exactly the checker on the global word
+$s^*$. Exceptional centers occupy at most $qb_0$. In the analysis,
+also estimate the true checker result on $s^*$ to accuracy
+$\theta_\alpha/8$ and the exceptional-center fraction to accuracy
+$\theta_\alpha/16$. These are fixed bounded statistics; the algorithm
+need not compute the hypothetical true statistic. On their good events
+and the completed flags' good events,
+\[
+ \Pr[\text{raw checker rejects }s^*]
+ \leq\theta_\alpha/2+\theta_\alpha/8+qb_0+\theta_\alpha/16
+ <\theta_\alpha.
+\]
+Raw soundness makes $s^*$ $\alpha$-close to a valid $R_w$. Charging all
+raw-disagreement sites and all non-$a$-close sites at cost one yields
+\[
+ \dist(y,E_w)<\alpha+a+b_0<\rho_{\rm acc}.
+\]
+The uniqueness radius makes this reference independent of subsequent
+random acceptance decisions for the fixed $y$.
+
+Conversely, if $\dist(y,E_w)<\rho_{\rm comp}$, then
+$p\leq C_B\rho_{\rm comp}$. By Markov's inequality at most
+$\rho_{\rm comp}/a$ of the ports are at distance at least $a$ from their
+true block. Outside their $\Pi$-neighborhoods the simulated checker is
+the perfectly accepting raw checker. Choose $\rho_{\rm comp}$ so small
+that both means are strictly below one quarter of their acceptance
+thresholds; choose the sampling errors with the remaining slack. Flag
+error probabilities are set after the sample counts. This proves both
+assertions. The proof requires concentration of the sampled exceptional
+fraction when $p$ is small. It never requires an arbitrarily long batch
+to avoid every exceptional site.
+\end{proof}
+
+Choose the geometric radius so that
+\begin{equation}\label{out:tau}
+ 4(10\tau)^2<\rho_{\rm dec},\qquad
+ \frac{(5\tau)^2}{(2/5)^2}<\rho_{\rm comp}.
+\end{equation}
+The second inequality supplies physical validation completeness:
+every incorrectly rounded coordinate of a binary word costs at least
+$(2/5)^2$ in squared distance for every allowed threshold. Fix the
+resulting $B_1,c_*,\beta_0$ and fix $\kappa=1/100$, the replica gap used
+below. Set the unscaled estimator error target with slack, smaller than
+$c_*\kappa/100$ in normalized root-mean-square norm.
+
+\begin{lemma}[Average correction of every relevant word role]
+\label{out:average-correction}
+After fixing the high-level mesh and statistical call counts, boundedly
+many raw correction rounds suffice to supply every required incident
+flag and every requested encoding bit, with any prescribed fixed average
+error. The average is over a uniform output component or its
+uniform-marginal statistical requests. The conclusion holds
+unconditionally for every true reference that can be accepted on good
+validation decisions, before selecting pieces or numerical winners.
+All resulting single-bit functions fit the fixed exponent allowance of
+Theorem~\ref{thm:port-gadget}.
+\end{lemma}
+\begin{proof}
+Fix a rounded seed that can be accepted on good validation, and its
+unique reference $R_w=(s_k)$. Put
+\[
+ U_0=\{k:\dist(y_k,\mathcal D(s_k))>a_1\},
+ \qquad |U_0|/|\Gamma|\leq\rho_{\rm acc}/a_1.
+\]
+Outside $U_0$, good flags unflag the port and its unique nearest logical
+string is $s_k$. Within $U_0$, substitution and intermediate flag choices
+may supply arbitrary values. In each deduplicated cone extend those
+initial values to a whole raw word agreeing with $R_w$ outside $U_0$.
+The raw uncertainty theorem gives a residual set $U_t$, depending only
+on $U_0$, with arbitrarily small fixed density after sufficiently many
+fixed rounds $t$. Its guarantee holds simultaneously for every such
+extension. Thus different cones and correlated intermediate flags cause
+no additional exceptional support. A corrected symbol is right off
+$U_t$; a local proposal and edge flag are right off a fixed permutation
+expansion of $U_t$.
+
+Compute an edge flag at a uniform-marginal center. For a requested own
+or neighboring encoding bit, compute the appropriate raw output symbol
+and then the requested coordinate polynomial of $\mathcal D$. Matching
+coordinates are uniform in the output average; the statistical requests
+have the same center marginal. Each fixed permutation expansion
+therefore costs at most its size times $|U_t|/|\Gamma|$. Set $t$ for
+the already fixed list of high-level true roles and calls. No union over
+all possible intermediate flag patterns is necessary.
+
+The raw simulation uses at most $C_tL^{c_{\rm raw}}$ Boolean gates, with
+exponent independent of $t$. A degree-at-most-ten Boolean polynomial has
+at most $\sum_{j=0}^{10}\binom Lj=O((L+1)^{10})$ monomials. Compute each
+monomial by a bounded-fanin AND tree and their sum by XOR gates expanded
+in the fixed basis. Coefficients and the requested bit's description are
+publicly generated. The extra bit-index and padding work has a fixed
+polynomial exponent. Our initial choice of $c_{\rm allow}$ leaves
+slack for this work. The number of raw ports and the multiplicative
+factor may increase with $t$, but are now fixed. The port encoding and
+its radius do not change.
+\end{proof}
+
+The completed port flags are now amplified for the finite list of
+logical promises in validation and these correction cones. Conditional
+on a sampled site, they use fresh tester randomness. Make the probability
+that any selected invocation has a nonpublic input outside $\nu_B$
+arbitrarily small. This protection concerns arbitrary rounded seeds,
+including seeds undergoing validation, and does not require exclusion
+of the geometric endpoint neighborhood. Uncertain flag results only
+choose which already uncertain inputs are substituted.
+
+\subsection{Small-support ideal tapes and complete branch counts}
+
+\begin{lemma}[Averaged expander sampling]\label{out:walk}
+The statistics needed above can be sampled with polynomial-in-$L$
+random support per output coordinate, with any desired fixed confidence
+in the average over output coordinates.
+\end{lemma}
+\begin{proof}
+Write an output coordinate as $(b,k_0,z_0)$ with $b\in[4]$,
+$k_0\in\Gamma$, and $z_0\in[S_0]$. Use fixed-length labeled walks in the
+outer Cayley expander starting at $k_0$. Fresh bounded segments and
+auxiliary uniform positions in $[S_0]$ supply all center and word
+statistics. Averaging over uniform $k_0$ makes every walk position
+stationary. If the mean-zero operator norm is at most $\lambda<1$,
+bounded centered functions at times $s,t$ have covariance at most
+$C\lambda^{|s-t|}$. Independent auxiliary randomness only changes the
+bounded diagonal terms and replaces off-diagonal functions by their
+conditional means. Therefore a batch of $q_s$ samples satisfies
+\[
+ \operatorname{Var}\left(\frac1{q_s}\sum_{j=1}^{q_s} Z_j\right)
+ \leq\frac{C}{q_s^2}\sum_{s,t=1}^{q_s}\lambda^{|s-t|}
+ \leq\frac{C(1+\lambda)}{(1-\lambda)q_s}.
+\]
+Chebyshev's inequality and a finite union give any fixed confidence by
+choosing a sufficiently large fixed $q_s$. The argument permits distinct
+bounded functions at the different slots and separate batches for
+physical blocks.
+
+Apply it to port rejection, the fixed global raw-checker and exceptional
+indicators in validation, and each actual reference candidate's
+statistics in the geometric procedure. At fixed rounded seeds those
+reference vertices are fixed whenever good acceptance is possible.
+Analyze all their roles before a numerical minimum or uncertain
+acceptance chooses which ones to use. The concentration is not
+conditioned on the realized answer path. Each walk has a fixed number
+of fixed-degree label choices. Each remaining choice has polynomial-in-
+$L$ support, and only a fixed number of choices is used. Their joint
+support per output coordinate is consequently polynomial in $L$.
+\end{proof}
+
+The preceding routines now meet the local-access contract of
+Definition~\ref{geo:access-contract}. Validation supplies fixed unique
+references, average correction supplies the matching and statistical bit
+requests, and the walk lemma supplies concentration for each underlying
+true candidate. The geometric procedure reserves at most eight true word
+roles and thirty-two piece roles, as enumerated in
+Section~\ref{geo:candidates}. Missing roles are omitted; duplicate roles
+may be retained.
+For fixed $U$ outside the endpoint neighborhood and each fixed admissible
+binary and scalar-quantization offset, it gives arbitrarily small
+prescribed $4\E_{i,\mathrm{trial}}|\widehat v_i-v_i(U)|^2$, with $i$
+uniform among the $4m$ components. All bit and flag errors and all
+candidate statistics are analyzed before a numerical winner is selected.
+On the resulting good event, Lemma~\ref{geo:stability} controls every
+sufficiently near-minimizing candidate in each component before selection, so a winner correlated with
+the requested component is harmless. The needed bit-error bounds remain
+average bounds over the allocated requests.
+
+Apart from the supplied calls, the procedure uses bounded comparison and
+Boolean-answer processing, public rational numerical tables, and a
+signed dyadic output in $[-B_1,B_1]$, including on every bad branch.
+A fixed-width scalar-quantization grid with an independently randomized
+offset suffices. Refining the finite grids of offsets changes comparison
+thresholds, not the number of bins, answers, or slots. All these
+statements concern the unscaled field.
+
+This outer application uses the accuracy and finite-role clauses
+\textup{(i)}--\textup{(iii)} of
+Lemma~\ref{lem:geometric-procedures} with completed ideal Boolean
+functional calls. Its optional physical-read clause \textup{(iv)} is
+not applied to the full outer gadget expansion. The fixed count
+$H_{\rm out}$ below counts direct outer read slots, and $B_{\rm out}$
+counts ideal functional invocations. Theorem~\ref{thm:port-gadget} and
+Lemma~\ref{out:routing} separately bound every physical read created by
+substituting those invocations.
+
+Applying parts \textup{(i)}--\textup{(iii)} of
+Lemma~\ref{lem:geometric-procedures} at this ideal-oracle level, with
+the preceding accuracy choices, we obtain ideal dyadic outputs satisfying,
+for every eligible fixed $U$ and every fixed admissible offset,
+\begin{equation}\label{out:ideal-accuracy}
+ 4\E_{i,\mathrm{tape}}\abs{\widehat v_i-v_i(U)}^2
+       <(c_*\kappa/100)^2.
+\end{equation}
+All outputs remain in $[-B_1,B_1]$ on bad trials. The good-port failure
+probability can independently be made arbitrarily small on this
+high-level call list. It is useful to record the order explicitly:
+\begin{enumerate}[label=\textup{(\arabic*)}]
+\item Fix geometric roles, mesh, scalar counts and numerical tolerances.
+\item Choose validation confidence and raw correction rounds for this
+finite logical-call list; fix the number of ports in every cone.
+\item Amplify each completed flag for its prescribed failure probability.
+Amplification adds tester reads, not new logical promises.
+\item Only now unfold the complete outer answer tree, leaving functional
+calls unexpanded and obtaining a fixed number $H_{\rm out}$ of direct
+read slots and $B_{\rm out}$ of hypothetical functional invocations.
+\item Choose $\upsilon$ for these $B_{\rm out}$ invocations and apply
+Theorem~\ref{thm:port-gadget} with the now fixed arity and size factor.
+\end{enumerate}
+This order does not define a bit accuracy by a union bound over the very
+answer tree created by amplifying that accuracy.
+
+At the ideal-oracle level, unfold every flag pattern, substitution
+pattern, quantized bin and hypothetical answer. Functional-call nodes
+remain unexpanded: each contributes one completed Boolean oracle answer,
+and its physical implementation is separately accounted for below.
+Thus $H_{\rm out}$ counts only direct read slots and $B_{\rm out}$ counts
+functional invocations. Supply randomness to unused nodes too. Earlier
+answers that determine an invocation's function or addresses are fixed
+publicly in that copy; they are not additional fragile input wires.
+Thus all port functions remain Boolean functions on their declared raw
+ports. A wrong numerical answer selects another reserved role or a
+finite table case. It cannot become an arbitrary hidden word address.
+Each hypothetical raw site is $\pi(k_0)$ for $\pi$ in a fixed finite set
+$\mathcal P$: compose walk-label moves, raw-neighborhood permutations
+and correction-cone moves. This set is independent of later offset-grid
+refinement. Direct scalar and bit slots use matching $z_0$, independently
+sampled uniform within-block positions, or the port tester's smooth
+queries. For fixed $k_0$ and fixed offsets, summing their unconditioned
+position densities over the finite complete tree gives a constant.
+
+The tape law in the next lemma includes both late offset grids---the
+binary threshold and the independent scalar-quantization offset---together
+with all internal choices at the hypothetical nodes. The grids are fixed
+before this final law is rationalized. The preceding accuracy estimates
+hold for each fixed offset, and hence for this joint law; the finite grids
+multiply its support bound only by a fixed factor.
+
+\begin{lemma}[Rational tapes and their read loads]\label{out:tapes}
+The true tape law can be replaced deterministically, at each output
+coordinate, by a list of a common square length $T_{\rm tap}=\poly(L)$,
+with total variation at most $\eta_0/S_0$, for any prescribed fixed
+$\eta_0>0$. The lists use only choices in the original support. They
+preserve \eqref{out:ideal-accuracy} and any bounded rare-event estimate
+with arbitrarily small fixed slack. Across these lists, every base
+physical coordinate is read by at most $C T_{\rm tap}$ direct
+comparison slots in the complete unfolded outer trees.
+\end{lemma}
+\begin{proof}
+Let $Q(L)$ bound the enumerable rational support of every tape law.
+For a common square $T\geq Q(L)S_0/\eta_0$, round each mass $Tp_j$
+down to an integer and distribute the remaining copies among nonzero
+support entries. Each mass error is at most $1/T$, and total variation
+is at most $Q(L)/T\leq\eta_0/S_0$. Floors, remainders and the ordering
+of entries are computed with exact rational arithmetic in polynomial
+time. The probability descriptions have polynomial bit complexity.
+A function in $[0,A]$ changes expectation by at most $A$ times total
+variation, proving the bounded-statistic assertions.
+
+For the load assertion, explicitly list all potential direct slots
+$\mathcal A$, including their fixed earlier-answer paths; set
+$H=|\mathcal A|$. If a slot is omitted or supplied a public value, its
+read subdistribution is dominated by that of its potential slot; it is
+never renormalized on being selected. Fix a target $(b',k',z')$ and a
+possible $\pi\in\mathcal P$. Its preimage $k_0=\pi^{-1}(k')$ is fixed.
+For every fixed offset, the true law gives
+\begin{equation}\label{out:direct-density}
+ \sum_{z_0=1}^{S_0}
+ \E[\text{number of direct reads at }(b',k',z')]
+ \leq C,
+\end{equation}
+where $C$ is the sum of the unconditioned fixed-slot density constants.
+Matching coordinates contribute one, uniform sampled coordinates
+contribute their bounded counts, and tester queries contribute their
+smoothness constants. Branches and seed roles add only a fixed factor.
+A position-count random variable lies in $[0,H]$. Changing the law for
+one output by total variation $\eta_0/S_0$ adds at most
+$H\eta_0/S_0$ to its expectation; summing over $z_0$ adds only
+$H\eta_0$. Sum the fixed preimages and physical roles and multiply by
+$T_{\rm tap}$. This is the asserted $O(T_{\rm tap})$ load.
+A constant total-variation tolerance without the $S_0$ denominator
+would not give this bound.
+\end{proof}
+
+The occurrence bound \eqref{out:port-occurrence} for each substituted
+gadget uses the same full-tree principle at its own scale. Its tape
+approximation must control loads both on its internal word, of length
+$m_{\rm in}$, and on an external port, of length $S_0$. Section~\ref{sec:inner-gadget}
+therefore uses total variation $\eta/\max\{4m_{\rm in},S_0\}$; the
+calculations \eqref{ig:external-load}--\eqref{ig:internal-load} give
+$O(G_0/S_0)$ external occurrences per port position and $O(R_{\rm in})$
+internal reads per base coordinate, where $R_{\rm in}$ is the gadget's
+replica count and $G_0=4m_{\rm in}R_{\rm in}$.
+This accounts for unequal polynomial block lengths without conditioning
+on an executed branch.
+
+\subsection{Cohorts, individual read routing, and gate realization}
+
+At each base component $i\in[4m]$, allocate one cohort for every tape in
+its list. A cohort has $K_c$ output replicas, where $K_c$ is a square
+satisfying
+\begin{equation}\label{out:cohort-size}
+ \max\{1,C_gG_0\}\leq K_c\leq C_KG_0
+\end{equation}
+for a fixed $C_K$; increasing $C_g$ if necessary also covers all
+designated-wire counts. The total number of replicas per component is
+$R=T_{\rm tap}K_c$, again a square. Each cohort contains its complete
+bounded list of functional invocations, sharing these invocations
+among its $K_c$ outputs. For each invocation, assign its $W$ designated
+wires to these outputs by round robin. Since $W\leq K_c$,
+\begin{equation}\label{out:round-robin}
+ \#\{\text{uses of any designated wire}\}
+ \leq\lceil K_c/W\rceil\leq 2K_c/W.
+\end{equation}
+A fraction $\upsilon$ of wrong designated wires therefore affects at
+most $2\upsilon$ of the cohort outputs. The remaining gates, called a
+direct cone, are separately allocated for each output replica.
+
+\begin{lemma}[Bounded physical read multiplicity]\label{out:routing}
+Every physical replica can be made the input of at most a fixed number
+of comparison occurrences, counting all outer and inner hypothetical
+branches. The construction is deterministic and uses no shared rounded
+bit between different comparison occurrences.
+\end{lemma}
+\begin{proof}
+Fix a physical block and a raw site $k'$. For each of the fixed possible
+address permutations, a functional port requesting $k'$ has a fixed
+$k_0$ preimage. There are $S_0$ output bit positions and $T_{\rm tap}$
+tapes at that preimage, and only a bounded number of invocation/port
+roles. Thus at most $C S_0T_{\rm tap}$ invocation ports request $k'$.
+By \eqref{out:port-occurrence}, any position in that site is used at most
+\begin{equation}\label{out:gadget-load}
+ C S_0T_{\rm tap}\,\frac{C_{\rm occ}G_0}{S_0}
+       \leq C' T_{\rm tap}K_c=C'R
+\end{equation}
+times. Lemma~\ref{out:tapes}, followed by replication over the cohort,
+gives $O(T_{\rm tap}K_c)=O(R)$ direct comparison occurrences at each
+base coordinate. Enumerate all these occurrences and assign successive
+ones round robin to its $R$ physical replicas. Each actual replica has
+bounded resulting multiplicity. Each comparison is performed in its
+own gate cone directly on that replica's $x$ value. In particular, an
+error in one comparison wire is not broadcast to other inner cones.
+\end{proof}
+
+Write the physical replica values and their means as
+\[
+ X_{ir}=3x_{ir}-1,\qquad \bar X_i=R^{-1}\sum_rX_{ir},\qquad
+ \norm{Y}_{\rm rep}^2=\frac1{mR}\sum_{i=1}^{4m}\sum_{r=1}^R Y_{ir}^2.
+\]
+A vector constant over replicas has replica norm equal to its base norm.
+Let $J$ be orthogonal projection onto these constant-over-replica
+vectors, so $JX=\bar X$ with the usual identification.
+
+For each $i$, average the replica labels using the half-lazy
+Margulis--Gabber--Galil operator $A_{\rm rep}$ on
+$(\mathbb Z/q\mathbb Z)^2$, $q=\sqrt R$. Its sixteen equally weighted
+labels consist of eight identity labels and the eight moves
+\[
+ (a\pm2b,b),\quad(a\pm(2b+1),b),\quad
+ (a,b\pm2a),\quad(a,b\pm(2a+1)),
+\]
+with multiplicities retained. For every positive integer modulus the
+normalized eight-move operator is symmetric with nonconstant numerical
+radius at most $5\sqrt2/8$; see the primary formal proof
+\cite[\texttt{mgg\_numerical\_radius}]{MGGAFP}. Thus
+\begin{equation}\label{out:replica-gap}
+ A_{\rm rep}J=J,\qquad
+ \norm{A_{\rm rep}(I-J)Y}_{\rm rep}
+       \leq(1-\kappa)\norm{(I-J)Y}_{\rm rep},
+ \qquad \kappa=1/100.
+\end{equation}
+The modulus need not be prime. Loops and parallel labels are kept as
+individual averaging inputs. The mean-zero space for modulus one is
+zero. Every averaging connection has bounded multiplicity as well.
+
+We specify the direct cones using exactly the gate types in
+Definition~\ref{def:gcircuit}. This also specifies how public constants
+and finite numerical processing are charged. Every needed constant
+node is the fresh output of a Constant gate in the cone using it, unless
+its value is incorporated as a legal Scale parameter or into a Boolean
+truth table. A physical comparison at threshold $t\in[-1,2]$ is a
+Constant gate with parameter $(t+1)/3$ and a Less gate on the physical
+replica's $x$ node and that constant, with orientation chosen for the
+required bit. Outside the physical range its answer is a public
+constant. On a satisfied comparison, an ideal mean gap greater than
+$4\omega$, an actual read deviation at most $\omega$, and
+$\eps<\omega/1000$ leave a strict Less antecedent even after the
+constant error: the node-scale gap is at least $\omega-\eps>\eps$.
+
+Boolean finite tables, flag processing, and quantization-bin processing
+use And, Or and Not with fan-in at most two. If their inputs are correct
+near-bits, each gate produces the same correct near-bit interval,
+without accumulating Boolean error. In particular the weak inequalities
+at $\eps$ and $1-\eps$ are sufficient. A selection among hypothetical
+invocations is implemented as a Boolean multiplexer: And each candidate
+answer with its selector and Or the resulting terms. An inactive
+selector is a low near-bit and forces that term low even if the unused
+candidate answer is arbitrary in $[0,1]$. Thus unsuccessful unused
+branches are shielded, without assuming that their outputs are bits.
+All finite answer tables have fixed size, although their public entries
+may depend on the tape and threshold.
+
+Represent the ideal dyadic field value by
+\begin{equation}\label{out:signed-value}
+ \widehat v=B_1(p^*-n^*),\qquad
+ p^*,n^*\in[0,1],\quad p^*n^*=0,
+\end{equation}
+using a fixed number of binary digits; enlarge the dyadic precision
+within the earlier estimator slack. Scale the near-bit digits by their
+dyadic weights and combine them by clipped Add gates to obtain $p,n$.
+Compute the $x$-average by sixteen Scale gates of weight $1/16$ and a
+bounded Add chain. All exact partial sums are in $[0,1]$. Choose a
+positive rational step with
+$t_\beta=\beta B_1/3\leq1$. Scale $p,n$ by $t_\beta$, add the positive
+term to the computed average, then subtract the negative term. The last
+output, or a final Copy output, is $x_{ir}$ itself. When the ideal signs
+are exclusive this expression is exactly
+\[
+ \frac{1+\clip_{[-1,2]}((A_{\rm rep}X)_{ir}
+                         +\beta\widehat v)}3.
+\]
+Indeed if the negative term vanishes the only possible clipping is at
+the upper end; if the positive term vanishes it is at the lower end.
+The affine change of coordinates commutes with the stochastic average.
+
+\begin{lemma}[Coarse and fine direct-cone bounds]\label{out:direct-cone}
+There is a fixed $C_{\rm ar}$, determined by the finite direct-cone
+shape before $\beta$ is filled in, such that every entirely
+$\eps$-satisfied direct cone obeys
+\begin{equation}\label{out:coarse-pointwise}
+ |X_{ir}-(A_{\rm rep}X)_{ir}|
+       \leq2\beta B_1+C_{\rm ar}\eps.
+\end{equation}
+No correctness of its Boolean or functional inputs is required.
+If its direct comparisons and selected invocation answers are correct
+near-bits for the ideal run on $\bar X$, then also
+\begin{equation}\label{out:fine-pointwise}
+ |X_{ir}-\clip_{[-1,2]}((A_{\rm rep}X)_{ir}
+                +\beta\widehat v_{ir}(\bar X))|
+       \leq C_{\rm ar}\eps.
+\end{equation}
+\end{lemma}
+\begin{proof}
+All hidden nodes, including $p,n$, remain in $[0,1]$ even when their
+logical values are wrong. Satisfied final Scale gates therefore make
+each signed term at most $t_\beta+\eps$. The absolute change from the
+computed average is at most their sum plus the final arithmetic errors.
+The averaging chain is within $C\eps$ of its exact average. Returning
+to physical units gives \eqref{out:coarse-pointwise}, after enlarging
+$C_{\rm ar}$. For the fine bound, induction through the shielded
+Boolean selections supplies the correct digits in
+\eqref{out:signed-value}. Scale is nonexpansive and clipped Add and
+Subtract are Lipschitz with respect to the sum of their input errors.
+For an explicit bound, let $J_d$ be the number of dyadic digits in
+one magnitude. A magnitude uses $J_d$ Scale and $J_d-1$ Add gates;
+its error is at most $(3J_d-1)\eps$. The sixteen Scale and fifteen Add
+gates for the average contribute at most $31\eps$. The two final
+Scale gates and the final Add/Subtract pair therefore contribute a
+total error at most $(6J_d+33)\eps$ in node units, or
+$(18J_d+99)\eps$ in physical units. An optional final Copy adds
+$3\eps$. The coarse bound's arithmetic error is at most $108\eps$
+including that Copy. Thus $C_{\rm ar}=18J_d+108$ suffices for this
+implementation, uniformly in all Scale parameters in $[0,1]$.
+The exclusive-sign identity gives \eqref{out:fine-pointwise}.
+\end{proof}
+
+Every invocation owns a disjoint gate set, and every direct cone owns a
+disjoint gate set. Internal outputs are fresh; designated and external
+wires are read-only fan-outs. The cyclic physical replica output is
+produced by the final gate of its own unique cone and by no other gate.
+There is no promised free constant node. Let
+\begin{equation}\label{out:gate-count}
+ K_{\rm out}=4mR,
+ \qquad |T|\leq C_{\rm tot}K_{\rm out}.
+\end{equation}
+The second assertion follows because a cohort has a bounded number of
+invocations, each with $O(G_0)=O(K_c)$ gates, and $K_c$ direct cones of
+bounded size. Each designated output is included in its invocation's
+gate count. In particular, concentrating failures on extraction gates
+receives the same charge as any other failures.
+
+\subsection{All failure and spoilage charges}
+
+We next choose the late offsets. Use a uniform rational grid in
+$[2/5,3/5]$ for $\xi$ and, independently, a uniform rational grid modulo
+the fixed scalar-bin width for the quantization offset. For every fixed
+physical value, the probability of lying within $4\omega$ of a binary
+threshold or any relevant shifted scalar boundary is at most
+\begin{equation}\label{out:anticoncentration}
+ C_{\rm bin}(D_{\rm grid}^{-1}+\omega),
+\end{equation}
+where $D_{\rm grid}$ is a lower bound on the two grid sizes and
+$C_{\rm bin}$ depends only on the already fixed widths and bin count.
+This follows by counting grid points in intervals of total length
+$O(\omega)$, adding at most a fixed number of boundary grid points.
+The number of comparison slots is unchanged when the grids are refined.
+The ideal accuracy estimate is conditional on every allowed offset, so
+refinement cannot invalidate it.
+
+Call a routed comparison occurrence \emph{spoiled} if its mean value is
+within $4\omega$ of its prescribed boundary or if its physical replica
+value differs from its mean by more than $\omega$. Otherwise its input
+has the prescribed ideal side with physical gap greater than $\omega$.
+For direct cones, spoiled comparisons are charged to their output. For
+functional invocations, count the occurrences themselves, including
+all hypothetical branches.
+
+\begin{lemma}[Deterministic charges for arbitrary assignments]
+\label{out:charges}
+There are fixed counting constants with the following properties.
+For an assignment with at most $\delta|T|$ failed gates:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item At most a $C_{\rm tot}\delta$ fraction of direct cones contains a
+failed gate.
+\item Cohorts containing an invocation with more than $\delta_gG_0$
+failed gates account for at most $C\delta/\delta_g$ of all outputs.
+\item The total number of excessive-deviation comparison occurrences,
+divided by $K_{\rm out}$, is at most
+$C\norm{X-\bar X}_{\rm rep}^2/\omega^2$.
+\item The averaged number of ambiguous gadget comparison occurrences,
+divided by $K_{\rm out}$, is at most
+$C(D_{\rm grid}^{-1}+\omega+\eta_0)$.
+The fraction of direct cones with an ambiguous comparison has the same
+form of bound. Here the averaging over tapes is the actual empirical
+frequency of the circuit, and the bounds hold for every fixed mean
+vector.
+\item Cohorts containing an invocation with more than $\gamma_gG_0$
+spoiled external occurrences account for at most $C/\gamma_g$ times
+the total normalized gadget-spoil count.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+Disjointness of direct gate sets proves (i). The number of invocations
+violating the threshold in (ii) is at most
+$\delta|T|/(\delta_gG_0)$. Charging $K_c$ outputs for each and using
+\eqref{out:cohort-size} and \eqref{out:gate-count} proves (ii), even if
+the same cohort is charged repeatedly. For (iii), Markov's inequality
+gives at most
+$mR\norm{X-\bar X}_{\rm rep}^2/\omega^2$ excessive physical replicas.
+Lemma~\ref{out:routing} bounds their total comparison multiplicity by
+a constant. The normalization $K_{\rm out}=4mR$ only improves the bound.
+
+For (iv), fix a port of an invocation at site $k$ and threshold $\xi$.
+Equation~\eqref{out:port-occurrence} bounds its ambiguous occurrences by
+\[
+ C_{\rm occ}G_0\,
+ \frac{\#\{z:|\bar X_{kz}-\xi|\leq4\omega\}}{S_0}.
+\]
+Every site is an image of a uniform $k_0$ under a member of the fixed
+permutation list. Sum over that list and all invocation ports under the
+unconditioned tape law, before selecting any answer branch. Averaging the offset and using
+\eqref{out:anticoncentration} bounds the expected number per trial by
+$C G_0(D_{\rm grid}^{-1}+\omega)$. The full occurrence bound is uniform
+in threshold-dependent function data. Tape rationalization changes a
+count bounded by $CG_0$ by at most $CG_0\eta_0/S_0$. Dividing each
+trial's charge by its $K_c$ output replicas gives (iv). Direct slots use
+the full-tree density argument in \eqref{out:direct-density}, and the
+same grid count; their count per trial is bounded by $H_{\rm out}$.
+This reasoning applies to every fixed eventual mean, rather than a
+mean selected before construction. Finally, (v) is the same threshold
+counting proof as (ii), with spoiled occurrences replacing failed gates.
+\end{proof}
+
+\subsection{Parameter order and synchronization before decisions}
+
+We give an acyclic choice of all remaining constants. Reserve enough
+slack in \eqref{out:ideal-accuracy} that after tape rationalization the
+ideal error norm is at most $c_*\kappa/20$. Choose $q_0>0$ so small that
+\begin{equation}\label{out:q0}
+ 20(B_1+1)\sqrt{q_0}<c_*\kappa/20.
+\end{equation}
+The geometric and statistical accuracies, correction rounds, and
+completed flags are chosen as above to put the ideal good-port failure
+probability below, for example, $q_0/20$. These are logical-call budgets.
+After the complete outer tree is fixed, choose
+$2B_{\rm out}\upsilon<q_0/20$ and obtain the gadget constants. Increasing
+$K_c$ for these gadgets weights every trial equally and does not
+magnify its ideal failure probability.
+
+Now choose fine fixed offset grids, then a small positive rational
+$\omega$, then a small tape tolerance $\eta_0$, and then a desired
+synchronization radius $d_{\rm sync}>0$. By
+Lemmas~\ref{out:tapes} and~\ref{out:charges}, they can be chosen so that,
+whenever $\norm{X-\bar X}_{\rm rep}\leq d_{\rm sync}$, the sum of the
+following empirical output fractions is less than $q_0/2$: failure of
+the ideal good-port event, direct ambiguous/excessive comparisons,
+and cohorts having an invocation with too many spoiled occurrences.
+For example assign $q_0/20$ to each grouped term, with the
+$C/\gamma_g$ factors included before choosing the responsible parameter.
+Ideal squared error is bounded, so make $\eta_0$ small enough for its
+reserved norm slack as well. This order is possible because all counts
+and density constants are already fixed and independent of these late
+grids and margins.
+
+Choose a positive rational $\beta\leq\beta_0$ with
+$\beta B_1/3\leq1$ and small enough that
+$4\beta B_1/\kappa<d_{\rm sync}/2$. Finally choose positive rational
+$\eps<1/10$ and $\delta<1$ so small that
+\begin{gather}
+ \eps\leq\eps_g,\qquad\eps<\omega/1000,
+ \qquad C\delta/\delta_g<q_0/20,\label{out:epsilon-delta}\\
+ \frac{4\beta B_1+2C_{\rm ar}\eps
+             +6\sqrt{C_{\rm tot}\delta}}{\kappa}<d_{\rm sync},
+ \label{out:coarse-budget}\\
+ 2C_{\rm ar}\eps+6\sqrt{C_{\rm tot}\delta}
+                <\beta c_*\kappa/20.
+ \label{out:fine-budget}
+\end{gather}
+There is positive slack in each inequality at $\eps=\delta=0$, so
+fixed positive rational choices exist. If necessary decrease them for
+any remaining direct numerical slack. All unstable events other than
+failed direct cones, including the mapped extraction errors, now total
+less than $q_0$.
+
+The finitely many lower-size cutoffs are imposed after these choices by
+increasing $C_{\rm base}$. These include $L_{\rm port}$, the finitely
+many $L_B(a)$ for the chosen tester accuracies, and $L_g$ for the fixed
+arity, size factor, and output loss. This does not create arity feedback. The raw
+algorithm's exponent is independent of correction rounds; the chosen
+port allowance has slack above that exponent and the degree-ten output
+polynomial evaluation. For the fixed cones, increasing the additive
+padding absorbs remaining multiplicative factors and cutoffs into a
+single fixed size factor, even factor one if desired. Padding checks
+and zero construction are $O(L)$ scans with uniform coefficients; their
+implementation does not perform hidden work growing with
+$C_{\rm base}$. Public computation of bit-polynomial coefficients may
+have a larger fixed polynomial exponent than the circuit evaluating
+the resulting monomials. Only the latter exponent is charged to the
+functional size allowance. No parameter varies with $N$ after this
+single choice.
+
+\begin{lemma}[Coarse synchronization]\label{out:coarse-sync}
+Every assignment satisfying all but $\delta|T|$ gates has
+$\norm{X-\bar X}_{\rm rep}<d_{\rm sync}$, without any assumption that
+its functional decisions are correct.
+\end{lemma}
+\begin{proof}
+Apply \eqref{out:coarse-pointwise} to nonfailed direct cones. At failed
+ones, both $X_{ir}$ and $(A_{\rm rep}X)_{ir}$ belong to $[-1,2]$, so
+their difference is at most three. The factor four in the norm and
+Lemma~\ref{out:charges}(i) give
+\[
+ \norm{X-A_{\rm rep}X}_{\rm rep}
+ \leq4\beta B_1+2C_{\rm ar}\eps
+                  +6\sqrt{C_{\rm tot}\delta}.
+\]
+On the other hand \eqref{out:replica-gap} and the reverse triangle
+inequality give
+$\kappa\norm{X-\bar X}_{\rm rep}
+\leq\norm{X-A_{\rm rep}X}_{\rm rep}$.
+Equation~\eqref{out:coarse-budget} proves the assertion. In particular,
+failures at physical feedback outputs, threshold constants, or the
+numeric averaging gates are already included; no decision is trusted
+in establishing this estimate.
+\end{proof}
+
+\subsection{The clipped mean contradiction and universal decoding}
+
+\begin{lemma}[Fine residual]\label{out:fine-residual}
+If an assignment meets the gate-failure budget and
+$\dist(\bar X,\mathcal E)>10\tau$, then
+\begin{equation}\label{out:residual}
+ E_{\rm res}:=
+ \norm{X-\clip_{\mathcal B}(A_{\rm rep}X+\beta v(\bar X))}_{\rm rep}
+                  <\beta c_*\kappa/2.
+\end{equation}
+Here clipping is componentwise on the replicas, and $v(\bar X)$ is
+repeated identically over them.
+\end{lemma}
+\begin{proof}
+Fix the actual mean $\bar X$ in all ideal tape experiments. Coarse
+synchronization permits all spoilage charges already budgeted. Discard
+cohorts with a high-failure or high-spoil invocation. In every remaining
+invocation whose ideal branch-pattern inputs are all near ports or
+public substitutions, Theorem~\ref{thm:port-gadget} applies. Mark all
+cohort outputs receiving an incorrect designated wire from any such
+invocation. Equations~\eqref{out:designated-count} and
+\eqref{out:round-robin} bound their union by
+$2B_{\rm out}\upsilon$ of the outputs. Do this marking for every
+near-input hypothetical invocation before following the selected path.
+Non-near-input invocations are irrelevant unless selected; on the ideal
+good-port event a selected invocation necessarily is a near-input one.
+
+Outside these marks and the other unstable events, every direct
+comparison in the complete tree has the needed margin and every
+selected invocation supplies its correct near-bit. Induct on the
+ideal answer sequence: earlier reliable bits select its actual
+substitution/function branch, the selected gadget is reliable, and
+Boolean shielding removes arbitrary unused outputs. Thus the whole
+selected direct computation equals its ideal Boolean run, and
+\eqref{out:fine-pointwise} holds.
+
+For an unstable but entirely satisfied direct cone, use only
+\eqref{out:coarse-pointwise} and $|v_i(\bar X)|\leq B_1$:
+its discrepancy from the clipped true-field update is at most
+$3\beta B_1+C_{\rm ar}\eps$. This is proportional to $\beta$ apart
+from numeric error. Failed direct cones use only the range bound three.
+The empirical ideal error, clipping nonexpansiveness, and the total
+unstable fraction at most $q_0$ therefore give
+\[
+ E_{\rm res}
+ \leq\beta\bigl(c_*\kappa/20+6B_1\sqrt{q_0}\bigr)
+      +2C_{\rm ar}\eps+6\sqrt{C_{\rm tot}\delta}
+ <\beta c_*\kappa/2
+\]
+by \eqref{out:q0} and \eqref{out:fine-budget}. This includes arbitrary
+concentration on extraction gates: above-budget invocations lose their
+whole cohort; below-budget invocations lose their guaranteed fraction
+of designated wires, and the lower bound in
+\eqref{out:designated-count} prevents a concentration factor.
+\end{proof}
+
+\begin{lemma}[Clipping and replica means]\label{out:clip-mean}
+Let $A$ be a stochastic replica operator satisfying
+\eqref{out:replica-gap}, and let $c$ be constant across the replicas of
+each component. Put $F=\clip_{\mathcal B}(AX+c)$ and
+$E=\norm{X-F}_{\rm rep}$. Then
+\[
+ \norm{X-JX}_{\rm rep}\leq E/\kappa,\qquad
+ \norm{JX-\clip_{\mathcal B}(JX+c)}_{\rm b}\leq E/\kappa.
+\]
+\end{lemma}
+\begin{proof}
+Write $Q=I-J$ and $g=\clip_{\mathcal B}(JX+c)$, a repeated vector.
+The mean projection minimizes distance to repeated vectors, and
+coordinate clipping is nonexpansive. Hence
+\[
+ \norm{QF}_{\rm rep}
+ \leq\norm{F-g}_{\rm rep}
+ \leq\norm{A(X-JX)}_{\rm rep}
+ \leq(1-\kappa)\norm{QX}_{\rm rep}.
+\]
+Projecting $X-F$ gives
+$\norm{QX}_{\rm rep}\leq E+(1-\kappa)\norm{QX}_{\rm rep}$,
+which proves the first inequality. Taking means and then comparing to
+$g$ gives
+\[
+ \norm{JX-g}_{\rm b}
+ \leq\norm{J(X-F)}_{\rm rep}+\norm{JF-g}_{\rm rep}
+ \leq E+(1-\kappa)\norm{QX}_{\rm rep}\leq E/\kappa.
+\]
+This argument does not exchange averaging and clipping.
+\end{proof}
+
+Apply Lemma~\ref{out:clip-mean} with $c=\beta v(\bar X)$ and the fine
+residual. If the mean were farther than $10\tau$ from $\mathcal E$, it
+would give
+\[
+ \norm{\bar X-\clip_{\mathcal B}(\bar X+\beta v(\bar X))}_{\rm b}
+ <\beta c_* ,
+\]
+contrary to \eqref{out:geometry-displacement}. Thus every assignment
+meeting the gate-failure budget satisfies
+\begin{equation}\label{out:endpoint-proximity}
+ \dist(\bar X,\mathcal E)\leq10\tau.
+\end{equation}
+Choose an endpoint witnessing this bound. Its first block is exactly
+$E_w$ for a desired endpoint. Round the first block of $\bar X$ at
+$1/2$. Each erroneous bit contributes at least $1/4$ to its squared
+coordinate distance from $E_w$, and so the resulting word $y$ obeys
+\[
+ \dist(y,E_w)\leq4(10\tau)^2<\rho_{\rm dec}.
+\]
+The global decoder following \eqref{out:binary-encoding} recovers $w$.
+The endpoint decoder in Theorem~\ref{thm:outer-representation} and
+Lemma~\ref{lem:macrograph} returns a nonzero End-of-Line solution. It
+does not require knowing which gates failed or which endpoint witnessed
+\eqref{out:endpoint-proximity}.
+
+This defines a deterministic decoder on every acceptable rational
+assignment. Means and comparisons can be computed exactly: forming a
+common denominator within a group increases its bit length by at most
+the sum of its input denominator bit lengths, followed by polynomial
+integer-arithmetic overhead. The port and raw algorithms are polynomial
+time, with arbitrary fixed defaults on out-of-promise inputs. The
+proved proximity places this actual input inside their guaranteed
+radii. Hence decoding is polynomial in $N$ plus the total assignment
+encoding length. The soundness argument itself applied to all real
+assignments satisfying the failure budget.
+
+\subsection{Complete output length, uniformity, and totality}
+
+Every constituent scale is a fixed polynomial in $L$, and
+$|\Gamma|=O(N\ell_N^{O(1)})$. Equations~\eqref{out:gate-count} and
+\eqref{out:cohort-size} give, for some fixed exponent $b_1$,
+\begin{equation}\label{out:size}
+ |V|+|T|=O(mT_{\rm tap}K_c)
+       =O(|\Gamma|S_0T_{\rm tap}G_0)
+       =O(N\ell_N^{b_1}).
+\end{equation}
+This count includes every copied direct cone, every entire shared
+invocation, its extraction gates, every Constant gate, and every
+comparison in every hypothetical branch. Routing creates one connection
+record per counted input occurrence; it is not an implicit description
+of a larger circuit. Explicit node and gate identifiers require
+$O(\log(N\ell_N^{b_1}))=O(\ell_N)$ bits. Field/index metadata, locally
+generated function coefficients, and every rational parameter have
+fixed polynomial-in-$L$ bit bounds. The offsets, bin widths,
+$\beta,\eps,\delta$ and numerical precisions are fixed rational
+constants. In particular, the threshold-input length qualification in
+Theorem~\ref{thm:port-gadget} contributes only a fixed bound here.
+If a representation repeats local parameter descriptions instead of
+sharing them, multiplying \eqref{out:size} by their polynomial-in-$L$
+length still changes only a fixed logarithmic exponent. Input/output
+lists and delimiters obey the same bound. Thus there are a fixed
+positive integer $A$ and fixed nonnegative integer $b$ for which the
+complete output encoding has length at most $AN\ell_N^b$.
+
+All tape masses and their integer multiplicities are deterministically
+enumerable. So are every raw-neighborhood and correction-cone address,
+every padded function, every inner invocation gate, every replica move,
+and every round-robin routing record. Public outer encodings and the
+source data are constructed by the polynomial-time algorithms already
+proved. Polynomially many operations on polynomial-bit integers suffice
+for all these tasks. Products and compositions of the finitely many
+fixed polynomial bounds give one deterministic polynomial-time
+reduction. It never lists the graph of all logical vertex labels. The
+gate set is nonempty, all parameters lie in $[0,1]$, fan-in is at most
+two, and the fresh-output construction enforces the required unique
+output ownership despite the feedback cycles.
+
+It remains to establish the finite totality assertion for arbitrary
+generalized circuits, independently of this reduction.
+
+\begin{lemma}[A fixed rational mesh satisfies every gate]
+\label{out:totality}
+For every fixed rational $0<\eps<1/10$, every generalized circuit in
+Definition~\ref{def:gcircuit} has a rational assignment satisfying all
+its gates, each coordinate having denominator
+$q=\lceil20/\eps\rceil$. The complete assignment length is bounded by
+one fixed polynomial with nonnegative integer coefficients in the
+circuit encoding length.
+\end{lemma}
+\begin{proof}
+Construct a continuous self-map of $[0,1]^V$. At an arithmetic gate's
+unique output use its exact numerical operation. At a Less gate with
+inputs $a,b$, use the clipped linear ramp that is zero when
+$x_b-x_a\leq-\eps/2$ and one when
+$x_b-x_a\geq\eps/2$. For Boolean gates define a continuous signal
+$h:[0,1]\to[0,1]$ equal to zero on $[0,2\eps]$, equal to one on
+$[1-2\eps,1]$, and linear between them. Use respectively
+\[
+ \max\{h(x_a),h(x_b)\},\qquad
+ \min\{h(x_a),h(x_b)\},\qquad 1-h(x_a)
+\]
+for Or, And, and Not. Set coordinates not produced by gates to zero.
+Unique output ownership makes these prescriptions a well-defined
+continuous cube map. Brouwer's fixed-point theorem~\cite{Brouwer1911} gives a fixed point
+$x^*$; no efficient computation of it is asserted.
+
+Round every coordinate to the nearest point of
+$\{0,1/q,\ldots,1\}$, obtaining $\widetilde x$ with
+$|\widetilde x_v-x_v^*|\leq1/(2q)\leq\eps/40$.
+Constant errors are at most $\eps/40$, Scale and Copy errors at most
+$2\eps/40$, and Add and Subtract errors at most $3\eps/40$, using
+parameter bounds and nonexpansive clipping. For a triggered strict
+Less antecedent after rounding, its signed input gap before rounding
+has the same sign and magnitude strictly greater than
+$\eps-2\eps/40>\eps/2$. Its fixed-point output is therefore the
+required endpoint zero or one, which rounding preserves.
+
+If a weak Boolean low antecedent
+$\widetilde x_a\leq\eps$ holds, then
+$x_a^*\leq\eps+\eps/40<2\eps$, so $h(x_a^*)=0$.
+Similarly $\widetilde x_a\geq1-\eps$ implies
+$h(x_a^*)=1$. Every applicable Or, And, or Not conclusion follows
+from its displayed exact formula, including equality at the weak
+threshold. The corresponding fixed-point output is zero or one and
+is unchanged by rounding. This verifies every gate implication.
+
+The denominator $q$ is a fixed integer depending only on $\eps$.
+There are at most a fixed multiple of $M+1$ explicitly listed nodes
+in a length-$M$ input, and each output rational has a fixed bit bound.
+Accounting also for order, indices if used, and delimiters, a
+sufficiently large fixed integer $C$ makes
+$p(M)=C(M+1)^2$ an upper bound for the entire assignment. This
+polynomial has nonnegative integer coefficients and is independent of
+the particular circuit and its parameter denominators.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+The preceding argument uses Theorem~\ref{thm:port-gadget}, whose construction
+is proved in Sections~\ref{sec:inner-algebra}--\ref{sec:inner-gadget}, and
+Lemma~\ref{lem:geometric-procedures}, proved in Section~\ref{sec:geometry}.
+Use the fixed rational $\eps,\delta$ chosen in
+\eqref{out:epsilon-delta}--\eqref{out:fine-budget} and the polynomial
+$p$ from Lemma~\ref{out:totality}. That lemma proves totality, with all
+gates satisfied. The explicit construction and \eqref{out:size} give
+the claimed complete quasilinear encoding bound and a deterministic
+polynomial-time reduction. Equations~\eqref{out:endpoint-proximity}
+and~\eqref{out:tau}, followed by the global endpoint decoder, give the
+required solution from every acceptable assignment, with the stated
+polynomial running time. Every constant and algorithm has been fixed
+independently of the input. This proves all four assertions.
+\end{proof}

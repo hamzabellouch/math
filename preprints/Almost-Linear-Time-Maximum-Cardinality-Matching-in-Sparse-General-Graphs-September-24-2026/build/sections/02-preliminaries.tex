@@ -1,0 +1,174 @@
+\section{Conventions and static primitives}\label{sec:preliminaries}
+
+\subsection{Representations and fixed-parameter bounds}
+
+Auxiliary graphs may have parallel edges or arcs, always distinguished by
+identifiers. Fix a reference orientation on every variable edge. Traversing
+an edge backward negates its coefficient. A signed circulation has zero
+divergence at every vertex; its length norm for positive lengths $\ell$ is
+\[
+                       \|\ell f\|_1=\sum_e\ell_e|f_e|.
+\]
+This norm differs from the \emph{raw length} of a supplied traversal list:
+the latter counts every traversal with its multiplicity, before cancellation.
+Later a forest edge may map either to an actual graph edge, with its endpoint
+correspondence specified, or to a null edge whose two endpoints have the
+same image. A null traversal has zero actual projected length, although a
+reduction may assign it an additional positive bookkeeping length.
+
+All representation sizes include vertices or slots, individual edges,
+terminal incidences, and explicitly stored lists. Ordinary adjacency lists,
+heaps, balanced dictionaries, and path-copy persistent maps incur logarithmic
+overhead per record operation. No argument permits a free scan of all
+coordinates after an implicit path update. Arithmetic and key-length costs
+are included separately when they exceed one word.
+
+The matching procedure uses a master bound $S=2^s$, an integer parameter
+$a\ge1000$, and a reliability parameter $\sigma$. In the final schedule
+$\sigma\le a+1$. A bound of the form
+\[
+                       S^{O(1/a)+o_a(1)}
+\]
+has an absolute coefficient in $O(1/a)$; for each fixed $a,\sigma$, the second
+exponent tends to zero as $S\to\infty$. Constants and powers of logarithms
+may depend on these fixed parameters. All smaller local routines measure
+their permitted logarithmic factors against the indicated master bound.
+The parameters are not fixed uniformly while taking $a\to\infty$.
+
+An implementation may check a deterministic size or precision prerequisite.
+If that check is inadequate, it \emph{suspends} the entire parameter branch
+without an answer. In contrast, exhaustion of a capped randomized routine
+is a \emph{detected failure}; the calling perfect-matching test returns a
+negative answer promptly. The fixed-parameter analysis proves that
+deterministic suspensions cannot occur on any path once the input is
+sufficiently large for that fixed parameter. It does not require random
+attempts always to succeed. These conventions are used in
+Theorem~\ref{thm:subcubic} and the schedule in
+Section~\ref{sec:uniformization}.
+
+\subsection{Exact integral flow}
+
+\begin{lemma}[Static integral flow]\label{lem:integral-flow}
+For an explicitly represented directed network of total size at most $P$,
+with integral capacities, demands and costs bounded in magnitude by a fixed
+power of $P$, exact integral minimum-cost flow can be computed uniformly and
+deterministically in $P^{1+o(1)}$ time. Its finite-precision operations can
+be simulated with polynomially logarithmic overhead on logarithmic-bit
+words. In particular, integral source--sink maximum flow with nonnegative
+upper capacities and zero lower capacities returns an explicit integral
+arc vector and a residual-reachability minimum-cut certificate within that
+bound.
+\end{lemma}
+
+\begin{proof}
+Use the deterministic minimum-cost-flow theorem of van den Brand et
+al.~\cite[Theorem~1.1]{FlowDeterministic}, with its finite fixed-point model
+and deterministic integral rounding~\cite[Section~2 and Lemma~4.1]{FlowDeterministic}.
+The stated logarithmic dependence on integral magnitudes and polynomial
+logarithmic word lengths is absorbed in $P^{o(1)}$. A fixed-point word is
+stored as a charged array of logarithmic-bit words. Longer virtual addresses
+can be keys in a dictionary of touched cells; no unused address space is
+initialized.
+
+Maximum flow is obtained by adding a bounded sink-to-source return arc and
+minimizing its negative flow. Its capacity can be the sum of the original
+capacities. Feasibility and absence of a residual source--sink path certify
+maximality. Residual reachability supplies the cut.
+\end{proof}
+
+Only the nonnegative-upper-capacity maximum-flow specialization is called
+algorithmically below. Integral lower bounds are used in feasibility
+arguments through the classical cut criteria for circulation
+feasibility~\cite{Gale1957,FordFulkerson1958}. The following consequence
+records the precision margin we use.
+
+\begin{lemma}[Integral cuts from a small total violation]\label{prelim:small-violation}
+Let every lower and upper arc bound be integral, with lower bound no larger
+than upper bound. If an exactly conserved real arc vector has total bound
+violation less than one, the bounds admit an exactly feasible integral
+circulation.
+\end{lemma}
+
+\begin{proof}
+For a vertex set $X$, feasibility requires the sum of lower bounds on arcs
+leaving $X$ to be at most the sum of upper bounds on arcs entering $X$.
+Conservation of the real vector implies that any failure of this inequality
+is at most its total bound violation. The two bound sums are integers, so
+a positive discrepancy would be at least one, a contradiction. The
+circulation cut criterion therefore holds. To obtain that criterion, subtract
+the lower bounds, introduce a super-source and super-sink for the resulting
+vertex imbalances, and apply the integral maximum-flow/minimum-cut theorem.
+Saturating the imbalance arcs gives the asserted integral circulation.
+\end{proof}
+
+Large capacities relative to a small local graph do not require a different
+finite program for each magnitude exponent.
+
+\begin{lemma}[One polynomial-capacity implementation]\label{lem:capacity-scaling}
+For maximum flow with nonnegative integral upper capacities of at most $b$
+bits, a single fixed polynomial-capacity version of
+Lemma~\ref{lem:integral-flow} suffices, using $b$ calls on linear-size
+residual graphs, together with the charged capacity arithmetic and identifier
+translations.
+\end{lemma}
+
+\begin{proof}
+Begin with zero capacities. In each binary digit round write the new
+capacity vector as $c'=2c+\xi$, where every $\xi_e$ is zero or one.
+If $f$ was a maximum flow of value $v$ for $c$, then $2f$ is feasible for
+$c'$. Let $A$ be the number of original arcs. An old minimum cut has new
+capacity at most $2v+A$, so the largest residual augmentation has integral
+value $\Delta\le A$.
+
+Decompose an optimal integral residual augmentation into source--sink paths
+and cycles and discard the cycles. Its remaining total path value is
+$\Delta$, so every forward and reverse residual arc carries at most
+$\Delta\le A$. Truncating every residual capacity at $A$ therefore preserves
+the optimum augmentation. Compute it with the fixed polynomial-capacity
+routine. Adding forward usage and subtracting reverse usage updates $2f$
+to a maximum flow for $c'$. This proves the induction over digits.
+
+Local vertices and arcs can be renumbered, using dictionaries to translate
+their caller identifiers on input and output. Integer arrays, comparisons,
+and translations are charged at their actual bit or multiword cost.
+In the fixed-parameter applications below, $b$ and all key lengths contribute
+only the permitted logarithmic powers in the master size.
+\end{proof}
+
+When paths from an integral flow are needed, pair incoming and outgoing flow
+units and trace source paths, dropping cycles. We charge the total represented
+throughput, not merely the number of graph arcs. The routing helper supplies
+the explicit throughput bounds at each such use.
+
+\subsection{A clocked fallback}
+
+The final schedule needs one fixed polynomial fallback, solely to guarantee
+halting and polynomial physical addressability at every finite input size.
+Edmonds' deterministic algorithm supplies the following interface.
+
+\begin{lemma}[Polynomial perfect-matching fallback]\label{lem:fallback}
+There is one uniform deterministic algorithm on explicit loopless graphs of
+maximum degree three that halts within a fixed polynomial number of finite-word
+instructions. It returns a checked perfect matching when one exists and a
+negative answer otherwise.
+\end{lemma}
+
+\begin{proof}
+Run Edmonds' deterministic polynomial-time maximum-cardinality matching
+algorithm~\cite[Section~2, pp.~451--452]{EdmondsPaths}. For parallel edge
+copies, first deduplicate unordered endpoint pairs while retaining one
+original edge identifier for each pair. This preserves perfect matchability
+and explicit witness decoding. Return the computed matching if it covers
+every vertex, and a negative answer otherwise; check every returned identifier and
+vertex incidence before acceptance.
+
+The classical algorithm, the deduplication, and this check have a fixed
+polynomial clock without a matchability promise. Their combinatorial records
+and polynomially bounded integer indices have polynomial bit cost, so
+charged multiword and touched-address implementations retain a fixed
+polynomial bound in the stated model. Exact maximum cardinality makes the
+returned answer correct in both cases.
+\end{proof}
+
+The two witness-preserving reductions used with this fallback are proved
+explicitly in Section~\ref{sec:uniformization}.

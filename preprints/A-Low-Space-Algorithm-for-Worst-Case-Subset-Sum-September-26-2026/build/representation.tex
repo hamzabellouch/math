@@ -1,0 +1,552 @@
+\section{Representations and bounded parent dictionaries}
+\label{sec:representation}
+
+The second trial uses shared index sets to give a solution many
+representations. It must generate those representations without storing
+all of them. We first specify the shared sets and the leaf lists,
+then the modular filters and a finite schedule of bounded dictionary
+tasks. The last part of this section proves deterministic bounds for
+that schedule. Lemma~\ref{lem:representation} will show that the filters
+retain a representation; Section~\ref{sec:resources} will bound the
+work needed to bring it to a completed check.
+
+The trial runs alongside the compression trial in every round. It does
+not test the mean deficiency $\mu$ or decide which trial should apply.
+The representation method and modular filtering have antecedents in
+Howgrave-Graham and Joux~\cite{HJ10}; the multilevel worst-case setting
+and its weighted disjointness step are developed by Nederlof and
+W\k{e}grzycki~\cite{NW21}. The construction below specifies the shared
+indices, exact integer parameters, and bounded recomputation needed
+for the present resource bounds.
+
+\subsection{Shared mixers and leaf lists}\label{alg:layout}
+
+This trial gives each parent two children and each child two leaves.
+The leaves are stored; children and parents are generated from them.
+We first describe their index domains and prescribed cardinalities,
+then balance the unconstrained background parts so that every leaf is
+small enough to store. The shared blocks, which we call \emph{mixers}, create multiple ways to
+represent a solution and require explicit disjointness tests.
+
+Select three disjoint size-$m$ sets uniformly from a random permutation.
+For each, compute its number of distinct actual subset sums exactly: store
+the subset-sum lists of two size-$s$ halves and count distinct weights in
+their actual-weight sorted pair stream.  Name a mixer with the largest
+such number $M_0$, and name the other two $M_L,M_R$ in a deterministic
+order, breaking ties deterministically.  Put
+\[
+ N_i=N(M_i),\qquad d_i=\defect(M_i),\qquad i\in\{0,L,R\}.
+\]
+Continue only if
+\begin{equation}\label{eq:spread}
+  \max_iN_i\le (\min_iN_i)2^{\lfloor .0005n\rfloor}.
+\end{equation}
+Thus $d_0\le d_L,d_R$ and the deficiency spread is at most $.0005n$.
+
+Choose a uniform subset $F$ of all input indices, negate its weights, and
+replace the target by
+\begin{equation}\label{alg:sign-flip}
+  t'=t-\sum_{f\in F}a_f,
+\end{equation}
+where the sum uses the original weights.  In the rest of this trial all
+weights are signed after this change.  The signed weight of any subset
+$I'$ is the original weight of $I'\mathbin{\triangle}F$ minus the
+original weight of $F$.  Thus the transformed instance is equivalent to
+the original, and Lemma~\ref{lem:deficiency} makes all $N_i,d_i$
+unchanged.
+
+Independently guess $k_i$ uniformly from
+$\{\lceil m/6\rceil,\ldots,m/4\}$, for $i=0,L,R$, and put
+$\lambda_i=k_i/m$.  At the top join, the left and right masks on $M_0$
+will have sizes $k_0$ and $s-k_0$.  Within parent $j\in\{L,R\}$, its
+two children will have masks on $M_j$ of sizes $k_j$ and $s-k_j$.
+Disjointness of these masks is checked at the corresponding join.  The
+left parent never uses $M_R$, and the right parent never uses $M_L$.
+
+Independently choose a uniform labeled partition
+\[
+ M_0=T_1\mathbin{\dot\cup}T_2\mathbin{\dot\cup}T_3\mathbin{\dot\cup}T_4,
+ \qquad |T_a|=g.
+\]
+Choose integers $c_1,\ldots,c_4$ as equally
+as possible with sum $k_0$, assigning the remainder in a fixed order.
+The left count in $T_a$ is $c_a$ and the right count is $g/2-c_a$.
+In each parent, child 1 uses $T_1,T_2$ and child 2 uses $T_3,T_4$,
+one block in each of its two leaves.  In particular, within a parent the
+top-mixer indices in its children are disjoint.
+
+Independently for $j=L,R$, partition $M_j$ uniformly into two labeled
+blocks $Q_{j1},Q_{j2}$ of size $s$.  Prescribe child-1 counts
+$a_{j1},a_{j2}$ as equally as possible with sum $k_j$.  The corresponding
+child-2 counts are $s/2-a_{j1},s/2-a_{j2}$.  Both children use the same
+two blocks of $M_j$, one in each leaf; their possible overlap is exactly
+what the join of the two children into their parent checks.
+Figure~\ref{tab:leaf-layout} shows both parents and all eight leaves.
+Each leaf also receives its own disjoint background part, defined next. A chosen subset of a top block is recorded
+in the $M_0$ mask, and a chosen subset of a local block is recorded in the
+$M_j$ mask.
+
+\begin{figure}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}cccc@{}}
+\multicolumn{4}{c}{Final join: complementary weights and disjoint masks on $M_0$}\\[2pt]
+\multicolumn{2}{c}{$\nearrow$}&\multicolumn{2}{c}{$\nwarrow$}\\[-2pt]
+\multicolumn{2}{c}{\fbox{Left parent}}&
+\multicolumn{2}{c}{\fbox{Right parent}}\\[3pt]
+\multicolumn{2}{c}{check disjointness on $M_L$}&
+\multicolumn{2}{c}{check disjointness on $M_R$}\\[1pt]
+$\nearrow$&$\nwarrow$&$\nearrow$&$\nwarrow$\\[-2pt]
+Left child 1&Left child 2&Right child 1&Right child 2\\[2pt]
+$\uparrow$&$\uparrow$&$\uparrow$&$\uparrow$\\[-2pt]
+\fbox{\begin{tabular}{@{}c@{}}$T_1,\ Q_{L1}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_3,\ Q_{L1}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_1,\ Q_{R1}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_3,\ Q_{R1}$\\[-2pt]\scriptsize own background\end{tabular}}\\[2pt]
+$+$&$+$&$+$&$+$\\[2pt]
+\fbox{\begin{tabular}{@{}c@{}}$T_2,\ Q_{L2}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_4,\ Q_{L2}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_2,\ Q_{R2}$\\[-2pt]\scriptsize own background\end{tabular}}&
+\fbox{\begin{tabular}{@{}c@{}}$T_4,\ Q_{R2}$\\[-2pt]\scriptsize own background\end{tabular}}
+\end{tabular}
+\caption{The eight stored leaf lists and their joins, read from bottom
+ to top. The two boxed leaves in each column generate one child by
+ pair-sum streaming. Each $T_a$ occurs once on each parent side;
+ each $Q_{jr}$ occurs in both children of side $j$. The eight
+ background parts are pairwise disjoint and avoid all three mixers.
+ Local joins reject overlap on $M_L$ or $M_R$; the final join rejects
+ overlap on $M_0$. Boxes label allowed domains; repeated labels mark shared indices.}
+\label{tab:leaf-layout}
+\end{figure}
+
+\subsubsection*{Balancing the stored lists}
+
+There remain $r=n-3m$ background indices, whose selections have no
+cardinality constraints. The prescribed mixer counts may make one
+parent's lists larger than the other's, or one child's lists larger
+than its sibling's. We compensate by assigning more background indices
+to the smaller side, first between parents and then between children.
+The program makes these allocations with integer binomial logarithms:
+\[
+\begin{aligned}
+ b_{0L}&=\left\lfloor\log \binom{m}{k_0}\right\rfloor,&
+ b_{0R}&=\left\lfloor\log \binom{m}{s-k_0}\right\rfloor,\\
+ b_{j1}&=\left\lfloor\log \binom{m}{k_j}\right\rfloor,&
+ b_{j2}&=\left\lfloor\log \binom{m}{s-k_j}\right\rfloor
+ \quad(j=L,R).
+\end{aligned}
+\]
+Set
+\[
+\begin{aligned}
+ r_L&=\left\lfloor\frac{r+b_{0R}-b_{0L}}2\right\rfloor,
+ &r_R&=r-r_L,\\
+ r_{j1}&=\left\lfloor\frac{r_j+b_{j2}-b_{j1}}2\right\rfloor,
+ &r_{j2}&=r_j-r_{j1}.
+\end{aligned}
+\]
+Thus $r_L+r_R=r$ and $r_{j1}+r_{j2}=r_j$ exactly. Split each
+child's background count as equally as possible between its two leaves,
+using any fixed order on the background indices.
+
+To verify feasibility and list sizes, write
+\[
+\begin{aligned}
+ H_{0L}&=h(\lambda_0),& H_{0R}&=h(1/2-\lambda_0),&
+ \overline H_0&=(H_{0L}+H_{0R})/2,\\
+ H_{j1}&=h(\lambda_j),& H_{j2}&=h(1/2-\lambda_j),&
+ \overline H_j&=(H_{j1}+H_{j2})/2\quad(j=L,R).
+\end{aligned}
+\]
+Concavity gives $\overline H_0,\overline H_L,\overline H_R\le h_*$.
+Lemma~\ref{lem:entropy} translates the integer assignments into
+\begin{equation}\label{eq:allocation}
+\begin{split}
+ r_j&=r/2+(\overline H_0-H_{0j})m+O(\log n),\\
+ r_{ji}&=r_j/2+(\overline H_j-H_{ji})m+O(\log n).
+\end{split}
+\end{equation}
+These identities express the cancellation we need: the larger a
+prescribed mixer family is, the fewer unconstrained background indices
+its leaf receives.
+
+The assignments are feasible for sufficiently large $n$.  In every
+entropy pair the arguments lie in $[1/6,1/3]$, so its difference in
+absolute value is at most $1-h(1/6)<3/8$.  Consequently
+\[
+ r_j\ge .14n-\frac{3m}{16}-O(\log n)
+       \ge .095n-O(\log n),
+ \qquad
+ r_{ji}\ge \frac{.095n-.09n}{2}-O(\log n)>0.
+\]
+All prescribed mixer counts are feasible as well: they are rounded
+versions of fractions in $[1/6,1/3]$ of their block sizes.  The program
+may simply fail the trial if any integer feasibility test fails.
+
+A leaf list has one occurrence for each choice with its prescribed
+counts in its top and local mixer blocks and an arbitrary subset of its
+background part.  An occurrence retains its actual weight and mixer
+masks.  Enumerate the fixed-cardinality subsets directly, for example in
+lexicographic order on index combinations, rather than scanning all
+unconstrained masks.  This takes polynomial overhead per generated item.
+Raw counts retain occurrence multiplicity. A raw child pair chooses
+one occurrence from each of its two leaves, and a raw four-leaf tuple
+chooses one from each of a parent's four leaves. Its weight is the sum
+of the occurrence weights, even when local-mixer masks overlap.
+The balanced background allocation makes the four leaf sizes on each
+side comparable. Define their common exponential scale by
+\begin{equation}\label{eq:beta}
+ \beta_j=r/4+\overline H_0m/2+\overline H_jm
+ \le n/4+(-.75+1.5h_*)m.
+\end{equation}
+Every leaf on side $j$ and each two-leaf child satisfy
+\begin{equation}\label{alg:leaf-size}
+ \#\{\text{leaf items}\}\le u^{10}2^{\beta_j/2},
+ \qquad
+ \#\{\text{raw child pairs}\}\le u^{20}2^{\beta_j}.
+\end{equation}
+Indeed, before substituting~\eqref{eq:allocation}, the logarithm of the
+leaf size is at most
+\[
+ H_{0j}m/4+H_{ji}m/2+r_{ji}/2+O(1).
+\]
+The binomial logarithm errors in each background allocation are at most
+$\log(n+1)+1$, and a rounded prescribed block count changes its entropy
+upper exponent by $O(1)$: for large $n$ the relevant fractions lie in
+$[1/8,3/8]$, where $|h'|<3$.  More explicitly, the error in $r_j$ from
+its ideal value is at most $3\log u$, and that in $r_{ji}$ after both
+ideal substitutions is at most $5\log u$.  Substitution gives
+$\beta_j/2+O(\log n)$ with ample room in the factor $u^{10}$ for large
+$n$.  Finally $h_*<.8114$ and $m\le .24n$ imply
+\[
+ \beta_j/2\le .181052n.
+\]
+Since $\log u\le n/10^9$, every raw leaf list has fewer than
+$2^{.185n}$ items for sufficiently large main-branch inputs.
+
+\subsection{Nested modular filters}
+
+The first filtering level constrains each child's weight; the second
+constrains the sum of the two children. Their moduli are nested so that
+once a parent and its first child pass, the required congruence for its
+second child follows. An additional independent prime $q$ subdivides
+the parent residue classes into buckets, following the additional-prime
+filtering approach of Belova, Chukhin, Kulikov, and
+Mihajlin~\cite[full version, Sections~1.2.3 and~4.1]{BCKM24}.
+The low filters reduce raw
+generation; the extra prime controls the distinct entries in the
+solution's bucket.
+
+For analysis define the real quantities
+\begin{equation}\label{eq:filter-scales}
+\begin{gathered}
+ \tau=.0078n,\qquad f_i=\min(\tau,d_i/2),\qquad L_i=s-f_i,\\
+ f_{\max}=\max_i f_i,\qquad \xi=n/4+.032m-f_{\max}.
+\end{gathered}
+\end{equation}
+The program uses the integer parameters
+\[
+ \ell_i=\lfloor L_i\rfloor
+ =\max\left\{\lfloor s-\tau\rfloor,
+              \left\lfloor\frac{\log N_i}{2}\right\rfloor\right\},
+\]
+computed by bit lengths; flooring $\log N_i$ first gives the same second
+term.  Since $d_0$ is smallest, $L_0$ is largest.  Sort the three
+$\ell_i$ in nondecreasing order.  For each increment from the preceding
+value, taking the initial preceding value to be zero, independently
+sample a prime with that increment as parameter if the increment is at
+least four; otherwise use the factor one.  At each sorted index let
+$p_i$ be the cumulative product.  Tied parameters give the same product.
+In particular,
+\[
+ p_L\mid p_0,\qquad p_R\mid p_0.
+\]
+
+For every fixed nonzero relevant actual-weight difference $\Delta$,
+conditional on these log parameters, the construction satisfies
+\begin{equation}\label{eq:filter-bounds}
+ \frac{2^{L_i}}{u^5}\le p_i\le 2^{L_i},
+ \qquad
+ \Pr[p_i\mid\Delta]\le u^{10}2^{-L_i}
+ \quad (i=0,L,R).
+\end{equation}
+For the size estimate there are at most three sampled factors; the
+discarded increments total at most nine.  The prime lower ranges and
+the floor therefore lose a factor of at most $2^{10}(4n)^3$ relative to
+$2^{L_i}$, which is at most $u^5$ for large $n$.  For divisibility,
+$\Delta$ has at most $2u$ distinct prime divisors.  A factor with
+parameter $\ell$ divides it with probability at most
+$8u^2 2^{-\ell}$, by Lemma~\ref{lem:prime}.  All sampled factors are
+independent.  Divisibility by their product requires divisibility by
+each sampled factor, so multiplication of these bounds, with the same
+discarded-increment and floor losses, proves~\eqref{eq:filter-bounds}.
+This argument does not require the sampled primes to be distinct.
+
+Independently sample one more prime $q$, with parameter
+\[
+ \ell_q=\left\lfloor n/4+.032m-s+\min_i\ell_i\right\rfloor.
+\]
+Then $\xi-2<\ell_q\le \xi$ and $\xi\le .25768n$; in particular $\ell_q$ is
+positive and linear in $n$.  The same prime estimates give
+\begin{equation}\label{alg:q-bounds}
+ 2^\xi/u^2\le q\le 2^\xi,
+ \qquad \Pr[q\mid\Delta]\le u^3 2^{-\xi}
+\end{equation}
+for each fixed nonzero relevant difference.  Write $P=p_0q$.  Choose
+independent uniform residues $\rho_0\pmod {p_0}$ and
+$\rho_j\pmod {p_j}$ for $j=L,R$, independently also of $q$.  Their
+desired parent low bases are
+\[
+ w_L=\rho_0,\qquad w_R=t'-\rho_0.
+\]
+For side $j$, require child 1 to have weight $\rho_j\pmod {p_j}$ and
+child 2 to have weight $w_j-\rho_j\pmod {p_j}$.  The independent draw of
+$q$ may be deferred until after all these choices when analyzing them.
+
+\subsection{Parent dictionaries and prefix recomputation}
+\label{alg:parents}
+
+A parent dictionary stores records $(x,D)$: the exact signed integer
+weight $x$ and the indexed top mask $D\subseteq M_0$. Its key is both
+fields, so equal weights alone do not cause deduplication. A parent
+task consists of a side, a target residue modulo $P$, and a possibly
+empty prefix of the $M_0$ mask in a fixed index order. Left tasks use
+the empty prefix; right tasks may use a longer prefix. The task regenerates its four leaves, joins its two child
+streams, and either completes its dictionary or reports overflow.
+
+The final check, specified in Lemma~\ref{lem:separator}, tests whether two
+parent arrays contain disjoint top masks whose actual weights add to
+$t'$.  Its four random separating families are sampled once before the
+following loop, with the distribution specified in
+Section~\ref{sec:separator}. Conditional on the layout, they use fresh
+randomness independent of every parent-generation choice, including
+the moduli, low residues, and extra prime, and are reused for all checks.
+Their values do not affect which parent tasks are generated or how
+those tasks process entries; a check can only stop the trial with YES.
+
+For $z=0,\ldots,q-1$, set
+\[
+ v_L=\rho_0+p_0z,
+ \qquad v_R=(t'-v_L)\bmod P,
+\]
+with normalized residues.  On each side these range exactly once over
+the $P$-classes with the required parent low base.  Since $p_j\mid p_0$,
+the child low requirements do not change with $z$.
+
+First perform the left task.  Its two child streams are obtained from
+their leaf pairs by Lemma~\ref{lem:streams}, with modulus $P$ and low
+modulus $p_L$.  Stream the first child by its weight modulo $P$, and
+the second by $v_L$ minus its weight modulo $P$.  Join equal keys.
+For each matched pair, check that its two $M_L$ masks are disjoint.
+If so, retain just the actual total weight and the combined $M_0$ mask,
+deduplicating these pairs in a dictionary of capacity $C$.  If a new
+distinct pair would overflow the dictionary, abandon this $z$.  Also
+skip $z$ if the completed dictionary is empty.
+
+Otherwise retain the completed left array and perform the analogous
+right task with residue $v_R$, initially without an additional top-mask
+restriction.  If its completed dictionary has between one and $C$
+distinct entries, apply the final check to that right array and the
+stored left array.  If it is empty, do nothing.  If it overflows,
+discard the task's workspace and replace the task by two right tasks
+that fix the next bit of its $M_0$ mask to zero and one, respectively.
+Process these tasks depth first, in a fixed order of the top-mixer bits.
+An overflowing task whose prefix already specifies the entire mask is
+simply dropped.  Reuse or free the workspace after completing or
+discarding each task, and stop at the first YES.
+
+In every prefix task, remove incompatible items from each
+leaf array \emph{before} generating its streams.  Test in that leaf
+exactly the prescribed prefix bits belonging to its own top block.
+Regenerating and filtering its raw leaf list from scratch is permitted.
+As each top block occurs in exactly one leaf of a parent, no raw
+four-leaf tuple with an incompatible top mask is generated in that
+task.  This remains true even for tuples rejected later because their
+local-mixer masks overlap.  It is this early restriction that permits
+the later charging of repeated four-leaf tuple processing by depth
+rather than by number of tasks.
+
+\begin{lemma}\label{alg:validity}
+Every retained parent entry has a subset witness on its parent's
+indices.  Deduplicating entries by actual weight and top mask preserves
+the existence of every valid final match.  Every YES returned by either
+trial is correct.
+\end{lemma}
+
+\begin{proof}
+Within a parent the children share only $M_j$, and their disjointness
+there has been checked.  Their top blocks and background parts are
+disjoint.  Thus a retained entry has a subset witness.  The only
+indices shared by the left and right parents are in $M_0$.  Once their
+top masks are fixed, the choice among witnesses of a given actual
+weight has no effect on compatibility with the other parent.  Hence
+deduplication loses no valid match.  A final check returning YES has
+disjoint top masks and actual total weight $t'$, so its two witnesses
+give a signed solution, and~\eqref{alg:sign-flip} gives an original
+solution.  The compressed-block trial was already seen to have the
+same one-sided correctness property.
+\end{proof}
+
+\subsection{Three bounds for prefix recomputation}
+\label{sec:prefix-accounting}
+
+The schedule has two different sources of work. Starting a task
+regenerates leaves and initializes streams; processing its matches
+examines raw four-leaf occurrences. A small dictionary can have many
+raw representations, including invalid local overlaps. We therefore
+use distinct entries to count task starts and raw occurrences to count
+match processing. A third count measures how often retained arrays
+are passed to the final check.
+
+\paragraph{What the trial counts.}
+Fix the mixers, signs, cardinality guesses, layout, low moduli, and
+low residues, without fixing the extra prime $q$ or the separating
+families. The following three finite counts are already determined at this stage:
+\begin{itemize}
+\item $G$ is the sum, over the four children, of the numbers of raw
+leaf pairs passing that child's low filter, before any mask-prefix
+restriction.
+\item $\mathcal T_j$ contains all raw four-leaf occurrences on side
+$j$ passing the parent low filter modulo $p_0$ and the first-child
+filter modulo $p_j$. The second-child filter follows from
+$p_j\mid p_0$. Put $J_j=|\mathcal T_j|$, retaining every repetition
+and every local overlap.
+\item $\mathcal U_j$ contains all distinct valid
+$(\text{actual weight},\text{top mask})$ entries satisfying the
+parent low filter, ignoring child filters. Here validity means that
+the entry has a subset witness on side $j$'s indices with the
+prescribed top-block counts. This ambient set may contain entries
+not generated by the child lists. Put $U_j=|\mathcal U_j|$.
+\end{itemize}
+After $q$ is chosen, assign each occurrence and entry its unique
+bucket using the enumerated $P=p_0q$ classes. On the right the bucket
+label is the value of $z$ whose class is
+$(t'-\rho_0-p_0z)\bmod P$. These labels depend on $q$, but the three
+counts do not. Equal entry keys have equal actual weights and hence
+the same bucket. No coprimality of $p_0$ and $q$ is needed.
+
+The next lemma separates these deterministic charges from all
+probability estimates. The schedule is the one specified in
+Section~\ref{alg:parents}: left overflow skips a bucket, whereas right
+overflow refines a mask prefix. Only for counting, continue this
+schedule after any YES answer and ignore the operation cap. This
+finite hypothetical schedule need not be stored.
+
+\begin{lemma}[Prefix accounting]\label{lem:prefix}
+Fix positive integers $C,q$ and a nonnegative integer $m$. On each
+side $j\in\{L,R\}$, let $\mathcal T_j$ be a finite collection of
+raw tuple occurrences. Each occurrence has a bucket in
+$\{0,\ldots,q-1\}$ and a top mask in $\{0,1\}^m$. A valid occurrence
+produces an entry consisting of its exact weight and top mask.
+Assume that occurrences producing the same entry have the same
+bucket. Let $\mathcal U_j$ be a finite ambient set containing all
+distinct valid entries, with bucket and mask labels extending those
+of the generated entries. Write
+\[
+ J_j=|\mathcal T_j|,\qquad U_j=|\mathcal U_j|.
+\]
+A task for bucket $z$ and prefix $\sigma$ generates exactly the raw
+occurrences with these labels, unless it stops early, and reports
+overflow at the $(C+1)$st distinct valid entry. Suppose a task with
+$Z$ potential occurrences costs at most $H+KZ$, even if stopped
+partway, for fixed nonnegative $H,K$.
+
+Apply the left-skip and right-prefix schedule of
+Section~\ref{alg:parents} to these data, ignoring early YES answers and
+the operation cap. Then its number $T$ of parent-generation tasks,
+its total parent-generation work $W_{\mathrm{parent}}$, and the total
+input-array length $N_{\mathrm{check}}$ of its final checks satisfy
+\begin{align}
+ T&\le 2q+2(m+1)U_R/C,\label{eq:prefix-tasks}\\
+ W_{\mathrm{parent}}
+ &\le H\bigl(2q+2(m+1)U_R/C\bigr)
+       +K\bigl(J_L+(m+1)J_R\bigr),\label{eq:prefix-work}\\
+ N_{\mathrm{check}}&\le U_L+(2m+3)U_R.\label{eq:prefix-checks}
+\end{align}
+Every reuse of a left array counts separately in
+$N_{\mathrm{check}}$.
+\end{lemma}
+
+\begin{proof}
+\emph{Task starts.}
+At a fixed prefix depth, different right tasks have disjoint sets of
+possible entries: different buckets are disjoint, and different
+prefixes of the same length are disjoint within a bucket. Each
+overflow witnesses more than $C$ entries of $\mathcal U_R$.
+There are consequently at most $U_R/C$ overflow nodes at that depth,
+and at most $(m+1)U_R/C$ over all depths. There are at most $q$ left
+tasks and $q$ right root tasks. Every other task is one of at most two
+children of an overflow node. This proves~\eqref{eq:prefix-tasks},
+including the possibility that an overflowing full-mask node is
+dropped without children.
+
+\emph{Raw occurrences.}
+Each left occurrence has one bucket and can appear in at most one
+left task. A right occurrence has one bucket and one prefix at each
+depth, so it is a potential occurrence in at most $m+1$ right tasks.
+This counts occurrence identities, rather than their possibly equal
+weights or masks. It also counts invalid occurrences: their top masks
+are defined before the local overlap test, and incompatible prefix
+choices are excluded before the join. Thus the sum of all potential
+occurrence counts is at most $J_L+(m+1)J_R$. Summing the assumed
+stopped-task costs gives~\eqref{eq:prefix-work}. Only the overhead
+$H$ is multiplied by the number of tasks.
+
+\emph{Final-check inputs.}
+Completed right arrays contain disjoint sets of entries. Different
+buckets are disjoint. Within a bucket, completed prefixes are
+incomparable, since a completed task has no descendants, so their
+mask classes are disjoint as well. Right arrays therefore contribute
+at most $U_R$ to the total check-input length.
+
+Left arrays used at right-root checks have total length at most $U_L$,
+since each bucket supplies at most one such check. Every other check
+uses a left array of length at most $C$, and there are at most
+$2(m+1)U_R/C$ nonroot tasks. Their repeated left lengths total at most
+$2(m+1)U_R$. Adding these three contributions gives
+\eqref{eq:prefix-checks}.
+\end{proof}
+
+\paragraph{Applying the accounting bounds.}
+Every raw four-leaf tuple has a well-defined top mask because
+$T_1,\ldots,T_4$ partition $M_0$ and each occurs in exactly one leaf
+on each side. The union is defined even if local-mixer masks overlap.
+Testing a prefix in its responsible leaves therefore gives exactly
+the restricted occurrence collection required by Lemma~\ref{lem:prefix}.
+The dictionary removes duplicate keys only after the local
+disjointness test. This verifies the combinatorial premises of the
+lemma for the concrete schedule.
+
+\paragraph{The stopped-task cost.}
+For sufficiently large main-branch inputs, its cost premise holds with
+\begin{equation}\label{eq:prefix-task-cost}
+ H=u^8(2^{.2n}+G),\qquad K=u^8.
+\end{equation}
+Here is the implementation behind those constants. The four raw leaf
+arrays in a task have total length
+$A<4\cdot2^{.185n}$ by~\eqref{alg:leaf-size}; regenerating them,
+including their masks and prefix tests, takes $O(n^2A)$ operations.
+Sorting and stream initialization cost $O(nA)$, and the two child
+streams together have at most $G$ occurrences. Their arrays and
+mutable states occupy $O(A)$ words, which is at most $B$ for large
+$n$. The tie buffer has length $B$, and Lemma~\ref{lem:streams}
+charges all replay, including stopped replay, to stream advances and
+potential matching pairs. Dictionary initialization can be bounded by
+$O(u(C+1))$, and local mask checks and trie operations cost $O(u)$ per
+reported tuple. For $Z$ potential matching tuples, all this gives
+\[
+ O\bigl(n^2A+B+nG+u(C+1)+uZ\bigr).
+\]
+Since $C\le2^{.199n}$, $B\le2^{.19n}$, and
+$\log u\le n/10^9$, this is at most $H+KZ$ with
+\eqref{eq:prefix-task-cost}, after enlarging the absolute main-branch
+threshold. The raw term includes tuples later rejected for overlap
+and repeated occurrences. A small value of $U_j$ does not bound this
+term.
+
+Thus Lemma~\ref{lem:prefix} controls the complete schedule before any
+probability estimate is used. The numerical bounds for $G,J_j,U_j$
+and the proof that a solution reaches a completed right prefix belong
+to Section~\ref{sec:resources}. The remaining independent ingredient
+is the final check on two bounded arrays, which we now construct.

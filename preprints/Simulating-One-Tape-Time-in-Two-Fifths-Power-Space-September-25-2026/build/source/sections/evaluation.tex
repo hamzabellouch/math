@@ -1,0 +1,406 @@
+\section{An evaluator with weighted dependency paths}\label{sec:evaluation}
+
+We prove the arithmetic evaluation result used below.  Its procedure adds a
+scalar multiple of a word's fixed augmented value to one chosen register and
+restores every other register, from arbitrary contents on entry.  A caller can
+therefore leave its inputs and partial output in a shared pool while a child
+borrows the same registers.  The remaining stack cost depends on the
+dependency followed: a large loop index is saved only on designated edges.
+The translation and interpolation method is related to space-efficient tree
+evaluation and its global-storage exposition~\cite{CookMertz2024,Goldreich2024}; all the algebra, register invariants, and
+uniformity needed here are proved explicitly.
+
+Throughout this section, $T\ge2$, a word has a common padded width $d\ge1$,
+and $r$ is a fixed constant.  A polynomial bound means a bound by $T^C$ for a
+fixed constant $C$.  The notation $\polylog T$ permits fixed powers of
+$\log(T+2)$, with constants depending on the uniform algorithms under
+consideration.  For $v\in\bits^d$, write
+\[
+ \overline v=(v_1,\ldots,v_d,1).
+\]
+The last coordinate of an arbitrary vector $z\in\F^{d+1}$ is denoted $z_*$;
+it need not equal $1$.
+
+\begin{lemma}[Uniform fields]\label{lem:field}
+Given an integer $\Delta\ge1$ bounded polynomially in $T$, one can uniformly
+construct a field $\F$ of characteristic two with $|\F|>\Delta$.  Field
+elements have $O(\log T)$ bits.  A description of the field, enumeration of its
+elements, its arithmetic, and inversion of nonzero elements all require
+$\polylog T$ space.
+\end{lemma}
+\begin{proof}
+Start with $\mathbb F_2$.  In a finite field $K$ of characteristic two, the
+additive map $x\mapsto x^2+x$ has kernel $\{0,1\}$, since
+$x^2+x=x(x+1)$.  Its image therefore contains exactly half of $K$.
+Enumerate $a\in K$, and, for each candidate, enumerate $x\in K$ to test
+whether $a=x^2+x$.  An $a$ outside the image exists.  The polynomial
+$X^2+X+a$ has no root in $K$, hence is irreducible, and
+\[
+ K[X]/(X^2+X+a)
+\]
+is a field: the Euclidean algorithm gives an inverse modulo this polynomial
+for every nonzero residue of degree less than two.  Its elements are pairs
+of elements of $K$ and its cardinality is $|K|^2$.
+
+Repeat until the cardinality first exceeds $\Delta$.  The final cardinality
+is at most $\max(2,\Delta^2)$, and its binary vector representation has
+$m=O(\log T)$ bits.  The selected coefficients at all levels together use
+$O(m)$ bits, since their representation lengths form a geometric sequence.
+Arithmetic can be implemented recursively on the pairs, reducing products
+using the defining quadratics.  A direct recursive implementation uses at
+most a polynomial in $m$ space; its recursion depth is $O(\log m)$.
+Enumeration uses an $m$-bit counter.  Alternatively, once multiplication is
+available, inversion can be implemented simply by enumerating all elements
+until their product with the given nonzero element is $1$.  The searches for
+the extension coefficients have the same space bound.  No time bound is
+required.
+\end{proof}
+
+\begin{lemma}[Homogeneous lookup extensions]\label{lem:homogenization}
+For every total function $f:(\bits^d)^a\to\bits$, where $a$ is fixed,
+there is a polynomial $\widetilde f$ on $(\F^{d+1})^a$ that agrees with $f$
+on augmented Boolean arguments and is homogeneous of degree $d$ separately
+in every argument.  If a coordinate of $f$ is computable in
+$O(d\polylog T)$ space from its Boolean arguments, its extension can be
+evaluated at supplied field vectors in that space, with no recursive word
+evaluation.  The same statement applies coordinatewise to augmented
+word-valued functions.
+\end{lemma}
+\begin{proof}
+For $u\in\bits^d$ and $z\in\F^{d+1}$, set
+\begin{equation}\label{eq:homogeneous-basis}
+ B_u(z)=\prod_{\ell=1}^d
+ \begin{cases}
+  z_\ell,&u_\ell=1,\\
+  z_*-z_\ell,&u_\ell=0.
+ \end{cases}
+\end{equation}
+At $z=\overline v$, this is $1$ for $u=v$ and $0$ otherwise.  Thus
+\begin{equation}\label{eq:lookup-extension}
+ \widetilde f(z^{(1)},\ldots,z^{(a)})
+ =\sum_{u^{(1)},\ldots,u^{(a)}\in\bits^d}
+ f(u^{(1)},\ldots,u^{(a)})
+ \prod_{j=1}^a B_{u^{(j)}}(z^{(j)})
+\end{equation}
+has the stated agreement and homogeneity.  The zero polynomial is allowed
+as a homogeneous polynomial of the indicated degree.  For a word output,
+apply the formula to each of its $d$ bit coordinates and to its extra
+coordinate, whose Boolean value is $1$.
+
+To evaluate one coordinate, enumerate the $a$ Boolean assignments, compute
+the corresponding Boolean function value, and compute the basis products
+and running sum using field scalars.  The assignments occupy $ad=O(d)$ bits;
+the local Boolean computation occupies $O(d\polylog T)$ bits.  All inputs
+are the supplied vectors, read without modification, and immutable
+parameters.  This routine makes no
+calls to evaluate any word.  Its entire temporary storage can be discarded
+when its scalar result has been obtained.
+\end{proof}
+
+The augmentation of constant functions is essential.  From
+\eqref{eq:homogeneous-basis},
+\[
+ \sum_{u\in\bits^d}B_u(z)=z_*^d.
+\]
+Consequently the extension of a globally constant-one one-word function is
+$z_*^d$, and that of a globally constant-one two-word function is
+$h_*^d a_*^d$.  Neither is replaced by literal $1$.  Moreover, a predicate
+that happens to be true for every array value at one particular Boolean
+history need not be globally constant.  Such a predicate retains its full
+lookup extension.  In particular, the following argument uses these
+polynomials even when a shifted augmentation coordinate is zero.
+
+\begin{lemma}[Top-coefficient extraction]\label{lem:top-coefficient}
+Let $L$ be an integer with $0\le L<|\F|$, choose any $L+1$ distinct
+elements $S_L\subseteq\F$, and set
+\[
+ \omega_L(s)=\left(\prod_{u\in S_L\setminus\{s\}}(s-u)\right)^{-1}
+ \qquad(s\in S_L).
+\]
+For every univariate polynomial $p$ of degree at most $L$,
+\begin{equation}\label{eq:top-coefficient}
+ [X^L]p(X)=\sum_{s\in S_L}\omega_L(s)p(s).
+\end{equation}
+If $Q$ is homogeneous of degree $L$, then, for arbitrary field vectors $a,v$,
+\begin{equation}\label{eq:translation-extraction}
+ \sum_{s\in S_L}\omega_L(s)Q(a+sv)=Q(v).
+\end{equation}
+Choosing $S_L$ as the first $L+1$ elements in the uniform field enumeration,
+its points and weights can be enumerated and recomputed in $\polylog T$
+space when $L$ is polynomially bounded in $T$.
+\end{lemma}
+\begin{proof}
+The polynomials
+\[
+ \prod_{u\in S_L\setminus\{s\}}\frac{X-u}{s-u}
+\]
+interpolate the values at $S_L$.  Subtracting the resulting interpolant from
+$p$ gives a polynomial of degree at most $L$ with $L+1$ distinct roots, so
+the difference is zero.  Taking the coefficient of $X^L$ proves
+\eqref{eq:top-coefficient}.  For each monomial of total degree $L$, the
+coefficient of $X^L$ after substituting $a+Xv$ is the same monomial in $v$.
+Summing proves \eqref{eq:translation-extraction}.  Enumeration of the first
+$L+1$ field elements and a running product compute each weight using only
+field scalars and counters.  All denominators are nonzero.  This proof uses
+neither factorials nor derivatives, and applies in characteristic two even
+when $L$ exceeds the characteristic.
+\end{proof}
+
+We now specify the implicit computation to which the evaluator applies.
+There is a finite acyclic directed graph of word identifiers, with edges
+from a word to the words on which it depends.  The graph has polynomially
+many vertices, and identifiers use $O(\log T)$ bits.  Every vertex $V$ has a
+fixed semantic value $v(V)\in\bits^d$, determined by the input and immutable
+parameters, independently of all working registers.  There are three types
+of vertices:
+\begin{enumerate}
+\item A base word has a locally computable value.
+\item An ordinary vertex has a rule
+\[
+ v(V)=f_V\bigl(v(U_1),\ldots,v(U_a)\bigr),\qquad 1\le a\le r,
+\]
+where $f_V$ is a total Boolean word function.
+\item A history vertex has a distinguished dependency $H$, further
+ dependencies $A_1,\ldots,A_N$, and an integer $0\le g\le d$.
+ There are total Boolean functions
+\[
+ G_Y:\bits^d\longrightarrow\bits^d,
+ \qquad
+ P_{Y,i}:\bits^d\times\bits^d\longrightarrow\bits
+ \quad(Y\in\bits^g, 1\le i\le N),
+\]
+where the vertex identifier is an additional suppressed parameter.
+At the semantic arguments they satisfy the coordinatewise identity
+\begin{equation}\label{eq:abstract-history}
+ \overline{v(V)}=
+ \sum_{Y\in\bits^g}
+ \overline{G_Y(v(H))}\prod_{i=1}^N
+ P_{Y,i}\bigl(v(H),v(A_i)\bigr)
+\end{equation}
+in characteristic two.  It suffices, in particular, that exactly one $Y$
+has all predicates equal to one and that its output is $v(V)$.
+\end{enumerate}
+The identity \eqref{eq:abstract-history} is required only at the semantic
+arguments; arbitrary Boolean tuples need not describe consistent histories.
+
+Here and below $d,N$ have uniform polynomial upper bounds.  Given a vertex
+identifier, its type, local parameters, and any indexed dependency can be
+computed using $\polylog T$ space.  Base coordinates and coordinates of the
+Boolean functions $f_V,G_Y,P_{Y,i}$ are uniformly computable in
+$O(d\polylog T)$ space from their explicit Boolean arguments, the vertex
+identifier, and, where applicable, $Y,i$.  These local routines make no word
+evaluation calls.  A single supplied polynomial upper bound $\Delta$ covers
+$d$ and every $(N+1)d$.  Additional immutable data can be read by these
+algorithms; if such data occupy work space, that storage is counted
+separately, once.  These assumptions make navigation and local computation
+part of the lemma, rather than treating an exponentially large truth table
+as a freely available input.
+
+Give ordinary dependency edges weight $1$.  At a history vertex, give the
+edge to $H$ weight $1$, and each edge to $A_i$ weight $g+1$.  Dependencies
+with the same identifier but different roles are treated as separate edges.
+Let
+\begin{equation}\label{eq:weighted-path-definition}
+ W(V)=\max_{\pi}\sum_{e\in\pi}\wt(e),
+\end{equation}
+where $\pi$ ranges over dependency paths starting at $V$ and ending at a
+base word.  A base word has $W(V)=0$.
+
+\begin{lemma}[Evaluation along weighted paths]\label{lem:weighted-evaluation}
+Under the preceding assumptions, the augmented value of a word $V$ can be
+computed deterministically in
+\begin{equation}\label{eq:weighted-evaluation-space}
+ O\bigl((d+W(V)+1)\polylog T\bigr)
+\end{equation}
+work space, in addition to separately stored immutable auxiliary data.
+More strongly, a pool of exactly $p=\max(3,r+1)$ registers in
+$\F^{d+1}$ supports a procedure $\Add(V,\lambda,t)$, for every
+$\lambda\in\F$ and target index $t$, with the following contract for
+\emph{every} initial assignment to the entire pool:
+\begin{equation}\label{eq:add-contract}
+ R_t^{\mathrm{out}}=R_t^{\mathrm{in}}+\lambda\overline{v(V)},
+ \qquad
+ R_j^{\mathrm{out}}=R_j^{\mathrm{in}}\quad(j\ne t).
+\end{equation}
+The space bound \eqref{eq:weighted-evaluation-space} includes this shared
+pool and all temporary and suspended storage.
+\end{lemma}
+\begin{proof}
+Use the field from Lemma~\ref{lem:field} for the supplied degree bound
+$\Delta$.  Each register occupies $O(d\log T)$ bits.  We prove the contract
+by induction in the acyclic dependency graph, simultaneously for all
+scalars, targets, and initial register assignments.  At every recursive
+call, the scalar request and the word identifier are ordinary saved data;
+neither is encoded by a register whose contents the call can change.
+
+\paragraph{Base words.}
+Generate one semantic bit at a time and add its product with $\lambda$ to
+the corresponding target coordinate.  Add $\lambda$ to the extra
+coordinate.  No other register changes.  Local generation uses the stated
+scratch space and no recursive word calls.
+
+\paragraph{Ordinary vertices.}
+Let $U_1,\ldots,U_a$ be the dependencies.  Choose distinct slots
+$q_1,\ldots,q_a$, all different from $t$; there are enough slots since
+$p\ge r+1$.  Apply Lemma~\ref{lem:homogenization} to each coordinate of
+$\overline{f_V}$, including its extra coordinate.  Denote the resulting
+vector of polynomials by $\widetilde f_V$.
+
+Nest $a$ interpolation loops.  At level $j$, for each $s_j\in S_d$, execute
+\[
+ \Add(U_j,s_j,q_j),\qquad
+ \text{the next loop level},\qquad
+ \Add(U_j,-s_j,q_j).
+\]
+At the innermost level, compute the coordinates of
+$\widetilde f_V(R_{q_1},\ldots,R_{q_a})$ one at a time, and add each scalar
+to the corresponding coordinate of $R_t$ with coefficient
+$\lambda\prod_{j=1}^a\omega_d(s_j)$.  Discard each local lookup
+computation's scratch after obtaining its scalar result, before any further
+word call.
+
+The induction hypothesis implies that each forward shift translates the
+chosen slot by $s_j\overline{v(U_j)}$, and that each reverse shift restores
+its baseline.  Every other slot has its current value restored after each
+call.  In particular, at a lookup computation the arguments are
+$a_j+s_j\overline{v(U_j)}$, where $a_j$ are their values on entry to this
+invocation.  Applying \eqref{eq:translation-extraction} successively to the
+separately homogeneous arguments shows that the total increment of the
+target is
+\[
+ \lambda\widetilde f_V
+    (\overline{v(U_1)},\ldots,\overline{v(U_a)})
+ =\lambda\overline{v(V)}.
+\]
+Every non-target slot is restored.  The nesting depth inside this invocation
+is at most the constant $r$, and only field scalars, counters, slot indices,
+and identifiers are saved at its recursive word calls.
+
+\paragraph{History vertices: the polynomial.}
+Write $h_0=\overline{v(H)}$ and $a_i=\overline{v(A_i)}$.  Extend each
+coordinate of $\overline{G_Y}$ by the one-word lookup formula and each
+$P_{Y,i}$ by the two-word formula, calling the results
+$\widetilde G_Y$ and $\widetilde P_{Y,i}$.  Set
+\begin{equation}\label{eq:history-polynomial}
+ F(h;a_1,\ldots,a_N)
+ =\sum_{Y\in\bits^g}\widetilde G_Y(h)
+       \prod_{i=1}^N\widetilde P_{Y,i}(h,a_i).
+\end{equation}
+It is homogeneous of degree $D=(N+1)d$ in $h$, and each factor is
+homogeneous of degree $d$ in its own array argument.  In particular the
+extra coordinate of $\widetilde G_Y(h)$ is $h_*^d$.
+Equation~\eqref{eq:abstract-history} and Boolean agreement imply
+\[
+ F(h_0;a_1,\ldots,a_N)=\overline{v(V)}.
+\]
+All interpolation degrees $d$ and $D$ are at most $\Delta<|\F|$.
+
+\paragraph{History vertices: the schedule.}
+Choose slots $q_H,q_A,t$ distinct.  Let $h$ and $a$ denote the entry contents
+of $q_H,q_A$.  Indentation in the following schedule specifies the loop
+bodies.  Each lookup finishes before its scratch is released.
+
+\begin{small}
+\begin{tabbing}
+\hspace{1.4em}\=\hspace{1.4em}\=\hspace{1.4em}\=\hspace{1.4em}\=\hspace{1.4em}\=\kill
+\textbf{for} $s\in S_D$:\\
+\> $\Add(H,s,q_H)$ \quad (no coordinate or $Y$ loop is active)\\
+\> \textbf{for} $z\in\{1,\ldots,d,*\}$:\\
+\>\> \textbf{for} $Y\in\bits^g$:\\
+\>\>\> $u\leftarrow\widetilde G_{Y,z}(R_{q_H})$ \quad (local lookup)\\
+\>\>\> \textit{release lookup scratch, keeping the scalar $u$}\\
+\>\>\> \textbf{for} $i=1,\ldots,N$:\\
+\>\>\>\> $b_i\leftarrow0$\\
+\>\>\>\> \textbf{for} $s'\in S_d$:\\
+\>\>\>\>\> $\Add(A_i,s',q_A)$\\
+\>\>\>\>\> $c\leftarrow\widetilde P_{Y,i}(R_{q_H},R_{q_A})$ \quad (local lookup)\\
+\>\>\>\>\> \textit{release lookup scratch, keeping scalar $c$ in the frame}\\
+\>\>\>\>\> $\Add(A_i,-s',q_A)$ \quad (retain $c$ across this call)\\
+\>\>\>\>\> $b_i\leftarrow b_i+\omega_d(s')c$\\
+\>\>\>\> $u\leftarrow u b_i$; \textit{ discard $b_i$}\\
+\>\>\> $R_{t,z}\leftarrow R_{t,z}+\lambda\omega_D(s)u$\\
+\> \textit{discard data from the coordinate, $Y$, and factor loops}\\
+\> $\Add(H,-s,q_H)$ \quad (no coordinate or $Y$ loop is active)
+\end{tabbing}
+\end{small}
+
+Each completed factor is multiplied into $u$ and discarded, so no list of
+factors is stored.  Both calls to $H$ occur outside the coordinate and $Y$
+loops.  All loops may take arbitrarily long, but their indices have the
+stated finite lengths.
+
+For fixed $s$, the induction hypothesis restores $R_{q_H}=h+sh_0$ after
+each array call and restores $R_{q_A}=a$ after each inner sample.  Hence
+\eqref{eq:translation-extraction}, applied only to the array argument,
+gives
+\[
+ b_i=\sum_{s'\in S_d}\omega_d(s')
+       \widetilde P_{Y,i}(h+sh_0,a+s'a_i)
+     =\widetilde P_{Y,i}(h+sh_0,a_i).
+\]
+The coordinate and $Y$ loops therefore add
+$\lambda\omega_D(s)F(h+sh_0;a_1,\ldots,a_N)$ to the target.  Outer
+coefficient extraction adds exactly
+$\lambda F(h_0;a_1,\ldots,a_N)=\lambda\overline{v(V)}$ in total.
+The final reverse shift restores $q_H$, and the other non-target slots are
+also restored.  This proves the contract for a history vertex.  No
+independence assumption among the semantic array values $a_i$ is involved:
+each coefficient identity holds for their fixed values.  Their independence
+from the mutable register pool is the required condition.
+
+\paragraph{Why one pool suffices.}
+Distinctness of target and input slots is imposed within the current
+invocation.  A child invocation may use any physical slots, including the
+caller's partially accumulated target, the caller's shifted history, or an
+ancestor's input slots.  The induction hypothesis quantifies over every
+entry assignment, so the child restores all such slots other than its own
+target before returning.  The caller uses those values only after the child
+returns.  A reverse shift is another invocation of the same contract and
+restores its target by subtraction of a fixed semantic vector; it does not
+require other registers to have the values they had before the forward
+shift.  Thus no ancestor needs to save a vector, and no private vector pool
+is allocated on descent.  In characteristic two the negative scalar equals
+the positive scalar, which still performs the required cancellation.
+
+\paragraph{Scratch lifetimes and the stack.}
+The vector pool is global.  So is one reusable area of
+$O(d\polylog T)$ bits for local Boolean assignments, replay work, and lookup
+summations.  Every use of this area ends before a recursive word call.
+Only its scalar result, when needed, is moved to the saved frame; no local
+Boolean assignment survives such a call.  This temporary area need not be
+restored, since it has no live caller data when a child starts using it.
+The active $Y$ index has $g$ bits and is distinct from this disposable lookup
+scratch.
+
+For the saved data use a contiguous stack with a top pointer measuring its
+occupied length.  Arrange an invocation's short outer loop data first and its
+currently live inner loop data above them.  Immediately before a word call,
+set the top just beyond the caller data that must survive that call; the child
+allocates its frames from that position and returns the top to it.  In
+particular, after the coordinate
+and $Y$ loops end, rewind the top to the end of the short outer frame before
+the reverse call to $H$.  That call may overwrite the released loop cells.
+Thus sequential uses of those cells contribute their maximum extent, not
+their sum, to the work-space bound.  The pointer itself has $O(\log T)$ bits
+because the graph and word widths are polynomially bounded.
+
+On an ordinary edge, the suspended frame contains a constant number of
+point indices and weights, field scalars, identifiers, slot indices, and
+control-state flags: $\polylog T$ bits in all.  The same bound holds on a
+history-to-$H$ edge, because both calls to $H$ occur outside the coordinate
+and $Y$ loops.  On a history-to-$A_i$ edge, one additionally retains the
+current $Y$, along with its coordinate and factor indices, the product $u$,
+one factor accumulator, and the inner interpolation state.  This occupies
+$O((g+1)\polylog T)$ bits.  Forward and reverse calls have the same bound
+and occur sequentially.
+
+At any instant, active word calls form a dependency path.  Summing the
+bounds on their suspended frames gives $O(W(V)\polylog T)$ bits.  The
+current invocation has at most $g\le d$ bits of active $Y$ data in addition
+to its short bookkeeping.  Adding the pool, the maximum local scratch,
+field description, and current frame proves
+\eqref{eq:weighted-evaluation-space}.  Navigation is uniform by hypothesis,
+and the graph is acyclic, so all recursive calls terminate.  Finally,
+initialize a target register to zero and call $\Add(V,1,t)$ to obtain the
+augmented word itself.
+\end{proof}

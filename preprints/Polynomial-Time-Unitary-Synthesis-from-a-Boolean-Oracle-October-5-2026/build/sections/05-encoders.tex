@@ -1,0 +1,186 @@
+\section{Implementing the field encodings}\label{sec:encoders}
+
+A matrix with few nonzero entries in each row admits a useful slot
+construction. First prepare each column while retaining its input index.
+Then, conditional on the output row, erase that index with an amplitude
+determined only by the maximum row size. Two reflections amplify the
+result. When the matrix is nearly isometric, all its singular directions
+require almost the same amplification angle.
+The reflection argument is amplitude amplification
+\cite[Section~2]{BHMT2002}. Preparing states to realize a matrix as a block
+of a larger unitary is also a standard block-encoding method
+\cite[Lemmas~47--48]{GSLW2019}. Here arbitrary table-controlled column
+preparation permits us to use sparsity only in the rows.
+
+\subsection{A construction for a nearly isometric matrix}
+
+Let $\mathcal U$ be a set of rows encoded in a $w$-qubit register, and
+let $T:\C^d\to\C^{\mathcal U}$ have entries $a_{ui}$, where $d\le2^n$.
+Fix an integer $L\ge1$. Suppose that every row has at most $L$ nonzero
+entries and
+\begin{equation}\label{encode:assumptions}
+ (1-\varepsilon)I_d\le T^*T\le I_d,
+ \qquad L\ge1,\quad 0\le\varepsilon<1.
+\end{equation}
+All these data may depend on a label register, with the same dimensions
+and bounds for every label. The construction below treats labels as controls.
+
+Extend the $n$-qubit input index by
+$h=\lceil\log_2(L+1)\rceil$ high bits, and add the row register and two
+one-bit flags. Let $\iota$ embed $\C^d$ with all these new qubits zero.
+Let $\jmath$ embed $\C^{\mathcal U}$ with the extended index zero and
+both flags equal to one. Write $P_0=\iota\iota^*$ and
+$Q=\jmath\jmath^*$ for the corresponding projections. Thus $Q$ allows
+any valid row, while $P_0$ allows any of the $d$ input indices.
+We call the range of $Q$ the \emph{good subspace}.
+
+\begin{lemma}\label{encode:row-sparse}
+Under \eqref{encode:assumptions}, an exact-slot unitary $\mathsf U_T$
+satisfies
+\begin{equation}\label{encode:generic-error}
+ \norm{\mathsf U_T\iota-\jmath T}\le5\varepsilon.
+\end{equation}
+It uses $O(L(n+w+h))$ slots and $w+h+2$ fresh qubits. Its slot structure
+depends only on the register sizes, $d$, and $L$, and it works coherently
+for any family of matrices indexed by labels.
+\end{lemma}
+
+\begin{proof}
+Set
+\begin{equation}\label{encode:angle}
+ \theta=\frac\pi{4L+2},\qquad t_0=\sin\theta.
+\end{equation}
+We first construct a unitary $\mathsf B$ with the prescribed block
+\begin{equation}\label{encode:block}
+ \jmath^*\mathsf B\iota=t_0T.
+\end{equation}
+For each valid input $i$, the column norm is at most one. Conditional on
+$i$, use Lemma~\ref{slot:preparation} to prepare the row register and
+first flag in a unit vector whose flag-one part is
+\[
+ \sum_{u\in\mathcal U}a_{ui}\ket u\ket1.
+\]
+The remaining squared norm is placed in the flag-zero subspace. The
+input index is unchanged during this preparation.
+
+For each row $u$, choose a list $I_u$ of exactly $L$ distinct extended
+indices containing every $i$ with $a_{ui}\ne0$. Such lists exist because
+the extended index space has dimension
+$2^{n+h}\ge2^n(L+1)>L$. Padding indices need not be valid inputs.
+Conditional on the row, apply the inverse of a state preparation for
+\[
+ \frac1{\sqrt L}\sum_{i\in I_u}\ket i
+\]
+on the extended index register. Its matrix element from any $i\in I_u$
+to zero is $1/\sqrt L$. Finally rotate the second flag so that its
+amplitude at one is $t_0\sqrt L$. This is possible because
+$t_0\sqrt L\le\theta\sqrt L\le1$. Prescribe arbitrary unitary extensions
+for invalid indices and rows. Projecting onto index zero and flags one
+now multiplies each relevant $a_{ui}$ by
+$(1/\sqrt L)(t_0\sqrt L)=t_0$, proving \eqref{encode:block}.
+All three operations together form $\mathsf B$.
+
+Starting with $\mathsf B$, perform $L$ rounds of
+\begin{equation}\label{encode:round}
+ (2\mathsf B P_0\mathsf B^*-I)(I-2Q).
+\end{equation}
+These are implementable with $\mathsf B$, its inverse, and diagonal
+reflections. We verify their action on every singular direction of $T$.
+Let $v_j$ be an orthonormal basis of right singular vectors and write
+\[
+ Tv_j=\sigma_j e_j,\qquad
+ \sqrt{1-\varepsilon}\le\sigma_j\le1,
+\]
+where the $e_j$ are orthonormal. In this calculation identify the input
+and output spaces with their embeddings $\iota$ and $\jmath$.
+By \eqref{encode:block},
+\begin{equation}\label{encode:plane}
+ \mathsf Bv_j=\sin\beta_j\,e_j+\cos\beta_j\,e'_j,
+ \qquad \beta_j=\arcsin(t_0\sigma_j),
+\end{equation}
+for a unit vector $e'_j$ in the kernel of $Q$. The $e'_j$ are mutually
+orthogonal: this follows by taking pairwise inner products in
+\eqref{encode:plane}, using unitarity of $\mathsf B$ and orthogonality of
+the $e_j$. Each $e'_j$ is also orthogonal to every $e_i$.
+
+For completeness, both reflections preserve the plane spanned by
+$e_j,e'_j$. The first reflection is about the range of $\mathsf B P_0$,
+which is spanned by the mutually orthogonal vectors $\mathsf Bv_i$.
+Within the $j$th plane it is therefore reflection about
+$\sin\beta_j\,e_j+\cos\beta_j\,e'_j$; the second reflection changes the
+sign of $e_j$ and fixes $e'_j$. Their product in the order
+\eqref{encode:round} sends
+\[
+ \sin\alpha\,e_j+\cos\alpha\,e'_j
+ \quad\hbox{to}\quad
+ \sin(\alpha+2\beta_j)e_j+\cos(\alpha+2\beta_j)e'_j.
+\]
+After $L$ rounds, the angle is $(2L+1)\beta_j$. As
+$(2L+1)\theta=\pi/2$, the distance of this vector from $\sigma_j e_j$
+is at most
+\begin{align*}
+ (2L+1)(\theta-\beta_j)+(1-\sigma_j)
+ &\le (2L+1)\,2t_0(1-\sigma_j)+(1-\sigma_j)\\
+ &\le(\pi+1)(1-\sigma_j)
+ \le5\varepsilon.
+\end{align*}
+Here $t_0\le1/2$, so the derivative of $\arcsin$ is at most $2$ on
+$[0,t_0]$, and
+$1-\sigma_j\le1-\sqrt{1-\varepsilon}\le\varepsilon$.
+The error vectors lie in mutually orthogonal planes. The same bound
+therefore holds in operator norm on the whole input space, proving
+\eqref{encode:generic-error}.
+
+The first preparation uses $O(w+1)$ slots and the second $O(n+h)$, so
+$\mathsf B$ uses $O(n+w+h)$ slots. The complete circuit contains
+$2L+1$ occurrences of $\mathsf B$ or $\mathsf B^*$ and $2L$ diagonal
+reflections. A diagonal reflection is one slot, as explained in
+Section~\ref{sec:slots}. No additional workspace is needed. All prescriptions
+can be made separately for each label using the same slot positions and
+controls. Since the resulting maps are block diagonal in the labels,
+the bounds hold for coherent superpositions of labels as well.
+\end{proof}
+
+\subsection{Applying the construction to the Fourier fields}
+
+In the preceding section, a row is a frequency and a port. Let
+\begin{equation}\label{encode:register-size}
+ K=b(L+1),\qquad h=\lceil\log_2(L+1)\rceil.
+\end{equation}
+Encode the frequency in $K$ qubits and the port in $n$ qubits, using
+the first $k$ port states. The two field maps have the same row space
+and therefore use the same output embedding $\jmath$: extended input
+index zero, both flags one, and a valid port. This shared layout will
+allow the second encoding to be reversed after the recursive call.
+
+\begin{proposition}\label{encode:implementation}
+Under the hypotheses and definitions of Section~\ref{sec:fields}, there
+are exact-slot unitaries $\mathsf U_E,\mathsf U_R$ such that
+\begin{equation}\label{encode:field-error}
+ \norm{\mathsf U_E\iota-\jmath\mathcal E_L}\le5r^{2L},
+ \qquad
+ \norm{\mathsf U_R\iota-\jmath\mathcal R_L}\le5r^{2L}.
+\end{equation}
+Each uses $O\bigl(L(K+n+h)+K\bigr)$ slots and $K+n+h+2$ fresh qubits,
+with slot structure independent of $V$. The construction works coherently
+with any additional label register.
+\end{proposition}
+
+\begin{proof}
+Write either field map in Fourier coordinates. Proposition~\ref{fields:sparsity}
+gives at most $L$ nonzero entries in each row, and
+Proposition~\ref{fields:gram} supplies \eqref{encode:assumptions} with
+$\varepsilon=r^{2L}$. Apply Lemma~\ref{encode:row-sparse}, taking
+$w=K+n$, to obtain the corresponding coefficient map with error at most
+$5r^{2L}$. Then apply the positive Fourier transform to each of the
+$L+1$ frequency factors, so that $\ket w$ becomes
+$|\mathcal G|^{-1/2}\sum_z\chi_w(z)\ket z$.
+The same physical register now holds the phase label $z$, rather than the
+Fourier frequency $w$. Lemma~\ref{slot:fourier} implements these transforms
+using $O(K)$ slots.
+They preserve the range of $Q$, because every frequency is allowed there
+and the index, flags, and port are unchanged. Thus they convert the
+coefficient map into the field map in the same embedding $\jmath$,
+while preserving the error norm on the full space. Their addition
+gives \eqref{encode:field-error} and the stated resource bounds.
+\end{proof}

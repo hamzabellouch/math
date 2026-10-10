@@ -1,0 +1,623 @@
+
+
+
+
+
+\catcode`\@=11\relax
+
+
+\newif\ifpgfutil@format@is@latex
+\newif\ifpgfutil@format@is@plain
+\newif\ifpgfutil@format@is@context
+
+
+\let\pgfutil@exp\romannumeral
+\chardef\pgfutil@exp@end=0
+
+
+\catcode`\Q=3
+\def\pgfutil@trimspaces#1{%
+  \romannumeral-`0\pgfutil@trimspaces@\noexpand#1Q Q}
+\def\pgfutil@trimspaces@#1 Q{\pgfutil@trimspaces@@#1Q}
+\def\pgfutil@trimspaces@@#1Q#2{#1}
+\catcode`\Q=11
+
+\long\def\pgfutil@ifx#1#2{%
+  \ifx#1#2%
+    \expandafter\pgfutil@firstoftwo
+  \else
+    \expandafter\pgfutil@secondoftwo
+  \fi}
+
+\long\def\pgfutil@ifstrequal#1#2{%
+  \ifnum\pgfsys@strcmp{\pgfutil@unexpanded{#1}}{\pgfutil@unexpanded{#2}}=0
+    \expandafter\pgfutil@firstoftwo
+  \else
+    \expandafter\pgfutil@secondoftwo
+  \fi
+}
+
+\def\pgfutil@ifxempty{\pgfutil@ifx\pgfutil@empty}
+
+\long\def\pgfutil@ifempty#1{%
+  \if\relax\detokenize{#1}\relax
+    \expandafter\pgfutil@firstoftwo
+  \else
+    \expandafter\pgfutil@secondoftwo
+  \fi}
+
+\def\pgfutil@ifundefined#1{%
+  \expandafter\pgfutil@ifx\csname#1\endcsname\relax}
+
+\def\pgfutil@IfUndefined#1{%
+  \ifcsname#1\endcsname
+    \expandafter\pgfutil@secondoftwo
+  \else
+    \expandafter\pgfutil@firstoftwo
+  \fi
+}
+
+\long\def\pgfutil@firstofone#1{#1}
+\long\def\pgfutil@firstoftwo#1#2{#1}
+\long\def\pgfutil@secondoftwo#1#2{#2}
+\def\pgfutil@empty{}
+\long\def\pgfutil@gobble@until@relax#1\relax{}
+\long\def\pgfutil@gobble#1{}
+\long\def\pgfutil@gobbletwo#1#2{}
+\def\pgfutil@namedef#1{\expandafter\def\csname #1\endcsname}
+\def\pgfutil@namelet#1{\expandafter\pgfutil@@namelet\csname#1\endcsname}
+\def\pgfutil@@namelet#1#2{\expandafter\let\expandafter#1\csname#2\endcsname}
+\long\def\pgfutil@g@addto@macro#1#2{%
+  \begingroup
+    \pgfutil@toks@\expandafter{#1#2}%
+    \xdef#1{\the\pgfutil@toks@}%
+ \endgroup}
+\newif\ifpgfutil@tempswa
+\newif\ifpgfutil@tempswb
+
+
+\let\pgfutil@pushmacro@string\pgfutil@empty
+
+\def\pgfutil@pushmacro#1{%
+    \xdef\pgfutil@pushmacro@string{\string#1}%
+    \ifcsname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname\else
+        \csname newcount\expandafter\endcsname\csname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname
+    \fi
+    \global\advance\csname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname 1\relax
+    \global\expandafter\let\csname\the\csname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname\pgfutil@pushmacro@string\endcsname#1%
+}
+
+\def\pgfutil@popmacro#1{%
+    \xdef\pgfutil@pushmacro@string{\string#1}%
+    \expandafter\let\expandafter#1\csname\the\csname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname\pgfutil@pushmacro@string\endcsname
+    \global\advance\csname pgfutil@pushedmacro@\pgfutil@pushmacro@string\endcsname -1\relax
+}
+
+
+\long\def\pgfutil@ifnextchar#1#2#3{%
+  \let\pgfutil@reserved@d=#1%
+  \def\pgfutil@reserved@a{#2}%
+  \def\pgfutil@reserved@b{#3}%
+  \futurelet\pgfutil@let@token\pgfutil@ifnch}
+\def\pgfutil@ifnch{%
+  \ifx\pgfutil@let@token\pgfutil@sptoken
+    \let\pgfutil@reserved@c\pgfutil@xifnch
+  \else
+    \ifx\pgfutil@let@token\pgfutil@reserved@d
+      \let\pgfutil@reserved@c\pgfutil@reserved@a
+    \else
+      \let\pgfutil@reserved@c\pgfutil@reserved@b
+    \fi
+  \fi
+  \pgfutil@reserved@c}
+{%
+  \def\:{\global\let\pgfutil@sptoken= } \:
+  \def\:{\pgfutil@xifnch} \expandafter\gdef\: {\futurelet\pgfutil@let@token\pgfutil@ifnch}
+}
+
+
+\def\pgfutil@ignorespaces
+  {\ifx\pgfutil@let@token\pgfutil@sptoken
+     \expandafter\pgfutil@ignorespaces@helper
+   \else
+     \expandafter\pgfutil@next
+   \fi}
+
+{
+  \def\:{\pgfutil@ignorespaces@helper}
+  \expandafter\gdef\: {\futurelet\pgfutil@let@token\pgfutil@ignorespaces}
+}
+
+
+\newif\ifpgfutil@in@
+
+\def\pgfutil@in@#1#2{%
+ \def\pgfutil@in@@##1#1##2##3\pgfutil@in@@{%
+  \ifx\pgfutil@in@##2\pgfutil@in@false\else\pgfutil@in@true\fi}%
+ \pgfutil@in@@#2#1\pgfutil@in@\pgfutil@in@@}
+
+
+
+\def\pgfutil@nnil{\pgfutil@nil}
+\def\pgfutil@fornoop#1\@@#2#3{}
+\long\def\pgfutil@for#1:=#2\do#3{%
+  \expandafter\def\expandafter\pgfutil@fortmp\expandafter{#2}%
+  \ifx\pgfutil@fortmp\pgfutil@empty \else
+    \expandafter\pgfutil@forloop#2,\pgfutil@nil,\pgfutil@nil\@@#1{#3}\fi}
+\long\def\pgfutil@forloop#1,#2,#3\@@#4#5{\def#4{#1}\ifx #4\pgfutil@nnil \else
+       #5\def#4{#2}\ifx #4\pgfutil@nnil \else#5\pgfutil@iforloop #3\@@#4{#5}\fi\fi}
+\long\def\pgfutil@iforloop#1,#2\@@#3#4{\def#3{#1}\ifx #3\pgfutil@nnil
+       \expandafter\pgfutil@fornoop \else
+      #4\relax\expandafter\pgfutil@iforloop\fi#2\@@#3{#4}}
+\def\pgfutil@tfor#1:={\pgfutil@tf@r#1 }
+\long\def\pgfutil@tf@r#1#2\do#3{\def\pgfutil@fortmp{#2}\ifx\pgfutil@fortmp\pgfutil@space\else
+    \pgfutil@tforloop#2\pgfutil@nil\pgfutil@nil\@@#1{#3}\fi}
+\long\def\pgfutil@tforloop#1#2\@@#3#4{\def#3{#1}\ifx #3\pgfutil@nnil
+       \expandafter\pgfutil@fornoop \else
+      #4\relax\expandafter\pgfutil@tforloop\fi#2\@@#3{#4}}
+
+\def\pgfutil@space{ }
+
+
+\chardef\pgfutil@inputcheck0
+\def\pgfutil@IfFileExists#1#2#3{%
+  \openin\pgfutil@inputcheck=#1 %
+  \ifeof\pgfutil@inputcheck
+     #3\relax
+  \else
+    #2\relax
+  \fi
+  \closein\pgfutil@inputcheck}
+
+\def\pgfutil@InputIfFileExists#1#2#3{\pgfutil@IfFileExists{#1}{\input #1\relax#2}{#3}}%
+
+
+
+\def\pgfutil@loop#1\pgfutil@repeat{\def\pgfutil@body{#1}\pgfutil@iterate}
+\def\pgfutil@iterate{\pgfutil@body \let\pgfutil@next\pgfutil@iterate \else\let\pgfutil@next\relax\fi \pgfutil@next}
+\let\pgfutil@repeat=\fi %
+
+
+\let\pgfutil@scan@mark\relax
+\let\pgfutil@scan@stop\relax
+
+\long\def\pgfutil@switch#1#2#3#4#5{%
+  \pgfutil@exp
+  \pgfutil@switch@@{#1}%
+  {#2}#3%
+  {#2}{}%
+  \pgfutil@scan@mark{#4}%
+  \pgfutil@scan@mark{#5}%
+  \pgfutil@scan@stop
+}
+\long\def\pgfutil@switch@@#1#2#3#4{%
+  #1{#2}{#3}%
+    {\pgfutil@switch@end{#4}}%
+    {\pgfutil@switch@@{#1}{#2}}%
+}
+\long\def\pgfutil@switch@end#1#2#3\pgfutil@scan@mark#4#5\pgfutil@scan@stop{\pgfutil@exp@end#1#4}
+
+
+\let\pgfutil@aux@read@hook=\relax
+
+
+
+\newtoks\pgfutil@everybye
+
+
+
+
+\def\pgfutil@addpdfresource@extgs#1{\pgf@sys@addpdfresource@extgs@plain{#1}}
+\def\pgfutil@addpdfresource@colorspaces#1{\pgf@sys@addpdfresource@colorspaces@plain{#1}}
+\def\pgfutil@addpdfresource@patterns#1{\pgf@sys@addpdfresource@patterns@plain{#1}}
+\def\pgfutil@setuppdfresources{\pgf@sys@setuppdfresources@plain}
+
+
+
+\let\pgfutil@insertatbegincurrentpage=\relax
+
+
+
+\def\pgfutil@raggedright{\rightskip\z@ plus2em \spaceskip.3333em \xspaceskip.5em\relax}
+\def\pgfutil@raggedleft{\leftskip\z@ plus2em \rightskip\z@ \spaceskip.3333em \xspaceskip.5em\parfillskip0pt\relax}
+
+
+\def\pgfutil@packageerror#1#2#3{\errhelp{#3}\errmessage{Package #1 Error: #2}}
+\def\pgfutil@packagewarning#1#2{\immediate\write17{Package #1: Warning! #2.}}
+\def\pgferror#1{\pgfutil@packageerror{pgf}{#1}{}}
+\def\pgfwarning#1{\pgfutil@packagewarning{pgf}{#1}}
+
+
+
+
+
+\def\usepgflibrary{\pgfutil@ifnextchar[{\use@pgflibrary}{\use@@pgflibrary}}%
+\def\use@pgflibrary[#1]{\use@@pgflibrary{#1}}
+\def\use@@pgflibrary#1{%
+  \edef\pgf@list{#1}%
+  \pgfutil@for\pgf@temp:=\pgf@list\do{%
+    \expandafter\pgfkeys@spdef\expandafter\pgf@temp\expandafter{\pgf@temp}%
+    \ifx\pgf@temp\pgfutil@empty
+    \else
+      \expandafter\ifx\csname pgf@library@\pgf@temp @loaded\endcsname\relax%
+      \expandafter\let\csname pgf@library@\pgf@temp @loaded\endcsname=\pgfutil@empty%
+      \expandafter\edef\csname pgf@library@#1@atcode\endcsname{\the\catcode`\@}
+      \expandafter\edef\csname pgf@library@#1@barcode\endcsname{\the\catcode`\|}
+      \expandafter\edef\csname pgf@library@#1@dollarcode\endcsname{\the\catcode`\$}
+      \catcode`\@=11
+      \catcode`\|=12
+      \catcode`\$=3
+      \pgfutil@InputIfFileExists{pgflibrary\pgf@temp.code.tex}{}{%
+          \pgferror{I did not find the pgf library
+            '\pgf@temp'. I looked for the file named
+            pgflibrary\pgf@temp.code.tex, but could not find it in
+            the current texmf trees.}
+        }%
+      \catcode`\@=\csname pgf@library@#1@atcode\endcsname
+      \catcode`\|=\csname pgf@library@#1@barcode\endcsname
+      \catcode`\$=\csname pgf@library@#1@dollarcode\endcsname
+      \fi%
+    \fi
+  }%
+}
+
+
+
+\def\usepgfmodule{\pgfutil@ifnextchar[{\use@pgfmodule}{\use@@pgfmodule}}%
+\def\use@pgfmodule[#1]{\use@@pgfmodule{#1}}
+\def\use@@pgfmodule#1{%
+  \edef\pgf@list{#1}%
+  \pgfutil@for\pgf@temp:=\pgf@list\do{%
+    \expandafter\ifx\csname pgf@module@\pgf@temp @loaded\endcsname\relax%
+      \expandafter\let\csname pgf@module@\pgf@temp @loaded\endcsname=\pgfutil@empty%
+      \expandafter\edef\csname pgf@module@#1@atcode\endcsname{\the\catcode`\@}
+      \expandafter\edef\csname pgf@module@#1@barcode\endcsname{\the\catcode`\|}
+      \expandafter\edef\csname pgf@module@#1@dollarcode\endcsname{\the\catcode`\$}
+      \catcode`\@=11
+      \catcode`\|=12
+      \catcode`\$=3
+      \input pgfmodule\pgf@temp.code.tex
+      \catcode`\@=\csname pgf@module@#1@atcode\endcsname
+      \catcode`\|=\csname pgf@module@#1@barcode\endcsname
+      \catcode`\$=\csname pgf@module@#1@dollarcode\endcsname
+    \fi%
+  }%
+}
+
+\def\pgfutilensuremath#1{%
+  \ifmmode#1\else$#1$\fi
+}
+
+
+
+\begingroup
+    \catcode`\"=12
+    \edef\pgf@loc@TMPa{"}%
+    \gdef\pgfutilpreparefilename#1{%
+        \begingroup
+            \ifnum\the\catcode`\"=13
+                \pgfutilconvertdcolon
+            \fi
+            \xdef\pgf@temp{#1}%
+        \endgroup
+        \expandafter\pgfutil@in@\expandafter"\expandafter{\pgf@temp}%
+        \ifpgfutil@in@
+            \def\pgf@loc@TMPa{\pgfutilstrreplace{"}{}}%
+            \expandafter\pgf@loc@TMPa\expandafter{\pgf@temp}%
+            \edef\pgfretval{"\pgfretval"}%
+            \let\pgfretvalquoted=\pgfretval
+        \else
+            \let\pgfretval=\pgf@temp
+            \edef\pgfretvalquoted{"\pgfretval"}%
+        \fi
+    }%
+    \catcode`\"=13
+    \xdef\pgfutilconvertdcolon{%
+        \noexpand\def\noexpand"{\pgf@loc@TMPa}%
+    }%
+\endgroup
+
+\def\pgfutil@command@to@string#1#2{%
+    \expandafter\pgfutil@command@to@string@@\meaning#1\pgfutil@EOI{#2}%
+}%
+\xdef\pgfutil@glob@TMPa{\meaning\pgfutil@empty}%
+\expandafter\def\expandafter\pgfutil@command@to@string@@\pgfutil@glob@TMPa#1\pgfutil@EOI#2{%
+    \def#2{#1}%
+}%
+\begingroup
+\catcode`\|=0
+\catcode`\\=12
+|gdef|pgfutil@backslash@as@other{\}%
+|endgroup
+
+\def\pgfutilifcontainsmacro#1#2#3{%
+    \def\pgf@marshal{#1}%
+    \pgfutil@command@to@string\pgf@marshal\pgf@marshal
+    \edef\pgf@marshal{\noexpand\pgfutil@in@{\pgfutil@backslash@as@other}{\pgf@marshal}}%
+    \pgf@marshal
+    \ifpgfutil@in@
+        \def\pgf@marshal{#2}%
+    \else
+        \def\pgf@marshal{#3}%
+    \fi
+    \pgf@marshal
+}%
+
+\def\pgfutilifstartswith#1#2#3#4{%
+    \def\pgfutilifstartswith@ ##1#1##2\pgf@EOI{%
+        \def\pgfutil@tmp{##1}%
+        \ifx\pgfutil@tmp\pgfutil@empty
+            \def\pgfutil@tmp#1####1\pgf@EOI{%
+                \def\pgfretval{####1}%
+            }%
+            \pgfutil@tmp#2\pgf@EOI%
+            #3\relax%
+        \else
+            #4\relax%
+        \fi
+    }%
+    \pgfutilifstartswith@#2--#1\pgf@EOI%
+}%
+
+\long\def\pgfutilstrreplace#1#2#3{%
+    \def\pgfretval{}%
+    \long\def\pgfutil@search@and@replace@@##1#1##2\pgf@EOI{%
+        \expandafter\def\expandafter\pgfretval\expandafter{\pgfretval ##1#2}%
+        \pgfutil@search@and@replace@loop{#1}{##2}%
+    }%
+    \pgfutil@search@and@replace@loop{#1}{#3}%
+}
+\long\def\pgfutil@search@and@replace@loop#1#2{%
+    \pgfutil@in@{#1}{#2}%
+    \ifpgfutil@in@
+        \def\pgf@loc@TMPa{\pgfutil@search@and@replace@@ #2\pgf@EOI}%
+    \else
+        \expandafter\def\expandafter\pgfretval\expandafter{\pgfretval #2}%
+        \let\pgf@loc@TMPa=\relax
+    \fi
+    \pgf@loc@TMPa
+}%
+
+\def\pgfutilsolvetwotwoleq#1#2{%
+    \begingroup
+        \dimendef\aa=0
+        \dimendef\ab=1
+        \dimendef\ba=2
+        \dimendef\bb=3
+        \dimendef\ra=4
+        \dimendef\rb=5
+        \dimendef\tmpa=6
+        \dimendef\tmpb=7
+        \edef\pgf@temp{#1}%
+        \expandafter\pgfutilsolvetwotwoleq@A\pgf@temp
+        \edef\pgf@temp{#2}%
+        \expandafter\pgfutilsolvetwotwoleq@r\pgf@temp
+        \pgfutilsolvetwotwoleq@ifislarger\aa\ba{%
+            \def\Pa{a}%
+            \def\Pb{b}%
+        }{%
+            \def\Pa{b}%
+            \def\Pb{a}%
+        }%
+        \tmpa=\csname m\Pa a\endcsname pt %
+        \ifdim\tmpa<0pt \tmpa=-\tmpa\fi
+        \ifdim\tmpa<0.0001pt
+            \let\pgfmathresult=\pgfutil@empty
+        \else
+            \pgfmathreciprocal@
+                {\csname m\Pa a\endcsname}%
+            \let\pivot=\pgfmathresult
+            \csname \Pb a\endcsname=\pivot\csname \Pb a\endcsname
+            \edef\factor{\expandafter\pgf@sys@tonumber\csname \Pb a\endcsname}%
+            \tmpa=-\factor\csname \Pa b\endcsname
+            \advance\csname \Pb b\endcsname by\tmpa
+            \tmpa=-\factor\csname r\Pa\endcsname
+            \advance\csname r\Pb\endcsname by\tmpa
+            \tmpa=\csname \Pb b\endcsname%
+            \ifdim\tmpa<0pt \tmpa=-\tmpa\fi
+            \ifdim\tmpa<0.0001pt
+                \let\pgfmathresult=\pgfutil@empty
+            \else
+                \pgfmathdivide@
+                    {\expandafter\pgf@sys@tonumber\csname r\Pb\endcsname}
+                    {\expandafter\pgf@sys@tonumber\csname \Pb b\endcsname}%
+                \expandafter\let\csname pgfmathresult\Pb\endcsname=\pgfmathresult
+                \tmpa=\csname pgfmathresult\Pb\endcsname\csname \Pa b\endcsname
+                \advance\csname r\Pa\endcsname by-\tmpa
+                \tmpa=\pivot\csname r\Pa\endcsname
+                \expandafter\edef\csname pgfmathresult\Pa\endcsname{\pgf@sys@tonumber\tmpa}%
+                \edef\pgfmathresult{%
+                    {\csname pgfmathresult\Pa\endcsname}%
+                    {\csname pgfmathresult\Pb\endcsname}%
+                }%
+            \fi
+        \fi
+        \pgfmath@smuggleone\pgfmathresult
+    \endgroup
+}%
+
+\def\pgfutilsolvetwotwoleq@ifislarger#1#2#3#4{%
+    \tmpa=#1
+    \ifdim\tmpa<0pt
+        \multiply\tmpa by-1
+    \fi
+    \tmpb=#2
+    \ifdim\tmpb<0pt
+        \multiply\tmpb by-1
+    \fi
+    \ifdim\tmpa>\tmpb
+        #3%
+    \else
+        #4%
+    \fi
+}%
+
+\def\pgfutilsolvetwotwoleqfloat@ifislarger#1#2#3#4{%
+    \pgfmathfloatabs@{#1}\let\tmpa=\pgfmathresult
+    \pgfmathfloatabs@{#2}\let\tmpb=\pgfmathresult
+    \pgfmathfloatlessthan@{\tmpb}{\tmpa}%
+    \ifpgfmathfloatcomparison
+        #3%
+    \else
+        #4%
+    \fi
+}%
+\def\pgfutilsolvetwotwoleq@A#1#2#3#4{%
+    \def\maa{#1}\def\mab{#2}%
+    \def\mba{#3}\def\mbb{#3}%
+    \aa=#1pt \ab=#2pt
+    \ba=#3pt \bb=#4pt
+}
+\def\pgfutilsolvetwotwoleq@r#1#2{%
+    \ra=#1pt \rb=#2pt
+}%
+\def\pgfutilsolvetwotwoleqfloat@A#1#2#3#4{%
+    \pgfmathfloatparsenumber{#1}\let\maa=\pgfmathresult
+    \pgfmathfloatparsenumber{#2}\let\mab=\pgfmathresult
+    \pgfmathfloatparsenumber{#3}\let\mba=\pgfmathresult
+    \pgfmathfloatparsenumber{#4}\let\mbb=\pgfmathresult
+}
+\def\pgfutilsolvetwotwoleqfloat@r#1#2{%
+    \pgfmathfloatparsenumber{#1}\let\ra=\pgfmathresult
+    \pgfmathfloatparsenumber{#2}\let\rb=\pgfmathresult
+}%
+
+\def\pgfutilsolvetwotwoleqfloat#1#2{%
+    \begingroup
+        \pgfmathfloatcreate{1}{1.0}{-4}%
+        \let\thresh=\pgfmathresult
+        \edef\pgf@temp{#1}%
+        \expandafter\pgfutilsolvetwotwoleqfloat@A\pgf@temp
+        \edef\pgf@temp{#2}%
+        \expandafter\pgfutilsolvetwotwoleqfloat@r\pgf@temp
+        \pgfutilsolvetwotwoleqfloat@ifislarger\maa\mba{%
+            \def\Pa{a}%
+            \def\Pb{b}%
+        }{%
+            \def\Pa{b}%
+            \def\Pb{a}%
+        }%
+        \expandafter\pgfmathfloatabs@\expandafter{\csname m\Pa a\endcsname}%
+        \let\tmpa=\pgfmathresult
+        \pgfmathfloatlessthan@{\tmpa}{\thresh}%
+        \ifpgfmathfloatcomparison
+            \let\pgfmathresult=\pgfutil@empty
+        \else
+            \expandafter\pgfmathfloatreciprocal@\expandafter{\csname m\Pa a\endcsname}%
+            \let\pivot=\pgfmathresult
+            \expandafter\pgfmathfloatmultiply@\expandafter{\csname m\Pb a\endcsname}{\pivot}%
+            \let\factor=\pgfmathresult
+            \expandafter\let\csname m\Pb a\endcsname=\factor
+            \expandafter\pgfmathfloatmultiply@\expandafter{\csname m\Pa b\endcsname}{\factor}%
+            \let\tmpa=\pgfmathresult
+            \expandafter\pgfmathfloatsubtract@\expandafter{\csname m\Pb b\endcsname}{\tmpa}%
+            \expandafter\let\csname m\Pb b\endcsname=\pgfmathresult
+            \expandafter\pgfmathfloatmultiply@\expandafter{\csname r\Pa\endcsname}{\factor}%
+            \let\tmpa=\pgfmathresult
+            \expandafter\pgfmathfloatsubtract@\expandafter{\csname r\Pb\endcsname}{\tmpa}%
+            \expandafter\let\csname r\Pb\endcsname=\pgfmathresult
+            \expandafter\pgfmathfloatabs@\expandafter{\csname m\Pb b\endcsname}%
+            \let\tmpa=\pgfmathresult
+            \pgfmathfloatlessthan@{\tmpa}{\thresh}%
+            \ifpgfmathfloatcomparison
+                \let\pgfmathresult=\pgfutil@empty
+            \else
+                \edef\pgf@marshal{%
+                    \noexpand\pgfmathfloatdivide@
+                        {\csname r\Pb\endcsname}
+                        {\csname m\Pb b\endcsname}%
+                }%
+                \pgf@marshal
+                \expandafter\let\csname pgfmathresult\Pb\endcsname=\pgfmathresult
+                \let\tmpa=\pgfmathresult
+                \expandafter\pgfmathfloatmultiply@\expandafter{\csname m\Pa b\endcsname}{\tmpa}%
+                \let\tmpa=\pgfmathresult
+                \expandafter\pgfmathfloatsubtract@\expandafter{\csname r\Pa\endcsname}{\tmpa}%
+                \expandafter\let\csname r\Pa\endcsname=\pgfmathresult
+                \expandafter\pgfmathfloatmultiply@\expandafter{\csname r\Pa\endcsname}{\pivot}%
+                \expandafter\let\csname pgfmathresult\Pa\endcsname=\pgfmathresult
+                \edef\pgfmathresult{%
+                    {\csname pgfmathresult\Pa\endcsname}%
+                    {\csname pgfmathresult\Pb\endcsname}%
+                }%
+                \expandafter\pgfutilsolvetwotwoleqfloat@to@pgf@range\pgfmathresult
+            \fi
+        \fi
+        \pgfmath@smuggleone\pgfmathresult
+    \endgroup
+}%
+
+
+\def\pgfutilsolvetwotwoleqfloat@to@pgf@range#1#2{%
+    \pgfmathfloatcreate{1}{1.6}{4}\let\pgfutilsolvetwotwoleqfloat@to@pgf@range@max=\pgfmathresult
+    \pgfmathfloatabs@{#1}%
+    \expandafter\pgfmathfloatlessthan@\expandafter{\pgfmathresult}{\pgfutilsolvetwotwoleqfloat@to@pgf@range@max}%
+    \ifpgfmathfloatcomparison
+        \pgfmathfloatabs@{#2}%
+        \expandafter\pgfmathfloatlessthan@\expandafter{\pgfmathresult}{\pgfutilsolvetwotwoleqfloat@to@pgf@range@max}%
+        \ifpgfmathfloatcomparison
+            \pgfmathfloattofixed{#1}\let\tmpa=\pgfmathresult
+            \pgfmathfloattofixed{#2}%
+            \edef\pgfmathresult{{\tmpa}{\pgfmathresult}}%
+        \else
+            \let\pgfmathresult=\pgfutil@empty
+        \fi
+    \else
+        \let\pgfmathresult=\pgfutil@empty
+    \fi
+}%
+
+\let\pgfutil@write=\write
+\let\pgfutil@read=\read
+
+\let\pgfutil@protect\relax
+
+\def\pgfutil@check@rerun#1#2{}
+
+\newdimen\pgfutil@tempdima
+\newdimen\pgfutil@tempdimb
+
+
+\let\pgfutil@ifluatex\iffalse
+\begingroup\expandafter\expandafter\expandafter\endgroup
+\expandafter\ifx\csname directlua\endcsname\relax
+\else
+  \expandafter\let\csname pgfutil@ifluatex\expandafter\endcsname
+    \csname iftrue\endcsname
+\fi
+
+\pgfutil@ifluatex
+  \let\pgfutil@directlua\directlua
+  \pgfutil@directlua{%
+    tex.enableprimitives('pgfutil@',{'luaescapestring'})}
+\else
+  \def\pgfutil@directlua#1{}
+  \def\pgfutil@luaescapestring#1{}
+\fi
+
+
+\def\pgfutil@shellescape@lua@eightseven#1{%
+    \pgfutil@directlua{os.execute("\pgfutil@luaescapestring{#1}")}%
+}%
+\def\pgfutil@shellescape#1{%
+    \immediate\write18{#1}%
+}%
+\pgfutil@IfUndefined{directlua}{%
+}{%
+    \pgfutil@IfUndefined{lastsavedimageresourcepages}{%
+    }{%
+        \let\pgfutil@shellescape=\pgfutil@shellescape@lua@eightseven
+    }%
+}%
+
+
+\def\pgfutil@advancestringcounter#1{%
+    \begingroup
+        \c@pgf@counta=#1\relax
+        \advance\c@pgf@counta by1
+        \edef#1{\the\c@pgf@counta}%
+        \pgfmath@smuggleone#1%
+    \endgroup
+}%
+
+\endinput

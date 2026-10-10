@@ -1,0 +1,318 @@
+\section{Splitting vertices and bounding triangle mass}
+\label{sec:splitting}
+
+The local walks give similar probability distributions to the two
+neighbors at a corner of a triangle, on average under the ordered
+triangle law. We now sample from these distributions jointly.
+Equal samples keep the two incident edges of a triangle at the same copy
+of a vertex. A condition on the reversed transition probability ensures
+that each copy has a small weighted neighborhood.
+
+\subsection{Sampling all rows together}
+
+We use the shared rejection construction of Kleinberg and
+Tardos~\cite[Section~3, Lemmas~3.1 and~3.2]{KleinbergTardos2002}.
+Angel and Spinka~\cite[Theorem~2 and Section~2.1]{AngelSpinka2021}
+give the sharper pairwise disagreement estimate stated below.
+The short proof supplies the joint law for all rows at once.
+
+\begin{lemma}[Shared rejection sampling]\label{lem:shared-rejection}
+Let $I$ and $J$ be finite nonempty sets, and let $(p_i)_{i\in I}$ be
+probability distributions on $J$. There are jointly distributed random
+variables $(Y_i)_{i\in I}$ such that $Y_i$ has law $p_i$ and, for every
+$i,i'\in I$,
+\[
+ \mathbb P(Y_i\ne Y_{i'})
+ \le \frac{2\|p_i-p_{i'}\|_{\mathrm{TV}}}
+ {1+\|p_i-p_{i'}\|_{\mathrm{TV}}}
+ \le 2\|p_i-p_{i'}\|_{\mathrm{TV}}.
+\]
+The resulting joint law has finite support.
+\end{lemma}
+
+\begin{proof}
+Write $m=|J|$. Take independent trials $(Z_t,U_t)_{t\ge1}$, with $Z_t$
+uniform on $J$ and $U_t$ uniform on $[0,1]$. For each $i$, let $Y_i=Z_t$
+at the first trial satisfying $U_t\le p_i(Z_t)$. A trial is accepted
+by row $i$ with probability $1/m$, and its accepted value has law $p_i$.
+More explicitly, for $y\in J$,
+\[
+ \mathbb P(Y_i=y)
+ =\sum_{t\ge1}(1-1/m)^{t-1}\frac{p_i(y)}m=p_i(y).
+\]
+Every row stops almost surely; since $I$ is finite, all rows stop after
+a finite number of trials almost surely.
+
+Fix two rows $p,q$, and put $d=\|p-q\|_{\mathrm{TV}}$. At the first
+trial accepted by either row, the probability that both accept is
+\[
+ \frac{\sum_{y\in J}\min(p(y),q(y))}
+ {\sum_{y\in J}\max(p(y),q(y))}
+ =\frac{1-d}{1+d}.
+\]
+On this event their labels agree. They may also agree otherwise, so
+the disagreement probability is at most $2d/(1+d)$. Finally, the label
+vector takes values in the finite set $J^I$, so its induced law has
+finite support. The infinite sequence of trials is only a convenient
+construction of that finite joint law.
+\end{proof}
+
+\subsection{Admissible labels and vertex splitting}
+
+Let $H$ be a finite graph with positive vertex weights. Assume that every
+edge $uv$ has common-neighbor weight $c_{uv}\ge1/x$, that every
+neighborhood has weight at most $e^x$, and that $H$ satisfies the
+cross-mass condition~\eqref{eq:cross-mass} with constant $C\ge1$. Here $x\ge32$. If $H$ has
+an edge, then it has a triangle; throughout this subsection suppose
+$T_H(w)>0$.
+
+Use the integer $j$ supplied by Lemma~\ref{lem:entropy-smoothing}, and
+for each non-isolated vertex $u$ write $K_u=K_u^j$ for the corresponding
+kernel on $N_H(u)$. Isolated vertices may be discarded, since they
+contribute neither edge nor triangle mass. The
+directed-edge probability measure is
+\[
+ \mu(u,v)=\frac{w_uw_vc_{uv}}{6T_H(w)}.
+\]
+Conditional on $u$, its second coordinate has distribution
+$\pi_u(v)=w_vc_{uv}/h_u$, and $K_u$ is reversible for $\pi_u$.
+We use the constants from that lemma:
+\[
+ A_C=10+42C^2+2C,
+ \qquad B_C=2\sqrt{A_C+1}.
+\]
+In particular, $K_u(v,y)\le xw_y$, the averaged row entropy is at
+most $A_C\log x$, and the average total variation distance between
+the rows indexed by the other two vertices of a weighted ordered
+triangle is at most $B_C\sqrt{\log x/x}$.
+
+For each non-isolated $u$, apply Lemma~\ref{lem:shared-rejection} to all rows of
+$K_u$. Denote the label assigned to $v\in N_H(u)$ by $Y_{u,v}$.
+These finite joint laws may be sampled independently for different
+vertices $u$.  We will group the neighbors of $u$ according to their
+labels, while keeping the total weight of each group at most $e^{\sqrt x}$.
+For this purpose, call a label $y$ at the incidence $(u,v)$
+\emph{admissible} if
+\begin{equation}\label{eq:admissible-label}
+ K_u(y,v)\ge w_v e^{-\sqrt x}.
+\end{equation}
+For a fixed outcome of the labels, define
+\[
+ A_{u,y}=\{v\in N_H(u):Y_{u,v}=y
+       \text{ and }K_u(y,v)\ge w_ve^{-\sqrt x}\}.
+\]
+The reversed transition in \eqref{eq:admissible-label} is chosen so that
+all vertices in one group can be compared with a single probability row:
+\begin{equation}\label{eq:label-group-weight}
+ w(A_{u,y})
+ \le e^{\sqrt x}\sum_{v\in A_{u,y}}K_u(y,v)
+ \le e^{\sqrt x}.
+\end{equation}
+This holds for every outcome of the labels.  The next lemma shows that
+the admissibility requirement rejects only a small fraction of incidences
+under the triangle distribution.
+
+\begin{lemma}\label{lem:reverse-admissibility}
+The probability that $Y_{u,v}$ is inadmissible, averaged over
+$(u,v)\sim\mu$, is at most
+\begin{equation}\label{eq:inadmissibility-bound}
+ \delta_x:=\frac{(A_C+1)\log x}{\sqrt x+\log x}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Under the joint law $(u,v)\sim\mu$, $y\sim K_u(v,\cdot)$,
+reversibility gives
+\[
+ (u,v,y)\ \stackrel{\mathrm{law}}=\ (u,y,v).
+\]
+Both $K_u(v,y)$ and $K_u(y,v)$ are positive on this law's support:
+all $\pi_u$ are positive and
+$\pi_u(v)K_u(v,y)=\pi_u(y)K_u(y,v)$.
+Consequently
+\[
+ \ell:=\log\frac{w_v}{K_u(y,v)}
+ \quad\text{satisfies}\quad
+ \mathbb E\ell=H_j\le A_C\log x.
+\]
+The density bound applied to the reversed row gives $\ell\ge-\log x$.
+Inadmissibility is precisely the event $\ell>\sqrt x$. Applying Markov's
+inequality to the nonnegative random variable $\ell+\log x$ proves
+\eqref{eq:inadmissibility-bound}. No bound on an individual row's
+entropy is needed here.
+\end{proof}
+
+We now turn the groups into a graph, for each fixed outcome of the labels.
+Make one vertex $(u,y)$ of weight $w_u$ for each nonempty group.
+For each edge $uv$ of $H$ whose two incidence labels are admissible,
+put an edge between $(u,Y_{u,v})$ and $(v,Y_{v,u})$.
+Call the resulting graph $H'$. Figure~\ref{fig:label-splitting} shows
+the construction at one vertex.
+We take the maximum neighborhood weight of the empty graph to be zero.
+\input{figures/splitting}
+
+\begin{lemma}\label{lem:weighted-splitting}
+There is a choice of these labels for which the projection
+$(u,y)\mapsto u$ preserves weights, maps directed edges injectively
+to directed edges of $H$, and satisfies
+\begin{align}
+ \max_{a\in V(H')}w(N_{H'}(a))&\le e^{\sqrt x},
+ \label{eq:split-neighborhood}\\
+ T_{H'}(w)&\ge(1-a_C\log x/\sqrt x)T_H(w),
+ \label{eq:split-triangles}
+\end{align}
+where $a_C=6(B_C+A_C+1)$.
+\end{lemma}
+
+\begin{proof}
+Every old edge creates at most one new edge. The projection therefore
+maps directed edges injectively, and the new graph has neither loops
+nor multiple edges. At a fixed vertex $(u,y)$, different neighbors
+project to different vertices of $H$, because $H$ is simple and each
+edge $uv$ was used at most once.  By \eqref{eq:label-group-weight},
+\[
+ w(N_{H'}(u,y))
+ \le w(A_{u,y})
+ \le e^{\sqrt x}.
+\]
+In particular, duplicating a vertex does not duplicate any of its
+incident edges at one fixed copy.
+
+An old triangle $\{u,v,z\}$ survives whenever its two labels agree
+at each corner and all six incidence labels are admissible. These
+conditions are also necessary for its three edges to form a triangle
+in $H'$. A triangle of $H'$ projects to three distinct old vertices,
+and hence to an old triangle. Moreover, there is at most one triangle
+over each old triangle, since each old edge has at most one preimage.
+The weights of a surviving triangle are unchanged.
+
+Sample an ordered triangle $(u,v,z)$ with probability
+$w_uw_vw_z/(6T_H(w))$. Its ordered-edge marginal is $\mu$.
+At the corner $u$, the shared coupling and the row-distance estimate
+give
+\[
+ \mathbb E\,\mathbb P(Y_{u,v}\ne Y_{u,z})
+ \le 2B_C\sqrt{\frac{\log x}{x}}.
+\]
+Each of the other two corners has the same bound, by the permutation
+symmetry of the ordered-triangle law. Each of its six directed
+incidences has marginal $\mu$, so
+Lemma~\ref{lem:reverse-admissibility} bounds the average
+inadmissibility probability of each by $\delta_x$.
+A union bound, with no independence assumption between these events,
+therefore gives
+\[
+ \frac{\mathbb E(T_H(w)-T_{H'}(w))}{T_H(w)}
+ \le6B_C\sqrt{\frac{\log x}{x}}+6\delta_x
+ \le a_C\frac{\log x}{\sqrt x}.
+\]
+The last inequality uses $\log x\ge1$. All label vectors together
+have finite support. At least one of them has triangle mass at least
+its expectation, proving the claim.
+\end{proof}
+
+\subsection{Reduction and iteration}
+
+The preceding construction turns the walk estimates into a reduction
+of weighted neighborhoods. Choose $X=X(C)\ge32$ so large that
+\begin{equation}\label{eq:iteration-threshold}
+ 2a_C\frac{\log X}{\sqrt X}\le\frac12.
+\end{equation}
+Such a choice depends only on $C$.
+
+\begin{proposition}\label{prop:neighborhood-reduction}
+Let $G$ be a finite positive-vertex-weighted graph satisfying the
+cross-mass condition~\eqref{eq:cross-mass} with constant $C\ge1$, and suppose that
+$\max_vw(N_G(v))\le e^x$ for some $x>X(C)$. There is a finite
+positive-vertex-weighted graph $G'$ with a weight-preserving map to
+$G$ that is injective on directed edges, such that
+\begin{align}
+ \max_vw(N_{G'}(v))&\le e^{\sqrt x},\label{eq:step-neighborhood}\\
+ T_{G'}(w)&\ge
+ \left(1-a_C\frac{\log x}{\sqrt x}\right)T_G(w)
+       -\frac{M_G(w)}x.\label{eq:step-triangles}
+\end{align}
+It also satisfies the same cross-mass condition, and $M_{G'}(w)\le M_G(w)$.
+\end{proposition}
+
+\begin{proof}
+Peel edges whose current common-neighbor weight is less than $1/x$.
+If $H$ is the remaining graph, Lemma~\ref{lem:triangle-peeling} gives
+\[
+ T_H(w)\ge T_G(w)-M_G(w)/x.
+\]
+Edge deletion does not increase any weighted neighborhood, and it
+preserves the cross-mass condition. If $H$ has no edges, take $G'$ to
+be empty. Then $T_G(w)\le M_G(w)/x$, which implies
+\eqref{eq:step-triangles}.
+Otherwise, apply Lemma~\ref{lem:weighted-splitting} to $H$.
+Since $x\mapsto\log x/\sqrt x$ is decreasing for $x\ge e^2$,
+\eqref{eq:iteration-threshold} ensures
+$0\le1-a_C\log x/\sqrt x\le1$. Hence
+\begin{align*}
+ T_{G'}(w)
+ &\ge\left(1-a_C\frac{\log x}{\sqrt x}\right)
+           \left(T_G(w)-\frac{M_G(w)}x\right)\\
+ &\ge\left(1-a_C\frac{\log x}{\sqrt x}\right)T_G(w)
+           -\frac{M_G(w)}x.
+\end{align*}
+The projection through $H$ is still injective on directed edges.
+The edge-mass bound and inherited cross-mass condition follow from
+Lemma~\ref{lem:invariant-preservation}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:weighted-triangles}]
+If $G$ has no edges, both sides vanish. Otherwise choose $x_0\ge1$
+such that every neighborhood has weight at most $e^{x_0}$. While
+$x_i>X$, apply Proposition~\ref{prop:neighborhood-reduction} and
+set $x_{i+1}=\sqrt{x_i}$. Write $G_i$ for the successive graphs,
+$T_i=T_{G_i}(w)$ and $M_i=M_{G_i}(w)$; the weights at each stage
+are the inherited weights of its vertex copies. Stop after $k$ steps,
+when $x_k\le X$. The procedure is finite, and the $k=0$ case is
+allowed.
+
+We record bounds independent of $x_0$ and $k$. If $k>0$, put
+$y=x_{k-1}>X$. The used parameters, in reverse order, are
+$y,y^2,y^4,\ldots,y^{2^{k-1}}$. For
+$f(t)=\log t/\sqrt t$ and $t\ge X\ge32$,
+\[
+ \frac{f(t^2)}{f(t)}=\frac2{\sqrt t}\le\frac12.
+\]
+As $f$ is decreasing on $[X,\infty)$, it follows that
+\begin{equation}\label{eq:summable-losses}
+ \sum_{i<k}a_Cf(x_i)\le2a_Cf(X)\le\frac12,
+ \qquad
+ \sum_{i<k}\frac1{x_i}\le\frac{1/X}{1-1/X}\le1.
+\end{equation}
+Both inequalities also hold for empty sums when $k=0$.
+
+Let $\varepsilon_i=a_Cf(x_i)$. Iterating
+\eqref{eq:step-triangles}, using $M_i\le M_0$ and
+$0\le1-\varepsilon_i\le1$, gives
+\[
+ T_k\ge\left(\prod_{i<k}(1-\varepsilon_i)\right)T_0
+          -M_0\sum_{i<k}\frac1{x_i}
+ \ge\frac12T_0-M_0.
+\]
+Here $\prod(1-\varepsilon_i)\ge1-\sum\varepsilon_i$.
+Every neighborhood of $G_k$ has weight at most $e^X$, so
+\[
+ 3T_k
+ =\sum_{\{u,v\}\in E(G_k)}w_uw_vw(N_{G_k}(u)\cap N_{G_k}(v))
+ \le e^X M_k\le e^X M_0.
+\]
+Combining the last two displays proves the theorem with
+$C_\triangle(C)=2(1+e^{X(C)}/3)$. All
+thresholds and constants depend only on $C$; neither the number of
+vertices nor the initial neighborhood bound enters them.
+\end{proof}
+
+
+Applying Theorem~\ref{thm:weighted-triangles} to the cross-mass bound
+of Lemma~\ref{lem:cross-mass} gives the variational estimate needed
+for the independent-set argument: for every maximizer $w$ on a finite
+$K_r$-free graph,
+\begin{equation}\label{eq:optimizer-triangle}
+ T_G(w)\le B_r M_G(w),\qquad B_r=C_{\triangle}(16r^2).
+\end{equation}
+The zero-vertex case has both masses zero.

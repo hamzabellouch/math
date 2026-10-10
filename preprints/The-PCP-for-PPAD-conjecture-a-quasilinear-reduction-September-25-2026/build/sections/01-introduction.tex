@@ -1,0 +1,393 @@
+\section{Introduction and the exact search relation}\label{sec:introduction}
+
+The class PPAD organizes total search problems whose existence proofs are
+based on the parity of endpoints in a directed graph~\cite{Papadimitriou1994}. Its canonical problem,
+End-of-Line, asks for an endpoint other than a specified source, when the
+graph is described by predecessor and successor circuits. Generalized
+circuits provide another useful language for this class: a solution assigns
+real values in $[0,1]$ to wires and approximately satisfies local arithmetic,
+comparison, and Boolean constraints. The generalized-circuit intermediary
+was developed by Chen, Deng, and Teng~\cite[Section~4.2]{CDT2007Preprint};
+arithmetic, comparison, and Boolean gadgets also underlie the equilibrium
+reductions of Daskalakis, Goldberg, and
+Papadimitriou~\cite[Section~5.1]{DGP2009}. Rubinstein established
+constant-error hardness with every gate required to be
+satisfied~\cite[Theorem~2]{Rubinstein2018}. These results motivate the
+circuit language used here, with the precise normalization and thresholds
+specified below.
+
+Babichenko, Papadimitriou, and Rubinstein formulated the PCP-for-PPAD
+conjecture as a quasilinear reduction from End-of-Line to generalized
+circuits in which both the allowed numerical error and the allowed fraction
+of violated gates are positive constants~\cite[Conjecture~2]{BPR2016}.
+The failure fraction is the essential robustness requirement: the decoder
+must succeed even if an adversary chooses which constraints to violate.
+The quasilinear size requirement is a separate restriction on the reduction.
+Ordinary polynomial-time PPAD-hardness, even with constant numerical error,
+does not provide it. For example, hardness for every numerical error below $1/10$ is known
+for the standard generalized-circuit problem with every gate required to
+be satisfied~\cite[Theorem~4.1]{DFHM2024}. Subsequent uses of PCP-for-PPAD also
+consider the weaker conjecture asserting ordinary PPAD-hardness with a
+positive failure fraction; the distinction from the original quasilinear
+formulation is explicit in~\cite[Section~2.2.2]{Fisher2026}.
+
+Rubinstein's 2016 work combined encoded-path geometry, a locally
+evolving version of End-of-Line, and a holographic proof system whose
+certificates can be constructed and decoded through restricted
+access~\cite[Sections~3, 5, and~6]{Rubinstein2016Settling}. It established
+quasipolynomial hardness for constant-error two-player Nash under the
+exponential-time hypothesis for PPAD, while leaving the PCP-for-PPAD
+conjecture open and identifying composition as a remaining
+question~\cite[Theorem~1.2 and Section~1.3]{Rubinstein2016Settling}.
+More recently, Golowich derives sharper two-player Nash lower bounds
+for vanishing approximation error under PCP for PPAD together with
+the exponential-time hypothesis for PPAD~\cite[Theorem~1.1]{Golowich2026}.
+These time lower bounds retain their additional exponential-time
+hypothesis; the result here concerns the conjectured reduction itself.
+
+We give a positive resolution of the quasilinear PCP-for-PPAD conjecture.
+Our size bound counts the complete finite output, including connection
+indices, every auxiliary gate, and the bits of all rational parameters.
+The gate conventions below are the standard bounded-rational conventions
+of~\cite{DFHM2024,Fisher2026}; the totality and witness-size statement is
+proved explicitly. When restricted to the nearly linear predecessor and
+successor circuits in the original formulation, the theorem gives the
+conjectured quasilinear reduction there as well.\footnote{The original
+Definition~1 of~\cite{BPR2016} allows $x=0^n$ in its first solution
+disjunct $P(S(x))\ne x$. If $P(S(0^n))\ne0^n$, this is an immediately
+computable solution. Otherwise the instance satisfies the additional
+source promise used below. Thus this normalization requires only circuit
+evaluation and a trivial branch of the reduction: output a fixed one-gate
+Constant circuit and have the decoder return $0^n$.}
+
+\subsection{The source and target problems}
+
+We fix conventional explicit binary encodings of circuit gate lists,
+connection indices, input and output lists, and rational parameters.
+Integers are encoded in binary with delimiters. All size bounds concern
+these complete encodings. Changing between the usual such explicit
+encodings changes only constant or logarithmic factors.
+
+\begin{definition}[End-of-Line]\label{def:eol}
+An instance $I$ consists of two explicitly listed, acyclic, bounded-fanin
+Boolean circuits
+\[
+ S,P:\{0,1\}^n\longrightarrow\{0,1\}^n,\qquad n\geq1,
+\]
+using AND, OR, and NOT gates, with unrestricted fan-out, and satisfying
+\[
+ P(0^n)=0^n,\qquad S(0^n)\ne0^n,\qquad P(S(0^n))=0^n.
+\]
+A solution is a string $v\ne0^n$ such that
+\begin{equation}\label{eq:end-of-line-solution}
+ P(S(v))\ne v\quad\text{or}\quad S(P(v))\ne v.
+\end{equation}
+The input length $N\geq2$ includes the complete descriptions of both
+circuits and their input and output lists.
+\end{definition}
+
+\begin{definition}[Generalized circuit]\label{def:gcircuit}
+A generalized circuit $G=(V,T)$ has an explicitly listed finite set of
+nodes $V$ and a nonempty set of gates $T$. Each gate has one output and at
+most two inputs. A node is the output of at most one gate. Directed cycles
+and unrestricted fan-out are permitted. Every gate parameter $\alpha$ is
+a binary-encoded rational in $[0,1]$.
+
+For an assignment $x:V\to[0,1]$, write $x_a,x_b$ for input values and
+$x_z$ for the output. The five arithmetic gate types are
+$\eps$-satisfied when the corresponding condition holds:
+\begin{align*}
+ \mathrm{Constant}(\alpha;z)&:&\quad \abs{x_z-\alpha}&\leq\eps,\\
+ \mathrm{Scale}(\alpha;a;z)&:& \abs{x_z-\alpha x_a}&\leq\eps,\\
+ \mathrm{Copy}(a;z)&:& \abs{x_z-x_a}&\leq\eps,\\
+ \mathrm{Add}(a,b;z)&:& \abs{x_z-\min\{x_a+x_b,1\}}&\leq\eps,\\
+ \mathrm{Subtract}(a,b;z)&:& \abs{x_z-\max\{x_a-x_b,0\}}&\leq\eps.
+\end{align*}
+The comparison gate $\mathrm{Less}(a,b;z)$ has the two implications
+\[
+ x_a<x_b-\eps\ \Longrightarrow\ x_z\geq1-\eps,
+ \qquad
+ x_a>x_b+\eps\ \Longrightarrow\ x_z\leq\eps.
+\]
+The Boolean gates have the following implications:
+\begin{align*}
+ \mathrm{Or}(a,b;z):\qquad
+ (x_a\geq1-\eps\ \text{or}\ x_b\geq1-\eps)&\Longrightarrow x_z\geq1-\eps,\\
+ (x_a\leq\eps\ \text{and}\ x_b\leq\eps)&\Longrightarrow x_z\leq\eps;\\[2pt]
+ \mathrm{And}(a,b;z):\qquad
+ (x_a\geq1-\eps\ \text{and}\ x_b\geq1-\eps)&\Longrightarrow x_z\geq1-\eps,\\
+ (x_a\leq\eps\ \text{or}\ x_b\leq\eps)&\Longrightarrow x_z\leq\eps;\\[2pt]
+ \mathrm{Not}(a;z):\qquad
+ x_a\leq\eps&\Longrightarrow x_z\geq1-\eps,\\
+ x_a\geq1-\eps&\Longrightarrow x_z\leq\eps.
+\end{align*}
+For these four gate types, every applicable implication must hold. If no
+antecedent holds, any output in $[0,1]$ is permitted. In particular, the
+comparison thresholds are strict and the Boolean thresholds are weak.
+
+Let $M$ be the complete binary encoding length of $G$. For fixed
+$\eps,\delta>0$ and a fixed polynomial $p$, an acceptable assignment is
+rational, has total binary encoding length at most $p(M)$, and
+$\eps$-satisfies at least $(1-\delta)|T|$ gates. Each gate has equal weight;
+at most $\lfloor\delta|T|\rfloor$ gates may fail. Failed gates may violate
+their relations arbitrarily, but all their nodes still have one globally
+consistent value in $[0,1]$.
+\end{definition}
+
+The Boolean predicates make the error parameter nonmonotone: increasing
+$\eps$ can activate an antecedent that was previously vacuous. This issue
+is analyzed by Schuldenzucker and Seuken~\cite[Proposition~1]{SchuldenzuckerSeuken2019}.
+Our gate arguments use one actual tolerance throughout. Later upper bounds
+on that tolerance ensure explicit margins; they do not reclassify a
+satisfied Boolean gate at a larger tolerance.
+
+\subsection{Main theorem}
+
+\begin{samepage}
+\begin{theorem}[Quasilinear PCP for PPAD]\label{thm:main}
+There are fixed rational constants
+\[
+ 0<\eps<\tfrac1{10},\qquad 0<\delta<1,
+\]
+a fixed positive integer $A$, a fixed nonnegative integer $b$, a fixed
+polynomial $p$ with nonnegative integer coefficients, and deterministic
+algorithms $R,D$ with the following properties.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Every generalized circuit in Definition~\ref{def:gcircuit} has an
+acceptable rational assignment of encoding length at most $p(M)$.
+\item For every End-of-Line instance $I$ of length $N$, the output $R(I)$
+is a generalized circuit whose complete encoding length satisfies
+\[
+ M\leq A N\bigl\lceil\log_2(N+2)\bigr\rceil^b.
+\]
+\item The construction $R$ runs in time polynomial in $N$, with one fixed
+polynomial bound.
+\item For every acceptable assignment $x$ of $R(I)$, the algorithm $D(I,x)$
+returns a solution of $I$ in time polynomial in $N$ plus the encoding
+length of $x$, with one fixed polynomial bound.
+\end{enumerate}
+All constants, polynomials, and algorithms are chosen once. They use no
+advice depending on the input length and no randomized construction.
+\end{theorem}
+\end{samepage}
+
+The conclusion about $D$ is universal over the locations and values of
+the failed gates. In fact, the soundness argument applies to arbitrary
+real assignments meeting the gate-failure budget; rationality is needed
+for the finite search relation and its computational decoder. The totality
+proof supplies an assignment satisfying every gate on a fixed rational
+mesh. Neither tolerance tends to zero with $N$.
+
+\subsection{Proof strategy: encoded paths and robust local computation}
+
+We begin with the geometric target of the reduction. Replace the
+End-of-Line graph by a locally evolving directed graph with a known
+source, no isolated vertices, and the same endpoint-decoding property.
+Represent each vertex $w$ by a separated binary word $E_w\in\{0,1\}^m$.
+In the box $[-1,2]^{4m}$, viewed as four blocks of $m$ coordinates,
+each edge $u\to v$ traces
+a polygon that first changes a copy of $E_u$ to $E_v$, changes a repeated
+control bit, updates the other copy, and resets the control bit. Rounded
+corners join these polygons into paths and cycles. An additional segment
+enters the known source, and a separate field prescription handles its
+far end. Every other path endpoint encodes an End-of-Line answer.
+
+Section~\ref{sec:geometry} constructs a bounded displacement field $v$
+on this box. Close to a path it uses the directed tangent and the inward
+normal; farther away it passes to a fixed direction. For a sufficiently
+small fixed step $\beta>0$, the clipped move
+$\clip(X+\beta v(X))-X$ has norm at least a fixed positive multiple of
+$\beta$ outside a fixed neighborhood of the desired endpoints. Here
+clipping keeps each coordinate in the box, and the norm is normalized
+by the word length. Thus an accurate enough approximate fixed point
+identifies an endpoint. The proof must also provide local numerical
+access to the field: it cannot inspect the entire encoded graph when
+computing one coordinate of $v$.
+
+This use of encoded paths and restricted access has a close predecessor
+in Rubinstein's holographic proof system~\cite[Sections~3, 5, and~6]{Rubinstein2016Settling}.
+The present reduction needs two further properties simultaneously:
+quasilinear total storage and robustness to an arbitrary fixed fraction
+of failed gates. The two scales of the construction address these
+requirements as follows.
+
+\paragraph{A quasilinear outer word.}
+Sections~\ref{sec:macrograph}--\ref{sec:outer-representation} construct
+canonical representations
+\[
+ R_w=(s_k)_{k\in\Gamma},\qquad
+ s_k\in\{0,1\}^L,\qquad
+ |\Gamma|=N(\log N)^{O(1)},\qquad L=(\log N)^{O(1)}.
+\]
+A bounded number of symbol positions suffices to test local validity,
+propose a neighboring symbol, or perform one correction step. Each such
+operation has Boolean complexity polynomial in $L$, with an exponent
+fixed before the later correction accuracy. Distinct valid words have
+constant symbol distance, and a word within a fixed symbol-error radius
+can be decoded globally in polynomial time.
+
+Begin with the sparse transcript graph of Section~\ref{sec:macrograph},
+whose vertices record partial computations of the predecessor and successor
+circuits and whose edges change one tape position and its occupation bit.
+Transcript validity is expressed by bounded-degree polynomial equations in
+the tape entries. Sampling an individual equation could miss one false
+equation. Sections~\ref{sec:outer-codes} and~\ref{sec:outer-programs}
+instead encode polynomial remainders recording the equation residuals,
+and retain certificates for the intermediate products and linear
+computations that produce them. On exact codewords, a nonzero remainder
+differs from zero at a constant fraction of positions. The code's commuting
+row and column constraints also permit whole-row or whole-column comparisons
+that give a constant gap for an incorrect certificate identity. All stored
+components are tested together on one fixed list of neighboring positions,
+so more certificates enlarge a symbol without diluting the gap.
+
+One tape edit can change all these encoded arrays. Before making an allowed
+edit, Section~\ref{sec:outer-representation} prepares each retained array's
+finite difference: its value on the edited tape minus its value on the old
+tape. Certificates introduced by this preparation need their own increments
+as well. Each new increment has lower assigned polynomial degree in the
+logical tape entries, so this recursion has bounded depth. Once preparation
+is complete, adding the increments updates the whole retained tuple to its
+canonical value on the new tape; the preparation can then be reversed.
+
+The remaining storage issue is the long linear computation needed to prepare
+an increment. It is carried out one small group of Fourier frequencies at a
+time: each such orbit is preserved by the encoder and has only
+polylogarithmically many frequencies. A clock records progress and scratch
+space is reused. Thus the preparation's elapsed time lengthens the
+represented path rather than the data stored at a vertex. The resulting
+words are the locally evolving $R_w$ above.
+
+\paragraph{One fixed binary port.}
+A polynomial-size robust construction applied directly to an $N$-bit
+vertex would not give the required size. Instead we apply it only to
+the $L$-bit outer symbols. The inner construction supplies one injective
+encoding
+\[
+ \mathcal D:\{0,1\}^L\longrightarrow\{0,1\}^{S_0},
+ \qquad S_0=\operatorname{poly}(L),
+ \qquad E_w=(\mathcal D(s_k))_{k\in\Gamma}.
+\]
+Its encoding and positive correction radius are chosen before the
+number of symbols inspected by a local function. From that fixed radius,
+it supports every prescribed fixed average accuracy for requests with
+bounded address density. More outer correction rounds may enlarge the number
+of symbols inspected, and hence the number of input ports in the resulting
+local computation. More inner correction rounds improve its requested
+bit accuracy. These choices may enlarge constant factors, but they do
+not change $\mathcal D$ or its radius. All polynomial factors in $L$
+remain fixed powers of $\log N$.
+
+Sections~\ref{sec:inner-algebra}--\ref{sec:inner-gadget} construct this
+port and its robust decision gadget independently of the outer
+reduction. For a fixed tuple $s=(s_1,\ldots,s_k)$ of $L$-bit inputs
+to a Boolean function $f$, the inner graph is one computation path with
+blank work at its source and output $f(s)$ at its sink. Polynomial charts encode its tapes and
+certificates. Their dependencies are kept separate for each read-only
+input, including throughout the finite-difference closure. Consequently
+the input-dependent parts of the source and its first successor have
+the same formulas in every later invocation. A one-input template at
+these two labels defines $\mathcal D(s_i)$ for one input $s_i$; its bits then supply the
+source data for an actual multi-input computation.
+
+The binary representation in Section~\ref{sec:inner-binary} adds
+point tables, line tables, and tables for the required products.
+Correction keeps both addresses in each product request and preserves
+the required bound on their joint distribution. Its error bound is averaged over requested coordinates;
+arbitrarily accurate correction at every individual coordinate is
+neither asserted nor needed. At the inner scale, the geometric
+construction forces a feedback state near the unique sink, where a
+positive fraction of encoded coordinates reveal $f(s)$. These become the
+many designated outputs of the decision gadget.
+
+\paragraph{From local decisions to an endpoint under gate failures.}
+Section~\ref{sec:outer-composition} uses the outer tester and correction
+routines to supply the field's local information. Two rounded blocks
+serve as possible vertex encodings. On good validation decisions, each
+accepted seed has a unique reference vertex; corrected calls supply its incident
+flags and the requested bits of its own and neighboring encodings.
+The geometric estimator reserves a bounded list of possible pieces and
+estimates their statistics before selecting a numerical winner.
+This order makes average bit accuracy sufficient even when the selected
+piece depends on the output coordinate.
+
+The generalized circuit has many physical replicas of each geometric
+coordinate. Write $X_{ir}$ for replica $r$ of component $i$, and
+$\bar X_i$ for their mean. A fixed-degree expander average $A$ couples
+the replicas. Each output is produced by a circuit that realizes the
+approximate relation
+\[
+ X_{ir}\approx\clip\bigl((AX)_{ir}
+                       +\beta\widehat v_{ir}(\bar X)\bigr),
+\]
+where $\widehat v$ is the bounded local field estimator. First, boundedness
+of the update and the expander gap force the replicas close to their
+means, without assuming that any decision is correct. This synchronization
+then bounds the number of reads far from their means. Randomized
+threshold offsets control ambiguous comparisons, and the gate-failure
+budget controls the circuits containing a failed gate.
+The randomness describes the sampling analysis: the printed circuit assigns
+replicas a deterministically enumerated list of fixed tapes of size polynomial
+in $L$.
+
+These charges apply to the complete wired computation. All hypothetical
+answer branches are allocated before routing, and each physical read
+occurrence is routed separately with bounded load. Expensive Boolean
+decision gadgets are shared by groups of output replicas. Their many
+designated outputs ensure that failures concentrated on extraction
+wires still spoil only a controlled fraction of the group. On reliable
+outputs the update approximates the true field; on unreliable outputs
+whose gates are satisfied, its bounded size still gives an error
+proportional to $\beta$, apart from the numerical gate tolerance. An estimate that keeps clipping inside the
+replica contraction argument then makes the mean an approximate fixed
+point. The displacement lower bound forces $\bar X$ near an endpoint.
+Rounding its first block and applying the global binary and outer
+decoders yields the required End-of-Line answer.
+
+The same synchronization, error charging, and clipped-mean argument is
+used inside the decision gadget. At that scale every output has its own
+bounded estimator circuit; the additional sharing of decision gadgets
+occurs only in the outer composition. In both uses, a fixed hypothetical
+answer branch is analyzed under the original random-tape law, rather
+than by conditioning on that branch being executed.
+
+\paragraph{Organization and imported inputs.}
+Section~\ref{sec:outer-composition} assembles the main theorem from
+the outer representation, the port interface stated there, and the
+independent geometric interface. It proves universal decoding, the
+complete binary size bound, and rational-witness totality.
+Sections~\ref{sec:inner-algebra}--\ref{sec:inner-gadget} prove the port
+interface, and Section~\ref{sec:geometry} proves both the displacement
+bound and finite numerical access. Section~\ref{sec:weak-nash} gives
+the consequences described below. Appendix~\ref{sec:extensions}
+collects the separate full-macrograph and unrestricted-product variants;
+these are not prerequisites for the fixed-port composition.
+
+The outer code uses ternary Goldbach, fixed-generator prime-quotient
+expansion, and an effective least-prime bound
+\cite{Helfgott2013,BG2008,Xylouris2011}. Its simultaneous systematic
+encoders, matrix twists, and joint correction guarantees are proved
+here; a general locally testable code theorem such as~\cite{DEL+2022}
+does not by itself supply this combination. The inner binary construction
+uses the corrected scalar line test and two group-theoretic inputs
+\cite{FS1995,EJZ2010,Shalom1999}; its vector replacement, affine
+expansion, and average correction are proved here. The all-modulus
+Margulis--Gabber--Galil bound supplies the local and replica walks
+\cite{MGGAFP}. The inner fields and groups are introduced afresh and
+are distinct from those of the outer construction.
+
+\subsection{Consequences for games and markets}
+
+Section~\ref{sec:weak-nash} applies the theorem to the conditional
+reductions for weak approximate Nash and relative bimatrix Nash
+\cite{BPR2016}, course allocation~\cite{BPR2016}, markets with
+approximately optimal bundles~\cite{Fisher2026}, stationary equilibria
+in discounted games~\cite{DGZ2023,PZO2025,FKPP2026}, and approximate
+Hylland--Zeckhauser allocation~\cite{HZ2026}. For each target we state
+the precise approximation and encoding conventions before its
+consequence. The cited reductions provide the transfers to these
+problems. We supply the needed gate-basis and fan-out conversions, track
+their fixed error and failure losses, and verify the rational witness
+and decoder bounds. These consequences use fixed-gap circuit hardness;
+the quasilinear complete-output bound is the additional assertion of
+Theorem~\ref{thm:main}.

@@ -1,0 +1,861 @@
+\section{Matching states and structural operations}
+\label{sec:matching-state}
+
+We describe a perfect-matching procedure on a loopless graph of maximum
+degree three.  This section develops its combinatorial state, exact
+ledger transformations, and structural searches.  The local implementation
+of projection and the phase analysis follow in
+Section~\ref{sec:projection-analysis}.  The dynamic optimization interface
+used here is Lemma~\ref{lem:priced-steps}, proved later.
+
+The graph has \(N\le S\) vertices, where \(S=2^s\) is a master size bound.
+Disconnected graphs are allowed; parallel edge copies retain separate
+identifiers, and degree counts incidences.  A successful answer is an
+explicit perfect matching, checked before acceptance.  A negative answer
+may arise from a capped randomized search, whose error is bounded later.
+A deterministic prerequisite failure instead suspends this parameter
+branch without an answer.  Perfect matchability will prove progress,
+never a running-time bound.
+
+\subsection{The phase state and its ledgers}
+\label{match:parameters}
+
+The empty graph is settled directly, and odd \(N\) gives a negative
+answer.  Otherwise start with the empty matching and work in phases.
+A phase starts with an actual matching \(M\), whose positive deficit
+is \(K=N/2-|M|\).  At deficit zero the procedure is finished.
+Within a phase we represent the changing matching by odd blocks and
+single vertices assigned to those blocks.
+
+A \emph{bin} is a physical odd vertex set with a constructive
+factor-critical witness: after prescribing any one vertex as its
+exposure, the others can be matched internally.  Its weight is
+\(w_d=(|d|+1)/2\).  The bins form a disjoint family \(\mathcal D\).
+The \emph{rows} \(\mathcal A\) are physical singleton vertices outside
+them.  An explicit injection
+\[
+                         \mu:\mathcal A\longrightarrow\mathcal D
+\]
+assigns each row along a specified physical edge to its bin.
+The bipartite incidence graph \(\mathcal B\) contains \emph{every}
+physical row--bin edge, with different incidences retained separately.
+Each row has degree at most three.
+
+An assigned bin exposes the physical endpoint of its assigned edge
+and is matched there to its row.  A free, or unassigned, bin exposes
+one unmatched vertex.  The remaining unblocked vertices form a set
+\(U\) of explicitly matched pairs.  A phase may also set aside
+individual unmatched vertices as \emph{blockers}.  This state specifies
+an actual matching, although a changed internal exposure need not be
+propagated through a bin witness until materialization.  Initially the
+bins are the unmatched singleton vertices, \(U\) contains all matched
+pairs, and there are no rows or blockers.
+
+Constructive odd blocks, with an exposed vertex chosen during expansion,
+follow the blossom contraction-and-expansion tradition of
+Edmonds~\cite[Sections~4.10--4.14 and 7.1--7.2]{EdmondsPaths}.
+Here each block carries the witness needed to expand the represented
+matching; the phase analysis below proves the required progress bound.
+
+For \(X\subseteq\mathcal D\), define its captive rows and deficiency by
+\begin{equation}
+ A(X)=\{r\in\mathcal A:N_{\mathcal B}(r)\subseteq X\},
+ \qquad h(X)=|X|-|A(X)|.
+ \label{match:deficiency}
+\end{equation}
+Each row has its assigned bin as a neighbor.  The injection therefore
+gives \(h(X)\ge0\), even at intermediate states.
+Write \(v(X)=\sum_{d\in X}v_d\) for a bin function \(v\).
+
+Fix integers \(a\ge1000\) and \(0\le\sigma\le a+1\), and set
+\(C=a+1\).  The phase seeks
+\begin{equation}
+ g_*=\max\left\{1,\left\lfloor\frac{K}{100C}\right\rfloor\right\},
+ \qquad L=\left\lceil\frac{10000CN}{K}\right\rceil
+ \label{match:phase-parameters}
+\end{equation}
+gains, each increasing the matching size by one.  The parameter \(L\)
+will be the amount allocated by each row in the ledgers below.
+The choices balance the gain target against the work permitted per
+gain: \(Lg_*=O_a(N)\), including when \(K<100C\), since then
+\(g_*=1\) and \(L\le10000CN+1\).  At a phase boundary we materialize
+the matching and initialize a new state.
+
+For the reset periods, pricing steps and exact arithmetic, put
+\begin{equation}
+ B=2^{\lceil s/a\rceil},\qquad q=B^{-100},\qquad
+ \delta=S^{-1000},\qquad \varepsilon=S^{-3000}.
+ \label{match:small-parameters}
+\end{equation}
+The top ledger uses the grid \(\varepsilon\mathbb Z\); the other
+ledgers use integers.  Their common purpose is to retain enough
+unallocated capacity at each bin to rearrange the row assignment.
+Debt records a temporary shortfall from the specified residual floor.
+
+\begin{definition}[Ledger invariant]
+\label{match:invariant}
+There are ledgers \(j=0,\ldots,a\), with \(c_j=C-j\).
+Ledger \(j\) has nonnegative incidence allocations \(x^j_e\), with
+\[
+ \sum_{e\text{ at row }r}x^j_e=L\qquad(r\in\mathcal A).
+\]
+Its column residual and nonnegative debt are
+\[
+ y^j_d=L-\operatorname{load}^j_d,\qquad
+ \operatorname{load}^j_d=\sum_{e\text{ at bin }d}x^j_e,\qquad
+ p^j_d\ge0,
+\]
+and they satisfy
+\begin{equation}
+                         y^j_d+p^j_d\ge c_jw_d.
+ \label{match:ledger-floor}
+\end{equation}
+At the top level,
+\begin{equation}
+ x_e=x^0_e>0,\qquad s_d=y^0_d+p^0_d-Cw_d>0
+ \label{match:top-slack}
+\end{equation}
+are \(\varepsilon\)-grid coordinates.  The other ledgers are integral.
+At each settled main-loop state, the bottom debt \(p^a\) is zero.
+\end{definition}
+
+Initially allocations are empty and debts vanish.  Singleton residuals
+are \(L\), and \(L>C\), so the top slacks are positive.
+
+\begin{lemma}[Bottom surplus]
+\label{match:bottom-surplus}
+At each settled state and every nonempty \(X\subseteq\mathcal D\),
+\begin{equation}
+                       Lh(X)\ge y^a(X)\ge w(X)>0.
+ \label{match:bottom-certificate}
+\end{equation}
+Thus \(h(X)\ge1\), every bin has weight at most \(L\), and a tight
+set \(h(X)=1\) has total weight at most \(L\).
+\end{lemma}
+\begin{proof}
+Every captive row allocates all \(L\) units inside \(X\), so
+\(\operatorname{load}^a(X)\ge L|A(X)|\) and \(y^a(X)\le Lh(X)\).
+Zero bottom debt and \(c_a=1\) give \(y^a(X)\ge w(X)\).
+Weights are positive integers, proving the assertions.
+\end{proof}
+
+The ledgers have three roles.  At settled states the debt-free bottom ledger supplies the
+strict Hall surplus just proved; the top ledger supplies a smooth progress
+objective; and the intermediate integral ledgers make repairs local and
+amortizable.  Adjacent floors differ by one.  In a failed projection,
+this gap provides the margin that pays for the peeled
+weight in each preserved coarser ledger, as proved in
+Lemma~\ref{match:exchange-projection}.
+
+\subsection{The top objective and the pricing primitive}
+
+The top ledger chooses its next allocation by increasing
+\begin{equation}
+             \Phi=\sum_{e\in E(\mathcal B)}\log x_e+
+                         \sum_{d\in\mathcal D}\log s_d.
+ \label{match:top-objective}
+\end{equation}
+Orient allocation arcs from rows into bins, and add a slack arc
+\(s_d\) from one common auxiliary vertex into each bin.
+For fixed \(p^0,w\), circulation increments preserve exactly the
+row sums and the column equations
+\[
+                 \sum_{e\text{ at }d}x_e+s_d=L+p^0_d-Cw_d.
+\]
+Conversely, respecting these equations gives a circulation:
+the common slack-source equation follows by summing them and the
+row equations.
+
+Here is the part of Lemma~\ref{lem:priced-steps} needed to read the
+matching algorithm.  Let \(f\) denote the vector of its positive
+allocation and slack coordinates; here the gradient and derivative-sum
+lengths are \(g_e=\lambda_e=1/f_e\).  A successful pricing call makes
+an exact \(\varepsilon\)-grid circulation increment \(h\) with
+\(\sum_e |h_e|/f_e\le q/100\), preserves positivity, and increases
+\(\Phi\) by \(\Omega(q^2)\).  Its alternative outcome
+\(\mathrm{LOW}\) is impossible whenever a circulation direction
+\(d\ne0\) satisfies
+\[
+                  \sum_e\frac{d_e}{f_e}
+                     \ge\frac12\sum_e\frac{|d_e|}{f_e},
+\]
+unless the primitive reports a stochastic failure or suspends.
+The sums here range over both kinds of arc in the top graph.
+
+The primitive stores the exact values implicitly and supplies cached
+registers \(\widehat f_e\).  After settling its notifications they obey
+\( |f_e-\widehat f_e|\le(q/100)\widehat f_e\).
+It reports refreshed coordinates in a list, so the client can repair
+small arguments and update expansion eligibility without scanning all
+coordinates after a step.  The number of these notifications is charged
+to successful pricing steps by Lemma~\ref{lem:priced-steps}.
+Explicit point reads and settings remain available.  Section~\ref{sec:engine}
+proves this interface and its time and reliability bounds; below we verify
+the positivity and representation conditions required of this client.
+
+Check the loose prerequisites
+\begin{equation}
+ S\ge2^{100},\qquad 100000C\le S^{1/20},\qquad
+ B\le S^{1/20},\qquad q\ge S^{-1}.
+ \label{match:initial-guards}
+\end{equation}
+Cap main-loop actions, including structural operations and pricing
+attempts, at \(S^{20}\) per phase.  Separately cap pricing iterations in
+each local threshold test of Section~\ref{sec:projection-analysis}
+at \(S^{20}\).  Each engine instance has its stated \(S^{100}\)
+external-operation guard, together with incrementally checked numerical
+and representation bounds.  Failed prerequisites or deterministic caps
+suspend the branch.  Exhaustion of a prescribed randomized search
+instead returns a negative perfect-matching answer immediately.
+The guarded-prefix analysis will show that the deterministic checks
+interrupt no path for sufficiently large \(S\), at each fixed
+sufficiently large choice of \(a,\sigma\).
+
+\subsection{The main actions and exact ledger edits}
+
+The actions below distinguish progress in matching size from changes
+to its representation.  A gain increases the size by one; contraction
+and expansion preserve it.  A projection may also peel bins, moving
+their free exposures to the blocker list without changing matching
+size.  Whenever the phase continues, the scheduled projection restores
+the debt-free bottom ledger before the next settled state.
+
+At a settled state, take the first applicable action in this order.
+\begin{enumerate}[label=\arabic*.]
+\item If a physical edge joins distinct bins \(i,j\), use it.
+If the injection can be rearranged to leave both free, match their
+prescribed exposed endpoints along this edge and move their vertices
+into \(U\).  This is a gain.  The \(g_*\)-th gain ends the phase
+immediately, without further ledger repair.
+Otherwise contract the unique minimal tight \(X\supseteq\{i,j\}\),
+with \(h(X)=1\), together with its captive rows to one bin.
+The witnesses and efficient randomized implementation are proved below.
+\item If bin \(d\) has an edge to \(v\in U\) and cached top slack
+\(\widehat s_d\ge4C\), expand along it.  Make \(v\) a row and its
+current \(U\)-mate a singleton bin, with their old match as assigned edge.
+\item If neither action applies, request a top pricing step from
+Lemma~\ref{lem:priced-steps}.  LOW or explicit sampling failure returns
+a negative answer; suspension suspends the parameter branch.
+\end{enumerate}
+After each nonterminal structural operation, perform the scheduled
+projection below before returning to a settled state.
+
+In a contraction, \(|A(X)|=|X|-1\), so the new block has physical
+size \(2w(X)-1\) and weight \(w(X)\).  Delete captive rows and preserve
+every other assignment.  At most one exterior assignment entered
+\(X\), because captive rows already assigned \(|X|-1\) of its bins.
+Retain allocations on surviving incidences and aggregate \(p,y\),
+and top \(s\), by summing over \(X\).  This is exact: removing captive
+rows deletes \(L(|X|-1)\) load, while \(|X|\) residual columns become
+one.  New incidences, including edges from a surviving row to a
+swallowed row, start at zero in integral ledgers; the top uses the
+positivity modifications below.
+
+On expansion, ledger \(j\ge1\) allocates the new row's whole \(L\)
+to its assigned child and gives that child debt \(c_j\).
+Its other new incidences start at zero.  At the top, place \(C+1\)
+units on the trigger incidence into the parent and \(L-C-1\) on
+the assigned child incidence, with no initial child debt.
+The child has top slack one.  Lemma~\ref{match:top-maintenance}
+ensures actual parent slack at least \(3C\), leaving it positive
+after paying \(C+1\).  Other new top incidences receive the small
+positive padding specified there.
+
+The following deletion transformation applies to gains and projection
+peels.  Given bins \(R\), remove all rows assigned to \(R\).
+For a peel, materialize each assigned bin with its row as matched
+pairs in \(U\).  For each free bin, place its exposed vertex on the
+blocker list and its other vertices into matched pairs in \(U\).
+At a gain the two newly freed bins instead use their joining edge,
+so no blocker is introduced.
+
+\begin{lemma}[Deletion and net debt]
+\label{match:deletion}
+In a preserved ledger of floor \(cw\), redirect each allocation of
+a surviving row into \(R\) to its current assigned edge, adding an
+equal debt at the recipient bin.  This preserves the exterior
+ledger invariant.  If \(O\) is redirected mass, \(I\) is removed
+rows' allocation to the exterior, and \(f\) is the number of free
+bins removed, then
+\begin{equation}
+ \begin{split}
+ O&=I+Lf-y(R),\\
+ I&\le L(h(R)-f),\\
+ \Delta\!\left(\sum_d p_d\right)=O-p(R)&\le Lh(R)-cw(R).
+ \end{split}
+ \label{match:deletion-debt}
+\end{equation}
+The last bound is at most \(2L\) at a gain.
+A gain decreases the represented unmatched count by two;
+contractions, expansions, and peels leave it unchanged.
+\end{lemma}
+\begin{proof}
+A surviving row's assigned bin is outside \(R\).
+The added allocation and debt cancel in \(y+p-cw\);
+removing rows only increases exterior slack.
+
+Exactly \(|R|-f\) rows are removed.  Their allocation into \(R\)
+is \(L(|R|-f)-I\), giving
+\[
+ y(R)=L|R|-\bigl(L(|R|-f)-I+O\bigr)=Lf+I-O.
+\]
+Every captive row is removed, as its assigned bin lies in \(R\).
+Only the other \(h(R)-f\) removed rows contribute to \(I\).
+Deleting debt \(p(R)\) and adding \(O\) gives the exact net debt
+change, and \eqref{match:ledger-floor} gives the inequality.
+At a gain, \(R\) has two bins and \(h(R)\le2\).
+
+There is one unmatched vertex per free bin or blocker.
+Expansion adds one bin and one assigned row.  Contraction replaces
+\(|X|\) bins and \(|X|-1\) assigned captive rows by one bin,
+preserving any exterior assignment.  A peel transfers free bins'
+unmatched vertices to blockers.  A gain matches two free exposures.
+This proves the unmatched-count assertions.
+\end{proof}
+
+\subsection{Maintaining the top barrier}
+
+Structural edits change the graph and its column equations, while pricing
+preserves those equations.  We now specify the local positivity repairs
+that make both operations compatible with the pricing interface.
+
+\begin{lemma}[Top maintenance]
+\label{match:top-maintenance}
+The top ledger can be maintained on the \(\varepsilon\)-grid with
+logarithmic arguments above \(\delta\) before pricing and above
+\(\delta/10\) at refreshes.  Apart from structural work, repairs
+cost constantly many explicit point operations per dirty coordinate.
+Between structural operations a small-allocation repair decreases
+\(\Phi\) by at most \(O(\delta)\), and slack repairs never decrease it.
+Positivity repairs add less than \(S^{-800}\) debt on every guarded
+phase prefix.  Moreover,
+\begin{equation}
+ \begin{split}
+ \widehat s_d\ge4C&\ \Longrightarrow\ s_d\ge3C,\\
+ \text{no eligible expansion}&\ \Longrightarrow\
+ s_d\le5C\quad\text{for every bin with a \(U\)-contact}.
+ \end{split}
+ \label{match:contact-slacks}
+\end{equation}
+\end{lemma}
+\begin{proof}
+A new positive allocation receives \(4\delta\) from a large donor
+in its row.  Reading its at most three entries finds such a donor,
+since their sum is \(L\).  Add \(4\delta\) debt at the destination
+bin.  Its increased load is canceled by the debt; the donor bin's
+slack increases by \(4\delta\).  If both bins coincide, their load
+is unchanged and their slack still increases by that amount.
+The two specified large entries of a newly expanded row may be
+installed first and used as donors for its remaining incidences.
+
+Use the same transfer whenever an existing allocation has cached
+value at most \(3\delta\).  If a cached slack is at most \(3\delta\),
+increase that slack and its debt by \(4\delta\).  Read touched values
+exactly and re-anchor explicit settings.  Check touched slacks after
+exact re-anchoring too, including values at the small-value threshold.
+
+Between motions or structural changes, each row has at most three
+entries to repair.  A donor initially at least \(L/3\) remains large
+after these tiny transfers.  Both changed allocations are re-anchored
+at nonsmall values.  Transfers never decrease a slack, and a slack
+repair changes no other barrier coordinate.  Engine notifications
+arising during settlement are queued and served, but price and
+forest maintenance itself causes no primal motion.  Without a new
+motion or structural change, an already repaired coordinate cannot
+require another repair.  Thus there is no uncharged repair chain.
+
+For a single positive logarithm the register bound gives
+\[
+                         |f-\widehat f|\le(q/100)\widehat f.
+\]
+After service, an unrepaired coordinate has cached value above
+\(3\delta\), while a repaired one has been increased and re-anchored
+by \(4\delta\).  This bound and the step-size bound leave the stated
+margins before a step and at refreshes after it.
+Contraction aggregates positive slacks; deletion increases surviving
+slacks; expansion has the positive margins specified above.
+New descriptors are inserted only after their positive final values
+are computed.  All settings are exact \(\varepsilon\)-grid operations.
+
+Only the large donor's logarithm can decrease during a transfer,
+by \(O(\delta)\); recipient allocation and donor slack increase.
+A slack repair increases its logarithm.  There are \(O(S)\)
+coordinates at any state, with constantly many repairs per coordinate
+or changed physical incidence between motions or structural batches.
+The \(S^{20}\) phase-action cap and the no-motion observation give,
+very crudely, at most \(S^{30}\) such fixes on a guarded prefix,
+including the last completed edit batch.  Consequently their
+\(4\delta\) debt additions total less than \(S^{-800}\).
+This precision estimate does not permit scanning all coordinates
+after each step: only touched entries and dirty notifications are
+serviced.
+
+Maintain bin-to-\(U\) contact lists and a cached-slack eligibility
+index.  The relative register inequality, with \(q<1\), gives
+\(s_d\ge3C\) when \(\widehat s_d\ge4C\); if no eligible contact
+exists, its cached slack is below \(4C\) and its true slack below
+\(5C\).
+\end{proof}
+
+An explicit edit batch reads affected coordinates exactly, retains
+unchanged allocations on retargeted incidences, and computes positive
+final settings before insertions or descriptor changes.  No pricing
+occurs before its full row and column equations settle.  The identity
+\(y^0_d=s_d-p^0_d+Cw_d\) supplies a top residual without summing
+implicitly moving incidences.  Old descriptors and edge mappings
+remain available through removal transactions.  Dirty-entry service
+is completed before selecting the next main action.
+
+Use nominal top-engine lifetime size \(R=SB\).  Lifetime size counts
+vertex and edge births and endpoint insertions, including retargeting;
+mere value settings, positivity fixes, and repricing on retained
+topology do not create new incidences.  Lemma~\ref{lem:priced-steps}
+charges
+\[
+ \bigl(R+B+\#\{\text{external pricing, point, or edge operations}\}\bigr)
+                  S^{O(1/a)+o_a(1)}
+\]
+instructions under \(R+B\le S^{1+2/a}\), with polynomial labels
+renumbered if needed.  The phase analysis verifies this nominal
+size and the numerical bounds on sufficiently large guarded prefixes.
+Engine notifications are paid by actual pricing motion, not by a
+global scan.
+
+\subsection{Reset schedule and the exact exchange problem}
+\label{match:reset}
+
+A phase has a tick counter initially zero.  A contraction or expansion
+contributes one tick; a gain needing ledger repair contributes \(L\).
+A projection peel contributes no ticks.  For \(j=0,\ldots,a\), put
+\begin{equation}
+                             b_j=B^{a-j}.
+ \label{match:periods}
+\end{equation}
+After preliminary structural edits, choose the smallest
+\(j\in\{1,\ldots,a\}\) whose period quotient increased during the
+event.  Such a level exists since \(b_a=1\).  Construct a fresh
+zero-debt \(j\)-ledger of floor \(c_jw\), and give every deeper
+level a copy with zero debt.  Projection may peel one simultaneous
+bin set.  The coarser levels \(0,\ldots,j-1\) are preserved through
+it using Lemma~\ref{match:deletion}.
+
+For \(j>1\), start from the just-current integral parent \(j-1\),
+whose debt total is \(P=\sum_dp_d\).  For \(j=1\), instead use
+\(L\) on each current assigned edge and zero elsewhere; no top
+snapshot is needed.  Set \(c=c_j\) and define
+\begin{equation}
+ b(d)=(cw_d-y_d)_+,\qquad u(d)=(y_d-cw_d)_+,\qquad
+ \beta=\sum_db(d).
+ \label{match:exchange-demands}
+\end{equation}
+The exchange network has source-to-bin capacities \(b(d)\),
+bin-to-sink capacities \(u(d)\), and, for every incidence \(e=(r,d)\),
+\[
+                d\longrightarrow r\quad[x_e],
+       \qquad   r\longrightarrow d\quad[L+1],
+\]
+where brackets indicate integral upper capacities and all lower
+capacities are zero.
+
+\begin{lemma}[Exact exchange projection]
+\label{match:exchange-projection}
+An integral maximum flow in the exchange network produces either
+a zero-debt ledger of floor \(cw\) on the whole state, or a nonempty
+bin set \(R\) whose peel leaves such a ledger on the remaining state.
+In the latter case,
+\begin{equation}
+                              Lh(R)<c_jw(R).
+ \label{match:failed-floor}
+\end{equation}
+Every preserved coarser ledger loses at least \(w(R)\) in net debt,
+and the number \(f\) of new blockers satisfies
+\begin{equation}
+                         f\le h(R)<\frac{Cw(R)}{L}.
+ \label{match:peel-blockers}
+\end{equation}
+\end{lemma}
+\begin{proof}
+For an integral maximum flow \(F\), set
+\[
+                   x'_e=x_e-F_{d,r}(e)+F_{r,d}(e).
+\]
+Every row has total incoming exchange capacity \(L\), so its
+outgoing exchange flow is at most \(L\).  Thus \(x'\ge0\), its
+row sums are \(L\), and no row-to-bin arc of capacity \(L+1\)
+is saturated.  If \(F_{\mathrm{src},d}\) and
+\(F_{d,\mathrm{snk}}\) denote source and sink arc flows, then
+\[
+                 y'_d=y_d+F_{\mathrm{src},d}-F_{d,\mathrm{snk}}.
+\]
+At value \(\beta\), all deficits are filled while a spare loses
+at most \(u(d)\), proving \(y'\ge cw\).
+
+Otherwise let \(R\) be \emph{all} residual-reachable bins.
+For an incidence \(e=(r,d)\), residual capacity from \(d\) to \(r\),
+combining the original arc and the reverse of its companion, is
+\[
+                       x_e-F_{d,r}(e)+F_{r,d}(e)=x'_e.
+\]
+A positive allocation into a reachable bin makes its row reachable.
+All that row's neighbors are reachable because its row-to-bin arcs
+are unsaturated.  The rows allocating into \(R\) are therefore
+exactly its captives, which allocate their full \(L\) there.  Hence
+\(y'(R)=Lh(R)\).  Every reachable spare sink arc is saturated,
+whereas some reachable source deficit remains unsaturated.
+Summing the residual changes over \(R\) gives
+\eqref{match:failed-floor}.
+
+Every deficit outside \(R\) is saturated, as otherwise its source
+arc would make it reachable; so \(y'\ge cw\) there.  A surviving
+row has no allocation into \(R\), since such a row would be captive
+and removed.  Removing the assigned rows of \(R\) only increases
+exterior residuals.  Restricted \(x'\) is the requested ledger.
+
+For a coarser level \(\ell<j\), one has \(c_\ell\ge c_j+1\).
+Lemma~\ref{match:deletion} gives net debt change at most
+\[
+                         Lh(R)-c_\ell w(R)<-w(R).
+\]
+Thus at least \(w(R)\) is paid.  Every captive is among the
+removed assigned rows, giving \(f\le h(R)\); now
+\eqref{match:failed-floor} and \(c_j\le C\) give the blocker bound.
+\end{proof}
+
+At \(j=1\), construct this network globally and use
+Lemma~\ref{lem:integral-flow}, with
+Lemma~\ref{lem:capacity-scaling} if necessary.  Its size is \(O(S)\)
+and its capacities are polynomial in \(S\), yielding
+\(S^{1+o(1)}\) time including the arc-flow vector and residual cut.
+For \(j>1\), the parent inequality \(y+p\ge(c_j+1)w\)
+permits the local implementation of Lemma~\ref{lem:projection}.
+It returns these exact allocation modifications and, when needed,
+the entire residual-reachable peel set in
+\[
+                            (P+B)S^{O(1/a)+o_a(1)}
+\]
+time.  Its engine calls have their individual conditional failure
+budgets.  A flagged failure ends this perfect-matching test negatively;
+a deterministic suspension suspends the branch.
+
+\subsection{Tight sets and factor-critical contraction}
+
+\begin{lemma}[The tight-set alternative]
+\label{match:tight-contraction}
+Suppose \eqref{match:bottom-certificate} holds and an edge joins
+distinct bins \(i,j\).  Either the injection can be rearranged to
+leave both free, or a unique inclusion-minimal
+\(X\supseteq\{i,j\}\) satisfies \(h(X)=1\).
+In the latter case \(w(X)\le L\), and the physical block
+\(\bigl(\bigcup_{d\in X}d\bigr)\cup A(X)\) is constructively factor-critical using the joining
+edge, its row--bin incidences, and its child-bin witnesses.
+\end{lemma}
+\begin{proof}
+An injection avoiding forbidden bins \(F\) exists precisely when
+\[
+                        |A(Z)|\le |Z\setminus F|
+                   \qquad(Z\subseteq\mathcal D).
+\]
+Necessity is immediate.  For sufficiency, apply Hall's condition~\cite[Theorem~1]{Hall1935}
+to any row subset: if \(Z\) is its full neighbor set, those rows
+belong to \(A(Z)\), and \(Z\setminus F\) is large enough.
+For \(F=\{i,j\}\), the criterion becomes
+\begin{equation}
+                          h(Z)\ge |Z\cap\{i,j\}|.
+ \label{match:joint-hall}
+\end{equation}
+By the bottom surplus, failure means exactly a tight set containing
+both bins.
+
+Each neighborhood-inclusion indicator in \(|A(Z)|\) is
+supermodular; thus \(h\) is submodular.  Two tight sets containing
+\(i,j\) have nonempty intersection and union, both of deficiency
+at least one.  Submodularity forces their intersection to be tight.
+Intersecting all such sets gives the unique minimal \(X\).
+Its weight bound follows from Lemma~\ref{match:bottom-surplus}.
+
+To expose a physical vertex \(v\) in child bin \(d\in X\),
+match all captive rows into \(X\setminus\{d\}\).
+The Hall inequalities are \(h(Z)\ge1\) when \(d\in Z\)
+and \(h(Z)\ge0\) otherwise, for \(Z\subseteq X\).
+Expose \(v\) inside \(d\) and each assigned edge's physical contact
+inside every other child.
+
+To expose a captive row \(r\), match \(i,j\) along the joining edge,
+and match the other captives into \(X\setminus\{i,j\}\).
+The needed Hall inequalities are
+\begin{equation}
+ h(Z)+\boldsymbol1_{\{r\in A(Z)\}}\ge |Z\cap\{i,j\}|
+                         \qquad(Z\subseteq X).
+ \label{match:captive-exposure-hall}
+\end{equation}
+A proper subset containing both \(i,j\) has \(h(Z)\ge2\) by
+minimality and integrality.  Other nonempty proper subsets use
+\(h(Z)\ge1\), and the empty set is harmless.  For \(Z=X\),
+the deficiency is one and \(r\) is captive.  Thus
+\eqref{match:captive-exposure-hall} holds.  Each child exposes its
+actual prescribed physical contact, so the child witnesses lift
+these injections and the joining edge to the desired internal
+matchings.
+\end{proof}
+
+\subsection{Bounded searches for a bin pair}
+
+We implement the alternative without examining the physical interiors
+of visited bins, first testing for a small tight set and then trying
+a joint freeing.
+
+\paragraph{A capacity-one witness.}
+Use a directed reverse graph with split vertices
+\(d_{\rm in}\to d_{\rm out}\) of capacity one for each bin.
+The source has capacity-two arcs to \(i_{\rm in},j_{\rm in}\).
+A free bin's output has a capacity-two arc to the sink.
+An assigned bin's output has capacity-two arcs to the inputs
+of all neighbors of its assigned row, retaining individual incidences.
+Original outdegrees are bounded.
+
+For the minimal tight \(X\), its \(|X|-1\) captive rows are assigned
+to all but one bin \(t\) of \(X\).  The set comprising the source,
+all inputs of \(X\), and all outputs of \(X\setminus\{t\}\)
+has at most \(2|X|\) vertices and outgoing capacity one: only
+\(t\)'s split arc leaves it.  The original sink is reachable.
+Otherwise all reachable bins are assigned, and their assigned rows
+have every neighbor among those bins, contradicting positive
+deficiency for that nonempty set.
+
+Use doubling vertex budgets \(v_0=1,2,4,\ldots\), through the first
+budget at least \(8L\).  A fresh trial explores the original graph
+from the source until reaching the sink or visiting \(v_0\) vertices.
+Send one unit along a predecessor path, ending at the sink if reached,
+and otherwise at a uniformly sampled visited vertex.
+Then explore residual reachability with the same budget.
+
+When \(v_0\ge4|X|\), either the endpoint is the sink or exactly
+\(v_0\) vertices were visited.  At most \(2|X|\) of the latter
+lie in the small cut, so the endpoint is outside with probability
+at least one half.  A simple predecessor path to the exterior
+uses its sole outgoing arc once and cannot return: it would then
+have to use that same outgoing arc again to reach its endpoint.
+It therefore saturates the outgoing capacity and has no positive
+incoming flow across the cut.  The cut has no outgoing residual arc.
+Since \(v_0>2|X|\), residual search then exhausts without the sink.
+
+Only a \emph{fully exhausted, sink-free} residual source side is
+accepted.  Its original outgoing arcs are saturated and its incoming
+flow is zero, so its original outgoing capacity equals net path flow,
+at most one.  That capacity is positive since the original sink was
+reachable.  It is therefore exactly one.  No capacity-two arc crosses
+the source side: the unique crossing is a split arc, both specified
+inputs are inside, and every included output has all of its assigned
+row's neighbors inside.
+
+An included output has its own input inside too.  It is reached either
+through its split arc, or through the residual reverse of an original
+outgoing arc.  In the second case that outgoing arc carried the
+predecessor-path flow, so its split arc also carried flow and has
+a residual reverse to its input.  Thus the included inputs form a
+bin set \(X'\) in which all except the crossing-split bin have distinct
+captive assigned rows.  Consequently \(h(X')\le1\), and the bottom
+surplus makes \(X'\) a tight witness containing \(i,j\).
+Truncated searches and searches reaching the sink certify nothing.
+
+\paragraph{Refining a witness.}
+List the captives of \(X'\) through its assigned bins, checking each
+row's bounded neighbor list.  On these rows and bins, use source-to-row
+capacities one, row-to-bin capacities \(H_\infty\), bin-to-sink
+capacities one, and additional source arcs of capacity \(H_\infty\)
+to \(i,j\), where \(H_\infty=2|X'|+3\) exceeds the finite cut values
+of interest.  Given a bin source side \(Z\supseteq\{i,j\}\), the
+optimal row source side is \(A(Z)\), with cut capacity
+\[
+                             |A(X')|+h(Z).
+\]
+The minimum is \(|A(X')|+1\).  Start with the captive assigned edges,
+a flow of value \(|A(X')|\).  One augmentation reaches the maximum,
+and residual reachability gives its smallest source-side minimum cut.
+Its bins are the unique minimal tight \(X\).  This costs linear
+work in \(|X'|\), up to dictionaries.
+
+Repeat fresh trials at each budget as specified below.
+After refinement, if the discovery budget exceeds \(16|X|+16\),
+abort the perfect-matching test negatively.  On a tight pair this
+requires failure of every trial at the first budget at least
+\(4|X|\).  On every path, however, a continued contraction costs
+only \(O(|X|\polylog S)\), with fixed-parameter reliability factors;
+a final abort may cost \(O(L\polylog S)\).
+The one pushed path creates only linearly many residual reversals,
+so each bounded exploration has linear budget cost up to dictionaries.
+
+\paragraph{Freeing two bins.}
+If no tight witness is found, try to free the bins jointly.
+At an assigned bin, a reverse walk follows an incidence of its
+assigned row with probability \(x^a_e/L\); free bins absorb.
+For the transition submatrix \(P_m\) on assigned bins, each
+destination column \(d\) has sum at most
+\[
+                  \operatorname{load}^a_d/L\le1-w_d/L.
+\]
+This remains true after an injection rearrangement: each assigned
+row still supplies exactly one transition row.  Since \(w_d\ge1\),
+the probability of surviving \(\ell\) steps from any start is at most
+\begin{equation}
+                              N\exp(-\ell/L).
+ \label{match:walk-survival}
+\end{equation}
+Indeed the matrix column norm is at most \(1-1/L\).
+Each entry of \(P_m^\ell\) is at most its column sum, and summing
+a starting row over at most \(N\) columns proves the bound.
+
+First free \(i\) by a successful walk to a free bin: erase loops
+while keeping the assignment fixed, and then shift each encountered
+row to the next bin of the resulting path.  If \(i\) was already
+free, no change is needed.  With the new injection, joint freeability
+guarantees a path from \(j\) to another free bin, avoiding \(i\),
+in the \emph{full-neighbor} reverse graph.  Otherwise the exhausted
+set \(T\) of reached assigned bins has all its assigned rows captive
+in \(T\cup\{i\}\).  This set contains \(i,j\) and has deficiency at
+most one, contrary to \eqref{match:joint-hall}.
+
+Explore until another free bin is reached, or until reaching \(8L\)
+distinct assigned bins.  In the first case use its predecessor path.
+In the second, sample a reached bin uniformly, retain its prefix
+path from \(j\), and try a bottom-ledger walk from there.
+Let \(H_d\) be the probability of eventually hitting \(i\) from an
+assigned bin, and \(p_i\) the one-step column into \(i\).
+For the assignment fixed during this attempt,
+\begin{equation}
+ H=P_mH+p_i,\qquad
+ w^{\mathsf T}H\le L\boldsymbol1^{\mathsf T}(I-P_m)H
+       =L\boldsymbol1^{\mathsf T}p_i\le L.
+ \label{match:avoid-first-free}
+\end{equation}
+The first inequality is the destination-column bound with \(H\ge0\);
+the last uses \(\operatorname{load}^a_i/L\le1\).
+As weights are at least one, the average hit probability over
+the \(8L\) reached bins is at most \(1/8\).
+Together with \eqref{match:walk-survival}, this gives a constant
+chance of reaching another free bin within the walk cap while
+avoiding \(i\).  Concatenate the fixed prefix with that walk,
+erase loops, and shift assignments.  This frees \(j\) while
+leaving \(i\) free.
+
+Loop erasure uses a stack indexed by bin.  Each retained outgoing
+transition follows the row assigned at its origin, since the
+assignment stays fixed throughout path construction.  Hence a path
+to a free bin certifies the reassignment.  An already-free target
+needs no rearrangement.  Exhaustion or failure after the capped
+repetitions gives a negative answer; successful joint freeing
+always certifies a genuine gain.
+
+\begin{lemma}[A bounded randomized pair action]
+\label{match:pair-action}
+At a settled state, the preceding searches process a queried
+distinct-bin edge as follows.  A returned contraction is the minimal
+tight set with a valid factor-critical witness; a returned gain has
+a valid joint-freeing witness.  Conditional on the valid current
+state, the probability of a premature negative answer, including
+a late-witness abort, is at most \(2^{-\sigma}S^{-60}\).
+Continued contractions cost \(O(|X|\polylog S)\); a gain attempt
+or final abort costs \(O(L\polylog S)\), with fixed-parameter
+reliability factors.  These work bounds hold on every path.
+\end{lemma}
+\begin{proof}
+Use walk length and repetition count
+\[
+                    \ell=16L(1+s),\qquad
+                    T_{\rm rep}=1000(\sigma+s+1).
+\]
+Use \(T_{\rm rep}\) fresh tight-set trials at each budget, that
+many attempts at first freeing, and that many sampled second-freeing
+attempts.  A tight-set trial succeeds with probability at least
+one half once its budget is at least \(4|X|\), so missing the
+early witness is exponentially unlikely in \(T_{\rm rep}\).
+For a jointly freeable pair, the first walk has constant success
+probability by \eqref{match:walk-survival}.  The second has probability
+at most \(1/8\) of hitting \(i\), by
+\eqref{match:avoid-first-free}, and its nonabsorption probability
+at the length cap is bounded by \eqref{match:walk-survival}.
+Their sum is strictly below one.  Unsuccessful trials do not change
+the injection, so the same conditional estimates apply repeatedly.
+
+A range-uniform draw generates enough independent fair bits to
+cover the range and rejects out-of-range strings; each elementary
+attempt succeeds with probability at least one half.
+Cap its string attempts at \(T_{\rm rep}\), returning negative
+on exhaustion.  An integral allocation draw uses a uniform element
+of \(\{1,\ldots,L\}\) and the row's at most three cumulative intervals.
+Under \eqref{match:initial-guards}, fewer than \(S^{10}\) such
+draws occur in one pair query, including every budget and trial.
+A union bound over constant-probability trial failures and capped
+fair-bit rejection failures gives \(2^{-\sigma}S^{-60}\), with
+ample numerical slack.  Equivalently, couple unlimited exact
+rejection to this capped process until its first cap failure.
+
+The witness arguments prove soundness.  Doubling budgets sum to
+a constant multiple of the last, so the post-refinement budget test
+gives \(O(|X|\polylog S)\) for a continued contraction even on an
+unfavorable random path.  Other attempts use \(O(L)\) vertex caps,
+\(O(L\log S)\) walk caps, and the fixed repetition counts.
+
+Generate outgoing reverse arcs from bin/assignee data and the
+assigned row's physical neighbor list, of degree at most three.
+Store path-created residual reversals and local visited records
+in dictionaries.  No query scans all physical vertices of a visited
+bin.  Random bits, initialization, loop erasure, record operations,
+and explicit path or witness output are included in the work.
+\end{proof}
+
+\subsection{Explicit matching materialization}
+
+\begin{lemma}[Materializing a bin]
+\label{match:materialization}
+A current bin can be materialized with any prescribed physical
+exposure in time linear in its physical size up to logarithmic
+factors.  All current bins can be dissolved at an erasure or phase
+boundary within the corresponding total physical-size bound.
+\end{lemma}
+\begin{proof}
+At a contraction store the child-bin records, captive rows and
+their physical incidences, joining edge, and captive assignment
+at contraction time.  This gives a contraction tree whose leaves
+include both child-bin vertices and swallowed row vertices.
+The stored captive assignment covers all but one child.
+
+If the desired exposure \(v\) is in child \(d\), forbid \(d\) and
+remove its captive assignment if present.  At most one row becomes
+unmatched.  Lemma~\ref{match:tight-contraction} guarantees an injection
+of all captives avoiding \(d\), so at most one ordinary row
+augmentation suffices.  If \(d\) was the unused child, none is
+needed.  Expose \(v\) inside \(d\), and the physical assigned-edge
+contact in every other child.  A preserved exterior assignment
+merely prescribes \(v\) to be its contact endpoint.
+
+If the desired exposure is swallowed row \(r\), delete \(r\) and
+its assigned edge, reserve \(i,j\) for the stored joining edge,
+and remove any remaining assignments into those children.
+At most two remaining rows become unmatched.  Inequality
+\eqref{match:captive-exposure-hall} guarantees a matching of the
+remaining rows into \(X\setminus\{i,j\}\), so at most two
+augmentations suffice.  The joining edge prescribes exposures
+in \(i,j\); every other child gets its row-edge contact.
+
+In either case each child receives exactly one prescribed exposure
+and is recursively materialized once.  The searches scan only this
+node's stored abstract incidence graph, of size linear in its arity
+because rows have degree at most three, rather than its children's
+physical interiors.
+
+At the start of dissolving a root, one traversal assigns subtree
+leaf intervals.  The interval containing a prescribed physical
+vertex identifies its direct child, with logarithmic search overhead
+if needed.  No contraction is unary, and each record has size linear
+in its arity.  The sum of record sizes and leaves is therefore
+linear in the dissolved root's physical size.  Summing the local
+searches, endpoint lookups, and single child visits proves the bound.
+Disjoint roots at an erasure or phase boundary can be handled in
+the same total physical-size time.
+\end{proof}
+
+Later structural accounting charges any subsequent return of these
+vertices to bins as a new stay supplied by initialization or expansion.
+Thus each dissolved contraction record pays for one materialization,
+rather than repeated descent through an unchanged nested witness.

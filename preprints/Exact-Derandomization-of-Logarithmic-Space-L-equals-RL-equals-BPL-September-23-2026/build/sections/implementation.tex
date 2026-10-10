@@ -1,0 +1,1338 @@
+\section{Uniform controller implementation}\label{sec:ctrl}
+
+We now implement the table and vector queries defined in the preceding
+sections.  Theorem~\ref{thm:arith-interface} supplies their numerical
+operations.  We must arrange the recursive graph accesses so that the
+records retained by all callers fit in logarithmic space at the same
+time.
+
+We keep one vertex identifier, called the cursor.  Consider a product term
+$\mathcal F(x,z)\mathcal B_b(z,y)$ from
+Equation~\eqref{eq:est-product}.  For a selected valid product descriptor, a query begins with the cursor
+at $x$.
+The correction port moves it to $z$ and supplies a bounded inverse port.
+The right factor can then be queried at $z$, using its own common table
+tuple; that tuple contains no copy of $x$.  Returning along the inverse
+port restores $x$.  Arithmetic requests the two factor digits separately,
+so it need not retain a complete left-factor value while computing a
+right-factor digit.  If the operation instead asks to reach $y$, the
+right factor's terminal motion is the last recursive delegation; only
+local label completion follows it.  These are the paths that
+Lemma~\ref{lem:est-paths} requires us to realize.
+
+Incoming access reverses a different object: a finite program whose
+canonical initial states describe the forward row ports.  We make the
+program deterministic with halting success states.  The component of a
+specified success state is then a tree directed toward that state; its
+canonical initial states are precisely the valid row ports ending there.  A contour of that tree enumerates them and returns to
+the success state without saving a second copy of its vertex address.  This gives both
+capped incoming ports and incoming score ranks.  To use the contour we
+must define program states and their predecessor queries carefully:
+working states of a completed lower query are not themselves part of
+the calling program graph.
+
+The storage bound follows the same distinction.  A caller retains its
+own descriptor choices and numerical path while a lower procedure runs.
+A slack-$d$ layer pays $O(d)$ structural bits; a query from digit place
+$t$ to place $j$ pays for its numerical records through the bound
+$O(d)+c_{\rm num}(t-j)$ of Theorem~\ref{thm:arith-interface}, for a
+fixed coefficient $c_{\rm num}$.  We assign a decreasing
+allowance to the finite operation order within a prefix, the move to its
+preceding prefix of slack $2d$, and the move to a child of budget at most
+$M-d$.  The resulting differences telescope over the physical stack.
+The proof below establishes these record bounds on the actual recipes
+before imposing guards on artificial program states.
+
+\subsection{Parameters and interfaces}\label{sec:ctrl-model}
+
+Fix the input and a master environment.  The latter includes the rank
+matrices and all the fingerprint salts.  A \emph{table tuple} consists of
+the estimator type and stage, its statistical budget, scale and usage
+rates, channel roles and suffixes, and its effective environment.  The
+tuple specifies an entire table, rather than an individual row or entry.
+Usage rates belong to this tuple; the separate integer clock $t$
+specifies a requested numerical digit.
+A generator and wrap word is a call-record descriptor used to derive a
+child's effective environment.  It is not an additional semantic
+parameter of the child table: after this derivation, the child's values,
+forward port orders and guards depend on the resulting effective tuple,
+not on the ancestral word which produced it.  Distinct walk descriptors
+are still separate summands with their prescribed weights, even if they
+induce the same environment transformation.  The variants of
+Lemma~\ref{lem:env-variants} can be generated without their conditioning
+vertices.  A vector tuple is defined in the same way, omitting the
+unneeded terminal parameters.  All admissible absolute tuples have
+$O(B)$ bits.
+
+The mutable cursor records a vertex and its stage interpretation.  Other shared facilities are the input, the top root parameters, the master
+environment, a catalytic bit vector of length $B$, and one reusable
+scratch area.  Its size is $O(B)$ in the actual computation, where the
+top numerical clock is $O(B)$; for a general top clock $t$ it may use
+$O(B+M_{\rm top}+t+1)$ bits.  Scratch may be used to perform arbitrary local integer
+computations in this space.  It has no content which must survive a
+recursive graph operation.  Every such operation starts its scratch
+calculations canonically. Before every input access, its requested
+position is regenerated in shared scratch. The physical
+input head stays between the real endmarkers; off-data simulated
+positions use the base symbol routine from
+Lemma~\ref{lem:model-reduction}. These rules also apply during inaccurate
+calculations and guarded artificial predecessor probes. The requested
+coordinate and scan counters coexist only within this pure routine and
+are discarded before a recursive graph operation. It is harmless to
+copy an address temporarily
+inside a scratch calculation, but such a copy is discarded before a
+recursive graph operation begins.
+
+The finite interfaces to be constructed are as follows.  A port is an
+index in a specified row class; the class may have holes.
+\begin{enumerate}
+\item A \emph{restoring test} returns one bit.  A \emph{quantity query}
+  returns one bounded signed digit of a specified value.  Both restore
+  the cursor and the catalytic vector.
+\item A \emph{terminal motion} starts at a row and a port and finishes at
+  that entry's endpoint.  No return address is provided.  An
+  \emph{excursion} makes the same visit, performs a prescribed local
+  action there, and returns.  The action may use scratch and the catalyst
+  but makes no recursive graph query.
+\item A \emph{paired motion} maps a valid row port to its endpoint and a
+  bounded inverse port.  Its inverse has the same table tuple.  On
+  invalid ports the restoring existence test returns false; an exported
+  motion may instead return failure without moving the cursor.
+\end{enumerate}
+At the final row interface all port alphabets are bounded by constants.
+At a prefix of slack $d$, indices and immediate descriptors have $O(d)$
+bits.  These two statements must be distinguished: an entire terminal
+path represented by one prefix port need not have a description of
+length $O(d)$.
+
+A port code may be in range and still name a hole in its class.  Its
+existence test returns false, its quantity query returns the zero digit,
+and its motion or excursion fails with cursor and catalyst unchanged.
+Rank operands retain their separately prescribed baseline or padding
+values: an absent real port is not a virtual default coordinate.
+
+\begin{theorem}[Realization of the estimator interfaces]\label{thm:ctrl-realization}
+Fix the construction constants and an admissible top budget
+$M_{\mathrm{top}}=O(B)$.  For every actual task tuple reachable from it,
+the row, vector and prefix interfaces defined in the preceding sections
+admit deterministic uniform implementations by restoring queries and
+cursor motions.
+The following assertions hold for every master environment, without an
+accuracy promise on its estimated values.
+\begin{enumerate}
+\item Every test or numerical digit query terminates, returns its
+  defined value, and restores the cursor and catalyst.  Its result is
+  independent of incoming catalyst and scratch contents.  Structural
+  port and order choices are independent of a higher numerical request.
+\item Terminal motions give the specified endpoints.  Their excursions
+  restore the cursor.  Capped correction motions are partial paired
+  maps with bounded inverse ports and safe behavior on invalid ports.
+  Incoming score ranks compute the stipulated zero-padded ranks.
+\item For a root numerical request at clock $t$, all records retained by the
+  call and its descendants have total length $O(M_{\mathrm{top}}+t+1)$,
+  and every descendant clock is $O(M_{\mathrm{top}}+t+1)$; the shared
+  facilities use $O(B+M_{\mathrm{top}}+t+1)$ space.  In particular an
+  actual top request with $t=O(B)$ uses total deterministic $O(B)$ space.
+\end{enumerate}
+These implementations use no estimator oracle and retain no second
+vertex address across recursive graph operations.
+\end{theorem}
+
+The proof also constructs every lower operation instance admitted by the
+finite parameter ranges and permitted parent-to-child recipes.  This
+includes calls made while testing possible predecessor states, whether
+or not those states occur in a designated execution.  The larger
+construction is needed to compute incoming accesses by inverse traversal.
+
+\subsection{Program states and record bounds}\label{sec:ctrl-graphs}
+
+A terminal program has a fixed root tuple and root clock.  Its initial
+configuration is the cursor $x$, a distinguished initiation tag, and the
+original row port $p$ in a separate recoverable field.  Distinct ports
+give distinct initiation states.  In a scoring program the success local state contains a
+quantized score; otherwise it has only a success tag.  The starting row
+and port are not root parameters.  The program universe thus includes
+all rows and all ports of this same table.  Similarly, a scoring
+universe at a fixed precision includes all possible quantized scores.
+
+There are two different forms of invocation inside this program.  A
+restoring bit query, or a lower paired motion, is an \emph{opaque
+transition query}: its temporary working configurations are not vertices
+of the terminal program graph.  They are computed by the lower
+procedure when the transition is probed.  A terminal delegation with no
+bounded inverse port is instead \emph{explicit}: it pushes the lower
+terminal controller into the local state.  Thus the vertices of the
+program graph comprise the cursor and a finite chain of explicit
+controllers, but not the working states of opaque transition queries.
+This distinction will also be used when graphs are traversed inversely.
+
+\begin{definition}[Regenerable record]\label{def:ctrl-record}
+A local record is a delimited binary word with a tag from a fixed finite
+alphabet.  It may contain immediate descriptor choices, bounded port or
+copy symbols, offsets, Boolean evaluation paths and pending bits, and the
+early numerical words permitted by Theorem~\ref{thm:arith-interface}.
+Head positions in such words are marked locally.  A root tuple, a root
+operation and its numerical clock, together with the active records,
+determine every descendant tuple and clock by a scratch computation.
+This computation does not call a graph procedure and does not use a
+cursor that has been left behind.  We call such records
+\emph{regenerable}.
+\end{definition}
+
+The records use delimited encodings, with marked positions rather than
+an independent absolute stack pointer at every level.  Self-delimiting
+encodings enlarge a nonempty word of length $r$ by $O(r+1)$ bits.
+Constant tags also identify a root boundary, the active candidate copy
+during a neighbor test, and the owner of a pending endpoint action.
+These tags permit a scratch scan to select the appropriate active view
+of the records.  An inactive copy is not part of a descendant's program
+state or call recipe.
+
+A root boundary is a constant tag, not a stored copy of an absolute
+table tuple.  The logical root parameters of a nested query are obtained
+by replay up to that boundary; the temporary absolute tuple is then
+discarded before another graph query.  Thus the phrase ``fixed root
+tuple'' specifies which mathematical program graph is being used.  It
+does not allocate a fresh $O(B)$-bit parameter word at every nesting
+level.  Lemma~\ref{lem:ctrl-replay} supplies the replay procedure.
+
+\begin{definition}[Raw allowance certificate]\label{def:ctrl-allowance}
+A raw controller is the caller's own selection, arithmetic, scoring or
+terminal-path record, excluding the working states of a query it calls.
+In a terminal program graph an explicit chain contains only its
+terminal-path controllers and, in a scoring program, its score suffix
+or completed score word.  The interiors of cap traversals, inverse score
+ranks, numerical digit queries and paired motions are opaque queries;
+they are never explicitly pushed working graphs in this chain.
+
+A raw controller has an integer allowance $w\ge1$ and a numerical clock
+$t\ge0$.  Fixed raw constants $a_0,b_0,a'>0$ give the following
+certificate at a call to a lower query or an explicitly pushed raw
+terminal controller at $(w',j)$:
+\begin{equation}\label{eq:ctrl-local-bound}
+ w'<w,\qquad j-t\le a'(w-w'),\qquad
+ \ell\le a_0(w-w')+b_0(t-j).
+\end{equation}
+Here $\ell$ counts only the suspended caller record, including its
+delimiters, return modes and pending data.  It does not count the
+callee's physical working space.  Without a pending call its own raw
+records have length at most $a_0w+b_0t$.  A structural operation has a
+canonical starting clock zero; numerical queries used by its
+finite-margin tests are included in this certificate.
+\end{definition}
+
+We will prove this bound for the actual recipes below, before using
+guards to restrict artificial program states.  In particular, guard
+insertion will not be used as a substitute for proving that a designated
+execution fits its bound.
+
+We use the following finite instruction types.
+\begin{enumerate}
+\item \emph{Local edit.} Read a bounded number of marked local symbols,
+  change a bounded number of symbols and a finite mode, and advance the
+  marked local heads by one position.  A push opens a delimiter and
+  writes a tag in a bounded number of steps.  A pop is performed only
+  after the child word has been erased down to that tag, also by local
+  steps.
+\item \emph{Pure or restoring branch.} Compute one bit, either in scratch
+  without a graph call or by a lower restoring test or digit query, and
+  change a bounded local symbol or mode.  A bounded signed digit is
+  handled as a fixed number of bits.  A longer selection result is
+  written one bit at a time, with its index stored in the local record.
+\item \emph{Paired cursor step.} With its motion tuple and short token
+  already selected, apply one lower partial paired map, or one elementary
+  base or label map.  Its output token and finite mode are the only
+  simultaneous local changes.  The linear-size motion tuple is
+  regenerated from records; it is not written as an opaque payload.
+\item \emph{Explicit terminal call.} Create a lower controller with a
+  regenerable call recipe.  Ordinary instructions then execute that
+  controller.  On its return, local erasure and the prescribed bounded
+  label completion are performed by the preceding instruction types.
+\end{enumerate}
+An endpoint action in an excursion may be a pure computation reading or
+toggling the catalyst.  Such actions are not individual edges of a
+terminal program graph: that graph uses the complete restoring,
+catalyst-independent predicate which contains the excursion.  Its other
+pure branches depend only on initialized scratch, the input, cursor and
+permitted tuple data.  A value test is never combined with a cursor-changing
+step.  Conditional validity can be a separate restoring branch; a
+partial paired step may simply have no edge on an invalid domain.
+
+Every record position erased by a local edit is marked before the edit,
+or is a known end of a delimited word.  In particular, an instruction
+cannot erase an arbitrarily chosen position and then forget its index.
+Counters, carries and loop heads are manipulated by these local steps.
+Pure computations and restoring tests can be recomputed to select one
+output bit; their scratch states and physical input heads are not
+included in the states whose predecessors are enumerated.
+
+Predecessor probes can reach artificial local states whose stored flags
+were not produced by a designated execution.  The lower query interfaces
+must therefore be safe independently of those flags.  We use the
+following entry conventions before constructing the graph.
+
+\paragraph{Total calls on invalid ports.}
+An argument is \emph{range-valid} when its tuple, operation type,
+cursor type, port code and clock lie in the permitted finite ranges.
+A range-valid port can still name a hole. Every exported existence
+predicate is a total restoring test of its earlier defining masks.
+Every port-dependent quantity query freshly tests presence at structural
+clock zero before entering its value calculation. If presence fails,
+the query returns the zero digit of the zero stream. A forward motion
+or excursion instead returns failure, with cursor and catalyst unchanged
+and without performing an endpoint action. A paired inverse uses its
+target-side incoming-count and inverse-rank validation. Excursion
+validity is checked before building its chain of terminal-path records, not anew at the
+remote endpoint or during rollback. An endpoint comparison returns
+false if either freshly tested descriptor is invalid. Wrong types or
+out-of-range codes are rejected by a pure check before any lower call.
+
+Baseline queries and rank-padding inputs retain their separately
+specified values: an absent port is not a virtual default coordinate.
+In particular, incoming score ranks are padded by zero, whereas a
+compressed-array rank uses copies of its baseline. Every opaque query
+tag invokes the canonical entry of one of these total procedures.
+No permitted call recipe targets an internal continuation after its
+presence test. A historical validity flag in a caller is never accepted
+as a certificate of presence. Lemma~\ref{lem:ctrl-recipes} proves that
+the fresh tests use earlier operations and fit the allowance bounds.
+
+\begin{lemma}[Guarded local graph]\label{lem:ctrl-local-graph}
+Suppose a fixed terminal recipe uses the preceding instruction types,
+has regenerable records, and obeys
+\eqref{eq:ctrl-local-bound} on its designated executions.  Suppose all
+its opaque transition queries are already implemented, are total on
+admissible arguments, and have the stated safe invalid-port behavior.
+Their returned bits, success flags, cursor outputs and port tokens are
+independent of incoming scratch and catalytic contents, and they restore
+the catalyst.  Then there is a finite graph with outdegree at
+most one, uniformly associated with its root tuple, with these
+properties.
+\begin{enumerate}
+\item Its designated executions are precisely the prescribed terminal
+  executions.  Success states have no successor, and initiation and
+  success tags are distinct.
+\item Predecessor cases, ordered incidences, and paired edge movement
+  are computable with a bounded number of case labels and one cursor.
+  An opaque predecessor query is made only after its local bound has
+  been checked.
+\item If a transition query at $(w',j)$ is probed while the terminal
+  root has parameters $(w,t)$, the complete live local portion of this
+  probe, including a fixed number of edited or saved controller copies,
+  has length
+  \begin{equation}\label{eq:ctrl-neighbor-bound}
+  A(w-w')+D(t-j)
+  \end{equation}
+  for fixed enlarged coefficients $A,D$.  Shared facilities and the
+  outside stack are not copied.
+\end{enumerate}
+The graph and all its guards are independent of an originating row,
+an outer stack's data, and catalytic contents.
+\end{lemma}
+
+Independence from the outer stack is understood after fixing the logical
+root tuple: two invocations that regenerate the same tuple define the
+same graph.  Their physical replay histories may differ.  The hypothesis
+on designated executions is proved for the concrete recipes in
+Lemma~\ref{lem:ctrl-recipes}; the guards below extend query safety to
+artificial states reached while enumerating predecessors.
+
+\begin{proof}
+Use as potential states the cursor and delimited words having the
+specified finite tags.  Check absolute parameter ranges, descriptor
+ranges, stage and suffix types, instruction modes, and the allowed
+parent-to-child recipes.  Check the intrinsic word bounds of
+Definition~\ref{def:ctrl-allowance}.  For each explicit chain also check
+the local bounds along that chain.  Before any opaque query, check the
+bound from every ancestor of its local explicit chain to that query.
+All absolute parameters, clocks and lengths needed for these checks are
+regenerated or counted in scratch.  No graph query is needed for a
+guard.  At a state with an unavailable instruction omit that edge.
+
+The designated paths pass the guards by hypothesis: their boundary
+bounds add along an explicit chain and telescope.  Enlarging the
+coefficients once covers fixed instruction tags and bounded intermediate
+edits.  The resulting graph is finite since its local words have
+$O(w+t)$ bits and its cursor has $O(B)$ bits.  It is deterministic since
+every branch bit and partial paired map is deterministic.  Guards may
+create additional dead ends, but they cannot create a new path from a
+canonical initiation to a success state.
+
+For a local edit, predecessor candidates are obtained by guessing the
+bounded overwritten symbols, preceding finite mode, and bounded head
+moves, then testing the instruction forward.  Marked positions and
+incremental erasure make the number of cases bounded.  For a branch,
+perform the same fresh restoring query at the unchanged cursor and test
+the guessed preceding symbols.  Incorrect historical branch bits do not
+resume the interior of a lower procedure: the query is always started
+again on its regenerated arguments.  The guards are checked before the
+query, including for a candidate predecessor.
+
+For a cursor step, first construct the possible preceding local record
+by a bounded inverse edit, guessing the bounded preceding token if
+needed.  Before any motion, replay that candidate's active records from
+the fixed root tuple.  Check the instruction and stratum, permitted
+child kind, budget, scale and suffix ranges, salt permission, numerical
+clock and every ancestor-to-query raw length bound.  These allocation
+and recipe checks do not use the predecessor cursor.  The lower motion
+tuple is then fixed by the candidate record and the present output
+token.  Apply the partial inverse at the present cursor
+and output token.  If it succeeds, the returned token and preceding
+local symbols specify the candidate predecessor.  Static checks and
+token comparisons can be made there.
+A guessed preceding port is compared with the actual port returned by
+the inverse.  Any remaining cursor-specific type or domain check is
+pure at that cursor; a domain condition requiring another restoring
+query belongs to a separate branch edge.  Thus it does not conceal a
+second high-cost query inside this paired step.
+To restore the probe, apply the
+paired forward map with that same tuple and the actual returned token.
+No saved copy of the cursor is used.  Conversely, an outgoing paired
+probe checks the proposed target guards after its motion; if a guard
+fails, or if the probe is only a restoring incidence test, its inverse
+with the actual output token restores the starting cursor.  Both
+directions have been allowed
+the same lower-operation cost.  No unrelated value query is part of
+this cursor step.
+
+Label an edge by its finite instruction case and bounded erased
+symbols.  Its forward instruction determines a canonical reverse case
+code.  An inverse probe accepts only that code.  This removes any
+duplicate descriptions of the same predecessor edge without comparing
+two retained addresses.  The finite case codes give a fixed local order
+and a bounded incidence token; a forward edge knows its reverse token.
+
+For the space assertion, first ignore saved probe copies.  Adding the
+boundary inequalities along the current explicit chain gives the bound
+$a_0(w-w')+b_0(t-j)$.  A current state and a candidate predecessor differ in
+length by a constant: this follows from the bounded edit used to
+\emph{construct} every candidate, before it is known to be an actual
+predecessor.  Consequently retaining or editing both costs only a fixed
+multiple of that bound, with a constant adjustment absorbed by the
+strict allowance decrease.  More explicitly, write
+$\Delta w=w-w'>0$ and $\Delta t=t-j\ge-a'\Delta w$.  For a fixed copy
+factor $k$ and additive bounded metadata cost $h$, choose
+\begin{equation}\label{eq:ctrl-copy-coefficients}
+ D\ge kb_0,\qquad A\ge ka_0+(D-kb_0)a'+h.
+\end{equation}
+Then $k(a_0\Delta w+b_0\Delta t)+h\le A\Delta w+D\Delta t$.
+This also handles a negative clock decrement.  These coefficients are
+uniform over all finite instruction cases.
+
+The constants $a_0,b_0$ describe the raw skeleton uniformly over the
+whole recipe family.  They have not been replaced by the physical probe
+constants $A,D$ in a lower skeleton's guards.  Fix the maximum finite
+copy factor $k$ and metadata cost $h$ and choose $A,D$ once.  A lower
+compiled query contributes a new physical stack segment when it runs;
+its contour state and saved copies are not words in the calling graph.
+Thus this estimate copies raw records, not another $A,D$-sized physical
+segment.
+
+Only the local explicit chain is saved or edited.  A nested query has
+its own root boundary and appends its local portion below the existing
+stack; its program graph excludes the caller's saved copies.  A tag
+selects the candidate chain for parameter replay, ignoring an inactive
+saved copy.  Therefore a later neighbor probe does not copy the older
+outside portions again.  Finally, all guards and forward case codes
+use just the fixed tuple and its permitted records.  Imposing the same
+salt-visibility convention as the underlying recipe preserves this
+independence even at synthetic states.
+\end{proof}
+
+\subsection{Contours and incoming operations}\label{sec:ctrl-incoming}
+
+The rotation--edge-flip traversal below is the forest permutation
+of Cook and McKenzie~\cite[Proposition~1, p.~387]{CookMcKenzie1987},
+with a sentinel to include an isolated root. Traversal of configuration
+trees also underlies space-preserving reversible simulation~\cite{LMT2000}.
+We prove the contour and
+incoming operations needed here, including their local record bounds.
+In particular, the use of a contour will not replace the separate
+allowance and guard argument.
+
+\begin{lemma}[Inverse contour]\label{lem:ctrl-tour}
+Let a finite deterministic graph of the form in
+Lemma~\ref{lem:ctrl-local-graph} have a specified canonical success halt.
+Its undirected component is a tree directed toward that halt.  There
+are mutually inverse next-mark and previous-mark operations on its
+contour, where the marks are the root sentinel and one distinguished
+occurrence of each canonical initiation in the component.  These
+operations require the current program state and bounded incidence
+control, but no saved root or contour-length counter.
+\end{lemma}
+
+\begin{proof}
+Following the unique successor from any node in the undirected
+component reaches its sink.  Indeed a directed cycle in a graph of
+outdegree at most one cannot be joined by a path to a sink: at the
+first connection the unique outgoing edge is already used toward the
+cycle.  Equivalently, on an undirected cycle all its vertices must use
+their outgoing edge on that cycle, so no sink lies in its component.
+The same argument excludes two sinks in one component.  Thus the
+component is a finite tree with the given unique sink.
+
+Take the incidences of its edges, with an additional sentinel incidence
+at the root.  Edge flip exchanges the two incidences of an edge and
+fixes the sentinel.  At each vertex cyclically rotate its incidences in
+the fixed local order.  Rotation followed by flip, or its inverse,
+gives one contour cycle on these incidences.  This follows by induction
+on the number of edges: inserting a leaf inserts its two incidences
+into the old cycle.  The isolated-root case consists only of the
+sentinel.
+
+At a canonical initiation mark its unique successor incidence; mark
+the sentinel at the root.  Each initiation is therefore counted once.
+Iterating the contour successor to the next mark always terminates,
+since the finite contour contains the root mark.  Iterating its inverse
+to the preceding mark is the inverse operation.  A success tag and the
+sentinel token identify the root in this component; its address never
+has to be compared with an earlier address.  Constant-degree adjacency
+and edge flip are provided by Lemma~\ref{lem:ctrl-local-graph}.
+\end{proof}
+
+\begin{lemma}[Capped incoming ports]\label{lem:ctrl-cap}
+Let a fixed row class have a constant port alphabet, distinct entries
+within each row, and a deterministic terminal program which maps its
+valid row ports to their endpoints.  Assume the program is of the form
+in Lemma~\ref{lem:ctrl-local-graph}.  For every fixed $K_c$ there are
+restoring tests and mutually inverse paired motions for precisely those
+class entries whose endpoint has at most $K_c$ incoming class entries.
+The inverse ports belong to $\{1,\ldots,K_c\}$.  No additional endpoint
+address or unbalanced path is held across these operations.
+\end{lemma}
+
+\begin{proof}
+Give invalid row ports a distinct failure execution.  The canonical
+initiations in a success-root component then correspond exactly to
+valid class entries at that endpoint.  Class validity is tested before
+using a forward initiation as a contour starting point.
+
+Start at a valid initiation mark.  Go forward toward the sentinel,
+counting other initiation marks, stopping either at the sentinel or
+after $K_c$ other marks.  Store the number of mark jumps, at most
+$K_c+1$, and restore the start by that many inverse jumps.  Do the same
+in the backward direction and restore again.  Reaching $K_c$ other
+marks certifies excess.  Otherwise, let $a$ and $b$ be the numbers of
+other initiations before the sentinel in the forward and backward
+directions.  The total is $1+a+b$; accept exactly when this is at most
+$K_c$.  The initiation's rank after the sentinel in forward order is
+$r=b+1$.  A forward paired motion goes to the sentinel in $a+1$ mark
+jumps and returns the inverse port $r$.
+
+From a canonical endpoint halt, count forward marks until returning to
+the sentinel or encountering $K_c+1$ initiations.  In the latter case
+restore the sentinel by the bounded number of inverse jumps and
+reject.  In the former case the total $n\le K_c$ is known.  For an
+inverse port $r\in\{1,\ldots,n\}$, go forward by $r$ mark jumps to its
+initiation and return the row port stored in that initiation state.
+Invalid ranks are rejected at the sentinel.  A halt with no preimages
+has $n=0$ and is harmless.  Wrong vertex types can be rejected before
+creating a halt state.
+
+Every unsuccessful inverse request therefore leaves its endpoint
+unchanged: an excessive incoming count is undone before failure, and an
+invalid rank is detected at the recovered sentinel.  For a successful
+request the returned row port is the one in the reached initiation,
+not a guessed port.  This is the token used by a later forward
+restoration in Lemma~\ref{lem:ctrl-local-graph}.
+
+These are inverse maps by the common contour order.  Existence tests
+make the corresponding visits and reverse them, so they restore the
+cursor.  All counts, ranks and incidence tokens have a fixed alphabet.
+The terminal program graph has the common table tuple as its root;
+neither direction fixes the starting row or port as an external
+parameter.  Consequently the two directions use exactly the same
+graph.  Restoring lower queries restore the catalyst, and the contour
+itself does not otherwise change it.
+\end{proof}
+
+The incoming scores need not have bounded support in a column, so a
+bounded incoming-port list does not suffice to compute their rank.  We
+instead give the terminal program a success state containing both the
+endpoint and a rounded score.  A contour at that halt counts the
+entries with that rounded score; successive contours visit the scores
+in decreasing order.  The endpoint and score belong to the current
+program state.  During a tour they may be replaced by an earlier state
+of the score computation, and the contour recovers them when it returns
+to its unique halt.  Thus neither is retained separately while an
+earlier state requests a score digit.  The next proof combines this
+observation with an assembly order that stores only a short suffix
+before a late digit query.
+
+\begin{lemma}[Incoming score rank]\label{lem:ctrl-score-rank}
+Let a constant-size forward row class cover every positive entry of a
+bounded nonnegative score table, with distinct entries in each row.
+Suppose pre-incoming score digits are restoring queries, and the class
+has a terminal program with the preceding interfaces.  A fixed incoming
+$k$th-largest value, with zero padding, has exact redundant digits computed
+by a restoring procedure.  Its local record above a place-$j$ score
+query at output approximation clock $t$ is $O(1+(t-j)_+)$, with a fixed
+overshoot $j\le t+c$, in addition to
+the structural allowance costs.  A complete $O(t+1)$-bit score word is
+retained only over structural calls.
+\end{lemma}
+
+\begin{proof}
+Normalize the score range to $[0,1]$, using a fixed public factor if
+necessary.  At approximation place $t$, choose a fixed extra margin $c$.
+For the digit truncation $v^{[t+c]}$ define the integer
+\begin{equation}\label{eq:ctrl-score-quantization}
+ q_t(v)=\operatorname{clip}_{[0,2^t]}
+             \left(\left\lfloor 2^t v^{[t+c]}\right\rfloor\right).
+\end{equation}
+The digit tail has absolute value at most a fixed constant times
+$2^{-t-c}$.  Choose $c$ so that this is less than $2^{-t}$.
+Clipping is nonexpansive and fixes $2^t v$, so
+$|q_t(v)-2^t v|<2$.  The same margin gives $q_t(0)=0$:
+a truncation of the zero value has scaled magnitude less than one, so
+flooring and nonnegative clipping give zero.  Since the forward class
+contains every positive score, enumerating its entries and padding by
+zero therefore gives the rank of the whole quantized score column.
+
+Use a forward terminal program which first tests the entire class and
+membership domain at its canonical initiation, sending invalid inputs
+to failure.  Its success \emph{configuration} contains the endpoint in
+the cursor and $q_t(v)$ in its local state.  Before making its final
+structural motion, assemble the score digits from least to most
+significant.  In units $2^{-t-c}$, before the place-$j$ digit is queried
+the accumulated suffix and its carry have $O(1+t+c-j)$ bits.  A
+self-delimiting offset from $t+c$ fits the same bound.  After assembly,
+division by $2^c$, flooring, clipping and loop setup are pure local computations.  The
+complete word is then held only through structural motion and local
+clearing to success.  Thus all its graph-query boundaries satisfy the
+claimed record bound.  The success word is part of the graph state, not
+a parameter of the graph.  At this fixed $t$ the graph includes every
+allowed quantized value.
+
+At the requested endpoint, initialize the success state at $q=2^t$.
+Tour that root component and count canonical
+initiations, saturating at the desired fixed rank.  Continue to the
+sentinel even if the saturated count has already been reached.  At the
+sentinel the same endpoint and quantized value have been recovered; no
+other success halt occurs in that component.  If the cumulative count
+has not yet reached the requested rank, decrement the value field by
+pure local steps and tour the next success component.  The value field
+itself is the loop variable.  No separate copy of it survives the tour.
+The saturated count and control bits have constant size.  At value zero
+apply the stipulated zero padding.
+
+If the desired rank has been reached, use the value field only after
+the tour has returned to the sentinel.  The clock $t$ is a root
+parameter throughout; the loop value $q$ is not.  Consequently an inverse
+step which reaches an earlier partial-suffix state replaces the current
+score state by that suffix state, and need not retain the final $q$ or
+the endpoint address alongside it.  Unique-sink recovery supplies both
+again when the component tour ends.
+
+This computes the integer order statistic $N_t$ of the values $q_t(v)$.
+A uniform
+perturbation of a finite list changes any order statistic by at most
+the same perturbation, including after zero padding.  Thus $N_t$ has
+error less than $2$ as an approximation to $2^t$ times the desired rank.
+Keep only the fixed number of residue bits needed to form its
+redundant digit, clear the other local data without a graph query, and
+return at the unchanged endpoint.  Computing $N_{t-1}$ uses its own
+quantization convention; the difference-digit construction needs only
+the bounded errors, not nested quantizations.
+
+During a tour the live program state may be a partial suffix state
+preceding a high-place query.  It then contains that short suffix,
+rather than a saved copy of the final score.  Lemma~\ref{lem:ctrl-local-graph}
+therefore also gives the required bound for inverse neighbor queries.
+All root components are finite, including isolated success states, and
+the decreasing finite value loop terminates.  Fresh lower procedures
+and the contour preserve the catalyst.
+\end{proof}
+
+\subsection{Certificates for the estimator recipes}\label{sec:ctrl-recipes}
+
+We next verify the hypotheses of the graph construction for each of the
+actual recipes.  These certificates concern syntax, storage and
+dependencies; they do not use the statistical accuracy of an estimated
+entry.  Thus they apply also when its numerical value is inaccurate.
+
+\begin{lemma}[Ordered terminal paths and excursions]\label{lem:ctrl-paths}
+Every unbalanced path required by the estimator has the following
+ordered form: restoring selection and validity tests; local label maps
+and, if necessary, a paired left-factor motion; further restoring tests
+at that midpoint; at most one final terminal delegation; and then only
+local label completion.  An excursion to its endpoint and back, for a
+pure local action, has regenerable records.  It preserves the same
+allowance and clock bounds as this ordered path, up to fixed factors.
+No unbalanced spine is retained over a new high-cost query at its
+endpoint.
+\end{lemma}
+
+\begin{proof}
+For a direct summand the path is a local base path, a projected child
+path, or a child row port.  A projection stores its bounded symbol
+before removing it and appends the prescribed destination symbol after
+the child terminal motion.  For a product the left factor is a
+correction with paired access.  Its inverse token is stored at the
+midpoint; right-factor validity and weight queries are restoring there.
+The right terminal path is then the last delegation.  An old prefix
+port delegates to that preceding prefix; after its return it requires
+no new graph query.  These are exactly the path cases of
+Lemma~\ref{lem:est-paths}.
+
+There are two compiled continuations of this same terminal syntax.  A
+one-way continuation clears its path records after performing its
+prescribed local completions.  A visiting continuation retains the
+immediate choices and inverse tokens on its explicit terminal spine.
+After the local endpoint action it undoes the bounded completions,
+undoes the last delegated spine, and then uses the paired inverse token
+of an earlier motion.  Each deeper record is cleared before invoking an
+earlier inverse map.  For a projection, the saved symbol and prescribed
+append symbol give its local inverse.  The identical lower paired tuple
+and actual returned token give the inverse of a correction move.
+
+This is an induction on terminal delegations, not an attempt to invert
+an arbitrary unbalanced macro in one step.  A frame stores only its own
+immediate descriptor, bounded choices and phase.  Its returned child
+spine is used for local completion and the endpoint action, which make
+no graph calls.  When a further graph query is made during rollback,
+the deeper spine has already been discarded.  Thus the suspended
+records are those at the corresponding forward boundary, enlarged by
+bounded phase and inverse-token data.  The choices can be re-created or
+kept on their own frame; no concatenated description of all old
+prefixes is passed to a new tight query.
+
+In a restoring use, intrinsic constituent validity is checked before
+the visit.  A product can test its right port by crossing the paired
+left edge and returning; this test does not use the right terminal
+path.  Outer slice and wrap tests then use a valid intrinsic excursion.
+Hence none of these validity checks recursively invokes the very
+bucket or shortlist membership it helps to define.  The endpoint
+action's owner is marked in the outer frame, so its tuple can be
+regenerated by a scratch scan even while a descendant path is retained.
+The action's result does not alter the selected paths or their undo.
+\end{proof}
+
+\begin{lemma}[Implemented endpoint comparison]\label{lem:ctrl-equality}
+At slack $d$, comparisons of two valid candidate or old-list endpoints
+are restoring, catalyst-independent tests with $O(d)$ suspended
+structural control, in addition to the costs of their lower endpoint
+visits.  They use no saved endpoint address.  Their choice between an
+exact comparison and the designated fingerprint comparison is
+independent of a surrounding numerical clock.
+\end{lemma}
+
+\begin{proof}
+The two descriptors occupy $O(d)$ bits.  By
+Lemma~\ref{lem:ctrl-paths}, each endpoint can be visited and restored for
+a local bit or hash action.  If $d>2h_*$, compare the $O(B)$ identifier
+bits in order, retaining only the bit-position counter and bounded
+flags.  Its counter uses $O(\log B)=O(d)$ bits, since
+$h_*=\lfloor\epsilon\log_2 B\rfloor$ with a fixed positive
+$\epsilon$ and sufficient minimum padding.
+
+Otherwise use the four visits in Lemma~\ref{lem:fp-catalytic}: flip the
+first key's bit, xor the second key's bit into a result, and repeat.
+The final result is key equality for every incoming catalyst and that
+vector is restored.  Key evaluation and the indicated vector-bit
+action are pure endpoint operations in scratch.  No key index is saved
+across another visit.  Nested structural procedures already restore the
+catalyst and give results independent of its contents, by their lower
+operation order.  The outer descriptors and all path choices ignore
+the accumulated result bit.  The two repeated visits therefore use
+identical paths.  This proves the same independence and restoration
+for the completed comparison, supplying the induction hypothesis at
+the next layer.  The comparison mode is determined by $M,d$ and the
+public block boundaries, not by the requested numerical place.
+\end{proof}
+
+For the block comparison in Section~\ref{sec:fp-blocks}, the clean
+calculation replaces designated key comparisons by exact endpoint
+equality.  Endpoint comparison is an opaque restoring bit query in the
+terminal program graph: its internal states are not graph vertices.
+The exact comparison can therefore use a longer bit-position counter
+without enlarging the guarded raw graph states.  It still returns its
+bit and restores the cursor and catalyst.  Only the actual algorithm
+must satisfy the tight physical-space bound; the clean calculation
+supplies comparison values and paths for the error analysis.
+
+\begin{lemma}[Concrete recipe certificates]\label{lem:ctrl-recipes}
+All actual estimator operations admit regenerable records and a fixed
+finite ordering of operation strata.  At a prefix of slack $d$, each
+ordinary layer has $O(d)$ structural control, and a numerical path to an
+operand at clock $j$ has suspended record
+\begin{equation}\label{eq:ctrl-recipe-bound}
+ c_{\mathrm{str}}d+c_{\mathrm{num}}(t-j),\qquad
+ j-t\le c_{\mathrm{dig}}d,
+\end{equation}
+with fixed coefficients.  Beyond the fixed strata of this prefix, a
+call is to the preceding prefix of slack $2d$, or to an estimator of
+budget at most $M-d$.  The final row and incoming wrappers add a fixed
+number of strata at $d=1$.  Every designated terminal execution obeys
+the corresponding boundary bounds before guards are imposed.
+\end{lemma}
+
+\begin{proof}
+Table~\ref{tab:ctrl-records} summarizes the records to be charged.
+We verify the recipes and their dependencies in the order in which they
+are constructed.  All constants depend only on the fixed construction
+constants and the base machine.
+
+\begin{table}[tbp]
+\centering
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{0.22\textwidth}p{0.40\textwidth}p{0.31\textwidth}@{}}
+\toprule
+Operation & Data retained across a lower call & Local space bound \\
+\midrule
+Structural tests and list selection
+ & Immediate descriptors, loop indices, counts and flags
+ & $O(d)$ \\
+Numerical recipes
+ & Gate paths, pending bits and permitted early operand words
+ & $c_{\rm str}d+c_{\rm num}(t-j)$ \\
+Ordered terminal paths
+ & One frame's choices, phase and bounded inverse tokens
+ & $O(d)$ per immediate frame \\
+Incoming score ranks
+ & A partial score suffix; the full word only over structural calls
+ & $O(1+(t-j)_+)$\newline plus structural costs \\
+Graph transition probes
+ & A fixed number of local raw-state copies and bounded incidence data
+ & $A(w-w')+D(t-j)$ \\
+\bottomrule
+\end{tabular}
+\caption{Suspended records at a lower call.  The bounds exclude shared
+facilities and the callee's physical state.  Terminal-path frames are
+charged separately along their explicit chain; graph probes copy only
+that local raw chain.}
+\label{tab:ctrl-records}
+\end{table}
+
+\paragraph{Immediate paths and their values.}
+By Lemma~\ref{lem:est-paths}, a group has at most $2^{O(d)}$ immediate
+descriptors: term and channel part, scale and budget offsets, a variant
+word and wrap choices, bounded copy symbols, and a bounded number of
+factor ports.  All factor budgets are at most $M-d$.  A descriptor is
+stored literally in $O(d)$ bits; it never stores a discovered endpoint.
+Index and range tests are pure computations.  Constituent existence
+tests call only these lower factors.  Products cross a paired left
+edge for right-factor tests or digits, retaining a bounded inverse
+port; they return after each such query.  Factor digits can therefore be
+requested separately by an arithmetic evaluation path.  No assembled
+left weight remains over a late right-factor digit.  Source vector
+factors are queried at the current source, with the prescribed local
+projection if needed.  Their numerical coefficients and the factor
+products use a fixed arithmetic recipe.
+
+For terminal motion the right unbalanced path, or the direct child
+path, is the last delegation.  This is the ordered path of
+Lemma~\ref{lem:ctrl-paths}.  To avoid a validity cycle distinguish
+intrinsic constituent existence, intrinsic motion or excursion, and
+outer validity.  Outer validity first checks the intrinsic constituents,
+then uses an intrinsic excursion for its own hit and wrap conditions.
+A subsequent outer-valid motion may repeat that validity check and
+then use the intrinsic motion.  Each of these is a separate stratum;
+none tests the updated bucket or shortlist.  Invalid descriptors return
+failure or a zero value without relying on a motion's promised inverse.
+
+All rate factors multiplying these terms have logarithmic range
+$O(d)$: a variable bin has $|\log_2(b/a)|=O(d)$, while $f/\pi_f$ is
+bounded.  Resetting a source rate to the public stage rate does not
+multiply the numerical term by $f/u$; that ratio was a norm cost.
+It therefore causes neither a large numerical shift nor a new long
+choice field.  The fixed number of bounded-factor products, coefficients
+and $O(d)$ scale shifts obey Theorem~\ref{thm:arith-interface}.
+
+\paragraph{Candidate domain and bucket sums.}
+The descriptor pool is the concatenation of the preceding list positions
+and this group's unmerged paths, with invalid slots masked.  A new
+descriptor is a representative exactly when it is the first valid
+new descriptor with its key and no old valid position has that key.
+Old valid positions remain separate.  To decide these flags, enumerate
+the $2^{O(d)}$ descriptors, keeping only the current indices, bounded
+flags and $O(d)$-bit counts.  Each test uses lower validity and endpoint
+comparison operations.  The comparisons use only those unmerged paths
+or the preceding prefix's already-defined positions.  In particular
+they never inspect the new value of the bucket being defined.
+
+An intermediate entry is the old entry at an old representative, or
+the previous baseline at a new representative, plus the sum of all
+valid matching increments in each channel.  That sum has a fixed
+$O(d)$-bit descriptor domain and boundedly many $2^{O(d)}$ scale
+factors.  It is evaluated by the balanced sum construction of
+Theorem~\ref{thm:arith-interface}, with the preceding domain tests as
+structural leaves.  No high-precision sequential accumulator is held
+while requesting term digits.  The bucket rule preserves distinct
+actual representatives, including when two old representatives have
+the same key.  Thus it gives exactly the intermediate array used in
+Lemma~\ref{lem:fp-buckets}.
+
+\begingroup
+\widowpenalty=10000
+\paragraph{Ranks, compression, and list selection.}
+The intermediate domain and its values are now earlier inputs.  Add
+enough copies of the default for the size and first-signal ranks.  A
+finite domain of $2^{O(d)}$ indices suffices: the preceding list has
+size $2^{O(2d)}$ and the new group has $2^{O(d)}$ descriptors.  The
+default is included as often as needed to represent the unlimited
+padding in the prescribed ranks.  The rank, max, min, absolute-value
+and clipping operations of Lemma~\ref{lem:buf-update} are the finite
+arithmetic primitives.  The ranges are $2^{O(d)}$ by
+Lemma~\ref{lem:buf-clamping}; their known normalizing shifts have
+magnitude $O(d)$.
+\par\endgroup
+
+Here $u_0\ge\rho_d=2^{-c_1d}$.  A canonical finite approximation can
+test a threshold strictly between $u_0$ and $2u_0$: with error a
+sufficiently small fixed fraction of $\rho_d$, accept every size
+greater than $2u_0$ and accept only sizes greater than $u_0$.
+The required numerical clock, after normalizing the range, is $O(d)$.
+Fix this clock and tie convention once for that structural test.
+Consequently every nondefault compressed position is included, and
+fewer than $n_d$ positions are selected, as in
+Lemma~\ref{lem:buf-update}.  Numerical equalities at the boundary need
+not be decided.  No default can expose a positive row score: its
+rank dummies close the gate first, by the margins of
+Lemma~\ref{lem:atom-margins}.
+
+Remap a requested list ordinal to its selected intermediate descriptor
+by enumerating the pool and counting the preceding accepted flags.
+The loop stores $O(d)$-bit indices and a count.  Its only calls are the
+already-defined intermediate flags and finite-margin selection tests.
+Compressed entry digits then query that descriptor's intermediate value
+and the common compression thresholds; baseline digits use those
+thresholds directly.  A terminal list motion selects its descriptor
+before delegating to an old prefix path or a new valid path.  A
+descriptor from many prefixes ago is therefore represented by a chain
+of delegations, not retained as one long word above a tight child.
+
+\paragraph{Presence before value or motion.}
+Ordinal lookup returns a presence bit and a selected descriptor only
+when its finite enumeration reaches the requested ordinal. It starts
+with a false presence bit and returns false if enumeration ends first;
+the false branch supplies no descriptor. Every compressed-entry digit
+query and list motion branches on this fresh result before using a
+descriptor. The preceding-prefix lookup has the same convention.
+A hole denotes no real representative. Rank operands retain their
+prescribed structural selection of an entry, baseline, or padding
+value; they do not infer that value from the zero stream exported
+at an absent real port.
+
+The final precursor $A$ and auxiliary class $A_I$ use the bounded final
+list-position alphabet, allowing holes. Their presence tests use list
+presence, role-membership masks, and the fixed-precision raw-entry and
+raw-rank tests of Lemma~\ref{lem:atom-margins}. Source membership is
+checked locally; endpoint membership uses the earlier list or intrinsic
+excursion with a pure membership action. It does not use the exposed-class
+motion whose validity is being defined. These tests precede the
+pre-incoming score formula and use neither its incoming gate nor its
+cap. Every pre-score digit invocation repeats the corresponding class
+test and returns zero on failure. Other uncapped row-value queries use
+their support-covering class in the same way. Each such class contains
+the entire nonzero support, so the extension agrees with the mathematical
+table. Existence predicates evaluate their earlier masks directly;
+they do not ask for their own existence. Analytical witness functions
+without an exported port interface retain their stated full-array
+values and are not restricted by this convention.
+
+Immediate-path values and visits first use their earlier constituent
+and, where appropriate, outer-validity tests. Endpoint comparisons
+likewise test their two earlier descriptors before making visits.
+A capped correction-value query stops with zero if its forward paired
+move fails; only a successful move permits a gate or column-value query
+at the endpoint. The paired inverse keeps its target-side validator
+from Lemma~\ref{lem:ctrl-cap}. Incoming ranks and vector queries return
+zero outside their prescribed vertex type or membership domain. These
+checks are repeated at canonical entry, including when the caller is a
+synthetic post-initiation state with a fabricated validity flag.
+An excursion checks before constructing its spine; its endpoint action
+and rollback retain the order of Lemma~\ref{lem:ctrl-paths}.
+
+Place these entry wrappers a fixed number of strata above their
+validity predicates and value or motion cores. A wrapper at clock $t$
+calls its structural test at clock zero and retains $O(d)$ descriptor
+and control bits; its boundary is therefore bounded by $O(d)+bt$.
+When it subsequently calls a numerical core at clock $j$, the test has
+finished and only bounded status and descriptor data remain, so the
+bound $ad+b(t-j)$ persists after enlarging $a$. The predicates use the
+fixed structural precisions already proved. They do not call the score,
+gate, cap, new bucket or new shortlist whose value is being checked.
+The finite stratum list is enlarged before choosing the allowance
+constants. Recipe guards permit opaque calls only to total entry
+wrappers, so a synthetic state cannot select a continuation that skips
+validation. No semantic predicate is evaluated by a guard itself.
+
+These wrappers preserve the represented relations, values and outgoing
+endpoints. Their insertion may change the contour ordering of incoming
+ports; both directions use the same updated graph, so pairing remains
+consistent. The tests use the same effective tuples and fixed structural
+clocks, and restore the catalyst on both outcomes. They require no
+accuracy promise and add no retained endpoint address.
+
+\paragraph{Finite strata within a group.}
+For clarity, a permissible ordering, from an exported operation down
+to its dependencies, is:
+\begin{enumerate}
+\item compressed entries, baseline and list-port operations;
+\item ordinal remapping, compression and exception selection;
+\item size and first-signal ranks of intermediate entries;
+\item intermediate domain flags and entry or bucket-sum values;
+\item first-representative and key-match predicates;
+\item endpoint comparisons of outer-valid paths;
+\item outer-valid visits, then outer path validity;
+\item intrinsic visits, constituent tests, factor digits and ordered
+  motions, subdivided according to the preceding distinction.
+\end{enumerate}
+The wording of an interface name does not force a call at the same
+stratum.  For example, the ``visit'' used to verify outer validity is
+the intrinsic visit, while the visit used by key comparison is an
+outer-valid visit.  Arrange these finite subtypes in their indicated
+dependency order: outer-valid visits use outer validity; outer validity
+uses intrinsic visits; key comparisons use outer-valid visits; and
+bucket predicates use those comparisons.  Arithmetic on intermediate
+values uses only their domain flags and lower matching predicates.
+This refines the displayed list to a finite acyclic list.  Repeated
+enumeration over descriptors stays in a loop of its layer, rather than
+creating one recursive frame per descriptor.  Between these layers
+Theorem~\ref{thm:arith-interface} gives \eqref{eq:ctrl-recipe-bound};
+structural loops add $O(d)$ bits.  All remaining path calls go to the
+preceding prefix or to the lower-budget factors already described.
+
+\paragraph{Final row classes and pre-incoming values.}
+At the final slack $d=1$, the list size, port alphabet and all threshold
+gaps are constants.  The classes and witnesses in
+Lemma~\ref{lem:atom-ports} are defined by canonical finite-margin entry
+and rank tests on the final raw arrays.  They can be enumerated without
+testing positivity of a computed score.  Their tests and pre-incoming
+score digits query only the final buffer and a fixed arithmetic recipe.
+The same raw-array tuple is used for every row.  A normalized dense
+entry uses its second raw argument, divided by the fixed scaling
+constant and clipped before the reciprocal.  It does not start a new
+preparation experiment at its unbalanced endpoint.
+
+The broader auxiliary class used to score an incoming gate depends
+only on the corresponding pre-incoming row calculation.  Its validity
+and score queries do not depend on that incoming gate or cap.  The
+precursor $A$ for a correction has the same property.  Its canonical
+terminal program begins with a restoring check of the full precursor
+class and membership domain, and sends every invalid initiation to
+failure.  Thus Lemma~\ref{lem:ctrl-cap} counts exactly its valid entries,
+not merely entries promised valid by an external caller.  The auxiliary
+scoring program has the same initial check.  Its score digits are
+pre-incoming, so Lemma~\ref{lem:ctrl-score-rank} invokes only lower
+forward operations.  By Lemma~\ref{lem:atom-ports}, discarding a
+precursor with more than $K_c$ incoming entries preserves its value.
+
+\paragraph{Final incoming and vector wrappers.}
+Place the capped-pair and inverse-score wrappers above their respective
+terminal programs, and those programs above their pre-class, selection
+and pre-score queries.  They are separate terminal programs: the gate
+score program does not call this task's cap pairing, and the cap
+program does not call its gate rank.  A final correction-value query
+first completes the paired move.  At the endpoint its motion-return data consist only of the
+bounded inverse port while it queries a gate-rank digit or a lower-budget
+column-vector digit, and then returns.  This can be done separately for
+every arithmetic operand bit.  Only numerical path bits and immediate
+descriptors coexist with a late query.  The factor $r_i$ at a projected
+source is handled in the same way at that source.
+
+A detector trial is an inverse-score wrapper of its lower-budget
+input row task.  Reward terms query source factors locally and cross
+paired corrections before midpoint vector queries.  Vector prefix sums
+use the simpler balanced arithmetic form of the same dyadic schedule.
+These are all the vector and incoming uses in the additive formulas.
+There are only a fixed number of final wrapper types.  Their short
+counts and return ports cost a fixed allowance gap.  In an inverse
+score program the saved numerical suffix satisfies the clock bound in
+Lemma~\ref{lem:ctrl-score-rank}; its full word is held only over
+structural motion.  The cap wrapper's counts have fixed size.
+
+\paragraph{Uniform generation and record bounds.}
+Each enumerated object above has a literal $O(d)$-bit index or is a
+Boolean path in one of the stated arithmetic recipes.  Uniform
+index-generation uses finite integer loops on these indices, including
+rank comparison pairs and balanced-tree nodes.  Constants, field/rate
+coefficients and walk probabilities have $O(B)$-bit rational
+descriptions.  Their requested digits use integer arithmetic in scratch
+and make no recursive graph call.  In particular, a walk word has
+length $O(d)$ and a fixed rational generator probability, so its
+probability denominator has $O(d)$ bits.  Rate and field expressions
+involve fixed powers of $O(B)$-bit integers.  The arithmetic theorem's
+uniformity and public-coefficient hypotheses are thus satisfied.
+
+The finite arithmetic list covers the formulas used here explicitly.
+A fixed polynomial switch is evaluated on an affine-rescaled clipped
+argument; positive parts and absolute values use maxima, and a variable
+clip is a minimum followed by a maximum.  The normalizing reciprocals
+have their arguments clipped to $[1/2,1]$.  The eighth roots used in the
+error estimates express regularity of the row functions and are not
+additional numerical operations requested by the controller.  Ranks
+inside a prefix use the finite descriptor construction above; the
+unbounded incoming classes use Lemma~\ref{lem:ctrl-score-rank}.  This
+accounts for the arithmetic primitives without adding a real-number
+comparison or an incoming-rank oracle.
+
+Structural selection words and loop counters have $O(d)$ bits.  The
+only longer local numerical words are the early operand records of
+Theorem~\ref{thm:arith-interface} and the just-described score suffix;
+they obey their explicit clock-decrement bounds.  Late operand calls
+hold only numerical paths, pending bounded results, immediate
+descriptors and short inverse tokens.  A fixed number of arithmetic and
+structural layers enlarges the constants in
+\eqref{eq:ctrl-recipe-bound}; its clock differences add.  Ordered
+terminal delegations add their own immediate records, with the same
+estimate at each boundary, including on rollback as proved in
+Lemma~\ref{lem:ctrl-paths}.  This verifies the record certificate on
+the designated executions, independently of any graph guards.
+\end{proof}
+
+\begin{lemma}[Parameter replay and salt visibility]\label{lem:ctrl-replay}
+The records in Lemma~\ref{lem:ctrl-recipes} are regenerable in the sense
+of Definition~\ref{def:ctrl-record}.  With respect to their own effective
+environments, actual procedures at a budget in block $b$ ignore all salt
+blocks later than $b$, including in structural orders, graph universes,
+guards and predecessor probes.  Re-querying a
+table entry or using a paired port in either direction uses the same
+effective table tuple.
+\end{lemma}
+
+\begin{proof}
+Start with the fixed top parameters and scan the active records.  An
+estimator edge specifies a task type, a stage change prescribed by the
+formula, a budget offset, a bin-scale offset if present, a bounded copy
+choice and channel-role recipe.  These determine the next absolute
+stage, rates and suffixes.  A projection appends the stored symbol
+before the inherited suffix.  A fresh midpoint or vector role uses the
+specified public stage rate and its prescribed suffix; it does not
+carry the old source.  These are the common-tuple recipes in
+Lemma~\ref{lem:atom-ports} and Lemma~\ref{lem:est-paths}.
+
+An averaging edge also carries its generator and wrap word.  Apply
+these fixed transformations in order to the current environment.  Their
+descriptors are independent of the indicated endpoint; membership and
+wrap consistency are tested separately on visits to that vertex.
+Thus no discarded conditioning address is needed to regenerate the
+environment.  For an old-prefix edge the tuple stays that of the same
+row calculation.  At final assembly a gate or column multiplier uses
+this common tuple, rather than the internal variant which happened to
+lead to a selected representative.  An action-owner tag allows an
+endpoint-local calculation to replay just to that ancestor tuple.
+
+Numerical paths specify arithmetic operands, gates, digit places and
+the early-prefix modes of a reciprocal.  Their finite index rules are
+those of Theorem~\ref{thm:arith-interface}; an absolute place is recovered
+from the root clock and the path or offset, not saved afresh per frame.
+Descriptor selections which used the cursor were stored explicitly as
+their bounded choices before movement.  No later tuple computation
+needs to repeat such a selection at an unknown old cursor.
+
+At every step the tuple and the temporary integers have $O(B)$ bits in
+the actual parameter and clock ranges.  Keep a current tuple in scratch
+and overwrite it as each record is processed.  Repeating the scan
+reconstructs an ancestor or a selected candidate chain.  Delimiters and
+marked active-copy tags specify which chain is used.  This costs one
+scratch facility, including its scanning counters, rather than one
+absolute pointer, input-head position or tuple per frame.
+
+A pure endpoint action belongs to its outer invoking predicate and may
+read that owner's permitted salt.  It is excluded from the lower program
+graph and cannot affect the lower path or rollback.  Nested lower queries
+still restore their arbitrary incoming catalyst contents.
+
+Finally, the only salt read by a new group comparison is its task's
+own block salt.  Descendants do not increase their budget.  Walks alter
+only the already designated earlier free salt blocks and leave the
+present and later ones frozen.  All descriptor and instruction orders
+are fixed index orders; all range and length checks depend only on
+public bounds and accessible tuple fields.  Give each recipe the
+syntactic permission to address only those salt blocks at most its
+budget block in its effective environment.  This is a direct range check
+on a requested salt index,
+not a condition on the salt's value.  A synthetic record cannot change
+that permission, choose a higher-budget recipe, or bypass the fixed
+parent-to-child rules.  The same replay and checks are used before
+predecessor queries.  Consequently the entire lower-block structure is
+independent of later salts.  The clean calculation in
+Lemma~\ref{lem:fp-clean} uses the same fixed descriptor orders and
+structural clocks, with its stipulated replacements of comparison
+predicates.  The error proof uses the salt independence of the actual lower
+algorithms and of the clean recipes.
+\end{proof}
+
+\begin{remark}[Effective coordinates and physical replay]
+\label{rem:ctrl-effective-environment}
+The salt assertion in Lemma~\ref{lem:ctrl-replay} is a statement about a
+task as a function of its effective environment.  For fixed other task
+parameters, write this function schematically as $F_b(\eta)$.  Its
+values, access orders and guarded program graph use only the rank
+channels and the permitted salt coordinates of $\eta$.  An ancestor can
+invoke it at $\eta=\varphi(\sigma)$, where $\sigma$ is the master
+environment and $\varphi$ is a recorded environment transformation.
+Computing the permitted coordinates of $\varphi(\sigma)$ can read
+physical master bits whose original block indices exceed $b$.  Those
+reads derive the effective argument; they do not give $F_b$ a new
+semantic parameter or permission to inspect later coordinates of that
+argument.
+
+For a clean calculation in the current block, the current task's own
+walks vary the earlier effective salt coordinates and freeze its current
+and later ones.  Same-block clean comparisons omit the current key, and
+lower-block procedures obey the local permission rule just proved.
+This is the coordinate convention used for the slice means in
+Lemma~\ref{lem:fp-clean}.  A callback owned by a higher task remains the
+separate pure endpoint action described above; it cannot enter the lower
+graph, change its selected path or affect rollback through catalytic
+contents.
+\end{remark}
+
+\subsection{The uniform space theorem}\label{sec:ctrl-space}
+
+Two linear quantities organize the final accounting.  For positive
+physical-space coefficients $A,D$, chosen below, define
+\begin{equation}\label{eq:ctrl-potentials}
+ \Phi(w,t)=Aw+Dt,\qquad \Psi(w,t)=t+a'w,
+\end{equation}
+where $a'$ is the clock-overshoot coefficient in
+Definition~\ref{def:ctrl-allowance}.  The decrease of $\Phi$ will pay for
+a suspended physical segment, including its local probe copies.
+The nonincrease of $\Psi$ will bound every descendant numerical clock
+and hence the shared arithmetic scratch.
+
+
+
+\begin{proof}[Proof of Theorem~\ref{thm:ctrl-realization}]
+Let $S$ exceed the finite number of operation strata in
+Lemma~\ref{lem:ctrl-recipes}, including the subdivision of path
+validation and all final wrappers.  Choose fixed integers
+$K_0>S+1$ and $K_1>2(K_0+S+1)$, increasing them as needed for the
+local constants.  Assign to an operation at budget $M$, prefix slack
+$d$ and stratum $s_0\in\{0,\ldots,S\}$ the allowance
+\begin{equation}\label{eq:ctrl-allowance-formula}
+ w=K_1(1+M)-(K_0+s_0)d.
+\end{equation}
+Final wrappers use $d=1$, with increasing $s_0$ down their dependencies.
+For a nontrivial prefix, $1\le d\le M$; trivial tasks use fixed top
+strata and terminate locally.
+
+A same-slack descent lowers $w$ by at least $d$.  A preceding-prefix
+descent to $2d$, even with a reset to an earlier stratum, lowers it by
+at least $(K_0-S)d>d$.  A statistical descent to $m\le M-d$ lowers it
+by at least $(K_1-K_0-S)d$, since the child allowance is at most
+$K_1(1+m)$ minus a nonnegative stratum term.  Hence every required
+boundary has $w-w'\ge c d$ for a fixed $c>0$, and all allowances remain
+positive and $O(1+M)$.  The estimates
+\eqref{eq:ctrl-recipe-bound} and the ordered-path record certificates
+give Definition~\ref{def:ctrl-allowance}, with common coefficients.
+When a common clock coefficient is increased, compensate the allowance
+coefficient using the bounded clock overshoot, just as in
+\eqref{eq:ctrl-copy-coefficients}.  Add a fixed allowance gap for a
+traversal wrapper's bounded incidence, count and status data.
+
+There are two distinct estimates in this induction.  First,
+Lemma~\ref{lem:ctrl-recipes} certifies the raw caller words with the same
+$a_0,b_0$ at every budget; a lower opaque operation contributes its call
+recipe, but none of its internal working states, to that certificate.
+Second, Lemma~\ref{lem:ctrl-local-graph} converts a copied raw portion to
+its physical bound with one fixed pair $A,D$.  The induction below
+appends a lower operation's physical portion; it never substitutes that
+physical portion into an upper raw graph state.  The raw certificate
+therefore does not depend recursively on the already enlarged physical
+constants.
+
+Construct the procedures in increasing allowance.  The induction covers
+all recipe instances admitted by the finite range and parent-to-child
+checks: both designated calls and calls made when probing candidate
+predecessor records.  It does not require such a candidate record to
+have occurred on a designated execution.  Each opaque call still enters
+the lower procedure at its canonical entry, where its semantic presence
+tests are performed.  At the bottom are
+local base ports, rank and salt evaluation, rational arithmetic without
+graph operands, and trivial zero tasks.  Suppose lower operations are
+total, have their claimed cursor and catalyst behavior, and obey the
+local bounds.  The finite restoring and numerical recipes of
+Lemma~\ref{lem:ctrl-recipes}, using
+Theorem~\ref{thm:arith-interface}, then compute exactly their specified
+bit or digit.  Their finite loops and lower calls terminate.  Endpoint
+visits use Lemma~\ref{lem:ctrl-paths}, and completed endpoint comparisons
+use Lemma~\ref{lem:ctrl-equality}.  The latter restores arbitrary
+catalyst contents and has an independent answer, preserving the
+induction hypothesis.  The other recipes make no direct
+catalyst-dependent choice.
+
+The canonical terminal programs have finite loops and only lower
+terminal delegations or opaque calls, so their prescribed executions
+terminate.  Their class checks send invalid canonical initiations to
+failure.  The certificates already proved show that all their
+designated boundaries fit the local bounds.  By
+Lemma~\ref{lem:ctrl-replay}, their parameters and static guards are
+uniform and independent of a discarded cursor.  We may therefore
+apply Lemma~\ref{lem:ctrl-local-graph}.  Guards remove no designated
+execution.  At synthetic states they ensure that every probed query
+has an admissible lower tuple and available space; fresh safe lower
+queries do not rely on the truth of an earlier stored flag.
+
+The finite graph contours of Lemma~\ref{lem:ctrl-tour} now implement
+the higher cap and inverse-rank wrappers in
+Lemmas~\ref{lem:ctrl-cap} and~\ref{lem:ctrl-score-rank}.  They terminate
+on success-root components even if other graph components contain
+cycles or guard-created dead ends.  They count only the canonical
+initial executions of these programs, so their paired maps and ranks
+are the mathematical ones specified by the tables.  By the common root
+tuple and salt convention the same maps are obtained in either
+direction and on every re-query.  This completes the well-founded
+construction.  An opaque query in this induction denotes its already
+constructed finite procedure; recursively substituting these
+procedures gives an ordinary deterministic machine.
+
+The allowance is a runtime parameter of this fixed finite collection of
+instruction types, rather than an index for input-dependent program
+text.  Operation tags select the finite recipe family; loop counters,
+gate paths and regenerable descriptors select its current instance.
+Thus the induction constructs one uniform interpreter for these
+instructions.  It requires neither a separately compiled machine for
+each budget nor stored transition graphs for the contours.
+
+It remains to add all simultaneously live data.  By
+Lemma~\ref{lem:ctrl-local-graph}, a traversal root at $(w_i,t_i)$ with a
+pending query at $(w_{i+1},t_{i+1})$ contributes at most
+\begin{equation}\label{eq:ctrl-stack-segment}
+ A(w_i-w_{i+1})+D(t_i-t_{i+1})
+ =\Phi(w_i,t_i)-\Phi(w_{i+1},t_{i+1})
+\end{equation}
+local bits, including its fixed number of neighbor-state copies.
+Ordinary restoring and numerical calls have the same bound after one
+enlargement of $A,D$.  Inverse traversal copies only its local explicit
+chain, not older stack segments or the internal configurations of a
+transition query.  Choose $A,D$ also to dominate the bottom operation's
+intrinsic linear bound.  If the active chain has boundaries
+$0,\ldots,r$, with boundary zero at the top, put
+$\Phi_i=\Phi(w_i,t_i)$.  The total local space is at most
+\[
+ \sum_{i=0}^{r-1}(\Phi_i-\Phi_{i+1})+\Phi_r+O(1)
+ =\Phi_0+O(1)
+ =Aw_{\mathrm{top}}+Dt_{\mathrm{top}}+O(1).
+\]
+Figure~\ref{fig:ctrl-space} shows which records enter each summand.
+
+\input{figures/controller-space}
+
+The clock inequality in \eqref{eq:ctrl-local-bound} gives
+\begin{equation}\label{eq:ctrl-clock-invariant}
+ \Psi(w_{i+1},t_{i+1})\le\Psi(w_i,t_i).
+\end{equation}
+Since $t_i\le\Psi(w_i,t_i)$, all clocks are
+$O(t_{\mathrm{top}}+w_{\mathrm{top}})$.
+This also bounds the public scratch calculations in the arithmetic
+theorem.  An uncharged full coefficient or cursor copy cannot persist
+there: any operand-dependent early word crossing a query was included
+in its record certificate, while pure public computations have no
+recursive query.  The master environment, cursor, catalyst, scratch
+and their global scan counters are single facilities.  Their total
+space is $O(B+t_{\mathrm{top}}+w_{\mathrm{top}})$.
+
+For exact-stream semantics the induction is valid for each finite
+requested clock, allowing scratch to scale with that clock.  Every
+structural domain uses its fixed finite-margin clock, so its definition
+does not change in this argument.  In particular the integer $N_t$ of a
+score rank or arithmetic operation is always evaluated by its own
+place convention, even when used in a request for the next digit.
+The actual application has $M_{\mathrm{top}},t_{\mathrm{top}}=O(B)$,
+and hence all these facilities and active records use $O(B)$ bits.
+\end{proof}

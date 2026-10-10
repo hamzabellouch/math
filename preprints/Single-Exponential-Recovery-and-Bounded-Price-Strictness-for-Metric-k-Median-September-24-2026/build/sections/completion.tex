@@ -1,0 +1,579 @@
+\section{Completing sampled prefixes and recovering the budget}
+\label{comp:section}
+
+This section turns the sampled balls into a solution with the original
+number of facilities.  Two kinds of removal destinations are treated
+separately: destinations represented by proxies or balls, and destinations
+at bad comparison facilities for which no ball has been sampled.  The
+separation allows the latter destinations to use their actual distances
+without paying for a ball around each of them.  We first give the
+submodular optimization argument, then the completion construction, and
+finally its application to the endpoint of Theorem~\ref{sam:successful-prefix}.
+The construction adapts the guessed-ball savings formulation of
+\cite[Section~2.3]{CGKLL2019} and the joint addition/removal surrogate
+of \cite[Section~4.6]{CGLSS2026}.  The blue destination optimization
+below separates centers without sampled balls from the remaining
+submodular choices.  The finite maximization proof is a specialization
+of continuous greedy and partition rounding
+\cite[Theorem~1.1 and Section~3.3]{CCPV2011}.  We prove the complete
+optimization, realization and recovery statements needed here.
+
+\subsection{A finite partition-constrained maximization procedure}
+
+For a finite set $E$, a function $g:2^E\to\mathbb R_{\ge0}$ is
+\emph{normalized} if $g(\varnothing)=0$, \emph{monotone} if
+$g(U)\le g(V)$ whenever $U\subseteq V$, and \emph{submodular} if
+\[
+ g(U\cup\{e\})-g(U)\ge g(V\cup\{e\})-g(V)
+ \qquad(U\subseteq V,\ e\notin V).
+\]
+We write $\Delta_e g(U)=g(U\cup\{e\})-g(U)$, with value zero when
+$e\in U$.  A partition constraint permits at most one element from each
+part of a specified partition $E=E_1\sqcup\cdots\sqcup E_a$.
+
+\begin{lemma}[Categorical continuous greedy with explicit error]
+\label{comp:partition-max}
+Let $g$ be a normalized, monotone, submodular function given by an exact
+value oracle, and let $E$ have a partition into $a$ parts.  For every
+$0<\varepsilon<1-1/e$, a randomized algorithm uses
+$\operatorname{poly}(|E|,a,1/\varepsilon)$ oracle calls and returns a
+feasible $X$ satisfying
+\[
+ \mathbb E[g(X)]\ge(1-1/e-\varepsilon)
+       \max\{g(Y): |Y\cap E_j|\le1\text{ for all }j\}.
+\]
+Every random draw can be made using a bounded polynomial number of fair
+bits.  If the parts are nonempty, filling unoccupied parts preserves the
+guarantee.  In particular, one obtains the factor $0.62$; more generally,
+for every fixed rational $\theta>1/e$ with $\theta<1$, one obtains
+expected gain at least $1-\theta$ times the maximum.
+\end{lemma}
+
+\begin{proof}
+Empty parts may be discarded.  Write $q=|E|$, let $g_{\max}$ denote the
+maximum in the statement, and compute
+$M_1=\max_{e\in E}g(\{e\})$ using $q$ oracle calls.  If $E$ is empty or
+$M_1=0$, submodularity and telescoping give $g(Y)\le\sum_{e\in Y}
+g(\{e\})=0$ for every $Y$, so the conclusion is immediate.  Otherwise
+$a\ge1$ and $0<M_1\le g_{\max}$.
+
+For vectors $x\ge0$ with $\sum_{e\in E_j}x_e\le1$, independently in
+each part select $e$ with probability $x_e$, and select nothing with the
+remaining probability.  Let $R_x$ be the resulting feasible random set
+and $G(x)=\mathbb E[g(R_x)]$.  Multilinearity across the parts gives
+\begin{equation}
+ \partial_eG(x)=\mathbb E\bigl[
+   \Delta_e g(R_x\setminus E_j)\bigr],\qquad e\in E_j.
+ \label{comp:categorical-derivative}
+\end{equation}
+Every integrand is between zero and $M_1$.  For a fixed feasible
+maximizer $O_g$, monotonicity and submodularity give, for every $R_x$,
+\[
+ g_{\max}-g(R_x)
+ \le\sum_{e\in O_g}\Delta_e g(R_x)
+ \le\sum_{e\in O_g}\Delta_e g(R_x\setminus E_{j(e)}).
+\]
+The last inequality also holds when $e\in R_x$, since its left summand
+is then zero.  Thus
+\begin{equation}
+ \sum_{j=1}^a\max_{e\in E_j}\partial_eG(x)
+       \ge g_{\max}-G(x).
+ \label{comp:derivative-direction}
+\end{equation}
+
+Choose a dyadic rational $\tau$ of bit length $O(\log(2/\varepsilon))$ with
+$\min\{\varepsilon/8,1/16\}\le\tau\le\min\{\varepsilon/4,1/8\}$ and
+let $T$ be the smallest power of two at least $a^2/\tau$.  Starting at
+$x^{(0)}=0$, perform $T$ steps.  At step $t$, estimate every derivative
+in Equation~\eqref{comp:categorical-derivative}, choose a largest
+estimated derivative in each part, and add $1/T$ to each chosen
+coordinate.  Let $v^{(t)}$ be the zero--one vector of chosen coordinates.
+At time $t$ every part has total mass $t/T$, so all iterates and all
+segments $x^{(t)}+uv^{(t)}$, $0\le u\le1/T$, are feasible.
+
+There are $Q_0=Tq$ derivative estimates.  For each estimate take the
+mean of
+\[
+ L=\left\lceil\frac{Q_0a^2}{4\tau^3}\right\rceil
+\]
+independent samples of its marginal.  Each sample has variance at most
+$M_1^2/4$.  Chebyshev's inequality shows that the probability of error
+greater than $\tau M_1/a$ is at most $\tau/Q_0$.  This assertion holds
+conditionally on every preceding choice, because fresh samples are
+used at the current iterate.  The union bound therefore shows that all
+estimates are accurate with probability at least $1-\tau$, even though
+the iterates are adaptive.  On this event, the chosen direction obeys
+\begin{equation}
+ \nabla G(x^{(t)})\cdot v^{(t)}
+ \ge g_{\max}-G(x^{(t)})-2\tau M_1.
+ \label{comp:estimated-direction}
+\end{equation}
+
+For completeness, the finite step has a controlled integration error.
+Couple a categorical draw at $x$ and at $x+uv$ by changing a part's
+outcome only when the additional mass $u$ assigned to its selected
+coordinate is used.  Such a change occurs with probability $u$ in each
+part.  For a derivative with its own part omitted, the probability that
+any other part changes is at most $au$.  Since the marginal in
+Equation~\eqref{comp:categorical-derivative} lies in $[0,M_1]$, its
+expectation changes by at most $auM_1$.  Summing over the $a$ selected
+coordinates and integrating for $0\le u\le1/T$ gives, with the slightly
+looser bound convenient below,
+\[
+ G(x^{(t+1)})-G(x^{(t)})
+ \ge\frac{g_{\max}-G(x^{(t)})-2\tau M_1}{T}
+       -\frac{a^2M_1}{T^2}
+ \ge\frac{g_{\max}-G(x^{(t)})-3\tau M_1}{T}.
+\]
+Iterating from $G(0)=0$ yields
+\[
+ G(x^{(T)})\ge
+ \bigl(1-(1-1/T)^T\bigr)(g_{\max}-3\tau M_1)
+ \ge(1-1/e-3\tau)g_{\max}.
+\]
+Here $g_{\max}-3\tau M_1\ge0$.  Sample the final categorical set
+independently after the estimates.  On estimation failure its gain is
+still nonnegative.  Consequently its unconditional expected gain is at
+least
+\[
+ (1-\tau)(1-1/e-3\tau)g_{\max}
+ \ge(1-1/e-4\tau)g_{\max}
+ \ge(1-1/e-\varepsilon)g_{\max}.
+\]
+All categorical probabilities in this algorithm have denominator $T$;
+one uniform integer in $\{0,\ldots,T-1\}$ therefore samples each part
+exactly using $\log_2T$ fair bits.  The oracle count and the number of
+such draws are polynomial in the stated parameters.  In the present
+application oracle values are rational numbers of polynomial bit
+length, so the arithmetic also takes polynomial time.  Monotonicity
+justifies filling parts.  Finally $1-1/e>0.6321$, so an error smaller
+than $0.0121$ gives $0.62$.  For the last assertion choose a rational
+$\varepsilon$ with $0<\varepsilon\le\theta-1/e$.
+\end{proof}
+
+\subsection{The blue optimization and the red surrogate}
+
+Fix $|S|=|O|=h\ge1$ and an injective proxy map $i\mapsto\phi_i\in S$
+for the good members of $O$.  Let $m>0$ be the number of bad members and
+let $S_0$ be the $m$ members of $S$ not used as proxies.  Consider a
+prefix with $Q\subseteq S_0$ and one ball
+\[
+ \mathcal F_i=\{x\in F:d(w_i,x)\le R_i\}
+\]
+for each $i$ in a subset $A$ of the bad centers.  Assume $i\in\mathcal F_i$,
+put $r_i=d(w_i,i)$, and let $B$ be the remaining bad centers.  The
+algorithm sees the balls but not their indices in $O$.  As in the
+sampling section, $\delta_i$ is the leaf at distance $R_i$ from $w_i$,
+$\Lambda=\{\delta_i:i\in A\}$, and $\delta_\infty$ is the permanent
+dummy.  Thus
+\[
+ H=(S\setminus Q)\cup\Lambda\cup\{\delta_\infty\}.
+\]
+Keep the fixed nearest assignments in $H$.  For a real $s\in S\setminus Q$,
+write $J_s$ for its assigned clients and $w'_s=|J_s|$.
+
+Set $a=|A|$, $c=m-a$, and $r=m-|Q|$.
+The eventual count is illustrated in Figure~\ref{fig:completion-budget}:
+the completion removes $r$ more original facilities and adds at most
+$a+c=m$ real destinations.  We now optimize their choices.
+\input{figures/budget}
+Color every member of
+$S\setminus Q$ green, red, or blue independently.  Green has probability
+$1/2$ and each of red and blue has probability $1/4$, so two fair bits
+suffice.  Enumerate all nonnegative counts
+$b_{\mathrm{red}}+b_{\mathrm{blue}}=r$.  A count with too few candidates
+of a required color is infeasible and is discarded.
+
+The following blue-label construction adapts the color-coding method
+of Alon--Yuster--Zwick~\cite[Section~3, Lemma~3.1]{AlonYusterZwick1995}.
+The weighted block recurrence and its routing-cost analysis are given here.
+For a fixed count $b=b_{\mathrm{blue}}>0$, assign each blue candidate an
+independent label in $[b]$.  It suffices to use a dyadic distribution
+whose probability for every label is at least $1/(2b)$: sample a uniform
+integer in $\{0,\ldots,2^{\lceil\log_2 b\rceil}-1\}$ and use one plus
+its remainder modulo $b$.  For a nonempty $U\subseteq[b]$, define
+\begin{equation}
+ C(U)=\min_{x\in F}\sum_{\ell\in U}
+       \min_{\substack{s\text{ blue}\\\operatorname{label}(s)=\ell}}
+              w'_s d(s,x).
+ \label{comp:blue-block}
+\end{equation}
+A missing label makes this value infinite.  For every block also store
+minimizing witnesses $x$ and one removal candidate of each label.
+The subset dynamic program
+\[
+ D(0,\varnothing)=0,\qquad
+ D(t,U)=\min_{\varnothing\ne V\subseteq U}
+             \bigl(C(V)+D(t-1,U\setminus V)\bigr)
+\]
+has all other zero-block states infinite; a minimum over an empty
+collection is also infinite.  Take
+$K=\min_{1\le t\le c}D(t,[b])$, and discard the branch if $K=\infty$.
+It selects exactly one blue removal per label and at most $c$ destination
+facilities.  If $b>0$ and $c=0$ the branch is infeasible.  If $b=0$, set
+$K=0$ and select no blue removal or destination, including when $c=0$.
+
+The block costs require at most $2^b\operatorname{poly}(N)$ work, and
+the dynamic program requires $O(c3^b)$ additional arithmetic operations.
+It is exact for this labeled optimization: every feasible routing
+partitions the labels by destination and hence has cost at least a
+corresponding sum of block minima; conversely each finite partition has
+the stored witnesses realizing its value.  Distinct labels select
+distinct removals, because a candidate has only one label.  Different
+blocks may use the same destination, which only reduces the number of
+distinct facilities opened.
+
+Let $E=\bigsqcup_{i\in A}E_i$ consist of disjoint copies of the
+facilities in the balls, with $E_i=\{(i,x):x\in\mathcal F_i\}$.
+Distances to a subset of $E$ mean distances to its underlying facilities.
+Ball intersections cause no identification between these copies.
+For a feasible $X\subseteq E$, put
+\[
+ Z=\{s:s\text{ green}\}\cup\Lambda\cup\{\delta_\infty\}
+\]
+and define the finite surrogate
+\begin{equation}
+ \Psi(X)=K+\sum_{p\in D}\min\{d(p,H),d(p,X)\}
+  +\operatorname{small}_{b_{\mathrm{red}}}
+       \{w'_s d(s,Z\cup X):s\text{ red}\}.
+ \label{comp:surrogate}
+\end{equation}
+Here $d(p,\varnothing)=\infty$, and $\operatorname{small}_q$ denotes
+the sum of the $q$ smallest entries, with $\operatorname{small}_0=0$.
+
+\begin{lemma}[Surrogate realization and submodularity]
+\label{comp:surrogate-properties}
+For every finite branch and feasible $X$, one can construct a nonempty
+real solution $U_X\subseteq F$ with $|U_X|\le h$ and
+$\operatorname{cost}(U_X)\le\Psi(X)$.  Moreover
+$g(X)=\Psi(\varnothing)-\Psi(X)$ is normalized, nonnegative, monotone,
+and submodular on all subsets of $E$.
+\end{lemma}
+
+\begin{proof}
+Select the $b_{\mathrm{red}}$ red removals attaining the last term of
+Equation~\eqref{comp:surrogate}, and use the blue removals and destinations
+stored by the dynamic program.  Fill every unused ball with an arbitrary
+facility in that ball.  Let $X_{\mathrm{fill}}$ be the underlying filled
+facility set, $Y_{\mathrm{blue}}$ the blue destinations, and
+$R_{\mathrm{red}},R_{\mathrm{blue}}$ the two removal sets.  Form
+\[
+ U'=\bigl(S\setminus(Q\cup R_{\mathrm{red}}\cup R_{\mathrm{blue}})\bigr)
+          \cup X_{\mathrm{fill}}\cup Y_{\mathrm{blue}}.
+\]
+These are set unions.  Since the removal sets are disjoint and have
+total size $r$, and the additions have total size at most $a+c=m$,
+\begin{equation}
+ |U'|\le h-|Q|-r+a+c=h.
+ \label{comp:cardinality}
+\end{equation}
+This inequality permits repeated ball choices, overlapping balls,
+coincidences with retained facilities, and reopening any member of $Q$
+or either removal set.  Pad $U'$ to size $h$, if necessary, obtaining
+$U_X$.  Padding is possible because $h\le|F|$ and makes $U_X$ nonempty.
+Only now invoke domination of the permanent dummy: any real center is
+within the original diameter of every original point.  A filled center
+in $\mathcal F_i$ similarly satisfies
+$d(y,X_{\mathrm{fill}})\le d(y,w_i)+R_i=d(y,\delta_i)$ for any original
+point $y$.  Every point of $Z$ therefore has its distance from original
+points attained or improved by the final solution.
+
+For a client whose minimum in the base term uses $X$, the distance is
+already attained by $U_X$.  Otherwise use its fixed assignment in $H$.
+A retained real center or a dummy is covered by the preceding argument.
+If its assigned center $s$ is removed red, triangle inequality bounds
+its new distance by $d(p,H)+d(s,Z\cup X)$.  If it is removed blue, use
+$d(p,H)+d(s,y_s)$ for its stored destination $y_s$.  Charging these
+additional distances to all $w'_s$ clients of a removed center is an
+upper bound even when some of their base minima use $X$.  Summing proves
+$\operatorname{cost}(U_X)\le\Psi(X)$.
+
+For submodularity, each client's base-cost saving is
+\[
+ d(p,H)-\min\{d(p,H),d(p,X)\}
+ =\max\bigl(0,\max_{x\in X}\{d(p,H)-d(p,x)\}\bigr).
+\]
+The maximum of fixed offers has decreasing marginal gains and is
+monotone.  If there are no red candidates the red term is zero.
+Otherwise choose a common
+$C\ge\max_{s\text{ red}}w'_sd(s,Z)$, and write
+\[
+ v_s(X)=C-w'_sd(s,Z\cup X)
+       =\max\bigl(C-w'_sd(s,Z),
+                    \max_{x\in X}\{C-w'_sd(s,x)\}\bigr).
+\]
+The scores $v_s(X)$ lie in $[0,C]$.  The sum of the
+$q=b_{\mathrm{red}}$ smallest red costs equals $qC$ minus the sum
+$V_q(X)$ of the $q$ largest scores.  If $C=0$ or $q=0$ this term is
+constant.  Otherwise, counting scores above each level gives
+\[
+ V_q(X)=\int_0^C\min\bigl(q,|\{s:v_s(X)\ge t\}|\bigr)\,dt.
+\]
+At a fixed level $t$, each selected $x$ covers a fixed set of red
+centers, in addition to a fixed baseline covered set.  The marginal of
+adding $x$ to its coverage count truncated at $q$ is the minimum of
+the number of newly covered centers and the remaining capacity below
+$q$.  Both numbers can only decrease when the previously selected set
+grows.  The integrand is therefore monotone and submodular, and so is
+its integral.  The red saving is $V_q(X)-V_q(\varnothing)$.
+Adding the base savings establishes the assertion.  Identical offers
+from copies in different balls preserve this reasoning.
+\end{proof}
+
+\subsection{A completion inequality with arbitrary slack}
+
+We have constructed a computable surrogate, proved that its savings
+are submodular, and realized every feasible choice without exceeding
+the facility budget.  We now analyze one favorable color-and-label
+event.  The following statement retains the exact base contribution
+outside the intended removals, which is essential to the refined
+recovery argument.
+
+\begin{theorem}[Completion of a prefix]
+\label{comp:completion}
+In the prefix setting above, fix a rational $1/e<\theta<1$.  Define
+\[
+ R^*=S_0\setminus Q,\qquad
+ J=\bigcup_{s\in R^*}J_s,\qquad
+ I=\sum_{p\in J}d(p,H),\qquad
+ X^*=\{(i,i):i\in A\}.
+\]
+For $p\in C_i$, let
+\begin{equation}
+ c_p=\begin{cases}
+ d(p,\phi_i),&i\text{ good},\\
+ d_p^*+\theta(r_i+R_i),&i\in A,\\
+ d_p^*,&i\in B,
+ \end{cases}
+ \qquad
+ b_p=\theta d(p,H)+(1-\theta)\min\{d(p,H),d(p,X^*)\}.
+ \label{comp:client-charges}
+\end{equation}
+There is an algorithm, using only $S,m,Q$ and the given balls, whose
+outputs always have at most $h$ real facilities and whose work is
+$\exp(O(m))\operatorname{poly}(N,1/(\theta-1/e))$, with polynomial
+dependence also on the input bit length.  There is an event in its
+color and label choices of probability at least $\exp(-O(m))$ such
+that, for every realization of those choices in the event, its output
+$U$ satisfies
+\begin{equation}
+ \mathbb E[\operatorname{cost}(U)]
+       \le 2I+\sum_{p\in J}c_p+\sum_{p\notin J}b_p.
+ \label{comp:completion-bound}
+\end{equation}
+The expectation is over the remaining optimization randomness.  For
+good clients $b_p\le c_p$; for clients of $A$ also $b_p\le c_p$; for
+clients of $B$ one always has $b_p\le d(p,H)$.  No upper bound on
+$\operatorname{cost}(H)$, proxy error, or ball radii is needed for this
+theorem beyond containment of $i$ in its designated ball.
+\end{theorem}
+
+\begin{proof}
+For each feasible count branch, apply Lemma~\ref{comp:partition-max}
+to the function in Lemma~\ref{comp:surrogate-properties}, with error
+at most $\theta-1/e$, and construct the corresponding $U_X$.  Keep
+the cheapest constructed solution, including $S$ as a fallback.  For
+the fixed branch under consideration, the gain guarantee and the
+feasibility of $X^*$ imply
+\begin{equation}
+ \mathbb E[\operatorname{cost}(U)]
+ \le\mathbb E[\Psi(X)]
+ \le\theta\Psi(\varnothing)+(1-\theta)\Psi(X^*).
+ \label{comp:convex-surrogate}
+\end{equation}
+It remains to identify a suitable branch and bound this convex
+combination.
+
+For each $s\in R^*$, minimize the following mixed distance over all
+comparison destinations, resolving ties by a fixed rule:
+\begin{equation}
+ M_s=\min\left\{
+ \begin{array}{ll}
+ d(s,\phi_i),&i\text{ good},\\
+ (1-\theta)d(s,i)+\theta\bigl(d(s,w_i)+R_i\bigr),&i\in A,\\
+ d(s,i),&i\in B.
+ \end{array}\right.
+ \label{comp:mixed-distance}
+\end{equation}
+Require $s$ to be red for either of the first two destination types and
+blue for the third.  Require every proxy used in the first type to be
+green.  The requirements are consistent: $R^*\subseteq S_0$ whereas
+all proxies lie outside $S_0$.  At most $r$ removal centers and at most
+$r$ proxy destinations receive specified colors, so the event has
+probability at least $4^{-2m}$.  All other proxies may have any color;
+if the optimization removes one of them, its displacement is paid by
+the surrogate just as for any other removed center.
+
+Use the count branch equal to the sizes of these designated red and
+blue sets.  If the designated blue count is $b>0$, require their labels
+to be distinct.  Its conditional probability is at least
+\[
+ b!(2b)^{-b}\ge(2e)^{-b}.
+\]
+The inequality follows, for example, from
+$\log(b!)\ge\int_1^b\log x\,dx=b\log b-b+1$.
+For $b=0$ the event has probability one.  The blue comparison assigns
+each designated blue removal to its chosen member of $B$.  Grouping
+equal destinations uses at most $|B|=c$ blocks, so it is feasible for
+Equation~\eqref{comp:blue-block} and the dynamic program.  Consequently
+its $K$ is at most the sum of designated blue charges $w'_sM_s$.
+In particular the successful branch is never infeasible.
+
+For the designated red subset, at $X=\varnothing$ a proxy destination
+is green and a ball destination has its leaf in $Z$.  At $X=X^*$ the
+corresponding true ball center is also available.  At each of these
+two arguments, the optimized sum of smallest red costs is no greater
+than the sum over this same designated red subset.  Therefore their
+convex combination, together with $K$, is at most
+\begin{equation}
+ \sum_{s\in R^*}w'_sM_s.
+ \label{comp:removal-comparison}
+\end{equation}
+The minimizing red subset need not be the same at the two arguments;
+the fixed designated subset is an admissible upper bound at both.
+
+For $p\in J_s\cap C_i$ offer its own cluster as a destination in
+Equation~\eqref{comp:mixed-distance}.  In the good and uncovered cases,
+triangle inequality gives respectively
+$M_s\le d(p,H)+d(p,\phi_i)$ and
+$M_s\le d(p,H)+d_p^*$.  In the covered case it gives
+\[
+ \begin{split}
+ M_s&\le(1-\theta)d(s,i)+\theta(d(s,w_i)+R_i)\\
+ &\le d(p,H)+(1-\theta)d_p^*
+            +\theta(d_p^*+r_i+R_i)
+   =d(p,H)+c_p.
+ \end{split}
+\]
+Although $M_s$ is chosen once for all clients of $J_s$, it is no larger
+than every offered value.  Summing therefore bounds
+Equation~\eqref{comp:removal-comparison} by $I+\sum_{p\in J}c_p$.
+The base terms of the convex combination contribute at most a further
+$I$ on $J$, and contribute exactly $b_p$ on its complement.  Together
+with Equation~\eqref{comp:convex-surrogate} this proves
+Equation~\eqref{comp:completion-bound}.
+
+For a good client $d(p,H)\le d(p,\phi_i)$ since $Q\subseteq S_0$.
+For a covered client, $d(p,H)\le d_p^*+r_i+R_i$ and
+$d(p,X^*)\le d_p^*$, yielding $b_p\le c_p$.  The bound for $B$ follows
+from the definition of $b_p$.  All complexity statements follow from
+the $r+1$ count branches, the subset dynamic program, and
+Lemma~\ref{comp:partition-max}.  The number of copied facilities is at
+most $a|F|\le N^2$, and the surrogate can be evaluated using distance
+lookups and sorting.  The color and label constructions use bounded
+numbers of fair bits.  Combining their probabilities gives the claimed
+$\exp(-O(m))$ event.
+\end{proof}
+
+\subsection{A quantitative recovery guarantee}
+
+\begin{theorem}[Single-exponential recovery]
+\label{comp:recovery}
+Suppose $|S|=|O|=h\ge1$, $P=\operatorname{cost}(O)>0$, and $O$ has
+an injective proxy map into $S$ for its good centers such that
+\[
+ \sum_{i\text{ good}}\sum_{p\in C_i}d(p,\phi_i)
+       \le P_g+0.01P.
+\]
+Assume the number $m$ of bad centers is at most a supplied bound
+$M_0$.  On the positive bounded integral instances used in the body
+of the proof, for every $0<\zeta<1$ an algorithm knowing only
+$S,M_0,\zeta$ returns a real solution of size at most $h$ and cost at
+most $1.97P$ with probability at least $1-\zeta$.  Its running time is
+\[
+ \exp(O(M_0))\operatorname{poly}(N)\log(2/\zeta).
+\]
+In particular this is polynomial time for every fixed constant in
+$M_0=O(\log N)$.  Local optimality of $S$ is not an additional
+hypothesis of this theorem.
+\end{theorem}
+
+\begin{proof}
+If $m=0$, the cost of $S$ is at most the displayed proxy-assignment
+cost, hence at most $1.01P$.  The algorithm always retains $S$ as a
+candidate.  Suppose henceforth $m>0$, and fix
+$\kappa=10^{-6}$ and $\theta=0.38$.  Run the sampling procedure of
+Theorem~\ref{sam:successful-prefix} for at most $2m$ steps, examining
+every prefix.  Its successful prefix has the structure used in
+Theorem~\ref{comp:completion}, and satisfies
+\[
+ I\le\kappa P,\qquad
+ T_i:=\sum_{p\in N_i}d(p,H),\quad
+ \sum_{i\in B}T_i\le\kappa P,
+ \qquad N_i=\{p\in C_i:d_p^*\le1.2\bar d_i\}.
+\]
+Here $\bar d_i=P_i/n_i$ for $n_i>0$; empty clusters contribute no
+clients and no terms with denominator $n_i$.  The same theorem gives
+\begin{equation}
+ \begin{gathered}
+ r_i\le1.2\bar d_i,\qquad
+ R_i\le(1+\kappa)r_i+\kappa r^0(w_i),\qquad
+ \sum_{i\in A}n_i r^0(w_i)\le5.2P,\\
+ d(p,H)\le1.85d_p^*+60T_i/n_i
+       \quad(i\in B,\ p\in C_i\setminus N_i).
+ \end{gathered}
+ \label{comp:main-endpoint}
+\end{equation}
+
+Apply Theorem~\ref{comp:completion}.  Good clients, whether inside or
+outside $J$, contribute at most their proxy-assignment cost.  Covered
+bad clients contribute at most
+\[
+ \sum_{i\in A}\left[P_i+
+   \theta n_i\bigl((2+\kappa)1.2\bar d_i+\kappa r^0(w_i)\bigr)\right].
+\]
+For a remaining bad cluster, clients in $J$ cost at most $d_p^*$;
+clients outside $J$ and inside $N_i$ contribute at most $d(p,H)$,
+whose sum is bounded by $T_i$; the other clients are bounded by the
+last line of Equation~\eqref{comp:main-endpoint}.  Thus their total is
+at most $1.85\sum_{i\in B}P_i+61\sum_{i\in B}T_i$.
+Including the two copies of $I$ gives the conditional expectation
+\[
+ \begin{split}
+ \mathbb E[\operatorname{cost}(U)]
+ &\le 2\kappa P+P_g+0.01P\\
+ &\quad+\sum_{i\in A}\left[P_i+
+   \theta n_i\bigl((2+\kappa)1.2\bar d_i+\kappa r^0(w_i)\bigr)\right]
+       +1.85\sum_{i\in B}P_i+61\kappa P\\
+ &\le\left[1+0.38(2+10^{-6})1.2+0.01
+                 +63\cdot10^{-6}+0.38\cdot5.2\cdot10^{-6}\right]P\\
+ &=1.922065432P<1.94P.
+ \end{split}
+\]
+In the second inequality the covered-cluster coefficient
+$1+0.38(2+\kappa)1.2=1.912000456$ bounds both the good coefficient
+$1$ and the uncovered coefficient $1.85$.
+
+The output cost is nonnegative.  Markov's inequality therefore gives,
+conditional on the successful prefix and the color and label event,
+\[
+ \Pr\{\operatorname{cost}(U)\le1.97P\}
+ \ge 1-\frac{1.94}{1.97}=\frac3{197}.
+\]
+The sampling event has probability $\exp(-O_\kappa(m))$ by
+Theorem~\ref{sam:successful-prefix}; the completion event has probability
+$\exp(-O(m))$.  Their product with $3/197$ is at least
+$\exp(-C m)$ for an absolute constant $C$ after enlarging $C$, since
+$\kappa$ is fixed and $m\ge1$.  These are conditional bounds for every
+successful prefix, so they combine without an independence assumption
+between its shape and the required colors.
+
+The algorithm need not know the comparison solution, its partition,
+its proxies, or $P$.  It enumerates $1\le m\le\min\{M_0,h\}$ and
+all integer cost guesses $1\le P\le n\Delta$, where $\Delta$ is the
+maximum original distance of the bounded integral instance.  One guess
+equals the true $P$.  For each guess repeat the full sampling and
+completion experiment
+$\lceil\exp(C M_0)\log(1/\zeta)\rceil$ times, taking the best feasible
+candidate over all prefixes and all guesses, including $S$.
+The chance that every trial for the correct guess fails is at most
+$\zeta$.  The number of cost guesses is polynomial in $N$, each
+sampling trial has polynomial work, and completion contributes only
+$\exp(O(m))\operatorname{poly}(N)$.  The stated running time follows.
+All branches, including incorrect guesses, discard prefixes with
+$|Q|>m$ or more than $m$ balls, empty facility balls, or impossible
+counts, and obey Equation~\eqref{comp:cardinality};
+the fallback also has size $h$.  Consequently the budget holds on
+every outcome.  The algorithm retains the minimum actual cost without
+testing any condition involving $O$ or recognizing successful events.
+\end{proof}

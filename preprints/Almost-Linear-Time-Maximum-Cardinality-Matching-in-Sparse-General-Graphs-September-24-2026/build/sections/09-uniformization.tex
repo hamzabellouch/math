@@ -1,0 +1,384 @@
+\section{Explicit output and one uniform program}\label{sec:uniformization}
+
+We first reduce exact cardinality to subcubic perfect matching, retaining
+all witness information. We then combine the fixed-parameter procedures
+into the single program of Theorem~\ref{thm:main}. Throughout this section
+$p=n+m$ refers to the original explicit input size.
+
+\subsection{Witness-preserving reductions}
+
+Read adjacency-list boundaries and neighbor occurrences once. Emit an edge
+record, with its endpoints and a fresh identifier, only at the occurrence
+$(u,v)$ with $u<v$. Input validity and simplicity imply that this produces
+each edge exactly once, regardless of list order. Retain all vertex records,
+including isolates. This takes $O(n+m)$ word operations, and the resulting
+read-only data can be shared among branches. If $n=1$, return the empty list.
+
+Two reductions connect the required output to the subcubic procedure.
+First, a permutation network turns a cardinality threshold into a
+perfect-matching instance. Second, a path gadget reduces the degree to
+three. We give both constructions and their explicit witness decoders.
+For a target cardinality $k$, adding $n-2k$ new vertices adjacent to every
+original vertex would turn a size-$k$ matching into a perfect matching,
+but could add quadratically many edges. The network replaces these
+complete connections by $O(n\log(n+2))$ positions and arcs while allowing
+any $n-2k$ original vertices to reach the required new vertices.
+
+\begin{lemma}[A linearithmic permutation network]\label{uniform:network}
+For every power of two $s\ge1$, there is a directed acyclic network with
+$s$ distinct input positions and $s$ distinct output positions, of size
+$O(s\log(s+2))$, in which every permutation of inputs to outputs is routable
+by vertex-disjoint directed paths. A position may be both an input and an
+output when $s=1$. The network can be constructed uniformly within its size
+bound.
+\end{lemma}
+
+\begin{proof}
+Use the recursive switching construction underlying permutation
+networks~\cite{PermutationNetworks}. For $s=1$, take a single position and
+its length-zero route. For $s>1$, take $s$ new input positions, $s$ new output
+positions, and disjoint upper and lower networks on $s/2$ positions. Connect
+each input in pair $2i-1,2i$ to input $i$ of both copies. Connect output $j$
+of either copy to both positions in output pair $2j-1,2j$. The size recurrence
+is $Q(s)=2Q(s/2)+O(s)$, and all arcs respect the resulting input-to-output
+order.
+
+Given a permutation, form a bipartite multigraph between its input pairs and
+output pairs, with one edge per assigned input--output pair. Every vertex
+has degree two, so the components are even cycles, allowing a cycle of two
+parallel edges. Color each cycle alternately upper and lower. Every input
+pair and output pair has one edge of each color. The upper edges specify a
+permutation through the upper network, and the lower edges one through the
+lower network. Route inductively and attach the corresponding outer arcs.
+The two copies are disjoint and each outer position occurs once, giving
+vertex-disjoint routes. The construction of the network itself uses only
+the stated recursive lists and port identifiers.
+\end{proof}
+
+\begin{lemma}[Exact cardinality to perfect matching]\label{uniform:cardinality}
+Given $G$ and an integer $0\le k\le\lfloor n/2\rfloor$, one can construct
+in $O(m+n\log(n+2))$ time a loopless graph $H_k$ of that size such that
+$H_k$ has a perfect matching if and only if $G$ has a matching of size $k$.
+A perfect matching of $H_k$ yields an explicit size-$k$ matching of $G$
+in linear time in the constructed size.
+\end{lemma}
+
+\begin{proof}
+Put $b=n-2k$ and choose the least power of two $s\ge n$. Use the network of
+Lemma~\ref{uniform:network} and select $b$ distinct output positions.
+Retain all original vertices and edges. Split every network position $v$
+into vertices $v_{\mathrm{in}},v_{\mathrm{out}}$ joined by an idle edge.
+An arc $u\to v$ becomes the edge $u_{\mathrm{out}}v_{\mathrm{in}}$.
+Join original vertex $i$ to the input endpoint of network input $i$.
+Finally, add one mandatory sink vertex adjacent to the output endpoint
+of each selected output. Every constructed vertex is required to be
+covered by a perfect matching.
+
+In any perfect matching, a network pair either uses its idle edge or has
+both endpoints matched externally. The numbers of externally matched input
+and output endpoints are therefore equal. Selected transition edges
+contribute once to each number and cancel. Original-to-network edges
+contribute one input endpoint, and edges to mandatory sinks contribute one
+output endpoint. All $b$ sinks must be covered, so exactly $b$ original
+vertices use network edges. The remaining $n-b=2k$ original vertices are
+covered by original edges, which give the decoded matching.
+
+Conversely, let a size-$k$ matching leave $b$ original vertices uncovered.
+Map them bijectively to the selected outputs and extend to a permutation
+of all $s$ positions. Route the permutation and keep just those $b$ paths.
+On each retained path, select its original-to-input edge, all transition
+edges, and the edge to its sink. Each active split position is covered once
+at each endpoint. Use idle edges on all other positions and the original
+matching on its covered vertices. This is a perfect matching of $H_k$.
+For a length-zero route, the two outer edges cover the one split position.
+For $b=0$, every network pair is idle.
+
+The number of added positions and edges is $O(n\log(n+2))$. Store each edge's
+type and original identifier. Decoding simply selects the original edges
+from the returned perfect matching. No list ordering is assumed.
+\end{proof}
+
+The next reduction uses the path replacement for matching described by
+Dahlhaus and Karpinski~\cite{DahlhausKarpinski}. We record the construction
+and the witness conversion needed here.
+
+\begin{lemma}[Degree reduction]\label{uniform:degree}
+A loopless graph with $v$ vertices and $e$ edges either has an isolated
+vertex, certifying absence of a perfect matching, or can be replaced in
+$O(v+e)$ time by an equivalent perfect-matching instance of maximum degree
+three and size $O(v+e)$. Witnesses can be converted in either direction
+within the same bound.
+\end{lemma}
+
+\begin{proof}
+Replace a vertex of degree $r\ge1$ by a path on $2r-1$ vertices, attaching
+its $r$ old incidences to successive odd positions. Retain the original
+edge identifiers at both ends. There are $r$ odd and $r-1$ even positions.
+Every even position must be matched internally to an odd one. Exactly one
+odd position therefore remains for an external edge. Hence each gadget
+selects exactly one old incidence, and any perfect matching projects to
+one in the original graph.
+
+Conversely, the odd attachment of a selected original matching edge leaves
+two even-length paths on its sides. Match those internally. This also
+covers $r=1$, whose gadget is a single vertex. Each odd position has at
+most two path neighbors and one external edge, and each even position
+has degree two. The number of gadget vertices is
+\[
+                    \sum_u(2\deg(u)-1)=4e-v.
+\]
+A degree scan, incidence-port assignment, and path construction give the
+time bound and the explicit conversions. Check for isolates first.
+\end{proof}
+
+Applying these reductions at a threshold $k>0$ gives a loopless subcubic
+instance with
+\begin{equation}\label{uniform:reduced-size}
+                 N=O(m+n\log(n+2)),\qquad N\ge n,
+\end{equation}
+unless absence of a perfect matching is already certified by an isolate.
+The latter inequality holds because every original vertex has at least
+one gadget vertex. The construction on a simple input can itself use
+simple graphs: network arcs, attachments and path edges have their
+specified distinct positions. It is also covered by the intermediate
+algorithms' individual-edge-copy convention.
+
+For the perfect-matching procedure set $S$ to the first power of two at
+least $16+n+m+N$. Thus
+\begin{equation}\label{uniform:master}
+               n\le S=O(p\log(p+2)).
+\end{equation}
+Check every proposed perfect matching by edge identifier and one-time
+coverage of every gadget vertex. The reductions then decode its actual
+original matching in the same auxiliary-size order.
+
+\subsection{Threshold search and its error budget}
+
+Each branch runs its own integer binary search. Initially the feasible
+lower endpoint is zero, with the stored empty matching, and the exclusive
+upper endpoint is $\lfloor n/2\rfloor+1$. An accepted test stores its
+decoded witness and raises the lower endpoint; a negative test lowers the
+upper endpoint. There are $O(\log(n+2))$, and certainly at most $n+1$,
+tests. Exact-size feasibility is monotone because edges may be dropped
+from a matching. Consequently, if no feasible test receives a false
+negative, the final stored witness is maximum.
+
+For each branch index $t\ge1$, use
+\begin{equation}\label{uniform:branch-parameters}
+                     a=1000+t,\qquad \sigma=t+20
+\end{equation}
+in Theorem~\ref{thm:subcubic}. A deterministic prerequisite suspension
+suspends the entire branch with no output. A capped stochastic failure
+terminates that perfect-matching test with an ordinary negative answer.
+All invocations use fresh independent bits.
+
+On a feasible perfect-matching instance, conditional on its input and
+the earlier history, the probability of a false negative is at most
+$2^{-\sigma}S^{-5}$. This bound does not condition on future
+noninterruption. Each valid reached randomized invocation has its declared
+conditional bound, while a deterministic suspension inside an invocation
+does not itself issue a negative answer. The main guards permit the
+coarse polynomial union bound in Theorem~\ref{thm:subcubic}; each backend
+instance already includes its capped internal invocations in its
+reliability estimate. There are no false positive perfect-matching answers.
+By $S\ge n+1$ at all nontrivial tests and the bound on the number of
+adaptive thresholds,
+\begin{equation}\label{uniform:branch-error}
+ \Pr[\text{branch $t$ completes with an incorrect matching}]
+                         \le 2^{-(t+20)}.
+\end{equation}
+No guarantee of avoiding suspension on small inputs is needed for this
+inequality.
+
+Branch zero performs the same reduction and search, using
+the deterministic procedure of Lemma~\ref{lem:fallback}. Every threshold
+answer is exact, so this branch always completes with a maximum matching.
+It uses a fixed polynomial number of instructions after finite-word
+simulation. Indeed every simple input satisfies
+$m\le n(n-1)/2$, and Equation~\eqref{uniform:reduced-size} makes every
+fallback instance polynomial in $n+2$. No perfect-matching promise is used.
+
+\subsection{Fixed branches and eventual completion}
+
+\begin{lemma}[Every-path performance of a fixed branch]\label{uniform:fixed-branch}
+For every sufficiently large fixed $t$, branch $t$ avoids deterministic
+suspension on all sufficiently large inputs, on every computation path.
+Its total instruction count, including unsuccessful tests, threshold
+search, and explicit witness handling, is
+\[
+                          p^{1+O(1/a)+o_a(1)}.
+\]
+The coefficient in $O(1/a)$ is absolute.
+\end{lemma}
+
+\begin{proof}
+Each test satisfies Equation~\eqref{uniform:master}. The guarded-prefix
+estimates in Theorem~\ref{thm:subcubic} and Lemma~\ref{lem:flat-cycle}
+show eventual adequacy at fixed sufficiently large $a,\sigma$, independently
+of matchability and of which verified constructions or sampling failures
+occurred. Every accepted sampled structure satisfies its checked
+deterministic invariants, and rejected attempts obey their own unconditional caps.
+The estimates therefore apply through a purported first deterministic
+interruption. They do not require a favorable random stream. An exhausted
+sampling routine terminates the test rather than suspending it.
+
+The fixed-parameter time bound, the logarithmic number of thresholds,
+and the reductions give the displayed exponent. Logarithmic and
+fixed-parameter subpolynomial factors absorb the substitution
+$S=O(p\log(p+2))$.
+
+All parameters and adequacy checks are computed by finite integer loops:
+bit lengths, rounded powers of two, products, quotients, and comparisons
+of scaled dyadics or ratios. Inadequate giant parameters need not pass
+their checks. The assertion that fixed-parameter logarithmic factors
+eventually fit size, multiplicity or quality margins requires no encoded
+table of thresholds. Fixed-parameter bit lengths and arithmetic/dictionary
+simulation costs are logarithmic powers, or are already charged in the
+static flow primitive. Individual random-bit costs are included.
+\end{proof}
+
+\subsection{An instruction-level schedule}
+
+Weighted dovetailing, familiar from universal
+search~\cite{LevinUniversal}, lets one program compete with every fixed
+parameter branch. The proof also accounts for summable error allowances
+and finite-word execution.
+
+Run rounds $j=0,1,2,\ldots$. In round $j$, give branches
+$t=0,\ldots,j$, in that order, at most $2^{j-t}$ elementary implementation
+steps each, resuming a branch at its interruption point. A suspended branch
+stays inactive. Stop when the first branch completes with its answer.
+The winning branch constructs its decoded output privately within its
+charged work; copying the list of at most $n/2$ original labeled edges
+adds input-linear work.
+
+Here a scheduled step means an actual bounded word-RAM instruction with
+constant control overhead, not a whole graph routine, arbitrary-precision
+operation, or allocation request. The parameter algorithms consist of a
+fixed program of graph, list, tree and integer subroutines, the one fixed
+fallback, and the one fixed integral-flow implementation. Store each
+branch as a coroutine with a program counter and stack. Use charged
+digit arrays, even unit-bit digits if desired, for longer logical values.
+Long virtual indices and addresses are keys in dictionaries of touched
+cells with a default initial value. Comparisons, initialization, recursion,
+and dictionary access are themselves interruptible implementations.
+
+Allocate and initialize actual records one word at a time. A paused
+computation retains its state without copying it; its physical storage
+is proportional to actual executed allocations plus the shared input.
+Arenas may retain already spent cells. In particular, constructing an
+enormous power for a large varying parameter is charged and can pause
+inside its arithmetic or allocation loop. It is not an atomic reservation
+of an enormous memory interval. For each fixed branch of
+Lemma~\ref{uniform:fixed-branch}, these implementations add only the
+logarithmic-power overheads already allowed. The fixed fallback simulation
+still has a polynomial bound.
+
+\begin{lemma}[Halting and one physical word constant]\label{uniform:physical-ram}
+The schedule is realizable by one finite program with a fixed physical word
+constant $c_0$. On every path, including failed paths, it halts after
+polynomially many instructions and uses polynomially many addressed words,
+with constants independent of the input.
+\end{lemma}
+
+\begin{proof}
+First ignore physical-address overflow, and fix the fallback's finite
+digit-array and touched-cell simulation. Its logical clock, bit lengths,
+and dictionary costs give a fixed polynomial bound $F(n)$ on its actual
+work and records. This estimate can use unit-bit data and physical pointer
+operations; it makes no assumption that the varying parameters of other
+branches fit a word.
+
+Unless the schedule has already stopped, the fallback receives $2^j$ steps
+in round $j$. It therefore finishes within $J=O(\log(n+2))$ rounds, with
+a fixed constant. Total branch allowances through round $J$ are
+\[
+ \sum_{j=0}^J\sum_{t=0}^j2^{j-t}<2^{J+2}.
+\]
+Starting and switching branches, status checks, and loop control add only
+polynomial logarithmic overhead; input/setup and output are polynomial
+as well. Since every allocation is charged, all actually touched physical
+records before halt are bounded by a fixed polynomial in $n+2$, even
+if every arena retains spent cells.
+
+Use independent logical indexing in each branch and actual physical
+addresses only as pointers, for example with sequential allocation.
+Interleaving cannot change a simulated algorithm. Choose $c_0$ once,
+large enough that this polynomial bound covers physical addresses,
+quota counters, program control, and input indices in the prescribed
+$w$-bit words. No overflow then occurs on any path. Long logical integers
+remain digit arrays. Smaller logical words can be masked or simulated;
+long shifts, divisions and other operations use the corresponding charged
+loops. Thus the choice of $c_0$ follows the fixed polynomial bound rather
+than being a premise about unbounded logical arithmetic.
+\end{proof}
+
+For the probability calculation, couple the schedule to independent
+infinite fair-bit streams for its branches, revealing bits only when
+requested. This is equivalent to generating fresh charged bits during
+execution. Consider each branch's own complete computation on its stream,
+including a possible suspension. Interleaving and the identity of the
+first finisher impose no conditioning on the error estimates.
+Branch zero is exact, so Equation~\eqref{uniform:branch-error} gives
+\begin{equation}\label{uniform:total-error}
+ \Pr[\text{the scheduled output is incorrect}]
+ \le\sum_{t\ge1}2^{-(t+20)}<\frac13.
+\end{equation}
+
+\subsection{A common exponent envelope}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Halting and the computation model follow from
+Lemma~\ref{uniform:physical-ram}; explicit output and success follow
+from the reductions, threshold search, and
+Equation~\eqref{uniform:total-error}.
+
+Fix a sufficiently large branch index $t$. If it needs $T$ steps,
+round $j=t+\lceil\log_2\max(1,T)\rceil$ alone gives it enough quota,
+unless another answer has already terminated the schedule. The total
+budget through that round is at most a constant times $2^t(T+1)$,
+in addition to input and logarithmic control overhead. Thus the single
+schedule competes with every fixed branch with a fixed-index factor.
+For every $\xi>0$, choose $t$ large enough in the analysis that the
+absolute $O(1/a)$ exponent in Lemma~\ref{uniform:fixed-branch} is smaller
+than a suitable fraction of $\xi$. For all sufficiently large $p$, its
+$o_a(1)$ term, constant factor and logarithmic overhead fit the remaining
+slack. Consequently the \emph{same program} has every-path time at most
+$p^{1+\xi}$ for all sufficiently large inputs. No choice of $t$ based on
+the input is made by the program.
+
+To exhibit one envelope, let $T(G,\omega)$ be the actual total instruction
+count of the schedule on input $G$ and random path $\omega$. For $x\ge2$
+define
+\[
+ e(x)=\sup_{\substack{G,\omega:\,n(G)+m(G)\ge x}}
+ \max\left\{0,
+ \log_{n(G)+m(G)}\bigl(\max\{1,T(G,\omega)\}\bigr)-1\right\}.
+\]
+The polynomial fallback bounds this supremum, and the preceding
+every-path estimates imply $e(x)\to0$. Put
+$\eta(q)=e(\max\{2,q\})$ for integers $q\ge1$. This function is
+nonnegative and nonincreasing, and it tends to zero. If $p\ge2$, the term
+for $(G,\omega)$ in the supremum defining $e(p)$ gives
+\[
+                    T(G,\omega)\le p^{1+\eta(p)}.
+\]
+The only input with $p=1$ is the one-vertex empty graph, which is handled
+directly. Choose a fixed $C\ge1$ large enough to cover its instruction count.
+The all-input bound in Theorem~\ref{thm:main} follows.
+
+For the sparse specialization, let $E=\sup_{q\ge1}\eta(q)<\infty$.
+If $m\le\kappa n$, then $n\le p\le(1+\kappa)n$ and monotonicity gives
+\[
+ T(G,\omega)\le C p^{1+\eta(p)}
+ \le C(1+\kappa)^{1+E}n^{1+\eta(n)}.
+\]
+Thus the same algorithm and envelope apply for every fixed $\kappa$.
+When $m=\Theta(n^2)$, one instead has $p=\Theta(n^2)$, giving the stated
+$n^{2+o(1)}$ dense specialization.
+
+Every operation, random bit, intermediate construction and output
+copy is part of $T$, so no further uncharged term remains. The input
+conversion did not assume connectedness, nonisolation, or a particular
+list order. This proves all assertions of Theorem~\ref{thm:main}.
+\end{proof}

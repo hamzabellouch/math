@@ -1,0 +1,1119 @@
+\section{Compiling classical formulas with seeded controls}
+\label{sec:classical-synthesis}
+
+The preceding section supplies a bounded classical formula whose rooted
+energy is close to the SK optimum.  We now implement any formula in that
+class by quantum controls with independent Gaussian longitudinal seeds.
+A \emph{seeded circuit} is a finite word in the cost, the uniform mixer,
+and the gates
+\[
+ \exp\!\left(-\ii t\sum_i s_iZ_i\right),\qquad t\in\R,
+\]
+where the same independent standard Gaussian family \((s_i)\) is used
+throughout the word and averaged in its value.  Here
+\(s_i=s_{\mathrm{raw},i}\) is the raw seed of
+\eqref{eq:raw-seed-reencoding}: every colored target formula is evaluated
+at \(C(s_i),S(s_i)\).  Both the color and the scalar Gaussian input
+are therefore functions of the seed driving this single longitudinal
+control.  All angles are deterministic.
+Section~\ref{sec:seed-simulation} will remove this extra control after
+the present construction has selected one finite word.
+
+We use the masks, aggregations \(A_{RS}\), and seed-only exclusion
+formulas of Definition~\ref{def:exclusion-formulas}.  In particular,
+every transmitted nonlinear function and every output angle is bounded,
+although aggregate fields need not be bounded.  A mask may recur in
+different branches of an expression tree, but not along a single active
+branch.  We retain this distinction throughout the proof: formulas that
+share descendants are not assumed independent.
+
+All approximations in this section take place in the infinite-degree
+rooted representation, inside a fixed surrounding circuit.  We first
+construct elementary masked controls, then use unused helper spins to
+implement one aggregation, and finally compile a finite expression tree
+from its outermost operations inward.  The helper contraction is the
+main step.  Its proof controls both the visible aggregation and the
+changes it induces inside every lower formula.
+
+\subsection{The synthesis statement}
+
+Fix a finite collection of such formulas \(\theta_R\), odd and
+seed-only, one for each output mask \(R\).  Their ideal operation is
+\begin{equation}
+ U_{\mathrm{cl}}=\prod_i \exp(\ii\theta_iY_i),
+ \qquad m_i=\sin(2\theta_i).
+ \label{eq:ideal-classical-rotations}
+\end{equation}
+The product is locally defined: an output at a vertex uses only a
+fixed-radius neighborhood.  The factors commute because the angles
+are seed-only.  Reserve disjoint helper masks, absent from all these
+formulas, and set the output angle to zero on them.  One helper mask
+per aggregation depth is sufficient.  Let \(H\) denote their union
+and let \(p_H\) be its probability.
+
+\begin{theorem}[Classical synthesis]
+\label{thm:classical-synthesis}
+For every finite collection of bounded smooth odd seed-only exclusion
+formulas of Definition~\ref{def:exclusion-formulas}, with disjoint
+positive-probability helper masks, one for each positive aggregation
+depth, absent from all their dependencies and with output angle zero on
+their union \(H\), and every \(\eta>0\), there is a finite seeded
+circuit whose insertion vector \(v\) satisfies
+\begin{equation}
+ \norm{\1_{H^c}(v-v_{\mathrm{cl}})}<\eta,
+ \label{eq:synthesis-insertion}
+\end{equation}
+where \(v_{\mathrm{cl}}\) is the insertion vector of
+\eqref{eq:ideal-classical-rotations}.  In particular its value obeys
+\begin{equation}
+ \abs{\cE(v)-\cE(m)}\le 2\eta+2\sqrt{p_H}.
+ \label{eq:synthesis-energy}
+\end{equation}
+The circuit and all its angles are chosen independently of the degree,
+system size, and disorder.  Helper probabilities can be arbitrarily
+small but are fixed and positive when the construction is performed.
+\end{theorem}
+
+The proof will establish convergence in a fixed surrounding circuit,
+not only convergence on a freshly initialized input.  This is needed
+because a formula is called repeatedly inside commutator products.
+
+We use the smooth spaces of Section~\ref{sec:foundations}.  At the
+root let
+\[
+ W=1+\dd\Gamma(\Lambda),\qquad
+ \norm{T}_{a\leftarrow b}=\norm{W^aTW^{-b}},\qquad
+ \norm{d}_{a}=\norm{\Lambda^a d}.
+\]
+The bounded-seed version of the weights is used until the last
+compilation step.  Thus the weights do not differentiate or multiply
+the root seed.  In particular they commute with root masks on the odd
+subspace.  A family of operators is \emph{uniformly smooth} if for
+each \(a\) there are \(b,C\), independent of the member of the
+family, with \(\norm{T}_{a\leftarrow b}\le C\); the same convention
+applies to adjoints and to parameter derivatives.  For a parameter
+\(y\), a polynomial factor in \(1+|y|\) is allowed.  A statement
+\(T=O_{\mathrm{sm}}(\varepsilon)\) means that these bounds hold
+with \(C\varepsilon\) for every fixed output power and every fixed
+jet.  Conditional versions mean the essential supremum in the root
+seed.  The constants may depend on the fixed formulas, time intervals,
+and positive helper probabilities.
+
+The conditional bounds in Theorem~\ref{thm:gate-calculus} imply the
+following useful rule.  If \(T\vac\) has bounded conditional smooth
+norms and \(R\) is a root mask, then
+\begin{equation}
+ \norm{W^a\1_R T\vac}\le C_a\sqrt{p_R}.
+ \label{eq:synthesis-masked-column-bound}
+\end{equation}
+For odd columns, the removal of the vacuum in the definition of
+\(\Lambda\) does not change this estimate or the orthogonality of
+columns supported on disjoint root masks.
+
+\subsection{Elementary masked controls and matrix products}
+\label{sec:elementary-masked-controls}
+
+We first identify the elementary gates from which the helper
+operation will be built.  These gates need only the original Gaussian
+longitudinal control, parity-preserving local rotations, and the cost.
+
+We first treat the following gates as exact:
+\begin{enumerate}
+\item local \(X\) rotations with bounded even seed coefficients,
+      and local \(Y\) or \(Z\) rotations with bounded odd seed
+      coefficients;
+\item interactions between two disjoint masks in any pair of odd axes
+      in the \(YZ\) plane.
+\end{enumerate}
+We justify at the end of this subsection that they lie in the closure
+of finite seeded circuits.  Working with exact elementary masked gates
+in the interim keeps unused helpers exactly pinned.
+
+We will repeatedly use pointwise matrix sums and commutators.  Here
+is the topology of that use.  If \(F(x),G(x)\) are Hermitian
+two-by-two matrices with smooth polynomially bounded derivatives,
+the usual product and group-commutator formulas converge on compact
+sets with every fixed number of derivatives.  Their derivative bounds
+are polynomial in \(x\), uniformly in the subdivision.  To verify the
+last, write the group-commutator loop as
+\[
+ V_h(x)=e^{\ii hF(x)}e^{\ii hG(x)}
+                e^{-\ii hF(x)}e^{-\ii hG(x)}.
+\]
+Twice integrating its mixed derivative in the two loop times shows
+\[
+ \norm{\partial_x^\alpha(V_h-1)}
+     \le C_\alpha h^2(1+|x|)^{r_\alpha},\qquad |h|\le1.
+\]
+For a differentiated product of \(N\) such loops, each differentiated
+factor contributes \(O(h^2)\); at a fixed derivative order the sum
+is a fixed polynomial in \(Nh^2\).  Undifferentiated factors are
+unitary.  Thus \(h=N^{-1/2}\) gives the claimed uniform bounds.
+The Taylor error of a loop is \(O(h^3)\), with all fixed jets on a
+compact set, so telescoping \(N\) factors proves convergence there.
+The sum formula is identical with \(Nh\) in place of \(Nh^2\).
+Theorem~\ref{thm:gate-calculus} therefore permits these limits inside
+any fixed surrounding circuit.
+
+When such a matrix formula is used simultaneously at many vertices,
+the coefficient algebra must be common and commuting, and exclude
+the pivot mask.  Under that condition the entire finite-tree gate is
+a product of exactly those two-by-two formulas.  Its reinterpretation
+at a new pivot is permitted only after an exact finite-tree identity
+has been established.  These identities are also valid on every cut
+tree, so the rooted maps agree.
+
+To obtain the local elementary controls from the raw seeded controls,
+write \(s=s_{\mathrm{raw}}\) and conjugate \(X\) by
+\(e^{\ii t sZ}\).  Every local coefficient in the colored formulas,
+including every mask, is a measurable function of this same \(s\)
+by \eqref{eq:raw-seed-reencoding}.  Taking sums and differences
+gives \(\cos(2ts)X\) and \(\sin(2ts)Y\); a constant \(X\)
+rotation changes \(Y\) to \(Z\).  Finite even and odd trigonometric
+sums are thus available, together with their exponentials.  Bounded
+measurable even or odd seed functions are limits in Gaussian measure
+of uniformly bounded continuous functions with the same parity.
+After taking a subsequence, convergence is almost everywhere.  A box
+cutoff, periodic extension, and Fejer approximation give trigonometric
+approximants with the same uniform bound and parity.  Local seed
+derivatives are not part of the smooth topology, so bounded dominated
+convergence and Theorem~\ref{thm:gate-calculus} apply in a fixed
+surrounding circuit.  If intermediate expressions use the raw linear
+seed, its polynomial moments are controlled by the seed-weighted
+version of that theorem.
+
+We isolate interactions by sign averaging, a standard refocusing
+device for Ising couplings; see Jones and
+Knill~\cite[Section~II]{JonesKnill1999}.  Refine the masks to a finite
+partition \(R_1,\ldots,R_M\).  For a sign vector
+\(\epsilon\in\{-1,1\}^M\), masked \(X\) flips conjugate the
+ordinary cost to
+\[
+ C_\epsilon=D^{-1/2}\sum_{\{i,j\}}
+       \epsilon_{R(i)}\epsilon_{R(j)}Z_iZ_j.
+\]
+For distinct \(a,b\), sign orthogonality gives the finite-tree
+identity
+\[
+ C_{R_aR_b}=2^{-M}\sum_\epsilon\epsilon_a\epsilon_b C_\epsilon.
+\]
+All the terms on the right commute, so their exponential implements
+the desired subcost exactly when the masked flips are treated as
+exact.  Separate masked \(X\) rotations put its two endpoints in any
+specified axes in the \(YZ\) plane.  This proves the claimed
+elementary compilation without introducing interactions within a
+mask.
+
+\subsection{A contraction through unused spins}
+
+The elementary local rotations constructed so far depend only on the
+seed at the rotated vertex.  The next construction extends them to a
+neighbor sum of a fixed lower formula.  It uses a disjoint set of
+spins kept in their \(X=1\) state, and its error tends to zero when the sender
+mask is divided into sufficiently small parts.
+
+Let \(I,J,K\) be disjoint masks, with \(K\) an unused helper of
+probability \(p_K>0\).  Let \(f_j\), on \(J\), be a bounded odd
+seed-only exclusion formula whose cross-edge dependencies avoid
+\(I,J,K\).  Other reserved helpers are avoided as well.  Temporarily
+allow exact rotations by \(f\) on \(J\), including their restrictions
+to further local seed masks.  These ideal calls will remain in the
+finite approximants constructed here.  At the end of the section we
+will remove them by compiling the full formula from its outermost
+operations inward.  We shall obtain
+\begin{equation}
+ H_{I,J,f}=\sum_{i\in I}P_i(A_{IJ}f)_i,
+ \qquad P\in\{Y,Z\}.
+ \label{eq:desired-propagation}
+\end{equation}
+
+Partition \(J\) into finitely many even seed masks \(J_l\), with
+probabilities \(p_l\).  The formula \(f\) is kept fixed when this
+partition is refined.  The commutators below sum paths of the form
+\begin{equation}
+ \begin{gathered}
+ \begin{array}{ccccccc}
+ i\in I&-&j\in J_l&-&k\in K&-&j'\in J_l\\
+ &&&&&&\downarrow\\[-2pt]
+ &&&&&&f_{j'}
+ \end{array}\\
+ j'\ne j:\ \text{simple path},\qquad
+ j'=j:\ i-j-k-j\ \text{(backtrack)}.
+ \end{gathered}
+ \label{eq:helper-path-schematic}
+\end{equation}
+The downward arrow denotes the lower calculation of \(f\), whose
+cross-edge dependencies avoid all three displayed masks.  In the
+backtrack, \(f\) is attached at \(j'=j\); the two sender spin
+factors cancel and the pinned helper supplies its polarization.
+The simple paths contribute an error that
+disappears from nonhelper insertions as the partition is refined.
+We must check their effects at every root cut, including cuts
+inside the lower formula \(f\).
+
+Write \(A_{ij}=D^{-1/2}\1_{i\sim j}\) and
+\(b_j=\sum_{i\in I}A_{ji}P_i\).  Pointwise commutators on \(J_l\)
+give
+\begin{align}
+ H_l&=\sum_{i\in I,j\in J_l,k\in K}
+       A_{ij}A_{jk}P_iX_jZ_k,\\
+ G_l&=\sum_{j\in J_l,k\in K}A_{jk}X_jf_jY_k.
+ \label{eq:two-helper-generators}
+\end{align}
+For example, \((2\ii)^{-1}[\sum A_{ij}P_iY_j,
+\sum A_{jk}Z_jZ_k]=H_l\), and
+\((2\ii)^{-1}[\sum f_jY_j,\sum A_{jk}Z_jY_k]=G_l\).
+These are exact identities: the only noncommuting factors meet on
+\(J_l\), and the seed-only coefficients commute with every spin.
+
+At the next pivot, \(K\), the two coefficients are
+\[
+ B_{k,l}=\sum_{j\in J_l}A_{kj}X_jb_j,
+ \qquad F_{k,l}=\sum_{j\in J_l}A_{kj}X_jf_j.
+\]
+They commute with each other and with all spins on \(K\).  Their
+calculation paths avoid \(K\), as required by the gate calculus.
+Consequently \(-(2\ii)^{-1}[H_l,G_l]
+=\sum_{k\in K}X_k B_{k,l}F_{k,l}\).  Summing and rescaling gives
+\begin{equation}
+ \widetilde H_{\mathcal P}
+  =\frac1{p_K}\sum_l\sum_{
+       i\in I,\,j,j'\in J_l,\,k\in K}
+       P_i A_{ij}X_j A_{jk}X_k A_{kj'}X_{j'}f_{j'}.
+ \label{eq:helper-contraction-generator}
+\end{equation}
+All its summands commute.  At every fixed partition
+\(\mathcal P\), its exponential is therefore in the closure of
+finite products of elementary masked gates and calls to \(f\).
+This statement holds on the full spin space and in every fixed
+surrounding circuit; it has not yet used helper pinning.
+
+We now specify the space on which pinning is used.  On a finite
+light cone with vertex set \(V\), define the orthogonal projection
+\begin{equation}
+ \Pi_{K,V}=\prod_{v\in V}
+       \left[1-\1_K(s_v)\frac{1-X_v}{2}\right].
+ \label{eq:helper-pinning-projection}
+\end{equation}
+Its range fixes every helper-labeled spin in \(\ket+\), at the root
+and throughout its descendants, while retaining all seed coordinates.
+For the degree limit, let
+\[
+ \begin{gathered}
+ \mathsf k_K=\operatorname{Ran}\!\left(1-\1_K(s)\frac{1-X}{2}\right),\\
+ \cH_{K,0}=\mathsf k_K,\qquad
+ \cH_{K,h+1}=\mathsf k_K\otimes\Gamma_s(\cH_{K,h}^{\circ}),
+ \end{gathered}
+\]
+where the centered subspace is taken relative to the same vacuum
+\(\vac_h\) as before.  These spaces are subspaces of \(\cH_h\).
+The occupation and empty-descendant embeddings restrict to them,
+as do the bounded-seed weights, so their smooth norms are inherited
+from the original recursion.  We call this the \emph{compressed space}.
+Helper-labeled descendant spaces remain present; only their helper
+spins are pinned, and the seed law is unchanged.
+
+The ideal propagations, the exact generators
+\eqref{eq:helper-contraction-generator}, and surrounding gates avoiding
+\(K\) preserve this range.  The observable \(\1_{K^c}(s_o)Z_o\)
+at the root \(o\) also preserves it.  Thus nonhelper insertions may
+be computed in the compressed space.  This restriction is different
+from multiplication of an insertion vector by \(\1_{K^c}\), which
+selects only the root label and imposes no condition on descendant
+spins.  The individual commutator factors need not preserve pinning;
+their finite products will be chosen after the exact contraction.
+
+\begin{proposition}[Simultaneous helper contraction]
+\label{prop:helper-contraction}
+Consider a fixed finite sequence in the parity-preserving,
+root-seed-commuting gate-calculus class, containing finitely many
+propagations \eqref{eq:desired-propagation}, possibly with different
+\(I,J,f,P\), and otherwise fixed gates.  All its gates and classical
+parameters avoid a common helper \(K\).  Start with its spins pinned
+at \(X=1\).  Replace every indicated propagation by
+\eqref{eq:helper-contraction-generator}, and refine their sender
+partitions so that their largest part probability tends to zero.
+Then all insertion vectors off \(K\) converge to those of the
+original sequence.  The root maps and their adjoints have uniform
+conditional smooth bounds on the compressed space, and converge
+strongly there up to scalar phases depending only on the root label.
+The same estimates hold on cut subtrees.  Responses through the fixed
+lower formulas for \(f\) have the uniform jet estimates proved below;
+no convergence of arbitrary boundary jets in the growing list of
+partition-dependent top channels is asserted.
+\end{proposition}
+
+The contraction must control every root cut, including cuts inside
+\(f\), uniformly as the sender partition is refined.  The next two
+estimates provide the analytic bounds for its proof.  Most cuts use a
+fixed number of fields.  At a \(K\)-root, however, each part
+\(J_l\) supplies a pair of incoming fields, and the proof will
+subtract their same-neighbor covariance.  The second estimate controls
+this growing sum by the orthogonality of the masks.
+
+\subsection{Estimates and proof of the contraction}
+
+\begin{lemma}[A fixed number of commuting fields]
+\label{lem:fixed-field-exponentials}
+Let \(Q_j=q(d_j)\), \(1\le j\le k\), commute, where \(k\) is
+fixed and \(\norm{d_j}_a\le C_a\) for every \(a\).  Let
+\(F_s:\R^k\to\R\) have polynomial bounds on every derivative,
+uniformly in the local seed \(s\).  For bounded \(t\), the operators
+\(\exp(\ii tF_s(Q))\), their adjoints, and their time derivatives
+are uniformly smooth.  Auxiliary parameter jets obey the same conclusion
+when the weighted column jets and the joint derivatives of \(F\)
+have the corresponding uniform polynomial bounds.  The constants
+require no lower bound on the
+Gram matrix of the \(d_j\)'s.  The same assertion holds with a fixed
+root control axis, by conditioning on its two eigenvalues.
+\end{lemma}
+
+\begin{proof}
+The Weyl estimates in Lemma~\ref{lem:weyl-bounds}, applied to
+\(\sum_j\xi_jd_j\), give, for every \(a\),
+\[
+ \norm{W^a e^{\ii\xi\cdot Q}\zeta}
+ \le C_a(1+|\xi|)^{r_a}\norm{W^{b_a}\zeta}.
+\]
+Only upper bounds for weighted column norms enter this inequality.
+For an integer \(N\), put
+\(g_{s,t}(x)=e^{\ii tF_s(x)}(1+|x|^2)^{-N}\).
+Fix the desired output power.  First choose enough derivatives that
+integration by parts gives an integrable Fourier bound with weight
+\((1+|\xi|)^{r_a}\), and then choose \(N\) large enough that those
+derivatives are integrable, uniformly in \(s,t\).  The polynomial
+derivative assumptions permit this order of choices.  Functional
+calculus gives, on smooth vectors,
+\[
+ e^{\ii tF_s(Q)}
+  =\int_{\R^k}\widehat g_{s,t}(\xi)
+        e^{\ii\xi\cdot Q}\,\dd\xi\,(1+|Q|^2)^N,
+\]
+with the chosen Fourier normalization absorbed in \(\widehat g\).
+The polynomial on the right has a fixed smooth power bound by the
+creation and annihilation estimates.  Fourier integration therefore
+proves the assertion.  Differentiating in any additional parameters
+also differentiates the fields and the polynomial factor.  If
+\(v(y)=\sum_j\xi_jd_j(y)\), the central commutator relation gives
+\begin{equation}
+ \partial_y e^{\ii q(v(y))}
+   =e^{\ii q(v(y))}
+       \left(\ii q(\partial_yv)
+                 +\ii\im\braket{v}{\partial_yv}\right).
+ \label{eq:moving-column-weyl-derivative}
+\end{equation}
+Repeated derivatives are the same Weyl operator times finite ordered
+products of derivative fields and scalar Gram pairings.  Each field
+insertion has a smooth bound polynomial in \(|\xi|\), and every
+scalar pairing is quadratic in \(\xi\), by the weighted column-jet
+hypotheses.  The Leibniz rule gives the same finite-power bounds for
+derivatives of \((1+|Q|^2)^N\); its differentiated fields need not
+commute with the original list.  Increasing the Fourier decay and
+input weight powers just chosen proves the jet assertions.  No
+change of field coordinates, and hence no inverse Gram matrix,
+occurs.
+\end{proof}
+
+\begin{lemma}[Quadratics with many orthogonal columns]
+\label{lem:orthogonal-quadratics}
+Let \(R_l\) be finitely many pairwise disjoint root masks, with
+\(p_l=\Pr(R_l)\). Suppose \(d_l,e_l\) are supported on \(R_l\)
+and are real-commuting, meaning that all fields \(q(d_l),q(e_l)\)
+commute pairwise. Suppose also that for every \(a\)
+\[
+ \norm{d_l}_a+\norm{e_l}_a\le C_a\sqrt{p_l}.
+\]
+Set
+\[
+ Q=\sum_l\left(q(d_l)q(e_l)-\braket{d_l}{e_l}\right),
+ \qquad \rho=\left(\sum_l p_l^2\right)^{1/2}.
+\]
+Then \(Q=O_{\mathrm{sm}}(\rho)\).  Its exponentials and adjoints
+are uniformly smooth for bounded times, independently of the number
+of columns.  They converge to the identity strongly on smooth vectors
+as \(\rho\to0\), and in every fixed lower smooth norm on families
+with all higher smooth norms bounded.
+\end{lemma}
+
+\begin{proof}
+Normal ordering gives a pair-creation kernel, its adjoint, and a
+one-particle kernel:
+\[
+ Q=a^*(\textstyle\sum_l d_l\otimes e_l)
+    +a(\textstyle\sum_l e_l\otimes d_l)
+    +\dd\Gamma\!\left(\textstyle\sum_l
+          |d_l\rangle\langle e_l|+|e_l\rangle\langle d_l|\right),
+\]
+where the first kernel is understood symmetrically.  Orthogonality of
+different masks gives
+\[
+ \left\|\sum_l\Lambda^a d_l\otimes\Lambda^b e_l\right\|_{\rm HS}
+ +\left\|\sum_l
+       |\Lambda^a d_l\rangle\langle\Lambda^b e_l|\right\|_{\rm HS}
+ \le C_{a,b}\rho.
+\]
+The same inequalities hold with \(d,e\) interchanged.  Pair creation
+by a Hilbert--Schmidt kernel has norm at most
+\(\sqrt{(n+1)(n+2)}\) times its kernel norm on the \(n\)-particle
+sector; the corresponding estimates for annihilation and a
+one-particle kernel are bounded by a constant times \(n+1\).
+Commuting powers of \(W\) through these operators inserts powers of
+\(\Lambda\) on their kernel indices.  This proves the asserted
+smooth smallness.
+
+For completeness, this smallness of the generator alone is not used
+to assert an exponential power bound.  Every iterated commutator
+\(\ad_W^j(Q)\) is another quadratic with uniformly bounded
+Hilbert--Schmidt kernels of the displayed form.  Consequently
+\[
+ \norm{\ad_W^j(Q)\zeta}\le C_j\norm{W\zeta}.
+\]
+Writing \([W^a,Q]\) with these commutators on the left yields
+\(\norm{[W^a,Q]\zeta}\le C_a\norm{W^a\zeta}\) for positive
+integer \(a\).  On smooth vectors, differentiation of
+\(\norm{W^ae^{\ii tQ}\zeta}^2\) and Gronwall's inequality now give
+a bound independent of the column count.  At a fixed finite column
+count these differentiations are justified by
+Lemma~\ref{lem:fixed-field-exponentials}; its constants are not used
+in Gronwall's bound.  Equivalently one may first truncate the weights
+and pass to the limit using these same inequalities.
+
+Finally, spectral calculus gives
+\[
+ \norm{(e^{\ii tQ}-1)\zeta}\le |t|\norm{Q\zeta}
+       \le C|t|\rho\norm{W^b\zeta}.
+\]
+The uniform higher-power bounds and interpolation prove the last
+assertion.  The same conclusions hold for \(U^*QU\) when \(U\) is
+unitary and both \(U\) and \(U^*\) have uniform smooth bounds.  They
+are uniform for families of unitaries with common such bounds: indeed,
+\(e^{\ii tU^*QU}=U^*e^{\ii tQ}U\), and the smooth power losses
+compose.
+\end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:helper-contraction}]
+We prove a single replacement with arbitrary preceding root maps
+from the gate calculus: they preserve the joint parity, commute with
+root seed multiplication, and have uniform conditional smooth bounds.
+These hypotheses are preserved by all the gates used here.  For the
+sender partition put
+\[
+ \rho=\left(\sum_l p_l^2\right)^{1/2},\qquad
+ \varepsilon=\max_l\sqrt{p_l}.
+\]
+We will estimate the Hamiltonian correction at each root cut, prove
+uniform smooth bounds for its exponential, and then iterate the
+replacement.  At helper roots a scalar phase remains; we will check
+that it cancels from the child signals before the next replacement.
+The partition changes only the terminal coefficients of the lower
+calculation: the formula \(f\) and its finite channel list stay fixed.
+
+On the range of \eqref{eq:helper-pinning-projection}, and hence in its
+recursive occupation realization, we may set \(X_k=1\) at every
+\(k\in K\).  The preservation facts just established apply to the
+exact replacement and all its surrounding gates.
+
+\paragraph{The relative root operation.}
+Fix the partition and introduce an unscaled real time \(t\), keeping
+the preceding circuit fixed as \(t\) varies.  Write \(H_D\) for the desired Hamiltonian and \(\widetilde H_D\) for the
+complete contraction Hamiltonian.  On a padded rooted tree \(T\),
+retain target terms through a depth \(d\) larger than the influence
+distance.  On each child component \(T_a\), use the same formula with
+zero parent input and target depth \(d-1\).  All parameter formulas
+are computed on the padded tree.  For either Hamiltonian \(F_D\), put
+\[
+ L_{F,D}=F_D(T)-\sum_a F_D(T_a).
+\]
+All terms in the two Hamiltonians and their branch baselines commute:
+they are diagonal in the same physical site axes.  Factor the preceding
+circuit as \(U_D=\mathcal U_Du_D\), where
+\(\mathcal U_D=\bigotimes_aU_{a,D}\).  The new child circuits are
+\(e^{\ii tF_D(T_a)}U_{a,D}\).  Factoring their product from
+\(e^{\ii tF_D(T)}U_D\), as in
+\eqref{eq:exclusion-root-update}, gives exactly
+\[
+ u_{F,D}(t)=\mathcal U_D^*e^{\ii tL_{F,D}}\mathcal U_Du_D.
+\]
+Consequently the relative root maps satisfy
+\begin{equation}\label{eq:helper-relative-root-group}
+ \mathcal T_{\mathcal P,D}(t)
+ :=u_{H,D}(t)^*u_{\widetilde H,D}(t)
+ =U_D^*e^{\ii t(L_{\widetilde H,D}-L_{H,D})}U_D.
+\end{equation}
+This is a unitary group in \(t\), whose exponent is a root cut
+difference.  The zero-input branch Hamiltonians have been subtracted;
+no limit of the extensive Hamiltonian difference is being asserted.
+The identity holds on the compressed space as well.
+
+At this fixed partition, Theorem~\ref{thm:gate-calculus} applies to
+both complete operations with \(t\) as an external parameter.  The
+complete contraction is the gate at the \(K\) pivot, with coefficient
+\(p_K^{-1}\sum_l B_{k,l}F_{k,l}\).  Their local matrices have polynomial bounds for all mixed time and input
+derivatives, locally uniformly in \(t\).  The root maps, their adjoints,
+and their time derivatives therefore have smooth degree limits.
+Passing to the limit in \eqref{eq:helper-relative-root-group} gives a
+unitary group \(\mathcal T_{\mathcal P}(t)\): its group law and
+inverses follow from the finite-degree identities, and time-derivative
+convergence gives strong continuity.  Its self-adjoint generator
+\(A_{\mathcal P}\) is defined by this group.  Differentiation at zero
+shows that every smooth vector is in its domain and that, under the
+occupation identifications,
+\begin{equation}\label{eq:helper-total-generator-action}
+ A_{\mathcal P}\zeta
+ =\lim_{D\to\infty}
+ U_D^*(L_{\widetilde H,D}-L_{H,D})U_D\zeta.
+\end{equation}
+
+We now compute this derivative by separating diagonal paths, simple
+paths, and lower-formula responses.  This is an algebraic decomposition
+of the finite-degree cut difference, not an application of the gate
+calculus to each separated Hamiltonian.  All contributions to
+\eqref{eq:helper-total-generator-action} use the preceding full frame.
+Thus top-path expressions first computed in the child frame receive
+one final conjugation by \(u\); the lower-response formulas already
+display it.  The smooth bounds are preserved by this conjugation.
+The diagonal average and its helper-root scalar are included before
+any phase is removed.
+
+\paragraph{The diagonal paths.}
+The terms \(j=j'\) in
+\eqref{eq:helper-contraction-generator} equal
+\begin{equation}
+ \sum_{i\in I,j\in J}A_{ij}P_i f_j
+       \frac{\#\{k\sim j:k\in K\}}{Dp_K}.
+ \label{eq:diagonal-helper-paths}
+\end{equation}
+Away from the incidence lost at a \(K\)-root cut, the last factor
+tends to one, with all smooth bounds required in the gate calculus:
+it is a normalized average of bounded local seed masks.  This remains
+true after conjugation by preceding maps with uniform smooth bounds.
+One can see the rate on the symmetric embedding by decomposing that
+average into its vacuum scalar, vacuum row and column, and occupied
+block.  The centered row and column are \(O(D^{-1/2})\), and the
+occupied block is \(O(D^{-1})\) with a loss of one number power.
+
+If the removed root lies in \(K\), the lost incidence contributes
+\((Dp_K)^{-1}\sum_{j\sim o}\1_J(j)b_jf_j\).
+The average has a scalar vacuum limit.  Thus it contributes only a
+phase conditional on the root's membership in \(K\).  Below we also
+recover this scalar as the same-neighbor contraction of the full
+\(K\)-root expression.  No estimate discards an uncentered
+normalized sum.
+
+\paragraph{The nonbacktracking paths at top masks.}
+Remove the terms \(j=j'\).  A remaining path
+\(i,j,k,j'\) is simple on a tree.  At a terminal \(j'\in J_l\),
+looking away from its parent, its extra coefficient is
+\begin{equation}
+ R_{j',l}=\frac1{p_K}
+   \sum_{k\sim j',\,k\in K} A_{j'k}
+   \sum_{j\sim k,\,j\in J_l,\,j\ne j'}
+         A_{kj}X_jb_j.
+ \label{eq:extra-terminal-coefficient}
+\end{equation}
+Here all inner fields are computed in descendant trees.  Let
+\(d_l\) be the child vacuum column of \(\1_{J_l}Xb\), in its
+preceding Heisenberg frame.  It is centered, since it is odd, and
+\eqref{eq:synthesis-masked-column-bound} gives
+\(\norm{d_l}_a\le C_a\sqrt{p_l}\).
+The first normalized lift is \(q(d_l)\).  Masking its next root on
+\(K\), conjugating by the preceding map, and lifting again gives
+\begin{equation}
+ R_{j',l}=O_{\mathrm{sm}}(\sqrt{p_l})
+ \quad\hbox{conditionally at }j'\in J_l.
+ \label{eq:terminal-smallness}
+\end{equation}
+The constants include \(p_K^{-1}\), which is fixed.  The reversed
+coefficient, with \(f\) in place of \(b\), has the same bound.
+This reasoning uses centered lifts at both steps; the parity of the
+transmitted fields supplies their centering.
+
+At a root in \(I\), the final incoming column is the combination
+over \(J_l\) of the small coefficients just estimated.  Its squared
+weighted norm is bounded by
+\(C\sum_l p_l^2\), since conditioning on \(J_l\) contributes
+one factor \(p_l\) and \eqref{eq:terminal-smallness} contributes
+another.  The extra root Hamiltonian is its normalized lift times
+the root axis \(P\), and is \(O_{\mathrm{sm}}(\rho)\).
+
+At a root in \(J_l\), the two possible occurrences of that root,
+as \(j\) or \(j'\), give a bounded smooth factor \(f\) or the
+field \(b\) times one of the small coefficients in
+\eqref{eq:terminal-smallness}.  The two factors use distinct
+first-step masks.  Thus there is no further same-neighbor term to
+subtract.  The root correction is
+\(O_{\mathrm{sm}}(\sqrt{p_l})\), uniformly conditionally on the
+root seed in this part.  It is a smooth function of a fixed number of
+commuting fields with uniformly bounded weighted columns.
+
+At a root in \(K\), let \(d_l,e_l\) be the incoming child columns
+of \(\1_{J_l}Xb\) and \(\1_{J_l}Xf\).  All their fields commute.
+The root contribution of the full top-path sum is
+\(p_K^{-1}\sum_l q(d_l)q(e_l)\).  The terms using the same neighbor
+are the limit of the average
+\[
+ \frac1{Dp_K}\sum_{j\sim o}\1_J(j)b_jf_j
+       \longrightarrow
+       \kappa=\frac1{p_K}\sum_l\braket{d_l}{e_l}.
+\]
+In particular, this is an average on one branch, not the product of
+two independent lifts.  After subtracting it, the correction is
+\begin{equation}
+ Q_K=\frac1{p_K}\sum_l
+       \left(q(d_l)q(e_l)-\braket{d_l}{e_l}\right).
+ \label{eq:helper-root-quadratic}
+\end{equation}
+The weighted columns belonging to different parts are orthogonal.
+Lemma~\ref{lem:orthogonal-quadratics} gives
+\(Q_K=O_{\mathrm{sm}}(\rho)\) and uniform exponential bounds
+independent of the number of parts.  The scalar \(\kappa\) is the
+harmless local phase identified from the diagonal paths.
+
+This list accounts for all top-path cuts.  If the root belongs to
+\(I,J,K\), a top path not containing it cannot change after the cut:
+the dependencies of \(f\) exclude all three masks.  At a \(J\)
+root, its own \(f\) uses only descendants.  A root outside both the
+top masks and the lower calculation has no correction.  It remains
+to check cuts inside the lower computation of \(f\).
+
+\paragraph{Responses through the lower formula.}
+We have accounted for cuts through the four-vertex helper paths.  A cut
+can also change the value of \(f\) at their terminal vertices.  The
+following recursion keeps those changes, including mixed responses
+between channels, in the estimate.
+
+First work in the physical frame.  Write
+\(H_{\rm off}(T)=\sum_{l,j'\in J_l}\omega_{j',l}f_{j'}^T\),
+where \(\omega_{j',l}=X_{j'}R_{j',l}\) initially denotes its full
+top-path coefficient.  If a cut root \(v\) has a lower mask, it
+cannot lie on any of the top paths.  Each coefficient is consequently
+unchanged and lies wholly in one cut component.  For the child
+components \(T_a\), the exact finite-tree identity is
+\begin{equation}
+ H_{\rm off}(T)-\sum_aH_{\rm off}(T_a)
+   =\sum_{a,l,j'\in T_a\cap J_l}\omega_{j',l}
+          \bigl(f_{j'}^T-f_{j'}^{T_a}\bigr).
+ \label{eq:physical-lower-cut-identity}
+\end{equation}
+Only terminals within the fixed influence radius contribute.  At an
+active terminal \(j'\in J_l\), a boundary input into its lower
+computation therefore changes the Hamiltonian by
+\begin{equation}
+ X_{j'}R_{j',l}\bigl(f_{j'}(y)-f_{j'}(0)\bigr).
+ \label{eq:terminal-response}
+\end{equation}
+Whenever this difference is active, its parent lies in a lower mask,
+outside \(I,J,K\).  Consequently every first step of
+\(R_{j',l}\) goes into a descendant branch.  That coefficient has
+no boundary response of its own on this active path.  If the parent
+is in a top mask, the boundary input into \(f\) is absent, and
+\eqref{eq:terminal-response} is zero.  This observation ensures that
+using the downward expression
+\eqref{eq:extra-terminal-coefficient} loses no term.
+
+Here is the precise difference recursion.  At a root \(v\) of the
+lower calculation let \(m(y)\) be its fixed finite list of outgoing
+channel values.  Let \(\mathcal H_v^{[d]}(y)\) be the sum of the
+weighted terminal terms with terminal distance at most \(d\),
+evaluated with boundary input \(y\), and put
+\(\Delta_v^{[d]}(y)=\mathcal H_v^{[d]}(y)-\mathcal H_v^{[d]}(0)\).
+The coefficients are computed downward, as just justified; the
+terminal formulas themselves use all required sites.  In the
+physical frame the recursion is a local term
+\eqref{eq:terminal-response}, when the root is terminal, plus
+\begin{equation}
+ \sum_{a\text{ child}}
+ \left[
+   \Delta_a^{[d-1]}(D^{-1/2}m(y))
+   -\Delta_a^{[d-1]}(D^{-1/2}m(0))
+ \right].
+ \label{eq:additive-response-recursion}
+\end{equation}
+Only channels of the fixed \(f\)-calculation are included.  At the
+actual output root, where there is no parent input, the root
+Hamiltonian correction is obtained from the local term and the
+child sum evaluated at \(D^{-1/2}m(0)\), without this subtraction.
+The definition counts distance to the terminal vertex; the top
+coefficient beyond that vertex has already been computed downward.
+Taking \(d\) beyond the finite influence range gives exactly the
+Hamiltonian difference across the cut.  Indeed the identical
+recursion with \(\mathcal H_a\) first holds by partitioning
+terminals among children, and replacing
+\(\mathcal H_a(z)=\Delta_a(z)+\mathcal H_a(0)\) cancels the
+constant terms.  This also explains the argument \(m(0)\) in the
+second summand.
+
+Now factor the preceding circuit as
+\(U_v=(\bigotimes_aU_a)u_v\).  These preceding maps are fixed in
+the boundary variable of the new Hamiltonian.  Simultaneous
+conjugation of the physical identity gives
+\begin{equation}
+ \widehat\Delta_v(y)=u_v^*\left[T_v(y)+\sum_a
+   \left\{\widehat\Delta_a(D^{-1/2}m(y))
+             -\widehat\Delta_a(D^{-1/2}m(0))\right\}\right]u_v,
+ \label{eq:conjugated-lower-cut-identity}
+\end{equation}
+where \(\widehat\Delta_a=U_a^*\Delta_aU_a\), and \(T_v(y)\) is
+the local terminal term \eqref{eq:terminal-response}, zero at a
+nonterminal root. The direct term and messages are interpreted in
+the same child frames.  There is no
+derivative of \(U_a\) or \(u_v\).  Although a preceding Heisenberg
+image of the top coefficient may appear to have larger support, its
+boundary independence follows from the physical identity before
+this fixed conjugation.  Repeated lower masks in different expression
+branches cause no additional terms: these are identities for the
+whole nonlinear function of all incoming channels, so their mixed
+responses are retained.
+
+The required parity covariance is explicit: if \(\Pi\) is the joint
+parity, then \(\Pi\omega\Pi=-\omega\) and
+\(\Pi f(y)\Pi=-f(-y)\).  Thus
+\(\Pi\{\omega[f(y)-f(0)]\}\Pi=\omega[f(-y)-f(0)]\), and
+the recursion preserves this covariance.  We pass the algebraic
+recursion \eqref{eq:additive-response-recursion} to the limit by the
+centered normalized-sum calculation used in the proof of
+Corollary~\ref{cor:additive-response}.  At a fixed partition, the
+terminal coefficients and their jets are finite products and smooth
+compositions of centered odd normalized sums, together with the
+separately estimated bounded-mask averages normalized by \(D^{-1}\).
+The normalized-sum bounds and the conditional bounds for preceding
+maps give uniform degree bounds in every required higher smooth norm;
+these constants may depend on the fixed partition.  They propagate
+through the fixed-depth difference recursion.  Taylor expansion in the
+boundary inputs therefore retains the centered first response and the
+scalar second response, while its third-order remainder carries
+\(D\cdot D^{-3/2}\).  Commuting substitution handles the outgoing
+message arguments.  These are termwise limits in the derivative of
+the complete relative family, not a unitary calculus for the separated
+Hamiltonians.  If \(D_\alpha,D_{\alpha\beta}\) are the first two input derivatives
+of a child response at zero, set
+\[
+ r_\alpha=D_\alpha\vac,\qquad
+ c_{\alpha\beta}=\bra{\vac}D_{\alpha\beta}\ket{\vac}.
+\]
+Its contribution is
+\begin{align}
+ &\sum_\alpha\bigl(m_\alpha(y)-m_\alpha(0)\bigr)q(r_\alpha)
+ \nonumber\\[-2pt]
+ &\quad+\frac12\sum_{\alpha,\beta}
+ \bigl(m_\alpha(y)m_\beta(y)
+        -m_\alpha(0)m_\beta(0)\bigr)c_{\alpha\beta},
+ \label{eq:limiting-additive-response}
+\end{align}
+followed by the preceding root conjugation.  At a nonterminal lower
+root with no parent input, the Hamiltonian correction instead uses
+the unsubtracted child contribution
+\[
+ u_v^*\left[
+ \sum_\alpha m_\alpha(0)q(r_\alpha)
+ +\frac12\sum_{\alpha,\beta}
+       m_\alpha(0)m_\beta(0)c_{\alpha\beta}
+ \right]u_v.
+\]
+This is the root correction specified after
+\eqref{eq:additive-response-recursion}, rather than the value at
+\(y=0\) of the boundary difference, which is zero.  Both expressions
+use the same response columns and scalar second responses.
+First derivatives are odd and hence centered.  The same calculation
+applies to every fixed input jet.  The partition estimates below are
+made after this degree limit.
+
+At depth zero, \eqref{eq:terminal-smallness} and the derivative
+bounds of \(f\) make every fixed response jet
+\(O_{\mathrm{sm}}(\varepsilon)\), conditionally in the local
+seed.  More explicitly, the sum of terminal jets over \(l\) is a
+direct integral on the disjoint events \(J_l\), so its conditional
+bound is the maximum of their \(C\sqrt{p_l}\) bounds, not their
+sum.  Suppose the induction holds at depth \(d-1\).  All weighted norms of
+\(r_\alpha\) and all \(|c_{\alpha\beta}|\) are then bounded by
+\(C\varepsilon\).  The functions \(m\) and their derivatives have
+fixed polynomial bounds.  Multiplication, differentiation, and the
+preceding root conjugation in
+\eqref{eq:limiting-additive-response} therefore give the same
+smallness at depth \(d\), with a possible finite loss of powers.
+This induction has fixed finite depth and a fixed number of channels,
+both independent of the number of parts \(J_l\).  It requires no
+independence between different lower channels.  In particular it
+applies when two expression branches reuse some lower masks.  At a
+nonterminal lower root, if there are \(k\) outgoing channels and \(s\) ordinary Gaussian
+inputs used to compute \(m\), the root correction uses at most
+\(s+k\) field directions.  Each \(r_\alpha\) is a single child
+vector containing the whole lower calculation; its Hilbert-space
+support need not be finite dimensional.  The scalar second
+responses contribute no new directions.
+
+The diagonal degree-factor errors have the same response recursion
+with terminal coefficient
+\[
+ b_{j'}\left(\frac{\#\{k\sim j':k\in K\}}{Dp_K}-1\right)
+\]
+in place of \(X_{j'}R_{j',l}\).  On an active lower response path
+the parent is not in \(K\) or \(I\), so this is again a downward
+coefficient.  Its limiting smooth bounds vanish by the average
+estimate already proved.  Thus all its lower responses vanish as
+well.
+
+\paragraph{Uniform topology and iteration.}
+After the degree limit, the diagonal degree-factor errors vanish.
+The preceding computations identify the total action in
+\eqref{eq:helper-total-generator-action}.  At a helper root its scalar
+part is \(\sigma_{\mathcal P}(s)=\kappa\1_K(s)\), with
+\[
+ |\kappa|\le p_K^{-1}\sum_l\|d_l\|\,\|e_l\|
+             \le C p_J/p_K.
+\]
+This bounded root-seed multiplication commutes with every root map.
+Hence
+\[
+ \mathcal S_{\mathcal P}(t)
+ =e^{-\ii t\sigma_{\mathcal P}}\mathcal T_{\mathcal P}(t)
+\]
+is a strongly continuous unitary group.  Its self-adjoint generator
+\(R_{\mathcal P}\) acts on smooth vectors by the total remaining
+correction.  The four cut cases, in the common preceding frame, give
+\[
+ \begin{array}{c|l}
+ \text{cut-root mask}&\text{remaining correction}\\ \hline
+ I&O_{\mathrm{sm}}(\rho)\quad\text{(combined column)}\\
+ J_l&O_{\mathrm{sm}}(\sqrt{p_l})\quad\text{(conditional on }J_l\text{)}\\
+ K&u^*Q_Ku=O_{\mathrm{sm}}(\rho)\quad\text{(after its scalar phase)}\\
+ \text{lower mask}&O_{\mathrm{sm}}(\varepsilon)
+                  \quad\text{(fixed lower channels)}
+ \end{array}
+\]
+Since the parts partition the fixed sender mask,
+\[
+ \rho^2=\sum_l p_l^2\le p_J\max_l p_l,
+ \qquad \varepsilon^2=\max_l p_l.
+\]
+Both quantities tend to zero under the refinement hypothesis, with
+\(f\) and \(p_K>0\) fixed.
+
+To obtain uniform smooth bounds for this actual group, consider the
+full field expression for the remaining correction at each root.  At
+an \(I\)-root it uses a bounded number of combined columns.  At a
+\(J_l\)-root include the fields for both possible sender occurrences.
+At a lower root use all ordinary channel fields and response columns
+in the unsubtracted root formula.  These current-generator fields
+commute: before preceding conjugation they belong to the same physical
+seed and fixed-axis algebra.  Thus the total expression is a smooth
+function of a fixed number of commuting fields and, when present, the
+fixed root axis, with the uniform polynomial derivative bounds already
+proved.  At a \(K\)-root it is the complete centered quadratic
+\(Q_K\).  Define \(V_{\mathcal P}(t)\) by the joint spectral
+calculus of these expressions, as a direct integral over the root seed,
+with the final conjugation by \(u\) wherever it is not already
+displayed.  Lemma~\ref{lem:fixed-field-exponentials} gives its uniform
+conditional smooth bounds in the fixed-field cases;
+Lemma~\ref{lem:orthogonal-quadratics} gives the count-uniform bound at
+\(K\).  These bounds concern the total expression at each root.
+
+We verify that \(V_{\mathcal P}\) is the actual relative group
+\(\mathcal S_{\mathcal P}\).  At fixed partition the field-calculus
+group preserves the smooth domain and has smooth time derivatives
+there, with
+\(\partial_tV_{\mathcal P}(t)\zeta
+ =\ii R_{\mathcal P}V_{\mathcal P}(t)\zeta\)
+by the action identified in \eqref{eq:helper-total-generator-action}.
+For a smooth vector
+\(\zeta\), therefore, \(V_{\mathcal P}(s)\zeta\) remains in the
+domain of \(R_{\mathcal P}\), and its image under that generator
+varies continuously by the smooth bounds.  Differentiating gives
+\[
+ \frac{d}{ds}\left[
+ \mathcal S_{\mathcal P}(t-s)V_{\mathcal P}(s)\zeta
+ \right]=0.
+\]
+Evaluation at \(s=0,t\) proves
+\(\mathcal S_{\mathcal P}(t)\zeta=V_{\mathcal P}(t)\zeta\), and
+density extends the identity to the Hilbert space.  Thus the uniform
+smooth bounds just proved apply to the relative root group itself;
+no separate closure of the formal sum of corrections is chosen.
+
+Spectral calculus for its generator now yields
+\[
+ \|[\mathcal S_{\mathcal P}(t)-1]\zeta\|
+ \le |t|\|R_{\mathcal P}\zeta\|\longrightarrow0.
+\]
+Uniform higher smooth bounds upgrade this to convergence in every
+fixed lower graph norm; the same holds for adjoints.  The relative
+factor multiplies the desired root map on the right, so
+\[
+ u_{\widetilde H,\mathcal P}(t)
+ =u_H(t)\mathcal T_{\mathcal P}(t)
+ =e^{\ii t\sigma_{\mathcal P}}u_H(t)\mathcal S_{\mathcal P}(t).
+\]
+This proves convergence of the actual root maps up to their root-seed
+phase, with uniform conditional smooth bounds.  The same argument
+applies on cut subtrees, and the fixed lower response jets retain the
+estimates proved above.
+
+A root-seed phase cancels in each descendant Heisenberg conjugation
+before its vacuum column is lifted; helper-labeled descendant spaces
+need not be removed.  Starting from the fixed initial preceding maps,
+apply this single-replacement argument successively through the fixed
+finite sequence.  The continuity part of
+Theorem~\ref{thm:gate-calculus} applies at each step with the conditional
+smooth bounds just established.  It gives insertion convergence off
+\(K\) and proves the simultaneous contraction statement.
+\end{proof}
+
+\subsection{Pointwise functions and the order of compilation}
+
+Proposition~\ref{prop:helper-contraction} implements an aggregation
+whenever its lower formula is still available as an ideal call.  To
+remove all ideal calls without losing unused helper spins, we combine
+it with pointwise synthesis and process the formula from its outermost
+aggregations inward.
+
+Propagation and elementary local controls generate the required
+pointwise nonlinearities.  Suppose rotations by odd fields
+\(h_1,\ldots,h_k\) are available on the same target mask.  Same-axis
+rotations give their real linear combinations.  A constant local
+\(X\) rotation interchanges the two odd axes.  For an even local
+coefficient \(a(s)\), conjugating \(a(s)X\) by a rotation with odd
+angle \(h\), and taking the difference at opposite angles, gives
+\(a(s)\sin(2h)Y\), up to a sign convention.  For an odd local
+coefficient \(c(s)\), conjugating \(c(s)Y\) by the same \(Z\)
+rotation and taking the sum gives \(c(s)\cos(2h)Y\).
+Thus every finite trigonometric expression
+\begin{equation}
+ \sum_\nu a_\nu(s)\sin(\xi_\nu\cdot h)
+       +c_\nu(s)\cos(\xi_\nu\cdot h),
+ \qquad a_\nu\text{ even},\quad c_\nu\text{ odd},
+ \label{eq:parity-trigonometric-synthesis}
+\end{equation}
+can be implemented as an odd-axis Hamiltonian by pointwise matrix
+sums.  This covers joint parity in the local seed and aggregate
+arguments; it does not require multiplying arbitrary even fields.
+
+The same construction applies to bounded smooth odd functions of a
+finite list of odd aggregate inputs.  To see the required closure
+precisely, cut off on larger symmetric boxes, periodically extend,
+and approximate the smooth extension by its Fourier polynomials.
+The cutoff can be chosen even, and parity projection gives exactly
+the coefficient parities in
+\eqref{eq:parity-trigonometric-synthesis}.  Uniform bounds for
+derivatives in the aggregate variables are preserved on each fixed
+compact set.  Choose successive Fourier truncations accurate for
+increasing derivative orders.  The cutoffs and periodic extensions
+can be chosen with polynomial derivative bounds independent of the
+box: inside the box these follow from the original bounds, and
+outside its fundamental cell the absolute value of the reduced
+coordinate is no larger than that of the original coordinate.
+Fourier errors in the finitely many required derivative norms may
+be made at most one.  A diagonal choice gives the polynomial
+domination and local all-jet convergence used by
+Theorem~\ref{thm:gate-calculus}.  Alternatively, if only the terminal
+insertion is needed, first truncate the finitely many input laws and
+use their smooth moment bounds.  Local seed coefficients remain
+bounded measurable functions throughout.
+
+We finish by specifying the nesting of all limits.  This is also
+where helper pinning is used.  Define expression rank by
+\[
+ \operatorname{rank}(g(s))=0,\qquad
+ \operatorname{rank}(F(h_1,\ldots,h_k))=\max_j\operatorname{rank}(h_j),
+ \qquad
+ \operatorname{rank}(A_{RS}f)=1+\operatorname{rank}(f).
+\]
+Local masking does not change rank.  Reserve a distinct helper
+\(K_r\) for each positive rank.  Every original formula avoids
+every helper.  Before processing rank \(r\), all unresolved calls
+are classical formulas with this property; every already produced
+elementary gate acts only on original masks and previously used
+helpers \(K_q\), \(q>r\).  Thus the current surrounding word has
+no target, spin control, or nonzero emitted seed channel on \(K_r\).
+Its spins are exactly pinned, even if rotations on original output
+masks have already occurred.  The estimates above allow arbitrary
+preceding states in the gate-calculus class on those original masks.
+
+\begin{enumerate}
+\item At the largest remaining rank, replace each pointwise
+nonlinearity by the pointwise synthesis just described.  Take these
+limits successively in the fixed surrounding circuit.  After fixing
+their finite products to any desired accuracy, the remaining calls
+at rank \(r\) are rotations by explicit propagated odd inputs
+\(A_{IJ}f\), where \(\operatorname{rank}(f)\le r-1\).
+
+\item Apply Proposition~\ref{prop:helper-contraction} to all those
+propagations simultaneously, using the reserved helper \(K_r\).
+It is unused by every other exact gate at this stage and is
+therefore pinned.  Choose finite sender subdivisions sufficiently
+fine for the desired accuracy.  Sender subdivisions change only
+the local calling mask; they do not refine the lower formulas or
+their channel lists.
+
+\item With that subdivision fixed, implement all the commutators
+and sums defining \eqref{eq:helper-contraction-generator} by finite
+pointwise products.  Their convergence holds on the full space, so
+these finite products may temporarily rotate the helper away from
+\(X=1\).  Pinning was used in the preceding contraction limit,
+not during this inner approximation.
+
+\item The resulting finite word contains only lower-rank formula
+calls and elementary masked gates.  Repeat the same procedure at
+the next rank, using its new helper.  The previously produced
+finite word may act on higher helpers, but it avoids this new one
+exactly.  Thus the pinning hypothesis holds anew.  Source formulas
+retain all ancestor exclusions, including those introduced by their
+particular calling masks. A sender subdivision only restricts the
+local calling mask: exclusion of the original sender mask implies
+exclusion of each submask. The commutators create further occurrences
+of the same lower formula, without adding a cross-edge dependency or
+introducing a control on any still-unused helper.
+\end{enumerate}
+
+This induction terminates because the formula rank is finite.
+At each stage there are only finitely many occurrences in the
+already fixed surrounding word.  Accuracies can therefore be chosen
+successively from the outside inward.  No uniform estimate in the
+number of commutator factors, the number of formula occurrences
+created by an earlier stage, or inverse helper density is asserted
+or needed.  The only uniformity in a growing sender subdivision is
+the one explicitly proved in
+Proposition~\ref{prop:helper-contraction}.
+
+At termination, replace the elementary masked gates by their finite
+seeded-circuit approximations from
+Section~\ref{sec:elementary-masked-controls}.  All
+mask-controlled operations are compiled at this final stage.
+Theorem~\ref{thm:gate-calculus} permits the successive replacements
+inside the fixed finite remaining word, including the raw Gaussian
+seed control with its moment weight.  Exact helper pinning is no
+longer required after the contraction limits have been fixed.
+This constructs a finite seeded word with arbitrarily small
+insertion error off the helpers.
+
+\begin{proof}[Proof of Theorem~\ref{thm:classical-synthesis}]
+The finite nested construction proves
+\eqref{eq:synthesis-insertion}.  To identify the target value,
+the ideal seed-only rotations give
+\[
+ v_{\mathrm{cl}}
+  =m\ket{+}+\cos(2\theta)\ket{-},
+\]
+where both coefficients are classical functions of seeds; all
+descendant spins remain in their pointed spin vectors.  In
+\(\braket{v_{\mathrm{cl}}}{\cL v_{\mathrm{cl}}}\), the second
+summand on the left is orthogonal to the range of \(\cL\).  Its
+shifted version on the right has a child spin excitation and is
+orthogonal to the first, purely classical summand on the left.
+Consequently \(\cE(v_{\mathrm{cl}})=\cE(m)\).  The same identity
+holds after omitting helper insertions, because \(m=0\) there.
+
+For any circuit preserving root seed labels,
+\(\norm{\1_Hv}=\sqrt{p_H}\): the mask commutes with the circuit
+and with \(Z\), and \(Z\) is unitary.  Since \(\cL\) is an
+isometry, Proposition~\ref{prop:energy} gives
+\[
+ \abs{\cE(v)-\cE(\1_{H^c}v)}\le2\sqrt{p_H}.
+\]
+Both projected insertion vectors have norm at most one, so
+\eqref{eq:synthesis-insertion} changes their energy by at most
+\(2\eta\).  This proves \eqref{eq:synthesis-energy}.  All
+approximation limits above compare already-defined fixed-word tree
+values.  After choosing finite approximants, the resulting seeded
+word and all its parameters are independent of the degree, system
+size, and disorder.
+\end{proof}

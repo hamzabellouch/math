@@ -1,0 +1,206 @@
+\section{Exact rational padding and certified signing}
+\label{sec:signing}
+
+
+The deterministic signing theorem proved in Appendix~\ref{app:signing}
+has an exact input promise. For explicit
+rational columns $v_1,\ldots,v_M\in(\Q+i\Q)^d$ satisfying
+$\sum_i v_iv_i^*=I$, it returns signs $\sigma_i\in\{-1,1\}$ with
+\begin{equation}
+ \left\|\sum_i\sigma_i v_iv_i^*\right\|_{\op}
+       \le40\sqrt{\Delta},\qquad
+       \Delta=\max_i\|v_i\|^2,
+ \label{eq:ta-signing-input}
+\end{equation}
+in time polynomial in the full binary input length. This is
+\Cref{thm:rational-signing}, a quantitative form of the method of
+Ezeunala and Jiang~\cite{EzeunalaJiang2026}. Real rational columns are a
+special case. We first establish an elementary exact factorization, then prove the
+transfer required here, including identity completion and a rational
+success certificate.
+
+\begin{lemma}[Rational positive semidefinite decomposition]
+\label{lem:rational-psd}
+Every rational Hermitian positive semidefinite matrix $A$ can be written
+exactly as
+\[
+                         A=\sum_{j=1}^M v_jv_j^*,
+ \qquad v_j\in\Q(\mathrm i)^n,
+\]
+in polynomial bit time, with $M$ and the total encoding length of the
+columns polynomial in the encoding length of $A$.  If $A$ is real,
+the columns may be taken real.  For $A=0$, the sum may be empty.
+\end{lemma}
+
+\begin{proof}
+If a positive semidefinite matrix has all diagonal entries zero, it is
+zero, since its two-by-two principal minors give
+$|a_{ij}|^2\le a_{ii}a_{jj}$.  Otherwise permute a positive diagonal
+entry into the first position and write
+\[
+ A=\begin{pmatrix}d&b^*\\ b&C\end{pmatrix}
+  =d\begin{pmatrix}1\\b/d\end{pmatrix}
+       \begin{pmatrix}1\\b/d\end{pmatrix}^{\!*}
+       +\begin{pmatrix}0&0\\0&C-bb^*/d\end{pmatrix}.
+\]
+Here $d$ is positive rational and the Schur complement is positive
+semidefinite: evaluate the quadratic form of $A$ at
+$(-b^*x/d,x)$.  Repetition gives a rational pivoted $LDL^*$
+factorization, or equivalently $A=\sum_j d_j u_ju_j^*$ with positive
+rational $d_j$ and rational complex $u_j$.
+
+All elimination entries have polynomial encoding length.  To see this
+directly, clear the input denominators by one positive integer $q$.
+The resulting Gaussian-integer matrix has polynomial-bit entries,
+and every minor has polynomial bit length by the determinant
+expansion.  At any pivot order, the pivots and elimination coefficients
+are ratios of these minors, with an additional factor $q$ for the
+pivots.  There are at most $n$ pivots, so rational elimination takes
+polynomial bit time.
+
+For a pivot $d=a/b>0$ with positive integers $a,b$, expand
+$ab=\sum_k c_k4^k$, where $c_k\in\{0,1,2,3\}$.  Then
+\[
+                 d=\sum_k c_k\left(\frac{2^k}{b}\right)^2.
+\]
+Replace $d u u^*$ by $c_k$ copies of the outer product of
+$(2^k/b)u$ for each $k$.  The number of copies and their bit lengths
+are polynomial in those of $a,b,u$.  This proves every assertion,
+including the real case.
+\end{proof}
+
+
+\begin{lemma}[Checked signing of the stacked frame]
+\label{lem:ta-signing}
+Let $X$ and the union $B$ of $q$ trees be as in
+\Cref{prop:ta-extraction}, retaining $r/2\le q\le r$ trees, and let
+$z_e$ be the frame of \Cref{lem:ta-frame}. Put
+\begin{equation}
+                   w_e=(X^{-1/2}b_e,z_e)\qquad(e\in B).
+ \label{eq:ta-stacked}
+\end{equation}
+For an absolute constant $C_s$, a deterministic polynomial-time procedure
+finds $A\subseteq B$ satisfying
+\begin{equation}
+ \left\|\sum_{e\in A}w_ew_e^T
+                    -\frac12\sum_{e\in B}w_ew_e^T\right\|_{\op}
+                          \le C_s r^{-1/8}.
+ \label{eq:ta-half-frame}
+\end{equation}
+An exact polynomial-time rational PSD test certifies the output.
+\end{lemma}
+
+\begin{proof}
+The first block of \Cref{eq:ta-stacked} is expressed in orthonormal
+coordinates on $\one^\perp$; its particular orthogonal basis is
+irrelevant. Since $L_B\preceq L_H\preceq X$, its outer-product sum is
+at most $I$, while the second block sums to $I$. Block
+Cauchy--Schwarz therefore gives
+\begin{equation}
+                 \sum_{e\in B}w_ew_e^T\preceq2I.
+ \label{eq:ta-subisotropic}
+\end{equation}
+Individual squared norms are at most
+$r^{-1/4}+(1+4/r)/q\le5r^{-1/4}$ for the chosen cutoff.
+
+Write $n=|V(H)|$, $m=|E(H)|$, and $P=n+m+2$, as in
+\Cref{lem:ta-bits}. The centered positive definite $X$ has polynomial-bit rational entries,
+with smallest eigenvalue at least $P^{-3}$ and norm at most $6m$.
+As in the proof of \Cref{lem:ta-frame}, elimination, square-root
+approximation, and solves compute a whitening of this block to any
+requested polynomial number of bits. More explicitly, in the rational
+coordinates used above write $X=CA_XC^T$ and $b_e=Cc_e$. Then
+$c_e^TA_X^{-1}c_f=b_e^TX^{-1}b_f$, so whitening $A_X$ gives the same
+Gram matrix as the displayed block and differs from it only by an
+orthogonal map. The smallest eigenvalue of $A_X$ is at least
+$P^{-3}/n$, because the centered projection of $(v,0)$ has squared norm
+at least $\|v\|^2/n$. Thus this computation has the same polynomial
+precision bounds. Combining it with \Cref{lem:ta-frame}, compute
+rational columns $a_e$ approximating $w_e/2$ to Euclidean error at most
+$1/(1000|B|r)$. Because \Cref{eq:ta-subisotropic} implies
+$\|w_e/2\|\le1$, the outer-product identity
+\[
+ aa^T-vv^T=(a-v)a^T+v(a-v)^T
+\]
+shows that
+\begin{equation}
+ \sum_{e\in B}\|a_ea_e^T-w_ew_e^T/4\|_{\op}
+       \le\frac1{100r},\qquad
+ \Sigma:=\sum_{e\in B}a_ea_e^T\preceq\frac34I.
+ \label{eq:ta-approximate-data}
+\end{equation}
+The same estimate controls every signed sum, without knowing the signs.
+Also $\|a_e\|^2\le3r^{-1/4}$.
+
+Apply \Cref{lem:rational-psd} to the rational PSD residual
+$I-\Sigma$, obtaining polynomially many polynomial-bit real rational
+columns $v_1,\ldots,v_J$ with
+\begin{equation}
+                      VV^T=\sum_{j=1}^Jv_jv_j^T=I-\Sigma,
+                         \qquad V=[v_1\ \cdots\ v_J].
+ \label{eq:ta-padding-factor}
+\end{equation}
+In particular $\|V\|_{\op}\le1$ and each $\|v_j\|\le1$.
+Extend the data columns by zeros in $J$ additional coordinates. Set
+$N=2r$. For each $j$, add $N^2$ columns
+\begin{equation}
+                 p_{j,k}=\frac1N(v_j,\tau_{j,k}f_j),
+       \qquad 1\le k\le N^2,
+ \label{eq:ta-padding-columns}
+\end{equation}
+where $f_j$ is the $j$th extra coordinate vector and exactly half the
+$\tau_{j,k}$ equal $1$, half $-1$. The parity requirement holds because
+$N$ is even. Their unsigned sum is
+\[
+ \sum_{j,k}p_{j,k}p_{j,k}^T
+       =\begin{pmatrix}I-\Sigma&0\\0&I_J\end{pmatrix}.
+\]
+Together with the extended data this is exactly the identity.
+Every padding squared norm is at most $2/N^2$, so the maximum squared
+norm $\Delta$ of the entire rational system satisfies
+$\Delta\le3r^{-1/4}$. The number $|B|+JN^2$ of explicit columns and
+their binary lengths are polynomial, since $r\le m$.
+
+Apply \Cref{eq:ta-signing-input}. Write $S$ for the augmented signed
+matrix, and distinguish the output signs $\sigma_{j,k}$ from the fixed
+construction signs $\tau_{j,k}$. Its lower principal block is
+\[
+ D_0=\diag\left(N^{-2}\sum_k\sigma_{1,k},\ldots,
+                         N^{-2}\sum_k\sigma_{J,k}\right).
+\]
+The padding contribution to its upper principal block is exactly
+\begin{equation}
+                              VD_0V^T.
+ \label{eq:ta-padding-removal}
+\end{equation}
+If $\|S\|\le T$, then $\|D_0\|\le T$ and
+$\|VD_0V^T\|\le T$. Subtracting the latter from the full upper block
+gives
+\begin{equation}
+                    \left\|\sum_{e\in B}\sigma_ea_ea_e^T\right\|
+                                \le2T.
+ \label{eq:ta-data-signing}
+\end{equation}
+No assertion about the signed off-diagonal block is needed.
+
+For a fully rational certificate, choose a dyadic $d_0$ with
+$\sqrt\Delta\le d_0\le2\sqrt\Delta$ by squared comparisons and set
+$T=2^{15}d_0$. Check $TI-S\succeq0$ and $TI+S\succeq0$ exactly by
+rational elimination. Since $40<2^{15}$, the signing theorem guarantees
+that both tests pass. The certified output satisfies
+\Cref{eq:ta-data-signing} and $T\le2^{16}\sqrt\Delta$.
+
+Return the positive data signs $A=\{e:\sigma_e=1\}$.
+By \Cref{eq:ta-approximate-data,eq:ta-data-signing}, its centered half
+sum has norm at most
+\[
+ \frac12\left\|\sum_e\sigma_e w_ew_e^T\right\|
+       \le4T+\frac2{100r}
+       \le2^{20}r^{-1/8}.
+\]
+Thus one may take $C_s=2^{20}$. The rational PSD tests have polynomial
+cost and certify all the required matrix estimates simultaneously.
+The signing algorithm and all numerical routines above have prescribed
+polynomial precision and iteration bounds. This proves deterministic
+polynomial bit complexity.
+\end{proof}

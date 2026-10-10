@@ -1,0 +1,792 @@
+\section{Stochastic atoms and their interfaces}
+\label{sec:atom}
+
+The exact hierarchy uses matrix entries, correction products, and column
+detector expectations.  We represent each of these by sample-dependent
+tables: bins represent entries of the transitions and residuals,
+correction tables represent the pilot and actual corrections, and score
+tables represent the detector trials.  Each normalized table has an
+earlier preparatory table that supplies its denominator.
+
+We first prove the exact conditional-mean identities.  We then extend the
+same row formulas to computed raw arrays and prove the support and access
+bounds that hold even when those arrays are inaccurate.  Finally we bound
+the effect of errors in the incoming gates and column multipliers.  The
+later implementation supplies enumeration and pairing of the resulting
+ports.
+
+Exact conditional-mean identities refer only to the true tables defined
+here.  Applying the same formulas to approximate raw signals gives
+approximate tables; their normalization need not be unbiased.
+
+Weighted pseudorandomness provides a related way to represent expectations
+with few random bits; see Braverman, Cohen and Garg~\cite{BravermanCohenGarg2020}
+and the error-reduction work of Cohen, Doron, Renard, Sberlo and
+Ta-Shma~\cite{CohenDoronRenardSberloTaShma2021}. The tables below have
+exact conditional-mean identities. Their estimates use a common
+environment, so products and subsequent normalization are analyzed
+through joint error bounds rather than independent sampling.
+
+\subsection{Table domains and the normalization principle}
+
+Throughout this section $s=8$.  Fix a stage, write $f=b_l$, and let $G$ be
+one of its nonnegative raw matrix inputs.  The hierarchy gives absolute
+constants $M_G,K_G$ such that
+\begin{equation}
+ \sum_y G(x,y)\le M_G,\qquad G(x,y)\le K_G f.
+ \label{eq:atom-input-bounds}
+\end{equation}
+These bounds include pilot and actual inputs and the residual $D$; see
+Lemmas~\ref{lem:hier-pilot-bounds} and~\ref{lem:hier-residual}.
+For a correction $F=fQ(G/f)g_0$, the additional input is
+\begin{equation}
+ g_0(y)>0\quad\Longrightarrow\quad
+ \#\{x:G(x,y)\ge\delta_1 f\}\le R_*/f,
+ \label{eq:atom-column-input}
+\end{equation}
+from Lemma~\ref{lem:hier-column-test}.
+
+A row task has start rate $u\le f$, end scale $a$, and, when needed, a
+usage rate $t\le a$, all on the rate grid.  Its domain is
+$X_u(x)=Y_a(y)=1$, with distinct start and terminal channels.  We use
+$a\le K_f f$ for an absolute $K_f$, and use $a=f$ for corrections and
+detector scores.  Here and in the estimation and compression sections,
+$t$ denotes a sampling rate; the numerical clock $t$ is introduced
+separately in Section~\ref{sec:arith}.  The true first raw signal is
+\begin{equation}
+ d_y=G(x,y)/a.
+ \label{eq:atom-first-signal}
+\end{equation}
+An optional second raw signal is
+$\zeta\mathbf1_{\{Y_t(y)=1\}}q_y$, where $q_y=q(x,y)\in[0,1]$ is a
+deterministic conditional mean and $\zeta>0$ is a fixed sufficiently small
+constant.  That mean will be specified separately for each normalized task.
+
+All parameters of a table are common to the whole table: its stage and
+iteration, task type, channel roles, channel padding suffixes, rates
+$u,a,t$, and subsequently its budget and numerical convention.  They do
+not depend on the row or column at which the table is queried.
+
+Write $\operatorname{rk}_k$ for the $k$th largest value, with unlimited
+zero padding.  For two arrays on the same padded index set,
+\begin{equation}
+ |\operatorname{rk}_k(v)-\operatorname{rk}_k(w)|
+ \le\sup_z|v_z-w_z|.
+ \label{eq:atom-rank-lipschitz}
+\end{equation}
+Indeed, if every coordinate changes by at most $\epsilon$, at least $k$
+coordinates at or above the old $k$th value remain at or above that value
+minus $\epsilon$; apply this in both directions.
+
+The normalization can be seen before choosing the row functions.  Fix a
+pair $(x,y)$ on its conditioning slice, a deterministic nonnegative value
+$k(d_y)$, and a random row gate $R\in[0,1]$.  Choose a preparatory factor
+$h$ that is one wherever $k$ is positive.  If
+\[
+ q(x,y)=\mathbb E[h(d_y)R\mid X_u(x)=Y_t(y)=1]\ge\tfrac12
+\]
+on that support, then $k(d_y)R/q(x,y)$ has conditional mean $k(d_y)$
+there.  A clipped denominator keeps the formula bounded at every other
+position and for computed inputs.  The constructions below arrange a
+uniform positive lower bound on this mean while the row gate limits the
+number of nonzero retained entries.  Corrections use an additional incoming
+gate, with the same normalization principle.
+
+For real $\alpha<\beta$, let $\chi_{\alpha,\beta}$ be a fixed increasing
+switch, zero on $(-\infty,\alpha]$ and one on $[\beta,\infty)$.
+Choose it by rescaling the normalized integral of
+$z^{s-1}(1-z)^{s-1}$ on $[0,1]$.
+Both $\chi_{\alpha,\beta}^{1/s}$ and
+$(1-\chi_{\alpha,\beta})^{1/s}$ are Lipschitz: at either endpoint the
+vanishing function has a zero of order $s$, and on the interior ordinary
+differentiation applies.  Products of bounded functions with Lipschitz
+$s$th roots again have Lipschitz $s$th roots.
+
+Every scalar saturation below uses fixed min/max clipping,
+\[
+ \operatorname{clip}_{[\alpha,\beta]}(v)
+   =\min\{\beta,\max\{\alpha,v\}\},
+\]
+which is $1$-Lipschitz.  We specify its bounds when defining the function.
+Functions initially defined for nonnegative first entries are extended
+by zero below zero; each already vanishes below a positive support
+threshold.  These conventions apply only to evaluation of the row
+functions.  Ranks and access tests always use the full prescribed raw
+arrays before scalar clipping.
+
+Here is one explicit set of margins used below.  Let $\vartheta>0$ be a
+fixed lower support threshold of a main row function, and put
+$\rho=\operatorname{rk}_K(v)$ for its first raw row $v$.  Define
+\begin{align}
+ h_{\vartheta}(v)
+   &=\chi_{\vartheta/2,\,3\vartheta/4}(v),\notag\\
+ R_{\vartheta}(\rho)
+   &=1-\chi_{\vartheta/1000,\,\vartheta/500}(\rho),\notag\\
+ I_{\vartheta}(v,\rho)
+   &=\chi_{\vartheta/8,\,\vartheta/4}(v)
+       \bigl(1-\chi_{\vartheta/100,\,\vartheta/50}(\rho)\bigr).
+ \label{eq:atom-threshold-template}
+\end{align}
+We take $\vartheta=\theta_1$ for corrections, $\vartheta=1/2$ for dense
+bins, and $\vartheta=\delta_0$ for the detector score.  For that detector
+we make the allowed hierarchy choices
+\[
+ \eta_-=\delta_0/1000,\qquad \eta_+=\delta_0/500,\qquad
+ \rho(t)=1-\chi_{\delta_0/1000,\,\delta_0/500}(t)
+          =R_{\delta_0}(t).
+\]
+Here $\rho$ denotes the cutoff in the hierarchy, and the same switch
+$\chi$ is used in both occurrences.  These choices satisfy
+$0<\eta_-<\eta_+<\delta_0/3$.  Thus the detector row gate here is exactly
+$R_i$ in Equation~\eqref{eq:hier-pilot-row-gate}.
+The detector does not require $h_{\vartheta}$.
+The hierarchy's choices may and do satisfy
+$\delta_1<\theta_1/100$ and $0<\delta_0<\delta_1$.
+Thus the correction auxiliary score $I_{\theta_1}$ can be positive only
+when $G(x,y)>\delta_1 f$.
+
+\subsection{Dense bins and preparatory normalization}
+
+We first split a raw entry into contributions at the rate-grid scales.
+At each scale a row gate bounds the number of retained entries, and an
+exact preparatory conditional mean corrects the loss caused by that gate.
+
+Put $q_*=2^H$, and let $\chi=\chi_{1/2,1}$.  For $w\ge0$ define
+\begin{align}
+ \omega_0(w)&=\chi(w),\notag\\
+ \omega_k(w)&=\chi(w/b_k)-\chi(w/b_{k-1})\qquad(k\ge1).
+ \label{eq:atom-bin-weights}
+\end{align}
+The top bin has no preceding switch.  The weights are nonnegative and
+sum to one for $w>0$, since their partial sums telescope to
+$\chi(w/b_k)\to1$.  Hence
+\begin{equation}
+ w=\sum_{k\ge0}w\omega_k(w).
+ \label{eq:atom-bin-partition}
+\end{equation}
+At scale $a=b_k$, the bin in atom units is
+\begin{equation}
+ k_a(d)=d\omega_k(ad).
+ \label{eq:atom-bin-function}
+\end{equation}
+For $k\ge1$ its support is contained in $1/2<d<q_*$.
+Its two switch transition intervals are disjoint, and
+\[
+ \chi(d)-\chi(d/q_*)=\chi(d)(1-\chi(d/q_*)),
+\]
+which proves directly that its $s$th root is Lipschitz.
+For $k=0$, fix $B_{\rm top}>\max\{K_G,1\}$ and evaluate the defining
+expression at $\operatorname{clip}_{[0,B_{\rm top}]}(d)$.
+This makes the top-bin function bounded with Lipschitz root.  It
+preserves every true value, since $a=b_0=1$ and
+$G(x,y)\le K_G f\le K_G$.  For $k\ge1$, retain the zero extension
+outside the support $(1/2,q_*)$; no upper clipping changes a zero bin
+value.  Bins with $a>2K_G f$ vanish on the true input, so a fixed
+$K_f\ge2K_G$ suffices for the permitted scale range.
+
+For the routed residual bin use instead
+\begin{equation}
+ k_a^{(j)}(d)=k_a(d)s_j(ad/f).
+ \label{eq:atom-routed-bin}
+\end{equation}
+The routing fractions have bounded Lipschitz roots.  Since $a/f\le K_f$
+and the bin is zero above a fixed argument range (or is top-bin clipped),
+these functions have uniformly bounded Lipschitz roots as well.  The
+same zero-extension and clipping conventions apply to routed bins.
+Summing Equation~\eqref{eq:atom-routed-bin} over scales gives the routed
+residual contribution exactly on every true input.
+
+Choose $R_{1/2}$ and $h=h_{1/2}$ from
+Equation~\eqref{eq:atom-threshold-template}.  For the true row set
+\[
+ \rho_x=\operatorname{rk}_K
+   \{G(x,z)/a:Y_a(z)=1\},\qquad R=R_{1/2}(\rho_x).
+\]
+Write
+\begin{equation}
+ q_y=\mathbb E\bigl[h(d_y)R\mid X_u(x)=Y_t(y)=1\bigr],
+ \qquad
+ c(q)=\min\{1,\max\{1/2,q\}\}.
+ \label{eq:atom-dense-denominator}
+\end{equation}
+The number $q_y$ is the deterministic conditional mean at the indicated
+pair.  The second raw signal carries the $Y_t$ membership mask.  In
+addition, $q_y=0$ if $d_y\le1/4$.
+The true preparatory table on the broad
+terminal domain $Y_a$ is the unnormalized value $h(d_y)R$.  It uses only
+the first raw signal.  Its conditional mean on the narrower slice is
+exactly the $q_y$ in Equation~\eqref{eq:atom-dense-denominator}.
+The usage rate $t$ is part of the fixed task tuple: changing the slice
+on which this mean is taken would in general change the denominator.
+The broad preparatory domain and the narrower normalization slice must
+therefore be retained as separate parts of the interface.
+
+\begin{lemma}[Dense atom identity]
+\label{lem:atom-dense}
+For sufficiently large fixed $K$, the table
+\begin{equation}
+ \mathcal B_a(x,y)=
+  \mathbf1_{\{Y_t(y)=1\}}\frac{k_a(d_y)R}{c(q_y)}
+ \label{eq:atom-dense-table}
+\end{equation}
+on retained starts has bounded values and row support.  On the slice
+$X_u(x)=Y_t(y)=1$ its conditional expectation times $a$ equals
+$G(x,y)\omega_k(G(x,y))$.  The same assertion holds for
+$\mathcal B_a^{(j)}$ with the routing fraction included.
+Apart from its start membership, its true value uses only the terminal
+channel.
+\end{lemma}
+
+\begin{proof}
+The row gate can fail to be full only if at least $K$ sampled columns
+have $G(x,z)/a>r$, where $r=(1/2)/1000$ is fixed.
+There are at most $M_G/(ar)$ such deterministic columns.
+Conditional on $Y_t(y)=1$, the specified column contributes at most one
+hit and each other column has $Y_a$-hit probability at most $C a$, by
+Lemma~\ref{lem:env-ranks}.  Thus the expected count is at most
+$1+CM_G/r$.  Conditioning also on the independent source channel does
+not alter this bound.  Markov's inequality makes the failure probability
+at most $1/8$ by a sufficiently large $K$.
+
+Where $k_a(d_y)>0$, we have $h(d_y)=1$.  Therefore
+$q_y=\mathbb E[R\mid Y_t(y)=1]\in[7/8,1]$ there, and the clipping
+does nothing.  The conditional mean of Equation~\eqref{eq:atom-dense-table}
+is consequently $k_a(d_y)$.  Outside that support both sides vanish.
+If a row output is positive, its first entry exceeds $1/2$ and its
+$K$th first rank is below $1/1000$.  Hence there are at most $K-1$
+positive entries.  Boundedness follows from the clipped denominator.  The routed
+fraction is deterministic at truth and obeys the same argument.
+\end{proof}
+
+For products of a correction with a deterministic bin contribution, we
+will use the following bounds.
+
+\begin{lemma}[Bounds for a fine product contribution]
+\label{lem:hier-bin-products}
+Let $C$ be the transition matrix at the current stage, and let $F$ be
+any finite pilot or actual correction there.  If a matrix $A_b\geq0$
+on the same vertex set satisfies $A_b\mathbf 1\leq\mathbf 1$ and
+$A_b(x,y)\leq c_b b$ for some $b>0$, then
+\[
+ (FA_b)\mathbf 1\leq k_*\mathbf 1,
+ \qquad (FA_b)(x,y)\leq k_*c_b b.
+\]
+If also $A_b\leq C$, then $FA_b\leq FC$.  These estimates have constants
+independent of the bin scale $b$.
+\end{lemma}
+
+\begin{proof}
+Use $F\mathbf 1\leq k_*\mathbf 1$ from
+Lemma~\ref{lem:hier-pilot-bounds}:
+$(FA_b)\mathbf 1\leq F\mathbf 1$, and
+$(FA_b)(x,y)\leq c_b b\sum_zF(x,z)$.  The last assertion follows by
+multiplying $A_b\leq C$ on the left by the nonnegative matrix $F$.
+\end{proof}
+
+\subsection{Corrections with an incoming gate}
+
+Corrections also need a bound on incoming degree.  Their deterministic
+column-support bound permits an additional incoming gate while keeping
+the probability that both gates are full bounded away from zero.
+
+Consider $F=fQ(G/f)g_0(y)$ and put $a=f$, $\vartheta=\theta_1$.
+Fix $B_Q>\max\{K_G,\theta_2\}$ and define the atom cutoff
+\[
+ Q_{\rm at}(d)=Q\bigl(\operatorname{clip}_{[0,B_Q]}(d)\bigr).
+\]
+It is bounded, has a Lipschitz $s$th root on the real line, and agrees
+with $Q(d)$ for every true argument $d=G(x,y)/f$.  Its extension to
+negative arguments is zero.  The exact hierarchy continues to use the
+uncapped $Q$.  Let $R=R_{\theta_1}(\rho_x)$, $h=h_{\theta_1}$, and
+$I=I_{\theta_1}$ be the functions in
+Equation~\eqref{eq:atom-threshold-template}, where the true row rank is
+$\rho_x=\operatorname{rk}_K\{G(x,z)/f:Y_f(z)=1\}$.
+On a true or computed raw table, form $I(x,y)$ from that table's own row
+entry and own rank.
+With $\chi_{1/4,1/2}$ as above, define
+\begin{equation}
+ T_y=1-\chi_{1/4,1/2}\left(
+       \operatorname{rk}_{K_c}\{I(x,y):X_u(x)=1\}\right).
+ \label{eq:atom-incoming-gate}
+\end{equation}
+Thus $T_y=1$ through rank $1/4$ and $T_y=0$ from rank $1/2$.
+This rank is taken over the fixed retained source set before any incoming
+port filtering; there is no gate-dependent change of its index set.
+The true correction preparation is $h(d_y)R T_y$ on $Y_a$.
+Define its conditional mean by
+\begin{equation}
+ q_y=\mathbb E\bigl[h(d_y)R T_y\mid X_u(x)=Y_t(y)=1\bigr].
+ \label{eq:atom-correction-denominator}
+\end{equation}
+The number $q_y$ is deterministic; as before, its second raw signal
+carries the $Y_t$ membership mask.  Define the normalized true correction
+using the clipped expression everywhere:
+\begin{equation}
+ \mathcal F(x,y)=\mathbf1_{\{Y_t(y)=1\}}
+     \frac{Q_{\rm at}(d_y)R T_y}{c(q_y)}\,g_0(y).
+ \label{eq:atom-correction-table}
+\end{equation}
+Here $q_y=0$ whenever $d_y\le\theta_1/2$.  Thus both kinds of second
+signal are supported above a fixed positive first-signal threshold.
+Choose $\zeta\le10^{-6}\min\{\theta_1,\delta_0,1/2\}$, decreasing it
+later if a fixed compression margin requires this.  The second signals
+are then uniformly tiny on the first-signal threshold scale.
+
+\begin{lemma}[Correction atom identity, including zero multipliers]
+\label{lem:atom-correction}
+For sufficiently large fixed $K$ and then $K_c$, the conditional mean of
+$f\mathcal F(x,y)$ on $X_u(x)=Y_t(y)=1$ is exactly $F(x,y)$.
+On a true position with $Q(d_y)>0$ and $g_0(y)>0$,
+\begin{equation}
+ q_y=\alpha(x,y):=
+  \mathbb E[R T_y\mid X_u(x)=Y_t(y)=1]\ge3/4.
+ \label{eq:atom-alpha-bound}
+\end{equation}
+No lower bound on $q_y$ or $\alpha(x,y)$ is required when $g_0(y)=0$.
+The true gates and normalization use only the two role channels $X,Y$;
+$g_0$ is deterministic.
+\end{lemma}
+
+\begin{proof}
+The row count argument in Lemma~\ref{lem:atom-dense}, with the correction
+thresholds, gives $\Pr(R\ne1\mid\text{the two hits})\le1/8$.
+If $g_0(y)>0$, every source with $I(x',y)>0$ belongs to the deterministic
+set in Equation~\eqref{eq:atom-column-input}.  Conditional on $X_u(x)=1$,
+the number of sampled members of that set has expectation at most
+\[
+ 1+C uR_*/f\le1+C R_*.
+\]
+The bound remains valid after conditioning on the independent terminal
+hit; it ignores the auxiliary row gate and therefore needs no additional
+independence between rows.  If fewer than $K_c$ such sources are sampled,
+the $K_c$th auxiliary rank is zero and $T_y=1$.  Choose
+$K_c\ge8(1+C R_*)$ to make $\Pr(T_y\ne1\mid\text{the two hits})\le1/8$.
+The union bound, without independence of the gates, gives
+$\mathbb E[RT_y\mid\text{the two hits}]\ge3/4$.
+
+Since $h(d_y)=1$ on $Q$'s support, Equation~\eqref{eq:atom-alpha-bound}
+holds and $c(q_y)=q_y$ there whenever $g_0(y)>0$.  The claimed conditional
+identity follows by division by this exact conditional mean.  If
+$Q(d_y)=0$ or $g_0(y)=0$, both sides of the identity are zero.  In the latter
+case the pre-incoming quantity $Q_{\rm at}(d_y)R/c(q_y)$ is still a well-defined
+bounded comparison target, even if the unclipped mean vanishes.
+\end{proof}
+
+\subsection{Detector scores}
+
+The unnormalized detector table is
+\begin{equation}
+ \mathcal S_i(x,y)=\phi(G_i(x,y)/f)
+ R_{\delta_0}\!\left(\operatorname{rk}_K
+       \{G_i(x,w)/f:Y_f(w)=1\}\right)
+ \quad\text{on }X_f(x)=Y_f(y)=1.
+ \label{eq:atom-detector-table}
+\end{equation}
+Its column trial is the $J$th largest such score over retained starts.
+By the identical cutoff choice, its conditional mean given $Y_f(y)=1$
+is exactly $U_i(y)$ from Equation~\eqref{eq:hier-detector}.
+The trial is an inverse rank access to a row-bounded table and does not
+require an incoming degree bound.
+
+\subsection{Actual ports and estimated assembly}
+
+The conditional-mean identities now give the true contributions.  A
+product estimate will query a correction at $(x,z)$ and then a bin at
+$(z,y)$.  Bounded outgoing degree limits the possible midpoints; bounded
+incoming degree is needed when errors at the new source $z$ are summed
+over old sources $x$.  We therefore specify access relations as well as
+nonzero table supports.  The access relations may contain entries of
+weight zero.
+
+Passing through one copy projection is partitioned by its fixed source and
+destination symbols.  Within each part the inherited hash argument
+appends that symbol before the inherited suffix.  Lemma~\ref{lem:env-ranks}
+then gives the same distribution as the unpadded channel.  The task tuple
+records these fixed symbols and suffixes.  By definition, neither a right
+factor's task parameters nor a column vector's task parameters retain an
+earlier source address.
+The environment supplied to the table is common to all its entries.
+The vertices $x,y$ are arguments of that table, rather than additional
+parameters.  Thus two paths that discover the same entry in that
+environment query the same value; the path used to discover it is not
+part of its mathematical definition.
+
+We will apply these row functions to arrays represented by a finite list
+of exceptional values and one common value at every omitted endpoint.
+Call that common value the \emph{default}.  Adjoin arbitrarily many dummy
+coordinates with the same default, and include them in every rank; they
+are never matrix entries or ports.  For the true row arrays, dummy values
+are zero.  Section~\ref{sec:buf-compression} constructs the finite-list
+representations.  The elementary rank convention below lets us prove
+support and access bounds before choosing that construction.
+
+\begin{remark}[Ranks of arrays with a common default]
+\label{rem:atom-finite-ranks}
+Suppose a row array equals a common default outside a finite list,
+and arbitrarily many dummy coordinates have that same default.  Its
+$k$th rank can be computed from the listed coordinates and $k$ copies of
+the default, with the stipulated zero padding.  Indeed, every omitted
+coordinate merely supplies another copy of a value already available
+with multiplicity at least $k$.  Additional listed real coordinates
+equal to the default therefore do not change the rank.  The same
+observation applies to a rank of entry sizes when each omitted entry
+has the same default vector.
+
+This is an equality of ranks for one prescribed full array.  The dummy
+coordinates are never matrix entries or ports.  A common componentwise
+clamp of the entries and their default preserves this representation:
+an omitted position still equals the clamped default.  No assertion
+that different calculations select identical lists or ports is needed.
+\end{remark}
+
+\begin{lemma}[Support margins and exposed row classes]
+\label{lem:atom-margins}
+Suppose a bounded nonnegative main function $k(v)$ vanishes for
+$v\le\vartheta$.  Its product $k(v)R_{\vartheta}(\rho)$ and the
+preparatory product $h_{\vartheta}(v)R_{\vartheta}(\rho)$ have at most
+$K-1$ nonzero real entries in a row.  They admit a common exposed class
+$A$, of at most $K-1$ real entries, containing their supports and satisfying
+$I_{\vartheta}=1$ throughout $A$.  These assertions hold for arbitrary
+real raw estimates, without a sign or accuracy hypothesis.
+
+The auxiliary score $I_{\vartheta}$ also has at most $K-1$ nonzero real
+entries and has an exposed row class with a bounded-support smooth
+witness equal to one on that class.
+\end{lemma}
+
+\begin{proof}
+For the main and preparatory products a nonzero entry has
+$v>\vartheta/2$ and $\rho<\vartheta/500$.  There cannot be $K$ such
+entries, since then the $K$th rank would exceed $\vartheta/2$.
+
+For an explicit class choose consistently computed approximations
+$\widetilde v,\widetilde\rho$ with absolute errors at most
+$\eta=\vartheta/10000$, and set
+\begin{equation}
+ A=\{y:Y_a(y)=1,\quad
+       \widetilde v_y>3\vartheta/8,\quad
+       \widetilde\rho<\vartheta/200\}.
+ \label{eq:atom-exposed-class}
+\end{equation}
+Every positive main or preparatory entry belongs to $A$.  An entry in
+$A$ satisfies $v_y>(3/8-1/10000)\vartheta>\vartheta/4$ and
+$\rho<(1/200+1/10000)\vartheta<\vartheta/100$, so its witness
+$I_{\vartheta}$ equals one.  Its entry threshold exceeds its rank
+threshold, proving $|A|\le K-1$.
+
+The support of $I_{\vartheta}$ requires $v>\vartheta/8$ and
+$\rho<\vartheta/50$, again giving the same row bound.  To access this
+score itself, the class
+\[
+ A_I=\{y:Y_a(y)=1,\quad
+       \widetilde v_y>\vartheta/10,\quad
+       \widetilde\rho<\vartheta/40\}
+\]
+contains its support and has at most $K-1$ entries.  A smooth unit witness
+on $A_I$ is
+\[
+ J_{\vartheta}(v,\rho)=
+  \chi_{82\vartheta/1000,\,90\vartheta/1000}(v)
+  \bigl(1-\chi_{26\vartheta/1000,\,27\vartheta/1000}(\rho)\bigr).
+\]
+The approximation margins imply $A_I\subseteq\{J_{\vartheta}=1\}$.
+Moreover $82/1000>3(27/1000)$, so this witness also has bounded row
+support and the required entry versus rank separation.  The witness is
+an analytical output; its support need not be broadened recursively.
+
+These arguments use the rank of the prescribed entire raw array.
+In particular, if at least $K$ dummy positions have a common virtual
+default $\beta$, then $\rho\ge\beta$.  A real position still equal to
+that default cannot meet either exposed class: the required lower bound
+on $v=\beta$ exceeds the required upper bound on $\rho$.  Thus omitted
+default positions do not create unlisted ports.
+\end{proof}
+
+The fixed-accuracy approximations in this lemma are part of the access
+interface, not tests for equality of exact reals.  The implementation
+must use the same approximation and tie conventions whenever it queries
+the same table.  The strict margins prove correctness for every such
+choice.  Auxiliary-only access classes require a row bound but no
+incoming bound.
+In particular, different computed versions may expose different
+zero-weight entries.  The assertions are applied to each version's own
+final raw array and repeatable approximation convention; they do not
+require those classes to coincide.  Accuracy of the raw array is used
+later in the error estimates, not in this support argument.
+
+
+An estimated table applies the preceding bounded row functions to its
+\emph{final} raw row arrays.  In a normalized task its second input is a
+computed value approximating $\zeta\mathbf1_{\{Y_t(y)=1\}}q_y$: the
+calculator divides that input by $\zeta$ and applies $c$.  It does not launch another averaging
+operation after selecting an endpoint.  Its auxiliary incoming scores
+are formed from its own final first-signal rows, and its incoming gate
+is Equation~\eqref{eq:atom-incoming-gate} for those scores.  A preparatory
+task is an earlier, separate task; its raw arrays, scores, and gates are
+its own, and its target is the unnormalized preparatory table specified
+above.  Corrections additionally multiply by a clipped vector estimate
+of the prescribed $U$-cutoff $g_0(y)$, queried with a common broad
+$Y_f$-domain tuple.  The unnormalized preparations $hR$ and $hRT$
+remain on their broad $Y_a$ domain; their usage parameter $t$ specifies
+the conditional slice on which they are averaged.  The resulting
+second raw signal and the normalized main output carry the $Y_t$ mask.
+Dense bins and their preparations and detector tables have
+no additional incoming multiplier.
+Because $c$ takes values in $[1/2,1]$, every such pre-incoming row
+function has a globally Lipschitz $s$th root as a function of its
+saturated first entry, first rank, and scaled second entry.  The constants
+may depend on the fixed $\zeta$, but not on the stage, rates, or budget.
+
+For clarity, Table~\ref{tab:atom-compression-thresholds} records the
+thresholds needed by the compression argument.  For a pre-incoming row
+function $H$, its entry factor vanishes through $e_H$, and its row gate
+vanishes from rank $g_H$ onward.  Every listed pair satisfies
+$3g_H<e_H$, including the broadest witness, for which
+$82\vartheta/1000-3(27\vartheta/1000)=\vartheta/1000>0$.
+All gates are full in a neighborhood of rank zero.  The correction
+preparation in this table is its pre-incoming factor $hR$; its incoming
+gate is assembled afterward.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Pre-incoming row function & $e_H$ & $g_H$ \\
+\midrule
+Dense bin, including routed bins & $1/2$ & $1/1000$ \\
+Dense preparation $hR$ & $1/4$ & $1/1000$ \\
+Correction clipped-ratio function & $\theta_1$ & $\theta_1/500$ \\
+Correction preparation $hR$ & $\theta_1/2$ & $\theta_1/500$ \\
+Detector score & $\delta_0$ & $\delta_0/500$ \\
+Auxiliary score $I_{\vartheta}$ & $\vartheta/8$ & $\vartheta/50$ \\
+Witness $J_{\vartheta}$ & $82\vartheta/1000$ & $27\vartheta/1000$ \\
+\bottomrule
+\end{tabular}
+\caption{Entry and row-gate thresholds. The entry factor vanishes through
+$e_H$, and the row gate vanishes from rank $g_H$ onward. Here
+$\vartheta\in\{1/2,\theta_1,\delta_0\}$ as appropriate.}
+\label{tab:atom-compression-thresholds}
+\end{table}
+
+The bounded first-entry ranges and gate transition intervals already
+specified give fixed sensitivity ranges for these functions.  If $w$
+is a computed second raw entry, its only use is through $c(w/\zeta)$;
+clipping $w$ to $[\zeta/2,\zeta]$ leaves this quantity unchanged.
+Its denominator stays in $[1/2,1]$ even for negative or inaccurate
+inputs.  Usage masks only remove entries and do not change any of these
+support or continuity bounds.
+
+\begin{lemma}[Port contract]
+\label{lem:atom-ports}
+All main and preparatory row tables, auxiliary scores, and the smooth
+witnesses just constructed have bounded values and bounded row support.
+Every row access class used for a main or preparatory output, or for
+access to its auxiliary score, has bounded size and a smooth witness
+equal to one on every exposed entry, including exposed entries of weight
+zero.  A witness itself is needed as an analytical row function, without
+an additional requirement to expose its support through a further
+witness.  For a correction or its preparatory table let $A$ be its
+pre-incoming class from Equation~\eqref{eq:atom-exposed-class}.  Retain an
+exposed entry $(x,y)\in A$ only when
+\begin{equation}
+ \#\{x':X_u(x')=1,\ (x',y)\in A\}\le K_c.
+ \label{eq:atom-port-cap}
+\end{equation}
+This deletion preserves all table values and gives at most $K-1$
+outgoing and at most $K_c$ incoming exposed entries.
+
+These assertions hold separately for every computed version, provided
+that its values, ranks, scores, and access classes use the same final
+raw arrays and common task tuple.  Access ports denote distinct entries:
+the implementation must expose each pair at most once and pair its
+incoming and outgoing ports consistently.  Access to auxiliary scores
+alone has only the asserted row bound.
+\end{lemma}
+
+\begin{proof}
+The row and witness assertions are Lemma~\ref{lem:atom-margins}; clipping
+and multiplication by bounded factors do not enlarge supports.
+If a column has more than $K_c$ entries in $A$, its auxiliary score is
+one at all those entries, so its $K_c$th auxiliary rank is one.
+Equation~\eqref{eq:atom-incoming-gate} makes $T_y=0$ there.  Consequently
+every value deleted by Equation~\eqref{eq:atom-port-cap} was already zero.
+The surviving relation has the stated two degree bounds even when zero
+weights are retained.  The argument applies to arbitrary raw arrays, so
+it applies equally to the estimated and true versions.
+
+The cap removes every precursor port at an overfull column; it does
+not choose $K_c$ of them.  It is applied even when the particular entry
+has weight zero.  Every surviving port still lies in $A$, so its
+pre-incoming witness $I$ equals one regardless of a zero usage mask,
+incoming gate, or column multiplier.  The broader auxiliary class
+$A_I$ is used to enumerate scores for an incoming rank.  It is not the
+capped correction relation used as a paired left factor in a product.
+
+The classes are relations on row and column IDs, rather than multisets
+of paths.  Choosing one port per relation element gives the stated
+combinatorial interface.  Establishing its single-address enumeration
+and port pairing within the space bound is an implementation obligation;
+the degree argument does not itself grant random access to both IDs.
+\end{proof}
+
+For later reference, the full interface supplied here is the following.
+Each task has fixed common parameters; first ranks include the prescribed
+dummy coordinates; exposed ports are real distinct entries and lie in a
+unit witness; sparse main and preparatory ports obey the actual incoming
+cap; and values, auxiliary scores, incoming ranks, and column multipliers
+are all queried at the same supplied environment and tuple.  The path
+by which an entry is discovered must not change that environment or tuple
+for its assembly.  Only completed earlier output types, or stated fixed local
+functions and aggregations of those types, may be used as raw inputs of
+a later task.  No prefix still waiting for assembly is such an output.
+These requirements distinguish finite-support analytical bounds from
+the access properties used in the subsequent implementation.
+Completing a raw array here means defining its entries from the allowed
+earlier outputs, rather than storing the whole array at once.  Its
+auxiliary scores and precursor classes are defined before its incoming
+gate and cap, so their definitions do not call that same gate or cap.
+
+These contracts apply directly to each computed array after compression
+and clamping.  The later comparison in Lemma~\ref{lem:buf-clamping}
+preserves relevant row-function values under its stated common-increment
+hypothesis.  It need not preserve the finite-accuracy access descriptors
+of two calculations.  Each calculation uses its own consistent classes,
+and Lemma~\ref{lem:atom-ports} gives their support and degree bounds
+separately.
+
+\subsection{Integrated losses and assembly bounds}
+
+It remains to control how errors in the row functions, incoming scores,
+and detector vectors affect an assembled table.  The incoming degree
+bound lets us sum these errors by columns without multiplying by the
+number of possible source vertices.
+
+For a real row array $Z$ define
+\begin{equation}
+ \|Z\|_{u,a;s}^s=
+ \frac1N\mathbb E_\sigma\sum_x\frac{X_u(x)}u
+                 \sum_{y:Y_a(y)=1}|Z(x,y)|^s,
+ \qquad
+ \mathfrak d_{u,a}(H,H')=
+   \|H^{1/s}-(H')^{1/s}\|_{u,a;s}.
+ \label{eq:atom-row-norm}
+\end{equation}
+Here $\sigma$ has the product law of the rank channels and independent
+auxiliary bits specified in Section~\ref{sec:env}.  All table values are
+extended by zero outside their membership domain.  The denominator $u$
+is the nominal rate, and actual-rate comparability in
+Lemma~\ref{lem:env-ranks} absorbs the resulting absolute constants.
+For a vertex array on a channel with rate $u$, write
+\begin{equation}
+ \|v\|_{u;s}^s=
+    \frac1N\mathbb E_\sigma\sum_x\frac{X_u(x)}u|v(x)|^s;
+ \label{eq:atom-vertex-norm}
+\end{equation}
+the indicated role channel replaces $X$ when necessary.  These are also
+the comparison norms for two sample-dependent versions.  All required
+pre-incoming functions and smooth support witnesses are included among
+the row outputs whose discrepancies are to be bounded.
+
+Bounded row support and range imply a uniform bound on these row-output
+norms, since $|V_l|\le N$ and $\mathbb E X_u/u=O(1)$.  Bounded vertex
+arrays have the analogous uniform bound.  Ordinary error is controlled
+by root error on bounded nonnegative outputs, since
+\begin{equation}
+ |z-w|\le s C^{(s-1)/s}|z^{1/s}-w^{1/s}|
+ \quad(0\le z,w\le C).
+ \label{eq:atom-ordinary-from-root}
+\end{equation}
+
+\begin{lemma}[Assembly comparisons]
+\label{lem:atom-assembly}
+Compare two versions with the same environment, rates, and task tuple.
+For a sparse normalized output write $H=P T g$ and
+$H'=P'T'g'$, where $P,P'$ are the pre-incoming clipped-ratio row
+functions (including their usage masks), $I,I'$ are their auxiliary
+scores, and $g,g'$ are their column multipliers.  If $g,g'$ are the
+prescribed smooth cutoffs of bounded vertex arrays $U_i,U_i'$, then
+\begin{equation}
+ \mathfrak d_{u,f}(H,H')^s
+ \le C\mathfrak d_{u,f}(P,P')^s
+    +C\mathfrak d_{u,f}(I,I')^s
+    +C\frac fu\sum_i\|U_i-U_i'\|_{f;s}^s.
+ \label{eq:atom-assembly-bound}
+\end{equation}
+For a sparse preparation omit the last term and use its unnormalized
+pre-incoming row function.  The corresponding dense and detector row
+functions have no incoming or column-multiplier assembly cost.
+
+If $V_y,V_y'$ are the detector trials formed from
+$\mathcal S_i,\mathcal S_i'$ by their column order statistic, then
+\begin{equation}
+ \|V-V'\|_{f;s}^s
+   \le C\mathfrak d_{f,f}(\mathcal S_i,\mathcal S_i')^s.
+ \label{eq:atom-detector-comparison}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+All factors are bounded.  On the union $E$ of the two final nonzero
+supports, the triangle inequality for the products of $s$th roots gives
+\[
+ |H^{1/s}-(H')^{1/s}|
+ \le C|P^{1/s}-(P')^{1/s}|
+     +C|T^{1/s}-(T')^{1/s}|
+     +C|g^{1/s}-(g')^{1/s}|.
+\]
+Outside $E$ the left side is zero.  The pre-incoming discrepancy may be
+charged on its entire row domain; it needs no incoming cap.  Each column
+has at most $2K_c$ edges in $E$, by Lemma~\ref{lem:atom-ports}.
+By Equation~\eqref{eq:atom-rank-lipschitz}, the root-Lipschitz incoming
+cutoff, and Equation~\eqref{eq:atom-ordinary-from-root},
+\[
+ |T_y^{1/s}-(T_y')^{1/s}|^s
+ \le C\sup_{x:X_u(x)=1}
+            |I(x,y)^{1/s}-I'(x,y)^{1/s}|^s.
+\]
+Consequently its integrated contribution is at most
+\[
+ \frac C{Nu}\mathbb E\sum_{y:Y_f(y)=1}
+              \sum_{x:X_u(x)=1}
+              |I(x,y)^{1/s}-I'(x,y)^{1/s}|^s,
+\]
+which is $C\mathfrak d_{u,f}(I,I')^s$.
+
+The maximum over a fixed number of $U_i$ values is Lipschitz, and the
+multiplier cutoff has Lipschitz root.  Thus the last discrepancy is
+bounded in $s$th power by $C\sum_i|U_i(y)-U_i'(y)|^s$.
+Summing over $E$ costs at most $2K_c/u$ per retained column.  The vertex
+metric has weight $1/f$ instead, giving precisely the factor $f/u$ in
+Equation~\eqref{eq:atom-assembly-bound}.  All columns in this comparison
+are in the common $Y_f$ domain, including those whose final values carry
+a narrower usage mask.  The common-tuple condition ensures that the
+vertex discrepancy at $y$ is the same quantity for every old start.
+Explicitly, if $m_E(y)$ counts the edges of $E$ entering $y$, then for
+each $i$ its contribution obeys
+\[
+ \frac1{Nu}\mathbb E\sum_{y:Y_f(y)=1}
+       m_E(y)|U_i(y)-U_i'(y)|^s
+ \le 2K_c\frac fu\|U_i-U_i'\|_{f;s}^s.
+\]
+This is the column-counting step; it uses no independence between the
+two row tables and the vector estimates.
+
+For a detector trial, Equation~\eqref{eq:atom-rank-lipschitz} bounds the
+trial discrepancy by the supremum of the input score discrepancies over
+retained starts.  Its $s$th power is at most the sum of their $s$th powers.
+The factor $Y_f(y)/f$ in the vertex metric is exactly the factor obtained
+by reversing the two sums in the row metric with $u=a=f$.
+Equation~\eqref{eq:atom-ordinary-from-root} gives
+Equation~\eqref{eq:atom-detector-comparison}.
+\end{proof}
+
+The required task types are therefore the dense bins $\mathcal B_b$ of
+$C_l$, the routed bins $\mathcal B_b^{(j)}$ of $D_l$, detector scores
+$\mathcal S_i$, and the pilot and actual correction tables $\mathcal F$,
+together with one earlier unnormalized preparation for each normalized
+type.  Their true conditional-mean identities are
+Lemmas~\ref{lem:atom-dense} and~\ref{lem:atom-correction}.  Their computed
+versions use the same bounded row functions and the assembly contract
+above.  The next sections bound their discrepancies through the
+additive schedule and implement their accesses without storing two
+unrestricted vertex addresses.

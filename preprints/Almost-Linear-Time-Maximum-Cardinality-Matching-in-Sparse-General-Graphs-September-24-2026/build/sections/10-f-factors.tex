@@ -1,0 +1,155 @@
+\section{Prescribed-degree factors}\label{sec:f-factors}
+
+Recall that an \emph{$f$-factor} of $G=([n],E)$ is a set $F\subseteq E$
+with $\deg_F(v)=f(v)$ for every vertex $v$. We reduce its existence and
+construction to one maximum-matching computation, adapting Tutte's
+factor-to-perfect-matching reduction~\cite{Tutte1954Factor} with the split
+network of Lemma~\ref{uniform:cardinality}. The underlying rearrangeable
+network is the Bene\v{s} construction proved in
+Lemma~\ref{uniform:network}~\cite{PermutationNetworks}.
+In the incidence reduction, each vertex has one port per incident edge,
+and $\deg_G(v)-f(v)$ of its ports must be matched locally. Complete
+connections to that many auxiliary vertices can cost
+$\deg_G(v)(\deg_G(v)-f(v))$ edges. A separate permutation network at
+each vertex permits any such subset of ports at logarithmic expansion
+in its degree.
+
+\begin{corollary}[Almost-linear $f$-factor search]
+\label{cor:f-factor}
+There are a single uniform randomized word-RAM algorithm, fixed constants
+$c_f\ge2$ and $C_f\ge1$, and a nonincreasing function
+$\eta_f:\mathbb N_{\ge1}\to\mathbb R_{\ge0}$ with $\eta_f(q)\to0$ as
+$q\to\infty$ such that the following holds.
+The input is a simple graph $G=([n],E)$ with $n\ge1$, $m=|E|$, and
+$p=n+m$, in the adjacency-list representation of Section~\ref{sec:introduction},
+together with one-word integers $f(v)$ satisfying
+$0\le f(v)\le\deg_G(v)$ for all $v$.
+With the instruction set and costs of Section~\ref{sec:introduction} and
+word length $w_f=\lceil c_f\log_2(n+2)\rceil$, the algorithm halts on every
+computation path in at most
+\[
+                         C_f p^{1+\eta_f(p)}
+\]
+instructions. Every output is either an explicit edge list of a valid
+$f$-factor or \textnormal{NO}. If an $f$-factor exists, it returns one with
+probability at least $2/3$; otherwise it always returns \textnormal{NO}.
+\end{corollary}
+
+The $n$ degree records keep the input length within a constant factor of
+$p$. The problem selects an edge subset; it does not encode binary edge
+multiplicities or optimize edge weights.
+
+\begin{lemma}[Linearithmic factor reduction]
+\label{factor:reduction}
+For the input of Corollary~\ref{cor:f-factor}, one can construct a possibly
+empty simple graph $H_f$ with
+$|V(H_f)|+|E(H_f)|=O(m\log(n+2))$
+such that $H_f$ has a perfect matching if and only if $G$ has an $f$-factor.
+The construction takes $O(n+m\log(n+2))$ word instructions and records.
+A perfect matching of $H_f$ yields an explicit $f$-factor within the same
+bound.
+\end{lemma}
+
+\begin{proof}
+For every host edge $e=\{u,v\}$, create distinct port vertices
+$x_{u,e}$ and $x_{v,e}$ and join them by a \emph{cross edge} labeled by $e$.
+For a vertex $v$ write $d_v=\deg_G(v)$ and $b_v=d_v-f(v)$. If $d_v=0$,
+then $f(v)=0$ and no local construction is needed. Otherwise, let $s_v$ be
+the least power of two at least $d_v$ and take a separate copy of the
+recursive network in Lemma~\ref{uniform:network}. Assign distinct input
+positions to the $d_v$ incidences at $v$, and select $b_v$ distinct output
+positions.
+
+Split every network position $a$ into vertices $a_{\mathrm{in}}$ and
+$a_{\mathrm{out}}$ joined by an idle edge. For every directed arc $a\to a'$
+of the network, add the transition edge
+$a_{\mathrm{out}}a'_{\mathrm{in}}$. Join $x_{v,e}$ to the input endpoint
+of its assigned input position. At each selected output position, add a new
+sink vertex adjacent only to that position's output endpoint. All these
+local constructions use disjoint new vertices. The recursive network has
+distinct arcs, and the edge types have distinct endpoint pairs, so $H_f$ is
+simple. This also covers $s_v=1$, when the single position is both an input
+and an output and there is no transition edge.
+
+Consider any perfect matching of $H_f$. At every split position, either its
+idle edge is used, or both endpoints are matched by non-idle edges. Therefore
+among endpoints matched by non-idle edges, the input and output counts in
+the network at $v$ are equal. Each selected transition edge contributes once
+to each number and
+cancels from this equality. A port attachment contributes only an input
+endpoint, and a sink attachment contributes only an output endpoint. All
+$b_v$ degree-one sinks must be covered, so exactly $b_v$ port attachments
+are used. Every port has only its attachment and its cross edge. Hence
+exactly $d_v-b_v=f(v)$ ports at $v$ use cross edges. The labels of all
+selected cross edges form a set $F\subseteq E$ with $\deg_F(v)=f(v)$ for
+every $v$.
+
+Conversely, suppose that $F$ is an $f$-factor. At $v$, exactly $b_v$ ports
+belong to edges outside $F$. Map their input positions bijectively to the
+selected outputs and extend this map to a permutation of all $s_v$ input
+and output positions. Lemma~\ref{uniform:network} routes this permutation
+by vertex-disjoint directed paths; retain only the $b_v$ paths just chosen.
+Select the cross edge for each $e\in F$. Along each retained path, select
+its port attachment, all its transition edges, and its final sink edge.
+Each split position on these paths is covered once at its input endpoint
+and once at its output endpoint. The paths are vertex-disjoint, so these
+choices do not conflict. Use idle edges at every unused position. All ports,
+split endpoints, and sinks are now covered exactly once. When $b_v=0$ no
+path is retained; a length-zero path when $s_v=1$ uses just its port and
+sink attachments. Thus the construction gives a perfect matching of $H_f$.
+
+For $d_v>0$ we have $s_v\le2d_v$, so the local network has
+$O(d_v\log(d_v+2))$ positions and arcs. Ports, cross edges, attachments,
+and sinks add $O(m)$ more records. Since $d_v\le n-1$ and
+$\sum_v d_v=2m$, their total is $O(m\log(n+2))$. The uniform network
+construction and a scan of the adjacency lists take
+$O(n+m\log(n+2))$ instructions. Scanning the occurrence with the smaller
+endpoint label assigns an identifier to each host edge without assuming any
+list order. Two passes over the constructed edge list count degrees and fill
+the adjacency-list representation of $H_f$ within the same bound.
+Every identifier uses $O(\log(n+2))$
+bits because the constructed size is polynomial in $n$. Store each cross
+edge's host identifier; scanning a returned perfect matching and selecting
+these labels gives the stated decoder bound.
+\end{proof}
+
+\begin{proof}[Proof of Corollary~\ref{cor:f-factor}]
+If $m=0$, validity forces every $f(v)=0$, so return the empty edge list.
+Otherwise $H_f$ is nonempty; construct it and apply the single algorithm of
+Theorem~\ref{thm:main}. Check the returned edge identifiers and one-time
+coverage of every vertex, returning \textnormal{NO} unless the list is a
+perfect matching. Section~\ref{sec:uniformization}'s output implementation
+copies at most $|V(H_f)|/2$ edges on every path, so the check takes
+$O(|V(H_f)|+|E(H_f)|)$ instructions, including initialization. If it passes,
+decode the cross-edge labels by Lemma~\ref{factor:reduction}, checking their
+host identifiers and prescribed degrees.
+
+When the matching call returns a maximum matching, the test accepts exactly
+when $H_f$ has a perfect matching and then supplies the factor by the
+reduction. This maximum-matching event has probability at least $2/3$.
+The explicit checks ensure that every accepted edge list is a valid factor,
+regardless of the matching call's outcome. Thus a failed call can cause a
+false negative, whereas an input with no factor always yields \textnormal{NO}.
+
+Put $P=|V(H_f)|+|E(H_f)|=O(p\log(p+2))$.
+Since $|V(H_f)|$ is polynomial in $n$, the matching algorithm's virtual
+word length $\lceil c_0\log_2(|V(H_f)|+2)\rceil$ is at most
+$\lceil c_f\log_2(n+2)\rceil$ for one fixed $c_f$. Choose $c_f$ large
+enough also for the construction's indices. Simulate each virtual word
+instruction by a constant number of physical instructions, masking to the
+virtual width for modular arithmetic and Boolean operations. Quotients,
+remainders, comparisons, shifts, and memory addresses then have the same
+semantics as in the matching call; each fair random bit remains charged.
+The fixed masks and input conversion take at most the reduction's work
+bound. Thus this is one finite program with a fixed physical word constant,
+not a separate algorithm for each input size or degree prescription.
+
+For fixed $\xi>0$, Theorem~\ref{thm:main} gives $O_\xi(P^{1+\xi/2})$
+every-path instructions, absorbing small $P$ into the constant. Together
+with all reduction, simulation, checking, and output work, the bound on $P$
+gives $O_\xi(p^{1+\xi})$ for large $p$, for this same program for
+every $\xi>0$. Boundedness of $\eta$ also gives a fixed polynomial every-path
+bound. The supremum-envelope construction at the end of
+Section~\ref{sec:uniformization} now gives a nonnegative nonincreasing
+$\eta_f(q)\to0$; a fixed $C_f$ covers the small input sizes, including $p=1$.
+\end{proof}

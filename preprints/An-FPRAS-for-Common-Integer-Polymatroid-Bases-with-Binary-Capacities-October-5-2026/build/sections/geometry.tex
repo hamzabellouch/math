@@ -1,0 +1,574 @@
+\section{Partitions, shift averages, and controlled expansion}
+\label{sec:geometry}
+
+We continue with a nonempty common-base polytope
+\(P=B(r_1)\cap B(r_2)\), and its center \(c\) from
+Lemma~\ref{lem:center}.
+The purpose of this section is to enlarge the two base polytopes in
+carefully chosen directions while changing their common lattice-point
+count by only a small relative error.  The enlargement will allow
+small rank violations in the subsequent reduction.  Its proof uses
+averages of counts with a small displacement between the two bases.
+
+Three scales organize the comparison: \(S\) is a slack threshold for
+the difference polytope, \(W\) is a larger slack threshold for the
+individual base polytopes, and \(T\) is the amount of enlargement.
+For the remaining estimates fix the integer scales
+\begin{equation}\label{eq:scales}
+ \begin{gathered}
+ N=10^{10}+n+\ell+\lceil\eps^{-1}\rceil,
+ \qquad K=N^5,\\
+ S=N^{5000},\qquad W=N^{20000},\qquad T=W/N^{300}.
+ \end{gathered}
+\end{equation}
+Every exponent used in this paper is an absolute constant.  Thus
+quantities polynomial in $N$ are polynomial in the required size
+parameters, although the degree is large.  We repeatedly use the
+coarse bound $e^K$ for counts and box volumes.  More precisely,
+\begin{equation}\label{eq:coarse-size-bound}
+ \prod_{j=1}^m a_j\leq e^K
+ \quad\text{if}\quad
+ m\leq100n+100,\quad 0\leq a_j\leq N^{100000}(R+2).
+\end{equation}
+Indeed, when all factors are positive, the logarithm of the product
+is at most
+$(100n+100)(100000\log N+\log(R+2))<N^5$,
+using $\log(R+2)\leq\ell+2$ and $N\geq10^{10}$.
+Zero factors cause no difficulty.  When applying
+\eqref{eq:coarse-size-bound} to a lattice count, the factors are the
+numbers of allowed integer coordinate values; for volume they are
+interval lengths.  These scales supply room for successive
+approximations without any assumption on the widths of the input
+polytope.  The precise bound proved in this section is an enlargement
+factor of at most \(e^{20N^{-8}}\).
+
+\subsection{Partitions determined by small slack}
+
+For \(A\subseteq E\), define
+\begin{equation}\label{eq:slack-functions}
+ s_i(A)=r_i(A)-c(A),\qquad
+ s_*(A)=s_1(A)+s_2(E\setminus A)
+       =r_1(A)+r_2(E\setminus A)-R.
+\end{equation}
+These are nonnegative submodular functions, equal to zero at
+\(\varnothing\) and \(E\).  By Lemma~\ref{lem:base-calculus},
+\(B(s_*)=B(r_1)-B(r_2)\).
+
+The atoms of a family of subsets of \(E\) are the nonempty classes of
+elements with identical membership in every set of the family.  Let
+\(\mathcal D_i\) be the partition into atoms of
+\(\{A:s_i(A)<W\}\).  Let \(\mathcal G\) be the partition into atoms of
+\(\{A:s_*(A)<S\}\); its parts will be called \emph{superblocks}.
+We say that \(A\) cuts a part \(D\) if both \(A\cap D\) and
+\(D\setminus A\) are nonempty.  Thus a set that cuts a
+\(\mathcal D_i\)-part has \(s_i(A)\ge W\), and a set that cuts a
+superblock has \(s_*(A)\ge S\).
+
+We first record how bounds on a short generating family control the
+totals on all its atoms.
+
+\begin{lemma}[Prefixes and part totals]\label{lem:generator-prefixes}
+Let \(\mathcal A=(A_1,\ldots,A_m)\) be a family of subsets of \(E\).
+Its atoms admit an order such that every prefix is a union of at most
+\(n\) intersections of members of \(\mathcal A\), allowing \(E\) as
+the empty intersection.  If \(s\) is normalized, nonnegative, and submodular,
+\(s(E)=0\), and \(s(A_j)\le b\) for every \(j\), where \(b\ge0\),
+then in this order
+every prefix \(F\) satisfies
+\[
+ s(F)\le n(m+1)b.
+\]
+Consequently, suppose that \(Q\subseteq B(r)\) and
+\(r(A_j)-x(A_j)\le b\) for all \(x\in Q\) and all \(j\).
+For every atom \(D\) of \(\mathcal A\) and every \(x,y\in Q\),
+\begin{equation}\label{eq:part-range}
+ |x(D)-y(D)|\le 2n(m+1)b.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For an atom \(D\), intersect all generators containing \(D\), obtaining
+\(H_D\).  This is the union of atoms whose membership sets contain
+the membership set of \(D\).  Order the atoms so that a strict superset
+of memberships comes first.  Every prefix is then the union of
+\(H_D\) over its own atoms.  Nonnegative submodularity gives
+\(s(U\cup V),s(U\cap V)\le s(U)+s(V)\), which proves the prefix
+bound.  At any \(x\in Q\), apply that bound to the nonnegative slack
+function \(r(\cdot)-x(\cdot)\).  For a fixed prefix its value lies
+in \([0,n(m+1)b]\), so the prefix total varies by at most
+\(n(m+1)b\).  Subtract consecutive prefix totals to obtain
+\eqref{eq:part-range}.
+\end{proof}
+
+\begin{lemma}[Computable partitions and compatible orders]
+\label{lem:partitions}
+Each part of \(\mathcal D_i\) is contained in a superblock.
+The three partitions can be found with polynomially many oracle calls
+and bit operations.  Each has a generating family of at most \(n^2\)
+sets satisfying its defining strict slack bound.
+
+Fix a superblock order \(G_1,\ldots,G_g\) supplied by
+Lemma~\ref{lem:generator-prefixes} for the \(s_*\)-generators.
+Every prefix \(F_k=G_1\cup\cdots\cup G_k\), including the empty
+and full prefixes, satisfies
+\begin{equation}\label{eq:superblock-prefix-slack}
+ s_*(F_k)\le N^4S.
+\end{equation}
+For system 1 use this order, and for system 2 use its reverse.  The
+sets preceding a superblock \(G_k\) in these orders are therefore
+\begin{equation}\label{eq:superblock-prefixes}
+ A_{1G_k}=F_{k-1},\qquad A_{2G_k}=E\setminus F_k.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+If \(s_*(A)<S\), then \(s_1(A)<W\) and
+\(s_2(E\setminus A)<W\), since \(S<W\).  Thus neither \(A\)
+nor its complement cuts a fine part, proving the containment.
+
+For each ordered pair of distinct elements \((a,b)\), minimize the
+relevant slack function subject to \(a\in A\), \(b\notin A\).
+Restricted submodular minimization, with rational modular terms for
+\(s_i\), applies as in Section~\ref{sec:polyhedra}.  If the minimum
+is below the threshold, retain a minimizer.  Two elements separable
+by any set below the threshold are separated by a retained set in
+one of the two orientations.  The retained family therefore has
+exactly the required atoms, and contains at most \(n(n-1)\) sets.
+Its values and all comparisons have polynomial encoding length.
+The prefix bound is now Lemma~\ref{lem:generator-prefixes}, because
+\(n(n^2+1)S\le N^4S\).
+\end{proof}
+
+Consider the bipartite multigraph with one vertex for every part of
+\(\mathcal D_1\), one vertex for every part of \(\mathcal D_2\),
+and one edge labeled \(j\) for each \(j\in E\), joining the two
+parts containing \(j\).  Parallel edges are retained as distinct
+coordinates.  Every connected component lies in a single superblock.
+In each component \(C\), choose a representative coordinate
+\(e_C\in E\).  In each superblock \(G\), choose a root component
+\(C_0(G)\) and put \(j_G=e_{C_0(G)}\).  These choices require only
+the computed partitions.  They will also be used in the port
+parametrization of Section~\ref{sec:ports}.
+
+\subsection{Two averages over small shifts}
+
+For integral base polytopes \(B_1,B_2\) of total \(R\), put
+\[
+ Y_{B_1,B_2}(d)=
+ \#\{(x_1,x_2)\in(B_1\cap\Z^E)\times(B_2\cap\Z^E):
+                  x_1-x_2=d\}.
+\]
+Write \(Y(d)\) for the original pair, so \(Y(0)=Z\).
+We shall also use the integral base polytopes
+\begin{equation}\label{eq:expanded-bases}
+ B_i^+=B(r_i)+\Delta_i,\qquad
+ \Delta_i=
+ \sum_{D\in\mathcal D_i}\ \sum_{\{a,b\}\subseteq D}
+                 [-T,T](e_a-e_b),
+\end{equation}
+where each inner sum is over unordered two-element subsets.
+The notation \(e_a\) in this formula denotes a unit vector, whereas
+\(e_C\) denotes a chosen coordinate label.  The rank function of
+\(B_i^+\) is
+\begin{equation}\label{eq:expanded-rank}
+ r_i^+(A)=r_i(A)+T\sum_{D\in\mathcal D_i}
+                         |A\cap D|\,|D\setminus A|.
+\end{equation}
+Indeed, each segment has rank \(T\) on sets separating its two
+endpoints and rank zero on other sets; use
+Lemma~\ref{lem:base-calculus} for the sum.  In particular
+\(r_i^+\) is integral and submodular, but need not be increasing.
+Define \(Y^+(d)=Y_{B_1^+,B_2^+}(d)\) and \(Z^+=Y^+(0)\).
+
+Every real vector with sum zero on each superblock has a unique
+expression
+\begin{equation}\label{eq:star-coordinates}
+ d(l)=\sum_{G\in\mathcal G}\ \sum_{j\in G\setminus\{j_G\}}
+                         l_j(e_j-e_{j_G});
+ \qquad l_j=d_j.
+\end{equation}
+Call this the full set of star coordinates.  Its restricted version
+uses only \(j=e_C\) for nonroot components \(C\subseteq G\),
+with all other coefficients zero.  Set
+\begin{equation}\label{eq:shift-kernels}
+ h=S/N^{50},\qquad M=N^{2000},\qquad
+ \omega(l)=\exp\left(-\frac{\sum_j|l_j|}{h}\right),\qquad
+ \psi(l)=\exp\left(-\frac{\sum_C l_{e_C}^2}{M^2}\right).
+\end{equation}
+Here \(\omega\) uses the full star and \(\psi\) the restricted
+star.  Let their unrestricted integer normalizers be
+\begin{equation}\label{eq:shift-normalizers}
+ A_\omega=\sum_{l\in\Z^{n-g}}\omega(l),\qquad
+ J=\sum_{l\in\Z^{\sum_G(\#\{C\subseteq G\}-1)}}\psi(l).
+\end{equation}
+The sums factor into one-dimensional sums.  An empty star has a
+single coefficient vector, weight one, and normalizer one.
+
+\begin{lemma}[Shift averages]\label{lem:shift-average}
+For \(F=Y\) and for \(F=Y^+\), every integral full or restricted
+star shift with \(|l_j|\le S/N^{25}\) satisfies
+\begin{equation}\label{eq:small-shift-ratio}
+ e^{-N^{-8}}\le \frac{F(d(l))}{F(0)}\le e^{N^{-8}}.
+\end{equation}
+For \((\kappa,A_\kappa)=(\omega,A_\omega)\) or \((\psi,J)\),
+on its corresponding star lattice,
+\begin{equation}\label{eq:average-comparison}
+ e^{-3N^{-8}}F(0)
+ \le \frac{1}{A_\kappa}\sum_l\kappa(l)F(d(l))
+ \le e^{3N^{-8}}F(0).
+\end{equation}
+The lower bound remains valid if the sum is restricted to
+\(\max_j|l_j|\le S/N^{25}\).
+\end{lemma}
+
+\begin{proof}
+First, \(Y(d)\ge1\) for every integral \(d\) with zero superblock
+sums and \(\|d\|_1\le S/2\).  If a set \(A\) cuts no
+superblock then \(d(A)=0\le s_*(A)\); otherwise
+\(d(A)\le\|d\|_1\le S/2<s_*(A)\).  Thus \(d\in B(s_*)\),
+so \(B(r_1)\cap(B(r_2)+d)\) is nonempty.  Its integrality,
+from Lemma~\ref{lem:polyhedral-controls}, supplies an integer
+point.  Inclusion gives the same positivity for \(Y^+\).
+
+All coordinates of an expanded base lie in
+\([-nT,R+nT]\).  The product-of-lengths bound
+\eqref{eq:coarse-size-bound} therefore gives
+\(Y(d),Y^+(d)\le e^K\) for every \(d\).  In the positive region
+just proved, their logarithms lie between zero and \(K\).
+By Proposition~\ref{prop:shift-logconcavity}, these logarithms
+are concave on integer lines parallel to \(e_j-e_k\).
+
+Introduce the star shifts successively.  Each partial shift has
+\(\ell^1\)-norm at most \(2nS/N^{25}\).  On the line for the
+next shift, an integer interval of radius \(\lfloor S/10\rfloor\)
+about that partial shift remains in the positive region.  A concave
+integer sequence taking values in \([0,K]\) on this interval has
+successive slopes of absolute value at most \(100K/S\) within
+distance \(S/N^{25}\) of its center: compare each slope with the
+secants to the two ends of the interval.  Adding at most \(n\)
+changes proves
+\[
+ |\log F(d(l))-\log F(0)|
+ \le \frac{100K}{S}\sum_j|l_j|
+ \le 100nK/N^{25}<N^{-8}.
+\]
+
+For completeness, put \(b=S/N^{25}\).  For an individual
+\(\omega\)-coordinate the normalized tail beyond \(b\) is at
+most \(4e^{-b/(2h)}\), by summing a geometric series.  For an
+individual \(\psi\)-coordinate it is at most
+\(4e^{-b^2/(2M^2)}\): compare the decreasing Gaussian tail with
+its integral and use \(b\ge2M\).  The full normalized tail is
+at most the sum of these one-coordinate tails.  Since
+\(b/h=N^{25}\), \(b^2/M^2=N^{5950}\), and \(K=N^5\),
+in either case the tail probability \(\tau\) satisfies
+\[
+ e^K\tau\le e^{-N^{20}}.
+\]
+On the complementary region use \eqref{eq:small-shift-ratio};
+on the tail use \(F\le e^K\) and \(F(0)\ge1\).  The resulting
+lower bound \((1-\tau)e^{-N^{-8}}F(0)\) and upper bound
+\(e^{N^{-8}}F(0)+e^K\tau\) imply
+\eqref{eq:average-comparison}, including its truncated version.
+All assertions are exact when the star is empty.
+\end{proof}
+
+The full-star average is only a device for comparing \(Z^+\) and
+\(Z\).  The algorithm will use the restricted average, whose shift
+variables are determined by polynomial-length part totals.
+
+\subsection{Subdivision into slices with slack}
+
+The full-star numerator is a weighted sum over pairs of lattice
+points with equal superblock totals.  Once these totals are fixed,
+the two systems can be subdivided independently.  We will contract
+them toward separate points in their respective slices; this
+preserves the common superblock totals but may introduce differences
+away from the representative coordinates.  The full star allows
+these differences, which is why it is used for this comparison.
+Fix such a vector of integer
+totals \(w=(w_G:G\in\mathcal G)\), and write
+\begin{equation}\label{eq:original-slices}
+ Q_i(w)=\{x\in B(r_i):x(G)=w_G\ (G\in\mathcal G)\}.
+\end{equation}
+Whenever both expanded slices are nonempty, both original slices
+are nonempty as well.  Every direction in \(\Delta_i\) preserves
+the superblock totals, so the corresponding expanded slice is
+exactly \(Q_i(w)+\Delta_i\).
+
+The following refinement is an existence argument for these
+slices.  Its subdivisions can differ between the two systems, and
+can depend on \(w\).  Their number need not be polynomial; the
+algorithm never enumerates them.
+
+\begin{lemma}[Refinement witnesses]\label{lem:refinement-witnesses}
+Fix integer \(w\) for which both \(Q_i(w)\) are nonempty.
+For each system separately, its lattice points and those of its
+expanded slice can be partitioned by fixing integer totals on
+successively finer parts.  Each resulting original slice has the
+form
+\[
+ Q=\{x\in B(r_i):x(D)=v_D\ (D\in\mathcal P)\},
+\]
+where \(\mathcal P\) refines \(\mathcal G\) and every part of
+\(\mathcal P\) is a union of \(\mathcal D_i\)-parts.  Its
+expanded partner is exactly \(Q+\Delta_i\).  Every nonempty
+terminal slice has a point \(a^*\in Q\) satisfying
+\begin{align}
+ \|a^*-c\|_\infty&\le N^{60}S,
+                       \label{eq:witness-distance}\\
+ r_i(A)-a^*(A)&\ge S
+       &&\text{if \(A\) cuts a part of \(\mathcal P\)},
+                       \label{eq:witness-terminal-slack}\\
+ r_i(A)-a^*(A)&\ge W/2
+       &&\text{if \(A\) cuts a part of \(\mathcal D_i\)}.
+                       \label{eq:witness-fine-slack}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+We first control the starting totals.  If \(A\) is one of the
+\(s_*\)-generators, it is a union of superblocks.  For any
+\(x_1\in Q_1(w)\), \(x_2\in Q_2(w)\),
+\[
+ [r_1(A)-x_1(A)]+[r_2(E\setminus A)-x_2(E\setminus A)]
+ =s_*(A)<S.
+\]
+Both terms are nonnegative.  Thus on the whole first slice every
+generator has slack below \(S\), and on the whole second slice
+its complement has slack below \(S\).  The same assertions hold
+at \(c\).  Apply Lemma~\ref{lem:generator-prefixes} to
+\(Q_i(w)\cup\{c\}\), using complemented generators for system 2.
+It gives
+\begin{equation}\label{eq:initial-total-distance}
+ |w_G-c(G)|\le 2n(n^2+1)S\le N^6S.
+\end{equation}
+The distance bound in Lemma~\ref{lem:polyhedral-controls}, applied
+to one rank system and these partition equalities, gives a point
+\(a\in Q_i(w)\) with \(\|a-c\|_\infty\le N^{10}S\).
+Choose such a point rationally: its allowed set is a nonempty
+rational polytope, since \(c\) and the cube radius are rational.
+
+We now describe one refinement step on one system.  Maintain a
+nonempty original slice \(Q\), its partition \(\mathcal P\),
+and a point \(a\in Q\).  A list of generators produces
+\(\mathcal P\); initially it is the list just described.  The
+list has at most \(n^2+n\) members.  Each initial generator has
+slack at most \(S\) throughout the current slice, and every
+subsequently added generator will have slack at most \(N^3S\)
+throughout the slice on which it is added and all its descendants.
+
+Intersect \(Q\) with the cube of radius \(L=N^{10}S\) about
+\(a\), and choose a center \(b\) of this boxed slice with the
+property of Lemma~\ref{lem:center}.  If every rank inequality
+cutting a current part has slack at least \(S\) at \(b\), stop
+on this branch with \(a^*=b\).  Otherwise select a set \(A\)
+cutting a current part with \(r_i(A)-b(A)<S\).  The center
+property implies
+\[
+ \max_{x\in Q,\ \|x-a\|_\infty\le L}
+             (r_i(A)-x(A))
+ \le 4(n+1)S<N^3S.
+\]
+The slack \(x\mapsto r_i(A)-x(A)\) is nonnegative on \(Q\)
+and has integral linear part \(-\one_A\).  Since its displayed
+maximum is less than \(N^3S<L\), the last assertion of
+Lemma~\ref{lem:polyhedral-controls} identifies this maximum with
+the unrestricted maximum on \(Q\).  Thus the new generator has
+slack at most \(N^3S\) throughout the current slice.
+
+We check simultaneously that the selected set does not cut a fine
+part and that proximity to \(c\) survives refinement.  At depth
+\(t\), maintain
+\begin{equation}\label{eq:refinement-distance-induction}
+ \|a-c\|_\infty\le N^{10}S+tN^{17}S.
+\end{equation}
+As each refinement increases the number of parts, \(t\le n\).
+Every tested center \(b\), being within \(L\) of \(a\), is
+therefore within \(N^{60}S\) of \(c\).  If \(A\) cut a fine
+part, then its slack at \(c\) would satisfy
+\(s_i(A)=r_i(A)-c(A)\ge W\), and so
+\[
+ r_i(A)-b(A)\ge W-nN^{60}S\ge W/2>S,
+\]
+a contradiction.  The refined partition obtained by adding
+\(A\) still consists of unions of fine parts.
+
+On this refined partition prescribe every integer vector of part
+totals that occurs in the expanded current slice.  Every such
+vector occurs in the original real slice: in a decomposition
+\(x+v\in Q+\Delta_i\), the vector \(v\) preserves the new
+totals, since it preserves each fine-part total.  Thus each
+retained original child slice is nonempty, and its expanded
+partner remains its Minkowski sum with \(\Delta_i\).  The new
+generator list has slack at most \(N^3S\) throughout \(Q\).
+By \eqref{eq:part-range}, the range of every new part total over
+\(Q\) is at most
+\[
+ 2n(n^2+n+1)N^3S\le N^{12}S.
+\]
+The current \(a\) consequently satisfies all the child's new
+equalities with error at most \(N^{12}S\).  The distance bound
+in Lemma~\ref{lem:polyhedral-controls} supplies a point in the
+child within \(N^{17}S\) of \(a\).  As before, choose this point
+rationally within the indicated rational cube.  This proves
+\eqref{eq:refinement-distance-induction} at the next depth.
+
+Each branch stops after at most \(n-1\) strict refinements.
+There are finitely many branches because the slices are bounded.
+The stopping rule gives \eqref{eq:witness-terminal-slack}; the
+distance induction gives \eqref{eq:witness-distance}; and the
+same comparison with \(c\) gives \eqref{eq:witness-fine-slack}
+for every fine-cutting inequality.  Prescribing totals partitions
+lattice points without multiplicity.  Integral prescribed totals
+are compatible with the unit lattice in every terminal affine
+space; in particular, nonempty original terminal slices contain
+integer points by Lemma~\ref{lem:polyhedral-controls}.
+\end{proof}
+
+\subsection{From expanded cells to original cells}
+
+We have produced points with two different slack guarantees.
+The \(S\)-slack will absorb unit-cell rounding.  The larger
+\(W/2\)-slack will also absorb the expansion in
+\eqref{eq:expanded-bases}.  Both can be obtained by contracting
+each slice by a tiny fraction toward its witness.
+
+\begin{proposition}[Expansion costs little]\label{prop:expansion}
+The expanded common-base count satisfies
+\begin{equation}\label{eq:expansion-comparison}
+ Z\le Z^+\le e^{20N^{-8}}Z.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The lower bound follows from inclusion.  For the upper bound,
+define the full-star weighted pair sums
+\[
+ \mathcal W=\sum_l\omega(l)Y(d(l)),\qquad
+ \mathcal W^+=\sum_l\omega(l)Y^+(d(l)).
+\]
+Fix common integer superblock totals \(w\), and perform the two
+independent subdivisions of Lemma~\ref{lem:refinement-witnesses}.
+We compare one pair of terminal slices \(Q_1,Q_2\) and its
+expanded pair \(Q_1+\Delta_1,Q_2+\Delta_2\).  Their partitions
+\(\mathcal P_1,\mathcal P_2\) may differ.  Let their witnesses
+be \(a_1^*,a_2^*\), and put \(a^*=(a_1^*,a_2^*)\).
+
+For each system use the affine coordinates obtained by retaining
+all but one physical coordinate in each terminal part.  The
+omitted coordinate is the prescribed integer total minus the
+retained coordinates.  The integral points in this affine space
+therefore form precisely a unit grid.  Lebesgue measure below is
+the product measure in these free coordinates, independently for
+the two systems.  The slack in
+\eqref{eq:witness-terminal-slack} ensures that each original
+slice is full-dimensional in its specified affine space: every
+inequality not fixed by its part totals is strict at the witness.
+An affine space of dimension zero is given measure one.
+
+Tile these affine spaces by half-open unit cells based at all
+their integral points.  In physical coordinates any point of a
+cell differs from its base point by at most \(2n\) in sup norm;
+the same bound applies when rounding to the base of the containing
+cell.  This uses the formula for the omitted coordinate and is
+valid for negative coordinates as well.  No truncation at zero is
+made: the expanded bases can have negative coordinates, and
+feasibility will be checked using their full rank inequalities.
+
+Let \(\mathcal C\) be the union of cells based at pairs of
+original feasible lattice points in these terminal slices, and
+let \(\mathcal C^+\) be the corresponding expanded union.
+Extend the weight to their whole product affine space by
+\[
+ \omega(x_1,x_2)=e^{-\Phi(x_1,x_2)},\qquad
+ \Phi(x_1,x_2)=\frac1h\sum_{G\in\mathcal G}
+            \sum_{j\in G\setminus\{j_G\}}|x_{1j}-x_{2j}|.
+\]
+The common superblock totals ensure that this is the weight in
+\eqref{eq:star-coordinates}.  It is continuous and \(\Phi\) is
+convex.  Its logarithm varies by at most
+\begin{equation}\label{eq:cell-weight-variation}
+ \kappa_0=4n^2/h
+\end{equation}
+within any one of our product cells relative to the base point.
+Thus integration over \(\mathcal C\) or \(\mathcal C^+\)
+approximates the corresponding weighted lattice sum within a
+factor \(e^{\kappa_0}\).
+
+Put \(\theta=N^{-200}\) and apply the homothety
+\[
+ H(x)=(1-\theta)x+\theta a^*.
+\]
+We claim that \(H(\mathcal C^+)\subseteq\mathcal C\).
+Fix \(x\in\mathcal C^+\), and round \(H(x)\) to the base
+point \(y=(y_1,y_2)\) of its containing cell.  All prescribed
+terminal totals are preserved.  In system \(i\), the rank
+inequality for \(A\) is satisfied by the expanded lattice point
+under \(x\) with additional allowance
+\[
+ \sigma_i(A)=T\sum_{D\in\mathcal D_i}
+                         |A\cap D|\,|D\setminus A|
+ \le n^2T.
+\]
+The move to \(x\) and the final rounding each change a subset
+sum by at most \(2n^2\).  If \(A\) cuts a terminal part but
+no fine part, then \(\sigma_i(A)=0\), and
+\[
+ y_i(A)-r_i(A)\le 4n^2-\theta S<0.
+\]
+If \(A\) cuts a fine part, it also cuts a terminal part, and
+\[
+ y_i(A)-r_i(A)
+ \le 4n^2+n^2T-\theta W/2<0.
+\]
+These strict inequalities follow from the chosen scales:
+\(\theta S=N^{4800}\) and
+\(\theta W/T=N^{100}\).  Finally, if \(A\) cuts no terminal
+part, its total is fixed on the affine space and equals a
+feasible original total.  Every original rank inequality holds
+at \(y_i\), proving the claim.  This also enforces nonnegativity
+of \(y_i\), since it follows from the original base constraints.
+
+Write \(d\le2n\) for the product free dimension.  The map \(H\)
+is injective, with Jacobian \((1-\theta)^d\).  Convexity and
+nonnegativity of \(\Phi\) give
+\[
+ \Phi(H(x))\le(1-\theta)\Phi(x)+\theta\Phi(a^*)
+                  \le\Phi(x)+\theta\Phi(a^*).
+\]
+Moreover, \eqref{eq:witness-distance} gives
+\[
+ \theta\Phi(a^*)
+ \le\theta\,2nN^{60}S/h<N^{-80}.
+\]
+Integration and the inclusion just proved imply
+\[
+ \int_{\mathcal C}\omega
+ \ge (1-\theta)^d e^{-\theta\Phi(a^*)}
+                         \int_{\mathcal C^+}\omega.
+\]
+Together with \eqref{eq:cell-weight-variation}, this bounds the
+expanded weighted lattice sum in this pair of slices by the
+original weighted sum times
+\[
+ \exp\{2\kappa_0+\theta\Phi(a^*)-d\log(1-\theta)\}
+ \le e^{N^{-8}}.
+\]
+The same argument holds in dimension zero, with Jacobian and
+cell measure one.  Summing over the terminal pairs and then
+over \(w\) yields \(\mathcal W^+\le e^{N^{-8}}\mathcal W\).
+Finally, Lemma~\ref{lem:shift-average} gives
+\[
+ Z^+\le e^{3N^{-8}}\frac{\mathcal W^+}{A_\omega}
+ \le e^{4N^{-8}}\frac{\mathcal W}{A_\omega}
+ \le e^{7N^{-8}}Z\le e^{20N^{-8}}Z.
+\]
+\end{proof}
+
+Only the original partitions, their orders, and the representative
+coordinates are computed.  The expanded polytopes, the full-star
+sum, and all terminal subdivisions were used to prove the
+comparison.  The next section uses the restricted Gaussian
+average and part totals to construct a finite counting problem
+whose capacities are polynomial in \(N\).

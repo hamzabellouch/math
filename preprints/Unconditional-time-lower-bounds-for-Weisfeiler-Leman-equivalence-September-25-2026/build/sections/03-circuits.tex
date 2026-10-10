@@ -1,0 +1,398 @@
+\section{Encoding computations by short consistency instances}
+\label{circ:section}
+
+We next construct short consistency instances whose failure records the
+acceptance of a computation. The use of local consistency to encode computation
+is related to the complexity questions studied in
+\cite{ExistentialPebbles}; the particular circuit simulation and all its
+properties are proved below.
+
+\subsection{A directed circuit simulation}
+
+The difficulty is not encoding a Boolean value but enforcing its direction
+of propagation. Equating a source's scalar image directly with a destination
+image would also transmit restrictions backward. A two-coordinate buffer
+will let a false source keep both possible values even when its destination
+is constrained to a singleton.
+
+One-way propagation is central to Grohe's monotone-circuit reductions for
+finite-variable equivalence \cite{Grohe1999}. Here we realize that
+directional effect through private two-coordinate scalar-image buffers,
+whose exact properties are proved below; we do not import the earlier
+graph switches.
+
+We use finite acyclic monotone circuits with the following gate conventions.
+A scalar gate is an OR gate, possibly with no incoming connections, and may be
+\emph{seeded}. An AND gate has two input ports; each port first takes the OR of
+all connections entering it, and the gate is true precisely when both ports
+are true. An empty OR is false. A scalar gate is true if it is seeded or has a
+true incoming connection. Designated \emph{test gates} are scalar and have no
+outgoing connections. These rules determine truth in a topological order.
+
+\begin{proposition}[Circuit simulation]
+\label{circ:simulation}
+To such a circuit one can associate an individual-edge arc-consistency
+instance over $\F_2$, with vector dimensions at most two, that has nonempty
+arc-consistent sets if and only if every test gate is false.
+
+If the circuit is specified by gate types indexed by $[m]^r$, connection
+schemas with product domains and componentwise partial bijections, and seed
+and test requests that are unions of product domains, then the consistency
+instance has the same form. A bounded number of gate types, connection
+schemas, and product requests gives a bounded number of consistency types and
+edge schemas, independently of $m$.
+\end{proposition}
+
+\begin{proof}
+Associate a one-dimensional vector variable to each scalar gate. Its input
+and output direction are both the identity on $\F_2$. Associate a vector
+$(x_1,x_2)\in\F_2^2$ to each AND gate: the input directions are the coordinate
+projections and the output direction is $x_1+x_2$.
+The intended encoding is that truth forces the corresponding output image
+to be $\{0\}$.
+
+A seed is constrained by comparing its scalar direction with the constant
+form zero on a dummy variable. A test is constrained by comparing its scalar
+direction with the constant form one on a dummy variable. These are permitted
+affine forms, with zero linear part; the dummy variable itself can have any
+nonempty set of values.
+
+For each connection $c$ from a source output $o_c$ to a destination port
+$i_c$, introduce a private buffer variable $(z_c,z'_c)\in\F_2^2$ and three
+separate comparisons
+\begin{equation}
+\label{circ:buffer-comparisons}
+ o_c=z_c,\qquad o_c=z'_c,\qquad z_c+z'_c=i_c.
+\end{equation}
+Each equality means equality of the two scalar images of the corresponding
+nonempty sets. In particular, the first two comparisons are individual
+edges; they are not combined into a joint constraint.
+
+Suppose first that an arc-consistency witness exists. If a source output has
+image $\{0\}$, the first two comparisons in
+\eqref{circ:buffer-comparisons} force both buffer coordinates to have image
+$\{0\}$. The nonempty buffer set is therefore $\{(0,0)\}$, and the third
+comparison forces the destination port image to be $\{0\}$. A true scalar
+gate has image $\{0\}$ either because it is seeded or because it receives a
+true signal. A true AND gate has both coordinate images $\{0\}$, hence also
+has output image $\{0\}$. Induction over the circuit proves this assertion
+for every true gate. A true test would additionally require image $\{1\}$,
+which is impossible.
+
+Conversely, assume that every test is false. At an ordinary scalar gate take
+$\{0\}$ if it is true and $\F_2$ if it is false; at a test take $\{1\}$.
+These rules are compatible because no test is true. At an AND gate take
+\[
+ \bigl\{(x_1,x_2)\in\F_2^2:
+       x_j=0\text{ for each true input port }j\bigr\}.
+\]
+These sets are nonempty. A true AND has output image $\{0\}$; a false AND
+has a free coordinate, whose change toggles the sum, so its output image is
+$\F_2$. Thus every false gate that is a source of a connection has full
+output image. Here terminality of the tests is essential: a false test has
+image $\{1\}$, but is never a source.
+
+For a connection with true source, the destination port is true, so take
+the buffer set $\{(0,0)\}$. For a connection with false source, let $D$ be
+the nonempty image already chosen for its destination port and take
+\[
+ B_D=\{(z,z')\in\F_2^2:z+z'\in D\}.
+\]
+The three possible cases are
+\begin{center}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$D$ & $B_D$ & each coordinate image & sum image \\
+\midrule
+$\{0\}$ & $\{(0,0),(1,1)\}$ & $\F_2$ & $\{0\}$ \\
+$\{1\}$ & $\{(0,1),(1,0)\}$ & $\F_2$ & $\{1\}$ \\
+$\F_2$ & $\F_2^2$ & $\F_2$ & $\F_2$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+They verify all three comparisons. In particular, forcing a destination
+port to zero does not force a false source to zero: the buffer can use the
+diagonal set. All dummy comparisons also hold, proving the first assertion.
+
+For the schematic assertion, give each connection schema its own buffer
+type, in the source address system. Restrict all three new schemas to the
+connection's source product domain. The first two use identity address
+transmission, and the third uses the original componentwise partial
+bijection. Each allowed buffer address then participates only in the three
+comparisons for the intended individual connection. Unused buffer addresses
+are unrestricted. Seed and test comparisons use identity transmission to a
+dummy type on their stated product domains. Unions of domains are handled
+by separate schemas; repeated requests for the same constant are harmless.
+There is one new two-dimensional type and three schemas per connection
+schema, and only a bounded additional number for the constant comparisons.
+This proves the claimed preservation of the short description.
+\end{proof}
+
+\subsection{Size and effective construction}
+
+The following records an explicit sequential bound for the graph construction.
+It will allow the final time lower bound to use arbitrary explicit graph
+algorithms.
+
+\begin{lemma}[Constructing padded graphs]
+\label{circ:construction}
+Fix $r\geq3$ and a short consistency template with bounded numbers of types
+and schemas and bounded vector dimensions. Suppose its one-coordinate
+domains and maps are supplied by a bounded number of tables, each with
+$O(m)$ entries in $[m]$. The two uncolored graphs of
+Theorem~\ref{comp:reduction} have a common vertex count
+\[
+ N=O(m^6+1),
+\]
+where the constant depends only on the fixed template and $r$.
+They may be padded to any common order $n\geq N$ without changing the
+equivalence conclusion of that theorem.
+
+For $n\geq\max\{N,m^{20}\}$, their adjacency matrices can be constructed
+from the tables in $O(n^4)$ multitape Turing-machine time. The exponent is
+absolute; the multiplicative constant may depend on the template and $r$.
+If the tables can themselves be constructed from a word of length $m$ in
+$O(m^3)$ time, this preprocessing is included in the same bound.
+\end{lemma}
+
+\begin{proof}
+The order bound and padding assertion are those of
+Theorem~\ref{comp:reduction}. Write $N_0$ for the number of valuation
+vertices before adding marks, the hub, and padding; that proof gives
+$N_0=O(m^2)$.
+
+For the time bound, store each vertex by a descriptor. A valuation
+descriptor consists of its block identifiers, its at most two coordinate
+labels, and its bounded list of readout values. A mark descriptor records
+its owner's identifier and its local mark number. The remaining vertex
+kinds are the hub and numbered padding vertices. Every descriptor has
+$O(\log(n+1))$ bits, with a constant depending only on the fixed template
+and $r$.
+All names of shared readouts can be included when a block is enumerated.
+
+The coordinate tables can be scanned rather than randomly accessed.
+Enumerating $O(m^2)$ blocks, looking up a bounded number of coordinate
+matches for each, and listing their valuations uses
+$O(m^3(\log(m+1))^2)$ time. Count $N_0$ in a first pass, then enumerate
+the valuation vertices and their mark lists using binary counters; finally
+append the padding list. This costs
+$O(n(\log(n+1))^2)$ additional time. All arithmetic here concerns a bounded
+number of integers of $O(\log(n+1))$ bits and can, for example, use the
+elementary quadratic digit algorithms. Since $n\geq m^{20}$, the entire
+preparation costs $O(n^2)$.
+
+Now enumerate the ordered pairs of vertex identifiers. Even retrieving
+their descriptors by fresh scans of the whole list costs only
+$O(n(\log(n+1))^2)$ per pair. Adjacency of two valuation vertices is decided
+by comparing their bounded lists of shared names and values. Adjacency
+involving marks, hub, or padding follows directly from the vertex kinds and
+owner identifiers. Writing all $n^2$ entries therefore takes
+\[
+ O\bigl(n^3(\log(n+1))^2\bigr)=O(n^4)
+\]
+time. The second graph is constructed in the same bound. No step enumerates
+a full address in $[m]^r$; the dependence on $r$ occurs only in fixed loop
+counts and descriptor lengths. The optional $O(m^3)$ table preprocessing
+also fits in $O(n^4)$.
+\end{proof}
+
+\subsection{A local circuit for a one-tape computation}
+
+Encoding computations by local constraints indexed by tape position and
+time is classical; see Cook~\cite[proof of Theorem~1]{Cook1971}. The
+construction below expresses the required shifts of those indices through
+a bounded list of product schemas.
+
+We use deterministic one-tape machines on a doubly infinite tape, with a
+head initially at position zero. The binary input occupies positions
+$0,\ldots,m-1$, and all other positions are blank. A step moves the head
+by $-1$, $0$, or $1$. Accepting and rejecting states are made frozen:
+subsequent steps preserve the entire configuration.
+
+\begin{theorem}[Computation reduction]
+\label{circ:computation}
+Fix such a machine $M$ and an integer $r\geq3$, and put
+$d=\lfloor r/3\rfloor$. There is a single effective construction,
+depending only on $M$ and $r$, with the following property. For each
+$m\geq2$ for which $M$ halts on every length-$m$ input within an integer
+bound $T_0(m)$ satisfying
+\begin{equation}
+\label{circ:time-space-slack}
+ T_0(m)<m^d-1,
+ \qquad
+ 2T_0(m)+m+2<m^{r-d},
+\end{equation}
+the construction takes $w\in\{0,1\}^m$ to two simple uncolored graphs of
+common order $O_{r,M}(m^6)$ such that $M$ accepts $w$
+if and only if the two graphs are inequivalent in the $(r+1)$-pebble
+bijective game.
+Thus they are inequivalent for joint-update $r$-dimensional $\WL$ precisely
+when $M$ accepts $w$.
+
+The consistency description used in the construction has
+$O_{r,M}(1)$ types and edge schemas, dimensions at most two, and
+$O_{r,M}(1)$ one-coordinate tables with $O(m)$ entries each. These tables
+can be constructed from $w$ in $O_{r,M}(m^3)$ time without running $M$ on
+$w$. For every sufficiently large $m$ satisfying
+\eqref{circ:time-space-slack}, the graphs can be padded to any
+common order $n\geq m^{20}$ and their adjacency matrices constructed in
+$O_{r,M}(n^4)$ multitape time. In particular, for
+$m^{20}\leq n<(m+1)^{20}$ the construction time is a polynomial in $m$
+of absolute degree, independently of $r$ and $M$.
+\end{theorem}
+
+\begin{proof}
+Let $\Sigma$ be the fixed alphabet consisting of ordinary tape symbols and
+tape symbols carrying a head state of $M$. There is a fixed map
+\[
+ F:\Sigma^3\longrightarrow\Sigma
+\]
+that updates the center cell of a valid machine configuration. Indeed, its
+next symbol and head information are determined by whether the old head is
+at the center or one of its immediate neighbors, together with the scanned
+symbol and state recorded there. A triple containing no head leaves its
+center symbol unchanged. Assign arbitrary values on triples that never
+occur in a configuration with one head. This defines $F$ everywhere while
+giving the exact update on every valid configuration, including frozen
+halting configurations.
+
+Use $d$ base-$m$ digits for time and $q=r-d$ base-$m$ digits for position.
+Write
+\[
+ H=m^d,\qquad L=m^q,
+\]
+and regard positions modulo $L$. Time ranges from $0$ to $H-1$ and is not
+cyclic. The total of $r$ digits is the address of every gate type.
+
+We first verify that this spatial ring gives the intended computation.
+For a prehalting transition at time $\tau<T_0(m)$, let $h$ be the head
+position. Then $|h|\leq\tau\leq T_0(m)-1$. Only the centers
+$h-1,h,h+1$ can change, and the triples that determine their next letters
+lie in
+\[
+ [h-2,h+2]\subseteq[-T_0(m)-1,T_0(m)+1].
+\]
+Together with the initial input, these positions lie in the interval
+\[
+ I=[-T_0(m)-1,m+T_0(m)]\cap\Z.
+\]
+It has $2T_0(m)+m+2$ elements, fewer than $L$ by
+\eqref{circ:time-space-slack}. Reduction modulo $L$ is therefore injective
+on $I$. At every step before halting, the head reads and writes exactly the
+corresponding line cell, and the only changes occur at the old and new head
+locations. Induction on the step proves agreement of the ring computation
+and line computation through halting. Cells away from the head remain
+unchanged, so no additional head or change can arise elsewhere on the ring.
+The frozen state then preserves agreement through time $H-1$.
+
+For each $f\in\Sigma$ introduce a scalar gate type $S_f$. At time zero seed
+exactly the actual initial letter at each position. For every triple
+$(a,b,h)\in\Sigma^3$, introduce two AND types $A_{a,b,h}$ and $B_{a,b,h}$.
+At address $(\tau,j)$ the connections are
+\begin{align*}
+ S_a(\tau-1,j-1)&\longrightarrow\text{port 1 of }A_{a,b,h}(\tau,j),\\
+ S_b(\tau-1,j)&\longrightarrow\text{port 2 of }A_{a,b,h}(\tau,j),\\
+ A_{a,b,h}(\tau,j)&\longrightarrow\text{port 1 of }B_{a,b,h}(\tau,j),\\
+ S_h(\tau-1,j+1)&\longrightarrow\text{port 2 of }B_{a,b,h}(\tau,j),\\
+ B_{a,b,h}(\tau,j)&\longrightarrow S_{F(a,b,h)}(\tau,j).
+\end{align*}
+Every connection whose source time is $\tau-1$ is present only for
+$\tau\neq0$; the two same-time connections are present at all addresses.
+All position arithmetic in this display is modulo $L$.
+
+This circuit is acyclic. Give $A$ gates at time $\tau$ rank $3\tau$,
+$B$ gates rank $3\tau+1$, and scalar gates rank $3\tau+2$. The same-time
+connections strictly increase rank, and every temporal connection comes
+from rank $3\tau-1$ at time $\tau-1$ to rank $3\tau$ or $3\tau+1$.
+At time zero all $A$ gates are false, since neither port has a temporal
+input. All $B$ gates are false as well, since their first port is false.
+Thus only the chosen letter seed is true at each position at time zero.
+
+Suppose inductively that the true scalar gates at time $\tau-1$ specify
+exactly one letter at each cell, namely its actual letter. At $(\tau,j)$,
+the first AND for a triple is true precisely when its first two letters are
+the actual left and center letters. The second AND is true precisely when
+the third letter is also the actual right letter. Exactly one triple then
+has a true $B$ gate, and its output makes exactly
+$S_{F(a,b,h)}(\tau,j)$ true. Induction proves that the scalar gates record
+the actual ring computation at all times.
+
+Test every scalar instance $S_f(H-1,j)$ for which $f$ carries an accepting
+halted state. These tests are terminal: scalar gates only have connections
+to the next time, and no time follows $H-1$. By
+\eqref{circ:time-space-slack} and the frozen-state convention, some test is
+true if and only if $M$ accepts $w$.
+
+It remains to describe the circuit by a bounded list of product schemas.
+The same-time connections use the identity. In source coordinates, the
+three temporal kinds of connection have address maps
+\begin{equation}
+\label{circ:temporal-maps}
+ (t,j)\longmapsto(t+1,j+1),\qquad
+ (t,j)\longmapsto(t+1,j),\qquad
+ (t,j)\longmapsto(t+1,j-1),
+\end{equation}
+respectively. In all three, $t=H-1$ is excluded.
+
+Here is an explicit decomposition into product domains. Number the digits
+in each group from least to most significant. For nonmaximal time, let
+$a\in\{1,\ldots,d\}$ be the first digit not equal to $m-1$. Its case has
+domain
+\[
+ \{m-1\}^{a-1}\times\{0,\ldots,m-2\}\times[m]^{d-a}.
+\]
+Apply the permutation $x\mapsto x+1\pmod m$ to the first $a$ digits and
+the identity to the others. Lower digits become zero, the $a$th digit
+increases without overflow, and higher digits remain unchanged; hence this
+is exactly addition of one. The $d$ cases partition all nonmaximal times.
+There is no all-maximal time case, so they do not introduce time wraparound.
+
+For cyclic position increment use the analogous $q$ cases and the
+additional all-maximal case, on which every digit is incremented modulo
+$m$. For cyclic decrement use the first nonzero digit: lower digits are
+zero, that digit is in $\{1,\ldots,m-1\}$, and all later digits are
+arbitrary. Decrement the digits through that first nonzero digit modulo
+$m$, leaving higher digits unchanged. Add the all-zero wrap case, on which
+every position digit is decremented modulo $m$. These are
+exactly the usual carry and borrow identities, expressed using products and
+coordinate permutations. Because the time and position groups are disjoint,
+combining one time case with one position case still gives a product
+domain. Thus each shifted map in \eqref{circ:temporal-maps} uses at most
+$d(q+1)$ schemas, and the unshifted one uses $d$ schemas. Every coordinate
+map is a restriction of a permutation of $[m]$, as required.
+
+The seed domains are equally short. All time digits are zero. Positions
+$j<m$ have all but their least significant position digit zero. For each
+possible initial letter, its occurrences among these positions are a
+subset of that one remaining digit; the digit zero is assigned the letter
+carrying the initial head state. These subsets are determined by scanning
+$w$. The blank positions $j\geq m$ are the union of the $q-1$ products
+obtained by requiring a specified higher position digit to be nonzero and
+leaving the other position digits arbitrary. Overlaps merely repeat the
+same blank seed. Finally, a test domain sets every time digit to $m-1$ and
+leaves all position digits unrestricted.
+
+There are $|\Sigma|$ scalar types and $2|\Sigma|^3$ AND types. The number
+of product schemas just described is bounded in terms of $r$ and $\Sigma$,
+independently of $m$. Proposition~\ref{circ:simulation} therefore produces
+a short consistency instance with bounded numbers of types and schemas and
+dimensions at most two. Its one-coordinate tables contain only a bounded
+number of subsets and permutations of $[m]$, so have $O_{r,M}(m)$ entries.
+They can be produced by scanning $w$, enumerating the labels, and applying
+the identity or cyclic increment/decrement maps. Even repeated input scans
+and elementary binary arithmetic give
+$O_{r,M}(m^2(\log(m+1))^2)=O_{r,M}(m^3)$ time. This computation does not
+simulate $M$ on $w$.
+
+By Proposition~\ref{circ:simulation}, the resulting instance has an
+arc-consistency witness exactly when no test is true, hence exactly when
+$M$ does not accept $w$.
+Theorem~\ref{comp:reduction}, with $K=r+1$, turns existence of the sets into
+equivalence of the two simple uncolored graphs. This gives the asserted
+acceptance polarity and the stated $\WL$ interpretation.
+Lemma~\ref{circ:construction} gives their common order
+$N=O_{r,M}(m^6)$ and the construction time. For all sufficiently large $m$,
+$N\leq m^{20}$, so that lemma applies to every $n\geq m^{20}$. On the
+particular interval $m^{20}\leq n<(m+1)^{20}$, its $O_{r,M}(n^4)$ bound is
+$O_{r,M}(m^{80})$, an absolute-degree polynomial as claimed.
+\end{proof}

@@ -1,0 +1,267 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem,microtype,booktabs,graphicx}
+\usepackage{xcolor,tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing}
+\usepackage[hyphens]{url}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[nameinlink,capitalise,noabbrev]{cleveref}
+\hypersetup{pdftitle={Unconditional time lower bounds for Weisfeiler-Leman equivalence},pdfauthor={OpenAI}}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\WL}{\mathrm{WL}}
+\newcommand{\AC}{\mathrm{AC}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\numberwithin{equation}{section}
+\setlist[enumerate]{itemsep=3pt,topsep=5pt}
+\setlist[itemize]{itemsep=3pt,topsep=5pt}
+\allowdisplaybreaks[1]
+
+\title{Unconditional time lower bounds for\\
+Weisfeiler--Leman equivalence}
+\author{OpenAI}
+\date{September 25, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For every sufficiently large fixed $k$, deciding whether two
+$n$-vertex graphs are $k$-Weisfeiler--Leman equivalent requires
+$n^{\Omega(k)}$ deterministic sequential time in the worst case.
+The bound holds at every sufficiently large graph order, even for
+simple connected uncolored graphs of diameter at most two, without a
+complexity assumption. Inputs are explicit adjacency matrices; the models
+are multitape Turing machines and sequential logarithmic-word RAMs with
+fixed polynomial-bit-time instructions. Both joint and separate replacement
+conventions are covered.
+\end{abstract}
+
+\section{Introduction}\label{sec:introduction}
+
+The refinement method originates in Weisfeiler and Leman's work on graph
+canonization \cite{WL1968}. Its higher-dimensional form assigns colors to tuples of vertices
+by repeatedly recording their local extension patterns. For each fixed
+dimension $k$, stabilization gives a polynomial-time test of
+$k$-Weisfeiler--Leman equivalence. The direct algorithms have running
+time $n^{O(k)}$: there are $n^k$ tuples, at most polynomially many
+refinement rounds in their number, and each round can be implemented
+in polynomial time in the tuple table. The question considered here
+is whether a growing exponent is necessary for \emph{any} sequential
+algorithm deciding the equivalence relation, rather than just for an
+implementation of refinement.
+
+For $k\ge2$, initial tuple colors record coordinate equalities and
+adjacencies. Each refinement step retains the old color and counts
+replacement colors. The \emph{joint} convention counts a multiset of
+$k$-component replacement-color vectors, one vector for each new vertex
+used in every coordinate; the \emph{separate} convention counts a replacement multiset
+for each coordinate independently. With common color names on the two
+graphs, equivalence means equality of their stable $k$-tuple color
+histograms. Section~\ref{game:section} gives the full formulas and their
+game characterizations.
+
+We give an unconditional lower bound for this decision problem. Input graphs are represented
+by explicit adjacency matrices. A decider is uniform
+in the input size; it may depend arbitrarily on the fixed dimension
+$k$. For a decider $A$, let $T_A(n)$ be its worst-case running time on
+pairs of graphs having $n$ vertices each.
+
+\begin{theorem}\label{thm:main}
+There are absolute constants $c>0$ and $k_0$ with the following
+property. For every fixed integer $k\ge k_0$ and every correct
+deterministic decider $A$ for $k$-Weisfeiler--Leman equivalence, there
+is an integer $n_0=n_0(A,k)$ such that
+\[
+                     T_A(n)\ge n^{ck}
+             \qquad\text{for every integer }n\ge n_0.
+\]
+This holds for multitape Turing machines and for sequential
+random-access machines with $O(\log(n+2))$-bit addresses and words,
+boundedly many memory accesses per instruction, and fixed instructions
+computable in time polynomial in the word length.
+The same bound holds if $A$ is required to decide correctly only on
+pairs of simple connected uncolored graphs of diameter at most two,
+with $T_A(n)$ maximized over that class. It applies both to the
+joint replacement-multiset convention for $k$-dimensional refinement
+and to the separate-multiset convention defined below.
+\end{theorem}
+
+Theorem~\ref{thm:main} is unconditional; in particular, it does not
+assume the Exponential Time Hypothesis. It rules out a uniform
+running-time bound $f(k)n^{g(k)}$ with $g(k)=o(k)$, for any
+function $f$ independent of $n$: fix a sufficiently large $k$ for
+which $g(k)<ck$ and then let $n$ grow. The theorem concerns
+deterministic computation, not randomized algorithms, nonuniform
+advice, or unit-cost operations on unbounded integers.
+
+The quantifiers in the theorem are important. The exponent constant $c$
+is independent of both $k$ and the program. The threshold $n_0$ need not
+be uniform in either. A lower bound at infinitely many graph orders would
+not suffice: the conclusion excludes an algorithm that is unusually fast
+at even a sparse sequence of arbitrarily large orders.
+
+\paragraph{Historical and methodological context.}
+The parity constructions of Cai, F\"urer, and Immerman established
+fundamental limitations of bounded-variable graph identification
+\cite{CFI1992}. Their local parity constraints and global twist obstruction
+provide a basic setting for understanding why a bounded game can fail to
+distinguish two globally different graphs.
+Grohe, Lichter, Neuen, and Schweitzer developed compressed
+Cai--F\"urer--Immerman constructions and proved, for each fixed $k\ge2$,
+families requiring $\Omega_k(n^{k/2})$ rounds of $k$-dimensional
+refinement \cite[Theorem~33 and Corollary~34]{CFICompression}.
+Such a bound concerns the refinement process itself and does not exclude
+a faster algorithm that decides its final equivalence relation by another
+method. Our construction shares the use of compressed addresses and
+bounded-pebble obstructions, but its individual scalar-image consistency
+and exact extension properties are proved here.
+Recent upper bounds on refinement iterations, including the linear bound
+for classical $2$-WL of D\"oring and Neuen
+\cite[Main Theorem~1]{DoeringNeuen2026}, likewise concern the refinement
+procedure rather than the complexity of every equivalence decider.
+A companion finite-choice reduction uses parity lifts and bounded-treewidth
+homomorphism witnesses~\cite[Theorem~1.2 and Sections~2--4]{ParityLiftsWL2026}.
+
+When the dimension is part of the input, Seppelt
+\cite[Theorem~5]{Seppelt2024} and Lichter, Ra\ss mann, and Schweitzer
+\cite[arXiv v2, Theorem~34]{WLDimension} proved coNP-hardness
+of supplied-pair equivalence. The latter work also studies the complexity
+of Weisfeiler--Leman dimension and identification.
+Identification asks whether a graph is distinguished from \emph{every}
+nonisomorphic graph, rather than whether a supplied pair is equivalent.
+For binary-encoded input dimension $k\ge2$, joint-update supplied-pair
+equivalence is EXPTIME-complete, even on connected subcubic
+graphs~\cite[Theorem~1.1]{VariableDimensionWL2026}.
+Input-dimension identification is separately EXPTIME-complete, using
+joint updates for $k\ge2$ and ordinary color refinement at
+$k=1$~\cite[Theorem~1.1]{WLIdentification2026}.
+These are different quantifiers: neither identification hardness nor
+hardness with the dimension as part of the input supplies the fixed-dimension time exponent of
+Theorem~\ref{thm:main}.
+
+For existential pebble games, Berkholz proved unconditional time lower
+bounds with exponent linear in the number of pebbles
+\cite[Theorem~1]{ExistentialPebbles}. That game asks Duplicator to
+respond to an already chosen element while preserving a partial
+homomorphism. The bijective-game framework goes back to
+Hella~\cite{Hella1996}. In the version used here, Duplicator must first
+announce a bijection, and the resulting marked correspondence must be
+a partial isomorphism. We therefore prove both the game correspondence
+and the complete reduction rather than treating existential-game
+hardness as a black-box input. The time argument uses classical padded
+diagonalization: Hennie and Stearns already used padded machine indices
+and clocked full-input self-simulation in their hierarchy proof
+\cite[Section~6, Theorem~7]{HennieStearns1966}. We prove the precise
+every-length language and the graph-order transfer required here.
+
+\paragraph{The proof mechanism.}
+Two obstacles separate these precedents from the desired bound. First,
+a polynomial-time computation with an exponent proportional to $k$
+has too many addressed locations to list in a small reduction. Second,
+local consistency uses symmetric comparisons, whereas a computation
+must propagate information forward without forcing false predecessors
+to become true. The construction addresses these obstacles separately.
+
+Put $[m]=\{0,\ldots,m-1\}$, and fix a finite pattern of variable types
+and comparisons, called the \emph{description shape}.
+The main technical ingredient compresses a consistency problem with
+variables indexed by $r$-tuples in $[m]^r$ into graphs with
+$O_{r,\mathrm{shape}}(m^2)$ local blocks. A block records only two adjacent address
+coordinates. A full ring of $r$ blocks exposes one addressed vector,
+and one spare pair transports that vector's scalar image along a
+constraint. Long subdivisions in the constraint direction keep every
+small block collection near at most one original variable type.
+The number $m$ controls the address alphabet; all vector values remain
+over $\F_2$. Removing colors yields $O_{r,\mathrm{shape}}(m^6)$ vertices,
+not $O(m^2)$ vertices.
+
+The converse is the delicate part. A local translation offset specifies
+how to translate every valuation in one block. We construct families of
+such offsets that project \emph{exactly} onto the families for smaller
+collections of blocks: every already retained assignment extends.
+Auxiliary block corners carry potentials, and edges between them carry
+the recorded vector or scalar values, called \emph{readouts}. A component
+is \emph{nonwrapping} if every closed walk crosses a fixed seam of the
+coordinate cycle an even number of times. On such a component, a change
+of shift can be absorbed into corner potentials without changing the
+readouts. A complete ring recovers one full address, and
+individual-edge consistency supplies exactly the extension it needs.
+This projection argument may be useful independently whenever
+product addresses must be hidden from a bounded bijective game.
+
+Two further ingredients connect the construction to time complexity.
+A two-coordinate buffer makes scalar-image consistency simulate
+directed circuit propagation without transmitting unwanted
+restrictions backward. A product-indexed circuit then records a
+one-tape computation using only short coordinate tables. Finally,
+an explicit diagonal language is hard at \emph{every} sufficiently
+large input length. Trying all padded graph sizes in a polynomial
+interval transfers this fact to every sufficiently large graph
+order, without assuming that an algorithm's worst-case time is
+monotone in $n$.
+
+The proof is organized around the following interfaces. In this table
+$r$ and the machine are fixed while $m$ grows; $n$ is the final graph order.
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.25\textwidth}p{0.66\textwidth}@{}}
+\toprule
+Stage & Property retained at the next stage \\
+\midrule
+Bijective game & Joint $k$ uses $k+1$ pairs; separate $k$ uses $k$ pairs
+  (Section~\ref{game:section}). \\
+Compressed consistency & Nonempty individual scalar-image witnesses
+  are equivalent to a winning $(r+1)$-pair strategy
+  (Theorem~\ref{comp:reduction}). \\
+Computation & Under the time and space bounds of
+  Theorem~\ref{circ:computation}, acceptance is equivalent to graph
+  inequivalence, with unpadded order $O(m^6)$. For sufficiently large
+  $m$, padded matrices at any order $n\ge m^{20}$ cost $O(n^4)$
+  to construct. \\
+Diagonal language & Every one-tape decider has worst-case time greater
+  than $m^s$ at every sufficiently large length
+  (Theorem~\ref{diag:language}). \\
+Cutoff transfer & One fast order in $[m^{20},(m+1)^{20})$ would give
+  a fast decider on \emph{all} length-$m$ words
+  (Section~\ref{trans:section}). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All bounds in the compressed construction allow constants depending on
+the fixed description shape and $r$. They do not establish a polynomial
+compiler when $r$ grows with the input. Likewise, the universal hub used
+to obtain diameter two has unbounded degree. No bounded-degree promise
+is asserted in this paper.
+
+\paragraph{Conventions.}
+All graphs are finite. The notation $[m]$ means
+$\{0,\ldots,m-1\}$, with $m\ge2$. Vector spaces, linear forms,
+and potentials in the construction are over $\F_2$.
+Constants may depend on a fixed parameter or machine when the
+dependence is indicated by a subscript. An \emph{absolute polynomial
+degree} is independent of those fixed parameters, although its
+multiplicative constant and the starting size need not be.
+Specific game and addressing conventions are stated before use.
+
+\input{sections/01-game}
+\input{sections/02-compression}
+\input{sections/03-circuits}
+\input{sections/04-diagonal}
+\input{sections/05-transfer}
+\input{references}
+
+\end{document}

@@ -1,0 +1,417 @@
+\section{Polyhedral tools and a feasible center}\label{sec:polyhedra}
+
+The first step is to work with the exponentially many rank inequalities
+without enumerating them.  We record the exact oracle algorithms we use,
+then establish the geometric estimates needed to replace large coordinate
+ranges by short ranges of part totals.  In particular, the distance estimate
+below depends on the dimension, not on the numerical value of the rank.
+
+Recall that for $x\in\mathbb R^E$ and $A\subseteq E$ we write
+$x(A)=\sum_{j\in A}x_j$.  A set function $f:2^E\to\mathbb R$ is
+\emph{normalized} if $f(\varnothing)=0$.  For any normalized submodular
+function, including one that is not nondecreasing, put
+\begin{equation}\label{eq:base-polytope}
+ B(f)=\{x\in\mathbb R^E:x(E)=f(E),\quad x(A)\leq f(A)
+                 \text{ for every }A\subseteq E\}.
+\end{equation}
+This convention lets us translate and reflect base polytopes.  The
+singleton and complementary-singleton inequalities give
+\[
+ f(E)-f(E\setminus\{j\})\leq x_j\leq f(\{j\})
+ \qquad (x\in B(f)).
+\]
+Thus $B(f)$ is bounded; for a nondecreasing $f$, its coordinates are
+nonnegative.  Throughout, integrals in free coordinates use ordinary
+Lebesgue measure with unit lattice mesh.  An integral in zero coordinates
+means evaluation of its integrand.
+
+\subsection{Exact oracle operations}
+
+We use the following standard algorithmic results.  Their encoding
+requirements are relevant because the capacity $R$ is given in binary.
+
+\begin{proposition}[Oracle algorithms]\label{prop:oracle-tools}
+The following operations have deterministic oracle and bit complexity
+bounded by fixed polynomials in the indicated input sizes.
+\begin{enumerate}
+ \item An integer-valued submodular function on a finite ground set can
+ be minimized, with a minimizing set returned, from an exact value oracle
+ and a bound on the binary lengths of its values.  The size parameters are
+ the ground-set cardinality and that value-length bound.
+ \item Let $Q\subseteq\mathbb R^d$ be a bounded rational polytope, supplied
+ by strong separation, a coordinate bound, and a bound on the binary
+ encoding length of each individual defining inequality.  The separator
+ returns inequalities of length polynomial in the query length and
+ the supplied description bounds.  Exact rational
+ linear optimization, including an emptiness decision and the production
+ of an optimal vertex when $Q$ is nonempty, is polynomial in $d$, these
+ bounds, and the objective length.  This assertion includes
+ lower-dimensional polytopes.  All separation queries have polynomial
+ encoding length.
+\end{enumerate}
+The first operation also applies to an integer submodular function with
+a rational modular term added, and with prescribed elements required to
+belong or not to belong to the minimizing set.
+\end{proposition}
+
+For the first assertion we use the submodular minimization theorem of
+Iwata, Fleischer, and Fujishige \cite[Theorems 3.3 and 3.7]{IFF2001}.
+For the second we use the strong separation--optimization equivalence
+for well-described rational polyhedra
+\cite[Definition 6.2.2, Theorem 6.4.9, and Remark 6.5.2]{GLS1988}.
+The description size in that theorem bounds the encoding of one
+inequality, and does not count the number of inequalities.  Its vertex
+encoding bound also permits optimal-vertex selection by successive
+rational face restrictions.
+The LP bound counts calls to its separation oracle and additional bit
+operations separately.  In our applications each such call is
+implemented by submodular minimization and the explicit rational
+arithmetic described next.
+
+Here is how we supply these algorithms with the required oracles.
+At a rational point $x$, separation from $B(r_i)$ minimizes
+$r_i(A)-x(A)$ and checks the total equation.  Multiply this set function
+by the product of the denominators of the coordinates of $x$.
+The resulting integer submodular function has values of polynomial
+binary length: the length of that product is at most the sum of the
+denominator lengths.  Requiring inclusion of $F$ and exclusion of $G$,
+where $F\cap G=\varnothing$, amounts to minimizing
+$A\mapsto r_i(A\cup F)-x(A\cup F)$ on
+$E\setminus(F\cup G)$.  Restrictions, contractions, and ranks on unions
+of partition parts are handled in the same way.  All rational modular
+translations used below have explicitly known denominators and
+polynomial-length coefficients, so the same clearing of denominators
+applies to them.  Additional coordinate bounds and part-total equations
+are explicit linear constraints.
+
+In particular, the original intersection
+\begin{equation}\label{eq:original-polytope}
+ P=B(r_1)\cap B(r_2)
+\end{equation}
+has a strong separation oracle and lies in $[0,R]^n$.  Its inequalities
+have $0$--$1$ normals and right sides of $O(1+\log(R+1))$ bits.
+Exact feasibility and optimization on $P$ therefore satisfy
+Proposition~\ref{prop:oracle-tools} without any dependence polynomial
+in the numerical value of $R$.
+
+\subsection{Base-polytope calculus}
+
+The following greedy identities, originating in the theory of
+polymatroid polyhedra \cite{Edmonds1970}, identify the polytopes appearing
+in translations, projections, and expansions later in the proof.
+
+\begin{lemma}[Base-polytope identities]\label{lem:base-calculus}
+Let $f,g:2^E\to\mathbb R$ be normalized submodular functions and let
+$v\in\mathbb R^E$.
+\begin{enumerate}
+ \item If $w_{\pi(1)}\geq\cdots\geq w_{\pi(n)}$ and
+ $A_k=\{\pi(1),\ldots,\pi(k)\}$, the vector
+ \[
+ b_{\pi(k)}=f(A_k)-f(A_{k-1})
+ \]
+ belongs to $B(f)$ and maximizes $w\cdot x$ there.
+ \item With $(f+v)(A)=f(A)+v(A)$ and
+ $f^{\mathrm{ref}}(A)=f(E\setminus A)-f(E)$, one has
+ \[
+ B(f+g)=B(f)+B(g),\qquad B(f+v)=B(f)+v,\qquad
+ B(f^{\mathrm{ref}})=-B(f).
+ \]
+ \item For a partition $\mathcal D$ of $E$, define
+ $\pi_{\mathcal D}(x)=(x(D):D\in\mathcal D)$ and
+ $\bar f(\mathcal J)=f(\bigcup_{D\in\mathcal J}D)$.
+ Then $\pi_{\mathcal D}(B(f))=B(\bar f)$.
+ \item For distinct $a,b\in E$ and $t\geq0$, the segment
+ $[-t,t](e_a-e_b)$ is $B(q_{ab})$, where
+ \[
+ q_{ab}(A)=t\,|\mathbf1_A(a)-\mathbf1_A(b)|.
+ \]
+ In particular, adding any collection of these segments to a base
+ polytope again gives a base polytope, with integral rank if $f$ and
+ the segment lengths are integral.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+When $E=\varnothing$, all assertions are immediate, so assume $n\geq1$.
+Submodularity implies decreasing marginal increments: if $C\subseteq D$
+and $j\notin D$, then
+$f(C\cup\{j\})-f(C)\geq f(D\cup\{j\})-f(D)$.
+Apply this inequality to the elements of any $A$ in their $\pi$-order.
+The increments defining $b(A)$ are no greater than those along the
+induced chain in $A$, and hence $b(A)\leq f(A)$.  Also $b(E)=f(E)$.
+Summation by parts gives, for every $x\in B(f)$,
+\[
+ w\cdot x=w_{\pi(n)}f(E)
+  +\sum_{k=1}^{n-1}(w_{\pi(k)}-w_{\pi(k+1)})x(A_k).
+\]
+All coefficients in the sum are nonnegative, and $b$ attains equality
+in each of the resulting upper bounds.  This proves the first assertion
+and, in particular, nonemptiness of $B(f)$.
+
+The displayed support-function formula is additive in $f$.  Since
+nonempty compact convex sets are determined by their support functions,
+it proves the Minkowski-sum identity.  Translation follows directly from
+the inequalities.  For reflection, the equation $x(E)=f(E)$ converts
+$-x(A)\leq f(E\setminus A)-f(E)$ into the inequality on
+$E\setminus A$ for $x$.  The reflected function is normalized and
+submodular.
+
+For the projection identity, containment in $B(\bar f)$ follows from
+the inequalities on unions of parts.  Conversely, maximize a linear
+functional on the projected coordinates.  Its lift to $\mathbb R^E$
+is constant on each part.  In the greedy formula, place the parts in
+decreasing order of these constants and place each part's elements
+consecutively.  The increments telescope to the greedy formula for
+$\bar f$.  The two projected sets thus have the same support function.
+
+Finally, $q_{ab}$ is the cut function of a single edge and is
+submodular, as is checked from its four possible membership patterns
+on $\{a,b\}$.  Its base inequalities force every other coordinate to
+be zero, force $x_a+x_b=0$, and give $|x_a|\leq t$.  This proves the
+last assertion.
+\end{proof}
+
+The next construction is the expansion of an integral polymatroid to
+its natural matroid \cite{Helgason1974}.  We use it only to prove
+inequalities for weights.  Its ground set may have size comparable with
+$R$, and we never construct that ground set in the algorithm.
+
+\begin{lemma}[The expansion matroid]\label{lem:expansion-matroid}
+Let $r:2^E\to\mathbb Z_{\geq0}$ be normalized, nondecreasing, and
+submodular.  Replace each $j\in E$ by any finite number of labelled
+copies.  Declare a set of copies independent when its occupancy vector
+$z$ satisfies $z(A)\leq r(A)$ for every $A\subseteq E$.
+This defines a matroid.  A set of copies with occupancy vector $v$ has
+matroid rank
+\begin{equation}\label{eq:expansion-rank}
+ m(v)=\min_{A\subseteq E}\{r(A)+v(E\setminus A)\}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Hereditary closure is immediate.  Let $I,J$ be independent copy sets
+with occupancy vectors $z,z'$ and $|I|<|J|$.  If no element of $J\setminus I$
+can be added to $I$, then, for every coordinate $j$ with $z'_j>z_j$,
+some set $A_j$ containing $j$ is tight for $z$.  Indeed, failure of the
+increment $z+e_j$ yields such a set because both its slack and its rank
+are integral.  Tight sets are closed under union and intersection:
+submodularity and modularity give
+\[
+ r(A)+r(B)=z(A)+z(B)=z(A\cup B)+z(A\cap B)
+ \leq r(A\cup B)+r(A\cap B)\leq r(A)+r(B).
+\]
+Their union $A$ is therefore tight.  On $E\setminus A$ we have
+$z'_j\leq z_j$, whereas $z'(A)\leq r(A)=z(A)$.  This contradicts
+$|J|>|I|$ and proves augmentation.
+
+Every independent subprofile $z\leq v$ has
+$z(E)\leq r(A)+v(E\setminus A)$ for every $A$.
+Choose a maximal independent subprofile of $v$.  Each coordinate where
+$z_j<v_j$ is blocked by a tight set containing $j$.  The union $A$ of
+these sets is tight, and $z=v$ outside $A$.  Thus
+$z(E)=r(A)+v(E\setminus A)$, proving equality in
+\eqref{eq:expansion-rank}.  If no coordinate is blocked, take
+$A=\varnothing$.
+\end{proof}
+
+\subsection{Integrality and quantitative stability}
+
+We require two kinds of systems: the intersection of two base
+polytopes, and a single base polytope with prescribed totals on the
+parts of a partition.  These systems share a useful structure at every
+feasible point.  The structure persists after coordinate bounds are
+added, including bounds defining a cube.  We give the uncrossing proof
+of the classical integrality assertion \cite{Edmonds1970} together with
+the distance and slope bounds that we need.
+
+\begin{lemma}[Polyhedral controls]\label{lem:polyhedral-controls}
+Let $Q\subseteq\mathbb R^E$ be nonempty and be defined either by
+$B(f_1)\cap B(f_2)$ or by $B(f)$ together with equations
+$x(D)=a_D$ for the parts $D$ of a partition of $E$.
+The functions are normalized and submodular.  In either case arbitrary
+coordinate lower and upper bounds may also be imposed.
+\begin{enumerate}
+ \item If the ranks and all other right sides are integral, every
+ vertex of $Q$ is integral.
+ \item Suppose $x\in\mathbb R^E$ satisfies every defining inequality
+ with additive violation at most $b\geq0$, and every defining equality
+ with absolute error at most $b$.  Then
+ \begin{equation}\label{eq:polyhedral-distance}
+  \operatorname{dist}_{\infty}(x,Q)\leq10(n+1)^2b.
+ \end{equation}
+ \item Fix $a\in Q$ and an affine function $F$ whose linear part is
+ integral.  The function
+ \[
+  \phi(l)=\max\{F(y):y\in Q,\ \|y-a\|_\infty\leq l\},
+  \qquad l\geq0,
+ \]
+ is continuous, nondecreasing, concave, and piecewise affine.  Every
+ positive slope of an affine piece is an integer and hence at least
+ one.  Eventually $\phi(l)=\max_Q F$.
+ Consequently, if $F\geq0$ on $Q$ and $\phi(L)<L$ for some $L>0$,
+ then $\phi(L)=\max_QF$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We first establish the structure of the tight constraint normals.
+For a fixed rank system at $y\in B(f)$, the tight sets are closed
+under union and intersection by the calculation in the preceding
+proof.  Choose a maximal strictly increasing chain of tight sets from
+$\varnothing$ to $E$.  No tight set can cut a difference between
+successive members of this chain: otherwise intersecting that set with
+the upper member and adjoining the lower member inserts another tight
+set.  Every tight-set indicator is therefore a sum of these difference
+indicators.  In particular, the chain indicators span all tight rank
+normals.
+
+A second version preserves nonnegative coefficients.  Any nonnegative
+combination of tight-set indicators can be expressed as a nonnegative
+combination of indicators from a chain.  To see this, keep the resulting
+vector and the total coefficient fixed, allowing a coefficient on the
+empty set, and maximize the sum of the coefficients times $|A|^2$.
+The feasible coefficient set is compact.  Two incomparable sets with
+positive coefficients can be replaced, with the smaller coefficient,
+by their union and intersection.  The vector and total coefficient
+are unchanged, while the maximized quantity increases by
+$2|A\setminus B|\,|B\setminus A|$ times that coefficient.
+Thus no such pair remains.  Signed multiples of the total equation
+can be kept separately.
+
+The matrix formed by the indicators of two chains is totally
+unimodular.  More generally this holds for two laminar families,
+and therefore for a chain and a partition.  We apply Ghouila-Houri's
+row-signing criterion
+\cite[Chapter II, Section 3, fundamental theorem]{GH1964}.
+For any selection of rows from the first
+family, alternate signs along nested selected sets, starting with
+$+1$ on the maximal sets.  In any column their sum is either $0$ or
+$1$.  Start with $-1$ in the second family, obtaining $0$ or $-1$.
+Their combined sum is in $\{-1,0,1\}$.  Coordinate rows may be added:
+choose their signs separately in each column to retain this bound.
+Negating rows or adding signed copies also preserves total
+unimodularity.  Thus the same conclusion holds with either orientation
+of equality normals and with coordinate bounds.
+
+At a vertex, the tight normals span $\mathbb R^E$.  Replace the tight
+rank rows by their chain spans, retain the partition and coordinate
+rows, and choose $n$ independent rows.  Their square matrix is
+unimodular.  With integral right sides its unique solution is integral,
+proving the first assertion.
+
+For the distance estimate, let $y\in Q$ minimize $\|x-y\|_\infty$
+and write $t=\|x-y\|_\infty$.  If $t=0$ there is nothing to prove.
+The optimality condition for this convex minimization supplies a
+normal $g$ to $Q$ at $y$ satisfying
+\[
+ \|g\|_1=1,\qquad g\cdot(x-y)=t.
+\]
+Express $g$ as a nonnegative combination of the active inequality
+normals and the two orientations of active equality normals.
+Uncross the rank contributions separately as above.  The remaining
+normals belong to a totally unimodular matrix.  A conic representation
+can be chosen with linearly independent normals, say
+$g=\sum_{k=1}^m\mu_k a_k$ with $m\leq n$ and $\mu_k\geq0$.
+Choose $m$ columns giving a nonsingular square minor of the row
+matrix.  That minor has determinant $\pm1$ and every cofactor is
+$0$ or $\pm1$.  Solving for the coefficients gives
+$\mu_k\leq\|g\|_1=1$.  Each active oriented row satisfies
+$a_k\cdot(x-y)\leq b$, so
+\[
+ t=\sum_{k=1}^m\mu_k a_k\cdot(x-y)\leq nb.
+\]
+This stronger estimate implies \eqref{eq:polyhedral-distance}.
+
+For the last assertion, the cube constraint is
+$y_j\leq a_j+l$ and $-y_j\leq-a_j+l$.
+Every vertex of the constrained system has a basis selected by the
+same chain-span argument.  Its basis matrix is unimodular and its
+right side has the form $b_0+l b_1$ with $b_1$ integral.  Thus that
+vertex depends affinely on $l$, with integral derivative wherever
+the basis is feasible.  There are only finitely many possible bases.
+Optimizing $F$ consequently gives a piecewise affine function whose
+slopes are integers.  Inclusion of cubes gives monotonicity; convex
+combinations of feasible points for radii $l_1,l_2$ give concavity.
+Continuity on $(0,\infty)$ follows from finite concavity, and at zero
+from $|F(y)-F(a)|\leq\|\nabla F\|_1l$.  Boundedness of $Q$ gives
+eventual equality with its unrestricted maximum.
+
+If $\phi(L)<\max_QF$, concavity and monotonicity exclude a
+zero-slope interval before $L$.  Every preceding affine piece then
+has slope at least one, so
+$\phi(L)\geq\phi(0)+L\geq L$ when $F\geq0$ on $Q$.
+This proves the stated consequence.
+\end{proof}
+
+\subsection{Constructing a feasible center}
+
+The distance estimate controls the effect of changing part totals.
+We also need one feasible point at which a small slack certifies that
+the same slack is small throughout the feasible polytope.  The following
+construction works for any bounded rational polytope supplied by the
+oracle interface, including the lower-dimensional slices used later.
+It is the affine-simplex version of the determinant-replacement
+construction for barycentric spanners
+\cite[Section 2.3 and Proposition 2.4]{AK2004}; we include the argument
+to obtain the precise slack and encoding bounds.
+
+\begin{lemma}[A center for affine slacks]\label{lem:center}
+Let $Q\subseteq\mathbb R^n$ be a nonempty bounded rational polytope
+satisfying the hypotheses of Proposition~\ref{prop:oracle-tools}.
+One can find a rational $c\in Q$, with polynomial encoding length,
+such that every affine $F$ nonnegative on $Q$ satisfies
+\begin{equation}\label{eq:center-slack}
+ \max_{x\in Q}F(x)\leq4(n+1)F(c).
+\end{equation}
+The construction has polynomial oracle and bit complexity.
+It also returns an affinely spanning vertex simplex of $Q$ such that
+every point of $Q$ has all barycentric coordinates of absolute value
+at most two with respect to that simplex.
+\end{lemma}
+
+\begin{proof}
+Start from a vertex $v_0$ obtained by linear optimization.
+Given vertices whose affine span has direction space $L$, optimize
+both signs of a rational basis of $L^\perp$.  Either every optimum
+equals its value at $v_0$, proving that $Q$ lies in the current span,
+or an optimal vertex extends the span.  After at most $n$ extensions
+this gives $d+1$ affinely independent vertices, where $d=\dim Q$.
+For $d=0$, take $c=v_0$ and stop.
+
+Choose a rational coordinate projection that is one-to-one on the
+affine hull.  For the current simplex $v_0,\ldots,v_d$, let
+$\lambda_0,\ldots,\lambda_d$ be its affine barycentric-coordinate
+functions on that hull.  Optimize both signs of each $\lambda_j$
+over $Q$.  If some value has absolute value greater than two, replace
+$v_j$ by an attaining vertex.  The absolute determinant of the
+simplex in the fixed coordinate projection is multiplied by
+$|\lambda_j|>2$.
+
+All vertices of a well-described rational polytope have polynomial
+encoding length \cite[Lemma 6.2.4]{GLS1988}.  Consequently every
+nonzero simplex determinant encountered lies between
+$2^{-B}$ and $2^B$ for a polynomially bounded $B$.  There are at most
+$2B+1$ replacements.  Determinants, barycentric functions, objectives,
+and returned vertices throughout the procedure have polynomial
+encoding length, so the entire construction has polynomial cost.
+
+At termination, $|\lambda_j(x)|\leq2$ for every $x\in Q$ and every
+$j$.  Set $c=(d+1)^{-1}\sum_{j=0}^d v_j$.  If $F\geq0$ on $Q$,
+then $F(v_j)\geq0$, and for every $x\in Q$,
+\[
+ F(x)=\sum_{j=0}^d\lambda_j(x)F(v_j)
+ \leq2\sum_{j=0}^dF(v_j)=2(d+1)F(c).
+\]
+This implies \eqref{eq:center-slack}.
+\end{proof}
+
+We can now make the preliminary branches of the counting algorithm
+exact.  If $R=0$, return $1$; the only feasible vector is zero,
+including when $E=\varnothing$.  Otherwise use
+Proposition~\ref{prop:oracle-tools} to test $P$ in
+\eqref{eq:original-polytope}.  If it is empty, return $0$.
+If it is nonempty, Lemma~\ref{lem:polyhedral-controls} gives an
+integral vertex, so $Z\geq1$.  Obtain a rational center $c\in P$
+from Lemma~\ref{lem:center}.  Henceforth this nonempty case is
+understood.  In particular the algorithm will return zero on every
+execution for every instance with $Z=0$.

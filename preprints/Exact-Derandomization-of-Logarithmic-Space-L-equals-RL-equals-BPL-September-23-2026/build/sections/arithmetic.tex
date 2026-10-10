@@ -1,0 +1,867 @@
+\section{Finite numerical queries with bounded suspended storage}
+\label{sec:arith}
+
+The preceding sections define finite estimator tables and bound their
+statistical errors.  We now compute digits of those estimator values.
+For a fixed table tuple, including its statistical budget, the structural
+conventions are fixed and each entry has one exact mathematical value.
+Increasing the numerical clock requests a later digit of that same value.
+Each request is a finite deterministic computation.
+
+A query returns one bounded digit.  During its evaluation, the space
+needed by a suspended caller must be bounded by the size of its
+structural descriptors and a constant times the decrease from its
+output clock to the requested operand clock.  An operand clock may
+exceed the output clock by an amount proportional to descriptor size;
+the structural term also pays for this overshoot.  These differences
+will telescope when arithmetic queries are nested inside graph procedures.
+Thus the relevant question is which data remain live at each operand request.
+
+\subsection{Streams, records, and uniformity}
+
+We use integer clocks $t,j\geq 0$.  Known binary scales are separated
+from numerical values, so a normalized value belongs to $[-1,1]$.
+The fixed digit alphabet is
+\[
+ \mathcal A=\{-6,-5,\ldots,5,6\}.
+\]
+Every digit is encoded by a fixed number of bits.  An operand stream
+$(x_j)_{j\geq0}$ denotes the exact real number
+\begin{equation}
+ x=\sum_{j\geq0}x_j2^{-j},\qquad x_j\in\mathcal A.
+ \label{eq:arith-stream}
+\end{equation}
+In particular, for its truncation $x^{[K]}=\sum_{j=0}^Kx_j2^{-j}$,
+\begin{equation}
+ |x-x^{[K]}|\leq 6\,2^{-K}.
+ \label{eq:arith-tail}
+\end{equation}
+The stream need not be a usual binary expansion, and no uniqueness
+of the expansion is required.
+Redundant signed-digit representations have a long history in
+arithmetic~\cite{Avizienis1963}.  The redundancy lets consecutive
+finite approximations define an exact stream even when they use
+different truncations.
+
+An arithmetic root has public parameters, its clock, and a description
+of its operand interfaces.  We require these parameters to be
+regenerable from the outer controller records without operand or graph
+queries.  They are fixed inputs to each numerical computation; their
+full binary encodings are not copied at every gate.  An operand label
+specifies its interface and descriptor; it never specifies an unknown
+vertex address from a previous cursor position.
+
+The following lemma reduces each digit query to a fixed number of
+residue bits.
+
+\begin{lemma}[Exact streams from approximation residues]
+\label{lem:arith-residue-stream}
+Suppose $|z|\leq1$ and, for each $t\geq0$, a deterministic integer
+$N_t(z)$ satisfies
+\begin{equation}
+ |N_t(z)-2^tz|<2.
+ \label{eq:arith-approximation}
+\end{equation}
+Set
+\begin{equation}
+ z_0=N_0(z),\qquad z_t=N_t(z)-2N_{t-1}(z)\quad(t\geq1).
+ \label{eq:arith-difference-digit}
+\end{equation}
+Then $z_t\in\mathcal A$ and these digits represent $z$ exactly.
+For any fixed integer $q\geq4$, each output digit is determined by
+the required $N_t$ residues modulo $2^q$.
+\end{lemma}
+
+\begin{proof}
+Writing $e_t=N_t-2^tz$ gives
+$z_t=e_t-2e_{t-1}$ for $t>0$, hence $|z_t|<6$; the weaker alphabet
+bound $|z_t|\leq6$ is convenient throughout.  At place zero,
+$|N_0|<3$, so $|N_0|\leq2$.  The partial sum through place $T$ is
+$2^{-T}N_T$, which tends to $z$ by Equation~\eqref{eq:arith-approximation}.
+Finally, reduction modulo $2^q$ is injective on the possible signed
+digits because $2^q>12$.  Thus the signed difference can be recovered
+from the two residues without forming the full integers $N_t$.
+Concretely, for $t>0$ compute
+$(N_t\bmod 2^q)-2(N_{t-1}\bmod 2^q)$ modulo $2^q$, then use the
+fixed finite table which sends each occurring residue to its unique
+representative in $\mathcal A$.  At $t=0$, decode the residue of
+$N_0$ in the same way.  This final decoding has constant storage and
+introduces no comparison of unknown exact real numbers.
+\end{proof}
+
+The integer $N_t$ is always defined before taking its residue.
+Different places may use different truncations or finite circuits.
+Only determinism and Equation~\eqref{eq:arith-approximation} are
+required; consistency between the finite approximations is supplied
+by Equation~\eqref{eq:arith-difference-digit}.  In particular, when a
+digit at $t$ uses $N_{t-1}$, the latter is evaluated by its own
+place-$(t-1)$ definition.
+
+We compute the required residues by finite Boolean circuits.  To bound
+what survives an operand query, we evaluate those circuits from paths
+of child choices and regenerate their absolute addresses as needed.
+Here $d\geq1$ measures the size of the immediate structural descriptors;
+in the application it is the current group's slack.
+
+The local record of a suspended numerical query contains every local bit
+that must be retained across an operand query: its binary gate path,
+return modes, pending bounded results, stored descriptor choices, and
+any explicitly specified retained word.  The input and master choice,
+the common vertex cursor, and one reusable scratch area are shared
+facilities.  Temporary gate addresses, digit places and scan counters
+may occupy scratch while they are being computed.  Any such data needed
+after a recursive graph query must either be in the charged local
+record or be reconstructible from the root parameters and that record.
+An operand-dependent word retained across the query is charged even if
+it was originally formed in scratch.
+
+In particular, reconstructing an absolute digit place may use a binary
+counter in scratch, while the suspended record stores only the choices
+needed to recover that place.  The next lemma makes this distinction
+precise for the finite circuits used below.
+
+\begin{lemma}[Evaluation from regenerated gate addresses]
+\label{lem:arith-gate-evaluation}
+Consider a finite Boolean circuit of bounded fan-in, with a specified
+output gate.  Conditional gates may evaluate their selector first and
+then only their selected branch.  Suppose the type and immediate predecessors of a gate,
+or its operand label and digit place if it is an input gate, can be
+computed from the root parameters and a path of child choices from
+the output gate.  Suppose these computations use $O(B+t+d)$ scratch
+bits and make no operand or graph queries.  Then depth-first
+evaluation retains $O(1)$ bits per gate on its current path, and
+requires no saved absolute gate address per gate.  Its suspended
+record above an operand input has length at most a constant times
+the length of that path, plus any explicitly retained root-local
+record.
+\end{lemma}
+
+\begin{proof}
+At a gate, save its next-child or return mode and the already computed
+Boolean input, if any.  At a conditional gate also save the selected
+branch bit.  The bounded fan-in makes this a constant-size
+record.  To locate the next child, scan the saved path from its root
+and regenerate successive gate descriptions in scratch.  The final
+description determines the next child choice.  On return, its Boolean
+result is combined with the saved bit and the local record is popped.
+All temporary addresses and scan counters are discarded before an
+operand query; a later scan recreates them from the same root and
+saved choices.  Circuit acyclicity gives termination.  This is an
+evaluation of the circuit unfolded into a formula; repeated gates are
+recomputed, so no array of previously computed values is stored.
+\end{proof}
+
+\subsection{Truncations, comparisons, and binary arithmetic}
+
+\begin{lemma}[Finite comparisons and bounded elementary operations]
+\label{lem:arith-elementary}
+The normalized operations of taking a pair average, a maximum or
+minimum, and a fixed binary shift admit deterministic integers
+satisfying Equation~\eqref{eq:arith-approximation}.  Their residue
+procedures, for any fixed $q$, have the following properties.  There
+are constants $C_0,C_1$ such that an operand place $j$ obeys
+$j\leq t+C_0$, its suspended local record has length at most
+$C_0+C_1(t-j)$, and the intrinsic local space is $O(t+1)$.
+Fixed finite compositions of these normalized operations have the
+same bounds, with enlarged constants.  Fixed Boolean operations on
+returned digit codes, including sign decoding and conditional selection
+of code bits, add only constant local overhead.
+\end{lemma}
+
+\begin{proof}
+First consider comparing two truncations through $K=t+h$, where $h$
+is a sufficiently large fixed integer.  Their difference digits have
+magnitude at most 12.  Scanning from place zero to $K$, update a signed
+prefix by $p\leftarrow2p+\delta$.  While $|p|\leq12$, retain $p$
+exactly.  Once $p>12$ or $p<-12$, retain only the corresponding
+absorbing sign state.  This sign is correct for every finite
+continuation: the remaining suffix, in the current scale, has
+magnitude strictly less than 12.  The state space is finite, so each
+transition has a fixed bounded-fan-in Boolean circuit.  The sign
+at the end determines the exact order of the two finite truncations.
+The path from that sign bit to an input at place $j$ has length
+$O(K-j+1)=O(t-j+1)$.
+
+Let $v_t$ be the average, maximum, or minimum of the two
+truncations, and put $N_t=\lfloor2^tv_t\rfloor$.  Each operation is
+1-Lipschitz for the sup norm on its operands.  Consequently
+$|v_t-v|\leq6\,2^{-K}$, where $v$ is the corresponding exact output.
+Choosing $h$ so that $6\,2^{-h}<1/2$ gives
+$|N_t-2^tv|<3/2$.
+
+To obtain $N_t\bmod2^q$, only a fixed number of low places of the
+selected truncation are needed.  More explicitly, at scale $2^K$,
+terms of input place $j\leq t-q$ are multiples of $2^{q+h}$.
+Modulo this modulus the remaining $q+h$ places suffice.  For an
+average with integer input prefixes $A_K,B_K$ at scale $2^K$,
+use $N_t=\lfloor(A_K+B_K)/2^{h+1}\rfloor$.  Its residue needs
+modulus $2^{q+h+1}$ and one additional retained place:
+only places $j\leq t-q-1$ can be omitted.  The finite number
+of remaining digits can be added and shifted by a constant-size
+Boolean circuit.  A maximum or minimum first uses the comparison
+bit to select these residue bits.  Its long comparison branch has
+the path bound proved above, and its residue branch reaches only
+places within a fixed distance of $t$.  A fixed shift changes these
+places by a fixed amount.  Fixed normalization factors are handled
+in this way whenever an intermediate range exceeds $[-1,1]$.
+
+The topology of the comparison chain and the low-residue circuits
+depends only on the root clock, the fixed margins, and the gate
+path.  Regenerating a place by replaying that path needs no saved
+binary place counter at each transition.  Lemma~\ref{lem:arith-gate-evaluation}
+therefore gives the suspended-space bounds.  Their longest paths
+have length $O(t+1)$.
+
+For composition, use one common coefficient of $(t-j)$ for the
+finite primitive list.  Increasing such a coefficient by $\Delta$
+requires increasing its constant term by at most $\Delta C_0$,
+because the operand overshoot is at most $C_0$.  With these common
+coefficients, the clock differences telescope along the composed
+path.  The finite number of constant terms remains a constant.
+\end{proof}
+
+We will also use the following explicit Boolean arithmetic facts.
+A carry bit in binary addition is described by a generate/propagate
+pair $(g,p)$.  Composition of adjacent intervals is the associative
+operation
+\[
+ (g_2,p_2)\circ(g_1,p_1)
+   =(g_2\lor(p_2\land g_1),\ p_2\land p_1).
+\]
+Balanced trees of these pairs give every carry in $O(\log(W+1))$
+depth for $W$-bit words.  A balanced tree adding $R$ such words modulo
+$2^W$ has depth
+\begin{equation}
+ O\bigl(\log(R+1)\log(W+1)\bigr).
+ \label{eq:arith-adder-depth}
+\end{equation}
+The trees can be padded by zero words to powers of two, so their
+gate addresses are computable by ordinary index arithmetic.
+For counts of $R$ Boolean bits one can do better: constant-depth
+full adders replace three same-width rows by two rows of their sum,
+with carries placed in the next column.  In $O(\log(R+1))$ rounds
+only two rows remain.  The word width is $O(\log(R+1))$; a final
+carry computation gives total depth $O(\log(R+1))$.  These
+constructions use bounded fan-in throughout.
+
+\subsection{Multiplication by minimum-index bands}
+
+Grouping products by their smaller input index leaves a gap between
+the output clock and the requested input clocks; that gap pays for
+the retained circuit path within each band.
+
+\begin{lemma}[Multiplication]
+\label{lem:arith-multiplication}
+For normalized exact input streams $x$ and $y$, multiplication has all
+the conclusions of Lemma~\ref{lem:arith-elementary}.  In particular,
+its suspended storage at an operand place $j$ is
+$O(1)+c(t-j)$, despite the potentially long product expansion.
+\end{lemma}
+
+\begin{proof}
+Fix $q$ and write $A=6$.  Partition ordered pairs $(i,j)$ of
+nonnegative places into a zero band, where $\min(i,j)=0$, and
+positive bands
+\[
+ \mathcal P_D=\{(i,j):D\leq\min(i,j)<2D\},
+ \qquad D=1,2,4,\ldots.
+\]
+Set $h_0=h_\circ$ for the zero band and
+$h_D=h_\circ+\lfloor D/4\rfloor$ for positive bands.  The fixed
+integer $h_\circ$ will be chosen below.  Retain in band $D$ only
+pairs with $i+j\leq t+h_D$, and let
+\begin{equation}
+ S_D=\sum_{\substack{(i,j)\in\mathcal P_D\\i+j\leq t+h_D}}
+           x_i y_j2^{t+h_D-i-j}.
+ \label{eq:arith-band-integer}
+\end{equation}
+For the zero band the same formula uses its defining pair set.
+These are mathematical integers; no bound on their full binary
+length is assumed in the residue computation.
+
+At any fixed diagonal $i+j=s$, a positive band contains at most
+$2D$ ordered pairs.  Indeed the smaller place has $D$ possibilities,
+and an off-diagonal pair has two orientations.  The zero band has
+at most two pairs.  Thus, in units of $2^{-t}$, the total omitted
+product terms have absolute sum at most
+\begin{equation}
+ E_{\mathrm{omit}}
+ \leq 2A^2\sum_{D\in\{0,1,2,4,\ldots\}}(D+1)2^{-h_D}.
+ \label{eq:arith-band-tail-error}
+\end{equation}
+The geometric summation of the diagonal weights gives this bound
+also when the truncation threshold lies below the first possible
+diagonal.  Both the series in Equation~\eqref{eq:arith-band-tail-error}
+and $\sum_D2^{-h_D}$ converge.  Choose $h_\circ$ sufficiently large
+that their displayed combined error bound, including coefficient
+$2A^2$, is less than $1/2$.
+
+There are only finitely many nonempty retained bands.  For a
+positive one, $2D\leq t+h_D$, whence
+\begin{equation}
+ D\leq\frac47(t+h_\circ).
+ \label{eq:arith-last-band}
+\end{equation}
+The left side of the nonemptiness condition grows monotonically
+faster than its right side along the dyadic bands.  We may therefore
+stop at the last band satisfying this inequality, retaining empty
+bands within the finite prefix if necessary.
+
+Starting with the most distant retained band, define integers
+recursively by
+\begin{equation}
+ F_D=S_D+
+       \left\lfloor 2^{h_D-h_{D^+}}F_{D^+}\right\rfloor,
+ \qquad
+ N_t=\left\lfloor2^{-h_0}F_0\right\rfloor,
+ \label{eq:arith-band-recursion}
+\end{equation}
+where $D^+$ is the next band, and the last missing tail is zero.
+One internal floor, divided back to scale $2^t$, changes the sum
+by less than $2^{-h_D}$.  Induction down the bands consequently
+shows that the difference between $2^{-h_0}F_0$ and the sum of
+all retained terms in scale-$t$ units is at most $\sum_D2^{-h_D}$.
+Equation~\eqref{eq:arith-band-tail-error} and the choice of
+$h_\circ$ make the error before the final floor less than $1/2$.
+The final floor costs less than one more unit.  Therefore
+Equation~\eqref{eq:arith-approximation} holds for $z=xy$.
+
+We next implement Equation~\eqref{eq:arith-band-recursion} using
+residues.  At band $D$ use modulus $2^{q+h_D}$.  An integer term
+in Equation~\eqref{eq:arith-band-integer} with $i+j\leq t-q$
+is a multiple of this modulus and can be omitted from the circuit.
+It remains present in the mathematical integer $S_D$.
+Only the diagonals
+\begin{equation}
+ t-q<i+j\leq t+h_D
+ \label{eq:arith-relevant-diagonals}
+\end{equation}
+need to be processed, giving
+$O((D+1)(h_D+q+1))=O((D+1)^2)$ candidate pairs.
+
+Signed floor shifts are well defined on the required residues.
+For $h'\geq h$ and $a-b=k2^{q+h'}$,
+\begin{equation}
+ \left\lfloor\frac{a}{2^{h'-h}}\right\rfloor
+ -\left\lfloor\frac{b}{2^{h'-h}}\right\rfloor
+       =k2^{q+h}.
+ \label{eq:arith-signed-residue-floor}
+\end{equation}
+This identity holds for all signed integers $a,b$.  Thus a next-band
+residue modulo $2^{q+h'}$ supplies the correctly floor-shifted
+tail modulo $2^{q+h}$.  Apply the same observation to the final
+shift by $h_0$ to obtain $N_t\bmod2^q$.
+In the finite binary circuit, this shift just discards the lowest
+$h'-h$ bits of the canonical $(q+h')$-bit residue.  The displayed
+identity proves that this is valid also when the underlying integer
+is negative.
+
+For completeness, the finite gate structure can be indexed without
+storing an absolute operand place at each gate.  For a positive
+band enumerate triples $(r,s,o)$, where
+$D\leq r<2D$, $t-q<s\leq t+h_D$, and $o\in\{0,1\}$.
+The triple supplies $(r,s-r)$ if $s-r\geq r$ and $o=0$;
+it supplies $(s-r,r)$ if $s-r>r$ and $o=1$; otherwise it supplies
+a zero term.  This enumerates the relevant pairs exactly once.
+For the zero band use $r=0$ with the same orientation rule.
+Negative candidate places are invalid and supply zero.
+The offsets $r-D$ and $s-(t-q+1)$ have $O(\log(D+2))$ bits.
+They and $o$ are obtained from paths in padded binary selection trees.
+The full places are then computed from the root clock in scratch.
+
+Each nonzero term is a constant-bit signed product $x_i y_j$,
+shifted into a word of width $W_D=q+h_D=O(D+1)$ and interpreted
+modulo $2^{W_D}$.  A bit of this word is a fixed Boolean function
+of the two bounded digit codes, the bit index and the known shift;
+negative products use their ordinary residue, equivalently sign
+extension before reduction.  Add these words and the shifted tail
+using Equation~\eqref{eq:arith-adder-depth}.  A band contributes
+depth $O(\log^2(D+2))$.  Bit selection for the shifted tail is
+wiring and does not require evaluating a full tail word.
+
+The sum of these depths through the bands up to $D$ is
+$O(\log^3(D+2))$, hence at most $C(D+1)$ for a fixed $C$.
+For an original input digit in a positive band, its partner place
+is at least $D$.  Equation~\eqref{eq:arith-relevant-diagonals} gives
+\begin{equation}
+ j\leq t+h_D-D
+       \leq t+h_\circ-\frac34D.
+ \label{eq:arith-multiplication-latency}
+\end{equation}
+Equivalently, $t-j\geq\tfrac34D-h_\circ$, so the full path cost
+through these bands satisfies
+\[
+ C(D+1)\leq C\left(1+\frac43h_\circ\right)
+                   +\frac{4C}{3}(t-j).
+\]
+This gives $C_0+C_1(t-j)$ with fixed constants.  The zero band
+has constant depth and only constant overshoot.  All its gate
+descriptions, term coordinates, bit positions and tail shifts are
+computable by replaying paths and doing integer index arithmetic
+from $t$ and $q$.  Lemma~\ref{lem:arith-gate-evaluation} converts these
+depth bounds to suspended storage.  Finally,
+Equation~\eqref{eq:arith-last-band} bounds every intrinsic path
+and local word width by $O(t+1)$.
+\end{proof}
+
+\subsection{Reciprocals and the early-word convention}
+
+A prefix through roughly half the output clock makes the remainder
+in a first-order reciprocal expansion quadratically small. Releasing
+that prefix before later input queries keeps its long word from
+surviving a call with little remaining clock gap.
+
+\begin{lemma}[Reciprocal on a positive compact interval]
+\label{lem:arith-reciprocal}
+Fix constants $0<a\leq b$.  On inputs $x\in[a,b]$, a reciprocal,
+after a fixed known normalization, has the same operand-clock,
+suspended-record, and intrinsic-space bounds as in
+Lemma~\ref{lem:arith-elementary}.  Its local record may contain an
+$O(t+1)$-bit word only while querying input places
+$j\leq\lfloor t/2\rfloor+O(1)$.
+\end{lemma}
+
+\begin{proof}
+The input can first be normalized by a fixed binary scale.  It is
+enough to prove the result with a fixed digit alphabet and fixed
+positive interval; all constants below may depend on $a,b$.
+Choose a fixed power of two $C$ large enough that the desired output
+$z=1/(Cx)$ lies in $[0,1]$ and that the coefficients below have
+absolute value at most one.  Put
+\[
+ k=\lfloor t/2\rfloor+c,\qquad x^0=x^{[k]},\qquad e=x-x^0,
+\]
+where $c$ is a sufficiently large fixed integer.  By
+Equation~\eqref{eq:arith-tail}, $|e|\leq 6\,2^{-k}$.  Choosing $c$
+first ensures $x^0\in[a/2,2b]$ and $|e|\leq1$ at every $t$.
+Increasing $C$ if necessary gives bounded coefficients
+\[
+ \alpha=\frac1{Cx^0},\qquad \beta=-\frac1{C(x^0)^2}.
+\]
+The exact algebraic identity
+\begin{equation}
+ \frac1{Cx}=\alpha+\beta e+
+               \frac{e^2}{C(x^0)^2x}
+ \label{eq:arith-reciprocal-taylor}
+\end{equation}
+shows that the linear expression $T_t=\alpha+\beta e$ differs
+from $z$ by at most a fixed constant times $2^{-2k}$.
+Choose $c$ large enough that
+\begin{equation}
+ 2^t|T_t-z|\leq\frac14
+ \quad\hbox{for every }t\geq0.
+ \label{eq:arith-reciprocal-remainder}
+\end{equation}
+Clipping $T_t$ to $[-1,1]$ cannot increase this error; denote the
+clipped expression by $\widehat T_t$.
+
+For this fixed original $t$, the coefficients $\alpha,\beta$ are
+exact rational numbers.  Their digits are produced by integer
+arithmetic, as described below.  The suffix $e$ has the exact stream
+with digit zero through $k$ and digit $x_j$ thereafter.  Thus
+Lemmas~\ref{lem:arith-elementary} and
+\ref{lem:arith-multiplication} provide exact streams for
+$\widehat T_t$, using only a fixed number of normalized operations.
+Explicitly, form the product $\beta e$, then the pair average
+$u=(\alpha+\beta e)/2$, clip $u$ to $[-1/2,1/2]$ by a maximum
+and a minimum, and finally apply the fixed shift by 2.  Every
+exported intermediate value is normalized, and the final value is
+$\widehat T_t$.  Forming this expression introduces no additional
+reciprocal operation.
+
+Let $P_s(\widehat T_t)$ be the integer approximation furnished by
+those operations at place $s=t+3$, and define
+\begin{equation}
+ N_t(z)=\left\lfloor P_{t+3}(\widehat T_t)/8\right\rfloor.
+ \label{eq:arith-reciprocal-approximation}
+\end{equation}
+The cutoff $k$ and the coefficients remain those of the original $t$,
+not those of $s$.  Equations~\eqref{eq:arith-approximation} and
+\eqref{eq:arith-reciprocal-remainder} give
+\[
+ |N_t(z)-2^tz|<1+\frac28+\frac14=\frac32<2.
+\]
+To obtain this integer modulo $2^q$, ask for the approximation
+$P_{t+3}$ modulo $2^{q+3}$ and use
+Equation~\eqref{eq:arith-signed-residue-floor}.
+
+It remains to justify storage in the coefficient computations.
+The signed numerator of $x^0$ in units $2^{-k}$ has $O(k+1)$
+bits.  Form it by querying places $0,\ldots,k$ and updating the
+integer prefix.  The numerator, a place counter, and all data that
+must survive the next query are part of the local record.
+To return a coefficient digit of place $r$, numerator squaring and
+integer division require $O(k+r+1)$ bits.  Here $r\leq t+O(1)$,
+because the enclosing expression has fixed depth and constant
+overshoot.  After the input prefix is obtained, these integer
+computations make no further operand queries.  Standard binary
+long multiplication and division, performed by bounded loops with
+their partial products or remainder, use only this linear number
+of bits.  For $r>0$, computing floors of the coefficient scaled at
+$r$ and $r-1$ gives its exact difference digit; at $r=0$ use the
+place-zero floor alone, as in Lemma~\ref{lem:arith-residue-stream}.
+Clipping is unnecessary
+because the coefficients were normalized in advance.
+
+Every original-input query during this formation has
+$j\leq k\leq t/2+O(1)$.  Hence
+\begin{equation}
+ t+1\leq C_2+C_3(t-j)
+ \label{eq:arith-early-word-payment}
+\end{equation}
+for fixed constants, at all such queries.  The enclosing gate path
+also has length $O(t+1)$, so the complete suspended local record
+satisfies the required bound there.  Equivalently, the coefficient
+branch is charged against the original reciprocal clock $t$, not
+against its possibly small coefficient digit place $r$.
+
+On a suffix branch with $j>k$, the coefficient word is absent.
+The Boolean evaluation asks for a coefficient digit at a separate
+leaf, returns its bounded code bits, and discards the coefficient
+word.  If the other child of a gate subsequently asks for a late
+suffix digit, only the bounded pending bits and gate choices are
+retained.  The path bound from the preceding arithmetic lemmas
+therefore gives $O(1)+c(t-j)$ also on this branch.  Repeated
+coefficient requests rebuild the word.  The parameter $k$ and the
+choice of coefficient are regenerated from the original $t$ and
+the saved gate path; no earlier cursor address is required.
+All intrinsic records have $O(t+1)$ bits.
+\end{proof}
+
+The coefficients in this proof are operand-dependent, even though they
+are rational once $x^0$ is known.  They therefore do not qualify as
+public coefficient leaves.  A coefficient request first forms its
+charged early prefix, then uses scratch for integer arithmetic, returns
+only the requested bounded digit, and releases that prefix before a
+suffix branch is evaluated.  The original reciprocal clock $t$ remains
+regenerable throughout.  This order of operations is the lifetime rule
+used in the suspended-record bound.  In particular, $j\le\lfloor t/2\rfloor+c$
+gives the explicit payment $t+1\le2(t-j)+2c+1$ for the early word.
+
+\subsection{Indexed ranks, sums, scales, and structural leaves}
+
+\begin{lemma}[Indexed finite ranks]
+\label{lem:arith-rank}
+Fix $\kappa>0$ and $d\geq1$.  Consider at most $2^{\kappa d}$
+normalized values, indexed by descriptors of length at most
+$\kappa d$, and an order statistic specified by an $O(d)$-bit
+index.  The semantic list length $n$ is public; the requested index
+is in $\{1,\ldots,n\}$, or an out-of-range request returns a
+prescribed normalized constant.  Absent descriptors may be assigned
+prescribed constant dummy values by structural validity predicates.
+This order statistic has deterministic integer approximations $N_t$
+satisfying Equation~\eqref{eq:arith-approximation}.  Their residue
+procedures have constants $a,b,c$, depending only on the descriptor
+bounds, such that an operand digit query at $j$ obeys
+\begin{equation}
+ j\leq t+cd,\qquad
+ L\leq ad+b(t-j),
+ \label{eq:arith-local-bound}
+\end{equation}
+where $L$ is the total suspended local record length.  A structural
+validity query is assigned clock zero and has suspended length
+$O(d+t)$.  The intrinsic local length is $O(d+t)$.
+\end{lemma}
+
+\begin{proof}
+For $1\le k\le n$, the $k$th largest of the semantic $n$-entry list
+is its $(n-k+1)$st ascending order statistic, before any extra padding.
+Pad to a fixed descriptor domain whose cardinality is a power of
+two, adding entries of value $+1$.  These entries do not change
+any of the first $n$ ascending order statistics.  An empty list or
+an out-of-range request returns its specified default immediately.
+Replace invalid original descriptors by the prescribed dummies.
+An operand access evaluates validity first and enters the actual
+value branch only when valid; an invalid access returns the dummy's
+digit.  Thus a dummy does not require a query to an undefined value.
+For each valid numerical value use its truncation through
+$K=t+h$ for fixed large $h$.  Order these finite rational values,
+breaking ties by descriptor index.  Compare every pair using the
+signed comparison of Lemma~\ref{lem:arith-elementary}.  For each
+descriptor count how many descriptors precede it, then compare
+that count to the requested rank minus one.  Exactly one
+descriptor is selected.  Select its low-residue bits using Boolean
+AND and OR trees and finally floor to output scale $2^t$.
+The selected descriptor is internal to this residue computation.  It
+may change with $t$; the exact order statistic being approximated is
+fixed by the semantic list and the requested index.
+
+If all coordinates of two finite lists differ by at most $\eta$,
+their corresponding order statistics differ by at most $\eta$.
+Indeed, at least the specified number of the perturbed entries
+are no larger than the original order statistic plus $\eta$;
+interchanging the lists gives the reverse inequality.  Here
+$\eta=6\,2^{-K}$.  Thus the selected truncation, followed by the
+final floor, satisfies Equation~\eqref{eq:arith-approximation}
+for sufficiently large fixed $h$.  Descriptor ties affect neither
+this estimate nor the uniqueness of the finite selection.
+This argument perturbs the entire padded exact list.  Some truncated
+original entries may exceed $+1$ slightly, but their error, and hence
+the error of the selected padded order statistic, is still at most
+$\eta$.  The padding argument requires no separate claim that every
+finite truncation remains in $[-1,1]$.
+
+Each count has $O(d)$ bits.  Carry-save counting as described
+above, the comparison to the requested rank, and selection among
+$2^{O(d)}$ descriptors add $O(d)$ Boolean depth above the
+pairwise comparison bits and selected residue bits.  A
+place-$j$ input to a pairwise comparison consequently has path
+length $O(d)+O(t-j)$; a residue input is within a fixed distance
+of $t$ and has path length $O(d)$.  The paths to validity predicates
+have length at most the whole circuit depth $O(d+t)$, and the
+predicates themselves are separate structural leaves of clock zero.
+
+Each gate is specified by its pair of descriptor indices, its
+counting-tree or selection-tree position, and a comparator or bit
+position.  The paths determine these indices in $O(d+t)$ scratch,
+using only the fixed domain and root parameters.  No numerical
+comparison is needed to determine the circuit topology.  Apply
+Lemma~\ref{lem:arith-gate-evaluation}.  The constants in
+Equation~\eqref{eq:arith-local-bound} can absorb the fixed digit
+overshoot because $d\geq1$.
+\end{proof}
+
+For the compression ranks, copies of a previously computed baseline
+are ordinary indexed operands: their digit interfaces query the
+baseline's exact stream one bounded digit at a time.  A slot that
+chooses between an entry and the baseline first evaluates its
+structural flag and then queries the selected, already-defined stream.
+Treating this as a defined operand interface leaves no absent value
+for the rank procedure to evaluate.
+The required baseline copies belong to the semantic list; the extra
+power-of-two padding in the proof is then supplied by the constant
+$+1$.  The structural choice adds only a fixed conditional branch,
+so the same digit-clock and suspended-record bounds apply.
+
+A rank over the full incoming vertex universe need not have a
+$2^{O(d)}$ descriptor domain.  That operation uses the terminal
+configuration procedure in the next section.
+
+\begin{lemma}[Bounded sums and known scales]
+\label{lem:arith-sums-scales}
+Suppose an immediate descriptor domain has at most $2^{\kappa d}$
+terms, all required binary scale exponents have magnitude at most
+$\kappa d$, and every intermediate output has a known range bound
+$2^{\kappa d}$.  A sum over an empty domain is zero, and an average
+is taken over a public nonempty domain.  Balanced sums or averages of these terms, followed
+by the required known rescalings and bounded clipping, satisfy
+Equation~\eqref{eq:arith-local-bound} and have intrinsic local
+space $O(d+t)$.
+\end{lemma}
+
+\begin{proof}
+Choose one common known power-of-two range bound for the immediate
+terms and divide each term by it, so every term lies in $[-1,1]$.
+Pad their number to a power of two $2^r$, $r=O(d)$, and use a complete
+binary tree of pair averages.  Every internal value stays normalized.
+Along one path there are $r$ elementary operations.  Choose common
+coefficients in their bounds, as in the last paragraph of the
+proof of Lemma~\ref{lem:arith-elementary}.  The constant terms
+sum to $O(r)$ and the differences of successive digit clocks
+telescope.  Thus the local length is $O(d)+b(t-j)$ and the
+total overshoot is $O(d)$.  Restore the common normalization scale
+only after the tree of pair averages.  For a sum, combine this factor
+with the known padding count $2^r$ in one binary shift of magnitude
+$O(d)$.  For an average over an original domain of size $m$, combine
+the scale restoration with multiplication of the padded average by
+the public factor $2^r/m$.  With minimal padding the latter factor
+is in $[1,2)$, so it requires only one normalized public multiplication
+and a fixed shift in addition to the common scale restoration.
+
+More explicitly, for a shift by $2^v$, truncate the operand at
+$K=\max(0,t+v+h)$.  If $t+v+h\geq0$, its scaled truncation
+error in scale-$t$ units is at most $6\,2^{-h}$.  If the scaled
+output is known to be normalized, floor in the desired output
+scale.  Otherwise, when a bounded clip is required, apply that
+clip to the scaled truncation before flooring.  For the
+normalized clip to $[-1,1]$, for example, define the approximation
+using $\min(1,\max(-1,2^v x^{[K]}))$; its error cannot increase.
+This shift-and-clip procedure does not first export an unbounded
+intermediate as a normalized stream.
+The low residue requires the constant number of places near
+$t+v$, and a comparison needed for clipping has a constant-state
+chain through $K$.  Comparisons to the scaled clipping endpoints
+are equivalently comparisons of $x^{[K]}$ to the known endpoints
+divided by $2^v$; their finite constants and shifted place data
+are public.  When $v\geq0$ these endpoints belong to $[-1,1]$;
+when $v<0$ the normalized operand is already in the clip interval
+after scaling, so no clipping comparison is needed.  Its path cost is
+$O(1)+O(\max(0,t+v-j))$, which is at most
+$O(d)+O(t-j)$ on an actual operand query.  If $t+v+h<0$, zero
+is already a sufficiently accurate approximation after increasing
+$h$, and no operand query is needed.  A fixed number of such
+rescalings and clips preserves the bounds by telescoping.
+Known non-power-of-two coefficients can instead be handled as
+public normalized streams and bounded multiplication.
+\end{proof}
+
+\begin{lemma}[Finite buffered tests]
+\label{lem:arith-buffered-test}
+Let $d\geq1$, let $s$ and $u$ have known magnitude bound $2^{\kappa d}$,
+and suppose $u\geq\rho\geq2^{-\kappa d}$.  There is a deterministic
+finite test that accepts every $s>2u$ and accepts only $s>u$.
+It uses $O(d)$-place digit queries after normalization, with
+intrinsic and suspended local lengths $O(d)$.  Its result is
+independent of any subsequent numerical output clock.
+\end{lemma}
+
+\begin{proof}
+Compute finite rational approximations $\widetilde s,\widetilde u$
+with individual errors at most $\rho/16$.  The known range and
+lower bound on $\rho$ make $O(d)$ normalized digits sufficient.
+Accept exactly when
+$\widetilde s>\tfrac32\widetilde u$, using a fixed convention
+at equality.  If $s>2u$, the left side minus the right side is
+greater than $u/2-5\rho/32>0$.  If $s\leq u$, it is at most
+$-u/2+5\rho/32<0$.  The finite comparison and all previous
+arithmetic have the bounds already proved.  The test chooses its
+precision from $d$ and $\rho$, not from an enclosing numerical
+clock.  With its structural starting clock defined as zero, its
+operand requests have $j=O(d)$; increasing $a$ in
+Equation~\eqref{eq:arith-local-bound} pays also for the term $-bj$.
+\end{proof}
+
+\subsection{The numerical interface}
+
+We state the composition result with its syntactic hypotheses.
+They concern finite arithmetic recipes and do not assert any
+property of the underlying graph operations.
+
+Application to graph procedures requires a separate certificate.  The
+semantic descriptor domains and structural validity conventions are
+fixed independently of the requested numerical clock; selected operands
+already have defined digit interfaces; reciprocal arguments lie in the
+stipulated positive intervals; and root parameters remain recoverable
+after lower calls.  Clock-dependent truncations and comparison circuits
+may change $N_t$, but not its target recipe value.
+Lemmas~\ref{lem:ctrl-recipes} and~\ref{lem:ctrl-replay} verify these
+conditions for the estimator procedures.  An incoming rank over the
+whole vertex universe has no prescribed $2^{O(d)}$ descriptor bound and
+uses the separate construction of Lemma~\ref{lem:ctrl-score-rank}.
+
+\begin{theorem}[Uniform numerical interface]
+\label{thm:arith-interface}
+Fix the digit alphabet, positive reciprocal intervals, and
+constants bounding the following recipe class.  A recipe at
+slack $d\geq1$ has a fixed number of stages built from bounded
+arithmetic operations, fixed piecewise formulas using maxima,
+minima and clipping, the reciprocals of
+Lemma~\ref{lem:arith-reciprocal}, indexed ranks as in
+Lemma~\ref{lem:arith-rank}, and sums and known scales as in
+Lemma~\ref{lem:arith-sums-scales}.  The stage and descriptor
+descriptions are generated from the root parameters by index
+computations using $O(B+d+t)$ scratch and no operand queries, and the
+total non-reduction dependency depth is bounded independently
+of $d$.  Each indexed domain has size $2^{O(d)}$ and descriptors
+of length $O(d)$.  Discrete domain and validity decisions are
+structural leaves or buffered tests with their own fixed
+precision conventions.  Public coefficient leaves have exact
+normalized digit procedures using $O(B+d+t)$ shared scratch
+and making no operand or recursive graph queries.
+
+Then each normalized recipe value has a deterministic exact
+$\mathcal A$-stream.  For its digit at clock $t$ there are uniform
+constants $a,b,c$ such that every requested operand digit $j$
+satisfies
+\begin{equation}
+ j\leq t+cd,\qquad
+ \text{total suspended local binary record length}
+       \leq ad+b(t-j).
+ \label{eq:arith-export}
+\end{equation}
+An output code bit satisfies the same bounds.  A structural leaf
+is requested at clock zero and has suspended local length at
+most $ad+bt$.  The maximum intrinsic local record length is
+$O(d+t)$.
+
+All gate, digit and descriptor addresses can be regenerated from
+root parameters and the saved local records using
+$O(B+d+t)$ shared scratch and no recursive graph calls.  When
+$d,t=O(B)$ this is $O(B)$ scratch.  If a public rational
+coefficient has $O(B)$-bit numerator and denominator that can
+be generated in $O(B)$ scratch, its queried digits in this clock
+range also require only that shared $O(B)$ scratch.
+\end{theorem}
+
+\begin{proof}
+The primitive constructions define deterministic integers $N_t$.
+Lemma~\ref{lem:arith-residue-stream}
+turns them into exact streams.  When composing primitives,
+their operands are these exact streams; numerical approximation
+errors are not accumulated along the recipe as if they were
+statistical errors.  Instead, each primitive's deterministic
+$N_t$ is an approximation to its own exact mathematical value.
+The construction uses only residues of $N_t$ and $N_{t-1}$ and
+a constant number of output code bits, which adds fixed
+overshoot and fixed local overhead.
+
+For the record bound, choose one common positive clock
+coefficient $b$ for the finite primitive and stage types.  In any
+bound $L\leq a_0d+b_0(t-j)$ with $j-t\leq c_0d$, replacing
+$b_0$ by $b\geq b_0$ is justified by replacing $a_0$ by
+$a_0+(b-b_0)c_0$.  Thus the same $b$ can be used everywhere.
+There are a bounded number of stages, each with overhead $O(d)$;
+within a balanced reduction the elementary overheads have total
+$O(d)$ by Lemma~\ref{lem:arith-sums-scales}.  Along any path
+the intermediate clock differences telescope, giving
+Equation~\eqref{eq:arith-export} and total overshoot $O(d)$.
+The same sum, terminated at an internal arithmetic operation
+rather than an operand call, gives the intrinsic bound explicitly
+as follows.  If that operation has current clock $u$, its own
+intrinsic record has length at most $C(d+u)$, while the outer
+saved portion has length at most $A d+b(t-u)$.  Choose the
+common $b$ also to satisfy $b\geq C$.  Their sum is then at most
+$(A+C)d+bt$, because $u\geq0$.  Increasing the stage constants
+as above makes this same choice of $b$ valid in all local bounds.
+The early-word case is already included in
+Lemma~\ref{lem:arith-reciprocal}: those retained bits are part of
+the local record and are paid for at the actual original-input
+clock by Equation~\eqref{eq:arith-early-word-payment}.
+
+Structural validity branches are finite branches in this circuit
+organization, with length at most its full intrinsic bound.
+They ask the structural operand at clock zero.  Buffered tests
+are separate recipes with structural starting clock zero and
+precision fixed by Lemma~\ref{lem:arith-buffered-test}; they are
+not altered when a surrounding value is requested more accurately.
+Thus no discontinuous comparison of exact reals at unbounded
+precision is part of the interface.
+
+All circuit constructions were given with padded domains and
+index rules.  A saved gate choice selects an operand, a subtree,
+a bit of a known-width word, or one of the finite primitive modes.
+Scanning these choices from the root recovers the current
+descriptor and digit places by integer arithmetic.  The
+reciprocal's extra records additionally specify its early-prefix
+formation state.  None of these computations refers to an
+ancestor cursor address or requires an operand value to discover
+the next gate.  Their integers have $O(B+d+t)$ bits; repeated
+scans reuse one scratch area.  Lemma~\ref{lem:arith-gate-evaluation}
+therefore applies at every Boolean portion of the recipe.
+
+Finally, for a public coefficient $P/Q$, $Q>0$, producing a
+place-$r$ approximation uses integer division of $2^rP$ by $Q$,
+with signed floors when needed.  The inputs and intermediate
+remainders have $O(B+r)$ bits.  Standard finite binary division
+and multiplication use that much space, and extracting the
+low residue or difference digit requires no larger word.
+All operand bits in this computation are public, so it makes no
+recursive graph call and can use shared scratch throughout.
+For $r=O(B)$ its scratch bound is $O(B)$.  In contrast, any word
+whose bits depend on recursive operands and must survive a new
+operand request has already been charged to the local record.
+\end{proof}
+
+\begin{remark}[Use of clocks]
+\label{rem:arith-clocks}
+Theorem~\ref{thm:arith-interface} is a finite-request statement
+for every $t$.  Its exact-stream conclusion follows by considering
+these finite requests separately, and does not require a machine
+to choose structural domains or port orders at infinite precision.
+For the actual top-level computation all reached clocks will be
+$O(B)$ by the allowance calculation in the next section.  Known
+rate and field coefficients have $O(B)$-bit descriptions, and a
+fixed rational generator probability raised to a walk length
+$O(d)$ has numerator and denominator of $O(d)$ bits; these are
+instances of the public-coefficient provision above.
+\end{remark}

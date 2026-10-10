@@ -1,0 +1,501 @@
+\section{Lazy evaluation and the expected work bound}
+\label{sec:work}
+
+The tables defined above need not be filled.  We evaluate only entries
+requested by the final root query and store each completed result.
+Two different costs must be controlled.  A wide search may inspect many
+actions using previously gathered child values.  At the current index,
+however, recursive calls are restricted to the shared group samples,
+the chosen rounded actions, and the actual online draws.  The bounds
+on recursive requests hold on every execution of the local rules,
+including executions with inaccurate seeds or unsuccessful group
+samples.  We charge the expected numerical and sampling costs
+conditional on those requests.
+
+\subsection{Evaluation order and stored randomness}
+
+Consider an uncached request for $d_t(I,q)$.  The local cone tests and
+warmup data determine the representatives, bands and rounded actions
+that it can use.  Evaluating these tests may itself discover further
+warmup or seed requests.  Once the bands are known, the wide Bellman
+search and the online optimizer gather the needed earlier-index child
+values and reuse them throughout their action enumerations.  The group
+samples, selected rounded actions and sampled online actions also
+request current-index child values.  The entry is then obtained by
+the exact minimum and maximum in~\eqref{eq:refined-update} and cached.
+The distinction between gathering inputs and repeatedly using them is
+what permits large local action lists with few recursive calls.
+
+These instructions are well founded before any accuracy event is
+considered.  Number refinement passes in their order of construction,
+give $w_j$ index $j$ and $d_t$ index $T+t$, and identify $d_0=w_T$.
+Treat a seed median as its $H^2$ preceding-pass refinement requests,
+and regard band and group calculations as auxiliary work within the
+table entry that requests them.  Every table dependency strictly
+decreases the lexicographic triple
+\[
+ (\text{pass},\ \text{index},\ \text{remaining tree height}).
+\]
+A current-index request descends to a child.  Warmup and history
+requests decrease the index; seed requests enter an earlier pass,
+where the index may reset.  Initial entries terminate this order
+because their estimators do not query any other initial entry.
+Different copy labels never reset the pass or index.  Repeated and
+empty intervals still have distinct node labels and smaller remaining
+height at their children.
+
+Fix a lexicographic order on every finite state or action list
+to resolve ties.  Use the following keys for stored objects:
+\begin{itemize}
+\item An initial entry is keyed by its tree-node label and its two
+state endpoints.  Its private random source supplies all guesses and
+thresholds in that initial-entry calculation.
+\item A later seed entry is keyed by its pass, node, and endpoints.
+Its stored value is the clamped integer median of the separately
+identified copies of the preceding refinement.
+\item A warmup or refinement entry is keyed by its table kind, pass,
+copy, node, index, and endpoints.  The table kind distinguishes $w_j$
+from $d_t$, with $d_0=w_T$ identified.
+\item The warmup-derived data for a representative are keyed by the
+pass, copy, node, scale $b$, and endpoints $r$.  These data determine
+its band, scale labels, and rounded action and do not depend on $t$.
+\item A group result is keyed by the pass, copy, node, scale $b$, the
+two integer cell indices, and $t$.  It contains the chosen member and
+its actual evaluated cost.  Its random sources also distinguish the
+scale $h$ and the sample number.
+\item An online draw is keyed by the pass, copy, node, queried state
+$q$, scale $b$, and $t$.  Its representative is $r_b(q)$.  Repeated
+requests use the stored action, whereas different queries may have
+independent draws even if their representatives agree.
+\end{itemize}
+In particular, a requested group is computed over its entire specified
+cell.  Its result does not depend on which query first requested it.
+Repeated list processing and numerical iterations use dictionary
+lookups for previously gathered recursive inputs; their lookup costs
+will be included below.
+
+Generate fresh fair random bits on the first calculation of each
+random object, and retain its outcome.  Different copies, passes,
+nodes, and specified random objects have independent sources.  This
+can be viewed equivalently as assigning independent bit streams to
+all keys in advance.  By the dependency order above, deciding to
+request an object uses only already exposed streams.  This equivalence
+is a distributional description, not an instruction to allocate all
+streams or tables.
+
+For a given refinement copy, the complete child tables depend on
+descendant streams and earlier passes, but not on fresh streams of
+the current parent.  Conditioning on those tables consequently
+leaves its group samples and online draws with their specified
+independent laws.  This justifies the conditioning used in the
+accuracy analysis.  The whole-domain seed guarantees are retained;
+adaptively requesting a seed entry does not replace such a guarantee
+by one for a fixed query.
+
+For the expected running time, we use a different conditioning.
+Before the first request of an initial entry, none of its private random bits has
+been exposed.  Conditional on the previous execution and its first
+request, the expected cost bound of Theorem~\ref{thm:seed} therefore
+still applies.  Later requests only look up its stored answer.  This
+argument does not condition on the initial entry being correct.
+
+\subsection{Finite local calculations on inaccurate seeds}
+
+We first bound the numbers manipulated by the implementation.  These
+bounds concern its finite local rules, rather than the global cone
+identities that were proved under a good seed.
+
+\begin{lemma}[Unconditional size bounds]
+\label{lem:unconditional-sizes}
+On every execution, all local searches are finite.  The warmup values
+are nonnegative integers bounded by $(2L_0+1)N$, and every refinement
+value satisfies $0\le d_t(I,q)\le w_0(I,q)$.  Put
+$Q=\ell^{10}+1$, and let $h(I)$ be the remaining height of the fixed
+tree below $I$.  Every returned $d_t(I,q)$ has denominator dividing
+$Q^{h(I)}$.  The rational data used in band tests, group comparisons,
+and the numerical optimizer have bit length $H^{O(p_*+1)}$.
+\end{lemma}
+
+\begin{proof}
+Every seed entry is an integer in $[0,N]$ by clamping.  In the local
+calculation of $w_0(I,q)$, a zero tested seed returns zero.  Otherwise
+the scale range is finite, and the search uses grid endpoints at
+sup distance at most $U(I,q)\le N$ from $q$.  A cone height
+$\widetilde U(I,r)$ is at most $N$, and its added charge is at most
+$2L_0N$.  The default value when the candidate list is empty is $N$.
+Leaf values satisfy the same bound.  Hence
+\[
+ 0\le w_0(I,q)\le(2L_0+1)N.
+\]
+All grid endpoints are integers: their spacing is a power of two
+truncated below at one.  Thus cone and connection charges are
+integers.  Every Bellman minimum contains its local $w_0$ value and
+has nonnegative candidates.  It follows that every $w_j$ is a
+nonnegative integer at most $w_0$ at the same state.  The average
+$m$ has denominator $T$.
+
+The value $\Pi_t$ contains the Bellman option, so it too is at most
+$w_0$.  The clipped definition of $d_t$ is nonnegative and at most
+$\Pi_t$, irrespective of seed accuracy.  An empty online minimum
+is represented by the symbol $+\infty$; the formula then returns
+$\Pi_t$.  No unbounded search or approximate numerical sentinel is
+needed for an empty list.
+
+For the denominator claim, induct on physical tree height, for all
+indices simultaneously.  Leaves return integers.  Each actual
+candidate at a nonleaf is an integer charge plus a sum of child
+values, or an integer warmup value.  All child denominators divide
+$Q^{h(I)-1}$.  Minima and maxima select one of their arguments.  The
+only further denominator operation in a returned value is division
+by $1+\delta=Q/\ell^{10}$, which adds at most one power of $Q$.
+Sampling weights and numerical mixtures select actions; they are
+not themselves averaged into the returned table value.  This proves
+the claim.  In particular the table-value bit length is
+\[
+ O\bigl(H+J\log\ell\bigr).
+\]
+
+The preliminary scale labels $h_i$ are dyadic ceilings of positive
+rational quantities of bounded bit length.  In every retained band,
+the explicit guard gives
+\[
+ b/M\le h_i\le h_\Sigma\le64Fb.
+\]
+Failed guards simply discard bands.  All prefix and wide minima
+use already bounded warmup values and integer charges.  Tests for
+positivity of $Z$, the ratio $z(I,r)/Z$, band membership, and rounded
+endpoint validity are exact rational tests of polynomial bit
+length.  A nonpositive or infinite $Z$ is discarded before division.
+
+A group comparison may use, in addition to a common power of $Q$,
+the product of the $O(\ell)$ integers $k_h\le M$ as a denominator.
+This still has polynomially many bits.  These sampling denominators
+are discarded when the chosen action is actually evaluated.  Online
+coefficients are finite sums of earlier table values divided by
+dyadic $h_i$ and multiplied by the displayed parameters.  Their bit
+length is bounded by $H^{O(p_*+1)}$.  On inaccurate seeds their
+magnitudes need not have the good-seed normalization, but this does
+not increase their bit length beyond that bound.  The first step
+$\xi_0=1$ in Lemma~\ref{lem:finite-optimizer} makes its gap estimate
+independent of the initial linear objective magnitude.
+\end{proof}
+
+The locality bounds themselves are also unconditional.  The scale
+range for $w_0$ has ratio polynomial in $A$, and radius divided by
+grid spacing $O(A^2P)$.  For the other local searches, the ratio of
+the endpoints of the scale interval is $128aF$.  It admits
+$O((p_*+1)\ell)$ scales.  At any such scale,
+$w_0(I,q)/b\le16F$, so the square specified in the local rule meets
+\[
+ O\bigl((1+F/\theta)^2\bigr)
+\]
+cells.  A cell has $O((1+P)^2)$ representative candidates.  All these
+lists can be generated by ranges of integer multiple indices,
+without scanning unrelated string positions.
+
+\subsection{The current-index child budget}
+
+The following count is the reason for using rounded actions and
+samples shared across a cell.  At a small scale $h$, many rounded
+states can occur at one child, but few children are sampled.  Their
+respective factors $b/h$ and $h/b$ cancel.  At a large scale, the
+rounded list is already small enough to inspect every child.
+The count concerns distinct recursive inputs; repeated uses of an
+input are charged later as lookups.
+
+\begin{lemma}[Current-index calls]
+\label{lem:current-index-budget}
+Evaluating one refinement entry $d_t(I,q)$ requires at most
+$M\ell^{O(1)}$ distinct child entries at the same pass, copy, and
+index $t$.  This bound holds for all seeds and all sample outcomes.
+\end{lemma}
+
+\begin{proof}
+Fix a group at scale $b$, a scale label $h$, and a child $i$.  Put
+$D_h=\max(1,\theta h)$.  Across the whole cell, all queried rounded
+states with $h_i=h$ use this common endpoint spacing.  The wide
+action guard puts their first endpoints in an interval of length
+$O(b)$: $r^-$ varies by at most $\theta b$ within the cell, and
+the shift radius is at most $10b$.  Once the first endpoint is fixed,
+the guard $\abs{z(I_i,s_i)}\le2h$ restricts the second endpoint to
+an interval of length $4h$.  The number of distinct states is
+therefore at most
+\begin{equation}
+ C(1+b/D_h)(1+h/D_h)
+ \le C'\theta^{-2}(1+b/h),
+ \label{eq:rounded-cell-count}
+\end{equation}
+for absolute constants $C,C'$.  This estimate also holds when
+$\theta h<1$, using $D_h\ge\theta h$.  Requiring legitimate ordered
+endpoints in $[0,|y|]$ can only reduce the count.
+
+There are two cases in the group calculation.  If $k_h<M$, then
+$h\ge b/M$ and $Q_1\ge1$ imply
+\[
+ k_h\le2Q_1Mh/b,\qquad h/b<1/Q_1.
+\]
+At most $k_h$ distinct child labels occur in the sample.  Multiplying
+\eqref{eq:rounded-cell-count} by this number gives at most
+\[
+ C'\theta^{-2}k_h(1+b/h)
+ \le C''M\theta^{-2}Q_1
+\]
+distinct inputs.  If $k_h=M$, the equality
+$\min(M,\ceil{Q_1Mh/b})=M$ implies
+$Q_1Mh/b>M-1$.  Since $M\ge2$ in this branch,
+$b/h<2Q_1$.  Evaluating the exact part for all children consequently
+uses at most
+\[
+ C'M\theta^{-2}(1+2Q_1)
+\]
+distinct inputs as well.  This proves $M\ell^{O(1)}$ for one group
+and one scale label, without an accuracy event.
+
+There are $O(\log(FM))=O(\ell)$ scale labels.  The number of $b$
+scales and cells requested by one query is polynomial in $\ell$,
+as established above.  Once a winning rounded action is chosen,
+evaluating its actual cost adds at most $M$ child calls per group.
+Finally the online rule draws just one action for each applicable
+$b$ scale; evaluating that actual action adds at most $M$ child
+calls per scale.  These factors preserve the asserted bound.
+\end{proof}
+
+All other recursive inputs are earlier in the evaluation order.
+Constructing $w_0$ uses a previous seed.  Computing bands, prefix
+minima, and scale labels uses warmup data.  In $\Pi_t$ the wide
+Bellman option uses $d_{t-1}$ on children.  The online coefficient
+vector uses $d_j$ only for $j<t$; it does not require the past
+transcript of actions at the parent.  The numerical procedure of
+Section~\ref{sec:numerics} therefore introduces no hidden
+current-index child queries.
+
+\subsection{Earlier inputs and local arithmetic}
+
+\begin{lemma}[Local evaluation cost]
+\label{lem:local-work}
+After collapsing the finite auxiliary calculations into table-entry
+evaluations, one warmup or refinement entry has at most
+$H^{O(p_*+1)}$ distinct inputs
+at earlier indices or passes.  Apart from its recursive inputs,
+its expected bit cost is $2^{o(H)}$, uniformly conditional on the
+data exposed before its fresh random draws.  Its local storage is
+at most $2^{o(H)}$ on every execution.
+\end{lemma}
+
+\begin{proof}
+For one representative, each endpoint in a wide action has
+$O(P+1)$ positions, since $b/g_b\le P$.  A child therefore has
+$O((P+1)^2)$ states in the wide list.  Multiplying by the number
+of children, representative candidates, cells, scales, and history
+indices still gives $H^{O(p_*+1)}$ distinct recursive inputs.
+There are at most $T+S+1=O(H)$ history indices.  The searches for
+$w_0$ have the same form of bound.  An earlier seed query expands
+to $H^2$ copies of the previous refinement when required; this
+factor fits the same estimate.
+
+Gather and store these distinct child inputs before repeatedly
+scoring action lists.  The wide list has at most
+$(C(P+1))^{2M}$ actions.  For each internal cut, a prefix minimum
+enumerates the independently allowed states of its first children.
+The algorithm evaluates it only at the grid shifts being tested for
+band membership; the real argument in the definition of $\Phi_j$
+does not require a search over a continuum.  These prefix lists and
+the band candidates have the same exponential bound.  Scanning them
+at all candidate cuts and shifts multiplies the list size by at most
+a fixed power and by polynomial factors.  Direct enumeration,
+including all guard tests, therefore has local arithmetic count
+\[
+ 2^{O(M(p_*+1)\ell)}H^{O(p_*+1)}.
+\]
+Lemmas~\ref{lem:unconditional-sizes} and
+\ref{lem:finite-optimizer} give polynomial bit costs in the stated
+parameters for each arithmetic operation and for the numerical
+routine.  Hence all local work and storage, apart from exact
+rejection-sampling time, are $2^{o(H)}$.  Rejection sampling has
+that bound in expectation, with a fixed buffer.  Uniform child
+indices can likewise be sampled by charged fair bits; here $M$
+is a power of two.
+
+Use a balanced search dictionary for gathered and globally stored
+inputs.  The keys consist of the bounded integer labels specified
+above, and their comparisons use polynomially many bits in $H$.
+The number of possible keys is polynomial in $N$: there are
+$O(MN)$ node labels, at most $(N+1)^2$ states per node, polynomially
+many pass/copy/index choices, and polynomially bounded cell-index
+ranges since $\theta b\ge\theta$.  Thus each dictionary operation
+has $H^{O(1)}$ bit cost.  Repeated lookups while scoring lists or
+optimizing are included in the displayed local work, not counted
+as new recursive inputs.
+\end{proof}
+
+\subsection{Counting the dependency paths}
+
+We now quantify the dependency order from the first subsection.
+After inlining seed medians and auxiliary calculations, each
+dependency has one of two forms.  A same-pass, same-index dependency
+descends to a child;
+Lemma~\ref{lem:current-index-budget} bounds its number by
+\[
+ D_{\mathrm{same}}=M\ell^{C_1}.
+\]
+Every other dependency either decreases the index in the same pass
+or switches to an earlier pass, and its number is bounded by
+\[
+ D_{\mathrm{earlier}}=H^{C_2(p_*+1)}
+\]
+for absolute constants $C_1,C_2$.  Such dependencies stay at the
+same physical node or descend; they never ascend the tree.
+Auxiliary band and group calculations have been collapsed into
+these evaluations, so they create no same-index cycle at a node.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners,align=center,inner sep=6pt,font=\small},
+  >=Latex]
+\node[box] (current) at (0,0) {Entry at node $I$\\pass $s$, index $k$};
+\node[box] (child) at (5.1,0) {Child entry\\pass $s$, index $k$};
+\node[box] (earlier) at (0,-2) {Same node or descendant\\earlier index or pass};
+\draw[->] (current) -- node[above,font=\small] {$M\ell^{O(1)}$} (child);
+\draw[->] (current) -- node[right,font=\small] {$H^{O(p_*+1)}$} (earlier);
+\end{tikzpicture}
+\caption{The two recursive input budgets.  Wide action enumeration and
+numerical iterations reuse the gathered inputs and contribute local
+work.  Only the horizontal edge keeps both pass and index unchanged.}
+\label{fig:dependency-budgets}
+\end{figure}
+
+Let $s_{\mathrm{pass}}$ be the number of refinement passes, including
+the final pass, and put
+\[
+ K_{\mathrm{dep}}=s_{\mathrm{pass}}(T+S+1).
+\]
+A dependency path ending at depth $j$ has at most $j$ same-index
+edges, because each descends one level.  It has at most
+$K_{\mathrm{dep}}$ other edges: indices strictly decrease between
+pass switches, and passes strictly decrease at switches.  Copy
+identities do not reset this order.  These bounds hold independently
+of every seed or sampling accuracy event.
+
+Unfolding the stored dependency graph only overcounts calculations.
+The number of paths ending at depth $j$ is at most
+\begin{align}
+ &\sum_{r=0}^j\sum_{s=0}^{K_{\mathrm{dep}}}
+   \binom{r+s}{r}D_{\mathrm{same}}^r
+                       D_{\mathrm{earlier}}^s \notag\\
+ &\qquad\le (j+1)(K_{\mathrm{dep}}+1)2^{j+K_{\mathrm{dep}}}
+ M^j\ell^{C_1j}H^{C_2(p_*+1)K_{\mathrm{dep}}}.
+ \label{eq:dependency-count}
+\end{align}
+Some index-decreasing edges descend too; ignoring that additional
+descent only enlarges this bound.
+
+Write $q_*=p_*+1$.  The parameters and pass count give
+\[
+ J=O(H/\ell),\qquad
+ T=O(H^{3/4})=o(S),\qquad
+ K_{\mathrm{dep}}=O\left(\frac{Hq_*}{\ell\log\ell}\right).
+\]
+Consequently
+\begin{align*}
+ J\log\ell&=O(H\log\ell/\ell)=o(H),\\
+ q_*K_{\mathrm{dep}}\log H
+   &=O\left(\frac{Hq_*^2}{\log\ell}\right)=o(H),\\
+ J+K_{\mathrm{dep}}&=o(H).
+\end{align*}
+For the second limit, use
+$q_*^2=O(\sqrt{\log\ell}+1)$.  All factors beyond $M^j$ in
+\eqref{eq:dependency-count} are therefore $2^{o(H)}$, uniformly for
+$0\le j\le J$.  The number of expanded evaluations at depth $j$
+is bounded by
+\begin{equation}
+ M^j2^{o(H)}.
+ \label{eq:depth-evaluations}
+\end{equation}
+This is a deterministic count for the local implementation, not a
+count conditioned on the success of its estimates.
+
+\subsection{Expected time and logarithmic-word storage}
+
+\begin{theorem}[Charged expected running time]
+\label{thm:work}
+The large-input algorithm has worst-case expected running time
+$N^{1+o(1)}$ on the logarithmic-word RAM, over its internal
+randomness.  This includes input processing, preprocessing, initial
+and refined table calculations, all rational arithmetic, sampling,
+and data-structure operations.  Its workspace on every execution
+is bounded by a fixed polynomial in $N$.  Together with the exact
+fallbacks, the same program has the claimed expected asymptotic
+bound for each fixed rational $\varepsilon\in(0,1)$.
+\end{theorem}
+
+\begin{proof}
+Let $n_x=|x|$.  At depth $j$, an interval has width at most
+$\ceil{n_x/M^j}$.  Theorem~\ref{thm:seed} bounds the expected cost
+of a first initial-entry request there by
+\[
+ \left(1+\ceil{n_x/M^j}\right)2^{o(H)}.
+\]
+The conditional first-request argument above makes this valid after
+any preceding adaptive execution.  Equivalently, enumerate the
+possible request slots in an unfolded computation: at each slot
+that requests a new initial entry, condition on the past and use
+its independent fresh stream.  The deterministic slot count
+\eqref{eq:depth-evaluations} allows the resulting expectations to
+be summed.  Repeat requests have only the charged dictionary cost.
+The same conditional expectation argument applies to each exact
+mixture sampler, whose expected local cost is uniformly bounded.
+
+Combining Lemma~\ref{lem:local-work} with
+\eqref{eq:depth-evaluations}, all these costs are at most
+\begin{align*}
+ 2^{o(H)}\sum_{j=0}^J
+ M^j\left(1+\ceil{n_x/M^j}\right)
+ &\le 2^{o(H)}\sum_{j=0}^J(2M^j+n_x)\\
+ &\le 2^{o(H)}\bigl(O(M^J)+(J+1)n_x\bigr)\\
+ &\le (n_x+1)2^{o(H)}.
+\end{align*}
+Here $M^J\le M\max(1,n_x)$ and $M,J=2^{o(H)}$.
+No seed or group correctness event was used.  Sorting the occurrence
+data and the other input work cost $O(N\log(N+2))$, and leaf queries
+cost $O(\log(N+2))$ each.  Since $H=\Theta(\log(N+2))$, the complete
+expected bound is $N^{1+o(1)}$.
+
+For storage, the deterministic dependency count bounds the number
+of stored table entries by $N^{1+o(1)}$.  Each such evaluation creates
+at most $H^{O(p_*+1)}$ auxiliary representative, group and draw
+records, so their total satisfies the same bound.  Their keys and
+scalar fields have the bit bounds of Lemma~\ref{lem:unconditional-sizes}.
+Each local action list and numerical computation has at most
+$2^{o(H)}=N^{o(1)}$ scratch size by Lemma~\ref{lem:local-work}; even
+retaining such lists or mixtures with their auxiliary records keeps
+the total refinement storage at $N^{1+o(1)}$.  A fully expanded initial estimator
+also has polynomial worst-case space: its tree has $O(Bn)$ nodes
+on padded length $n$, its shift arrays have length $O(n)$, and its
+numbers have polynomial bit length in $H$ and $B$.  Pruned arrays
+are represented by markers.  Its scratch can be released after
+storing the completed integer entry.  Retaining the scratch of
+nested calls still gives a polynomial bound, since dependency
+depth is at most $J+K_{\mathrm{dep}}$ plus the initial-tree depth.
+Rejection loops reuse their buffers and do not enlarge storage
+when they run for additional trials.
+
+Thus there is an absolute polynomial space bound in $N$ in the
+large branch.  Every workspace address fits a constant number of
+$O(\log(N+2))$-bit words.  Larger rational numbers are represented
+in multiple such words and processed by charged ordinary integer
+algorithms, as used above.  Input symbols and the padding tag also
+fit a constant number of these words, with no constant-alphabet
+assumption.  The finite parameter-inspection rule and exact
+dynamic-programming fallback of Section~\ref{sec:geometry} use
+polynomially addressed memory as well.
+
+Finally, for each fixed rational accuracy encoding, its length is
+eventually below the inspection limit, and the two remaining
+fallback conditions also cease for sufficiently large $N$.
+Their sizes are bounded as a function of that fixed parameter.
+They do not change the asserted asymptotic bound, although they
+impose no efficiency claim uniform in a varying $\varepsilon$.
+Together with the success probability established in
+Section~\ref{sec:accuracy}, this proves Theorem~\ref{thm:main}.
+\end{proof}

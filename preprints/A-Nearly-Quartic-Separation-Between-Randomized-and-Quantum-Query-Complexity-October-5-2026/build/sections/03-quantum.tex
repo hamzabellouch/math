@@ -1,0 +1,298 @@
+\section{Quantum search with probabilistic comparisons}\label{sec:quantum}
+
+We first prove a general tournament statement. A comparison need not
+behave almost deterministically: its outcome probabilities may be
+arbitrary, provided one distinguished candidate beats each opponent
+with sufficiently high probability. This is the additional feature needed
+beyond comparison algorithms for a fixed tournament
+\cite{SYZ04,MPS23,BK26}. There is no promised gap between a nonwinner
+comparison probability and $1/2$, so ordinary error reduction does not
+provide uniformly cheap bounded-error access to a fixed tournament.
+After proving the statement, we
+construct the comparisons for $F_{k,m}$ and verify the candidates they
+produce.
+
+\subsection{Amplification without changing the sampled distribution}
+
+The tournament will sample a candidate conditioned on defeating every
+previously selected candidate. Amplification must preserve that
+conditional distribution while increasing the probability of obtaining
+a sample. This is a direct consequence of the
+two-dimensional rotation underlying amplitude amplification
+\cite{BBHT98,BHMT02}; we give the details because the distribution,
+as well as the success probability, is used in the tournament.
+
+\begin{lemma}[Bounded amplification]\label{lem:amplification}
+Let $A$ be a quantum state preparation with a designated success bit.
+Its success probability is $p$, and, if $p>0$, its normalized successful
+state is $\lvert g\rangle$. Let $0<\gamma\le1/2$ and $0<\eta<1/2$.
+There is a procedure using
+\[
+ O\bigl(\gamma^{-1/2}\log(1/\eta)\bigr)
+\]
+calls to $A$ and $A^{-1}$ that either reports failure or produces a
+successful outcome. Conditional on success, the output state is
+$\lvert g\rangle$ up to a global phase. If $p\ge\gamma$, its failure
+probability is at most $\eta$. If $p=0$, it always reports failure.
+The call bound holds for every $p$ and on every branch.
+\end{lemma}
+
+\begin{proof}
+For $0<p<1$, write
+\[
+ A\lvert0\rangle
+   =\sin\theta\lvert g\rangle+\cos\theta\lvert b\rangle,
+ \qquad 0<\theta<\pi/2,
+\]
+where the two normalized vectors lie in the successful and unsuccessful
+subspaces. Reflection about $A\lvert0\rangle$, followed in the appropriate
+order by a phase flip of the success bit, gives after $\ell$ Grover
+iterations the state
+\[
+ \sin((2\ell+1)\theta)\lvert g\rangle
+  +\cos((2\ell+1)\theta)\lvert b\rangle.
+\]
+Thus measuring success leaves exactly the same normalized successful
+state, independently of $\ell$. Each reflection about the prepared state
+uses $A$, a query-free reflection about $\lvert0\rangle$, and $A^{-1}$.
+
+Set $M=\lceil10/\sqrt\gamma\rceil$. A trial chooses, with equal
+probabilities, either $\ell=0$ or a uniform $\ell\in\{0,\ldots,M-1\}$,
+then measures the success bit. If $p\ge1/2$, the first choice alone
+gives success probability at least $1/4$. If $\gamma\le p\le1/2$,
+then
+\[
+ \sin(2\theta)=2\sqrt{p(1-p)}\ge\sqrt\gamma.
+\]
+Summing a geometric progression bounds the averaged success probability
+in the second choice by
+\begin{equation}\label{eq:grover-average}
+ \frac1M\sum_{\ell=0}^{M-1}\sin^2((2\ell+1)\theta)
+ \ge \frac12-\frac{1}{2M\abs{\sin(2\theta)}}
+ \ge\frac{9}{20}.
+\end{equation}
+Every trial therefore succeeds with probability at least $9/40$ when
+$p\ge\gamma$. Repeat a fixed
+$\lceil\log(1/\eta)/\log(40/31)\rceil$ number of trials with fresh
+registers, stopping at the first success. The probability that all fail
+is at most $\eta$. Each trial uses $O(M)$ calls, whether it succeeds or
+fails. Every successful trial has the same state $\lvert g\rangle$, so
+neither the random choice of length nor stopping at the first success
+changes that state. The cases $p=0$ and $p=1$ follow directly, with the
+successful component absent or equal to the entire prepared state.
+\end{proof}
+
+\subsection{The tournament}
+
+Fix an input to the bit oracle. For candidates in $[m]$, suppose a
+coherent comparison produces one victorious candidate for each unordered
+pair. It retains all workspace, so it is a unitary state preparation
+that can be reversed. Let $a_{ij}$ be the probability that $i$ defeats
+$j$ when the comparison result is measured. We always use the same
+circuit for the unordered pair, and set $a_{ii}=0$. Hence
+\begin{equation}\label{eq:complementarity}
+ a_{ij}+a_{ji}=1\quad(i\ne j),\qquad a_{ii}=0.
+\end{equation}
+The following result is pointwise in the fixed
+oracle input; its probabilities are over the algorithm's internal
+randomness and measurements.
+
+\begin{proposition}[A tournament for probabilistic comparisons]
+\label{prop:tournament}
+For $m\ge2$, put
+\[
+ T=\lceil\log(1000m)\rceil,
+ \qquad \epsilon=\frac{1}{1000T}.
+\]
+Suppose a coherent comparison circuit, controlled by two candidate
+indices and reversible with all workspace retained, uses at most
+$c\ge1$ bit queries. Let $a_{ij}$ be the probability that it reports
+$i$ defeating $j$, and assume \eqref{eq:complementarity}. There is
+a quantum algorithm making
+\[
+ O\bigl(c\sqrt m\,T^2\log T\bigr)
+\]
+queries on every branch and returning a list of at most $T$ candidates
+with the following guarantee. If $i_\ast\in[m]$ satisfies
+\begin{equation}\label{eq:dominant}
+ a_{i_\ast j}\ge1-\epsilon\qquad(j\ne i_\ast),
+\end{equation}
+then the list contains $i_\ast$ with probability at least
+$1-2m/2^T-T\epsilon$.
+\end{proposition}
+
+\begin{proof}
+We analyze an ideal sampling process and then implement each of its
+steps quantumly. Start with $w_i=1$ for all $i$, and write $W=\sum_iw_i$.
+When $W>0$, sample a pivot $p$ with probability $w_p/W$, append it to
+the list, and update
+\begin{equation}\label{eq:weights}
+ w_i\longleftarrow w_i a_{ip}\qquad(i\in[m]).
+\end{equation}
+When $W=0$, leave the list unchanged and keep all weights zero. The
+weights only define this ideal process; the algorithm will not compute
+them numerically.
+
+For $W>0$, complementarity gives the exact drift identity
+\begin{align}
+ \E[W_{\mathrm{new}}\mid w]
+ &=\frac{1}{W}\sum_{p,i}w_pw_i a_{ip}\notag\\
+ &=\frac{W^2-\sum_iw_i^2}{2W}\le\frac W2.
+ \label{eq:drift}
+\end{align}
+The same inequality holds when $W=0$, so after $T$ steps
+$\E W_T\le m/2^T$. If a candidate $i_\ast$ satisfying
+\eqref{eq:dominant} has never been selected, its final weight is at
+least
+\[
+ (1-\epsilon)^T\ge1-T\epsilon>\frac12.
+\]
+In particular, the process cannot reach zero total weight before
+selecting it. Markov's inequality implies
+\begin{equation}\label{eq:ideal-miss}
+ \Pr[i_\ast\text{ absent from the ideal list}]
+ \le\Pr[W_T\ge1/2]\le\frac{2m}{2^T}.
+\end{equation}
+
+Now fix an arbitrary list of previously selected pivots
+$p_1,\ldots,p_t$, where $t<T$. Prepare a uniform superposition of
+$i\in[m]$, and, for each pivot, compare $i$ with that pivot in a fresh
+workspace. Conditional on $i$, let $\lvert\phi(i,p_b)\rangle$ denote
+the complete comparison state, including its result bit. Before
+computing a success bit, the joint state is
+\begin{equation}\label{eq:product-state}
+ \frac1{\sqrt m}\sum_{i=1}^m
+  \lvert i\rangle\bigotimes_{b=1}^t
+  \lvert\phi(i,p_b)\rangle.
+\end{equation}
+Set the success bit precisely when every comparison says that $i$
+defeats its pivot. All garbage is retained. By the tensor product in
+\eqref{eq:product-state}, the conditional success probability for index
+$i$ is
+\[
+ \prod_{b=1}^t a_{i p_b}=w_i.
+\]
+The empty product is one. Distinct index registers are orthogonal,
+so the total success probability is $W/m$, and the conditional
+distribution of $i$ on success is exactly $w_i/W$.
+
+Apply Lemma~\ref{lem:amplification} with $\gamma=1/(2m)$ and
+$\eta=\epsilon$. A successful sample still has exactly this index
+distribution: amplification preserves the full successful state, not
+just its total probability. If sampling reports failure, stop and
+return the list already accumulated. Otherwise measure the index,
+append it, and continue, for at most $T$ stages.
+
+Until $i_\ast$ is first selected, its weight is at least $1/2$, so
+$W/m\ge1/(2m)$. At each such history the sampler has failure probability
+at most $\epsilon$ and, conditional on success, exactly the ideal pivot
+law. One can therefore couple that stage to an ideal pivot, with
+probability at most $\epsilon$ of terminating instead. The coupling
+is conditional on the entire previous pivot history; it does not
+require history-independent failure probabilities. Summing these
+failure probabilities over at most $T$ stages and using
+\eqref{eq:ideal-miss} gives the stated guarantee. Once $i_\ast$ has
+entered the list, later termination cannot remove it.
+
+At stage $t$, the preparation and its inverse use $O(c(t+1))$ queries.
+Lemma~\ref{lem:amplification} uses $O(\sqrt m\log(1/\epsilon))$
+such calls. Summing over $t<T$ gives
+$O(c\sqrt m\,T^2\log T)$ queries. The number of stages and all trial
+counts are fixed upper bounds, so this is a worst-case query bound
+even if there is no candidate satisfying \eqref{eq:dominant}.
+\end{proof}
+
+The proof uses no order or transitivity among the candidates. Its
+shrinking quantity is the sum of fractional weights in
+\eqref{eq:weights}, and complementarity alone yields
+\eqref{eq:drift}. This is why unpromised address computations will be
+permitted in the application.
+
+\subsection{Comparing columns and verifying the list}
+
+We now fix an arbitrary input to $F_{k,m}$, including possibly undefined
+Forrelation instances and incorrect circuit transcripts. Keep $T$ and
+$\epsilon$ as in Proposition~\ref{prop:tournament}. To decode column
+$i$, run the quantum algorithm for each of its $r$ partial-function
+instances, amplified to error at most $\epsilon/r$. Repetition and a
+majority computation take
+\[
+ O_k\bigl(r\log(r/\epsilon)\bigr)=(\log m)^{O_k(1)}
+\]
+queries. If all these instances are defined, the resulting address is
+correct with probability at least $1-\epsilon$. Otherwise the routine
+still returns some address. All repetitions and majority computations
+can be performed unitarily with their workspaces retained.
+
+For a pair of distinct columns, sort their indices and apply the
+following comparison in this fixed order. Decode the address of each
+column in a separate workspace. Read each column's pointer toward the
+other at its decoded address, and inspect the bit of the other's $X$
+string to which it points. A column \emph{disqualifies} its opponent if
+that bit is zero. If exactly one column disqualifies the other, declare
+it victorious; otherwise declare the smaller index victorious. For
+a self-comparison, return false without reading a pointer.
+
+These operations prepare a comparison state with
+$c=(\log m)^{O_k(1)}$ queries. The decoded addresses remain in their
+registers, and subsequent operations are controlled in the
+computational basis. Consequently its measurement probabilities agree
+with the description just given; different address outcomes are
+orthogonal and do not interfere. Reversing the complete preparation
+costs the same number of bit queries. Using the same sorted-pair
+circuit for either ordering ensures \eqref{eq:complementarity}.
+
+If $i_\ast$ is a winner, then $X_{i_\ast}$ is all ones. No opponent,
+at any decoded address, can point to a zero there. When the address
+of $i_\ast$ is correctly decoded, its own certificate points to a zero
+in every other column. Thus
+\[
+ a_{i_\ast j}\ge1-\epsilon\qquad(j\ne i_\ast),
+\]
+regardless of whether the opponent's address instances are defined.
+Proposition~\ref{prop:tournament} therefore returns a list containing
+the winner, when one exists, with probability at least
+$1-2m/2^T-T\epsilon$.
+
+For each listed column, decode and measure its address afresh. At that
+fixed address, the winner conditions are the exact local tests of
+Lemma~\ref{lem:local-tests}. Let their number be
+$K=m(\log m)^{O_k(1)}$. A uniform test index and an exact failing-test
+flag give a preparation whose success probability is zero when all
+tests pass, and at least $1/K$ otherwise. Lemma~\ref{lem:amplification},
+with $\gamma=1/K$ and $\eta=\epsilon$, searches for a failed test in
+\[
+ O\bigl(\sqrt K\log(1/\epsilon)\log m\bigr)
+   =\sqrt m(\log m)^{O_k(1)}
+\]
+queries. Here $K\ge m\ge4$. Reject this candidate if a failed test is
+found, and accept it otherwise. Exact testing cannot report a failure
+when all tests pass. If the column is not a winner, every address has
+a failed test, so it is accepted with probability at most $\epsilon$.
+A true winner is accepted whenever decoding is correct: in that case
+there is no failed test for the search to report. Its rejection
+probability is therefore at most $\epsilon$, solely from address decoding.
+
+Output one if any listed candidate is accepted. On a zero-input, a
+union bound gives error at most $T\epsilon$. On a one-input, the miss
+probability and the winner's verification error give total error at most
+\[
+ \frac{2m}{2^T}+T\epsilon+\epsilon<\frac13.
+\]
+The comparisons, tournament, and at most $T$ verifications prove
+\begin{proposition}\label{prop:quantum}
+For every fixed $k\ge2$, the total functions of
+Section~\ref{sec:construction} satisfy
+\[
+ \Q(F_{k,m})\le\sqrt m(\log m)^{O_k(1)}.
+\]
+\end{proposition}
+
+All superposed array accesses used above are ordinary bit queries.
+The global bit index is computed reversibly from the column, cell, and
+wire indices. A pointer is read one bit at a time in $O(\log m)$ queries,
+after which its target index is computed without queries. A controlled
+bit query can be implemented by loading the addressed input bit into
+an ancilla, using it under the required control, and unloading it with
+a second query. Thus neither coherent addressing nor retaining and
+reversing comparison garbage changes the query model.

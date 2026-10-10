@@ -1,0 +1,227 @@
+\section{An order trial with prescribed success probability}
+\label{sec:order}
+
+For a unit $a$ modulo $m$, write $\ord_m(a)$ for its multiplicative order.
+We construct a trial whose probability of returning the true order is an
+explicit dyadic function of that order.  This additional control of the
+probability will allow us to make the final factoring algorithm exact.
+As usual, let
+\[
+ \varphi(d)=\bigl|\{0\le j<d:\gcd(j,d)=1\}\bigr|,
+ \qquad \varphi(1)=1.
+\]
+
+\begin{proposition}\label{prop:order-trial}
+Let $2\le m<B$ and let $a$ be a unit modulo $m$, of order $r$.
+There is a uniform quantum trial of worst-case cost polynomial in $n$
+that returns either no candidate or an integer $d$ satisfying
+$1\le d<B$ and $r\mid d$.  Moreover,
+\[
+ \Pr(d=r)=\varphi(r)\lambda(r),
+ \qquad
+ \lambda(d)=2^{-\lceil\log_2 d\rceil-10}.
+\]
+The trial uses only the fixed finite gate set specified above and does not
+require $r$ or any factorization as input.
+\end{proposition}
+
+The construction has two parts.  First we replace the Fourier phases in
+order sampling by a piecewise linear phase function.  The resulting
+probabilities admit exact dyadic arithmetic.  We then add two small
+classical sampling branches to make the mass at each reduced fraction of
+denominator $r$ exactly $\lambda(r)$.  The proof of
+Proposition~\ref{prop:order-trial} is completed at the end of this section.
+
+\subsection{A phase function implemented by a circuit}
+
+Set
+\[
+ Q=B^{16}=2^b,\qquad b=16n.
+\]
+Let $g:\R\to\C$ be the continuous, $1$-periodic function obtained by
+linear interpolation of $\exp(-2\pi\mathrm i z)$ at the quarter-integers.
+Explicitly, for $q\in\Z$ and $0\le t\le1$,
+\begin{equation}\label{eq:linear-phase}
+ g\bigl((q+t)/4\bigr)
+   =(1-t)(-\mathrm i)^q+t(-\mathrm i)^{q+1}.
+\end{equation}
+In particular, $g(z+1/2)=-g(z)$.
+
+The controlled-shift mechanism is a form of phase kickback~\cite[Section~7]{CEMM}.
+Here the auxiliary state is not a shift eigenstate: its overlap with a
+shifted copy will give $g$. The success test in the next lemma is therefore
+part of the matrix's probability, rather than an instruction to apply an
+ideal Fourier transform.
+
+\begin{lemma}\label{lem:transform}
+There is a circuit of size polynomial in $b$ on a $b$-qubit data register
+and ancillary registers initially in the all-zero state, with a designated
+ancillary success outcome, such
+that its unnormalized matrix on that outcome is
+\[
+ A_{k,x}=Q^{-1/2}g(kx/Q),\qquad 0\le x,k<Q.
+\]
+The circuit uses only the fixed finite gate set.
+\end{lemma}
+
+\begin{proof}
+Prepare a $b$-qubit phase register in the state
+\[
+ \ket{\chi}=Q^{-1/2}\sum_{y=0}^{Q-1}
+                  \mathrm i^{\lfloor4y/Q\rfloor}\ket{y}.
+\]
+This requires Hadamards on its bits, followed by a $Z=S^2$ phase on the
+most significant bit and an $S$ phase on the next bit.
+For $D\in\Z$, let $T_D$ denote the forward shift
+$\ket y\mapsto\ket{y+D\bmod Q}$ on this register.  We first verify that
+\begin{equation}\label{eq:phase-overlap}
+ \bra{\chi}T_D\ket{\chi}=g(D/Q).
+\end{equation}
+Write $D=qQ/4+s$ modulo $Q$, where $0\le q<4$ and $0\le s<Q/4$.
+Among the $Q$ positions, a fraction $1-4s/Q$ crosses exactly $q$
+quarter-bins, and the remaining fraction $4s/Q$ crosses $q+1$.
+The corresponding products of the initial phase with the conjugate final
+phase are $\mathrm i^{-q}$ and $\mathrm i^{-q-1}$, respectively.
+Their average is precisely~\eqref{eq:linear-phase} at $D/Q$.
+The sign is fixed by the use of a forward shift: a shift by $Q/4$ has
+overlap $-\mathrm i$.
+
+Number input and output bits from the units bit:
+$x=\sum_{i=0}^{b-1}2^ix_i$ and $k=\sum_{j=0}^{b-1}2^jk_j$.
+For $j=0,\ldots,b-1$, perform the following operations in order:
+apply a Hadamard to the physical bit that initially carried $x_{b-1-j}$,
+regard its new value as $k_j$, and, for every $i<b-1-j$, apply the shift
+\[
+ T_{2^{i+j}x_i k_j}
+\]
+to the phase register.  Both controls are available: $k_j$ is the bit
+just produced, whereas $x_i$ has not yet been overwritten.  The logical
+output bits are thus in the reverse physical order from the input bits;
+a wire reversal, or ordinary SWAP gates, puts them in the conventional
+order.
+
+For fixed input $x$ and output $k$, each data bit has exactly its specified
+value before and after its single Hadamard.  The product of the Hadamard
+matrix elements is $Q^{-1/2}(-1)^h$, and the total phase-register shift is
+$D$, where
+\[
+ h=\sum_{i+j=b-1}x_i k_j,
+ \qquad
+ D=\sum_{i+j<b-1}2^{i+j}x_i k_j.
+\]
+All omitted terms in the product $xk$ are accounted for by
+\[
+ xk\equiv D+(Q/2)h\pmod Q.
+\]
+Using~\eqref{eq:phase-overlap} and $g(z+1/2)=-g(z)$ gives the claimed
+matrix entry after projecting the phase register back onto $\ket\chi$:
+\[
+ Q^{-1/2}(-1)^h\bra\chi T_D\ket\chi
+       =Q^{-1/2}g(xk/Q).
+\]
+To perform that test, undo the preparation of $\ket\chi$ and designate
+the all-zero phase-register outcome as success.  Its actual probability
+is retained; there is no instruction to enforce that outcome.
+
+There are $O(b^2)$ controlled shifts.  Each is a reversible modular
+binary addition on $b$ bits, with its scratch bits uncomputed afterwards,
+and therefore has polynomial cost in the stated finite gate set.  All
+other operations also have polynomial cost.
+\end{proof}
+
+\subsection{Recovering fraction labels and their probabilities}
+
+For every reduced fraction $j/d$ with $0\le j<d<B$, define
+\begin{equation}\label{eq:order-bins}
+ k(d,j)=\left\lfloor\frac{jQ}{d}+\frac12\right\rfloor,
+ \qquad
+ \eta=k(d,j)-\frac{jQ}{d}.
+\end{equation}
+Thus $|\eta|\le1/2$, and $0\le k(d,j)<Q$.
+We call $(d,j)$ the label of this bin.
+
+\begin{lemma}\label{lem:bins}
+Given $0\le k<Q$, one can determine in polynomial bit time whether
+$k=k(d,j)$ for a reduced fraction $0\le j<d<B$, and recover $(d,j)$
+when it exists.  Such a label is unique.
+\end{lemma}
+
+\begin{proof}
+Compute the finite simple continued fraction of $k/Q$, and let $p/v$ be
+its last convergent with denominator less than $B$.  If all convergents
+have denominator less than $B$, use the terminal one.  We have
+\begin{equation}\label{eq:convergent-bound}
+ \left|\frac{k}{Q}-\frac pv\right|\le\frac1{vB}.
+\end{equation}
+Indeed, suppose $p/v$ is not terminal.  Let $(p',v')$ be the preceding
+numerator--denominator pair, using the formal pair $(1,0)$ when $p/v$
+is the first convergent.  The remaining continued-fraction tail $\theta$
+gives
+\[
+ \frac{k}{Q}=\frac{p\theta+p'}{v\theta+v'},
+ \qquad |pv'-p'v|=1.
+\]
+The next denominator is $v c+v'\ge B$, where $c$ is the integer part of
+$\theta$.  Consequently the error is
+$1/[v(v\theta+v')]\le1/[v(vc+v')]\le1/(vB)$.
+The determinant identity follows inductively from the convergent
+recurrence, which replaces each numerator--denominator pair by $c$
+times the latest pair plus the preceding pair.  If the convergent is
+terminal, its error is zero.
+
+Suppose $k$ has a label $(d,j)$.  If $j/d\ne p/v$, integrality of the
+cross-product gives
+\[
+ \left|\frac jd-\frac pv\right|
+ \ge\frac1{dv}\ge\frac1{(B-1)v}
+ >\frac1{vB}+\frac1{2Q}.
+\]
+For the strict inequality, note that
+$2Q>vB(B-1)$ because $v<B$ and $Q=B^{16}$.
+This contradicts~\eqref{eq:convergent-bound} and
+$|k/Q-j/d|\le1/(2Q)$.  Thus $j/d=p/v$.
+It remains only to check $0\le p<v<B$ and the exact rule
+\eqref{eq:order-bins}; these checks accept precisely the valid labels.
+They also prove uniqueness.  When $k=0$, the terminal convergent is
+$0/1$, so the case $d=1$ is included.
+The Euclidean algorithm and all these checks use integers with $O(n)$
+bits and take polynomial bit time.
+\end{proof}
+
+We now apply Lemma~\ref{lem:transform} to the state
+\[
+ Q^{-1/2}\sum_{x=0}^{Q-1}\ket x\ket{a^x\bmod m}.
+\]
+Reversible modular powering prepares this state in polynomial time;
+its temporary work is uncomputed, leaving no additional information
+about $x$.  This is the order-sampling setup of the quantum factoring
+algorithm~\cite{Shor}, with the transform of Lemma~\ref{lem:transform}
+in place of the Fourier transform.
+
+For any reduced label $(d,j)$ and $0\le t<d$, define the arithmetic
+quantity
+\begin{equation}\label{eq:order-P}
+ P(d,j,t)=\left|\frac1Q
+       \sum_{\substack{0\le x<Q\\x\equiv t\pmod d}}
+            g\bigl(k(d,j)x/Q\bigr)\right|^2.
+\end{equation}
+When $d=r=\ord_m(a)$, it has the following direct probabilistic meaning:
+\begin{equation}\label{eq:residue-probability}
+ \Pr\bigl(\text{phase-register success and }k=k(r,j)\bigr)
+       =\sum_{t=0}^{r-1}P(r,j,t).
+\end{equation}
+To see this, the unnormalized second-register vector for a fixed output
+$k$ is
+\[
+ \frac1Q\sum_{x=0}^{Q-1}g(kx/Q)\ket{a^x\bmod m}.
+\]
+The labels $a^x\bmod m$ coincide exactly on residue classes modulo $r$;
+the distinct classes give orthogonal basis states.  Taking its squared
+norm proves~\eqref{eq:residue-probability}, including the actual
+probability of the phase-register test.
+
+The definition~\eqref{eq:order-P} will also be used for candidate
+values $d\ne r$; for those values no physical-probability interpretation
+is asserted.  The next step is to compute and correct the masses in
+\eqref{eq:residue-probability} using arithmetic on candidate labels,
+without knowing the true order.

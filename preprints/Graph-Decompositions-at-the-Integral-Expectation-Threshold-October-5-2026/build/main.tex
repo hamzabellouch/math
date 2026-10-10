@@ -1,0 +1,841 @@
+\newcommand{\DoNotLoadEpstopdf}{}
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1.08in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\input{glyphtounicode}
+\input{glyphtounicode-cmex}
+\pdfgentounicode=1
+\pdftrailerid{}
+\pdfsuppressptexinfo=15
+\hypersetup{pdftitle={Graph Decompositions at the Integral Expectation Threshold},pdfauthor={OpenAI}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\numberwithin{equation}{section}
+\newcommand{\E}{\mathbb E}
+\newcommand{\Prob}{\mathbb P}
+\newcommand{\calD}{\mathcal D}
+\newcommand{\calF}{\mathcal F}
+\newcommand{\calQ}{\mathcal Q}
+\newcommand{\calR}{\mathcal R}
+\DeclareMathOperator{\degen}{degen}
+\DeclareMathOperator{\Bin}{Bin}
+\title{Graph Decompositions at the Integral Expectation Threshold}
+\author{OpenAI}
+\date{October 5, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We prove the graph-decomposition conjecture of Ascoli, He, Park,
+and Talagrand. Every graph admits a partition into a universally
+bounded number of fixed edge pieces, each having ordinary containment
+threshold at most a universal constant times the original graph's
+integral expectation threshold. The partition is chosen before
+sampling the random host, and the separate embeddings of the pieces
+need not agree on shared vertices.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+All graphs are finite and simple, and copies are not required to
+be induced. For a graph $J$ on at most $n$ vertices, let
+\[
+ p_c(J;n)=\min\{p\in[0,1]:
+           \Prob(G(n,p)\text{ contains a copy of }J)\geq1/2\}.
+\]
+Here $G(n,p)$ has vertex set $[n]=\{1,\ldots,n\}$, with edges
+present independently with probability $p$. We set $p_c(J;n)=0$
+when $J$ is edgeless.
+
+To define the integral expectation threshold, put $X=E(K_n)$ and
+let $\calF_H\subseteq2^X$ be the increasing family of edge sets
+whose graphs contain $H$. A family $\mathcal C\subseteq2^X$
+\emph{covers} $\calF_H$ if every $A\in\calF_H$ contains some
+$S\in\mathcal C$. Its cost at $p$ is
+\[
+ c_p(\mathcal C)=\sum_{S\in\mathcal C}p^{|S|}.
+\]
+For $H$ with at least one edge, define
+\begin{equation}\label{eq:q-definition}
+ q(H;n)=\max\{p\in[0,1]:
+    \calF_H\text{ has a cover }\mathcal C
+    \text{ with }c_p(\mathcal C)\leq1/2\}.
+\end{equation}
+The maximum exists because there are only finitely many families
+of subsets of $X$. Each cover gives a first-moment bound on
+containment, so $q(H;n)\leq p_c(H;n)$. For convenience set
+$q(H;n)=0$ for edgeless graphs as well.
+
+\begin{theorem}\label{thm:main}
+There exist an absolute integer $k\geq2$ and an absolute constant
+$L\geq1$ such that, for every $n\geq2$ and every graph $H$ on
+at most $n$ vertices, the edges of $H$ admit a partition
+\[
+ E(H)=E(H_1)\,\dot\cup\,\cdots\,\dot\cup\,E(H_k)
+ \quad\text{with}\quad
+ p_c(H_i;n)\leq Lq(H;n)\qquad(1\leq i\leq k).
+\]
+The pieces may be empty and may share vertices. The partition
+depends only on $H,n$ and is fixed before the random host is sampled.
+\end{theorem}
+
+This proves Conjecture~8.1 of Ascoli, He, Park, and Talagrand
+\cite{AHPT26}. Their formulation allows overlapping edge sets.
+Assigning each edge to one piece containing it gives a partition
+and cannot increase any piece's containment threshold. Thus the
+two formulations are equivalent.
+
+\subsection*{History and significance}
+Kahn and Kalai \cite{KK07} proposed a general comparison between
+ordinary thresholds and integral expectation thresholds with a
+logarithmic loss. Following the fractional version established by
+Frankston, Kahn, Narayanan, and Park \cite{FKNP21}, Park and Pham
+\cite{PP24} proved the integral comparison. For graph containment
+it gives
+\[
+ p_c(H;n)\leq Cq(H;n)\log\max\{2,|E(H)|\}
+\]
+with an absolute constant $C$. Theorem~\ref{thm:main} removes
+this logarithmic loss after partitioning the target into a bounded
+number of pieces. The assertion concerns each fixed piece's
+ordinary threshold; their embeddings need not agree on shared
+vertices.
+
+Ascoli, He, Park, and Talagrand introduced generalized thresholds
+based on unions of likely graphs, related them to Talagrand's
+discrete-convexity conjecture, and formulated the decomposition
+problem above \cite{AHPT26}. They proved bounded-degeneracy
+cases and further cases with both degeneracy and maximum-degree
+restrictions \cite[Theorems~1.12--1.13]{AHPT26}. Their
+Section~8 isolates the bipartite edges between high- and
+low-degree vertices as a principal remaining difficulty.
+
+We use the same-parameter integral covering theorem from
+\emph{Talagrand's discrete-convexity conjecture}
+\cite[Theorem~1.1]{OpenAI26DC}, which proves the discrete
+conjecture formulated in \cite[Conjecture~7.1]{Talagrand10}.
+It is stated precisely in Section~\ref{sec:prelim}; this is an
+essential companion input. All remaining graph-decomposition and
+embedding arguments are proved below.
+
+\subsection*{Method}
+The covering theorem places one labelled copy of $H$ inside the
+union of a bounded number of deterministic graphs from a class
+$\calD$ having high probability at a density $r$ comparable to
+$q(H;n)$. Assigning each edge to one of these graphs gives initial
+pieces. In the large-degeneracy case we isolate a small set $Y$
+containing the high-degree vertices and enlarge it until each
+outside vertex has few neighbors in $Y$. Subsequent splitting
+produces pieces inside $Y$, outside $Y$, and across the cut.
+
+To embed a cut piece while fixing $Y$, each nonisolated outside
+vertex needs a distinct image adjacent to its prescribed set of
+at most $s$ vertices in $Y$. Hall's criterion asks for enough
+candidate images for every collection of outside vertices.
+Membership in a typical class alone does not ensure this; the
+class must control unions of arbitrarily many such conditions.
+
+The compression lemma selects at most $\lceil2r^{-s}\rceil$
+requirements from any family so that every neighborhood containing
+an original requirement contains a selected requirement with
+probability at least $1/2$ after adding each vertex of $Y$
+independently with probability $r$. This principle is independent
+of graphs. It permits simultaneous concentration over all
+subfamilies of this bounded size while still controlling every
+Hall condition. We define $\calD$ using these tests for all small
+$Y$ at once, so that transfer applies to cut pieces chosen after
+the deterministic cover.
+
+For the two other regions, a direct embedding lemma uses successive
+matchings of layers of pairwise nonadjacent vertices. Graphs of
+bounded degeneracy are handled by small star forests, adapting
+the degeneracy splitting and center-testing arguments of
+\cite[Claim~3.9 and Section~6]{AHPT26}.
+
+Section~\ref{sec:prelim}
+collects the covering input and elementary estimates.
+Section~\ref{sec:transfer} proves neighborhood transfer,
+Section~\ref{sec:direct} gives the direct embedding lemmas,
+and Section~\ref{sec:assembly} constructs the partition and
+proves Theorem~\ref{thm:main}.
+
+\section{Covering input and elementary estimates}
+\label{sec:prelim}
+
+The first step converts a family of typical labelled graphs into
+a deterministic cover of one copy of the target. We then record
+the elementary degree and threshold bounds used to subdivide that
+copy.
+
+For a finite ground set $X$, write $\mu_r$ for the law of its
+Bernoulli-$r$ random subset. Covering and the cost $c_r$ have the
+same meaning as in the introduction, with $X$ in place of $E(K_n)$.
+
+\begin{theorem}[Discrete convexity, {\cite[Theorem~1.1]{OpenAI26DC}}]
+\label{thm:discrete}
+Set $K_0=2^{75}$. For every nonempty finite set $X$, every
+$r\in(0,1)$, and every family $\calD\subseteq2^X$ with
+$\mu_r(\calD)\geq1-1/K_0$, the family
+\[
+ \mathcal E_{K_0}(\calD)=
+ \{S\subseteq X:S\not\subseteq D_1\cup\cdots\cup D_{K_0}
+                   \text{ for every }D_1,\ldots,D_{K_0}\in\calD\}
+\]
+has a cover of cost at most $1/2$ at the same parameter $r$.
+The family $\calD$ need not be monotone, and members of a tuple
+may repeat.
+\end{theorem}
+
+\begin{corollary}\label{cor:typical-cover}
+Let $n\geq2$, let $H$ have an edge and at most $n$ vertices,
+and suppose $q(H;n)<r<1$. If a family of graphs on $[n]$
+satisfies $\mu_r(\calD)\geq1-1/K_0$, then some copy of $H$
+has its edges contained in the union of $K_0$ members of $\calD$.
+\end{corollary}
+\begin{proof}
+If no such copy exists, no graph containing $H$ can be contained
+in such a union. Thus $\calF_H\subseteq\mathcal E_{K_0}(\calD)$.
+Theorem~\ref{thm:discrete} supplies a cover of $\calF_H$ of
+cost at most $1/2$ at $r$, contrary to $r>q(H;n)$.
+\end{proof}
+
+For a graph $J$, let
+\[
+ V_+(J)=\{v\in V(J):\deg_J(v)>0\}
+\]
+be its set of nonisolated vertices. Isolated vertices can be
+deleted during an embedding and added afterward: any embedding
+of the remaining vertices extends injectively when $|V(J)|\leq n$.
+If $J\subseteq H$, then $\calF_H\subseteq\calF_J$, so every
+cover of $\calF_J$ covers $\calF_H$. In particular,
+\begin{equation}\label{eq:monotonicity}
+ q(J;n)\leq q(H;n),\qquad p_c(J;n)\leq p_c(H;n).
+\end{equation}
+
+The \emph{degeneracy} $d=\degen(H)$ is the maximum of the
+minimum degrees of nonempty subgraphs of $H$. Equivalently,
+the vertices admit an order with at most $d$ preceding neighbors
+per vertex. To obtain the order, repeatedly remove a vertex of
+degree at most $d$ and place it last. Conversely, the last vertex
+of any subgraph in such an order has degree at most $d$.
+Counting each edge at its later endpoint shows that every
+subgraph $J$ of $H$ satisfies
+\begin{equation}\label{eq:edge-bound}
+ |E(J)|\leq d|V(J)|.
+\end{equation}
+
+\begin{lemma}\label{lem:q-lower}
+If $H$ has an edge, $|V(H)|\leq n$, and $d=\degen(H)$, then
+\begin{equation}\label{eq:q-lower}
+ q(H;n)\geq\frac1{2\binom n2},\qquad
+ q(H;n)\geq\frac12 n^{-2/d}.
+\end{equation}
+\end{lemma}
+\begin{proof}
+The family of all single edges covers $\calF_H$, proving the
+first bound. For the second, choose a subgraph of minimum degree
+$d$, with $v$ vertices and $a\geq dv/2$ edges. Its copies on
+$[n]$ form a cover of $\calF_H$ with cost at most $n^vp^a$.
+At $p=2^{-1/a}n^{-v/a}\in(0,1)$ this is at most $1/2$.
+Since $a\geq1$ and $v/a\leq2/d$, this parameter is at least
+$\frac12n^{-2/d}$.
+\end{proof}
+
+We use the following elementary splitting from
+\cite[Claim~3.9]{AHPT26}.
+
+\begin{lemma}[Degeneracy splitting]\label{lem:split}
+For every positive integer $m$, the edges of a $d$-degenerate
+graph can be partitioned into $m$ graphs, each of degeneracy
+at most $\lceil d/m\rceil$.
+\end{lemma}
+\begin{proof}
+Fix a degeneracy order. At each vertex, partition its edges to
+preceding neighbors into $m$ groups of size at most
+$\lceil d/m\rceil$, and assign each group to its corresponding
+piece. Each edge is assigned once. The same order certifies the
+claimed bound in every piece.
+\end{proof}
+
+\section{Uniform neighborhood transfer}
+\label{sec:transfer}
+
+We construct a typical class whose small-neighborhood bipartite
+subgraphs embed in a slightly denser random graph. To embed a
+bipartite graph $J$ while fixing one part $Y$, each nonisolated
+vertex $w$ outside $Y$ needs a distinct image adjacent to every
+vertex of $T_w=N_J(w)\subseteq Y$. For every set $U$ of vertices
+to be matched, Hall's criterion asks for at least $|U|$ candidate
+images whose neighborhoods contain at least one $T_w$ with $w\in U$.
+The family of requirements indexed by $U$ can be large. The next
+lemma reduces it to a bounded subfamily after an independent
+random extension.
+
+\subsection{Compressing requirements}
+
+For a family $\calQ$ of subsets of a finite set $Y$, say that
+$S\subseteq Y$ \emph{satisfies} $\calQ$ if it contains some
+member of $\calQ$. Given $r\in(0,1)$, define
+\begin{equation}\label{eq:smoothed-test}
+ f_{\calQ}(S)=\Prob(S\cup Z\text{ satisfies }\calQ),
+ \qquad Z\sim\mu_r\text{ on }Y.
+\end{equation}
+A small subfamily need not be satisfied by every set that
+satisfies the original family. The lemma replaces this implication
+by a uniform probability bound after the extension.
+
+\begin{lemma}[Compression after a random extension]
+\label{lem:compression}
+Let $Y$ be finite, $r\in(0,1)$, and $s\geq1$ an integer.
+For every nonempty family
+\[
+ \calR\subseteq\{T\subseteq Y:1\leq|T|\leq s\}
+\]
+there is a nonempty subfamily $\calQ\subseteq\calR$ with
+$|\calQ|\leq\lceil2r^{-s}\rceil$ such that
+\begin{equation}\label{eq:compression}
+ S\text{ satisfies }\calR\quad\Longrightarrow\quad
+ f_{\calQ}(S)\geq1/2.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Start with $\calQ=\varnothing$. While some $T\in\calR$
+satisfies
+\[
+ \Prob(Z\text{ satisfies }\calQ\mid Z\supseteq T)<1/2,
+\]
+add $T$ to $\calQ$. The probability that $Z$ satisfies the
+current family increases by
+\[
+ \Prob(Z\supseteq T,\ Z\text{ does not satisfy }\calQ)
+ >\tfrac12r^{|T|}\geq\tfrac12r^s
+\]
+at each addition. A previously added set cannot be chosen again,
+and the process makes fewer than $2r^{-s}$ additions. It makes
+at least one, because $\calR$ is nonempty.
+
+At termination the conditional probability is at least $1/2$
+for every $T\in\calR$. The conditional law of $Z$ given
+$Z\supseteq T$ is the law of $T\cup Z$ with a fresh Bernoulli
+sample. Hence $f_{\calQ}(T)\geq1/2$. The function
+$f_{\calQ}$ is increasing in $S$, proving
+\eqref{eq:compression} whenever $S$ contains such a $T$.
+\end{proof}
+
+\subsection{The transfer lemma}
+
+All logarithms below are natural. The parameter range used in both
+this section and the next is
+\begin{equation}\label{eq:parameters}
+ 0<r<1,\qquad s\in\mathbb N,\qquad
+ s\leq10\log n,\qquad r^s\geq n^{-1/100}.
+\end{equation}
+The bounds will be uniform over this range.
+
+\begin{proposition}[Neighborhood transfer]\label{prop:transfer}
+There is an absolute integer $N_1$ such that the following holds
+for every $n\geq N_1$ and every $r,s$ satisfying
+\eqref{eq:parameters}. There exists
+$\calD=\calD(n,r,s)\subseteq2^{E(K_n)}$ with
+$\mu_r(\calD)\geq1-1/K_0$ such that, whenever
+\begin{itemize}
+\item $Y\subseteq[n]$ has $|Y|\leq n^{2/3}$;
+\item $J$ is a labelled bipartite graph with all edges between
+      $Y$ and $[n]\setminus Y$, and $E(J)\subseteq E(G)$
+      for some $G\in\calD$;
+\item at most $n/8$ vertices outside $Y$ have positive degree in
+      $J$, and all of those degrees are at most $s$;
+\end{itemize}
+one has
+\begin{equation}\label{eq:transfer}
+ p_c(J;n)\leq r_*:=1-(1-r)^{32}\leq32r.
+\end{equation}
+\end{proposition}
+\begin{proof}
+We impose upper bounds on source sums of $f_{\calQ}$ and lower
+bounds on target counts satisfying $\calQ$. Compression makes
+each vertex in a set $U$ to be matched contribute at least $1/2$
+to an appropriate source sum, while each target neighborhood
+counted by the corresponding $\calQ$ is usable for at least one
+vertex of $U$.
+
+\paragraph{The test families.}
+Use every $Y\subseteq[n]$ of size at most $n^{2/3}$ and every
+nonempty family
+\[
+ \calQ\subseteq\{T\subseteq Y:1\leq|T|\leq s\},
+ \qquad |\calQ|\leq\lceil2r^{-s}\rceil.
+\]
+Write $m=n-|Y|$, put $\tau=1-(1-r)^2$, and let
+$x(\calQ)$ and $x_*(\calQ)$ be the probabilities that
+Bernoulli-$\tau$ and Bernoulli-$r_*$ subsets of $Y$ satisfy
+$\calQ$, respectively. Both are at least $r^s$.
+Define $\calD$ by requiring, for every test $(Y,\calQ)$,
+\begin{equation}\label{eq:source-test}
+ \frac1m\sum_{w\in[n]\setminus Y}
+ f_{\calQ}(N_G(w)\cap Y)\leq2x(\calQ).
+\end{equation}
+Also define a target event by the inequalities
+\begin{equation}\label{eq:target-test}
+ \frac1m\bigl|\{w\in[n]\setminus Y:
+       N_{G_*}(w)\cap Y\text{ satisfies }\calQ\}\bigr|
+ \geq\frac34x_*(\calQ)
+\end{equation}
+for all of the same tests.
+
+\paragraph{Simultaneous concentration.}
+For fixed $Y,\calQ$ and $G\sim G(n,r)$, the summands in
+\eqref{eq:source-test} are independent and lie in $[0,1]$.
+Their mean is $x(\calQ)$: the neighborhood sample and the
+independent sample in \eqref{eq:smoothed-test} have union
+density $\tau$. Their independence follows because the edges
+from distinct vertices outside $Y$ into $Y$ are disjoint sets
+of random variables.
+
+The logarithm of the number of tests is at most
+\begin{equation}\label{eq:test-count}
+ C\bigl(n^{2/3}\log n+n^{1/100}(\log n)^2\bigr)
+\end{equation}
+with an absolute $C$. Indeed, choosing $Y$ costs at most
+$(\lfloor n^{2/3}\rfloor+1)n^{n^{2/3}}$ possibilities.
+One can then list at most $\lceil2n^{1/100}\rceil$ subsets,
+each of size at most $s\leq10\log n$. This overcounts families
+and gives \eqref{eq:test-count}.
+
+For large $n$, $m\geq n/2$. Since $x(\calQ)\geq n^{-1/100}$,
+Hoeffding's inequality \cite{Hoeffding63} bounds the failure
+probability of \eqref{eq:source-test} for a fixed test by
+$\exp(-c n^{98/100})$. The indicators in
+\eqref{eq:target-test}, for $G_*\sim G(n,r_*)$, are likewise
+independent, with mean $x_*(\calQ)\geq n^{-1/100}$.
+The same bound, with another absolute $c>0$, applies to their
+relative deviation by $1/4$.
+Thus each simultaneous event has probability at least
+$1-\varepsilon_n$, where uniformly in $r,s$,
+\begin{equation}\label{eq:uniform-error}
+ \varepsilon_n\leq
+ 2\exp\!\left(
+ C\bigl(n^{2/3}\log n+n^{1/100}(\log n)^2\bigr)
+ -c n^{98/100}\right)\longrightarrow0.
+\end{equation}
+Increase $N_1$ so that this error is at most
+$\min\{1/K_0,1/2\}$ for $n\geq N_1$.
+
+The relation between the two test means is important. A
+Bernoulli-$r_*$ set is the union of $16$ independent
+Bernoulli-$\tau$ sets. Satisfaction is increasing, so
+\begin{equation}\label{eq:amplification}
+ x_*(\calQ)\geq1-(1-x(\calQ))^{16}.
+\end{equation}
+
+\paragraph{Hall's criterion.}
+Fix $J,Y,G$ as in the statement and a target graph $G_*$
+satisfying \eqref{eq:target-test}. Keep $Y$ fixed and match
+the positive-degree vertices of $J$ outside $Y$ to distinct
+vertices of $[n]\setminus Y$. A candidate image $a$ is usable
+for a vertex $w$ when
+$N_J(w)\subseteq N_{G_*}(a)\cap Y$.
+
+For any nonempty set $U$ of vertices to be matched, apply
+Lemma~\ref{lem:compression} to
+\[
+ \calR=\{N_J(w):w\in U\}.
+\]
+It gives an admissible test $\calQ\subseteq\calR$.
+Every $N_G(w)\cap Y$, for $w\in U$, satisfies $\calR$,
+because $G$ contains the labelled edges of $J$. Writing
+$x=x(\calQ)$, \eqref{eq:source-test} therefore yields
+\begin{equation}\label{eq:hall-source}
+ |U|/2\leq\sum_{w\in[n]\setminus Y}
+       f_{\calQ}(N_G(w)\cap Y)\leq2xm.
+\end{equation}
+Repeated neighborhoods disappear from $\calR$, but their
+distinct vertices still contribute separately to this sum.
+
+Every target vertex counted in \eqref{eq:target-test} is usable
+for some vertex of $U$, because $\calQ\subseteq\calR$.
+If $x\leq1/16$, then
+\[
+ x_*(\calQ)\geq1-e^{-16x}\geq8x,
+\]
+so there are at least $6xm\geq|U|$ usable vertices.
+If $x>1/16$, there are at least
+\[
+ \frac34(1-e^{-1})m\geq\frac38(1-e^{-1})n>n/8\geq|U|.
+\]
+Hall's theorem \cite{Hall35} gives the matching in both cases.
+All choices of $\calQ$ are legitimate even though they depend
+on $J,U,G$: the inequalities were established simultaneously
+for every test.
+
+The matching embeds every edge of $J$ while fixing $Y$.
+Any remaining isolated vertices can be added afterward. The
+target event has probability at least $1/2$, giving
+$p_c(J;n)\leq r_*$. Finally, the union bound for $32$ independent
+Bernoulli-$r$ samples gives $r_*\leq32r$.
+\end{proof}
+
+\section{Direct embedding lemmas}
+\label{sec:direct}
+
+Neighborhood transfer will handle edges between a small
+high-degree set and its complement. Two direct estimates cover the other parts:
+one for graphs with bounded maximum degree and one for small
+star forests. Neither requires membership in the typical family.
+
+\subsection{A maximum-degree bound}
+
+\begin{proposition}\label{prop:degree-embedding}
+There is an absolute integer $N_2$ such that, for $n\geq N_2$
+and $r,s$ satisfying \eqref{eq:parameters}, every graph $J$
+with
+\[
+ |V_+(J)|\leq n/4,\qquad \degen(J)\leq s,
+ \qquad\Delta(J)\leq n^{2/3}
+\]
+and at most $n$ vertices satisfies $p_c(J;n)\leq r$.
+\end{proposition}
+\begin{proof}
+Discard isolated vertices and assume that an edge remains.
+We partition the vertices into layers that are independent sets, constructed
+in reverse order. In any residual subgraph with $m'$ vertices,
+the average degree is at most $2s$. At least $m'/2$ vertices
+therefore have degree at most $4s$. The graph they induce has
+an independent set of size at least $m'/(2(4s+1))$, by greedily
+choosing a vertex and deleting it and its neighbors. Take such
+a set as the last remaining layer and repeat on the residual
+graph. Geometric decrease gives
+\begin{equation}\label{eq:layers}
+ t\leq C s\log n\leq C'(\log n)^2
+\end{equation}
+layers. Every vertex has at most $4s$ neighbors in earlier layers.
+
+For each layer choose a disjoint bin in $[n]$ of size equal to
+the layer size plus
+\[
+ b=\left\lfloor\frac{n}{4t}\right\rfloor.
+\]
+The bins fit, since their total size is at most $n/4+tb\leq n/2$.
+Embed the layers in order. At a given step expose the edges
+between the current bin and the earlier images, and seek a
+matching of the layer into its bin. These edges are fresh
+independent Bernoulli-$r$ variables conditional on the entire
+past: all previous exposures were between earlier bins.
+
+Write $\Delta=\Delta(J)$. Fix a subset $U$ of the current
+layer with $|U|=u\geq1$. Each vertex of $U$ requires adjacency
+to at most $4s$ earlier images. Each earlier image occurs in at
+most $\Delta$ requirements, so the conflict graph joining
+intersecting requirements has maximum degree at most $4s\Delta$.
+It has an independent set of size at least
+$u/(1+4s\Delta)$, whose requirements are pairwise disjoint.
+
+For a set $W$ of $u-1$ vertices in the current bin, at least $b$
+vertices of the bin remain outside $W$. The probability that
+none is usable for any vertex of $U$ is at most
+\begin{equation}\label{eq:hall-failure}
+ \exp\!\left(-\frac{bu r^{4s}}{1+4s\Delta}\right).
+\end{equation}
+Indeed, restrict to the disjoint requirements just selected.
+Each succeeds at a given candidate with probability at least
+$r^{4s}$, independently over those requirements and over
+candidates. If an empty requirement is present, the failure
+event is impossible, so the bound remains valid.
+
+Uniformly under \eqref{eq:parameters} and \eqref{eq:layers},
+for sufficiently large $n$,
+\begin{equation}\label{eq:hall-exponent}
+ \frac{b r^{4s}}{1+4s\Delta}
+ \geq c\frac{n^{1-4/100-2/3}}{(\log n)^3}
+ =c\frac{n^{22/75}}{(\log n)^3}\geq5\log n.
+\end{equation}
+Here $b\geq c'n/(\log n)^2$ and $r^{4s}\geq n^{-4/100}$.
+There are at most $n^{2u}$ choices of $U,W$ for each $u$.
+Failure of Hall's condition implies such a pair with all usable
+images of $U$ in $W$. By \eqref{eq:hall-failure}--\eqref{eq:hall-exponent},
+the conditional failure probability at a layer is at most
+\[
+ \sum_{u\geq1}n^{2u}e^{-5u\log n}
+ =\sum_{u\geq1}n^{-3u}=O(n^{-3}).
+\]
+Summing this bound over the $O((\log n)^2)$ layers shows that
+the embedding succeeds with probability tending to one,
+uniformly over the allowed parameters. Taking an absolute
+$N_2$ so that it succeeds with probability at least $1/2$
+proves the proposition.
+\end{proof}
+
+\subsection{Small star forests}
+
+A star forest is a graph whose nontrivial components are stars.
+The next argument adapts the fresh-center embedding in
+\cite[Claim~6.6]{AHPT26}. Small support is imposed directly,
+so it is unnecessary to divide the stars by their degrees in
+advance.
+
+\begin{proposition}\label{prop:stars}
+Put $A=400e^4$. There is an absolute integer $N_3$ such that,
+for every $n\geq N_3$ and every star forest $J$ on at most $n$
+vertices with $|V_+(J)|\leq n/100$,
+\begin{equation}\label{eq:star-threshold}
+ p_c(J;n)\leq2Aq(J;n).
+\end{equation}
+If $q(J;n)<1/(2A)$, the stronger bound
+$p_c(J;n)\leq Aq(J;n)$ holds.
+\end{proposition}
+\begin{proof}
+The edgeless case is immediate. Put $q_J=q(J;n)>0$.
+If $q_J\geq1/(2A)$, then $2Aq_J\geq1$, so
+\eqref{eq:star-threshold} is automatic. We may therefore
+assume $q_J<1/(2A)$ and set $p=Aq_J\in(0,1/2)$.
+
+For $\ell\geq1$, let $m_\ell$ be the number of components
+of $J$ with exactly $\ell$ leaves, ignoring isolated vertices.
+If $m=m_\ell>0$, the copies on $[n]$ of $m$ disjoint
+$\ell$-edge stars cover $\calF_J$. Their number is at most
+\[
+ C_\ell=\frac{n^{m(\ell+1)}}{(\ell!)^m m!}.
+\]
+This follows by counting vertex injections and dividing by
+permutations of the leaves and of the stars. For $\ell=1$
+there are additional automorphisms, which only decrease the
+actual count. Since such a star forest exists on at most $n$
+vertices, $C_\ell\geq1$. Using its cover at
+$(1/(2C_\ell))^{1/(m\ell)}\in(0,1)$ yields
+\begin{equation}\label{eq:star-count}
+ q_J^\ell\geq\frac{\ell!}{n^{\ell+1}}(m!/2)^{1/m}
+ \geq\frac{\ell!}{n^{\ell+1}}\frac{m_\ell}{2e}.
+\end{equation}
+The last step uses $m!\geq(m/e)^m$ and $2^{1/m}\leq2$.
+
+Partition $[n]$ into a center bin of size $\lfloor n/2\rfloor$
+and a leaf bin containing the remaining vertices. Process the
+components of $J$ one at a time. For a star with $\ell$ leaves,
+test unused centers successively until one has at least $\ell$
+neighbors among the unused leaf vertices. Use that center and
+any $\ell$ such neighbors, and never test that center again.
+Failed centers are also discarded.
+
+Throughout the process, at least $b'=\lfloor n/3\rfloor$
+leaf vertices remain. The unused leaf set is determined by
+previously tested center rows, and a fresh center row has not
+been exposed. Thus each trial, conditional on the past, has
+success probability at least
+\begin{equation}\label{eq:star-success}
+ u_\ell=\Prob(\Bin(b',p)\geq\ell).
+\end{equation}
+For the purpose of counting trials, append infinitely many
+auxiliary centers with fresh independent rows to the same leaf
+bin. This enlarged process agrees with the actual process until
+the original center bin is exhausted. The number $T$ of trials
+needed to finish all stars in the enlarged process satisfies
+\begin{equation}\label{eq:expected-trials}
+ \E T\leq\sum_{\ell:m_\ell>0}\frac{m_\ell}{u_\ell},
+\end{equation}
+because the conditional expected waiting time for each success
+is at most $1/u_\ell$.
+
+If $\mu=b'p\geq2\ell$, the second-moment bound
+$\E[\Bin(b',p)^2]\leq\mu^2+\mu$ and the Paley--Zygmund
+inequality give
+\[
+ u_\ell\geq\frac14\frac{\mu^2}{\mu^2+\mu}\geq\frac16,
+\]
+since $\mu\geq2$. Otherwise $b'p<2\ell$. For every occupied
+star size, $\ell\leq n/100$, and for large $n$,
+$b'-\ell+1\geq n/4$. As $p<1/2$, the inequality
+$\log(1-p)\geq-2p$ implies
+\begin{align}
+ u_\ell
+ &\geq\binom{b'}{\ell}p^\ell(1-p)^{b'-\ell}
+ \geq\frac{(n/4)^\ell p^\ell}{\ell!}e^{-4\ell}\notag\\
+ &\geq\left(\frac{A}{4e^4}\right)^\ell
+        \frac{m_\ell}{2e n}
+ =100^\ell\frac{m_\ell}{2e n},
+ \label{eq:star-small-mean}
+\end{align}
+where the last inequality uses \eqref{eq:star-count}.
+
+There are at most $n/200$ nontrivial components. Combining
+the two bounds in \eqref{eq:expected-trials} gives
+\[
+ \E T\leq6\frac{n}{200}+2e n\sum_{\ell\geq1}100^{-\ell}
+ =\left(\frac3{100}+\frac{2e}{99}\right)n<\frac n8.
+\]
+For large $n$, Markov's inequality shows that
+$T\leq\lfloor n/2\rfloor$ with probability at least $1/2$.
+On this event all centers used belong to the actual random graph,
+so the construction embeds $J$ in $G(n,p)$. This proves
+$p_c(J;n)\leq Aq_J$ in the remaining case.
+\end{proof}
+
+\section{Constructing the fixed partition}
+\label{sec:assembly}
+
+We now prove Theorem~\ref{thm:main}. The high-degeneracy case
+first uses the typical-family cover and isolates a small set $Y$
+so that every vertex outside $Y$ has few neighbors in $Y$ and
+bounded total degree. Neighborhood transfer handles edges across
+this cut, while the maximum-degree estimate handles edges inside
+and outside $Y$ after further splitting. The bounded-degeneracy
+case uses only small star forests. The partition choices in both
+cases are deterministic.
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Fix
+\begin{equation}\label{eq:constants}
+ M=B=1000,\qquad k=2K_0M(B+1)^2.
+\end{equation}
+Choose an absolute integer $n_0\geq2$ large enough for
+Propositions~\ref{prop:transfer}, \ref{prop:degree-embedding},
+and~\ref{prop:stars}, and so that, for every $n\geq n_0$,
+\begin{equation}\label{eq:deterministic-cutoffs}
+ \frac{8\log n}{\log2}\sqrt n\leq n^{2/3},\qquad
+ n^{2/3}\leq n/4,\qquad
+ 2\lceil n/B\rceil\leq n/100.
+\end{equation}
+All these conditions have absolute cutoffs. Set
+\[
+ L=\max\{2A,64,n_0^2\}.
+\]
+If $H$ is edgeless, use only empty pieces. Otherwise write
+$q=q(H;n)>0$ and $d=\degen(H)\geq1$.
+When $n<n_0$, Lemma~\ref{lem:q-lower} gives
+$Lq\geq n_0^2/(n(n-1))\geq1$. When $q\geq1/(2A)$,
+we also have $Lq\geq1$. In either case put all edges in one
+piece and use empty pieces for the rest. Henceforth
+\begin{equation}\label{eq:nontrivial-range}
+ n\geq n_0,\qquad q<1/(2A).
+\end{equation}
+
+\paragraph{Large degeneracy: $d\geq M$.}
+Set
+\[
+ r=2q,\qquad s=\lceil2d/M\rceil.
+\]
+By Lemma~\ref{lem:q-lower}, $r\geq n^{-2/d}$, whereas
+\eqref{eq:nontrivial-range} gives $r<1/A<1/2$. Consequently
+\begin{equation}\label{eq:d-upper}
+ d<\frac{2\log n}{\log2},\qquad s\leq3d/M,
+ \qquad r^s\geq n^{-6/M}\geq n^{-1/100}.
+\end{equation}
+These bounds also give $s\leq10\log n$, so
+\eqref{eq:parameters} holds.
+
+Take the family $\calD$ from Proposition~\ref{prop:transfer}.
+Corollary~\ref{cor:typical-cover} supplies a copy of $H$ covered
+by $K_0$ members $G_1,\ldots,G_{K_0}$ of $\calD$.
+Fix those graphs and the labelled copy, and use this copy to
+label $H$ on a subset of $[n]$. Assign each edge of $H$ to
+one $G_i$ containing it. This gives $K_0$ initial edge pieces,
+each contained in its specified typical graph.
+
+We separate the high-degree vertices, following the obstacle
+identified in \cite[Section~8]{AHPT26}. Initially let
+\[
+ Y_0=\{v\in V(H):\deg_H(v)>\sqrt n\}.
+\]
+By \eqref{eq:edge-bound}, $|Y_0|\leq2d\sqrt n$.
+Starting from $Y_0$, add an outside vertex whenever it has more
+than $2d$ neighbors in the current set, and stop when no such
+vertex remains. Let $Y$ be the resulting set and let
+$a=|Y\setminus Y_0|$. Each added vertex contributes more than
+$2d$ edges to earlier vertices of the set; no edge is counted
+twice. Thus
+\[
+ 2da\leq|E(H[Y])|\leq d(|Y_0|+a),
+\]
+giving $|Y|\leq2|Y_0|\leq4d\sqrt n\leq n^{2/3}$ by
+\eqref{eq:d-upper} and \eqref{eq:deterministic-cutoffs}.
+The conclusion also holds if $Y_0$ is empty, in which case no
+vertex is added. At termination every $w\notin Y$ satisfies
+\begin{equation}\label{eq:outside-bounds}
+ \deg_H(w)\leq\sqrt n,\qquad |N_H(w)\cap Y|\leq2d.
+\end{equation}
+
+Partition $V(H)\setminus Y$ into $B$ possibly empty blocks
+of size at most $\lceil n/B\rceil$. Subdivide each initial
+edge piece as follows.
+
+\emph{Edges inside $Y$.}
+Apply Lemma~\ref{lem:split} with $m=M$ to obtain $M$ pieces
+of degeneracy at most $\lceil d/M\rceil\leq s$.
+Each is supported on at most $|Y|\leq n^{2/3}\leq n/4$
+vertices and has maximum degree at most $n^{2/3}$.
+Proposition~\ref{prop:degree-embedding} gives threshold at most $r$.
+
+\emph{Edges outside $Y$.}
+First partition by the unordered pair of endpoint blocks,
+allowing both endpoints in the same block. There are
+$B(B+1)/2$ such pairs. Apply Lemma~\ref{lem:split} with
+$m=M$ to each resulting graph. The pieces have degeneracy
+at most $s$, maximum degree at most $\sqrt n$, and support
+size at most $2\lceil n/B\rceil\leq n/100$.
+Proposition~\ref{prop:degree-embedding} again gives threshold
+at most $r$.
+
+\emph{Edges between $Y$ and its complement.}
+First partition by the block of the endpoint outside $Y$.
+At each such endpoint, distribute its edges in the initial
+piece among $M$ groups of size at most $\lceil2d/M\rceil=s$,
+using \eqref{eq:outside-bounds}. This assigns every cut edge
+once. Each resulting bipartite piece is still contained in its
+specified $G_i\in\calD$, has at most $\lceil n/B\rceil\leq n/8$
+positive-degree vertices outside $Y$, and has all those degrees
+at most $s$. Proposition~\ref{prop:transfer} gives threshold
+at most $r_*\leq32r=64q$.
+
+All pieces therefore have threshold at most $64q\leq Lq$.
+Their number is at most
+\[
+ K_0M\left(1+\frac{B(B+1)}2+B\right)
+ =\frac{K_0M(B+1)(B+2)}2\leq k.
+\]
+
+\paragraph{Bounded degeneracy: $1\leq d<M$.}
+Lemma~\ref{lem:split}, with $m=d$, partitions $E(H)$ into
+$d$ graphs of degeneracy at most one, hence into forests.
+Indeed, the last vertex of a cycle in the certifying order
+would have two preceding neighbors.
+
+Root every nontrivial tree. Color each parent--child edge by
+the parity of the depth of its parent. Each color class is a
+star forest: its centers occur at one depth parity, and their
+children have the other parity and no other incident edge of
+that color. This is the parity splitting used in
+\cite[Claim~6.2]{AHPT26}.
+
+Partition $V(H)$ into $B$ blocks of size at most
+$\lceil n/B\rceil$, and split each star forest by unordered
+endpoint-block pairs. Every resulting piece $J$ remains a star
+forest and has
+$|V_+(J)|\leq2\lceil n/B\rceil\leq n/100$.
+By Proposition~\ref{prop:stars} and \eqref{eq:monotonicity},
+\[
+ p_c(J;n)\leq2Aq(J;n)\leq2Aq(H;n)\leq Lq.
+\]
+The number of pieces is at most
+$2d\,B(B+1)/2=dB(B+1)\leq k$.
+
+Finally, add empty pieces if necessary. In the large-degeneracy
+case, pull the labelled edge pieces back to the original $H$.
+The typical graphs, the copy of $H$, all vertex orders, and
+all assignments have been fixed using only $H,n$; none depends
+on the random host used to test a piece's threshold. This
+completes the proof.
+\end{proof}
+
+\bibliographystyle{amsplain}
+\bibliography{references}
+\end{document}

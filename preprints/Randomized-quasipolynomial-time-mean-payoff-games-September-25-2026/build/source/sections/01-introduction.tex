@@ -1,0 +1,261 @@
+\section{Introduction}
+
+A mean-payoff game asks whether a player can maintain a nonnegative
+long-run average reward while an opponent chooses some of the moves.
+The arena is finite, but plays are infinite and integer edge weights may
+have large magnitudes. Positional strategies provide finite certificates
+for the two winning regions. The algorithmic difficulty is to find those
+regions with a cost controlled by the binary description, rather than by
+the numerical size of a weight.
+
+This paper gives a randomized quasipolynomial-time algorithm. Its central
+output is an exact bounded integer potential: with probability at least
+$7/8$, every coordinate of that potential is correct. Thresholding it
+returns the complete winning set. The method also gives order guarantees
+in finite integer boxes with arbitrary endpoints and the allowed reference
+width. Each guarantee concerns a fixed comparison vector and all its
+coordinates at once.
+
+\subsection{Games, encoding, and the main theorem}
+
+The input consists of a finite directed graph $G=(V,E)$ on
+$V=\{1,\ldots,n\}$, $n\ge1$, an ownership partition
+$V=V_{\mathrm{Max}}\mathbin{\dot\cup}V_{\mathrm{Min}}$, and signed
+integer weights $w:E\to\Z$. Every vertex has an outgoing edge;
+self-loops and parallel edges are permitted. At a vertex its owner
+chooses the next edge. Both players may use strategies depending on the
+entire finite history. For a play $\pi=(e_0,e_1,\ldots)$, define
+\[
+ \operatorname{MP}_w(\pi)
+ =\liminf_{T\to\infty}\frac1T\sum_{j=0}^{T-1}w(e_j).
+\]
+We use an explicit binary encoding of the graph, ownership, and signed
+weights. Its total length is $L$; in particular, endpoints and ownership
+are charged as part of the input.
+
+\begin{theorem}\label{thm:main}
+There is a uniform randomized algorithm that, for every such game,
+returns the entire set
+\[
+ U=\{v\in V:\text{there is a Max strategy }\sigma
+       \text{ such that for every Min strategy }\tau,\ 
+       \operatorname{MP}_w(\pi_{v,\sigma,\tau})\ge0\}
+\]
+correctly with probability at least $7/8$.
+For an absolute constant $C>0$, on every random tape its total cost is at
+most
+\[
+ 2^{C(\log_2(L+2))^2}
+\]
+bit operations in a standard model polynomially equivalent to a uniform
+probabilistic Turing machine. The bound includes preprocessing, recursive
+calls, intermediate arithmetic, and random-bit generation.
+\end{theorem}
+
+The probability statement concerns the whole returned set, and the time
+bound holds even when that output is wrong. Large weights are allowed:
+the resource parameter is their binary description together with the
+rest of the explicit input. The asserted bound is quasipolynomial;
+a polynomial-time bound would be stronger.
+
+The recovered potential has a polynomial-time check. A run can therefore
+return either a verified winning set with positional strategies for both
+players, or a failure symbol. It returns the verified output with
+probability at least $7/8$ and never accepts an incorrect one.
+Corollary~\ref{cor:certified-output} proves this consequence and an
+always-correct, or Las Vegas, version obtained by repeating until the
+check succeeds. The repeated version has quasipolynomial expected bit
+cost; each individual trial retains the bound on every tape. The
+strategies certify the zero-threshold regions, with Max enforcing
+nonnegative payoff on its region and Min enforcing strictly negative
+payoff on the complement.
+
+The companion article \emph{Deterministic quasipolynomial-time
+mean-payoff games}~\cite[Theorem~1.1]{OpenAI2026Deterministic} gives
+a deterministic complete winning-set algorithm with the same form of
+bit bound. Its Section~7 also reduces exact values and globally optimal
+positional strategies to polynomially many winning-set queries. The
+value at a start is the best worst-case mean payoff from that start;
+the two strategies attain these values simultaneously at all starts.
+Using amplified calls to the algorithm of Theorem~\ref{thm:main},
+that reduction returns
+the entire value and strategy output correctly with probability at
+least $7/8$, with the same form of bit bound on every random tape
+\cite[Section~7]{OpenAI2026Deterministic}.
+
+The present paper retains different outputs and a different method:
+pointwise whole-vector comparisons in boxes with arbitrary integer
+endpoints and allowed reference width, exact recovery of the top-box
+potential, and a randomized orientation recursion. The proof of
+Theorem~\ref{thm:main} is independent of the deterministic algorithm.
+
+\subsection{Historical context and related algorithms}
+
+Ehrenfeucht and Mycielski proved the positional structure of mean-payoff
+games~\cite{EhrenfeuchtMycielski1979}. A long algorithmic line uses
+\emph{potentials}, numbers assigned to vertices whose endpoint
+differences reweight edges without changing cycle sums. Gurvich,
+Karzanov, and Khachiyan developed this approach for cyclic games
+\cite{GurvichKarzanovKhachiyan1988}; related algorithms and analyses
+were given by Karzanov and Lebedev~\cite{KarzanovLebedev1993} and
+Pisaruk~\cite{Pisaruk1999}. Zwick and Paterson established complexity
+results and pseudopolynomial algorithms for mean-payoff threshold and
+value problems~\cite{ZwickPaterson1996}. A pseudopolynomial cost may be
+polynomial in the weight magnitude while exponential in its binary
+length, which is the distinction relevant here.
+
+Energy games express a related finite-prefix requirement: starting with
+some credit, keep every cumulative total nonnegative. Resource
+interfaces and energy constraints provide a verification setting for
+this question~\cite{ChakrabartiEtAl2003,BouyerEtAl2008}. Brim,
+Chaloupka, Doyen, Gentilini, and Raskin use bounded integer progress
+measures and monotone lifting~\cite{BrimEtAl2011}; their threshold
+algorithm has $O(|E|nM)$ arithmetic cost for an absolute weight bound
+$M$~\cite[Theorem~8]{BrimEtAl2011}. Lifshits and Pavlov give a paired
+potential characterization and an exponential algorithm
+\cite{LifshitsPavlov2007}. Cadilhac, Casares, and Ohlmann develop a
+uniform account of sound potential updates and accelerated value
+iteration for energy games~\cite{CadilhacCasaresOhlmann2025}.
+Our box comparison method uses this potential viewpoint, with a
+symmetric boundary convention and a locally proved game reduction.
+
+Strategy improvement supplies another route. For graphs without
+parallel edges, Bj\"orklund and Vorobyov obtain an expected
+$2^{O(\sqrt{n\log n})}$ arithmetic-operation bound for the threshold
+partition~\cite[Theorem~7.1]{BjorklundVorobyov2007}, following earlier
+work with Sandberg~\cite{BjorklundSandbergVorobyov2004}. Andersson and
+Vorobyov use discounted linear programs for randomized strongly
+subexponential value and strategy algorithms
+\cite{AnderssonVorobyov2006}. Subsequent analyses include Zwick's
+bounds for Random-Action-Removal~\cite{Zwick2026} and the bounds of
+Dorfman, Kaplan, and Zwick for Switch-All and Random-Edge in energy
+games~\cite{DorfmanKaplanZwick2026}. These comparisons require two
+distinctions. Arithmetic counts must be supplemented by operand bit
+lengths. Moreover, an expected Las Vegas bit bound can be converted to
+a bounded-error bound on every tape by a fixed cutoff. Thus the
+quantitative contribution of Theorem~\ref{thm:main} is its
+quasipolynomial dependence on $L$, together with the specified complete
+output and potential guarantees.
+
+The 2017 quasipolynomial parity-game algorithm of Calude, Jain,
+Khoussainov, Li, and Stephan~\cite{CaludeJainKhoussainovLiStephan2022}
+opened a further direction. In a parity game, the winner is determined
+by vertex priorities appearing infinitely often. Extensions to
+quantitative objectives retain additional parameters: Daviaud,
+Jurdzi\'nski, and Lazi\'c combine succinct parity progress measures
+with energy bounds in a pseudo-quasipolynomial algorithm for
+mean-payoff parity games~\cite{DaviaudJurdzinskiLazic2018}.
+Fijalkow, Gawrychowski, and Ohlmann obtain universal-graph bounds
+involving numerical weight magnitude or an exponential dependence on
+the number of distinct weights~\cite{FijalkowGawrychowskiOhlmann2020}.
+The later theory also proves mean-payoff universal-graph size lower
+bounds~\cite[Section~7]{ColcombetFijalkowGawrychowskiOhlmann2022}.
+Such lower bounds concern that representation of the objective and do
+not bound the complexity of every algorithm.
+
+Randomness in the input leads to a different comparison. Loff and
+Skomra prove high-probability polynomial bounds for independent Gaussian
+perturbations of normalized payoffs on ergodic game graphs
+\cite[Theorem~1]{LoffSkomra2024}. Their bound also depends on the
+perturbation parameter. Here the input is arbitrary and fixed; only
+the algorithm is random.
+
+A dominion in a parity game is a vertex set in which one player can
+keep the play and win. Parys's recursion uses separate bounds on the
+sizes of the two players' dominions. Among calls with a reduced bound, it makes one call
+retaining both current bounds
+\cite[Algorithm~2 and Section~5]{Parys2019}. Recursive refinements
+are presented by Lehtinen, Parys, Schewe, and Wojtczak
+\cite[Sections~3--4]{LehtinenParysScheweWojtczak2022}. Our separate
+support budgets parallel these bounds on protected objects. Here the
+objects are potential vectors, and each probabilistic comparison is
+stated for one fixed vector; the parity-game contracts cover all
+qualifying dominions simultaneously.
+
+Ohlmann's symmetric recursion for mean-payoff games supplies a related
+potential viewpoint and leaves its subexponential complexity analysis
+open \cite[Sections~3--5 and~7]{Ohlmann2026}. We prove the weighted
+support invariant, the sampled orientation argument, and the resulting
+bit bound below, without importing a recursive solver as an oracle.
+
+Akian, Gaubert, and Guterman establish reductions between tropical
+feasibility and winning initial states in mean-payoff games
+\cite[Theorem~3.2 and Corollary~3.7]{AkianGaubertGuterman2012}.
+There are also strongly polynomial claims based on tropical optimization
+and max-atoms~\cite{Truffet2025MaxAtoms,Truffet2026SubstitutionV4}.
+Appendix~\ref{sec:tropical-comparison} examines the printed substitution
+rule in Truffet's arXiv version~4 of August~29, 2026 and gives an explicit
+instance on which it loses the optimum. The exact theorem and procedure
+text of the distinct 2025 HAL/MSR claim was unavailable to us; the
+appendix makes no assertion about that proof. Its objection is specific
+to the cited version and rule. Neither claim is an input to our proof.
+
+\subsection{How the solver finds the potential}
+
+First transform each weight to $(n+1)w(e)+1$. This familiar integer
+perturbation separates the signs of simple-cycle sums
+\cite[Section~9]{BjorklundVorobyov2007}. Given a vector $p$, let $F_i(p)$
+be the maximum, at a Max vertex, or minimum, at a Min vertex, of a
+transformed outgoing-edge weight plus the coordinate at its head.
+The operator preserves order and commutes with common scalar shifts.
+In a finite integer box $[a,b]=\{p\in\Z^V:a\le p\le b\}$,
+with coordinatewise inequalities, impose $y_i\le F_i(y)$ only where
+$y_i>a_i$ for a subsolution, and impose the reversed inequality only
+where a supersolution lies below $b_i$. Every subsolution lies below
+every supersolution. Clipping, or truncating each coordinate of $F$ to its interval, therefore
+yields a unique
+fixed point. In a sufficiently wide constant box its coordinates fall
+into two separated bands, from which positional winning strategies
+follow.
+
+Ordinary monotone iteration can take time proportional to the box width.
+We replace that dependence by recursion on the supports of the
+comparisons. The support consists of the coordinates where the defining
+inequality is imposed. Each side receives positive rational vertex
+weights and its own budget. The recursive answer is constrained by its
+order relative to each fixed admissible comparison; the answer itself
+need not satisfy the comparison inequalities. Reducing a budget, or
+halving weights on a suitable concentrated part of a support, decreases
+a scalar rank parameter.
+
+At a large box the solver first tightens its bounds, then chooses which
+boundary to truncate. The auxiliary procedure called orientation returns
+a choice of side and a list of vertex sets of small auxiliary measure.
+For each fixed comparison whose support is sufficiently concentrated
+near the threatened boundary, it either protects that side or returns a
+set containing more than the required share of its support weight.
+Reweighting on such a set makes a smaller-rank call applicable.
+
+The orientation proof follows a sequence of centers. At each center,
+two smaller-rank calls reduce the two budgets separately, and the next
+center is their clipped average. Successful comparisons ensure that the
+maximum deviation of the fixed comparison never grows. Whenever its
+projection fits the reduced budget, that deviation decreases by a
+controlled amount. Many such decreases force a visible displacement of
+the extreme coordinates. If there are few, a newly sampled uniform
+iterate is likely to have a heavy projected support in a smaller box.
+The sampled comparison is fixed before the child's fresh random bits,
+and support containment transports the child's conclusion back.
+
+This order of conditioning is the reason pointwise guarantees suffice.
+No event protecting all admissible vectors in one run is used.
+Amplification controls the fresh smaller-rank calls. The one continuation
+with unchanged support parameters is kept unamplified, and its entire
+chain is analyzed together, both for errors and for work. At the top
+box, the unique deterministic solution is an admissible comparison on
+both sides. Intersecting its two whole-vector success events gives
+exact recovery with probability at least $7/8$.
+
+\subsection{Organization}
+
+Section~\ref{sec:boxes} establishes finite-box comparison and the game
+reduction. Section~\ref{sec:budgets} proves the support and projection
+rules. Section~\ref{sec:algorithm} specifies the complete recursion and
+proves termination on every tape. Under a lower-rank solver hypothesis,
+Section~\ref{sec:orientation} proves orientation; Section~\ref{sec:solving}
+then closes that rank induction and proves exact top-potential recovery.
+Section~\ref{sec:complexity} bounds the full bit cost, and
+Section~\ref{sec:completion} assembles the game algorithm and derives
+the certifying and Las Vegas versions.
+Appendix~\ref{sec:tropical-comparison} is an independent version-specific
+comparison.

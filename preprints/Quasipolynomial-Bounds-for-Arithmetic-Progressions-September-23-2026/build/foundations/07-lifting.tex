@@ -1,0 +1,1394 @@
+\section{Relative lifting with additive rank}
+\label{lifting:section}
+
+We prove Proposition~\ref{counting:relative-target}, with returned rank
+at most $d_0+d$.  The old patch is removed one weight layer at a time.
+After a recursive call, we discard the old test and transfer only the
+returned patch.  Removing $D$ old slots requires at most $D$ new lift
+slots, even though the preparation may introduce more ambient coordinates.
+
+Two statements supply the return from sampled paths to the parent.
+The weighted major decomposition recovers an ambient slow-plus-rational
+decomposition from decompositions on many paths.  Globalization then
+replaces the local polynomial orbits by one ambient orbit in the same
+group, preserving a specified projection.  In the patch application,
+this replacement adds no slots.  Positive bump selection and
+Property~\ref{sampling:property-transfer} of
+Proposition~\ref{sampling:constrained} perform the remaining transfer.
+Theorem~\ref{lifting:relative-theorem} assembles these steps and also
+proves the impossibility alternative.  Throughout, we retain the
+sampler's order of parameters and its uniform complexity bounds.
+
+\subsection{The weighted major decomposition}
+
+We first recover an ambient decomposition from decompositions on sampled
+paths.  The conclusion separates a polynomial with bounded real
+coefficients from one with controlled rational denominator, using
+different variables for the two estimates.  The following parameter
+convention makes this recovery uniform in the later sampling choices.
+
+In the remainder, an \emph{early budget} $p$ bounds dimensions,
+logarithms of inverse chart widths, logarithmic accuracies, log inverse
+productive probability, and log inverse score.  A bound is \emph{early} if it is at most
+$\mathcal P(p)$ in logarithmic complexity, or $\mathcal B(p)$ in
+size, and is independent of the later sampling parameters and the
+heights of the spaces $W_h$.  These later parameters must be chosen
+only after all early input and output budgets have been fixed.
+The sampler dimension and its structural block counts are fixed from
+the input dimensions before this numerical budget, as in
+Proposition~\ref{sampling:constrained}; they do not depend on chart
+widths or requested accuracies.  Degree bounds depend only on the
+fixed degrees.  The early numerical bounds may depend on the chart
+widths, but the rank accounting below uses the actual numbers of
+patch slots and the inequality $\sum_h\dim W_h\le D$.
+
+\paragraph{Length thresholds for local symbols.}
+In each local symbol argument, fix a threshold $J_{\rm loc}$ whose
+logarithm has an early bound.  An axis of the current reindexed slice
+is short if its side length is less than $J_{\rm loc}$; every other
+axis is long.  Fixing a short axis costs at most $\log J_{\rm loc}$,
+so fixing all short axes has early cost.  Homogeneous parts in long
+variables always use all axes retained after these specializations.
+In particular, an inactive axis with side at least $J_{\rm loc}$
+remains a variable of the symbol.  These long variables need not
+coincide with the parallel variables $t_\parallel$ in the forecasting
+law of Section~\ref{cube:transfer-section}.
+The bounded number of threshold increases used below can be
+forecast from early data before the later sampling choices.
+
+\begin{proposition}[Weighted major decomposition]
+\label{lifting:candidate-major}
+Use the data $U,C_h,W_h,c_h,y_h,\beta_h$ of
+Proposition~\ref{sampling:constrained}, with rank at least $R$ in
+Definition~\ref{sampling:rank}, and assume
+Properties~\ref{sampling:property-geometry} and~\ref{sampling:property-detection} of that
+proposition on the sampled boxes and the ambient domain $U$.
+Assume also the uniform symbol step-drop statement of
+Lemma~\ref{prelim:step-drop}.
+For every fixed degree bound $s$ there is an exponent $C_s$
+with the following uniform property.  Prescribe an early budget $p$,
+sampling dimensions, chart widths, a fraction at least $e^{-p}$ of
+productive paths, and slow and denominator bounds at most $e^p$.
+The output bounds are at most
+$\exp((2+p)^{C_s})$ before choosing the perturbation size, scale
+range, rank threshold, or parent side lengths.  Choose those later
+parameters sufficiently in that order, as in
+Proposition~\ref{sampling:constrained}.
+
+Write $A_h=(C_h)_{[h]}$ for the ordinary degree-$h$ homogeneous part
+of $C_h$, and put $A=(A_h)_h$.  Give $u$ weight $1$ and $b_h$ weight
+$h$.  Let $D(u,b)$ be any fixed scalar weighted homogeneous polynomial
+of degree $1\le d\le s$, with no bound on its coefficients.
+If, after fixing short axes on each productive path, the degree-$d$
+homogeneous part of $D(\psi(t),\beta(\psi(t)))$ in all the retained
+parameter variables is slow plus rational of
+the prescribed bounds on at least the prescribed fraction of paths,
+then there exist rational graded spaces $K_h\supset W_h$ of
+early height and polynomials $S,R$ such that, for $b\in\bigoplus_hK_h$,
+\begin{equation}
+ D(u,b)=S(u/H,b-A(u))+R(u,b).
+ \label{lifting:major-form}
+\end{equation}
+The coefficients of $S$ and a common denominator of $R$ have early
+bounds; the numerators of $R$ are unrestricted.  The assertion is simultaneous
+for polynomially many scalar polynomials, by intersecting their
+spaces.  Long-variable thresholds and slice costs also have
+early bounds.
+
+\end{proposition}
+
+To prove Proposition~\ref{lifting:candidate-major}, we will realize the
+phase $e(D(u,\beta(u)))$ as an ordinary filtered niltest and apply
+Lemma~\ref{prelim:step-drop}.  We first construct the group in which
+this realization takes values.
+
+\subsubsection{The translation group and its potential}
+
+Fix an integer $d\geq1$ and finite-dimensional real vector spaces $E_h$
+equipped with rational bases, $1\leq h\leq d$.
+Write $E=\bigoplus_{h=1}^dE_h$, assigning weight $h$ to a coordinate of
+$E_h$.  Let $\mathscr Q_{<d}(E)$ be the vector space of scalar polynomials
+in $b\in E$ of weighted degree less than $d$.  A coefficient of a
+monomial of weight $k$ is assigned group degree $d-k$.
+
+The multiplication below is suggested by polynomial differences.
+Let $V:E\to\R$ be weighted homogeneous of degree $d$, and for fixed
+$x\in E$ put $F_x(b)=V(b)-V(b-x)$.  Its terms of weight $d$ in $b$
+cancel, so $F_x\in\mathscr Q_{<d}(E)$, and for $x,z\in E$ we have
+\[
+ F_x(b-z)+F_z(b)=V(b)-V(b-x-z)=F_{x+z}(b).
+\]
+Thus translating the polynomial coordinate as in the next lemma makes
+these differences compose with their base translations.  Under its
+top-frequency annihilation hypothesis, Lemma~\ref{lifting:potential}
+will show that the relevant subgroup elements have this difference
+form on their projected space.
+
+\begin{lemma}[Polynomial translation group]
+\label{lifting:translation-group}
+On $\mathscr G_d=E\times\mathscr Q_{<d}(E)$, the operation
+\begin{equation}
+ (x,F)(z,Q)=(x+z,F(b-z)+Q(b))
+ \label{lifting:group-law}
+\end{equation}
+defines a connected simply connected graded nilpotent Lie group of
+degree at most $d$.  Its Lie bracket is
+\begin{equation}
+ [(X,P),(Z,Q)]=(0,\partial_XQ-\partial_ZP).
+ \label{lifting:bracket}
+\end{equation}
+In rational coordinate bases, integer $x$ and integer polynomial
+coefficients form a lattice.  For fixed $d$, all group formulas have
+polynomially many coordinates and bounded degree in the dimension of
+$E$.
+\end{lemma}
+
+\begin{proof}
+Both associations of a product of three elements have polynomial
+coordinate
+$F(b-z-w)+Q(b-w)+R(b)$.
+The identity is $(0,0)$ and the inverse is
+$(-x,-F(b+x))$.  Thus the operation is a group operation on a real
+vector space, with polynomial multiplication and inversion.
+Expanding a commutator to second order gives
+\eqref{lifting:bracket}.  Differentiation in $E_h$ lowers polynomial
+weight by $h$ and hence raises group degree by $h$.
+Every bracket of total degree greater than $d$ vanishes.  The maps
+which multiply $x_h$ by $t^h$ and the coefficient of $b^\alpha$ by
+$t^{d-\mathrm{wt}(\alpha)}$ are group dilations, proving the grading.
+The underlying manifold is a vector space, so it is connected and
+simply connected.
+
+Integer translations preserve integer polynomial coefficients.  This
+proves closure and discreteness of the stated subgroup.  Reduce the
+$x$ coordinates modulo integers and then the coefficients of $F$
+modulo integers to obtain a bounded fundamental region.  Consequently
+the subgroup is cocompact.  The number of monomials of ordinary degree
+at most $d$ in $\dim E$ variables is at most $(1+\dim E)^d$ up to a
+constant depending on $d$; this also bounds the number and degrees of
+the formulas just used.
+\end{proof}
+
+The next Lemma turns top-frequency annihilation into a polynomial
+potential.  A rational height bound controls both numerators and
+denominators; a denominator bound alone does not control numerators.
+
+\begin{lemma}[Potential associated with a top-annihilated algebra]
+\label{lifting:potential}
+Let $\mathfrak v$ be a graded rational Lie subalgebra of the Lie algebra
+of $\mathscr G_d$, and let $K_h\subset E_h$ be its projection in degree
+$h$.  Put $K=\bigoplus_hK_h$.  Suppose a linear functional on the top
+layer vanishes on $\mathfrak v_d$ and takes the value $1$ on the
+constant-polynomial element $(0,1)$.  Then there is a rational weighted
+homogeneous polynomial $V:K\to\R$ of weight $d$ such that
+\begin{equation}
+ F(b)=V(b)-V(b-x)\qquad
+ ((x,F)\in\exp\mathfrak v,\ b\in K).
+ \label{lifting:potential-identity}
+\end{equation}
+For fixed $d$, a polynomial bound on dimensions and on logarithmic
+rational heights of $\mathfrak v$ gives such a bound for $V$ and for a
+rational polynomial extension of $V$ to $E$.
+\end{lemma}
+
+\begin{proof}
+First let $(0,Q)\in\mathfrak v_j$ be homogeneous.  We claim
+$Q|_K=0$.  Otherwise a nonzero coefficient of $Q|_K$ can be extracted
+by successively differentiating in homogeneous coordinate directions
+of $K$, with total weight $d-j$.  Lift each such direction to an
+element of the corresponding layer of $\mathfrak v$.
+By \eqref{lifting:bracket}, the iterated bracket with $(0,Q)$ is the
+same iterated directional derivative, viewed as a pure-polynomial
+element.  It would be a nonzero constant in $\mathfrak v_d$,
+contradicting the hypothesis.  This proves the claim.
+
+Choose rational graded linear lifts $(X,P_X)\in\mathfrak v$ of
+$X\in K$.  The claim shows that $P_X|_K$ is independent of the lift.
+Define a polynomial one-form by
+$\omega_b(X)=P_X(b)$ for $b,X\in K$.
+The bracket of two chosen lifts has zero base component, so the claim
+and \eqref{lifting:bracket} give
+$\partial_XP_Z=\partial_ZP_X$ on $K$.  Thus $\omega$ is closed.
+Its weighted degree, including the weight of the differential, is
+$d$.  If $\mathcal E_b=\sum_h h b_h$ is the weighted Euler vector
+field, set
+\[
+                  V(b)=d^{-1}\omega_b(\mathcal E_b).
+\]
+The closedness identity and Euler's identity imply
+$\partial_X V(b)=\omega_b(X)$.
+This can also be checked on each coordinate monomial, so it requires
+no choice of a primitive or integration constant.
+
+The set of pairs with $x\in K$ satisfying
+\eqref{lifting:potential-identity} is a closed subgroup: substitution
+in \eqref{lifting:group-law} makes the
+two differences telescope.  Its Lie algebra consists of pairs
+$(X,P)$ with $X\in K$ and $P|_K=\partial_XV$.  We have proved that this Lie algebra
+contains $\mathfrak v$.  Since $\exp\mathfrak v$ is connected, the
+subgroup identity follows.
+
+Rational sections, restrictions, and extensions can be found by
+solving linear systems of polynomial size.  The formula for $V$ adds
+only multiplication by a coordinate and division by the fixed integer
+$d$.  Clearing denominators and bounding minors therefore gives the
+asserted rational-height bounds.
+\end{proof}
+
+\begin{lemma}[The algebraic major decomposition]
+\label{lifting:algebraic-major}
+Let $D(u,b)$ be weighted homogeneous of degree $d$, and let $D_0(b)$
+be its part independent of $u$.  Let $A(u)$ be a weighted homogeneous
+map into $K$.  Suppose the symbol
+\[
+ \bigl(A(u),D(u,b)-D_0(b-A(u))\bigr)
+       =(e,E)(x,F)(a,Q)
+\]
+has middle factor in the subgroup in
+Lemma~\ref{lifting:potential}, whose defining algebra has bounded
+rational height, and $e,x,a$ take values in $K$.
+Suppose the left factor has coefficients bounded in normalized
+variables $u_i/H_i$, and the right factor has rational coefficients
+of bounded common denominator.  If $D_0$ has bounded coefficients,
+then, on $b\in K$,
+\[
+ D(u,b)=S(u/H,b-A(u))+R(u,b),
+\]
+where $S$ has bounded coefficients and $R$ has bounded common
+denominator.  Bounds have polynomial logarithmic dependence on those
+in the hypotheses, for fixed degree.
+\end{lemma}
+
+\begin{proof}
+The base identity is $A=e+x+a$.  Use
+Lemma~\ref{lifting:potential} and the group law twice to obtain
+\begin{align*}
+ D(u,b)={}&D_0(b-A)+E(u,b-A+e)-V(b-A+e)\\
+           &\quad+Q(u,b)+V(b-a).
+\end{align*}
+The first three terms are polynomials with bounded coefficients in
+$u/H$ and $b-A$.  The last two have rational coefficients of bounded
+common denominator.  This proves \eqref{lifting:major-form}.
+Products and substitutions involve a bounded degree and polynomially
+many coefficients, giving the stated bounds.
+\end{proof}
+
+\subsubsection{Proof of the weighted major decomposition}
+
+\begin{proof}[Proof of Proposition~\ref{lifting:candidate-major}]
+We apply Lemma~\ref{prelim:step-drop} to ordinary polynomial maps
+on integer boxes.  The polynomial translation group converts the
+weighted polynomial in the conclusion into this setting.
+
+First subtract the integer parts of all coefficients of $D$.
+This leaves its exponential unchanged at integer $u,b$ and changes
+each leading path evaluation by an integer-coefficient polynomial.
+It therefore preserves the local major hypothesis.  The number of
+coefficients is polynomial in the dimensions, since $d$ is fixed.
+We can hence assume they all lie in $[0,1)$, and restore the removed
+integer polynomial to $R$ at the end.
+
+Use the buffered site input
+$\chi(u)e(D(u,\beta(u)))$.  On a productive path its top part can be
+made nearly constant on controlled subboxes and residue classes.
+Indeed a common residue modulus clears the rational coefficients of
+the top part, and subdivision in normalized coordinates makes the
+slow part oscillate by at most $1/100$.  Fix only the axes shorter
+than the early threshold $J_{\rm loc}$.  The other inactive axes
+remain in the symbol.  Since the full substituted polynomial has
+ordinary degree at most $d$, the pure degree-$d$ part in the
+retained variables is independent of the values fixed on short
+axes.  These specializations have early slice cost.  Cancel the
+remaining lower-degree terms by an ordinary polynomial phase of
+degree at most $d-1$.  Choose $\chi$ to equal one on all path supports and
+to vanish outside the buffered charts.  The local correlation is
+then at least $9/10$.  Property~\ref{sampling:property-detection} of
+the sampler, applied with degree
+$d-1$, gives an early positive ambient correlation with a site twist
+times a degree-$(d-1)$ niltest.
+
+Partition normalized spatial coordinates and their bounded-modulus
+residues so that the smooth spatial factors can be frozen to the
+accuracy required by this correlation.  Choosing one part preserves
+a correlation of early size.  At every tag $h>d$, Fourier expand the
+smooth lift dependence on the ambient torus cover of the bounded
+modulus used by the twist.  This is the ambient coordinate torus,
+not a torus basis of $W_h$; no height of $W_h$ enters its Fourier
+cutoff.  Convolution with a trigonometric approximate identity
+approximates a Lipschitz function uniformly.  The coefficients remain
+Lipschitz functions of the unexpanded coordinates, with the same
+bound up to the fixed truncation cost.  Thus the number of terms,
+coefficient mass, and remaining Lipschitz bounds are early bounded.
+A residue character of $\beta_h$ is handled on the same cover by
+writing $\beta_h=C_h-c_h-y_h$.  This gives a bounded rational
+frequency on $C_h-c_h$ and a smooth factor of $y_h$.
+
+Set $E_h=\R^{d_h}$ for $1\le h\le s$ and write $D_0(b)=D(0,b)$.
+Since $D$ uses only tags at most $d$, we represent these factors on
+$\mathscr G_d$ formed from $\bigoplus_{h\le d}E_h$.  In this
+realization all base vectors are restricted to those tags.  Set
+\[
+ x_h=C_h(u)-c_h,\qquad
+ F(u,b)=D(u,b)-D_0(b-x(u)).
+\]
+Its integral-part evaluation is
+$e(F(u,\beta)+D_0(\beta-x))=e(D(u,\beta))$.
+Right multiplication by an integral lattice element changes the
+phase argument by an integer: if $(z,Q)$ is integral, then the new
+integral part is $\beta+z$ and the argument increases by
+$Q(\beta+z)\in\Z$.  To include residues of $\beta$ modulo $M$,
+use the subgroup lattice with $z\in M\Z^{\dim E}$ and integral
+$Q$; its index and grid bounds are early.  On this cover every remaining low-tag
+twist is a Lipschitz function of $y=x-\beta$ and $\beta\bmod M$.
+Buffered cutoffs therefore give a well-defined nilmanifold function,
+including the twist, and remove the jumps where the integral part
+changes.
+On bounded group representatives the possible integral parts are
+bounded.  The coefficient reduction therefore makes this function
+Lipschitz with early bounds.  The coefficient of a dummy monomial of
+weight $k<d$ in $F$ has ordinary $u$-degree at most $d-k$, while the
+base $x_h$ has degree at most $h$.  The group law and the logarithmic
+coordinate change respect these assigned degrees, so the same degree
+bounds hold in logarithmic coordinates.  Hence this is an ordinary
+filtered polynomial map of degree at most $d$.  The dummy terms of
+weight $d$ cancel by the definition of $D_0$.  Taking the homogeneous
+part in each group grade replaces $x_h$ by $A_h$ and gives exactly
+the symbol
+\[
+             \bigl(A(u),D(u,b)-D_0(b-A(u))\bigr).
+\]
+Thus no lower-degree coefficient of $C_h$ enters this symbol.
+
+Consider a resulting term with a highest tag $h>d$ whose frequency
+does not annihilate $W_h$.  All factors at higher tags are constant
+on $C_l-c_l\in W_l$.  The degree-$h$ factor is a single torus phase;
+every other factor is an ordinary niltest of degree at most $h-1$.
+For the factors of tags at most $d$, use the nilmanifold
+realization just constructed.  A correlation larger than
+an arbitrarily prescribed early error would, by
+Lemma~\ref{prelim:step-drop} applied to the product group, force the
+top of that torus phase to be slow plus bounded-denominator rational:
+the partner has no top coordinate and the fast algebra is annihilated
+by the torus frequency.  Clearing its early bounded denominator gives
+an integer row forbidden by high rank.  Choose the rank threshold
+large enough for all these rows and the required error.  The total
+contribution of these terms is negligible, because their total
+coefficient mass is early bounded.  At least one term involving only
+tags at most $d$ consequently retains early correlation.  All errors
+and cutoffs used in this paragraph were determined before that rank
+threshold was chosen.
+
+A top-frequency decomposition retains frequency $1$ on the constant
+polynomial direction: every Fourier term of an already equivariant
+function retains that equivariance.  Select a correlated term and
+apply Lemma~\ref{prelim:step-drop} jointly with the degree-$(d-1)$
+partner.  The partner has zero grade $d$, including when $d=1$ and
+it is constant.  Consequently the selected top functional on the
+product descends to a functional on the top of $\mathscr G_d$,
+takes value $1$ on $(0,1)$, and annihilates the projection of the
+fast algebra.  Rational projection therefore supplies precisely the
+algebra required by Lemma~\ref{lifting:potential}.  Its base
+projection contains $W_h$: otherwise a bounded-height rational row
+annihilating that projection, but not $W_h$, would exhibit a forbidden
+slow-plus-rational top component of $C_h$.  Once this inclusion is
+known, write the base splitting as $A=e+x+a$ with $x\in K$.
+Since $A\in W\subseteq K$, each coefficient of $e+a$ lies in $K$.
+All these symbol coefficients have positive degree, so
+Lemma~\ref{prelim:separation} puts the slow and rational base factors
+individually in $K$.
+Lemma~\ref{lifting:algebraic-major} now applies.  Undoing the spatial
+residue and subbox parametrization multiplies homogeneous coefficient
+bounds and denominators by early factors only.  More explicitly,
+on $u=u_0+qv$ the degree-$h$ symbol is $A_h(qv)$;
+if the new sides are $T_i\asymp\delta_iH_i/q$, undoing this
+substitution multiplies slow bounds by at most
+$\prod_i\delta_i^{-\alpha_i}$ and denominators by $q^h$.
+Here $q$ and $\delta_i^{-1}$ are early bounded.  This also justifies
+each use of the original rank hypothesis after restricting to a
+spatial residue subbox.  For $h>d$ take
+$K_h=E_h$.  For polynomially many simultaneous scalar components,
+apply the argument separately with a common early budget, intersect
+the resulting spaces, and restrict their identities.  A joint
+stacked-row computation bounds the rational height of this
+intersection by an early quantity.
+\end{proof}
+
+\begin{remark}[Uniformity of the bounds]
+\label{lifting:major-gap}
+The preceding proof uses Property~\ref{sampling:property-detection}
+of Proposition~\ref{sampling:constrained} and
+Lemma~\ref{prelim:step-drop} with their stated early bounds.
+Its Fourier cutoffs use ambient lattice covers of
+bounded modulus, so this step introduces no additional dependence on
+the height of $W_h$.  Choosing the local model only after allowing
+its complexity to depend on that height or the final long scale
+would, however, invalidate this deduction.
+\end{remark}
+
+\subsection{Globalization in a fixed group}
+
+\begin{proposition}[Globalization in a fixed group]
+\label{lifting:candidate-globalization}
+Assume Properties~\ref{sampling:property-geometry} and
+\ref{sampling:property-detection} of Proposition~\ref{sampling:constrained},
+including its rank hypothesis and order of later parameter choices,
+the uniform symbol step-drop and separation statements, and their
+stated polynomial logarithmic bounds.  Fix an early budget $p$ and
+a strong rational projection $\pi:G^0\to Y$ of degree $r\le s$.
+Include the dimensions, rational structure constants, filtration
+bases, lattice grids, and matrix of $\pi$ in the early complexity
+budget.  Let $P_Y(u,b)$ be a weighted filtered polynomial, with no
+coefficient bound.  Let $\Phi_u:G^0/\Gamma^0\to[0,1]$ have an
+early uniform Lipschitz bound.  Assume that, at each requested early
+accuracy $\eta$, the family $\{\Phi_u\}$ has a supremum-norm
+$\eta$-net of at most $\exp(\mathcal P(p+\log(1/\eta)))$ functions.
+Its bins may be arbitrary site sets.  Let $a(u)$ be a fixed real
+input of early bounded supremum.
+
+There are early output bounds, independent of every later sampling
+parameter, with the following consequence.  Suppose a fraction at
+least $e^{-p}$ of paths have a permitted slice and a filtered
+polynomial $g_\psi$ satisfying
+\[
+ \pi(g_\psi(t))=P_Y(\psi(t),\beta(\psi(t))),\qquad
+ \E_t a(\psi(t))\Phi_{\psi(t)}(g_\psi(t)\Gamma^0)\ge e^{-p}.
+\]
+Then there is one weighted filtered polynomial $g^U(u,b)$ in the
+same group, satisfying the formal identity $\pi g^U=P_Y$, such that
+an early fraction of the original productive paths have permitted
+subslices on which replacement by $g^U$ gives early positive score.
+No coefficient bound on $g_\psi$ or $g^U$ is required.
+\end{proposition}
+
+\begin{proof}
+We induct on $r$.  For $r=0$ the group is trivial and its sole map
+is already fixed.  All early budgets below are computed before the
+later sampling choices.  The number of successive polynomial
+increases of those budgets will be bounded in terms of $s$.
+
+\emph{Top modes and fixed ambient partners.}
+Write $\delta\ge e^{-p}$ for the input score and
+$B\ge\max(1,\|a\|_\infty)$ for its early bound.  Truncate the Fourier
+expansion in the top torus $G^0_r$ to uniform error at most
+$\delta/(100B)$, using Lemma~\ref{prelim:vertical}.  Call a mode
+significant on a productive path if its absolute tested average is
+at least the score divided by one hundred times the number of
+truncated modes.  The sum of nonsignificant terms is then negligible.
+Let $L\subset G^0_r\cap\ker\pi$ be the joint connected annihilator
+of the restrictions of significant modes.  Averaging the actual
+positive test over $L$ retains those modes, preserves the range
+$[0,1]$, and retains early positive score.  Choose a basis among
+these significant restricted frequencies.  There are at most
+$\dim(G^0_r\cap\ker\pi)$ pivots.
+
+Choose these bases in a fixed order.  If there are $M$ truncated
+frequencies and the kernel top layer has dimension $D$, the number
+of possible bases, and hence of possible $L$, is at most $(1+M)^D$.
+Pigeonhole $L$ and the pivot basis first.  This loses only an early
+fraction, rather than counting all subsets of the $M$ modes.
+If there are no pivots, the partner-selection steps below are empty;
+the product has no partner factors and its fast algebra is the full
+graded algebra.
+
+For each pivot approximate the external function family in supremum
+norm and partition sites by a nearest bin.  One bin detects the
+pivot with early correlation.  For every possible bin apply the
+sampler's linear-combination approximation to $a$ times the bin
+indicator.  Such indicators are allowed because its input is an
+arbitrary bounded function.  Use its testing seminorm over all
+permitted slices and all current local degree-$r$ niltests.
+The test at this point is only the vertical component of a fixed
+bin function evaluated at $g_\psi$; its ambient partner has not yet
+been selected.  Its degree is $r$, and its group and function
+complexity are early bounded.  Polynomial coefficients of the orbit
+do not enter niltest complexity.  Conjugation and products, represented
+on product groups, preserve the degree bound.
+Choose the error smaller than the pivot threshold times the
+productive fraction divided by the total early number of bins and
+modes.  Markov's inequality and a union bound make all these
+approximations valid on all but a negligible fraction of paths,
+uniformly over their separately chosen slices and tests.
+Explicitly, when there are pivots, let $J\ge1$ be the number of masked inputs, let $\kappa$
+be the retained productive probability, and let $\tau$ be smaller
+than half the least correlation threshold after selecting a bin.
+Normalize each masked input by $B$ before applying
+Property~\ref{sampling:property-detection}, and
+choose its approximation so the unnormalized error has $X$-norm
+at most $\varepsilon=\kappa\tau/(4J)$.  If $e_j(\psi)$ denotes the
+pathwise supremum error for mask $j$, then
+\[
+ \Pr_\psi\{\max_j e_j(\psi)>\tau\}
+ \le \sum_j\frac{\E_\psi e_j(\psi)}{\tau}
+ \le\kappa/4.
+\]
+The supremum in Property~\ref{sampling:property-detection} covers all pivot frequencies as well as
+the separately chosen slices.  Its input test complexity is fixed
+before any model partner is selected.  Net centers can be chosen
+from the original family, at twice the requested accuracy, so they
+retain the common Lipschitz and range bounds.
+
+For a retained path and pivot, some model term gives biased pairing
+of the local vertical function with a site twist $J$ times a fixed
+ambient partner map $Q_\ell(u)$.  Fourier truncate the top of that
+partner and retain one mode.  By subbox and residue subdivision,
+freeze $J$ to error smaller than the pairing; one cell retains biased
+pairing without it.  Freeze axes shorter than the early threshold
+required by Lemma~\ref{prelim:step-drop}.  Applying that Lemma to the
+ordinary local pair gives a splitting of its pure-long symbol into
+a rational algebra killed by the joint top frequency.
+
+Refer each homogeneous identity back to the original long variables.
+Translation does not alter it and residue dilation costs only early
+factors.  Thus pieces used for distinct pivots need not intersect:
+their symbol splittings can be joined by separation.  All long sides
+exceed the fixed degree and interpolation cutoffs.  Pigeonhole the
+partner choices, frequencies and bounded-height rational algebras,
+which have an early number of possibilities jointly for the
+polynomially many pivots.  An early fraction of productive paths now
+has fixed choices.  Set
+\[
+ G=(G^0/L)\times\prod_\ell G_{Q_\ell},\qquad
+ F=Y\times\prod_\ell G_{Q_\ell},\qquad
+ P_F=(P_Y,(Q_\ell)_\ell).
+\]
+The product has only polynomially many factors, irrespective of the
+length of the model lists.  First project each pair splitting through
+$G^0\to G^0/L$; its top constraint descends because the pivot
+frequency annihilates $L$.  Pull each resulting fast algebra back
+to this product, leaving the unused partner coordinates free.
+Each such inverse-image algebra admits a splitting of the full
+local symbol: extend its outer factors by identities in those unused
+coordinates.  Lemma~\ref{prelim:symbol-splitting} gives a splitting
+in their intersection; this is the joined fast algebra $\mathfrak v$.
+A top vector with zero projection to $F$ has zero partner
+coordinates.  Its pivot constraints force the original coordinate
+into $\log L$, so it is zero after quotienting.  Consequently
+$\mathfrak v_r\to(\pi\mathfrak v)_r$ is injective.
+
+\emph{Matching the fixed marked symbol.}
+Write $Z$ for the weighted symbol of $P_F$ and
+$\mathfrak v_F=\pi\mathfrak v$.  Initially take $K_h=E_h$ and
+$\mathcal E=\mathcal R=1$.  Inductively suppose through grade $d-1$
+that the logarithm of $\mathcal E^{-1}Z\mathcal R^{-1}$ belongs to
+$\mathfrak v_F$ on $K=\bigoplus_hK_h$.  The left factor has early
+bounded polynomial coefficients in $u/H,b-A(u)$; the right factor
+has rational polynomial coefficients of early common denominator.
+
+Raise the long threshold so that the leading evaluations of
+$\beta_h$ lie in $K_h$.  Indeed their projections off $K_h$ have
+rational coefficients of early denominator, since $\beta_h$ has
+integer coefficients and $K_h$ has early rational height.  They are
+also negatives of coefficients of the fully slow $y_h$, since
+$C_h-c_h\in W_h\subset K_h$.  Separation makes each pure-long
+coefficient zero.  The evaluations of the two fixed outer factors
+are therefore slow and rational ordinary symbols.  Here
+$\beta_h^{\rm top}-A_h(\psi^{\rm lin})=-y_h^{\rm top}$ is slow,
+whereas $\psi^{\rm lin}$ and $\beta_h^{\rm top}$ are integral.
+
+Compare the projected local splitting with these fixed factors.
+Through grade $d-1$, separation puts the ratios of their corresponding
+outer factors in $\mathfrak v_F$.  Lift the ratios within that
+algebra and absorb them into the local fast factor.  Thus the
+projected local outer factors agree exactly, in those grades, with
+the evaluations of the fixed ones.  The grade-$d$ logarithmic
+coordinate of the fixed residual, modulo $(\mathfrak v_F)_d$,
+then evaluates to a sum of slow and rational scalar polynomials:
+all lower discrepancies are zero and the fast coordinate vanishes
+in the quotient.
+
+Apply Proposition~\ref{lifting:candidate-major} simultaneously to
+those scalar coordinates and intersect its spaces with $K_h$.
+Rational linear sections lift the two quotient terms to $s_d,r_d$.
+Update
+\[
+ \mathcal E\longleftarrow\mathcal E\exp(s_d),\qquad
+ \mathcal R\longleftarrow\exp(r_d)\mathcal R.
+\]
+At grade $d$ the residual loses exactly $s_d+r_d$ and lower grades
+are unchanged.  This proves the invariant in the next grade.
+BCH preserves the two allowed types.  There are at most $s$ such
+threshold increases, and restriction to fewer long axes preserves
+all earlier homogeneous identities.
+
+At the last threshold freeze nonlong axes on favorable fibers of
+productive slices.  The whole projection of $\beta_h$ off $K_h$
+is now constant: each remaining nonconstant coefficient is both
+rational of early denominator and fully slow.  The constant has
+early bounded norm because it is the projection of $-y_h$, and early
+denominator because $\beta_h$ is integral.  Pigeonhole these finitely
+many constants on an early fraction of paths.  Let $p_h$ be the
+rational affine projection onto the resulting fixed translate of
+$K_h$ and temporarily replace $P_F$ by
+$P_F^*(u,b)=P_F(u,p(b))$.  These maps agree on the retained slices.
+
+\emph{Full factors with exact projection.}
+Refilter by Lemma~\ref{lifting:refiltration}.  Lift
+$\mathcal E,\mathcal R$ to full polynomial factors $E_F,R_F$ of
+$P_F^*$.  Lift their logarithmic layer formulas, replacing $b-A(u)$
+on the left by $\operatorname{proj}_K b-(C-c)(u)$, and using the
+rational formulas in $u,\operatorname{proj}_K b$ on the right.
+Thus $E_F$ is fully slow and bounded on the sampling charts and
+$R_F$ has early common denominator.  Symbol matching puts every
+positive-degree coefficient of
+$P_H=E_F^{-1}P_F^*R_F^{-1}$ in the appropriate $H_{F,i}$: parts in
+deeper original layers already belong there because
+$F_{i+1}\subset H_{F,i}$.  In the vector quotient $F/H_{F,1}$ only
+a constant remains.  Split it in rational coordinates into a bounded
+fractional part and an integral part, and insert lifts on the inside
+of $E_F$ and $R_F$.  The middle map now takes values in $H_F$.
+
+For each local map construct
+\[
+ g=EhR,\qquad \pi(E)=E_F,\quad\pi(R)=R_F,\quad\pi(h)=P_H.
+\]
+Here is the exact kernel correction.  Write the local symbol as
+$epr$, with $p\in\exp\mathfrak v$, and write $e_F,r_F$ for the
+symbols of the prescribed projected outer factors.  By
+Lemma~\ref{prelim:symbol-splitting},
+\[
+ A=(\pi e)^{-1}e_F\in\exp\mathfrak v_F,
+ \qquad D=r_F(\pi r)^{-1}\in\exp\mathfrak v_F.
+\]
+The first is slow and the second rational.  Lift their logarithms
+through a controlled graded section to $\widehat A,\widehat D$ in
+$\exp\mathfrak v$ and replace the splitting by
+\[
+ e'=e\widehat A,\qquad
+ p'=\widehat A^{-1}p\widehat D^{-1},\qquad
+ r'=\widehat D r.
+\]
+It now has $\pi e'=e_F$ and $\pi r'=r_F$.  Choose a filtered
+rational logarithmic section $\rho$ of $\pi$ and put
+$E_0=\rho(E_F)$, $R_0=\rho(R_F)$.  The symbols
+$e'(\operatorname{Sym}E_0)^{-1}$ and
+$(\operatorname{Sym}R_0)^{-1}r'$ lie in
+$\ker(\operatorname{gr}\pi)$.  Strongness supplies controlled
+actual-kernel lifts of each graded coefficient: if
+$X\in\log G_i$ represents one and $\pi X\in\log F_{i+1}$,
+subtract a section lift of $\pi X$ in $\log G_{i+1}$.
+Lift the two symbol discrepancies coefficientwise in this way to
+kernel polynomial maps $K_E,K_R$, with no other logarithmic terms.
+Then $E=K_EE_0$ and $R=R_0K_R$ have the prescribed projections
+exactly, retain the slow and rational bounds, and give a middle map
+whose positive-degree coefficients are adapted to $H_i$.
+
+For its constant term use the vector quotient $q:G\to G/H_1$.
+Since $\pi(H)=H_F$, the condition $\pi(h(0))\in H_F$ implies
+$q(h(0))\in q(\ker\pi)$.  Choose a controlled rational linear
+section of $q$ on this rational subspace, split $q(h(0))$ in a
+rational basis into a bounded fractional vector and an integral
+vector, and lift both into $\ker\pi$.  Absorb their exponentials
+on the inside of $E$ and $R$, respectively.  These constant
+adjustments preserve the symbol and the exact projections; the
+middle constant now lies in $H_1$.  Thus $h\in H$ and all three
+projection identities hold in the groups.
+
+Fix the logarithmic section $\rho$.  The kernel map
+$E\rho(E_F)^{-1}$ is fully slow and bounded.  Early subdivision
+makes it close to a fixed bounded element $k_E$ from an early net.
+The rational kernel map $\rho(R_F)^{-1}R$ has early common
+denominator; residue restriction makes its right lattice coset
+constant, represented by a fixed bounded rational $k_R\in\ker\pi$.
+If these common denominators vary with the path, first pigeonhole
+their values, of which there are an early number.  A cover clears
+only the finitely many denominators actually selected, rather than
+every integer below an early bound.
+Pigeonholing retains early score on an early fraction of paths.  Put
+\[
+              E^U=k_E\rho(E_F),\qquad R^U=\rho(R_F)k_R.
+\]
+Right lattice changes preserve cosets.  Left freezing changes the
+test by at most its Lipschitz constant times the freezing error,
+uniformly in the unbounded middle map, by right invariance of the
+upstairs metric.
+
+\emph{Lattice reconstruction and external function nets.}
+By Lemma~\ref{lifting:refiltration}, the map
+$i:H\to H/H_r\times H_F$ is injective onto the group fiber product.
+We explain why finer lattices make the same assertion usable for
+nilmanifold functions.  Choose a source lattice $\Gamma_H$ permitting
+the right translates $R^U$.  This uses only their common denominator:
+the adjoint formulas for rational elements have bounded denominators
+independently of the sizes of their numerators, so a common deep
+integral grid lies in all required conjugate lattices.
+
+In rational logarithmic coordinates let $T$ be a rational left
+inverse of $i_*$.  If $l\Z^{\dim H}\subset\log\Gamma_H$, choose
+a sufficiently divisible early integer $D$ so that
+$T(D\Z^{\dim(H/H_r)+\dim H_F})\subset l\Z^{\dim H}$.
+Take deep target lattices $\Delta'',\Delta_F$ whose logarithms lie
+in that target grid and set
+$\Delta_H=i^{-1}(\Delta''\times\Delta_F)$.
+Rationality implies that $\Delta_H$ is a lattice, and the grid
+choice gives $\Delta_H\subset\Gamma_H$.  The original test pulls
+back to $H/\Delta_H$, which embeds in the product of the two covered
+nilmanifolds.  Rational subgroup reconstruction gives an early
+Lipschitz bound on the joint image.  The quantitative reason is that
+on bounded representatives any target lattice element outside the
+rational image has distance at least an early inverse size from it;
+nearby pairs can therefore be compared using a lattice element in
+the image and the bounded rational inverse $T$.
+
+For clarity, fix these lattices for the whole family and write $J$
+for the resulting joint image.  If $\phi$ is an original function,
+$e$ a bounded value of $E^U$, and $r$ a bounded representative of a
+right-lattice residue of $R^U$, the function on $J$ is
+\[
+ f_{\phi,e,r}(i(h))=\phi(ehr\Gamma).
+\]
+All these functions have one early Lipschitz bound $L_*$, by
+Lemma~\ref{prelim:reconstruction}; enlarge $L_*$ to be at least one
+and to dominate the Lipschitz bounds of the original functions
+$\phi$ as well.  For a fixed $r$, right invariance
+also gives
+\[
+ \|f_{\phi,e,r}-f_{\phi',e',r}\|_\infty
+ \le \|\phi-\phi'\|_\infty+
+       \operatorname{Lip}(\phi')d_G(e,e').
+\]
+Use the clipped McShane extension from the same $J$ with the same
+constant $L_*$ for every function.  The infimum formulas show that
+this operation is nonexpansive in supremum norm.  Specialize the
+extension at the second coordinate $y=P_H(u,\beta(u))\Delta_F$;
+changing $y$ changes the resulting function on $(H/H_r)/\Delta''$
+by at most $L_*d(y,y')$ in supremum norm.
+Thus, writing $\Psi_{\phi,e,r,y}$ for this specialized function,
+\[
+ \|\Psi_{\phi,e,r,y}-\Psi_{\phi',e',r,y'}\|_\infty
+ \le \|\phi-\phi'\|_\infty
+       +L_*d_G(e,e')+L_*d(y,y').
+\]
+
+There are an early number of possible right-lattice residues $r$:
+Mal'cev reduction of rational elements of one fixed common
+denominator leaves bounded representatives of controlled
+denominator.  This count is independent of all numerators.  The
+bounded $e$-region and the compact $y$-nilmanifold have polynomial
+dimension and early coordinate bounds.  Choose an original function
+net at accuracy $\eta/6$ and recenter each nonempty bin at a member
+of the original family, giving accuracy $\eta/3$ with its original
+range and Lipschitz bounds.  Together with grids of mesh
+$\eta/(3L_*)$ in $e$ and $y$ and the finite choices of $r$, this
+gives a net with
+logarithmic size polynomial in $p+\log(1/\eta)$.  The dependence of
+$e,r,y$ on the site may be arbitrary: only this parameterized family
+is netted, not the space of all Lipschitz functions.
+
+\emph{Lower-degree induction and restoration.}
+Apply induction to $H/H_r\to H_F/H_{F,r}$, with marked polynomial
+$P_H\bmod H_{F,r}$ and the external test just constructed.  Its
+fixed polynomial output lifts jointly with the exact map $P_H$ to
+one weighted polynomial $h^U\in H$ by the rational filtered fiber
+isomorphism.  Then $E^Uh^UR^U$ works for the averaged test and
+projects to $P_F^*$.  Multiply it on the left by
+$\rho(P_F(P_F^*)^{-1})$ to restore the formal marked projection
+$P_F$; this correction is the identity on every retained slice.
+Project to $G^0/L$ and lift polynomially to $G^0$ by a filtered
+logarithmic section.  The original marked projection is unchanged
+because $L\subset\ker\pi$.
+
+Finally, if a path has averaged score at least $\delta$ and
+$|a|\le B$, the set of $l\in L/(L\cap\Gamma^0)$ giving original
+score at least $\delta/2$ has measure at least $\delta/(2B)$.
+Otherwise the integral would be smaller than $\delta$, by bounding
+the score by $B$ on that set and $\delta/2$ off it.  Fubini supplies
+one fixed $l$ working on an early fraction of paths.  Its left
+translation preserves the marked map and gives the desired output.
+
+All dimensions count only polynomially many pivots.  Linear systems
+at each grade are solved jointly.  Marked matching has at most $s$
+grades and the degree induction at most $s$ steps.  Thus only a
+bounded number of polynomial budget increases are used.  These
+bounds are early and can all be fixed before the later scales.
+\end{proof}
+
+\begin{remark}[Uniformity in path-dependent tests]
+\label{lifting:globalization-gap}
+The proof uses the sampler's early-uniform testing seminorm for
+simultaneous approximation of arbitrary masked inputs against all
+path-dependent pivot tests.  Marked matching, exact reconstruction,
+and the function-net bound are then deductions from this assertion
+and Lemma~\ref{prelim:step-drop}.  These are the sampling and symbol
+inputs to Proposition~\ref{lifting:candidate-globalization}.
+\end{remark}
+
+\begin{lemma}[A fixed patch evaluation on many paths]
+\label{lifting:fixed-patch-function}
+Suppose an early fraction of paths have positive scores of early
+size against a real input of early bounded supremum, using patches of degree at most
+$s$, rank at most $d_*$, and early kernel Lipschitz complexity.
+The bound $d_*$ and all parameter dimensions are included in the
+early structural budget.
+After early losses in score and productive fraction, those patches
+can be replaced by evaluations of one fixed Lipschitz function on
+one fixed triangular patch group.  The local polynomial maps may
+still vary with the path and have unrestricted coefficients.  The
+fixed function has early complexity and at most $d_*$ patch slots.
+\end{lemma}
+
+\begin{proof}
+First pigeonhole the rank and slot weights.  Let $D\le d_*$ be this
+rank, $L\ge1$ a common upper bound on kernel Lipschitz constants, and
+$\delta$ a common positive lower bound on score.
+Normalize all residual polynomial coefficients modulo integers in
+increasing slot order, using triangular integral changes of slot
+variables.  This preserves the patch value, kernel, and weighted
+degree.  Choose an accuracy
+$\varepsilon\ll\delta/(1+\|a\|_\infty)$ and a grid mesh
+$h\le\min(1/32,\varepsilon/L)$ depending only on early bounds.
+Extend each kernel $\Phi$ by zero as required in the patch definition.
+Tensor-product piecewise linear interpolation gives
+\[
+ \widetilde\Phi(x)=\sum_{v\in\mathcal V}\Phi(v)\,\Psi_h(x-v),
+ \qquad 0\le\Phi(v)\le1,
+ \qquad \|\widetilde\Phi-\Phi\|_\infty\le\varepsilon,
+\]
+where $\Psi_h$ is one nonnegative tensor-product tent of cap one,
+supported in $[-h,h]^D$.  The vertices lie in a fixed slight
+enlargement of the support and
+$\log|\mathcal V|=O(D\log(2+L/\varepsilon))$.
+The joint support lies in $[-1/4-h,1/4+h]^D$, of coordinate width
+less than one.  Triangularity permits at most one integer slot tuple
+there.  Substitution in the patch therefore changes its value by at
+most $\varepsilon$, with no loss from counting tuples.  Its score
+remains at least $\delta/2$.
+
+All interpolation coefficients are nonnegative.  Some translated
+tent patch consequently has score at least
+$\delta/(2|\mathcal V|)$.  Absorb its center into the constant terms
+of the residual polynomials; every path now uses the same kernel
+$\Psi_h$.  These constant shifts leave the homogeneous
+weight-preserving coefficients unchanged.
+
+Write its triangular change as $S^0Y$, with $S^0$ the homogeneous
+weight-preserving part and $Y$ in the fixed strictly lowering group.
+All coefficients of $S^0$ are uniformly bounded and their number is
+polynomial in $D$ for fixed $s$.  On a bounded fundamental region for
+$Y$, triangular inversion gives a uniform early bound for all
+integral tuples that can contribute for such an $S^0$ or a nearby
+coefficient mesh point.  There are an early number of such tuples.
+Polynomial substitution and the Lipschitz bound of $\Psi_h$ give an
+early uniform continuity bound for
+\[
+          S^0\longmapsto
+          \sum_{b\in\Z^D}\Psi_h(S^0Y(b))
+\]
+in supremum norm on the patch nilmanifold.  Mesh these finitely many
+coefficients sufficiently finely, preserving triangular homogeneous
+form.  The logarithmic mesh size is polynomial in the early budget.
+A mesh replacement loses less than half the retained score, and
+pigeonholing its index gives one fixed function on an early fraction
+of paths.  No coefficients of the polynomial maps $Y$ were
+pigeonholed.
+\end{proof}
+
+\begin{corollary}[Globalizing returned patches]
+\label{lifting:globalize-patches}
+Under the hypotheses of Proposition~\ref{lifting:candidate-globalization}
+and sampling Property~\ref{sampling:property-transfer}, let
+$0\le f\le1$ and $0\le\lambda\le1$.
+A family as in Lemma~\ref{lifting:fixed-patch-function}, with real
+input $a=f-\lambda$, yields an ambient patch of
+rank at most $d_*+\sum_h\dim W_h$, with positive score after
+the prescribed fixed multiplicative discount of the target density.
+Its logarithmic inverse score, output slice costs, and complexity
+may include the subspace heights and later parameters, as allowed
+in sampling Property~\ref{sampling:property-transfer}.  They have polynomial bounds in that
+augmented log budget, rather than necessarily early bounds.
+\end{corollary}
+
+\begin{proof}
+Apply Lemma~\ref{lifting:fixed-patch-function} and then
+Proposition~\ref{lifting:candidate-globalization} with trivial
+initial marked factor.  Its fixed weighted polynomial remains in
+the same triangular group, so its evaluation is a fixed patch
+formula with $d_*$ slots and formal lift arguments.
+Sampling Property~\ref{sampling:property-transfer} introduces at most $\sum_h\dim W_h$ slots to
+determine those arguments, with the asserted score and discount.
+\end{proof}
+
+\subsection{Removing the lowest patch layer}
+
+The removal of an old layer has an elementary part that can be proved
+without any sampling theorem.
+
+\begin{lemma}[Freezing a lowest layer]
+\label{lifting:freeze-layer}
+Consider a triangular patch with $D$ lowest-weight slots, all of
+weight $j$.  Write their residual as
+\[
+                  r(t,b)=(I-M)(b-P(t)),
+\]
+where $M$ is strictly lower triangular.  Suppose $I(t)$ is an
+integer-valued polynomial of ordinary degree at most $j$ on the
+integer parameter box, and
+\[
+ \sup_t\left\|(I-M)\bigl(P(t)-I(t)-P(t_*)+I(t_*)\bigr)\right\|_\infty
+       \le\varepsilon<\tfrac1{12}.
+\]
+Suppose the original patch has a contributing tuple at $t_*$, whose
+first $D$ entries are $b_*$.  Then the integer polynomial
+\[
+                        b^*(t)=b_*+I(t)-I(t_*)
+\]
+is the only possible choice of its first $D$ slots anywhere that the
+original patch contributes.  Substituting it into the higher slots
+and freezing the first residual at $r(t_*,b_*)$ produces a patch with
+these $D$ slots removed.  If the original kernel has Lipschitz
+constant $L_\Phi$ for the maximum norm, the two patch values differ
+pointwise by at most $L_\Phi\varepsilon$.
+\end{lemma}
+
+\begin{proof}
+The displayed oscillation bound shows that the residual of $b^*(t)$
+lies within $\varepsilon$ of $r(t_*,b_*)$, and hence lies in
+$[-1/3,1/3]^D$.  If a different integer tuple $b$ first differs in
+coordinate $i$, triangularity makes the difference between its
+$i$th residual and that of $b^*(t)$ a nonzero integer.  The former
+cannot lie in $[-1/4,1/4]$, because $1/3+1/4<1$.
+Thus every contributing tuple has first block $b^*(t)$.
+
+For this fixed block the higher residual formulas are identical in
+the original and frozen tests.  The union of higher tuples contributing
+to either kernel has size at most one, by triangularity.  For any such tuple the Lipschitz
+bound gives an error at most $L_\Phi\varepsilon$.  The same argument
+holds when one kernel value is zero, since the kernel is a globally
+Lipschitz function supported in the prescribed box.  Summing over
+the possible higher tuples therefore gives the pointwise bound.
+Finally, substitution of a degree-at-most-$j$ polynomial for a
+weight-$j$ variable preserves the weighted degree bounds of every
+higher residual.
+\end{proof}
+
+\begin{lemma}[Rank-preparation bookkeeping]
+\label{lifting:rank-potential}
+Suppose preparation of $D$ coordinates of weight $j$ proceeds by
+the following operation.  At some tag $h\ge1$, replace a space
+$W_h$ by a codimension-one subspace and, if $h>1$, place one
+one-dimensional contribution in a new tagged copy at $h-1$.
+At $h=1$ absorb that contribution into degree zero.  Starting with
+$W_j=\R^D$ and no other positive tags, at most $jD$ such operations
+are possible.  At every stage
+\[
+                         \sum_h\dim W_h\le D.
+\]
+Only polynomially many ambient copy coordinates are needed when the
+degree is fixed.
+\end{lemma}
+
+\begin{proof}
+There are two dimension counts.  The unweighted sum
+$\sum_h\dim W_h$ starts at $D$.  Each operation removes one
+dimension and adds at most one, so this sum never increases.
+The weighted sum $\sum_h h\dim W_h$ starts at $jD$ and decreases
+by at least one at every operation, giving the bound on their number.
+
+These sums count the dimensions of the spaces in which the polynomials
+take values, not the numbers of their ambient coordinates.  A new copy
+may have many ambient coordinates, but its incoming polynomial is a
+scalar multiple of one removed vector and has a one-dimensional value
+space.  There are at most $jD$ copies.  Each can be placed in a direct
+sum of the original coordinates and copies from higher tags.  The
+descent has depth at most $j\le s$, so the total ambient dimension
+is polynomial in $D$ for fixed $s$.
+\end{proof}
+
+\begin{lemma}[Preparation of an old layer]
+\label{lifting:prepare-layer}
+Let $D\ge1$ and let $P:\R^n\to\R^D$ have degree at most $1\le j\le s$, with arbitrary
+real coefficients, and prescribe a rank threshold $R\ge2$ and
+oscillation tolerance $\delta>0$.  On sufficiently large parent
+sides, there is a parameter slice $u=\iota(v)$ on which
+\[
+             P\circ\iota=c+I+E+\sum_{h\le j}S_h C_h.
+\]
+Here $c$ is constant, $I$ has integral nonconstant coefficients,
+$E$ has oscillation at most $\delta$ in maximum norm,
+$C_h$ has degree at most $h$, takes values in a rational space
+$W_h\subseteq V_h$, and is high rank to threshold $R$ in the final
+indexing.  The ambient space at tag $h$ is a direct sum
+$V_h=\bigoplus_{\nu\in\mathcal I_h}\R^D$, with $\mathcal I_h$
+indexing tagged copies of the original coordinate space, and
+\[
+ S_h:V_h\longrightarrow\R^D,\qquad
+ S_h((z_\nu)_{\nu\in\mathcal I_h})
+       =\sum_{\nu\in\mathcal I_h}z_\nu.
+\]
+Thus $\|S_h\|_{\infty\to\infty}\le|\mathcal I_h|$, independently
+of the subspace heights.  Moreover
+$\sum_h\dim W_h\le D$; all ambient copy dimensions are bounded
+by a polynomial in $n+D$ for fixed $s$.  Rational log heights of the
+spaces $W_h$ and auxiliary sections, and log slice costs, are polynomial in
+$n+D+\log R+\log(2+\delta^{-1})$.
+The slice may be selected to preserve the normalized average of any
+specified real score function on the parent box.
+\end{lemma}
+
+\begin{proof}
+Start with $C_j=P$ and $W_j=\R^D$.  If high rank fails at tag $h$,
+there is an integer row $\lambda$ of norm at most $R$, nonzero on
+$W_h$, for which the top of $\lambda C_h$ is rational plus slow.
+Choose a rational $e\in W_h$ with $\lambda e=1$, and replace $C_h$
+by $C_h-e\lambda C_h$, whose values lie in
+$W_h\cap\ker\lambda$.  Write the removed term as its rational
+top, its slow top, and a polynomial of degree at most $h-1$.
+
+Restrict to residue classes clearing the denominators of the
+rational top, including those of $e$.  Every positive-degree
+coefficient then becomes integral; the constant is absorbed in $c$.
+Subdivide the normalized box so finely that the slow top oscillates
+by at most a prescribed share of $\delta$, and absorb its value at
+one point into $c$.  Move the lower-degree term, which takes values
+in the line spanned by $e$, into a new copy at tag $h-1$, or absorb
+it as a constant if $h=1$.  Use the actual unmodified score to select
+a cell of the residue and subbox partition whose normalized average
+is at least the preceding average.  This exists by averaging.
+Equal or almost equal subdivisions keep every side at a controlled
+relative size once the parent cutoffs are imposed.
+
+After reindexing, repeat the rank tests at the same $R$, including
+tags tested before a subsequent restriction.  Lemma~\ref{lifting:rank-potential}
+shows that at most $jD$ failures can be removed.  At termination every
+remaining tag is high rank in the final indexing.  Previously
+integral nonconstant coefficients remain integral under integer
+affine reindexing.  Previously allocated oscillation errors can only
+decrease on restriction.  Thus allocating $\delta/(jD)$ per step,
+with the polynomial norm bound of the copy-summing maps included,
+gives the asserted total error.
+
+We verify that the rational estimates do not undergo one polynomial
+exponentiation per cut.  Fix a polynomial bound $m$ for all copy
+coordinates.  At tag $h$ let $B_h$ be the block-diagonal basis matrix
+of its original and incoming spaces, before cuts at that tag, and
+stack all imposed rows into $A_h$.  The current space is
+$B_h\ker(A_hB_h)$.  Extend earlier rows by zeros whenever a copy
+arrives.  To choose the next section, solve jointly
+\[
+ A_hB_hz=0,\qquad \lambda B_hz=1,
+ \qquad e=B_hz.
+\]
+The system is consistent because $\lambda$ is nonzero on the
+current space.  Clearing the polynomial number of denominators and
+using one nonzero minor gives
+\[
+ \log\operatorname{ht}(e),\ \log\operatorname{ht}(W_h)
+ \le m^{C_s}\bigl(1+\log R+\log\operatorname{ht}(B_h)\bigr).
+\]
+Crucially, $B_h$ contains sections coming from higher tags, not
+sections previously chosen at this same tag.  Thus the displayed
+polynomial recurrence is composed at most $s$ times.  It bounds both
+$\|e\|_\infty$ and a common denominator $d_e$ of its coordinates.
+
+For completeness, if $q\le R$ clears the rational scalar top, the
+modulus $a=qd_e$ clears the nonconstant coefficients of its product
+with $e$ on every residue class $u=r+av$: every positive-degree
+term in the expansion contains a factor $a$.  Its arbitrary
+numerators do not affect this assertion.  In normalized variables
+the slow top has at most $\binom{n+s}{s}$ monomials with coefficients
+at most $R$.  If $K$ bounds the copy-summing maps, subdivision into
+$B_0$ pieces per coordinate costs an oscillation at most
+\[
+ \frac{Ks\binom{n+s}{s}R\|e\|_\infty}{B_0}.
+\]
+Choose $B_0$ large enough to make this at most $\delta/(jD)$.
+Then $\log(2aB_0)$ is polynomial in the asserted budget.  On
+sufficiently large current sides, nearly equal subdivisions in
+each residue class give every cell side at least $H_i/(2aB_0)$.
+Consequently each cut has that polynomial log cost, and summing
+over at most $jD$ cuts gives both the claimed cost and a uniform
+sufficient parent-side cutoff.  Copy dimensions are bounded by a
+fixed polynomial majorant of $D(1+jD)^j$, by the bounded descent
+depth, independently of orientations and heights.
+\end{proof}
+
+After successful preparation and sampling, the integer polynomial
+$I(t)$ in Lemma~\ref{lifting:freeze-layer} is the prepared
+integral-coefficient contribution plus
+$\sum_h S_h(\beta_h(\psi(t)))$.  The small residual oscillation is the sum of the
+preparation error and the chart widths.  Choosing that error small
+relative to the input absolute score permits the recursive call with
+the original density threshold, losing only absolute surplus.
+This choice must be made before the rank threshold and subspace
+heights become available.
+
+\begin{proposition}[Linear rank accounting]
+\label{lifting:linear-rank}
+Assume the following three assertions, with their permitted
+early or augmented logarithmic cost bounds:
+\begin{enumerate}
+\item rank preparation and conditioned sampling remove the lowest
+      $D$ slots of weight $j$, retaining positive absolute score and
+      producing spaces with $\sum_h\dim W_h\le D$;
+\item a family of recursively returned patches of rank at most $d_*$
+      can be globalized in the same patch group as in
+      Proposition~\ref{lifting:candidate-globalization};
+\item transferring this fixed global patch to the parent costs at
+      most $\sum_h\dim W_h$ new slots, and uses an arbitrarily
+      prescribed fixed multiplicative discount of the target density.
+\end{enumerate}
+Assume also the unconditioned base case returns rank at most $d_0$
+and permits an arbitrarily prescribed fixed density discount.
+Then processing an old patch with $d$ slots returns rank at most
+$d_0+d$.  For fixed $s$, its total multiplicative density discount
+can be made at most any prescribed $\epsilon_0>0$.
+\end{proposition}
+
+\begin{proof}
+Let $D_j$ be the number of original slots of weight $j$.
+After the lowest remaining layer $j$ is removed, the recursive call
+acts on $d-D_j$ old slots.  On returning, the old test is discarded:
+only the returned patch is globalized and charged the new
+$\sum_h\dim W_h$ slots.  Consequently the rank satisfies
+\[
+ R(D_1,\ldots,D_s)
+       \le R(0,\ldots,0,D_{j+1},\ldots,D_s)+D_j,
+ \qquad R(0,\ldots,0)\le d_0.
+\]
+Iterating gives
+$R\le d_0+\sum_jD_j=d_0+d$.
+There are at most $s$ upward passages and one base passage.  Taking
+each fixed discount $\delta\le\epsilon_0/(s+1)$ makes their product
+at least $1-(s+1)\delta\ge1-\epsilon_0$.
+\end{proof}
+
+\begin{remark}[Order of parameters in the relative use]
+\label{lifting:relative-gap}
+The recursive input budget is fixed from the old
+patch, the dimensions of all possible copies, the desired chart
+widths, and the retained absolute score.  It must not include
+$\log R$, $\log L$, or the eventual heights of the prepared spaces.
+The sampler dimension must be fixed from structural dimensions
+before these recursive accuracy requests; a mere polynomial bound
+on that dimension allowing dependence on later requested precisions
+would create a circular requirement.  This structural independence
+is explicitly part of Proposition~\ref{sampling:constrained}.
+
+The removed directions $e$ are stored in the unrestricted
+coefficients of the copied polynomials.  The maps $S_h$ only add
+coordinate copies, and their norms depend on copy counts, not on
+the rational heights.  Therefore the widths needed in
+Lemma~\ref{lifting:freeze-layer}, and the complexity of the remaining
+kernel after freezing, can be prescribed from the structural budget.
+The coefficients of the substituted higher residuals remain free.
+Compute the recursive output, accuracy, and globalization budgets
+with these data first.  Only then choose perturbations, the long-scale
+range and $R$, perform Lemma~\ref{lifting:prepare-layer}, choose the
+allowed long scale for its final spaces, and impose parent side
+cutoffs including its late height and slice costs.  At most $s$ old
+layers are processed, so this forecasting uses bounded depth.
+This is the order used in the relative induction below, with sampling
+supplied by Proposition~\ref{sampling:constrained} and step-drop by
+Lemma~\ref{prelim:step-drop}.
+\end{remark}
+
+\begin{theorem}[Relative lifting from the sampling assertions]
+\label{lifting:relative-theorem}
+Assume Lemmas~\ref{prelim:step-drop} and~\ref{prelim:separation},
+Proposition~\ref{sampling:constrained}, and the scalar transfer of
+Proposition~\ref{sampling:scalar-transfer}, including their stated
+uniform polynomial logarithmic bounds.  Then
+Proposition~\ref{counting:relative-target} holds, with rank at most
+$d_0+d$ in its increment alternative.  Its exponent $E$ depends
+only on $s$, the fixed base dimension $n_0$, its fixed side-ratio
+bound, and the prescribed discount $\varepsilon_0$.
+\end{theorem}
+
+\begin{proof}
+Induct on the number of distinct positive weights in the old patch.
+Fix a discount $\tau\le\varepsilon_0/(s+1)$ for each upward passage
+and the base passage, with $0<\tau\le1/2$.  For early bookkeeping
+replace the absolute rank bound by $\min(d_0,p)$: the rule's
+complexity bound already bounds every actual returned rank by $p$.
+The eventual rank estimate with the original $d_0$ only becomes
+weaker.  We use the absolute rule solely through its
+given dimension, cutoff, score, slice, rank, and complexity bounds;
+no constant below depends on the particular rule.
+
+\emph{Base case.}
+If the old patch has no slots, it is a constant in $[0,1]$.
+The positive old score gives $\E f\ge a+e^{-p}$: if the constant
+old patch is $c$, then $c>0$ and $\E f-a\ge e^{-p}/c\ge e^{-p}$.
+Use the unconditioned sampler in dimension exactly $n_0$, with
+distinct comparable prime sides beyond the absolute cutoff.  Its
+spatial law is dominated by the product-box law by an early factor,
+as specified in the unconditioned variant of
+Proposition~\ref{sampling:constrained}; hence scalar transfer applies
+to this same ensemble.
+Put $\sigma=e^{-p}$ and prescribe both the one-site error and the
+noninjective probability to be at most $\sigma/16$.  If $Z$ is the
+sample mean minus $a$, then $|Z|\le1$ and
+$\E[Z1_{\mathrm{injective}}]\ge7\sigma/8$.  Since $Z\le1$,
+the fraction of injective samples with $Z\ge\sigma/2$ is at least
+$\sigma/4$.  These samples therefore have mean at least
+$a+e^{-p}/2$.  The structural side-ratio constant in the absolute
+rule is fixed with $R\ge2^{n_0+1}$.  Choose $L$ divisible by
+$2^{n_0+1}$ and apply Bertrand's postulate in $n_0$ successive
+disjoint dyadic intervals inside $[L/R,L]$.  This gives distinct
+prime sides comparable to $L$.  Taking $L/R>e^p$ puts every side
+beyond the rule's cutoff; these are all early requirements on $L$.
+
+The pullback of $f$ on an injective affine sample is progression-free:
+a nonzero vector progression in its box has two distinct points,
+whose images remain distinct, and its image is an arithmetic
+progression in the parent.  If the absolute rule is an impossibility
+rule, these samples are already a contradiction.  Otherwise that
+rule supplies a patch of rank at most $d_0$ and early positive score
+against the pullback minus $\Lambda$ on a permitted sample slice.
+Lemma~\ref{lifting:fixed-patch-function} and the unconditioned case
+of Proposition~\ref{lifting:candidate-globalization} replace these
+by one fixed ambient patch evaluation, still with at most $d_0$
+slots, on an early fraction of samples.
+
+Apply scalar transfer to this fixed ordinary niltest $g$, with
+$\lambda'=(1-\tau)\Lambda$.  It has the required positive lower
+bound, after an early budget increase.  Choose its fixed slack
+$\epsilon=\tau/(2(1-\tau))$, so that
+$(1+\epsilon)\lambda'=(1-\tau/2)\Lambda\le\Lambda$.
+If every permitted ambient slice had score at most the prescribed
+small error against $f-\lambda'$, scalar transfer would bound the
+probability of the observed local positive scores by a smaller
+early fraction.  Here is the finite union bound for the path-dependent
+slices.  Let $b$ bound their total early costs, let $\delta$ be their
+retained score and let $\rho$ be the productive fraction.  Each
+original side is comparable to $L$, and each restricted side has
+at least $Le^{-O(b)}$ points.  Once this is at least two, its common
+modulus can be represented by an integer at most $e^{O(b)}$.
+Enumerate these moduli and residues, and mesh the interval endpoints
+in units of $L$ at resolution $\delta e^{-O(b)}/C_{n_0}$.  The change
+in the normalized slice measure is at most $\delta/4$ in $\ell^1$
+distance, after $L$ absorbs the integer-rounding error.  The score
+integrand is bounded by one, so this is also a score bound.  There
+are $N\le\exp(\mathcal P(b+\log\delta^{-1}))$ choices, independently
+of $L$.  Choose the scalar log budget $p_{\rm sc}$ in advance so
+that its complexity, modulus, side-length and domination hypotheses
+hold and
+\[
+ e^{-p_{\rm sc}}<\min\{\delta/4,\rho/(2N)\}.
+\]
+Apply Proposition~\ref{sampling:scalar-transfer} to each fixed mesh
+choice with its own uniform $t$ law.  Only the outer law of $(x,V)$
+is changed to the actual dominated unconditioned law; no
+path-dependent reweighting of $t$ is used.  If every permitted
+ambient slice had score at most the resulting $e^{-P}$, the union
+of the local positive-score events would have probability at most
+$Ne^{-p_{\rm sc}}<\rho/2$, a contradiction.  All endpoint,
+precision and domination budgets were fixed before choosing $L$.
+The contradiction yields an ambient slice with early positive score
+against $f-(1-\tau)\Lambda$, with the same $d_0$ slots.  This proves
+the base increment case.
+
+\emph{Removing the lowest weight.}
+Suppose the lowest weight is $j$ and it has $D$ slots.  Normalize the
+patch coefficients by the triangular integral substitutions in
+Lemma~\ref{lifting:fixed-patch-function}.  The kernel is unchanged.
+At this lowest weight, previous-slot terms are linear with constant
+coefficients, now of absolute value at most one.  Thus its residual
+block is $(I-M)(b-P(u))$, with
+$\|I-M\|_{\infty\to\infty}\le1+D$ and $\deg P\le j$.
+The coefficients of $P$ need not be bounded.
+Forecast the polynomial number of all possible copy coordinates in
+Lemma~\ref{lifting:prepare-layer}, and let $K$ bound
+$\sum_h\|S_h\|_{\infty\to\infty}$ for every such configuration.
+Put $\sigma=e^{-p}$ and prescribe the preparation error $\delta$
+and common chart radius $w$ so that
+\[
+ (1+D)(\delta+2Kw)
+ \le \min\{1/24,\sigma/(16\max(1,L_\Phi))\}.
+\]
+Only the early kernel, score and structural data enter these
+choices, not the heights of the eventually prepared spaces.
+
+The constrained sampler dimension is fixed structurally.  Consequently
+the inductive input dimensions, kernel complexity, desired inverse
+score, and the original absolute rule's bounds can all be put in an
+early polynomial budget before choosing its testing accuracies or
+long scales.  Compute the induction output and globalization budgets
+first.  Then choose the later parameters in the sampler's required
+order, choose $R$ for the entire allowed long-scale range, and
+perform Lemma~\ref{lifting:prepare-layer}.  The initial side cutoff
+includes its polynomial late height and slice costs.  The final
+prepared spaces admit one of the allowed long scales, and their
+high rank holds at the threshold already chosen for the whole range.
+
+Preparation preserves the actual old score, which is at least
+$\sigma$.  Prescribe the mixed-center one-site error and the bad-path
+probability to be at most $\sigma/16$ each.  For the sampled old
+score $Z$, $|Z|\le1$ and
+$\E[Z1_{\rm good}]\ge7\sigma/8$.  Therefore at least a
+$\sigma/4$ fraction of paths are good and have $Z\ge\sigma/2$.
+Averaging in the centers gives one fixed center tuple with at least
+that productive fraction.  On each such path
+choose a point where the old patch contributes.  The prepared
+integral part plus $\sum_h S_h(\beta_h(\psi(t)))$ is the integer polynomial
+$I(t)$ of Lemma~\ref{lifting:freeze-layer}: the prepared integral
+part stays integral under the affine integer map, and each
+$\beta_h\circ\psi$ has integer coefficients and degree at most
+$h\le j$.  Constant centers cancel in differences.  The residual
+oscillation is at most $(1+D)(\delta+2Kw)$, so freezing loses at
+most $\sigma/16$ in score.  The remaining patch has $d-D$ slots
+and score at least $7\sigma/16$ against $f-a$.  Its kernel is
+$\Phi(r_*,\cdot)$, with the same support and no larger Lipschitz
+constant.  Its residual coefficients may be large, as permitted
+in the patch definition.
+
+Let $p_{\rm child}$ include the structural dimension, frozen kernel
+complexity, $p$, and $\log(16/(7\sigma))$, and let $H_{\rm child}$
+be the already computed inductive side cutoff for that budget.
+Choose $L>H_{\rm child}$.  Freeze axes with $T_i<H_{\rm child}$
+on a favorable fiber.  This preserves normalized score, and each
+fixed axis costs at most $\log H_{\rm child}$; their total cost is
+early.  Omit these singleton coordinates for induction, then
+reinsert their fixed values when recording its output as a slice
+of $\mathcal T$.  At least one free axis remains because the
+sampler has a side of length $L$, and every free side is at least
+$H_{\rm child}$.  The same absolute rule is valid with budget
+$p_{\rm child}\ge p$: its cutoff, slice, complexity and inverse-score
+bounds only become weaker, and $a\ge e^{-p_{\rm child}}$.
+Apply induction to this positive-dimensional box and patch.  In the impossibility
+case induction contradicts the retained score, so that alternative
+is proved at every depth.  In the increment case it returns patches
+and slices of early complexity and positive score at the inductively
+discounted target, with rank at most $d_0+d-D$.
+
+Discard the old test and globalize precisely these returned patches
+by Corollary~\ref{lifting:globalize-patches}.  This costs at most
+$\sum_h\dim W_h\le D$ slots and one additional fixed discount
+$\tau$.  Therefore the rank is at most
+\[
+                  d_0+(d-D)+D=d_0+d.
+\]
+There are at most $s$ old-weight passages plus the base passage, so
+the product of the target factors is at least
+$(1-\tau)^{s+1}\ge1-\varepsilon_0$.  Lowering the target to the
+one requested only increases its positive score.
+
+Here is an explicit form of the final budget recurrence.  Let
+$F_q(p)$ majorize all required logarithmic bounds when at most $q$
+distinct old weights remain, including the sufficient parent log
+side.  The base construction gives a polynomial $F_0$.  Structural
+dimensions, the frozen kernel and its retained score admit
+$p_{\rm child}\le(2+p)^{c_s}$, independently of $R,L$ and heights.
+After computing the child output, all globalization and testing
+requirements fit in
+\[
+ b_*\le\bigl(2+p+F_{q-1}((2+p)^{c_s})\bigr)^{c_s}.
+\]
+The quantitative sampler hypotheses choose perturbation, $A$ and
+$R$ with logarithms bounded by a fixed polynomial in $b_*$, valid
+throughout $A\le L\le A^{C_s(1+\sum_hd_h)}$.  Preparation's joint
+height estimate then bounds its heights and slice costs by a
+polynomial in $p+\log R$.  The allowed augmented output costs,
+and the parent cutoff absorbing every restriction, are consequently
+bounded by one more fixed polynomial in $b_*$.  Increasing a fixed
+exponent if necessary gives
+\[
+ F_q(p)\le
+ \bigl(2+p+F_{q-1}((2+p)^{c_s})\bigr)^{C_s}.
+\]
+The polynomial number of preparation cuts adds costs; it does not
+add compositions to this recurrence.  Since $q\le s$, there is
+one exponent $E$, depending only on the fixed parameters, bounding
+all sufficient initial side cutoffs in logarithm, final complexities,
+log inverse scores and slice costs by $(2+p)^E$.  This is the full uniform assertion of
+Proposition~\ref{counting:relative-target}.
+\end{proof}

@@ -1,0 +1,223 @@
+\section{Introduction}\label{sec:introduction}
+
+The star operation permits a finite language expression to describe an
+arbitrarily long repetition. Its nesting depth measures how many layers
+of repetition an expression uses. Once complement is allowed, Boolean
+conditions can replace some of those layers. The question studied here
+is whether a fixed number of layers suffices for every regular language,
+independently of its alphabet and recognizing automaton.
+
+Fix a finite alphabet $\Sigma$. A \emph{generalized regular expression}
+over $\Sigma$ uses $0$, $1$, the singleton letters of $\Sigma$, union,
+concatenation, complement, and Kleene star. The constants denote
+$\emptyset$ and $\{\eps\}$, and complement is always taken in $\Sigma^*$.
+Its height is determined by
+\[
+\begin{aligned}
+ \sht(0)=\sht(1)=\sht(a)&=0,\\
+ \sht(P\cup Q)=\sht(PQ)&=\max\{\sht(P),\sht(Q)\},\\
+ \sht(\neg P)&=\sht(P),&
+ \sht(P^*)&=1+\sht(P).
+\end{aligned}
+\]
+For a regular language $L\subseteq\Sigma^*$, write $h_\Sigma(L)$ for
+the least height of an expression defining $L$. In particular,
+complement preserves the nesting already present in its argument. Finite
+Boolean combinations preserve a common height bound, and the full
+language $\Sigma^*=\neg0$ has height zero.
+
+\begin{theorem}\label{thm:main}
+For every finite alphabet $\Sigma$ and every regular language
+$L\subseteq\Sigma^*$,
+\[
+                            h_\Sigma(L)\le3.
+\]
+\end{theorem}
+
+The expressions in the theorem use the letters of $\Sigma$ itself. Their
+finite parameters and their lengths may depend on the language. The
+construction gives an upper bound on nesting, without a bound on
+expression size or running time.
+
+\subsection{The problem and its mathematical context}
+
+The corresponding \emph{ordinary} star-height problem omits complement.
+Eggan connected ordinary star height with the cycle structure of
+transition graphs, and Dejean and Sch\"utzenberger established unbounded
+ordinary star height already over a two-letter
+alphabet~\cite{Eggan1963,DejeanSchutzenberger1966}. These results concern
+the operations allowed in ordinary expressions. Their lower bounds do
+not carry over merely by adding complement.
+
+Generalized height zero already has a different character: its languages
+are the \emph{star-free} languages, which need not be finite. A finite
+monoid $M$ recognizes a language when membership depends only on the image
+of a morphism from $\Sigma^*$ to $M$. Sch\"utzenberger characterized the
+star-free languages as exactly those recognized by finite aperiodic
+monoids~\cite{Schutzenberger1965}. Here a monoid is aperiodic if every
+element $m$ satisfies $m^r=m^{r+1}$ for some $r\ge1$. A simple language
+requiring one star is $(aa)^*$ over $\{a\}$: its displayed expression has
+height one, while every star-free unary language is finite or cofinite,
+as induction under union, complement, and concatenation shows.
+
+The algebraic approach has also produced substantial families of height
+at most one. Pin, Straubing, and Th\'erien proved this bound for languages
+recognized by finite nilpotent groups of class two, and for further
+classes of finite monoids~\cite[Theorems~7.3 and~7.8]{PST1992}.
+Another line of results concerns words in which a fixed nonempty factor
+occurs contiguously a prescribed number of times modulo an integer
+$n\ge2$, with overlapping occurrences counted. Bourne and Ru\v{s}kuc
+proved height-one bounds for factors of length at most
+three~\cite[Proposition~2.5]{BourneRuskuc2016};
+Bourne subsequently extended the result to arbitrary fixed factors
+in his thesis~\cite[Theorem~2.25]{Bourne2017}. These results explain how
+complement can simplify nontrivial counting languages, but their
+restricted families do not supply a bound for arbitrary regular languages.
+
+A universal finite upper bound and a universal upper bound of one are
+different assertions; Straubing distinguishes them explicitly in his
+account of the problem~\cite[p.~537]{Straubing2002}.
+Theorem~\ref{thm:main} gives a positive answer to the boundedness question.
+It does not exhibit a language of generalized height greater than one,
+and does not decide whether one always suffices.
+
+Two companion constructions explain the setting of this proof. The paper
+\emph{Finite Monoid Computations and a Uniform Generalized Star-Height
+Bound} proves a bound of thirteen by finite computations, a prediction
+argument, and a decision tree that retains the complete earlier
+history~\cite[Theorem~1.1 and Sections~2--7]{HeightThirteen}.
+\emph{Generalized Star Height at Most Four} proves a bound of four using
+constancy on affine coordinate lines, several marker scales, and product
+transport across moving periodic
+boundaries~\cite[Theorem~1.1 and Sections~2--6]{HeightFour}.
+The present construction obtains three through two split steps. Each of
+the three papers gives its own complete proof; the numerical theorem of
+one is not used to prove another. The prediction and multiscale methods
+remain different constructions even though the bound here is smaller.
+
+\subsection{Computing a word value with independent tests}
+
+Every regular language has a recognizing morphism
+$T:\Sigma^*\to M$ into a finite monoid. We therefore seek expressions
+for the fibers of $T$. The construction parses a word into complete pieces called
+\emph{episodes}, followed by a final remainder. The episode language $E$
+is a prefix code, meaning that no member is a proper prefix of another.
+This makes the episode boundaries unique.
+
+An episode will act on a finite vector space by an affine map. To
+propagate its state, we cut the episode and test the prefix for an input
+state and the suffix for an output state. The tests are languages placed
+in separate factors of a concatenation. Thus their auxiliary choices
+are independent. A valid split has to meet two separate obligations:
+every successful pair beginning at a true episode boundary must consume
+that entire first episode and transmit its update; for every input state,
+a successful pair must exist on each episode that is not assigned to a
+specified skipped class.
+
+Section~\ref{alg:section} proves a split identity that converts these
+obligations into expressions for arbitrary episode sequences. If the
+individual tests and the episode domain have height at most one and
+sequence computations on the skipped class have height at most $H$, the
+identity gives height at most $\max\{2,H+1\}$. The split and affine
+recovery methods are developed in the two
+companions~\cite[Lemmas~2.2--2.3]{HeightThirteen} and
+\cite[Lemmas~2.1--2.2]{HeightFour}; all versions used here are proved
+locally. An affine correction does not destroy the
+original computation: the difference between the outputs on $x$ and on
+zero recovers the linear part on $x$. Finite unions and intersections
+express this subtraction without another star.
+
+\subsection{Why two splits suffice}
+
+The first split uses later cuts in an episode and a finite set of
+\emph{tags}. A tag is a tuple of states, interval products, and indices
+that a test proposes to use. The prefix and suffix choose their tags
+separately. A clock restricts the pairs they can jointly realize: either
+they agree, or there is only one possible unequal pair. In the second
+case we define the episode's affine translation so that this one pair
+transmits the prescribed input to the prescribed output. To use the
+clock, however, both tests must calculate the same total time. A separate
+end guard establishes that fact; it is not a consequence of the clock.
+
+The clock also needs room to realize its permitted choices at actual
+cuts. Outside an exceptional set of total times, every tag permits a
+whole neighborhood of compatible prefix times, with a common positive
+margin. The clock also supplies a finite list of candidate times for which
+the number of exceptional pairs is bounded uniformly under translation
+and sufficiently small simultaneous perturbations. These are the
+additional clock properties used here;
+Section~\ref{clock:section} compares the quantitative bounds.
+
+When tags agree, the first split has two ways to work. If all the marker
+boundaries are present, their successive intervals give a tuple of
+monoid products. A finite shift table makes one coordinate of this tuple
+irrelevant to the transmitted output. The prefix checks the earlier
+products, the suffix checks the later products, and a finite certificate
+checks every possible value of the product crossing their cut. If a
+marker boundary is absent, a long periodic stretch instead allows the
+cut to move through all clock residues while keeping its prefix product
+fixed. This argument uses eventual periodicity of powers in a finite
+monoid; it requires no cancellation.
+
+The shift table is uniform in a stronger sense than a product-action
+statement. One tuple length, chosen using only the finite entry alphabet and state
+space, must work for every table from tuples to linear maps. A single correction table is chosen for each such
+map, independently of the input vector. The coordinate that can be
+omitted may depend on the tuple and vector. This quantifier order is
+proved by a finite avoidance argument of the local-lemma type of
+Erd\H{o}s and Lov\'asz~\cite{ErdosLovasz1975}.
+
+The clock and marker conditions used to guarantee the first split's
+completeness can fail on an intrinsic sublanguage $D\subseteq E$.
+The second split handles every episode in $D$, with no further skipped
+class. A suffix at an earlier cut can use the failed condition as a witness
+to the actual origin. Those early cuts form
+a fixed finite set, or \emph{stencil}, containing many copies of every
+required tuple of metadata. The differences between distinct stencil
+positions have different residues. Marker searches with widths indexed
+by these residues make false witnesses sparse over all ordered pairs of
+positions, including pairs with incorrect metadata.
+
+End detection needs special care in this count. A smaller bounded search
+fixes an episode's end when it finds an end marker; otherwise a periodic
+seed is followed to its first mismatch. A larger bounded search supplies
+the clock anchor whenever possible. If that larger search is absent at
+one nearby proposed origin, all the smaller searches are absent, and
+their overlapping seeds have one common mismatch. If every larger search
+is present, all candidate clock anchors are already bounded data. In
+either case the true origin's witness remains available before the suffix
+requires uniqueness. After identifying it, the suffix must separately
+check its exact endpoint. Counting over the whole stencil leaves a usable
+copy of every metadata tuple and supplies the second split.
+
+\subsection{From finite tests to height-three expressions}
+
+The local marker construction is a finite-window instance of the
+marker-versus-periodicity method~\cite[Lemma~2]{Krieger1982}; its full
+priority construction and periodic-overlap argument are given in
+Section~\ref{marker:section}. Section~\ref{clock:section} proves the
+robust clock. Section~\ref{schedule:section} then chooses all finite
+parameters in dependency order. In particular, a provisional rational
+clock fixes the early stencil before the marker scale is chosen. A later
+rational approximation preserves those fixed trials and makes the final
+clock period coprime to all relevant short periods.
+
+Sections~\ref{episode:section} and~\ref{outer:section} construct episodes,
+force a common end under independently chosen roles, and prove the first
+split. Section~\ref{decode:section} establishes the bound on all false
+origins and the suffix decoder. Section~\ref{inner:section} uses the
+remaining suffix to compute a total table indexed by every hypothetical
+prefix product in $M$, including values that no prefix realizes. Applying
+the shift-table lemma to this table gives the second split.
+
+The last step, Section~\ref{sec:compilation}, controls expression height
+for each component on its own domain. A standalone suffix, even with
+false origin data, has its own exact-end test. It consequently lies in a
+finite union of fixed-word templates $ac^ib$. The accepted exponents are
+ultimately periodic, which gives height-one expressions over the original
+letters. The incomplete remainder has the same kind of expression. The
+inner split starts from empty skip computations and gives height two;
+recovery makes those computations the skips for the outer split, giving
+height three. Finite Boolean recovery and concatenation with the
+remainder add no star. Tags, states, and residues serve only as finite
+indices in these expressions.

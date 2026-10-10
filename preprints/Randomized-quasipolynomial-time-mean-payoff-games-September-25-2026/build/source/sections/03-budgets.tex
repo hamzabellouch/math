@@ -1,0 +1,326 @@
+\section{Weighted supports and transport of comparisons}
+\label{sec:budgets}
+
+The exact box solution is expensive to obtain by direct iteration. The
+recursive solver will instead preserve its order relative to comparisons
+with restricted supports. This section specifies that restriction and
+proves the two mechanisms that keep it useful: a decrease of weighted
+support budgets, and transport of comparisons when bounds or centers
+change. No computed answer is required to be a subsolution or a
+supersolution itself.
+
+Separate budgets for the two sides parallel the two dominion-size
+precisions in Parys's recursion~\cite[Algorithm~2]{Parys2019} and the
+recursive refinements presented by Lehtinen, Parys, Schewe, and
+Wojtczak~\cite[Sections~3--4]{LehtinenParysScheweWojtczak2022}.
+Here the constrained objects are weighted supports of full comparison
+vectors, and the decrease rules are proved directly.
+
+Choose positive rational weights
+$\alpha,\beta\in\mathbb Q_{>0}^V$ and positive rational budgets $k,m$.
+For a vertex set $S$, write
+\[
+ \alpha(S)=\sum_{i\in S}\alpha_i,\qquad
+ \beta(S)=\sum_{i\in S}\beta_i.
+\]
+\begin{definition}[Admissible comparisons]\label{def:admissible-comparison}
+A subsolution $y$ of $[a,b]$ is \emph{admissible} if
+$\alpha(S_y)\le k$. A supersolution $z$ of that box is admissible if
+$\beta(S_z)\le m$. The supports are relative to $[a,b]$ and have the
+boundary conventions of Definition~\ref{def:box-comparisons}.
+\end{definition}
+
+Given these parameters and a reference width $1\le B\le B_*$, the
+procedure $\Solve$ will always return an integer vector $p\in[a,b]$.
+Its target comparisons are
+\begin{equation}\label{eq:comparison-guarantees}
+ \Prb(p\not\ge y)\le\frac1{16},\qquad
+ \Prb(p\not\le z)\le\frac1{16},
+\end{equation}
+separately for each fixed admissible $y$ and each fixed admissible $z$.
+The event $p\not\ge y$ means that the inequality fails in at least one
+coordinate. Thus each success is a whole-vector event, but the comparison
+is fixed outside the probability. Section~\ref{sec:solving} proves this
+pointwise assertion; it does not assert simultaneous success for all
+admissible comparisons.
+
+\subsection{A rank that decreases with the support parameters}
+
+Define the positive rational parameter $R$ and a probability measure
+$\mu$ on $V$ by
+\begin{equation}\label{eq:rank-parameter}
+ R=km\sum_{i\in V}\frac1{\alpha_i\beta_i},\qquad
+ \mu(S)=
+ \frac{\displaystyle\sum_{i\in S}1/(\alpha_i\beta_i)}
+      {\displaystyle\sum_{i\in V}1/(\alpha_i\beta_i)}.
+\end{equation}
+The proof will induct on the integer
+\[
+ d(R)=\min\{d\in\Z_{\ge0}:(9/10)^dR<1\}.
+\]
+The algorithm itself need only compare rational numbers. Whenever
+$R\ge1$ and $R'\le(9/10)R$, we have
+\[
+ (9/10)^{d(R)-1}R'\le(9/10)^{d(R)}R<1,
+\]
+so the integer rank decreases by at least one.
+
+\begin{lemma}[Small rank]\label{lem:small-rank}
+If $R<1$, the vector
+\[
+ p_i=\begin{cases}b_i,&\beta_i>m,\\a_i,&\beta_i\le m\end{cases}
+\]
+satisfies $y\le p\le z$ for every admissible subsolution $y$ and every
+admissible supersolution $z$ of $[a,b]$.
+\end{lemma}
+
+\begin{proof}
+Each summand $km/(\alpha_i\beta_i)$ is smaller than one. Thus
+$\alpha_i\beta_i>km$: the two conditions $\alpha_i\le k$ and
+$\beta_i\le m$ cannot both hold. If $\beta_i>m$, an admissible
+supersolution has no support at $i$ and must equal $b_i=p_i$, which is
+also at least $y_i$. Otherwise $\alpha_i>k$, so every admissible
+subsolution equals $a_i=p_i$ there, which is at most $z_i$.
+This coordinatewise reasoning includes collapsed intervals and proves
+the full assertion.
+\end{proof}
+
+Put $\eta=4/5$. Multiplying either budget by $\eta$ reduces $R$ by
+that factor. We will also reduce rank when a support is concentrated on
+a set having small $\mu$-measure.
+
+\begin{lemma}[Reweighting]\label{lem:reweighting}
+Let $H\subseteq V$ satisfy $\mu(H)\le1/2$, and keep the box $[a,b]$
+fixed.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Set $\alpha'_i=\alpha_i/2$ on $H$ and $\alpha'_i=\alpha_i$ off
+$H$, and set $k'=3k/5$, leaving $\beta,m$ unchanged. Every admissible
+subsolution $y$ with $\alpha(S_y\cap H)>\eta k$ remains admissible.
+Every formerly admissible supersolution remains admissible as well.
+\item Set $\beta'_i=\beta_i/2$ on $H$ and $\beta'_i=\beta_i$ off $H$,
+and set $m'=3m/5$, leaving $\alpha,k$ unchanged. Every admissible
+supersolution $z$ with $\beta(S_z\cap H)>\eta m$ remains admissible,
+as does every formerly admissible subsolution.
+\end{enumerate}
+In either case,
+\[
+ R'=\frac35(1+\mu(H))R\le\frac9{10}R.
+\]
+\end{lemma}
+
+\begin{proof}
+For the first change, the new support weight is
+\[
+ \alpha'(S_y)=\alpha(S_y)-\tfrac12\alpha(S_y\cap H)
+ <k-\tfrac12\eta k=\tfrac35k=k'.
+\]
+No supersolution parameter changes. Write
+$A=\sum_i1/(\alpha_i\beta_i)$. Halving $\alpha$ on $H$ replaces this
+sum by
+\[
+ A+\sum_{i\in H}\frac1{\alpha_i\beta_i}=A(1+\mu(H)).
+\]
+Multiplying by the new budget product $3km/5$ gives the formula for
+$R'$. For the second change, the identical support calculation reads
+\[
+ \beta'(S_z)=\beta(S_z)-\tfrac12\beta(S_z\cap H)
+ <m-\tfrac12\eta m=\tfrac35m=m'.
+\]
+The subsolution parameters are now unchanged, and the reciprocal-product
+sum again gains the factor $1+\mu(H)$. Finally $\mu(H)\le1/2$ gives
+the rank contraction, including equality at the endpoint.
+\end{proof}
+
+\subsection{Moving boundaries and recentering}
+
+A change of box requires a new comparison vector, not just a new
+interval. The following constructions verify its inequalities and give
+its exact support. Support containment will preserve every relevant
+budget even when a centered child box extends outside its parent.
+
+\begin{lemma}[Boundary projections]\label{lem:boundary-projections}
+Let $y$ be a subsolution and $z$ a supersolution of $[a,b]$.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item If $a\le a'\le b$, then $y'=\max(y,a')$ is a subsolution of
+$[a',b]$ with $S_{y'}=\{i:y_i>a'_i\}\subseteq S_y$.
+\item If $a\le b'\le b$, then $z'=\min(z,b')$ is a supersolution of
+$[a,b']$ with $S_{z'}=\{i:z_i<b'_i\}\subseteq S_z$.
+\end{enumerate}
+These projections preserve admissibility for unchanged weights and
+budgets. Lowering only the upper bound also preserves any subsolution
+that still fits, with unchanged support; raising only the lower bound
+preserves any supersolution that still fits, with unchanged support.
+The new bounds need not satisfy an inequality involving $F$.
+\end{lemma}
+
+\begin{proof}
+For the first projection, $a'\le y'\le b$. It is active exactly where
+$y_i>a'_i$. At such a coordinate $y'_i=y_i>a'_i\ge a_i$, and hence
+\[
+ y'_i=y_i\le F_i(y)\le F_i(y').
+\]
+The first inequality is the old active comparison; the second uses
+$y'\ge y$. This proves both the new comparison and support containment.
+At an inactive coordinate no inequality is required.
+
+For the second projection, $a\le z'\le b'$. Its active coordinates are
+exactly those where $z_i<b'_i$, and at each of them $z'_i=z_i<b'_i\le b_i$.
+Thus
+\[
+ z'_i=z_i\ge F_i(z)\ge F_i(z'),
+\]
+using the old supersolution inequality and $z'\le z$. Again the support
+can only shrink. Positive weights then give admissibility on both sides.
+Finally, only the lower bound defines a subsolution's support and only
+the upper bound defines a supersolution's support. Altering the other
+bound affects containment alone, which proves the remaining statements,
+including degenerate new intervals.
+\end{proof}
+
+\begin{lemma}[Centered projections]\label{lem:center-projections}
+Let $q\in[a,b]$ be an integer vector and $A$ a positive integer.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item For a subsolution $y$ of $[a,b]$, if
+$d=\max_i(y_i-q_i)\ge2A$, then
+\[
+ y'=\max(y-d+A,q-A)
+\]
+is a subsolution of $[q-A,q+A]$ with support
+\[
+ S_{y'}=\{i:y_i-q_i>d-2A\}\subseteq S_y.
+\]
+\item For a supersolution $z$ of $[a,b]$, if
+$e=\max_i(q_i-z_i)\ge2A$, then
+\[
+ z'=\min(z+e-A,q+A)
+\]
+is a supersolution of $[q-A,q+A]$ with support
+\[
+ S_{z'}=\{i:q_i-z_i>e-2A\}\subseteq S_z.
+\]
+\end{enumerate}
+Each projected comparison is admissible when the parent's comparison
+is admissible and the support weights and budget are unchanged.
+\end{lemma}
+
+\begin{proof}
+The definition of $d$ gives $y-d+A\le q+A$, so $y'$ lies in the
+centered box. Its active-coordinate test is
+\[
+ y'_i>q_i-A\quad\Longleftrightarrow\quad y_i-q_i>d-2A.
+\]
+Since $d-2A\ge0$, every active coordinate has $y_i>q_i\ge a_i$ and
+belongs to the original support. At that coordinate, translation and
+monotonicity yield
+\[
+ y'_i=y_i-d+A\le F_i(y)-d+A
+       =F_i(y-d+A)\le F_i(y').
+\]
+Although $y-d+A$ need not be in the parent box, $F$ is defined on all
+integer vectors, and the old comparison was used only at an original
+support coordinate.
+
+\begin{samepage}
+Similarly $z+e-A\ge q-A$, so $z'$ is in the new box. The active test is
+\[
+ z'_i<q_i+A\quad\Longleftrightarrow\quad q_i-z_i>e-2A.
+\]
+\end{samepage}
+Such a coordinate has $z_i<q_i\le b_i$ and is in $S_z$. There
+\[
+ z'_i=z_i+e-A\ge F_i(z)+e-A
+       =F_i(z+e-A)\ge F_i(z').
+\]
+This proves both support formulas and comparison properties. Positivity
+of the weights then transfers the budgets.
+\end{proof}
+
+There is a second consequence of support containment that will be used
+in orientation. For every $H\subseteq V$,
+\[
+ \alpha(S_y\cap H)\ge\alpha(S_{y'}\cap H),\qquad
+ \beta(S_z\cap H)\ge\beta(S_{z'}\cap H).
+\]
+Thus a strict support-weight lower bound proved for a projected
+comparison also holds for its parent. With unchanged parameters,
+$\mu(H)$ is unchanged. Neither conclusion requires one centered box
+to lie inside the other or their boundary heights to be close.
+
+\subsection{Detecting a threatened truncation}
+
+Before truncating a box, the algorithm will test whether a comparison
+near that boundary can be handled with a reduced budget. A translated
+comparison gives the test: if successful, it forces enough motion to
+continue tightening. In this lemma take any integer $s\ge1$, put $h=1/s$,
+and let $B$ be the reference width. Their algorithmic values are fixed in
+Section~\ref{sec:algorithm}.
+
+\begin{lemma}[Tightening projection]\label{lem:tightening-projection}
+Suppose $B>128s$ and define
+\[
+ \delta=\floor{B/(4s)},\qquad C=B-\delta,\qquad h=1/s.
+\]
+Then $\delta>0$, and the following statements hold for $[a,b]$.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item If $y$ is a subsolution with $d=\max_i(y_i-a_i)>C$, then
+$u=\max(y-d+\delta,a)$ is a subsolution in the same box, $u\le y$, and
+\begin{align*}
+ S_u&=\{i:y_i-a_i>d-\delta\}
+       \subseteq\{i:y_i\ge a_i+B-hB\},\\
+ \max_i(u_i-a_i)&=\delta.
+\end{align*}
+\item If $z$ is a supersolution with $e=\max_i(b_i-z_i)>C$, then
+$v=\min(z+e-\delta,b)$ is a supersolution in the same box, $v\ge z$, and
+\begin{align*}
+ S_v&=\{i:b_i-z_i>e-\delta\}
+       \subseteq\{i:z_i\le b_i-B+hB\},\\
+ \max_i(b_i-v_i)&=\delta.
+\end{align*}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We have $B/(4s)>32$, so $\delta\ge32$, whereas $\delta\le B/4$.
+In particular $B-2\delta\ge B/2>0$ and $2\delta\le B/(2s)\le hB$.
+For part (i), set $c=d-\delta$. The threat $d>B-\delta$ implies
+\begin{equation}\label{bud:tightening-shift}
+ c>B-2\delta\ge B-hB,\qquad c>0.
+\end{equation}
+It follows that $a\le u=\max(y-c,a)\le y\le b$. A coordinate is
+active precisely when $y_i-a_i>c$. At such a coordinate $u_i=y_i-c$
+and $y_i>a_i$, whence
+\[
+ u_i=y_i-c\le F_i(y)-c=F_i(y-c)\le F_i(u).
+\]
+Equation~\eqref{bud:tightening-shift} also places every active coordinate
+strictly above $a_i+B-hB$, and therefore in the asserted inclusive
+set; no rounding of that real threshold is used. Finally,
+\[
+ u_i-a_i=\max\{y_i-a_i-d+\delta,0\}\le\delta,
+\]
+with equality at a coordinate attaining $d$.
+
+For part (ii), put $c=e-\delta$. The same inequalities show
+$c>B-2\delta\ge B-hB$ and $c>0$, so $a\le z\le v=\min(z+c,b)\le b$.
+Its active test is $b_i-z_i>c$. At an active coordinate $z_i<b_i$,
+and
+\[
+ v_i=z_i+c\ge F_i(z)+c=F_i(z+c)\ge F_i(v).
+\]
+The active coordinate lies strictly below $b_i-B+hB$, giving the low
+set in the statement. Moreover,
+\[
+ b_i-v_i=\max\{b_i-z_i-e+\delta,0\}\le\delta,
+\]
+with equality wherever $e$ is attained. This proves the second part.
+\end{proof}
+
+If the high set in part (i) has $\alpha$-weight at most $\eta k$, then
+$u$ qualifies for that reduced budget. Any answer $r\ge u$ satisfies
+$r_i-a_i\ge\delta$ somewhere and therefore triggers the lower-bound
+update. The dual assertion applies to $v$ when the low set has
+$\beta$-weight at most $\eta m$: an answer $r\le v$ forces an
+upper-bound update by at least $\delta$. These witnesses depend only
+on the current box and the protected comparison. Consequently they
+can be fixed before the fresh random bits of the test call, as required
+by the conditional proof in Section~\ref{sec:solving}.

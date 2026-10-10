@@ -1,0 +1,524 @@
+\section{Preparing a consistent tuple for compression}
+\label{sec:compression-local}
+
+Our aim is to encode a long consistent tuple using almost $4\log q$ units
+of information per flag.  Lemma~\ref{lem:stream-entropy} says that a tuple
+selected from the stream requires an additional $\eta\log\log q$ per flag.
+The present section prepares one compression step: two scans give small
+joint domains, a short exposure makes representative flags nearly
+independent of most targets, and the geometry of low-conflict pairs
+reduces the problem to two endpoint supports.
+
+Throughout this section and the next, fix $0<\eta<1/10$ and put
+\[
+ \beta=\eta/10^7,\qquad \sigma=\log q,\qquad
+ k=\lfloor q\sigma^{1+\eta}\rfloor.
+\]
+All assertions are for sufficiently large primes $q$, with the threshold
+allowed to depend on $\eta$.  A stage starts with a consistent tuple
+$F=(F_i)_{i=1}^{\ell}$ of deterministic length $\ell=\Theta(k)$, in stream
+order or in the globally reversed and swapped order.  Its underlying
+stream marginal has density bounded by a constant relative to the iid
+stream law, and the rectangle-occupancy event of
+Lemma~\ref{lem:rectangles} holds almost surely.  Constants may depend on the stage, but the number of stages
+will depend only on $\eta$.
+
+A discrete context $\mathsf C$ specifies, for each tuple position, a
+decoder-known set of flags containing its actual value.  The deterministic
+parameters $\Lambda,\Delta\ge0$ satisfy
+\begin{equation}\label{eq:stage-input}
+ H(\mathsf C)\le\Lambda,\qquad
+ |\text{each slot domain}|\le Cq^4e^\Delta.
+\end{equation}
+Set
+\begin{equation}\label{eq:stage-parameters}
+ D=\sigma^\beta(1+\Lambda/k+\Delta\sigma^{-\eta}),\qquad
+ K=D\sigma^{3\beta},\qquad K_*=D\sigma^{6\beta}.
+\end{equation}
+For now assume
+\begin{equation}\label{eq:stage-range}
+ \sigma^\beta\le D\le\sigma^{1-\eta/2}.
+\end{equation}
+In particular $K_*=o(\sigma)$ and $K=o(K_*)$.  We use the parameters
+$L,R,P$ of Theorem~\ref{thm:predictor}, so that
+$L=D\sigma^{8\beta}$, $R$ is even and belongs to
+$[\sigma^\beta,2\sigma^\beta+2]$, and $P=LR$.
+The step will retain a fixed positive fraction of the tuple and give it
+a new context with controlled entropy and slot-domain sizes.
+Proposition~\ref{prop:compression-stage} states the quantitative output.
+
+\subsection{Two marking scans}
+
+Counting ordered independent sets by steps with few options or a large
+reduction in the remaining domain goes back to Alon and R\"odl
+\cite[Theorem~2.1 and Lemma~2.2]{AlonRodl2005}.
+The following scan adapts the marking argument of
+Brada\v c~\cite[Claim~2.13]{Bradac2026}, freezing its state between
+expensive steps and recording its joint option counts for later entropy estimates.
+
+\begin{lemma}[Marking]\label{lem:marking}
+There is a message $\Omega$, consisting of constant-alphabet masks and
+$O(q\sigma)$ full flags, with the following properties.
+Given $(\mathsf C,\Omega)$, every unspecified flag belongs to a known set
+of at most $C_1q^4$ flags, where $C_1$ is an absolute constant.  Moreover,
+\begin{equation}\label{eq:marking-cost}
+ H(\Omega\mid\mathsf C)
+ \le O(k)+(4\sigma+\Delta+O(1))\EE h,
+\end{equation}
+where $h\le Cq\sigma$ is the number of specified flags.
+Put $\theta_0=(\mathsf C,\Omega)$ and $J_0=\log(C_1q^4)$, and let
+$F_{\rm cheap}$ be the tuple of unspecified flags. Its expected joint
+entropy deficit satisfies
+\begin{equation}\label{eq:deficit-budget}
+ \EE\bigl[(\ell-h)J_0-H_{\theta_0}(F_{\rm cheap})\bigr]
+ \le \mathcal B:=C(\Lambda+k+\Delta q\sigma).
+\end{equation}
+The same bound holds for any subset of unspecified positions determined
+by $(\mathsf C,\Omega)$.
+\end{lemma}
+
+\begin{proof}
+Scan forward, updating the state only at flags declared expensive.
+For a point $y$ in the second point system, let
+\[
+ V(y)=\operatorname{span}\{b_i:a_i\perp y, i
+       \text{ an earlier expensive position}\}.
+\]
+Let $U_j^0=\{y:\dim V(y)\le j\}$ and
+$Z_j=\{y:\dim V(y)=j\}$, where dimensions are vector dimensions.
+At an actual extension $(a,b)$, consistency implies $a\perp V(b)$.
+Thus $r=\dim V(b)\le4$, and there are at most $2q^{4-r}$ choices for
+$a$ once $b$ and $r$ are known.
+
+Choose $l\le r$ maximizing $|Z_l|$, with a fixed rule for ties.  Declare
+the flag popular-cheap if
+\[
+ |\{y\in Z_l:b\subseteq V(y)\}|\ge |Z_l|/(16q).
+\]
+Counting point memberships in the $l$-dimensional vector subspaces
+$V(y)$ shows that there are at most $32q^l$ such $b$.  Hence their joint
+flag count is at most $64q^4$.  If this condition fails, declare the flag
+poor-cheap when
+\[
+ |\{y\in Z_l:a\perp y\}|\le |Z_l|/(8q).
+\]
+Lemma~\ref{lem:incidence} bounds the number of these $a$ by
+$Cq^5/|Z_l|$.  The available $b$ belong to $U_r^0$, whose size is at
+most $5|Z_l|$.  Applying incidence mixing to these two sets gives at most
+$Cq^4$ flags: their product is $O(q^5)$, and both the main term and the
+mixing error are $O(q^4)$.
+
+Otherwise declare the flag expensive and perform the update.
+At least $|Z_l|/(8q)$ points of $Z_l$ are hit by $a$, and fewer than
+$|Z_l|/(16q)$ already have $b\subseteq V(y)$.  At least
+$|Z_l|/(16q)\ge |U_l^0|/(80q)$ therefore leave $U_l^0$.
+Each of the five nonempty sets $U_l^0$ can undergo only $O(q\sigma)$
+such multiplicative reductions.  This bounds the number of updates.
+
+Run the same scan after reversing the tuple and swapping the two point
+systems.  Transmit rank/type masks for both scans and every flag
+expensive in either scan.  These data reconstruct both states at every
+position, and every remaining position passes both cheap scans.
+The masks cost $O(k)$; the specified flags can be encoded using their
+old context domains.  This proves~\eqref{eq:marking-cost}.
+
+The unspecified positions and their number are known from $\theta_0$,
+and the specified flags have been revealed. Thus
+\[
+ \EE H_{\theta_0}(F_{\rm cheap})
+ =H(F\mid\mathsf C,\Omega)\ge H(F)-H(\mathsf C,\Omega).
+\]
+Using Lemma~\ref{lem:stream-entropy} and~\eqref{eq:marking-cost} gives
+\[
+ \EE\bigl[(\ell-h)J_0-H_{\theta_0}(F_{\rm cheap})\bigr]
+ \le C(\Lambda+k+\Delta q\sigma).
+\]
+The $4\sigma\EE h$ cost cancels the expected cap of the specified positions.
+The deficit is nonnegative because the remaining domains have size at
+most $e^{J_0}$.  Finally, omitted coordinates contribute entropy at most
+their cap sum, proving the assertion about subsets.
+\end{proof}
+
+The masks also give useful separate endpoint bounds.  At a slot that is
+poor-cheap in at least one orientation, fix such an orientation by a
+priority rule and put
+$u=\max(\sigma,\min(4\sigma,\log|Z_l|))$.  Its endpoint supports have
+sizes at most
+\begin{equation}\label{eq:reciprocal-caps}
+ A_{\max}=Ce^{5\sigma-u},\qquad B_{\max}=Ce^u.
+\end{equation}
+The clamping uses the trivial ambient bound $Q_4=O(q^4)$ at the two
+endpoints.  If the slot is popular-cheap in both scans, with forward
+and reversed ranks $r,r'$, its endpoint caps and partner caps are
+as follows.  Here $|B\mid A|$ is the largest number of permitted second
+endpoints for a fixed first endpoint, and $|A\mid B|$ is defined symmetrically:
+\begin{equation}\label{eq:high-caps}
+ |A|\le Cq^{r'},\quad |B|\le Cq^r,\qquad
+ |B\mid A|\le2q^{4-r'},\quad |A\mid B|\le2q^{4-r}.
+\end{equation}
+In a high class we use $A_{\max}=Cq^{r'}$ and $B_{\max}=Cq^r$.
+For $r+r'\le5$, these imply~\eqref{eq:reciprocal-caps} with $u=r\sigma$.
+Rank zero cannot be popular.
+
+We divide the remaining positions into a fixed number of classes.
+Reciprocal classes specify their orientation and either an integer band
+$|u-r\sigma|\le K_*$, with $r\in\{1,2,3,4\}$, or an open band
+\[
+ (r-1)\sigma+K_*<u<r\sigma-K_*.
+\]
+For open bands $r\in\{2,3,4\}$.
+The remaining, high classes specify $(r,r')$ with $r+r'>5$; whenever a
+rank is four, orient the class so that $r=4$.
+By pigeonholing, an event determined by $\theta_0$ and of probability
+bounded below has a fixed class containing at least $c k$ positions.
+Condition on that event and retain the first $\lfloor c k\rfloor$
+positions.  Conditional laws at a fixed $\theta_0$ have not changed,
+and~\eqref{eq:deficit-budget} changes only by a constant factor.
+The deterministic parameters $D,K,K_*$ remain those chosen at the
+start of the stage.  Conditioning here multiplies the expected deficit
+bound by at most the reciprocal of a fixed positive probability, which
+is absorbed in its stage constant.  It does not redefine $D$ from the
+entropy of the conditioned old context.  The next stage will instead
+use the deterministic message-length bound for its newly constructed
+context.
+If the orientation is swapped, reverse the retained order as well.
+All subsequent lengths are deterministic.
+
+Split this class into equal windows, discarding the final remainder.
+Let $w$ be the resulting deterministic number of complete windows, before
+any subsequent deletions.
+Take window length, rounded to a multiple of four, of order
+\begin{equation}\label{eq:window-lengths}
+ m\asymp
+ \begin{cases}
+ qD\sigma^{\eta/2},&\text{open bands},\\
+ q\sigma^{1+\eta/2},&\text{integer bands}.
+ \end{cases}
+\end{equation}
+A high class uses one window of length $\Theta(k)$.
+The early and late quarters of each window are representative blocks;
+the middle half consists of targets.  In every case $\Theta(k)$
+positions remain.
+
+\subsection{Choosing a round before exposing its values}
+
+Conditioning to reduce correlations is a standard entropy method;
+compare~\cite[Lemma~4.5]{RaghavendraTan2011}.  We need the following
+version with one representative per block.
+
+In the following estimates, conditional entropies and mutual information
+are evaluated at the indicated history.  The outer expectation averages
+over that history and all fresh representative indices.
+
+\begin{lemma}[Pre-round decoupling]\label{lem:decoupling}
+After exposing a deterministic number of rounds of older representatives,
+one can draw one fresh uniform unused position from each representative
+block, without exposing their values, with the following properties.
+Let $\theta$ consist of $\theta_0$ and all older indices and values.
+For an unexposed position $i$, write
+\[
+ \delta_i=J_0-H_\theta(F_i),\qquad
+ I_{ij}=I_\theta(F_i;F_j).
+\]
+Then
+\begin{equation}\label{eq:decoupling-bounds}
+ \EE\sum_i\delta_i\le\mathcal B,\qquad
+ \EE\sum_i\max_{j\in\mathcal J_i}I_{ij}
+ \le\frac{C\mathcal B}{qD\sigma^{3000\beta}},
+\end{equation}
+where $\mathcal J_i$ consists of fresh representatives outside $i$'s
+own representative block, and contains all representatives for a middle
+target.  The expected sums over fresh representative targets themselves
+are at most $C/m$ times the corresponding all-target sums.
+The fresh indices do not change the conditional flag marginals.
+\end{lemma}
+
+\begin{proof}
+Draw one new unused position per block for each of
+$T=\lfloor qD\sigma^{3000\beta}\rfloor$ rounds, exposing values after
+each round.  The parameter choices give $T=o(m)$, so all unused block
+sizes remain comparable to $m$.
+For any conditional law of coordinates and any set $E$ of coordinates,
+the chain rule gives
+\begin{equation}\label{eq:tc-drop}
+ \TC(F)-\EE[\TC(F_{E^c}\mid F_E)]
+ =\TC(F_E)+\sum_{i\notin E}I(F_i;F_E).
+\end{equation}
+Here the new indices are independent of the values given past history.
+The initial expected total correlation is at most $\mathcal B$, because
+it is bounded by the joint deficit in $J_0$-sized domains.
+
+For an unselected target, its maximum mutual information with a new
+representative is bounded by $I(F_i;F_E)$.  For a target in a
+representative block, the maximum over the other blocks is independent
+of the draw in its own block.  Thus the selected targets' expected
+contribution is at most $C/m$ times the all-target contribution.
+Absorbing this $o(1)$ fraction and summing~\eqref{eq:tc-drop} over rounds
+proves that some deterministic pre-round satisfies the second bound
+in~\eqref{eq:decoupling-bounds}.
+
+Revealing and removing $r$ coordinates cannot increase the expected
+deficit of those remaining: the removed coordinates have entropy at
+most $rJ_0$.  This proves the first bound.  Uniformity gives the same
+$C/m$ estimate for selected deficits.  Choose the indicated pre-round
+and stop before revealing its fresh values.  Its fresh indices are
+independent of the remaining values given $\theta$, proving the final
+assertion.
+\end{proof}
+
+\subsection{Low-conflict pairs and collision rectangles}
+
+All conditional probabilities in this subsection are given a fixed
+pre-round history $\theta$.  For a flag $(a,b)$ at slot $i$, denote its
+joint and endpoint marginal probabilities by $p_i(a,b)$, $p_i^A(a)$,
+and $p_i^B(b)$.  Call a first endpoint $a$ good if
+\[
+ p_i^A(a)\ge e^{-K}/A_{\max}\quad\text{and}\quad
+ \Pr\bigl(p_i(a,b)>q^{-4}e^K\mid a\bigr)\le .02;
+\]
+define good second endpoints symmetrically.  In a high class impose
+also the upper cutoffs
+\[
+ p_i^A(a)\le e^Kq^{-r'},\qquad p_i^B(b)\le e^Kq^{-r}.
+\]
+The mass of bad endpoints at slot $i$ is
+\begin{equation}\label{eq:bad-endpoint-mass}
+ O\bigl(e^{-K}+(\delta_i+1)/K\bigr).
+\end{equation}
+Indeed, the negative part of $\log(p_i(F_i)q^4)$ has bounded expectation
+by the support cap $C_1q^4$, so its positive part has expectation at most
+$\delta_i+O(1)$.  Markov's inequality proves the light-atom condition.
+The lower cutoff loses at most $e^{-K}$.  For the high upper cutoff,
+the partner cap gives
+$H_\theta(A_i)\ge r'\sigma-\delta_i-O(1)$, and the same negative-part
+argument with the marginal cap $Cq^{r'}$ applies; similarly for $B_i$.
+
+Fix $\rho=.005$.  For a first endpoint $a$ define a vector subspace in
+the second system by
+\[
+ \mathcal K_i(a)=
+ \bigcap_{\Pr(b\not\perp z\mid a)\le\rho} z^\perp.
+\]
+Define $\mathcal L_j(y)$ in the first system by the analogous construction
+from the conditional first endpoint at second endpoint $y$.
+A basis of the span of the tests has at most five members; hence
+\begin{equation}\label{eq:core-capture}
+ \Pr(b\in\mathcal K_i(a)\mid a)\ge1-5\rho,
+ \qquad a\perp\mathcal K_i(a),
+\end{equation}
+with the analogous assertions for $\mathcal L_j(y)$.
+At a good $a$, a captured light conditional atom is at most
+$q^{-4}e^{2K}A_{\max}$, and these atoms have total mass at least $.955$.
+Counting points in a vector subspace therefore gives
+\begin{equation}\label{eq:core-dimension}
+ \dim\mathcal K_i(a)\ge
+ \left\lceil5-\frac{\log A_{\max}+3K}{\sigma}\right\rceil,
+\end{equation}
+and the corresponding bound using $B_{\max}$ for $\mathcal L_j(y)$.
+
+\begin{lemma}[Low-conflict geometry]\label{lem:low-conflict}
+For $i<j$, write the two flags as $(a,b),(c,y)$ and compare their actual
+joint law with the independent product of their conditional marginals.
+In a reciprocal class, or the high class $(3,3)$, there are nonnegative
+numbers $c_{ij}$ such that
+\begin{equation}\label{eq:low-conflict}
+ \Pr_{\mathrm{prod}}(a,y\text{ good},\ a\perp y)
+ \le C(I_{ij}+c_{ij}),
+ \qquad \sum_{i<j}c_{ij}\le C\sigma k.
+\end{equation}
+In open reciprocal bands one can take $c_{ij}=0$.
+\end{lemma}
+
+\begin{proof}
+The conflict event $a\perp y$, $c\not\perp b$ has probability zero
+under the actual joint law.  Coarsening relative entropy to that event
+shows that its product probability is at most $I_{ij}$.
+Except for hit mass at most $I_{ij}/\rho^2$, its reverse-miss probability
+conditional on $(a,y)$ is at most $\rho^2$.
+Markov's inequality then shows that at least $1-\rho$ of $c\mid y$
+are tests defining $\mathcal K_i(a)$.  Every point of $\mathcal K_i(a)$
+is consequently a test defining $\mathcal L_j(y)$, so
+\begin{equation}\label{eq:core-containment}
+ \mathcal L_j(y)\subseteq\mathcal K_i(a)^\perp.
+\end{equation}
+On such endpoints, both memberships
+$b\in\mathcal K_i(a)$ and $c\in\mathcal L_j(y)$ hold under the product
+law with probability at least $1-10\rho$.
+
+In an open band,~\eqref{eq:core-dimension} gives dimensions at least
+$r$ and $6-r$, contradicting~\eqref{eq:core-containment}.
+In an integer band the bounds are $r$ and $5-r$, so equality holds in
+the orthogonal complement.  Let $E_{ij}$ require good endpoint incidence,
+the containment, and both core memberships.  Both flags then belong to
+$\mathcal R(\mathcal K_i(a))$.
+
+For $(3,3)$, both core dimensions are at least two.  Put
+$V=\mathcal L_j(y)^\perp$.  Then
+$\mathcal K_i(a)\subseteq V$ with dimension difference at most one.
+If $y\in\mathcal K_i(a)$, both flags belong to
+$\mathcal R(\mathcal K_i(a))$.  Otherwise
+$V=\operatorname{span}(\mathcal K_i(a),y)$, and $a\perp y$ shows that
+both flags belong to $\mathcal R(V)$.
+The first rectangle is determined by the earlier slot, the second by
+the later slot.  Lemma~\ref{lem:rectangles} thus bounds the number of
+charged partners of any slot by $C\sigma$, pointwise for every actual
+tuple.  Set $c_{ij}=\Pr_{\mathrm{joint}}(E_{ij}\mid\theta)$ and take
+conditional expectations to obtain its sum bound.
+
+For any pair event $E$, the entropy variational inequality with test
+$-1_E$ gives
+\[
+ I_{ij}\ge-\Pr_{\mathrm{joint}}(E)
+   -\log\bigl(1-(1-e^{-1})\Pr_{\mathrm{prod}}(E)\bigr).
+\]
+Therefore $\Pr_{\mathrm{prod}}(E)\le
+C(I_{ij}+\Pr_{\mathrm{joint}}(E))$.  Apply this to $E_{ij}$ and use
+the product core-capture bound to prove~\eqref{eq:low-conflict}.
+\end{proof}
+
+Extend $c_{ij}$ symmetrically, setting it to zero in the other high
+classes.  For a fresh target $i$, put
+\[
+ g_i=\max_{j\in\mathcal J_i}(I_{ij}+c_{ij}).
+\]
+Call the index good if
+\begin{equation}\label{eq:good-index}
+ \delta_i\le D\sigma^\beta,\qquad
+ g_i\le\sigma^{-2000\beta}/q.
+\end{equation}
+The expected fractions of bad indices and bad representatives are
+$o(1)$.  For mutual information use Lemma~\ref{lem:decoupling} and
+$\mathcal B/k=O(D\sigma^{-\beta})$.  For collisions, uniform block
+sampling and~\eqref{eq:low-conflict} give expected total at most
+$C\sigma k/m$; collision windows have
+$m\ge cq\sigma^{1+\eta/2}$, so Markov loses at most
+$C\sigma^{2000\beta-\eta/2}=o(1)$.  Selection in a target's own block
+is independent of its other-block sum, giving the representative estimate
+as before.  At every good index,~\eqref{eq:bad-endpoint-mass} is $o(1)$.
+
+\subsection{Eliminating high classes}
+
+\begin{lemma}[High ranks]\label{lem:high-ranks}
+The retained class cannot be high.  In the rank-four case, the stated
+assumptions instead directly produce an encoding contradicting
+Lemma~\ref{lem:stream-entropy}.
+\end{lemma}
+
+\begin{proof}
+First suppose the class is $(3,3)$.  Choose a good early representative
+and a good middle target, which exist for some histories and fresh draws
+by the preceding estimates.  Restrict the representative's first
+marginal to good endpoints.  Its total mass is $1-o(1)$ and its atoms
+are at most $e^K/q^3$.  Weighted incidence variance shows that all but
+$Cq^2e^K$ second endpoints have incident mass at least $.3/q$.
+The exceptional set has mass at most $Cq^{-1}e^{2K}=o(1)$ in the good
+target's second marginal.  This contradicts~\eqref{eq:low-conflict}
+and~\eqref{eq:good-index}.
+
+Now orient so that $r=4$ and $r'\ge2$.  Draw
+$h=\lceil q\sigma^\beta\rceil$ independent full flags from a good
+early representative's marginal conditioned on both endpoints being
+good.  These draws are independent of the actual targets given history.
+Weighted variance shows that all but $o(1)$ of a good middle target's
+second-endpoint mass has sample first-endpoint hit probability at least
+$.3/q$: the exceptional set has size $Cq^{5-r'}e^K$, while its good
+atoms are at most $e^K/q^4$.
+
+For such a target endpoint $y$, start with its span and add the second
+endpoints of hit samples.  While the span has vector dimension below
+four, it contains at most $Cq^2$ points, whose sample mass is at most
+$Cq^{-2}e^K=o(1/q)$.  Each trial therefore has conditional probability
+at least $.2/q$ of increasing the dimension.  Binomial domination shows
+that the span reaches dimension four with failure probability $o(1)$.
+The probability of any conflict with the actual target is at most
+$ChI_{ij}=o(1)$; conditioning the representative on good endpoints
+changes its density only by a bounded factor.
+
+In expectation only $o(k)$ middle targets are lost, also counting a bad
+representative and bad target indices as losses.  With probability
+bounded below retain a deterministic $\Theta(k)$ covered middle targets
+in their original order.  Transmit the sample list, at cost
+$O(h\sigma)=o(k)$.  For each possible $y$, the decoder forms the span
+of $y$ and the second endpoints of its hit samples.  If its dimension
+is at least four, at most one first endpoint annihilates it.  Every
+covered actual target belongs to this common domain, of size at most
+$Q_4$.  No old context is needed.  The resulting tuple has entropy at
+most $4\sigma\ell+O(k)$, contradicting Lemma~\ref{lem:stream-entropy}
+after the constant-probability conditioning.
+\end{proof}
+
+\subsection{Nearly uniform endpoint supports}
+
+Only reciprocal classes remain.  Their endpoint caps are
+\eqref{eq:reciprocal-caps}, with a history-known number $u_i$ at each
+slot.
+
+\begin{lemma}[Endpoint levels]\label{lem:flat-levels}
+At every good index there are independent auxiliary choices of first
+and second endpoint supports, each consisting of good endpoints, such
+that a chosen support $A$ satisfies
+\[
+ \tfrac12 A_{\max}e^{-K}\le |A|\le A_{\max},
+ \qquad \EE\frac{1_{\{a\in A\}}}{|A|}\le C p_i^A(a),
+\]
+and similarly for $B$.  For any two ordered good representatives in
+distinct blocks,
+\begin{equation}\label{eq:u-monotonicity}
+ u_j\le u_i+CK\qquad(i<j).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Partition each endpoint marginal into levels of
+$\lfloor-\log p\rfloor$.  The entropy of this integer-valued level is
+$O(\log\sigma)$: its mean is $O(\sigma)$, and comparison with a geometric
+distribution of that mean gives entropy at most
+$\log(e(1+O(\sigma)))$.
+For a first level set $A$, put
+$\operatorname{loss}_A=\log(A_{\max}/|A|)$, and define the second loss
+similarly.  Conditional on both levels, incidence mixing gives
+\[
+ \log|\{(a,b)\in A\times B:a\perp b\}|
+ \le4\sigma+O(1)
+       -\tfrac12(\operatorname{loss}_A+\operatorname{loss}_B).
+\]
+The chain rule consequently bounds the expected total loss by
+$O(\delta_i+\log\sigma+1)$.  A level is permissible when its loss is
+at most $K$ and at least half its members are good.  Since probabilities
+within a level differ by at most $e$, the total probability of permissible
+levels is $1-o(1)$ by~\eqref{eq:bad-endpoint-mass} and Markov.
+Choose a permissible level by its marginal probability, normalized over
+permissible levels, and take its good subset.  This proves both the size
+and averaged pointwise bounds.
+
+For $i<j$, independent choices of a first support at $i$ and second
+support at $j$ have expected incidence density at most
+$C\sigma^{-2000\beta}/q$ by~\eqref{eq:low-conflict} and averaged
+pointwise domination.  If $u_j-u_i>CK$ with a sufficiently large $C$,
+every such pair has product at least
+$c q^5\exp(u_j-u_i-2K)$; mixing forces density at least $c/q$.
+This contradiction proves~\eqref{eq:u-monotonicity}.
+\end{proof}
+
+Discard windows with a bad representative.  In an open band discard
+also windows with $u_{\rm early}-u_{\rm late}>K_*$.  Along the remaining
+ordered representative list before this last deletion, the sum of
+downward changes is at most $C\sigma+CKw$, by~\eqref{eq:u-monotonicity}.
+Thus these extra deletions cost at most
+$C(\sigma+Kw)/K_*=o(w)$ windows, since
+$w\asymp\sigma^{1+\eta/2}/D$.  In an integer band the variation is
+already at most $2K_*$.
+
+At every surviving window independently choose a permissible first
+support $A$ from its early representative and a permissible second
+support $B$ from its late representative.  Then
+\begin{equation}\label{eq:pivot-support-input}
+ |A||B|\ge q^5e^{-CK_*}.
+\end{equation}
+For the same window and every ordered cross pair, expected incidence
+density is at most $C\sigma^{-2000\beta}/q$.  The same bound holds
+against the corresponding good endpoint mass of every good middle
+target on the appropriate temporal side.  These are averaged statements
+over the independent support choices; no pointwise sparsity of every
+chosen pair is being assumed.  They are precisely the inputs for the
+tree construction in the next section.

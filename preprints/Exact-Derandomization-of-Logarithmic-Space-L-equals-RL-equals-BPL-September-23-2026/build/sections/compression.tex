@@ -1,0 +1,701 @@
+\section{Compression of additive row estimates}
+\label{sec:buf-compression}
+
+The additive schedule produces a raw prefix on all retained endpoints after
+each slack group.  We replace each array by a finite list of exceptions to
+a common default.  Our objective is to control the bounded row functions,
+including their scores and support witnesses; a large raw entry need not
+have a small absolute error.
+
+The update changes only small entries until its first overflow, when list
+capacity forces its threshold above the prescribed floor.  Before then,
+the total earlier change is much smaller than the next floor.  At the
+first overflow, either many retained endpoints are truly heavy or the
+prefix errors account for the excess.  The heavy-count event is rare even
+after conditioning on one specified endpoint.  We use this rarity for the
+deterministic conditional-mean errors, and use the absolute norm bound for
+the remaining noise.  A stationary-reference comparison controls the
+subsequent updates.
+
+We first fix the increments supplied by exact endpoint grouping and prove
+the comparison without range clamps.  We then show that clamping preserves
+the relevant row functions and assemble the exact-grouping error reserve.
+Section~\ref{sec:fp-blocks} compares the actual and clean calculations with
+those clamps in place.
+
+\subsection{The row interface}
+\label{subsec:buf-interface}
+Fix a row task, its start rate $u$, and its first-channel endpoint rate $a$.
+Write $d_y\geq0$ for its true first raw input, in units of $a$.  Its second
+raw input, when present, is $v_y=\zeta\mathbf1_{\{Y_t(y)=1\}}q_y$.
+Here $q_y$ is the deterministic conditional mean, $0\leq q_y\leq1$, and
+$q_y=0$ whenever $d_y$ is below the positive-start threshold of the
+preparatory function $h$.  Thus $d_y$ and $q_y$ are deterministic at each
+specified endpoint; $v_y$ carries the prescribed narrower membership mask.
+There is a fixed constant $C_{\mathrm{mass}}$ such that
+\begin{equation}
+ a\sum_y d_y\leq C_{\mathrm{mass}}.
+ \label{eq:buf-mass}
+\end{equation}
+The endpoint sets in this section are the retained sets, with the stipulated
+common padding on their hash arguments.
+
+We apply a fixed finite family of pre-incoming row functions to a raw array.
+Denote this family by $\mathcal H$.  It includes the main pre-functions,
+auxiliary scores, and witnesses required by the preceding construction.
+Each function uses the first entry, possibly the second entry, and the
+$K$th largest first entry.  For each member $H\in\mathcal H$ there are fixed
+positive thresholds $g_H,e_H$, with $3g_H<e_H$, such that its row gate is
+zero when that rank is at least $g_H$, and its entry factor is zero when the
+first entry is at most $e_H$.  The gate is constant and full in a neighborhood
+of zero.  The $s$th roots of the output functions are bounded and Lipschitz
+in their relevant entry and rank arguments, where $s=8$.  All these arguments
+can be clipped to fixed sensitivity ranges without changing the functions.
+These are exactly the threshold buffers and saturations imposed when
+constructing the atoms; the thresholds for the required functions are
+listed in Table~\ref{tab:atom-compression-thresholds}.  In particular,
+for every real raw array, including
+arrays with negative entries,
+\begin{equation}
+ \sum_{H\in\mathcal H}\#\{y:H(y)\ne0\}\leq C_{\mathrm{supp}},
+ \label{eq:buf-row-support}
+\end{equation}
+where $C_{\mathrm{supp}}$ is fixed.  Indeed a nonzero gate implies that fewer
+than $K$ entries exceed its close threshold, and every positive output entry
+exceeds the larger entry threshold.  This observation applies also to the
+broader witnesses.
+
+Choose $\eta>0$ below all positive entry thresholds, all positive-start
+thresholds for rank sensitivity, and the threshold for $h$, with enough
+fixed separation that perturbations of size several times $\eta$ remain
+inside these flat regions.  Choose $\zeta\leq\eta/100$.  These constants are
+fixed throughout the proof.
+
+Let $d_1>d_2>\cdots>d_{m_*}=1$ be the decreasing powers of two indexing
+slack groups.  Empty groups are included.  Let $S_i=(S_i^1,S_i^2)$ be the
+uncompressed prefix through group $i$, and let
+$\Delta_i=S_i-S_{i-1}$, with $S_0=0$.  Define the clipped endpoint errors
+and their row supremum by
+\begin{equation}
+ \begin{aligned}
+ e_i(y)&=\max\left\{
+ \min\left(1,\frac{|S_i^1(y)-d_y|}{1+d_y}\right),
+ \min(1,|S_i^2(y)-v_y|)\right\},\\
+ e_i&=\sup_y e_i(y).
+ \end{aligned}
+ \label{eq:buf-errors}
+\end{equation}
+omitting channel two when absent.  Write $\beta_i(y)$ for the maximum of
+the mean discrepancies, with the same clipping and first-channel
+normalization as in Equation~\eqref{eq:buf-errors}, and $\gamma_i(y)$ for
+the maximum absolute prefix noise.  Thus
+$e_i(y)\leq\beta_i(y)+\gamma_i(y)$.  At a specified row and endpoint, the
+first-channel mean discrepancy is deterministic.  The second-channel mean
+discrepancy is a deterministic magnitude times its narrower membership
+mask.  Prefix noise may depend on the shared environment.
+The deterministic assertion is a hypothesis of the compression argument:
+the slice average defining a mean must vary every environment coordinate
+on which its sample function depends.  Lemma~\ref{lem:est-prefix} states
+this requirement, and Lemma~\ref{lem:fp-clean} verifies it for the clean
+calculations to which we will apply the result.  We will use conditional
+rarity to control these fixed mean-error magnitudes; the noise will be
+controlled by its unconditional norm bound.
+
+For row integration use
+\[
+ \int F\,d\mu=\frac1N\mathbb E\sum_x\frac{X_u(x)}u F(x).
+\]
+Endpoint integration means inserting the sum over retained endpoints in
+this expression.  The prefix estimates used as hypotheses below are
+\begin{equation}
+ \left(\int\sum_y\beta_i(y)^s\,d\mu\right)^{1/s}
+       \leq c_*2^{-p+B_1d_i},\qquad
+ \left(\int\sum_y\gamma_i(y)^s\,d\mu\right)^{1/s}
+       \leq c_*2^{-p-K_nd_i}.
+ \label{eq:buf-prefix-interface}
+\end{equation}
+Lemma~\ref{lem:est-prefix} supplies these estimates for the additive
+schedule.  Here and below endpoint sums use the relevant masks.  In
+particular these bounds control the $L_s(\mu)$ norms of the corresponding
+row suprema, which we denote by $\beta_i$ and $\gamma_i$.
+
+\subsection{The update map}
+
+Adjoin arbitrarily many dummy positions, all with target and increments
+zero.  A compressed array has default $(z,0)$, shared also by the dummies,
+and a finite list of exceptions.  Initially $z=0$ and the list is empty.
+Order statistics of an array with this default mean the order statistics
+of its finite exceptional values with as many default values as needed.
+For a rank of order $r$, the finite list together with at least $r$
+default copies gives exactly the prescribed rank.  Additional real list
+positions whose values equal the default do not change this rank.
+Dummy positions serve only this rank computation; endpoint sums in the
+error bounds are over real retained IDs.  The margin statement of
+Lemma~\ref{lem:atom-margins} ensures that a default position cannot expose
+a row port.
+At group $j$ add $\Delta_j$ by actual endpoint equality, obtaining $w_y$,
+and set
+\begin{equation}
+ \begin{aligned}
+ \rho_j&=2^{-c_1d_j},\qquad n_j=2^{c_2d_j},\qquad
+ m_y=\max_\nu|w_y^\nu|,\\
+ u_0&=\max\{z,\rho_j,\operatorname{rank}_{n_j}(m)\},\\
+ q_0&=\max\{0,\operatorname{rank}_K(w^1)\},\\
+ z'&=\max\{u_0,\min(q_0,3u_0)\}.
+ \end{aligned}
+ \label{eq:buf-thresholds}
+\end{equation}
+Here $c_1,c_2$ are fixed sufficiently large positive integers, and
+$c_2$ is chosen also so that $n_j\geq K$ in every group.
+With $b=(z',0)$, the updated array is
+\begin{equation}
+ T_j^\nu(y)=b^\nu+
+ \operatorname{clip}\bigl(w_y^\nu-b^\nu,
+                \pm7(m_y-2u_0)_+\bigr).
+ \label{eq:buf-update}
+\end{equation}
+The notation $\operatorname{clip}(r,\pm A)=\max(-A,\min(r,A))$ is used.
+
+\begin{lemma}[Local compression properties]
+\label{lem:buf-update}
+The update has the following properties.
+It replaces every position of size at most $2u_0$ by the new default, is
+identity at every position of size at least $3u_0$, and lies coordinatewise
+between the input and the new default.  The default is nondecreasing.
+The map from the input array and old default to the updated array and new
+default is uniformly Lipschitz in the sup norm.  A list containing all
+exceptions can be chosen with at most $n_j$ positions, using only the
+previous list and the new candidates.
+\end{lemma}
+\begin{proof}
+The zero-radius assertion is immediate.  Since $z'\leq3u_0$, if $m_y\geq3u_0$
+then
+\[
+ |w_y^1-z'|\leq m_y+3u_0\leq7(m_y-2u_0),
+ \qquad |w_y^2|\leq7(m_y-2u_0),
+\]
+which proves identity there.  Clipping a displacement toward zero proves
+the coordinatewise assertion.  Also $z'\geq u_0\geq z$.
+
+If two input arrays and their defaults differ by at most $\delta$, their
+size arrays, size ranks, $u_0$'s, and $q_0$'s differ by at most $\delta$.
+Their new defaults differ by at most $3\delta$, and their clipping radii
+by at most $21\delta$.  The elementary bound
+\[
+ |\operatorname{clip}(r,\pm A)-\operatorname{clip}(r',\pm A')|
+       \leq |r-r'|+|A-A'|
+\]
+therefore gives, for example, a Lipschitz constant 28 for the full update.
+This constant is independent of the number and magnitudes of entries.
+
+Fewer than $n_j$ positions have size strictly larger than $u_0$.
+A coarse test supported above $u_0$ and full above $2u_0$ retains all
+possible exceptions within the stated cap.  A position outside the old
+list and new candidate set has input $(z,0)$, has size at most $u_0$,
+and hence becomes the new default.  No other position need be inspected.
+The selected list may retain some real positions that become exactly
+default after compression.  Such positions still represent the same
+full array.  No padding dummy is selected, since its input size is at
+most $u_0$.
+\end{proof}
+
+In particular an absolute perturbation introduced at group $i$ propagates
+through the remaining updates and the final root functions with factor
+at most
+\begin{equation}
+ C C_1^{m_*-i+1}
+       \leq C(d_i+1)^{\log_2 C_1},
+ \label{eq:buf-propagation}
+\end{equation}
+for a fixed $C_1>1$, enlarged below as needed.  This statement concerns
+full arrays and defaults; it does not require their exceptional lists to
+agree.
+
+\subsection{Deterministic comparison arguments}
+
+Call group $j$ an overflow if its $u_0$ exceeds $\rho_j$.  Before the first
+overflow every compression change has magnitude at most $6\rho_i$ and
+occurs only at input size below $3\rho_i$.  Because successive slacks
+halve, choosing $c_1$ large gives, uniformly in $j$,
+\begin{equation}
+ 6\sum_{i<j}\rho_i\leq\rho_j/100,
+ \qquad 6\sum_i\rho_i\leq\eta/100.
+ \label{eq:buf-small-floors}
+\end{equation}
+The same estimates cover dummy defaults.  For example, before the first
+overflow the preceding default is at most $3\rho_{j-1}\ll\rho_j$.
+
+\begin{lemma}[Preloss and stationary reference]
+\label{lem:buf-reference}
+Let $L_{j-1}=T_{j-1}-S_{j-1}$ before the first overflow at $j$.
+Then $\|L_{j-1}\|_\infty\leq6\sum_{i<j}\rho_i$, and at every endpoint
+with $d_y\geq\eta$,
+\begin{equation}
+ \max_\nu|L_{j-1}^\nu(y)|
+       \leq C\sum_{i<j}\rho_i e_i(y).
+ \label{eq:buf-preloss}
+\end{equation}
+Start a reference calculation at the input of group $j$ with the true
+array $(d,v)+L_{j-1}$, the same preceding default, and no further
+increments.  Every subsequent compression preserves its relevant row
+outputs.  Their root discrepancy from the true outputs is bounded by
+$C\sum_{i<j}\rho_i e_i$.
+\end{lemma}
+\begin{proof}
+The uniform preloss bound follows by adding the changes described above.
+If a change occurs at group $i$ at a position with $d_y\geq\eta$, then
+$|w_y^1|\leq3\rho_i$ and the preceding preloss is much smaller than
+$\rho_i$.  Thus
+\[
+ \frac{|S_i^1(y)-d_y|}{1+d_y}
+ \geq \frac{d_y-3\rho_i-6\sum_{k<i}\rho_k}{1+d_y}
+ \geq c_\eta>0.
+\]
+The change of size at most $6\rho_i$ is consequently bounded by
+$C\rho_i e_i(y)$.  Adding such changes proves
+Equation~\eqref{eq:buf-preloss}.
+
+In the reference array negative first magnitudes and all second magnitudes
+are at most $\eta$, by the choices of $\zeta$ and the floors.
+Let $q$ be its initial $K$th first-coordinate rank.  The default is
+nonnegative, so $q\geq0$.  If $q>\eta$, then $n_i\geq K$ implies that the
+$n_i$th size rank is at most $q$.  The floor and preceding default are
+also at most $q$, so $u_0\leq q$ and $z'\leq q$.  Entries at most $q$
+stay at most $q$.  Entries at least $q$ are unchanged if $q\geq3u_0$;
+otherwise $z'=q$, and they stay at least $q$.  The $K$th rank is therefore
+unchanged.  Negative first magnitudes and second magnitudes do not grow,
+so this argument repeats at every subsequent group.  If instead $q\leq\eta$,
+the size rank, $u_0$, and new default are at most $\eta$, and the next
+$K$th rank is again at most $\eta$.
+
+Consider an individual row function.  In the first case its rank stays
+fixed.  If its gate is not already zero, $q<g_H$, so every entry in its
+support has first coordinate greater than $e_H>3q\geq3u_0$ and both
+channels there are untouched.  A position below entry support cannot
+cross into support because the default is at most $q<e_H$.
+In the second case the rank stays in the common full-gate region; the
+same identity argument applies to every position in entry support.
+Thus each reference output is preserved.
+
+Finally, positions with $d_y<\eta$ stay below every entry threshold and
+cannot change a rank within its sensitivity region.  Perturbations at
+all other positions satisfy Equation~\eqref{eq:buf-preloss}.  Clip first
+entries and ranks to the fixed sensitivity ranges and use root-Lipschitz
+continuity of the row functions.  This proves the last assertion.
+\end{proof}
+
+If no overflow ever occurs, the same proof, together with the final prefix
+error, gives the bound
+\begin{equation}
+ \sup_{H,y}|H(T_{m_*};y)^{1/s}-H(d,v;y)^{1/s}|
+       \leq C\left(e_{m_*}+\sum_i\rho_i e_i\right).
+ \label{eq:buf-no-overflow}
+\end{equation}
+For completeness, if the expression on the right is not small, bounded
+output ranges give the assertion after enlarging $C$.  Otherwise low-target
+positions remain below sensitivity.  At other positions clipped first
+entry discrepancies are bounded by a constant times their relative error,
+and second entry discrepancies by their absolute error.  Adding the
+preloss estimate and applying the root-Lipschitz bounds proves the claim.
+
+\begin{lemma}[Stability after the first overflow]
+\label{lem:buf-relative-stability}
+At a first overflow in group $j$, the discrepancy of final row-root outputs
+from the stationary reference of Lemma~\ref{lem:buf-reference} is at most
+\begin{equation}
+ C\sum_{i\geq j} C_1^{m_*-i+1}e_i.
+ \label{eq:buf-relative-propagation}
+\end{equation}
+The constant does not depend on the largest true first entry.
+\end{lemma}
+\begin{proof}
+Write $E$ for the sum in Equation~\eqref{eq:buf-relative-propagation}
+without the initial constant.  If $E$ exceeds a sufficiently small fixed
+constant, bounded output ranges suffice.  Otherwise all clipped errors
+involved are strictly below 1.  Hence
+\[
+ |S_i^1(y)-d_y|\leq(1+d_y)e_i,
+ \qquad |S_i^2(y)-v_y|\leq e_i,
+\]
+and later increments have first magnitude at most
+$(1+d_y)(e_i+e_{i-1})$ and second magnitude at most $e_i+e_{i-1}$.
+The input difference at group $j$ is precisely $S_j-(d,v)$; both
+calculations include the same previous preloss.
+The factors $1+d_y$ prevent a direct absolute-error bound with a uniform
+constant when a true entry is large.  The following two cases use the
+row gate and saturation to remove that dependence.
+
+Choose $G$ larger than every gate close threshold.  A baseline at least
+$G$ closes all gates, since the dummy entries force every first-coordinate
+rank to be at least the baseline.  Closure is permanent under the
+unclamped update.  Choose $L_0$ much larger than $G$, all sensitivity
+thresholds, and 1.  If at least $K$ true first entries exceed $L_0$, the
+reference gates are closed.  In the perturbed calculation either some
+$u_0\geq G$, which forces permanent closure, or every $u_0<G$.
+In the latter case those $K$ coordinates stay larger than half their
+true value: their initial error and the total later additive variation
+are at most $C(1+d_y)\sum_{i\geq j}e_i$, and their first value is then
+larger than $3G$.  Inductively each such position lies in the compression
+identity region.  These $K$ positive entries close all gates as well.
+
+It remains to consider the case of fewer than $K$ true entries above
+$L_0$.  Lemma~\ref{lem:buf-reference} bounds every reference rank and
+threshold by $2L_0$.  Fix $L_1$ much larger than $L_0$ and all upper
+saturation thresholds.  At the at most $K-1$ positions where $d_y>L_1$,
+replace the first input at group $j$, in both calculations, by one common
+positive sentinel larger than $L_1$, and give that coordinate zero later
+first-channel increments.  Do not modify second channels.
+The reference ranks, thresholds, and outputs are unchanged: these
+coordinates stay above the relevant ranks and in all upper saturation
+regions.
+The sentinels are comparison devices in this proof.  They need not be
+identified or stored by the compression algorithm.  Fewer than $K$ such
+coordinates occur, so replacing them by common large values removes
+their possibly large absolute differences while preserving every rank
+that lies in a sensitivity range.
+
+All remaining first-coordinate input errors and increments now have
+absolute bounds by $C(1+L_1)e_i$ and
+$C(1+L_1)(e_i+e_{i-1})$, respectively.  Lemma~\ref{lem:buf-update},
+iterated from $j$ to the last group, therefore bounds every array and
+threshold discrepancy by $CE$, on taking $C_1$ larger than the fixed
+update constant.  If $E$ is sufficiently small, all these thresholds
+remain below $2L_0+1$.  The final root-output discrepancy is at most $CE$.
+
+To remove the modification in the perturbed calculation, argue inductively.
+Every original coordinate with $d_y>L_1$ remains above $d_y/2$, because
+its total raw additive variation is at most $C(1+d_y)\sum e_i$.
+It is thus above the bounded thresholds and in the identity and saturation
+regions.  Replacing fewer than $K$ such positive coordinates by sentinels
+cannot change either a $K$th first rank or an $n_i$th size rank whose
+sentinel-computed value is at most $2L_0+1$: both the original and modified
+values are above that bound, and $n_i\geq K$.
+The defaults and thresholds therefore agree, the compression is identity
+in both channels at these positions, and all other coordinates agree.
+The relevant output behavior is the same.  This completes the induction
+and the proof.
+\end{proof}
+
+\subsection{Charging overflow events}
+
+The deterministic comparisons leave two cases to integrate: no overflow,
+and the first overflow.  To handle the latter, we separate a large retained
+set of true heavy endpoints from overflow caused by errors at light
+endpoints.
+For this subsection let $\mathcal O_j$ denote the event that group $j$
+is the first overflow.  These events are pairwise disjoint.  The
+heavy-count event defined next depends only on the true row and its
+retained endpoints; it does not itself assert that any overflow occurs.
+
+At first overflow in group $j$, the previous default is smaller than
+$\rho_j$.  Thus at least $n_j$ retained real positions have input size
+strictly greater than $\rho_j$.  Define the true heavy-count event
+\[
+ \Theta_j=\left\{\#\{y\text{ retained}:d_y>\rho_j/4\}\geq n_j/2\right\}.
+\]
+The dummy positions do not contribute to this count, since their input
+is the preceding default.  On $\mathcal O_j\cap\Theta_j^c$, at least
+$n_j/2$ of the overflowing positions have
+$d_y\leq\rho_j/4$.  Their second targets vanish, because the floors lie
+below the $h$-threshold.  Equation~\eqref{eq:buf-small-floors} then implies
+$e_j(y)\geq c\rho_j$ at all these positions.  Consequently the indicator
+of this false-type first overflow is bounded by
+\begin{equation}
+ \frac{C}{n_j\rho_j^s}\sum_y e_j(y)^s.
+ \label{eq:buf-false-charge}
+\end{equation}
+A bounded row-output error may be charged to this indicator.
+On $\mathcal O_j\cap\Theta_j$, we instead use the stability estimate
+and the conditional rarity of $\Theta_j$ at each endpoint.
+
+\begin{lemma}[Conditional rarity of a true heavy count]
+\label{lem:buf-rarity}
+At every specified endpoint,
+\begin{equation}
+ \mathbb P(\Theta_j\mid X_u(x)=Y_a(y)=1)
+      \leq\frac{C}{n_j\rho_j}.
+ \label{eq:buf-rarity}
+\end{equation}
+The same bound holds with the narrower endpoint condition $Y_t(y)=1$.
+Moreover, for every prefix mean row supremum,
+\begin{equation}
+ \|\mathbf1_{\Theta_j}\beta_i\|_{L_s(\mu)}
+      \leq Cc_*2^{-p+B_1d_i}(n_j\rho_j)^{-1/s}.
+ \label{eq:buf-masked-mean}
+\end{equation}
+\end{lemma}
+\begin{proof}
+By Equation~\eqref{eq:buf-mass}, the deterministic heavy set
+\[
+ A_j(x)=\{y:d_y>\rho_j/4\}
+ \quad\text{satisfies}\quad
+ |A_j(x)|\leq\frac{4C_{\mathrm{mass}}}{a\rho_j}.
+\]
+Conditional on one specified endpoint
+hit, each other endpoint in this set is retained with probability at most
+$Ca$, by Lemma~\ref{lem:env-ranks}.  This remains true if the
+specified hit uses the narrower rate.  The forced endpoint contributes
+at most 1, so the expected retained heavy count is at most
+$1+Ca|A_j(x)|\leq C'/\rho_j$.
+The independent start condition has no effect.  Markov's inequality
+at the threshold $n_j/2$ proves Equation~\eqref{eq:buf-rarity}.
+This calculation uses the conditional pair bound and linearity of
+expectation; it permits dependence among the heavy-endpoint hits.
+
+For the first-channel mean error at a fixed row and endpoint, write its
+deterministic magnitude as $b_i(y)$.  Then
+\[
+ \mathbf1_{\Theta_j}\sup_{y:Y_a(y)=1}b_i(y)^s
+       \leq\sum_y\mathbf1_{\Theta_j}Y_a(y)b_i(y)^s.
+\]
+Condition on the start and that endpoint before taking expectations.
+Equation~\eqref{eq:buf-rarity} bounds the resulting expectation by
+$C/(n_j\rho_j)$ times the endpoint-integrated mean-error power.
+Indeed the factor $b_i(y)^s$ is fixed under this conditioning, so
+\[
+ \mathbb E\bigl[\mathbf1_{\Theta_j}X_u(x)Y_a(y)b_i(y)^s\bigr]
+ \leq\frac{C}{n_j\rho_j}
+       \mathbb E\bigl[X_u(x)Y_a(y)b_i(y)^s\bigr].
+\]
+The second-channel mean error has a deterministic magnitude multiplied
+by $Y_t(y)$; repeat the same argument using the narrower conditional
+bound.  Taking roots and using Equation~\eqref{eq:buf-prefix-interface}
+proves Equation~\eqref{eq:buf-masked-mean}.  The conditioning step uses
+the deterministic mean-error magnitude at the specified endpoint.
+Prefix noise can depend on the heavy-count event, so no analogous
+conditional estimate is asserted for it.
+\end{proof}
+
+\begin{proposition}[Integrated compression bound]
+\label{prop:buf-error}
+For fixed sufficiently large $c_1$, then $c_2$, and sufficiently rapid
+prefix-noise decay $K_n$, compression preserves the prescribed row error
+budget, with an arbitrarily small fixed coefficient when $c_*$ is chosen
+small.  More precisely,
+\begin{equation}
+ \left(\int\sum_{H\in\mathcal H}\sum_y
+  |H(T_{m_*};y)^{1/s}-H(d,v;y)^{1/s}|^s\,d\mu\right)^{1/s}
+       \leq C_{\mathrm{buf}}c_*2^{-p},
+ \label{eq:buf-integrated}
+\end{equation}
+where $C_{\mathrm{buf}}$ is fixed, independent of the number of groups,
+row width, and requested precision.
+\end{proposition}
+\begin{proof}
+Equation~\eqref{eq:buf-row-support} converts every row sup bound above
+into a bound for its summed output power with a fixed factor.
+In fact the support of a discrepancy lies in the union of the true and
+computed supports, whose total size over $\mathcal H$ is at most
+$2C_{\mathrm{supp}}$.  Thus this step introduces no factor from the
+ambient number of endpoints.
+The preloss contributions have norm at most
+\[
+ Cc_*2^{-p}\sum_i\rho_i
+             \bigl(2^{B_1d_i}+2^{-K_nd_i}\bigr).
+\]
+On the event of no overflow, Equation~\eqref{eq:buf-no-overflow} adds the
+final-prefix cost, at most $Cc_*2^{-p}(2^{B_1}+2^{-K_n})$.
+By Equation~\eqref{eq:buf-false-charge} and the disjointness of the
+possible first-overflow events, the total false-type error power is at
+most
+\begin{equation}
+ Cc_*^s2^{-sp}\sum_j
+       (n_j\rho_j^s)^{-1}
+       \bigl(2^{sB_1d_j}+2^{-sK_nd_j}\bigr).
+ \label{eq:buf-false-sum}
+\end{equation}
+
+For a true-type first overflow at $j$, use
+Lemma~\ref{lem:buf-relative-stability} and split $e_i\leq\beta_i+\gamma_i$.
+For the mean part, enlarge the actual first-overflow event to $\Theta_j$,
+apply Equation~\eqref{eq:buf-masked-mean}, and use Minkowski's inequality.
+Its total norm is bounded by
+\begin{equation}
+ Cc_*2^{-p}\sum_j(n_j\rho_j)^{-1/s}
+       \sum_{i\geq j}C_1^{m_*-i+1}2^{B_1d_i}.
+ \label{eq:buf-true-sum}
+\end{equation}
+For the noise part, use the uniqueness of the first-overflow group on
+each row.  Its tail noise sum is bounded pointwise by the single full
+sum $\sum_iC_1^{m_*-i+1}\gamma_i$, regardless of dependence between
+noise and overflow.  More explicitly,
+\[
+ \sum_j\mathbf1_{\mathcal O_j}
+       \sum_{i\geq j}C_1^{m_*-i+1}\gamma_i
+ \leq\sum_i C_1^{m_*-i+1}\gamma_i,
+\]
+because at most one indicator on the left is nonzero.  The absolute
+prefix-noise bound therefore gives
+norm at most
+\begin{equation}
+ Cc_*2^{-p}\sum_iC_1^{m_*-i+1}2^{-K_nd_i},
+ \label{eq:buf-noise-sum}
+\end{equation}
+without an extra sum over $j$.
+
+Choose $c_1>B_1$ large enough for the floor conditions.  Choose
+$c_2>sc_1+sB_1$ with a fixed positive margin and also large enough that
+$n_j\geq K$.  Equation~\eqref{eq:buf-false-sum} then converges uniformly.
+For its mean term the exponential factor is exactly
+$2^{-(c_2-sc_1-sB_1)d_j}$.
+For Equation~\eqref{eq:buf-true-sum}, its inner sum is at most
+$C(d_j+1)^A2^{B_1d_j}$ for a fixed $A$, by
+Equation~\eqref{eq:buf-propagation} and dyadic grouping; the stronger
+choice of $c_2$ just made ensures convergence of the outer sum, whose
+exponential factor is
+$2^{-((c_2-c_1)/s-B_1)d_j}$.
+Taking $K_n$ sufficiently large handles Equation~\eqref{eq:buf-noise-sum}.
+The preloss sum converges by $c_1>B_1$.  All constants are fixed before
+choosing the arbitrarily small prefix coefficient $c_*$, giving
+Equation~\eqref{eq:buf-integrated} and the asserted spare coefficient.
+\end{proof}
+
+Proposition~\ref{prop:buf-error} bounds the compressed pre-incoming
+functions, including scores and witnesses.  Before assembling the final
+atom estimates, we impose the numerical range bounds needed to evaluate
+these arrays.
+
+\subsection{Bounding numerical ranges}
+
+In exact endpoint grouping, the additive increments are independent of
+which exceptions are stored.  The path description and bounded child
+ranges give a fixed $D$ for which
+$\|\Delta_i\|_\infty\leq2^{Dd_i}$, after increasing $D$ to include
+immediate term counts.  This also bounds a group when all its same-key
+increments are summed into one coordinate, with a possibly larger fixed
+$D$.  Fix a common gate closure level $G\ge\max_H g_H$, and then
+choose $L>10G$ above every sensitivity threshold.  Let
+$R_i=2^{B_2d_i}$ and choose $B_2$ sufficiently large that
+\begin{equation}
+ R_i\geq 10L+10\sum_{k>i}\|\Delta_k\|_\infty
+ \quad\text{for every group }i.
+ \label{eq:buf-clamp-margin}
+\end{equation}
+Dyadic grouping permits this uniform choice because $d_{i+1}=d_i/2$.
+After each compression, clip every coordinate and the baseline
+componentwise to $[-R_i,R_i]$.
+An off-list coordinate is clipped exactly as the baseline is, so it
+remains a default coordinate.  These clamps therefore preserve the
+finite-list representation.
+
+\begin{lemma}[Range clamping]
+\label{lem:buf-clamping}
+For fixed common increments satisfying
+Equation~\eqref{eq:buf-clamp-margin}, these clamps do not change the
+final relevant row functions.  Each clamp is sup-norm nonexpansive, so
+in comparisons of two calculations it preserves the uniform Lipschitz
+propagation bound.  The analogous assertion holds for vector sums clipped
+beyond their final sensitivity range and all remaining additive variation.
+\end{lemma}
+\begin{proof}
+Compare the clamped and unclamped calculations with the same increments.
+For the fixed level $G<L/10$, once both baselines are at
+least $G$, all gates are zero because of the dummies, and remain so:
+compression cannot lower the baseline and every clamp bound exceeds $G$.
+It remains to compare the calculations before this happens.
+
+Maintain the following invariant.  Their baselines agree while below $G$.
+Their coordinates either agree, or have matching signs and magnitudes
+well beyond $L$; any such differing component has enough remaining
+margin that the total future increments cannot bring it into
+$[-L,L]$.  At the first clamp of a component this follows from
+Equation~\eqref{eq:buf-clamp-margin}.  A subsequent clamp restores the
+same margin using the current $R_i$.  Between clamps, common additions
+consume at most the available tail margin.
+
+After an addition, entries whose components differ therefore have size
+larger than $L$ in both calculations.  Their size-rank statistics either
+are equal below $G$ or are both at least $G$: differing values lie above
+this comparison range and all other size values agree.
+In the latter case both new baselines close the gates.  In the former
+case the two values of $u_0$ agree and are below $G$.
+Only the first-coordinate rank clipped at $3u_0$ is needed to compute
+$z'$.  Differing positive first components are above this range;
+differing negative first components are below zero and do not affect
+its nonnegative clipped value.  Consequently the two new baselines
+agree as well.  If this baseline is at least $G$, both calculations
+close.  Otherwise every differing position lies in the compression
+identity region because its size exceeds $L>3G$; equal coordinates at
+other positions undergo the same update.  Thus the invariant continues.
+
+Before closure, all rank arguments and all entry arguments within their
+sensitivity ranges agree.  Differing large components have matching
+signs and identical saturated behavior.  The final row functions
+therefore agree.  A scalar clipping map is 1-Lipschitz, which gives the
+comparison assertion.  For a vector sum, the same tail-margin argument
+ensures that a clipped value stays on the same saturated side until the
+final bounded clipping; no rank argument is needed.
+\end{proof}
+
+The equality assertion of Lemma~\ref{lem:buf-clamping} is used for the
+clean error bound: exact endpoint grouping supplies the same increment
+arrays regardless of the chosen list presentation.  It preserves the
+values of every relevant $H\in\mathcal H$, including scores and smooth
+witnesses.  It makes no assertion that finite-accuracy access tests or
+selected descriptors agree with those of the unclamped calculation.
+In the adaptive comparison of Section~\ref{sec:fp-blocks}, both the actual
+and clean calculations are clamped from their definition.  Their
+possibly different bucket increments are compared directly, and the
+nonexpansiveness part of Lemma~\ref{lem:buf-clamping} preserves the local
+perturbation bound.  This use allows different real representatives,
+including retained positions whose current value equals the default.
+
+\subsection{The error reserve with exact endpoint grouping}
+
+The prefix estimates and compression bound now give the current task's
+error estimate under exact endpoint grouping.  The hypotheses still
+require each conditional average to vary every random coordinate used
+by its sample function.  We combine the compressed pre-incoming bounds
+with the atom assembly comparison; the next section will verify this
+averaging hypothesis for the block-clean calculation.
+
+\begin{proposition}[Error reserve with exact endpoint grouping]\label{prop:est-clean}
+Suppose the earlier row and vector tasks have error bound $C_b2^{-p'}$
+and the support and common-parameter properties of the atom section.
+Use exact comparisons locally, and vary every variable on which the
+sample terms depend.  After compression and the range clamps above, all
+active row outputs, pre-incoming scores, and witnesses have error at most
+$(C_b/2)2^{-p}$.  The same holds for the final clipped vectors and the
+assembled correction outputs, after choosing the fixed constants in the
+order specified below.
+\end{proposition}
+\begin{proof}
+To apply Proposition~\ref{prop:buf-error}, use the deterministic-mean and
+absolute-noise bounds of Lemma~\ref{lem:est-prefix}.  The first target
+is nonnegative with bounded deterministic row mass before division by
+$a$, and its second target is bounded by a fixed multiple of $\zeta$ and
+vanishes below the preparatory support threshold.  The buffered row
+functions and their witnesses have fixed root Lipschitz constants and
+fixed support bounds.  These verify its remaining hypotheses.  The
+compression proposition shows that all their errors are a fixed multiple
+of $c_*2^{-p}$ when its convergent series of
+floors, capacities, and noise weights are chosen.  This includes the
+pre-incoming quantities required by the incoming comparison.
+Exact endpoint grouping gives common increment arrays for the clamped
+and unclamped calculations.  Lemma~\ref{lem:buf-clamping} therefore
+preserves these row-function values, including scores and witnesses,
+so the same estimates hold after clamping.
+
+Lemma~\ref{lem:atom-assembly} then charges the incoming gates by those
+same pre-output norms.  Its separate column-vector calls have a fixed
+positive budget slack and decrease task rank.  Equation~\eqref{eq:est-child-precision}
+pays their broad-domain factor, and increasing $A_*$ makes their remaining
+coefficient as small as required.  A final vector needs no compression;
+its clipping is nonexpansive and the bounds at $d_j=1$ apply directly.
+
+Choose the fixed atom range/support bound $C_b$ first.  Choose $c_0$ and
+$K_{\rm prec}$ to retain the margin in Equation~\eqref{eq:est-scale-slack}
+and fix $B_1$.  The
+compression proof then chooses its floor exponent $c_1$, capacity exponent
+$c_2$, and required noise decay $K_n$.  Choose task separation and walk
+length sufficiently large to supply the needed small $c_*$.  The total
+coefficient can thus be made at most $C_b/2$.  Inactive tasks retain their
+separate trivial $C_b$ bound.  The remaining half of the active-task
+error bound is reserved for the coupled fingerprint error.
+\end{proof}
+
+The reserve applies to a local exact-grouping calculation with the stated
+averaging property.  The actual algorithm will also use short endpoint
+keys.  In Section~\ref{sec:fp-blocks} we define an exact-grouping comparison
+within each budget block, verify that it has this averaging property, and
+bound its difference from the algorithm.

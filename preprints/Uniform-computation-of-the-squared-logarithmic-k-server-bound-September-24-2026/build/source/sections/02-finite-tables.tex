@@ -1,0 +1,286 @@
+\section{Finite rational decision tables}\label{sec:finite-tables}
+
+This section converts the companion existence theorem into a terminating
+finite computation. The output is a decision table for every prescribed
+horizon, with dyadic probabilities and a bounded total rounding loss.
+No running-time bound on this finite computation is needed yet.
+
+Throughout, fix the input metric on $X=\{1,\ldots,n\}$ and put
+\begin{equation}\label{eq:metric-parameters}
+ D=\max_{x,y\in X}d(x,y),\qquad
+ \delta=\min_{x\ne y}d(x,y),\qquad u=(1,\ldots,k).
+\end{equation}
+Thus $0<\delta\le D$, and the auxiliary initial tuple $u$ has distinct
+entries, even when the actual initial tuple $s$ does not.
+For a request word $w$ and initial labeled tuple $v\in X^k$, write
+$\operatorname{OPT}_v(w)$ for the offline minimum. If $|w|=h$, this
+minimum is attained among the $k^h$ sequences of serving labels.
+Allowing an offline comparator to move other servers between requests
+cannot improve this minimum: choose a serving label at each request,
+then move each label directly along its assigned subsequence of requests.
+The triangle inequality makes the resulting service no more expensive.
+We will use this shortcutting observation again when deleting requests.
+
+\subsection{The existence input and strong laziness}
+
+The only theorem imported into the construction is the following
+specialization of the companion's main result. We use its distinct-start
+clause, which has zero additive loss.
+
+\begin{theorem}[Existence from distinct initial positions,
+ {\cite[Theorem~1.1]{SquaredLog2026}}]\label{thm:existence}
+There is an absolute constant $C_0<\infty$ such that, for every integer
+$k\ge2$, every finite metric space with at least $k+1$ points, and every
+distinct initial labeled tuple $u$, there exists a randomized online
+policy $A$ satisfying
+\begin{equation}\label{eq:external-existence}
+ \E\bigl[\operatorname{cost}_{A,u}(w)\bigr]
+ \le C_0\bigl(\log(k+1)\bigr)^2\operatorname{OPT}_u(w)
+\end{equation}
+for every fixed finite request word $w$ chosen independently of its
+random choices. The same policy serves all words and all horizons. At
+each request it chooses one labeled server and moves that server to the
+request, leaving the others fixed.
+\end{theorem}
+
+The cited theorem applies to arbitrary metric spaces and allows repeated
+initial positions with a finite additive term; its distinct-position
+conclusion is exactly the zero-additive assertion stated here. In our
+application $2\le k<n$ and $u=(1,\ldots,k)$, so all its hypotheses hold.
+Only policy existence is used: neither its probabilities nor a procedure
+for computing them is supplied to the construction below.
+
+Call a policy \emph{strongly lazy} if, whenever the request is already
+occupied, it chooses a server at that request and pays zero. On a miss
+it moves one server to the request. From a distinct tuple, such a policy
+keeps the positions distinct.
+
+The following is the standard lazification principle of Manasse, McGeoch,
+and Sleator~\cite[Lemma~1]{MMS1990}. We include a matching-potential proof
+to make the labeled, pathwise comparison explicit.
+
+\begin{lemma}\label{lem:lazy}
+From a distinct initial tuple, any online policy has a strongly lazy
+online follower whose total cost on every finite word is at most the
+policy's cost, for every realization of the policy's randomness.
+\end{lemma}
+
+\begin{proof}
+Simulate the original policy virtually. For follower tuple $c$ and
+virtual tuple $v$, use the matching potential
+\[
+ \Phi(c,v)=\min_{\pi\in S_k}\sum_{j=1}^k d(c_j,v_{\pi(j)}).
+\]
+The minimum exists even if the virtual positions repeat. Initially the
+potential is zero. Suppose the virtual policy has just served a request
+$r$, at cost $\eta$, changing $v$ to $v'$. The triangle inequality,
+applied to a previously minimizing matching, gives
+$\Phi(c,v')\le\Phi(c,v)+\eta$.
+
+If $c$ covers $r$, the follower makes a zero-cost choice there. Otherwise
+choose a minimizing matching between $c$ and $v'$ and a virtual label
+at $r$, and move its matched follower label to $r$. If this move costs
+$m$ and gives tuple $c'$, its matching edge decreases from length $m$
+to zero, while all other edges remain unchanged. Hence in either case
+\[
+ m+\Phi(c',v')\le\Phi(c,v)+\eta.
+\]
+Summing and using nonnegativity of the terminal potential proves cost
+domination. The follower moves only to an uncovered point, so its
+positions remain distinct. Fixed orders for labels and permutations
+resolve ties, and all choices use only the current simulated state and
+the revealed request. Thus the construction is causal.
+\end{proof}
+
+\subsection{A finite flow system}
+
+Finite-horizon linear descriptions of randomized $k$-server strategies
+appear in M\"omke~\cite[Section~4]{Moemke2013}. We use configuration
+marginals and transition flows, with a single marginal shared by all
+continuations of each request prefix. The proposition also records the
+finite-bit sampling guarantee needed later.
+
+\begin{proposition}\label{prop:finite-table}
+For every positive integer $H$, a terminating deterministic procedure
+on rational input constructs a rational number $a$ and a finite table
+defining a strongly lazy policy $\mathcal T_H$ from $u$ such that
+\begin{equation}\label{eq:finite-table-bound}
+ 0\le a\le C_0\bigl(\log(k+1)\bigr)^2,\qquad
+ \E\bigl[\operatorname{cost}_{\mathcal T_H,u}(w)\bigr]
+ \le a\operatorname{OPT}_u(w)+D
+ \quad (|w|\le H).
+\end{equation}
+Every table decision uses exactly $b$ independent unbiased bits, where
+$b$ is the least nonnegative integer with $2^b\ge kH^2$. The procedure
+requires neither the value of $C_0$ nor an oracle for the policy in
+Theorem~\ref{thm:existence}.
+\end{proposition}
+
+\begin{proof}
+Let $\mathcal C$ be the set of ordered $k$-tuples of distinct points.
+For $c\in\mathcal C$ and $r\in X$, define the allowed labels by
+\[
+ J(c,r)=
+ \begin{cases}
+  \{j:c_j=r\},&r\in\{c_1,\ldots,c_k\},\\
+  \{1,\ldots,k\},&r\notin\{c_1,\ldots,c_k\}.
+ \end{cases}
+\]
+For any tuple $c\in X^k$, let $T(c,r,j)$ replace its $j$th entry by
+$r$. If $c\in\mathcal C$ and $j\in J(c,r)$, the resulting tuple lies
+in $\mathcal C$. All finite index sets below are ordered by length and
+then lexicographically, so all otherwise arbitrary choices can be
+deterministic.
+
+For every $w\in X^{\le H}$ and $c\in\mathcal C$, introduce a
+variable $p_{w,c}$, intended to be the probability of configuration $c$
+after the word $w$. For $|w|<H$, $r\in X$, $c\in\mathcal C$, and
+$j\in J(c,r)$, introduce a variable $f_{wr,c,j}$. Along with the
+coefficient variable $a$, these are the unknowns of the finite system.
+The intended meaning of $f_{wr,c,j}$ is the joint probability that the
+configuration before request $r$ is $c$ and the serving label is $j$.
+Impose the following constraints:
+\begin{align}
+ &p_{w,c}\ge0,\qquad \sum_{c\in\mathcal C}p_{w,c}=1,
+ \qquad p_{\varnothing,c}=\mathbf1_{\{c=u\}},
+ && w\in X^{\le H},                                      \label{eq:table-masses}\\
+ &f_{wr,c,j}\ge0,\qquad
+ \sum_{j\in J(c,r)}f_{wr,c,j}=p_{w,c},
+ && |w|<H,                                               \label{eq:table-outflow}\\
+ &\sum_{\substack{c\in\mathcal C,\ j\in J(c,r)\\
+                   T(c,r,j)=c'}} f_{wr,c,j}=p_{wr,c'},
+ && |w|<H,\ c'\in\mathcal C.                             \label{eq:table-inflow}
+\end{align}
+Here and below the request $r$ ranges over $X$, and every displayed
+flow variable has an allowed label. Finally impose $a\ge0$ and, for
+each nonempty word $x=r_1\cdots r_h$ with $h\le H$, impose
+\begin{equation}\label{eq:table-competitiveness}
+ \sum_{i=1}^h\sum_{c\in\mathcal C}\sum_{j\in J(c,r_i)}
+     f_{r_1\cdots r_i,c,j}\,d(c_j,r_i)
+ \le a\operatorname{OPT}_u(x).
+\end{equation}
+
+All coefficients are computable rationals. To make the last assertion
+explicit, let $\Gamma_w(c)$ be the minimum cost of serving $w$ from
+$u$ and finishing at $c\in X^k$, with $+\infty$ marking an unreachable
+tuple. Start with $\Gamma_{\varnothing}(u)=0$ and all other entries
+$+\infty$, and use
+\[
+ \Gamma_{wr}(c')=
+ \min_{\substack{c\in X^k,\ 1\le j\le k\\T(c,r,j)=c'}}
+        \bigl(\Gamma_w(c)+d(c_j,r)\bigr),
+ \qquad
+ \operatorname{OPT}_u(w)=\min_{c\in X^k}\Gamma_w(c).
+\]
+These finite recurrences compute every required coefficient by rational
+arithmetic and comparisons. No division by $\operatorname{OPT}_u(w)$
+is used; words with zero optimum simply give a zero upper bound in
+Equation~\eqref{eq:table-competitiveness}.
+
+By Theorem~\ref{thm:existence} and Lemma~\ref{lem:lazy}, the system has
+a real solution with $a=C_0(\log(k+1))^2$: take $p_{w,c}$ to be the
+configuration probabilities of the strongly lazy policy after $w$,
+and $f_{wr,c,j}$ the probabilities of configuration $c$ immediately
+before $r$ and serving label $j$. Causality gives one distribution
+$p_{w,\cdot}$ shared by every continuation of $w$.
+
+\paragraph{Exact rational attainment.}
+We now compute a rational solution having the smallest feasible value
+of $a$. Replace equalities by pairs of weak inequalities and eliminate
+all variables except $a$ by Fourier--Motzkin elimination
+\cite{DantzigEaves1973}. We record the exact projection and rational
+back-substitution because termination, rather than efficiency, is the
+property required here. To eliminate a variable $z$, divide each inequality
+containing it by
+its nonzero rational coefficient to obtain finitely many bounds
+\[
+ z\ge L_i(y),\qquad z\le U_j(y),
+\]
+where $y$ lists the remaining variables and the bounds are rational
+affine expressions. Keep inequalities independent of $z$ and add all
+comparisons $L_i(y)\le U_j(y)$. This is an exact existential projection:
+if both bound families are present, their intervals intersect precisely
+when every such comparison holds; if either family is absent, the
+remaining one-sided bounds always admit a value of $z$.
+
+After finitely many eliminations the feasible $a$-values are given by
+finitely many weak rational inequalities in one variable. This set is
+nonempty and includes the constraint $a\ge0$, so its least value is
+the maximum of its finitely many rational lower bounds. It is rational
+and belongs to the feasible set. Compute this value, then reverse the
+eliminations. At each reversal, evaluated bounds are rational: choose
+the largest lower bound if one exists; otherwise choose the smallest
+upper bound if one exists; otherwise choose zero. The projection
+inequalities ensure that the chosen value also respects any upper
+bounds. This recovers a rational solution of the full system.
+
+Thus all steps terminate on finite rational data, and the computed
+minimum satisfies $0\le a\le C_0(\log(k+1))^2$. The constant $C_0$
+never enters the computation; the existence theorem only certifies
+feasibility and the upper bound on the minimum.
+
+\paragraph{Causal conditional rows.}
+For each $(w,r,c)$ define a probability distribution on $J(c,r)$ by
+\begin{equation}\label{eq:table-conditional}
+ q_{w,r,c}(j)=\frac{f_{wr,c,j}}{p_{w,c}}
+ \quad\text{if }p_{w,c}>0.
+\end{equation}
+If $p_{w,c}=0$, instead put all mass on the smallest allowed label.
+Every row is now a rational probability distribution, including rows
+at configurations not reached by the unrounded policy. Choose from
+the row indexed by the revealed prefix, next request, and current
+configuration. Along any fixed word, induction using
+Equations~\eqref{eq:table-outflow} and~\eqref{eq:table-inflow} gives
+exactly the marginals $p$ and $f$: at a positive-mass configuration,
+$p_{w,c}q_{w,r,c}(j)=f_{wr,c,j}$, and at a zero-mass configuration all
+outgoing flows vanish. Consequently Equation~\eqref{eq:table-competitiveness}
+is the expected-cost bound for these causal decisions. The construction
+need not retain any hidden memory of the source policy.
+
+\paragraph{Dyadic rows and total rounding loss.}
+In each row reserve its smallest allowed label $j_0$. For $j\ne j_0$
+set
+\[
+ \widehat q_{w,r,c}(j)=2^{-b}\lfloor 2^bq_{w,r,c}(j)\rfloor,
+ \qquad
+ \widehat q_{w,r,c}(j_0)=1-\sum_{j\ne j_0}\widehat q_{w,r,c}(j).
+\]
+The new row is supported on allowed labels, and its total variation
+distance from the old row is
+\[
+ \frac12\sum_{j\in J(c,r)}
+        |\widehat q_{w,r,c}(j)-q_{w,r,c}(j)|
+ =\sum_{j\ne j_0}\bigl(q_{w,r,c}(j)-\widehat q_{w,r,c}(j)\bigr)
+ \le k2^{-b}.
+\]
+Store each row by its integer numerators with common denominator $2^b$.
+For sampling, use $b$ unbiased bits to choose a uniform integer in
+$\{0,\ldots,2^b-1\}$ and return the first label whose cumulative
+numerator exceeds it. This uses exactly $b$ random bits.
+
+Fix a word $w$ of length $h\le H$. Couple the rounded and unrounded
+policies until their first different label choice: whenever their
+states agree, match each possible label with probability equal to the
+minimum of its two row probabilities, and couple the residual masses
+arbitrarily. At any such step the conditional probability of a
+discrepancy is at most $k2^{-b}$. Thus the probability of any discrepancy
+on the word is at most $hk2^{-b}$. On its complement the two costs
+agree; on the discrepancy event their upward difference is at most
+$hD$, since each total cost lies in $[0,hD]$. Therefore
+\[
+ \E\bigl[\operatorname{cost}_{\mathcal T_H,u}(w)\bigr]
+ \le a\operatorname{OPT}_u(w)+k h^2 2^{-b}D
+ \le a\operatorname{OPT}_u(w)+D.
+\]
+A rounded trajectory can reach a configuration with original
+$p_{w,c}=0$. Such a row has already been defined legally, and reaching
+it can only require attention after a discrepancy, where the uniform
+bound $hD$ suffices. Hence these configurations cause no exception to
+the proof or to the sampling rule. This proves the proposition.
+\end{proof}
+
+Proposition~\ref{prop:finite-table} gives a finite, fully specified
+constructor. Its running time and table size may be enormous. The
+remaining argument first turns one fixed table into a routine for an
+unbounded suffix, and then schedules the constructor within the allowed
+bit budget.

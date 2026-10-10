@@ -1,0 +1,1167 @@
+\section{Encoded paths and finite local displacement procedures}
+\label{sec:geometry}
+
+The encoded-path and displacement-field method follows the construction
+in Rubinstein~\cite[Sections~3.1--3.2]{Rubinstein2016Settling}: current and successor
+blocks trace a copy--toggle polygon, and radial interpolation moves from
+the tangent through the inward and reverse-tangent directions to a fixed
+vertical direction. Here we prove the geometric interface at the normalized
+codeword scale, including rounded corners, displacement after clipping,
+and finite local access with average errors. This section is independent
+of both circuit realizations. Its hypotheses concern entire binary words and local access
+to their bits; they do not depend on the algebraic interpretation of an
+individual coordinate. In particular, in the inner application the graph
+is the path for the fixed true input tuple, and the distinguished source
+is accessed through the virtual procedures of Section~\ref{sec:inner-gadget}.
+
+\subsection{The geometric statement and its parameters}
+\label{geo:setup}
+
+Let $G$ be a finite directed graph of indegree and outdegree at most one,
+with no self-edge and no isolated vertex. Fix a source $w_*$ with an actual
+successor. All other vertices missing an incoming or an outgoing edge are
+called desired endpoints. Suppose that distinct vertices have encodings
+$E_w\in\{0,1\}^m$ satisfying
+\begin{equation}\label{geo:distance}
+ \norm{E_u-E_v}_{\rm b}\ge d_*>0\qquad(u\ne v).
+\end{equation}
+We decrease $d_*$ to a positive rational at most one. On any number of
+blocks of length $m$ use the inner product and norm
+\begin{equation}\label{geo:norm}
+ \langle U,V\rangle_{\rm b}=m^{-1}\sum_j U_jV_j,
+ \qquad \norm{U}_{\rm b}^2=m^{-1}\sum_j U_j^2.
+\end{equation}
+An unqualified norm in this section means this norm. The infinity norm
+is unnormalized. Write $\mathcal B=[-1,2]^{4m}$, and let
+$\clip_{\mathcal B}$ denote coordinatewise clipping to this cube.
+Clipping is nonexpansive for~\eqref{geo:norm}. Scalars occupying a block
+mean constant repetitions.
+
+\begin{theorem}[Encoded-path geometry]\label{thm:geometry}
+Under these hypotheses, there is a union $\mathcal L\subset\mathcal B$
+of directed, rounded paths and cycles, with desired endpoint set
+$\mathcal E$, having the following properties. For every sufficiently
+small positive rational $\tau$, there are a positive integer $B_1$ and
+positive rational constants $c_*,\beta_0$, depending only on $d_*$ and
+$\tau$, and a field $v:\mathcal B\to\mathbb R^{4m}$ such that
+\begin{align}
+ \norm{v(X)}_\infty&\le B_1-1,\label{geo:bounded-field}\\
+ \norm{\clip_{\mathcal B}(X+\beta v(X))-X}
+   &\ge c_*\beta
+ \quad\text{if }\dist(X,\mathcal E)>10\tau,
+       \quad 0<\beta\le\beta_0.\label{geo:displacement}
+\end{align}
+The field is continuous on the relative open set
+$\{X\in\mathcal B:\dist(X,\mathcal E)>10\tau\}$.
+Every $P\in\mathcal E$ has first block exactly $E_w$ for a desired
+endpoint $w$. Consequently, if $\norm{X-P}\le10\tau$, rounding $X_1$
+at $1/2$ gives relative Hamming distance at most $4(10\tau)^2$ from
+$E_w$. The exceptional top of the distinguished vertical is excluded
+from $\mathcal E$ and has field $-\mathbf e$, where
+$\mathbf e=(0,0,0,1)$.
+
+The initial choice of $\tau$ may impose any further fixed positive upper
+bounds, including validation and global-recovery radii. All these choices,
+and $B_1,c_*,\beta_0$, precede every numerical accuracy choice and the
+choice of a step size $\beta$.
+\end{theorem}
+
+We prove the theorem before formulating the precise access contract for
+its finite numerical implementation. In particular no global regularity
+claim at desired endpoints will be needed.
+
+\subsection{Polygons, fillets, and local projection}
+\label{geo:curves}
+
+For an edge $u\to v$, draw, with fourth block zero,
+\begin{equation}\label{geo:polygon}
+ \begin{aligned}
+ &(E_u,E_u,0)\xrightarrow{\;2\;}(E_u,E_v,0)
+                 \xrightarrow{\;3\uparrow\;}(E_u,E_v,1)\\
+ &\qquad\xrightarrow{\;1\;}(E_v,E_v,1)
+                 \xrightarrow{\;3\downarrow\;}(E_v,E_v,0).
+ \end{aligned}
+\end{equation}
+An arrow label names the changing block; the up and down arrows record
+the direction of the third block. This is a schematic of block changes,
+not a distance-preserving planar drawing.
+Concatenate these polygons at graph-vertex junctions. Put
+$H_*=(E_{w_*},E_{w_*},0)$ and prepend the segment
+$(H_*,2)\longrightarrow(H_*,0)$ to the path out of $w_*$.
+We call the four segment types in~\eqref{geo:polygon} \emph{horizontal},
+meaning that their fourth block is zero; this includes the two third-block
+toggles. Every horizontal segment has length in $[d_*,1]$, and consecutive unit
+directions are orthogonal: the successive varying blocks in a polygon
+are $2,3,1,3$, a graph junction changes from block $3$ to block $2$,
+and the special bottom changes from block $4$ to block $2$.
+
+\begin{lemma}[Separation of original segments]\label{geo:separation}
+There is $d_{\rm sep}>0$, depending only on $d_*$, such that distinct
+nonconsecutive original segments are at distance at least $d_{\rm sep}$.
+Their adjacency graph, with adjacency meaning consecutiveness, has no
+triangle.
+\end{lemma}
+\begin{proof}
+For binary words $a,b,c$ and $0\le s\le1$,
+\begin{equation}\label{geo:binary-chord}
+ \norm{(1-s)a+sb-c}\ge\min(s,1-s)\norm{a-b}.
+\end{equation}
+Indeed on a coordinate where $a,b$ differ, the chord coordinate is $s$
+or $1-s$, whose distance from a binary coordinate is at least
+$\min(s,1-s)$. Summing squares proves the claim. In particular, a
+point on this chord within distance $z$ of a binary word is within
+distance $z$ of one of the chord endpoints.
+
+Consider first segments varying the same block. If their distance is
+less than $d_*$, all fixed encoding blocks and repeated binary levels
+agree. For block $2$, the tail agrees and determines the outgoing
+edge. For block $1$, the head agrees and determines the incoming edge.
+For block $3$, an upward segment has a fixed unequal pair $(E_u,E_v)$,
+whereas a downward segment has an equal pair $(E_v,E_v)$; the two types
+cannot have the same fixed pair. Within either type that pair determines
+the segment, using uniqueness of the incoming edge for the downward
+type. There is only one block-$4$ segment.
+
+For two segments varying different blocks, choose points at distance
+$z$. Each varying block of a horizontal segment is within distance $z$
+of a fixed binary block of the other. By~\eqref{geo:binary-chord}, its
+point is within distance $z$ of an endpoint of its original segment.
+For the special vertical, its distance from a horizontal segment forces
+its height to be at most $z$, so it is within $z$ of its bottom. The
+two selected endpoints are therefore within $3z$. Distinct original
+endpoints are separated by at least $d_*$: one of their encoding blocks,
+binary third levels, or vertical levels differs. Taking $3z<d_*$ forces
+the endpoints to coincide.
+
+An unequal ordered pair $(E_u,E_v)$ occurs at the two internal toggle
+corners of its own edge only, with the third level distinguishing them.
+An endpoint $(E_v,E_v,1,0)$ belongs to the last internal corner of the
+unique incoming edge. An endpoint $(E_v,E_v,0,0)$ belongs to at most
+the incoming final segment and the outgoing first segment. If both
+exist, they are consecutive. At $w_*$ there is no incoming graph edge,
+and the special bottom takes exactly that role. The top belongs only
+to the special vertical. Thus equality of endpoints of distinct
+segments implies consecutiveness. For example $d_{\rm sep}=d_*/4$
+is sufficient for the asserted strict-distance argument. The adjacency
+components are paths and cycles; any cycle contains at least eight
+segments because the graph has no self-edge. Adding a segment at a
+path beginning creates no triangle.
+\end{proof}
+
+Choose a positive rational $a_0$ such that
+\begin{equation}\label{geo:trim-choice}
+ 2a_0<d_{\rm sep}/2,\qquad4a_0<d_*,\qquad a_0<1/10.
+\end{equation}
+Trim arclength $a_0$ from both ends of every horizontal segment, whether
+or not its outer graph junction is present. At a shared corner $C$ with
+incoming and outgoing unit directions $u_0,v_0$, join the trim points by
+\begin{align}
+ Z(s)&=C-a_0u_0+a_0v_0
+             +a_0(\sin s\,u_0-\cos s\,v_0),
+             &0\le s\le\pi/2,\label{geo:fillet}\\
+ T(s)&=\cos s\,u_0+\sin s\,v_0.\label{geo:fillet-tangent}
+\end{align}
+The arc has speed $a_0$ in the parameter $s$, and $T$ is its directed
+unit tangent. Figure~\ref{fig:geo-fillet} shows this replacement in the
+plane of its two orthogonal directions. Use the same fillet at the special
+bottom, trimming the vertical there only. Its top is not trimmed. Unmatched horizontal trim
+points remain endpoints. Let $\mathcal L$ be the resulting compact union
+and set
+\begin{equation}\label{geo:endpoint-set}
+ \mathcal E=\{\text{unmatched endpoints of }\mathcal L\}
+                \setminus\{(H_*,2)\}.
+\end{equation}
+
+The first three blocks stay in $[0,1]$: on a fillet the separate varied
+block coordinates stay in the intervals traversed by their original
+segments. The fourth block is zero except on the vertical and its bottom
+fillet; on that fillet it is a repeated scalar in $[0,a_0]$.
+Consequently $\langle T,\mathbf e\rangle\le0$ everywhere. Fix an
+integer $C_t\ge2/d_*$. For arclength $\lambda$,
+\begin{equation}\label{geo:tangent-bounds}
+ \norm T_\infty\le C_t,\qquad
+ \norm{dT/d\lambda}\le1/a_0,\qquad
+ \norm{dT/d\lambda}_\infty\le2C_t/a_0.
+\end{equation}
+These derivative bounds hold on piece interiors and give the same
+Lipschitz bounds across joins because the tangent is continuous there.
+
+\begin{figure}[htbp]
+\centering
+\setlength{\unitlength}{1pt}
+\begin{picture}(290,160)
+\thinlines
+\multiput(180,30)(-5,0){10}{\line(-1,0){2}}
+\multiput(180,30)(0,5){10}{\line(0,1){2}}
+\put(180,30){\circle*{3}}
+\put(187,24){\makebox(0,0)[l]{$C$}}
+\put(130,80){\circle*{3}}
+\put(122,87){\makebox(0,0)[r]{$O$}}
+\thicklines
+\put(20,30){\line(1,0){110}}
+\put(62,30){\vector(1,0){25}}
+\put(74,18){\makebox(0,0)[t]{$u_0$}}
+\qbezier(130,30)(139.946,30)(149.134,33.806)
+\qbezier(149.134,33.806)(158.323,37.612)(165.355,44.645)
+\qbezier(165.355,44.645)(172.388,51.677)(176.194,60.866)
+\qbezier(176.194,60.866)(180,70.054)(180,80)
+\put(180,80){\line(0,1){65}}
+\put(180,103){\vector(0,1){24}}
+\put(170,116){\makebox(0,0)[r]{$v_0$}}
+\put(130,30){\circle*{3}}
+\put(180,80){\circle*{3}}
+\put(130,9){\makebox(0,0)[t]{$C-a_0u_0$}}
+\put(188,80){\makebox(0,0)[l]{$C+a_0v_0$}}
+\end{picture}
+\caption{Rounding one orthogonal corner. The dashed legs are removed;
+the directed path follows the retained straight portions and the fillet
+from $C-a_0u_0$ to $C+a_0v_0$. Its center is
+$O=C-a_0u_0+a_0v_0$ and its radius is $a_0$. This local geometry lies
+in the orthonormal $(u_0,v_0)$ plane.}
+\label{fig:geo-fillet}
+\end{figure}
+
+The numerical procedure will choose a curve point by minimizing estimated
+distances. We therefore need more than a unique projection: a curve point
+with small squared-distance excess must be close to the true projection,
+and its tangent close to the projection's tangent, in every coordinate.
+The next lemma gives these bounds before any candidate is selected.
+
+\begin{lemma}[Local chains and strong excess]\label{geo:projection}
+There is $\rho_{\rm loc}>0$, depending only on $d_*,a_0$, such that
+two points $Z,Z'\in\mathcal L$ with $\norm{Z-Z'}<\rho_{\rm loc}$
+are joined along one local straight or single-corner chain. Its length
+$\Delta$ satisfies $\Delta\le\sqrt2\norm{Z-Z'}$.
+For every sufficiently small $\tau>0$, if
+\begin{equation}\label{geo:tube-hypothesis}
+ r=\dist(X,\mathcal L)\le4\tau,\qquad
+ \dist(X,\mathcal E\cup\{(H_*,2)\})>10\tau,
+\end{equation}
+there is a unique closest point $Z$, which is interior and satisfies
+$\langle X-Z,T(Z)\rangle=0$. If $Z'\in\mathcal L$ has squared excess
+$g=\norm{X-Z'}^2-r^2\le\tau^2$ and signed arclength difference $s'$
+from $Z$ on that chain, then
+\begin{equation}\label{geo:strong-excess}
+ g\ge (s')^2/2.
+\end{equation}
+In particular,
+\begin{align}
+ \norm{Z'-Z}&\le\sqrt{2g},&
+ \norm{Z'-Z}_\infty&\le C_t\sqrt{2g},\label{geo:point-error}\\
+ \norm{T(Z')-T(Z)}&\le\sqrt{2g}/a_0,&
+ \norm{T(Z')-T(Z)}_\infty&\le2C_t\sqrt{2g}/a_0.
+ \label{geo:tangent-error}
+\end{align}
+The tangent at an endpoint competitor is its one-sided tangent.
+\end{lemma}
+\begin{proof}
+Support a straight point by its original segment, and an arc point by
+the two segments of its corner. An arc point is within $a_0$ of each
+supporting segment. Choose $\rho_{\rm loc}+2a_0<d_{\rm sep}$.
+Every across-point pair of supports is then identical or consecutive.
+Each point's support set is itself a clique, so their union is a clique
+and contains at most two segments by Lemma~\ref{geo:separation}. In the
+one-segment case both points lie on its retained straight. In the
+two-segment case they lie on the two retained straights and their
+shared fillet. Opposite-end trims are disjoint by~\eqref{geo:trim-choice}.
+This also rules out unintended identifications or intersections.
+
+Along a two-direction chain, all tangent coefficients in its orthogonal
+directions $u_0,v_0$ are nonnegative, and
+$\langle T,u_0+v_0\rangle\ge1$. Integrating in the directed order gives
+$\Delta\le\langle Z'-Z,u_0+v_0\rangle\le\sqrt2\norm{Z'-Z}$.
+Reverse the order if necessary. A straight chain has equality between
+length and endpoint distance.
+
+Compactness gives a minimizer. The endpoint assumption makes every
+minimizer interior, so differentiating squared distance along its
+$C^1$ path gives the asserted perpendicularity. A competitor of the
+stated excess satisfies
+\[
+ \norm{Z'-Z}\le4\tau+\sqrt{17}\tau<9\tau.
+\]
+Require $9\tau<\rho_{\rm loc}$. The local chain then has
+$|s'|<13\tau$, and integration of~\eqref{geo:tangent-bounds} gives
+\[
+ Z'-Z=s'T(Z)+R,\qquad \norm R\le(s')^2/(2a_0).
+\]
+For $|s'|/(2a_0)<1$, expansion of squared distance and perpendicularity
+therefore imply
+\begin{align*}
+ g&=\norm{Z'-Z}^2-2\langle X-Z,Z'-Z\rangle\\
+  &\ge(s')^2\left[
+      \left(1-\frac{|s'|}{2a_0}\right)^2-\frac r{a_0}\right]
+   \ge(s')^2/2,
+\end{align*}
+where, for example, $\tau/a_0\le1/64$ makes the last inequality hold.
+Applying this to a second minimizer proves uniqueness. Integrating the
+unit tangent, its infinity bound, and its two Lipschitz bounds over
+length $|s'|\le\sqrt{2g}$ proves~\eqref{geo:point-error} and
+\eqref{geo:tangent-error}. All estimates are independent of $m$.
+\end{proof}
+
+At an unmatched beginning, the trimmed segment varies only block $2$;
+at an unmatched ending it varies only block $3$. Their first blocks
+are therefore exactly the encoding of the missing-neighbor vertex.
+There are no isolated vertices requiring a separate convention. The
+source's horizontal beginning is joined to the special vertical and
+is not an endpoint of $\mathcal L$. This proves the endpoint assertion
+in Theorem~\ref{thm:geometry}. If $P\in\mathcal E$ and $\norm{X-P}\le10\tau$, every wrongly
+rounded first coordinate costs at least $1/4$ in squared error, proving
+the Hamming bound in that theorem.
+
+\begin{remark}[Local Lipschitz continuity of projection]
+\label{geo:projection-lipschitz}
+Suppose both $X$ and $Y$ satisfy~\eqref{geo:tube-hypothesis}, and
+$\norm{X-Y}\le\tau/20$. Write $P,Q$ for their respective projections
+onto $\mathcal L$ and $r_X,r_Y$ for their distances to $\mathcal L$.
+With the same sufficiently small choice of $\tau$, one has
+\begin{equation}\label{geo:projection-lipschitz-bound}
+ \left(1-\frac{r_X+r_Y}{a_0}\right)\norm{P-Q}^2
+ \le \langle X-Y,P-Q\rangle
+ \le \norm{X-Y}\norm{P-Q}.
+\end{equation}
+In particular, the projection is locally $2$-Lipschitz on this tube.
+This is a local assertion away from the specified endpoints.
+
+Indeed, the conclusion is immediate if $P=Q$. Otherwise,
+$\norm{P-Q}\le r_X+\norm{X-Y}+r_Y\le(8+1/20)\tau<\rho_{\rm loc}$.
+Lemma~\ref{geo:projection} therefore puts $P,Q$ on one local chain,
+whose arclength $s$ satisfies $s^2\le2\norm{P-Q}^2$.
+Integrating~\eqref{geo:tangent-bounds} from either end expresses its
+chord as the signed length times the tangent there, with remainder
+of norm at most $s^2/(2a_0)$. Perpendicularity at $P$ and $Q$ gives
+\[
+ \big|\langle X-P,P-Q\rangle\big|
+       \le\frac{r_Xs^2}{2a_0},\qquad
+ \big|\langle Y-Q,P-Q\rangle\big|
+       \le\frac{r_Ys^2}{2a_0}.
+\]
+Expanding $X-Y=(P-Q)+(X-P)-(Y-Q)$ proves the first inequality
+in~\eqref{geo:projection-lipschitz-bound}; Cauchy--Schwarz proves
+the second. Finally $r_X+r_Y\le8\tau$ and $\tau/a_0\le1/64$
+make its left coefficient at least $7/8$, and in particular at least
+$1/2$, proving the stated factor $2$.
+\end{remark}
+
+\subsection{A field with uniform displacement after clipping}
+
+For the inside prescription, away from the desired endpoint neighborhood,
+successive radial intervals interpolate from the directed tangent through
+the inward normal and reverse tangent to the fixed fourth-block direction.
+The four directional stages in~\eqref{geo:Phi} parallel
+\cite[Equation~(1)]{Rubinstein2016Settling}; the projection and clipping estimates
+below establish the bounds needed for the present curve.
+A separate prescription above fourth-block mean level $1/2$ handles the
+distinguished vertical. We check that the prescriptions agree and that
+clipping preserves positive displacement away from the desired endpoints.
+The normalized tube bound permits individual coordinates of $X$ to be
+far from the curve, so raw field length alone does not prove this last
+claim. We will bound the fraction of coordinates where clipping can
+remove motion, and then handle the upper face separately.
+\label{geo:field}
+
+Fix $\tau$ satisfying Lemma~\ref{geo:projection}, and impose also
+\begin{equation}\label{geo:tau-choice}
+ \tau<1/100,\qquad6(C_t+1)\tau\le1/4.
+\end{equation}
+All further fixed validation or recovery upper bounds on $\tau$ are
+imposed now. For $X=(X_1,X_2,X_3,X_4)$ put
+$\mu=m^{-1}\sum_j(X_4)_j$. For a point $Z$ and a unit tangent $T$ let
+$r=\norm{X-Z}$ and define
+\begin{equation}\label{geo:Phi}
+ \Phi(X;Z,T)=
+ \begin{cases}
+ (1-r/\tau)T+(Z-X)/\tau,&0\le r\le\tau,\\[2pt]
+ -(r/\tau-1)T+\dfrac{2\tau-r}{\tau r}(Z-X),
+                       &\tau\le r\le2\tau,\\[5pt]
+ -\dfrac{3\tau-r}{\tau}T+\dfrac{r-2\tau}{\tau}\mathbf e,
+                       &2\tau\le r\le3\tau,\\[5pt]
+ \mathbf e,&r\ge3\tau.
+ \end{cases}
+\end{equation}
+The values at shared boundaries agree. There is no reciprocal radius
+in the formula used near zero.
+
+For $\mu\le1/2$ and $\dist(X,\mathcal E)>10\tau$, use
+$v(X)=\Phi(X;Z,T(Z))$ when $\dist(X,\mathcal L)\le3\tau$, and
+$v(X)=\mathbf e$ otherwise. The top is at distance at least $3/2$
+from this region, by the difference of fourth-block means; hence the
+projection lemma applies. At the remaining inside points put $v(X)=0$.
+For $\mu\ge1/2$, the default upward motion can be lost at the upper
+face. We add motion toward the distinguished vertical, with coefficient
+zero at the mean interface. Close to that vertical the tangent direction
+is downward, including at its top. Set
+\begin{equation}\label{geo:outside}
+ \begin{aligned}
+ Z_\mu&=(H_*,\mu),\qquad r_\mu=\norm{X-Z_\mu},\qquad
+ h_\mu=\min\{1,2(\mu-1/2)\},\\
+ v(X)&=\Phi(X;Z_\mu,-\mathbf e)+h_\mu(Z_\mu-X).
+ \end{aligned}
+\end{equation}
+
+\begin{lemma}[Agreement at the mean interface]\label{geo:interface}
+In $2/5<\mu<3/5$, the inside prescription extended to this slab equals
+$\Phi(X;Z_\mu,-\mathbf e)$. The outside extension, using
+$h_\mu=\max\{0,\min\{1,2(\mu-1/2)\}\}$, differs from it in norm by
+at most $12|\mu-1/2|$ and in each component by at most $6|\mu-1/2|$.
+Thus the definitions agree at $\mu=1/2$.
+\end{lemma}
+\begin{proof}
+Every nonvertical piece, including the bottom fillet, has fourth height
+at most $a_0<1/10$. Its distance to a point in the slab exceeds $3/10$,
+by the mean inequality $\norm{X_4-z\mathbf1}\ge|\mu-z|$.
+It cannot be in the $4\tau$ tube. The retained vertical contains all
+heights of this slab, and
+\[
+ m^{-1}\sum_j((X_4)_j-t)^2
+ =m^{-1}\sum_j((X_4)_j-\mu)^2+(t-\mu)^2
+\]
+shows that its nearest line point is $Z_\mu$. For $T=-\mathbf e$,
+the last annulus of~\eqref{geo:Phi} is already identically
+$\mathbf e$ at every $r\ge2\tau$. Consequently the same equality
+holds even where the closest curve piece is far away and the inside
+field is default. The desired endpoints have fourth height zero and
+the top has height two, so neither endpoint exception occurs in the
+slab. Each coordinate of $Z_\mu-X$ has magnitude at most three and
+its norm is at most six. Multiplication by
+$h_\mu\le2|\mu-1/2|$ proves both bounds.
+\end{proof}
+
+The projection is continuous wherever it is unique in the tube:
+if $X_n\to X$, compactness makes every subsequential limit of their
+projections a minimizer for $X$, hence the unique minimizer. Its tangent
+is continuous along the local chains. Formula~\eqref{geo:Phi} matches
+the default at $3\tau$, and Lemma~\ref{geo:interface} matches the mean
+interface. This proves precisely the continuity claimed in
+Theorem~\ref{thm:geometry}.
+
+\begin{proof}[Proof of the displacement assertion in Theorem~\ref{thm:geometry}]
+Choose $\beta_0>0$ satisfying all the upper bounds on $\beta$ used below.
+\paragraph{Inside the tube and in the inside default region.}
+First suppose $\mu\le1/2$ and $r=\dist(X,\mathcal L)\le3\tau$.
+For $r\le\tau$ the raw field is the convex combination of $T$ and
+the inward unit normal with coefficients $1-r/\tau,r/\tau$.
+For $\tau\le r\le2\tau$ it is the convex combination of $-T$ and
+the inward unit normal with coefficients $r/\tau-1,2-r/\tau$.
+The two directions in each combination are orthogonal. At $r=0$
+the field is $T$. In the third annulus the two unit directions are
+$-T,\mathbf e$, whose inner product is nonnegative. Therefore in all
+three annuli $\norm{v(X)}\ge1/\sqrt2$.
+
+Write $v=b+w(Z-X)$, where $\norm b_\infty\le C_t+1$ and
+$0\le w\le1/\tau$. All coordinates of $Z$ lie in $[0,1]$: for a
+vertical projection its height is at most $\mu+3\tau<1$, and all
+other pieces already have this property. Require
+$\beta/\tau\le1/2$ and $\beta(C_t+1)\le1/4$.
+The preliminary point $Y=X+\beta w(Z-X)$ lies in the box. If
+$|X_i-Z_i|<1/2$, then $-1/2<Y_i<3/2$, and the additional displacement
+$\beta b_i$ causes no clipping. The number of remaining coordinates,
+divided by $m$, is at most $4r^2\le36\tau^2$. At each, the clipping
+loss is at most $\beta(C_t+1)$ because $Y$ was in the box. The norm of
+all loss is at most $6\tau\beta(C_t+1)\le\beta/4$. Subtracting it
+from the raw displacement leaves at least $\beta/4$.
+
+In the inside default case, let $p$ be the fraction of fourth coordinates
+at most $7/4$. Since all entries are at least $-1$,
+\[
+ 1/2\ge\mu\ge-p+(7/4)(1-p),\qquad p\ge5/11.
+\]
+For $\beta\le1/4$ these coordinates retain the full upward displacement,
+giving norm at least $\beta\sqrt{5/11}$.
+
+\paragraph{Above the mean interface.}
+Now suppose $\mu\ge1/2$, and abbreviate $Z=Z_\mu$, $r=r_\mu$.
+The fourth coordinates of $Z-X$ have mean zero, so they are orthogonal
+to $\mathbf e$. Write $v=b\mathbf e+w(Z-X)$, with the scalar table
+\begin{equation}\label{geo:outside-coefficients}
+\begin{array}{c|cc}
+\text{radius}&b&w\\\hline
+0\le r\le\tau&-1+r/\tau&1/\tau+h_\mu\\
+\tau\le r\le2\tau&r/\tau-1&2/r-1/\tau+h_\mu\\
+r\ge2\tau&1&h_\mu
+\end{array}
+\end{equation}
+and hence
+\begin{equation}\label{geo:outside-norm}
+ |b|\le1,\quad0\le w\le w_{\max}:=1/\tau+1,
+ \quad b^2+w^2r^2\ge1/2.
+\end{equation}
+The last assertion follows from the two orthogonal components of the
+first two radial regimes; adding $h_\mu$ increases the nonnegative
+normal coefficient. In the last regime $b=1$. Require
+$\beta w_{\max}\le1/2$. The move toward $Z$ is a convex move inside
+the box, and horizontal coordinates undergo no further move or clipping.
+
+If $b<0$, then $r<\tau$. The subsequent downward step cannot clip at
+the upper boundary. Where $|(X_4)_j-\mu|<1/2$, the preliminary fourth
+coordinate is nonnegative since $\mu\ge1/2$, and the following step
+is at least $-\beta\ge-1$. Thus lower clipping can occur only on a
+fraction at most $4\tau^2$ of the fourth coordinates. Its loss on each
+is at most $\beta$, giving norm loss at most $2\tau\beta$. By
+\eqref{geo:outside-norm} this leaves at least $\beta/4$.
+
+It remains to treat $b\ge0$. Set
+\[
+ \sigma^2=m^{-1}\sum_j((X_4)_j-\mu)^2,\qquad
+ H=\norm{(X-Z)_{1,2,3}},\qquad r^2=H^2+\sigma^2,
+\]
+and choose a positive rational
+\begin{equation}\label{geo:eta-choice}
+ \eta\le\min\left\{\frac\tau2,\frac1{4w_{\max}},
+           \frac12\min\left(\frac12,\frac1{4w_{\max}}\right)\right\}.
+\end{equation}
+If $\sigma\ge\eta$, a uniform fourth coordinate satisfies
+\[
+ \sigma^2\le3\E|(X_4)_j-\mu|
+        =6\E(\mu-(X_4)_j)_+.
+\]
+Put $c=\eta^2/12$. Since the positive part is at most three,
+$\E(\mu-(X_4)_j)_+\ge\eta^2/6$ implies that a fraction at least
+$\eta^2/36$ have $\mu-(X_4)_j\ge c$: otherwise its expectation
+would be less than $c+3\eta^2/36=\eta^2/6$.
+On those coordinates the room to the upper boundary is at least $c$.
+Also $b+wc\ge c/12$. Indeed~\eqref{geo:outside-norm} and $r\le6$
+imply that either $b\ge1/2$ or $w\ge1/12$; $c<1$ handles the first
+alternative. For $\beta\le1$, clipping therefore retains displacement
+at least $\beta c/12$ on that fraction. Its norm is at least
+$\beta\eta^3/864$.
+
+Suppose instead $\sigma<\eta$. If $wH\ge\tau/4$, the horizontal
+displacement, which is not clipped, is at least $\beta\tau/4$.
+Otherwise~\eqref{geo:outside-norm} gives
+\[
+ b^2\ge\frac12-w^2H^2-w^2\sigma^2
+       \ge\frac12-\frac{\tau^2}{16}-w_{\max}^2\eta^2
+       \ge\frac38,
+\]
+so $b\ge1/2$. If $\mu\le1$, let
+$d_0=\min\{1/2,1/(4w_{\max})\}$. By~\eqref{geo:eta-choice}, at
+least three quarters of the fourth coordinates have deviation from
+$\mu$ at most $d_0$. Their upper room is at least $1/2$, and their
+velocity is at least $b-w_{\max}d_0\ge1/4$. They retain at least
+$\beta/4$ for $\beta\le1$, giving norm at least
+$\sqrt3\beta/8>\beta/8$. If $\mu>1$, then $h_\mu=1$, $w\ge1$,
+and $b\ge0$ in~\eqref{geo:outside-coefficients} requires $r\ge\tau$.
+It follows that
+\[
+ wH\ge H\ge\sqrt{\tau^2-\eta^2}\ge\sqrt3\tau/2,
+\]
+contrary to the remaining case assumption. This exhausts all outside
+points, including the upper face. At $(H_*,2)$, $r=0$ and the formula
+gives $v=-\mathbf e$ exactly.
+
+Take positive rational
+$c_*\le\min\{1/8,\tau/4,\eta^3/864\}$ and positive rational
+$\beta_0$ satisfying all restrictions just made. All coordinate
+differences used in the formulas have magnitude at most three, so any
+integer $B_1\ge C_t+6+3/\tau$ satisfies~\eqref{geo:bounded-field},
+including the zero convention near inside endpoints. These choices
+depend only on the previously fixed geometric constants. This completes
+the proof of Theorem~\ref{thm:geometry}.
+\end{proof}
+
+\subsection{The local-access contract}
+\label{geo:access}
+
+We next state the information needed to approximate this particular
+field. All probability statements below are for a fixed physical vector
+$X$, averaged over a uniform physical component $I\in[4m]$ and the
+public trial randomness. Write $J=1+((I-1)\bmod m)$ for its word
+coordinate. Fix a common threshold $\xi\in[2/5,3/5]$ and round the
+first two blocks at $\xi$. The two resulting binary words $y_1,y_2$
+are fixed, although the procedures only read requested coordinates.
+Any scalar-quantization offset may also be fixed throughout the following
+contract and accuracy analysis.
+
+\begin{definition}[Admissible local access]\label{geo:access-contract}
+An \emph{oracle access implementation} satisfies parts (a)--(c) below
+and the following operational condition. At its declared oracle level,
+each supplied bit or decision routine uses a bounded tree of completed
+Boolean answers, apart from public index computations. Every input,
+including an input outside a correctness promise, gives Boolean answers
+or public defaults. After its requested accuracies are fixed, the
+oracle tree and its symbolic query roles are bounded independently of
+$m$ and remain fixed under refinement of threshold-offset grids.
+These conditions impose no constant bound on the physical circuit
+realizing a completed oracle answer. Part (d) is an additional
+\emph{physical-read hypothesis}, required only when a conclusion about
+the fully expanded physical reads is explicitly invoked. All constants
+are uniform in $m$, $X$, and admissible fixed offsets. Geometric and
+validation radii and the reference rule below are fixed before
+reliability and numerical accuracy choices. Operational, sample,
+repetition, and read-density bounds may depend on the requested fixed
+accuracies as well as the encoding construction.
+\begin{enumerate}[label=\textup{(\alph*)},leftmargin=*]
+\item\label{geo:access-validation}
+Each seed has a validation decision whose failure probability can be
+made any prescribed fixed positive number. For fixed $y_s$ there is
+either no valid reference or a single fixed vertex $u_s$ such that, off
+the validation failure event, acceptance identifies $u_s$. This
+reference is independent of the actual random acceptance decision.
+It is also independent of requested confidence and numerical accuracy.
+If $\norm{X_s-E_u}\le5\tau$, off that failure event the seed is
+accepted with reference $u$. Intermediate seeds with a proper reference
+may be accepted or rejected. An accepted seed is used only through
+local routines, not through a globally decoded vertex name.
+\item\label{geo:access-bits}
+For any accepted reference, incident-edge flags can be supplied with
+arbitrarily small fixed error, and bits of its own and its actual
+immediate neighbors' encodings can be supplied with any prescribed
+fixed average error. The same bit guarantee holds for $E_{w_*}$ and
+the encoding of its actual successor, even if neither seed is accepted.
+These special words may be public or virtual.
+
+The bit guarantee is unconditioned for each fixed relevant symbolic
+role and branch: a request at a whole-word coordinate with density at
+most a fixed constant times $1/m$ has the asserted error under its
+given request law. It is not a guarantee conditional on selecting that
+branch. Requests to different word operands may use the same complete
+coordinate. The guarantee is required for the matching coordinate $J$
+and for all preallocated statistical coordinates below. A finite union
+of role or fixed block-type alternatives is allowed.
+\item\label{geo:access-statistics}
+For every finite family of bounded functions $f:[m]\to\mathbb R$
+fixed by $X$, the rounded seeds' possible actual references, and their
+actual candidate data, one can choose fixed sample counts so that each
+sample average estimates $m^{-1}\sum_jf(j)$ to any prescribed fixed
+additive tolerance with any prescribed fixed failure probability.
+The law is again unconditioned under $(I,\text{trial})$, for each fixed
+relevant role alternative. Every individual sampled word coordinate has
+uniform marginal, or the prescribed bounded-density marginal supported
+by the same bit-access guarantee. Corresponding word operands and
+physical blocks are evaluated at matching coordinates.
+
+Independent uniform samples satisfy this requirement. Other sample
+schemes are permitted if their concentration statement holds for the
+fixed underlying functions in this sense; samples and different batches
+need not be independent after averaging over $I$.
+\item\label{geo:access-finite}
+\emph{Additional physical-read hypothesis.} After a fixed accuracy has
+been specified, every supplied routine has a realization with a bounded
+number of primitive physical read answers and bounded Boolean
+processing, apart from public index computations. The bound is
+independent of $m$. On every fixed branch of its complete physical
+answer tree, including branches with wrong earlier answers, the
+unconditioned marginal of each raw address in a physical domain of
+size $M$ is at most $C/M$, with a fixed $C$. A branch that uses public
+data need not make a physical read. These bounds hold
+uniformly in admissible offsets, whose refinement changes comparison
+constants and not address primitives or numbers of hidden-answer slots.
+On each fixed symbolic answer branch, the address rule itself is
+independent of the numerical values of these offsets.
+\end{enumerate}
+\end{definition}
+
+Part~\ref{geo:access-bits} controls accuracy of a completed logical call
+on a fixed valid reference. The optional
+part~\ref{geo:access-finite} additionally controls physical reads on
+every wired branch, whether or not it is accurate or executed. The
+inner implementation of Section~\ref{sec:inner-gadget} satisfies this
+additional hypothesis. The outer construction invokes only the oracle
+contract: its ideal functional answers are subsequently replaced by
+gadgets of polynomial size in the port length. Its fixed direct-read
+count $H_{\rm out}$ and functional-invocation count $B_{\rm out}$,
+followed by Theorem~\ref{thm:port-gadget} and
+Lemma~\ref{out:routing}, account separately for that physical
+substitution. We do not assert a size-independent physical read count
+for the expanded outer construction. Neither application requires
+per-coordinate correctness.
+
+The physical completeness condition in part~\ref{geo:access-validation}
+is obtained from a binary completeness radius $\rho_{\rm comp}>0$ by
+the initial choice
+\begin{equation}\label{geo:rounding-radius}
+ \frac{(5\tau)^2}{(2/5)^2}<\rho_{\rm comp}.
+\end{equation}
+Indeed a rounded error relative to a binary coordinate costs squared
+physical error at least $(2/5)^2$ for every allowed $\xi$. An
+acceptance radius smaller than half the encoding's relative Hamming
+distance makes its reference unique. In the inner application this
+reference must lie on the path for the fixed true input tuple, exactly
+as established by the validation in Section~\ref{sec:inner-gadget}.
+
+\begin{remark}[Whole-word coordinates in the inner application]
+A matching target is a whole encoding coordinate. In a product block
+called $Z$, that coordinate includes both internal labels of the product.
+Using the same whole coordinate in $E_u$ and $E_v$ preserves the supplied
+joint request law; it does not replace the two internal labels of either
+word by a diagonal pair.
+
+For mixed public and variable products in the virtual source, the joint
+density bound gives the marginal bound
+\[
+ p(x,y)\le\frac{C}{|A||B|}
+ \quad\Longrightarrow\quad
+ \sum_{y\in B}p(x,y)\le\frac C{|A|}.
+\]
+The product becomes an additive form on the variable operand. That form
+may depend on the public operand and the discarded coordinate, but it
+does not use that coordinate to select a new variable address.
+Same-positive-tag products retain the whole pair, as required by
+Lemma~\ref{lem:inner-binary-interface}. Lemma~\ref{ig:virtual-source}
+proves this transport from the actual source and first successor to the
+fixed dummy ports. Thus their virtual supply has exactly the
+whole-coordinate access required by the contract.
+\end{remark}
+
+\begin{lemma}[Geometric procedures]\label{lem:geometric-procedures}
+Fix the geometric constants of Theorem~\ref{thm:geometry} and an
+oracle access implementation satisfying parts (a)--(c) and the
+operational condition of Definition~\ref{geo:access-contract}.
+For every fixed $a>0$ there is a finite local numerical schema with
+properties (i)--(iii) below. Property (iv) additionally assumes the
+physical-read hypothesis~\ref{geo:access-finite}.
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=*]
+\item It returns a signed value $\widehat v_I(X)$ on a fixed dyadic grid
+inside $[-B_1,B_1]$. It terminates and is bounded on every input and
+every trial. For every fixed $X$ with $\dist(X,\mathcal E)>10\tau$,
+and conditional on each fixed admissible binary threshold and
+scalar-quantization offset,
+\begin{equation}\label{geo:average-accuracy}
+ 4\E_{I,\,\mathrm{trial}}
+       |\widehat v_I(X)-v_I(X)|^2\le a^2.
+\end{equation}
+\item At fixed rounded seeds, correct decisions refer to at most eight
+true-word roles and 32 actual piece roles. Meshes, scalar tolerances,
+sample counts, and all statistical and final matching bit requests
+are fixed before choosing the smaller bit-error budgets, and all final
+matching requests are allocated before numerical minimization.
+\item Apart from the supplied routines and public index computations,
+the schema uses finitely many scalar comparisons and bounded Boolean
+lookup. Its only word-coordinate address primitives are the matching
+coordinate and the preallocated statistical coordinates. This remains
+true on every hypothetical wrong or default branch.
+If the oracle-level public spaces, probabilities, routine descriptions,
+and address computations are uniformly enumerable with polynomial
+support, time, and rational-probability bit complexity in a caller's
+size parameter, the composed oracle-level schema has those properties
+as well. This does not include physical expansion of an oracle call.
+\item If in addition the physical-read
+hypothesis~\ref{geo:access-finite} holds, then, once all accuracies and
+implementation counts have been fixed, the fully unfolded physical
+primitive tree has a fixed number $H$ of possible read slots. For each
+physical domain of size $M$, its unconditioned
+expected occurrence count at any fixed position, averaged over $I$
+and public trials, is at most $C/M$, for a fixed sum $C$ of slot
+density bounds. Both $H,C$ remain fixed under subsequent refinement
+of threshold-offset grids. Under the corresponding polynomial
+enumerability premise for these physical realizations, the fully
+expanded physical schema also has the enumerability properties in
+part (iii).
+\end{enumerate}
+Every choice concerns the unscaled field. In particular none depends
+on a subsequently chosen $0<\beta\le\beta_0$.
+\end{lemma}
+
+\subsection{A finite list covering every close piece}
+\label{geo:candidates}
+
+From a seed reference $u$, reserve the encoding roles for $u$, its
+predecessor, and its successor. Reserve its two possible incident edge
+roles. For each actual incident edge list the four retained straight
+segments and its three internal fillets. The trim convention uses the
+same $a_0$ at both outer ends regardless of whether those ends are
+shared, so these seven pieces need only their two endpoint words.
+When both graph edges at $u$ exist, also list the graph-junction fillet
+at $u$. The incoming direction there is the fixed downward third-block
+direction, so the junction needs only $E_u$, the outgoing neighbor,
+and the two flags. Apply this procedure to both seeds.
+
+Always add the special retained vertical and its bottom fillet using
+the distinguished source and its actual successor. These two pieces
+are present even on a trial with no accepted seed. The ordinary
+junction rule requires both graph edges and therefore never invents
+another junction at the source, which has no graph predecessor.
+There is no need to recognize the source by comparing hidden names.
+
+This is the following explicit reservation schedule; duplicate roles
+do no harm.
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Reserved roles&Word roles&Piece roles\\
+\midrule
+Self, predecessor, successor for two seeds&6&0\\
+Four incident edges, seven pieces each&0&28\\
+Two ordinary junctions&0&2\\
+Distinguished source and actual successor&2&0\\
+Special vertical and bottom fillet&0&2\\
+\midrule
+Total upper bound&8&32\\
+\bottomrule
+\end{tabular}
+\end{center}
+On good validation and flag answers, the admitted roles are actual
+pieces. A gray acceptance merely chooses whether to include one fixed
+reference's list. For fixed $X,\xi$, all possible underlying actual
+words and pieces in the table are fixed independently of later accuracy
+choices and numerical decisions.
+
+\begin{lemma}[Two-seed coverage]\label{geo:coverage}
+Every non-special piece has either its first or its second block fixed
+to an encoding of a vertex whose seed generates it. Consequently,
+on the strong-completeness and flag good event, every piece at distance
+at most $4\tau$ from $X$ is included in the reserved candidate list.
+\end{lemma}
+\begin{proof}
+For $u\to v$, its first segment, first fillet, and upward toggle have
+first block $E_u$. The fillet from that toggle to the block-$1$
+segment, the block-$1$ segment, and its fillet to the downward toggle
+have second block $E_v$. The downward toggle has both blocks $E_v$.
+An ordinary graph-junction fillet at $u$ changes only blocks $3$ and
+$2$, so its first block is $E_u$. In each case the stated vertex
+generates the piece from its incident data. If the piece is within
+$4\tau$ of $X$, its fixed block is within $4\tau$ of the corresponding
+physical block. Part~\ref{geo:access-validation} of the contract
+therefore accepts that seed with its true reference. Correct flags
+include the piece. The two special pieces are included unconditionally.
+Gray acceptance cannot remove a piece required by this argument; it
+can only add or remove other actual pieces.
+\end{proof}
+
+\subsection{Numerical data and the order of their estimation}
+\label{geo:numerical}
+
+Put a finite parameter mesh, including endpoints, on each straight
+piece and each angle interval $[0,\pi/2]$ of a fillet. All original
+lengths are at most two, so a sufficiently fine fixed mesh gives
+maximum arclength spacing at most any prescribed fixed $D>0$.
+For the proof, a mesh entry means its exact point $Z'$ and its exact
+tangent on its underlying actual piece. The implementation computes
+approximations to these entries.
+
+At most five endpoint-word distance statistics are needed: the four
+ordinary edge roles and the special edge. Each estimates
+\begin{equation}\label{geo:length-statistic}
+ \ell_{uv}^2=m^{-1}\sum_{j=1}^m(E_u(j)-E_v(j))^2.
+\end{equation}
+Use the same coordinate in the two words. The true nonconstant
+lengths are in $[d_*,1]$; clamp their estimated square roots to
+$[d_*/2,2]$. The formulas for trim points, straight tangents, and
+\eqref{geo:fillet}--\eqref{geo:fillet-tangent} then have only bounded
+denominators separated from zero. Their coordinates are uniformly
+continuous functions of the endpoint bits at that coordinate, the
+lengths, and the finitely many fixed trigonometric mesh constants.
+Thus correct endpoint bits and sufficiently accurate length and public
+constant approximations give any desired component error, uniformly
+in the coordinate and in $m$. A component error at most $z$ everywhere
+gives full-vector norm error at most $2z$.
+
+Also estimate the fourth-block mean $\mu$. For each of the at most
+32 meshed roles, estimate each exact mesh point's squared distance by
+the sum of its four block means,
+\begin{equation}\label{geo:mesh-statistic}
+ \norm{X-Z'}^2
+   =\sum_{b=1}^4m^{-1}\sum_j(X_b(j)-Z'_b(j))^2.
+\end{equation}
+Finally reserve the corresponding outside-radius statistic for the
+exact point $Z_\mu$. Physical samples and endpoint-bit samples in a
+summand use the same $j$. One may use separate batches for every
+statistic and alternative role. Before a numerical winner is selected,
+reserve the final matching-coordinate requests for all eight word
+roles, as well as the matching physical coordinate. Inactive requests
+may later be omitted or use public defaults.
+
+These data define the numerical estimator. Use the estimated mean to
+choose the inside or outside prescription, with a fixed rule at equality.
+For the inside prescription, select an admitted mesh entry with minimum
+estimated squared distance, again with a fixed rule for ties. Clamp that
+estimate at zero and take its square root. Substitute this scalar radius,
+the computed tangent component, and the computed component of $Z'-X$
+into the component formula~\eqref{geo:Phi}; its last regime gives the
+default value. The radius is supplied by the statistic, not by a
+full-vector norm computation. For the outside prescription, clamp the
+outside squared-radius estimate at zero and take its square root. Use
+this radius, the estimated mean, and the special matching bits in
+\eqref{geo:outside}. Bounded clamping and final dyadic rounding
+will make this a bounded procedure on every trial. We next prove that
+the estimates are accurate and that the resulting component is stable
+under approximate minimization and side selection.
+
+Here is a precise reason that estimates based on earlier approximate
+lengths still satisfy the required concentration statement. Fix $X$, the
+rounded seeds, and one possible actual reference assignment. The exact
+functions in~\eqref{geo:length-statistic}, $\mu$,
+\eqref{geo:mesh-statistic}, and the outside-radius statistic are fixed
+functions of the sample index; they do not depend on an estimated
+length or a numerical winner. They have bounded ranges: a squared
+physical difference is at most nine, and the sum of four such terms
+is at most 36. Apply part~\ref{geo:access-statistics} to these exact
+functions. On the event of correct sampled bits, earlier good length
+estimates and good numerical constants perturb every implemented
+summand by a uniformly small amount. For example if $|z-z'|\le t$
+and $x,z,z'\in[-2,3]$, then
+\[
+ |(x-z)^2-(x-z')^2|
+   =|z-z'||2x-z-z'|\le10t.
+\]
+Clamps keep all approximations in one such fixed range. The analogous
+bound for replacing a physical read by its quantized representative
+is the same. For the outside point, a good mean estimate changes all
+fourth coordinates by at most its scalar error; the other coordinates
+use special-word bits. It follows that concentration of the exact
+statistics yields accuracy of all implemented statistics after these
+small deterministic perturbations. No assertion conditioned on the
+earlier estimates is being used.
+
+For independent uniform sampling, this concentration needs no external
+input. If $|f|\le M$, independence gives
+$\operatorname{Var}(q^{-1}\sum_{j=1}^q f(K_j))\le M^2/q$.
+Chebyshev's inequality gives failure probability at most
+$M^2/(qz^2)$ at tolerance $z$; a union bound handles the fixed finite
+list. In the outer application the batches are instead stationary
+under the output-coordinate average. The concentration calculation in
+Section~\ref{sec:outer-composition} supplies the same required small
+failure probabilities for these fixed functions. The geometry uses
+that conclusion, and does not condition on a gray acceptance pattern,
+a realized mesh winner, or a particular output coordinate.
+
+\begin{lemma}[Uniform component stability]\label{geo:stability}
+Fix a positive desired component error $e$. Mesh resolution,
+quantization width, scalar tolerances, and precision of public constants
+can be chosen so that, whenever all relevant decisions, exact scalar
+statistics, and requested bits are good, the local procedure's component
+error is at most $e$ at every $X$ outside the endpoint neighborhood.
+The bound holds for every output coordinate, even if the approximate
+winner depends on that coordinate. It also holds with arbitrary tie
+choices between numerically minimizing entries.
+\end{lemma}
+\begin{proof}
+For the inside prescription, consider the selected mesh entry.
+Let $z>0$ bound every squared-distance error, including the parameter,
+bit, quantization, and scalar-statistic errors just discussed. Suppose
+first that $r=\dist(X,\mathcal L)\le3\tau$. By
+Lemma~\ref{geo:coverage}, a minimizing piece is present. A mesh point
+at arclength at most $D$ from its projection has squared excess at most
+$2rD+D^2$. Every admitted exact entry is on the actual curve, so none
+has negative excess. The exact point $Z'$ underlying the approximate
+winner therefore has
+\begin{equation}\label{geo:winner-excess}
+ 0\le g=\norm{X-Z'}^2-r^2\le2rD+D^2+2z.
+\end{equation}
+Choose $D,z$ first small enough that the right side is at most
+$\tau^2$, and then still smaller as required. Equations
+\eqref{geo:point-error}--\eqref{geo:tangent-error} show that both its
+point and tangent approach those of the true projection in infinity
+norm, uniformly. Correct endpoint bits at the final matching coordinate
+also make its computed point and tangent close to their exact values.
+Clamping a squared-radius estimate at zero and taking square root is
+uniformly continuous on the fixed bounded interval. Consequently its
+estimated radius approaches $r$.
+
+Each component of~\eqref{geo:Phi} is a bounded continuous expression
+in that radius, the tangent component, and the components of $Z-X$.
+The formulas match at $\tau,2\tau,3\tau$, and the only reciprocal
+radius is protected by $r\ge\tau$ in its regime. Safe clamping can be
+used at approximate regime boundaries. Uniform continuity on these
+fixed compact ranges proves the desired component error. Crucially,
+the infinity-norm bounds hold for every good candidate satisfying
+\eqref{geo:winner-excess}; they therefore also hold when the chosen
+candidate is correlated with the requested coordinate.
+
+If the true inside radius is $r>3\tau$, the true field is default.
+Every actual candidate entry has distance at least $r$. Good squared
+distance estimates can yield a nondefault computed expression only
+arbitrarily near the $3\tau$ cutoff as $z$ tends to zero. Near that
+cutoff the coefficient of $T$ tends to zero and the coefficient of
+$\mathbf e$ tends to one, uniformly on the clamped coordinate ranges.
+Thus the computed value approaches default. If its radius estimate is
+at least $3\tau$, it is already default. Coverage far from the curve
+is not needed in either case.
+
+For the outside prescription, use the special bits, the estimated mean
+and outside squared radius in~\eqref{geo:outside}. Correct special
+matching bits and good statistics make all its scalar and coordinate
+arguments close to their exact values. The same protected denominators
+and compact-range continuity apply, and $h_\mu$ is continuous. This
+includes the special top, where the exact value is $-\mathbf e$.
+
+Finally consider the choice between the inside and outside computations.
+If it differs from the side of the true mean, a good
+estimate forces $|\mu-1/2|$ to be small. In the interface slab all
+endpoints remain far, and the only possible close piece is the always
+included vertical. The inside computation is therefore valid for the
+inside prescription extended to that slab. The outside computation is
+valid for its extension using the clamped $h_\mu$. By
+Lemma~\ref{geo:interface}, the two target values differ componentwise
+by at most $6|\mu-1/2|$. Adding that error proves stability even with
+the wrong side choice. These cases include exact mean, radius, and
+minimum ties, without requiring a reliable hidden-real comparison at
+zero gap.
+\end{proof}
+
+\subsection{Average accuracy and finite answer trees}
+\label{geo:finite-schema}
+
+\begin{proof}[Proof of Lemma~\ref{lem:geometric-procedures}]
+\paragraph{Oracle accuracy with fixed references.}
+Fix a desired $a>0$. Choose a component error $e>0$ and failure budget
+$p>0$ so that
+\begin{equation}\label{geo:accuracy-budget}
+ 4e^2+16B_1^2p<a^2.
+\end{equation}
+First choose the mesh, scalar tolerances, quantization width, and public
+numerical precision for Lemma~\ref{geo:stability}, with slack for final
+output rounding. Fix scalar sample counts that give its concentration
+events a total failure probability below a chosen part of $p$.
+The eight word roles, 32 piece roles, five possible length statistics,
+mean, mesh-distance statistics, and outside-radius statistic now
+determine a fixed number $N_{\rm call}$ of high-level completed calls. This count
+includes all sampled bit requests and all matching final bit requests
+over the possible relevant true references and flag alternatives.
+
+Make validation and edge-flag errors small enough for their total budget.
+For every remaining high-level bit call require average error smaller
+than the allocated part of $p/N_{\rm call}$. Analyze each call on its possible
+fixed reference before conditioning on acceptance or on the numerical
+winner. Parts~\ref{geo:access-validation}--\ref{geo:access-statistics}
+of the access contract and a union bound then charge the event of
+\emph{any} required bit, decision, or statistical error by at most
+$p$. Independence of these events is unnecessary. A fixed reference
+does not have to be selected on every good trial; the unconditioned
+analysis simply pays for its possible calls in advance. Validation
+failures, including any acceptance with no proper reference, are
+charged separately. The two special-word roles are charged in exactly
+the same way when their supply is virtual.
+
+On the complement of the charged failure event, component error is
+at most $e$ by Lemma~\ref{geo:stability} and the planned final rounding.
+On every outcome clamp the numerical answer to $[-B_1,B_1]$ and round
+to a sufficiently fine fixed dyadic grid there. Detected invalid
+numerical inputs may return any fixed bounded default. Undetected
+incorrect choices are already included in the failure event. The true
+field satisfies~\eqref{geo:bounded-field}, so the component error on
+an arbitrary outcome is at most $2B_1$. Hence
+\[
+ 4\E|\widehat v_I(X)-v_I(X)|^2
+    \le4e^2+16B_1^2p<a^2.
+\]
+This proves~\eqref{geo:average-accuracy} unconditionally over the
+output-coordinate and trial law. It does not assert correctness
+conditioned on a rare selected coordinate or branch. The proof began
+with arbitrary fixed admissible offsets, so it applies to each such
+pair, and therefore also after averaging any chosen laws on them.
+
+\paragraph{Finite oracle implementation.}
+Here are the finite implementation and raw-address details. Fix a small
+rational bin width $h>0$ and compare each physical scalar read to
+thresholds $a+kh+\zeta$ on a fixed interval larger than $[-1,2]$,
+where $\zeta$ is an offset modulo $h$. Clamp at the endpoints.
+Representatives can depend just on the bin number, on a fixed rational
+grid, and are within $O(h)$ of the input for every $\zeta$. This
+error was included in the earlier tolerance choice. Comparisons whose
+answers are forced by the allowed physical range can be public.
+Seed bits use the common threshold $\xi$. Each offset may eventually
+range over a fine finite rational grid. No numerical assertion above
+requires a continuous offset distribution.
+
+There are now only finitely many bits and bin indices in the geometric
+computation. Public rational approximations to the fixed mesh sine and
+cosine values, protected length normalizations, clamped square roots,
+and all other numerical expressions can be tabulated to the chosen
+precision. Bounded Boolean lookup implements the resulting answer
+function. In particular neither an exact curve minimum nor an
+unbounded hidden vertex name or transcript is processed by the local
+Boolean computation. Public index arithmetic and any caller-specific
+field or interpolation calculations are performed when constructing
+the corresponding fixed branch and its wiring.
+
+Wrong validation, flag, or type answers can invoke a reserved symbolic
+routine on an unsuitable seed or select another reserved role. Wrong
+length, radius, side, or minimum answers select a fixed mesh or lookup
+case. None of these answers supplies a new word-coordinate address:
+statistical coordinates remain the preallocated coordinates and final
+data remain at $J$. Inactive or nonsensical roles may use public-zero
+defaults, which require no query to a distinguished physical position.
+Consequently direct scalar reads have the matching or prescribed
+statistical marginals on every fixed hypothetical oracle branch. This
+proves the structural assertion of part (iii), without inspecting the
+physical realization of a supplied oracle answer. A constant number
+of choices from polynomially enumerable oracle-level public spaces
+has polynomial support; a constant product of rational probabilities
+of polynomial bit complexity has polynomial bit complexity. Public
+indices, oracle descriptions, and bounded answer tables retain the
+same polynomial construction bound. This proves the oracle-level
+enumerability assertion of part (iii).
+
+\paragraph{Physical read load under the additional hypothesis.}
+For part (iv), now assume the additional physical-read
+hypothesis~\ref{geo:access-finite}. The supplied routines then have
+its all-branch primitive bounds, even on unsuitable seeds.
+
+Only at this point, after all requested accuracies and the repetitions
+implementing them have been fixed, unfold the full lower-level answer
+tree. Give unused possible nodes their prescribed public random choices
+as well. It has a fixed finite number $H$ of potential primitive slots.
+For a domain of size $M$, let $C_\ell/M$ bound the probability that
+slot $\ell$ reads any specified position, for its fixed symbolic branch
+under the unconditioned public law. A slot not using this domain has
+$C_\ell=0$. Summing gives
+\begin{equation}\label{geo:raw-load}
+ \E_{I,\,\mathrm{trial}}
+       [\text{number of potential reads of position }j]
+ \le\frac{\sum_{\ell=1}^H C_\ell}{M}
+ =\frac C M.
+\end{equation}
+This counts all wired possibilities rather than conditioning on the
+executed path. Omitting an inactive occurrence only reduces its
+unconditioned mass. In particular this argument does not require
+accuracy on wrong branches. The high-level count $N_{\rm call}$ used for the
+correctness union bound preceded amplification; the larger count $H$
+is used for raw load and subsequent gate-failure accounting. It is
+not fed back into the choice of the accuracy that determines $H$.
+
+Refining offset grids changes the values of thresholds for a fixed
+finite set of comparisons. It changes neither the bin width and bin
+count, nor the mesh, nor the symbolic answer-tree slots, nor a
+fixed branch's address primitive. Thus $H$ and $C$ remain uniform
+under that refinement. Under the stated polynomial enumerability
+premise for the physical routines, a constant number of their public
+choices, also at unused tree nodes, again has polynomial support and
+rational-probability bit complexity. Their public addresses and bounded
+answer tables are constructed in polynomial time. This proves the
+physical enumerability assertion of part (iv) and completes the proof.
+\end{proof}
+
+\begin{remark}[Late margins under physical realization]\label{geo:late-margins}
+Assume the additional physical-read
+hypothesis~\ref{geo:access-finite}. Its grid uniformity explains the
+margin order for the fully expanded physical schema in part (iv).
+Once the full number of physical comparison slots is fixed, a
+uniform $K$-point threshold grid on an interval of length $L_0>0$
+satisfies, for every fixed scalar $x$,
+\[
+ \Pr(|x-\xi|\le d)\le2/K+4d/L_0.
+\]
+For an offset grid modulo $h$, the probability of lying within $d$
+of any bin boundary is at most $4/K+8d/h$. To see these bounds,
+intersect the relevant interval of length $2d$ with the equally spaced
+grid; each interval contains at most its length divided by the mesh
+spacing plus two points. Modulo $h$ there are at most two intervals
+after wraparound. These enlarged constants cover the endpoints.
+
+Fix an output coordinate and all nonthreshold public choices on every
+hypothetical branch. Each possible raw address is then fixed under
+the address contract, regardless of the eventual branch. A union bound
+over their fixed finite list, first choosing the offset grids fine
+enough and then a positive rational margin small enough, makes the
+probability of any small-gap comparison as small as prescribed,
+uniformly in $X$. No search over offsets or enlargement of the
+hidden-answer tree is involved. These margin losses are separate from
+\eqref{geo:average-accuracy}; the latter already holds for each fixed
+admissible offset. Occurrence-dependent perturbations within the margin
+are allowed because the full list was charged before following any
+branch. For an application using only the oracle contract, this
+argument does not account for physical comparisons inside substituted
+oracle gadgets. The outer construction uses its own direct-read and
+functional-boundary margin analysis in
+Section~\ref{sec:outer-composition}, together with the port theorem
+and its separate physical substitution count.
+\end{remark}
+
+The geometric procedures are now proved independently of both circuit
+constructions. Together with the port construction in
+Section~\ref{sec:inner-gadget}, they establish the two interfaces used in
+Section~\ref{sec:outer-composition}, completing the proof of
+Theorem~\ref{thm:main}.

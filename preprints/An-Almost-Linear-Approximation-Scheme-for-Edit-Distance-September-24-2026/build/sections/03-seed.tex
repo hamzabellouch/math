@@ -1,0 +1,342 @@
+\section{Simultaneous coarse estimates}\label{sec:seed}
+
+The refinement will need an integer estimate at every interval state, including
+states chosen adaptively by later computations.  We construct these estimates
+as a random table, while evaluating only the entries that are requested.  The
+construction builds on tree and precision-sampling ideas of Andoni,
+Krauthgamer, and Onak~\cite{AndoniKrauthgamerOnak2010}; the complete bounds
+needed here are proved below.
+
+\begin{theorem}[Initial estimates]\label{thm:seed}
+With the parameters and labeled interval tree of Section~\ref{sec:geometry},
+there is a lazily evaluated random table $U^{(0)}(I,q)$ of integers in $[0,N]$
+such that, with probability at least $0.99$, simultaneously at every state,
+\begin{equation}\label{eq:seed-guarantee}
+ c(I,q)\le U^{(0)}(I,q)\le A_{\mathrm{init}}c(I,q).
+\end{equation}
+Every zero-cost state has value zero on every execution.  Conditional on any
+first request for an entry and the previously exposed randomness, its expected
+evaluation cost is at most $(1+|I|)2^{o(H)}$, uniformly in the state.  This cost
+bound includes arithmetic and random sampling and does not require
+\eqref{eq:seed-guarantee} to hold.
+\end{theorem}
+
+\subsection{A deterministic shift tree}
+
+The hierarchical representation below is an adaptation of the
+E-distance of Andoni, Krauthgamer and Onak~\cite[Definition~3.2 and
+Theorem~3.3]{AndoniKrauthgamerOnak2010}. We prove its precise bounds here,
+including the treatment of unequal lengths, empty intervals and bounded
+integer shifts.
+
+Fix one state and write $n_x=|I|$, $n_y=q^+-q^-$, and $c=c(I,q)$.  If
+$n_y>2n_x$, return $n_y$: the bounds $n_y-n_x\le c\le n_y$ give the required
+factor two.  Otherwise
+test equality directly and return zero when the strings agree.  These steps
+cost $O(1+n_x)$, since in the branch requiring character comparisons
+$n_y\le2n_x$.  They include the case $n_x=0$.
+
+For the remaining case, pad the shorter string at its right end with a fresh
+tagged symbol to obtain two strings of the same length $n\le2n_x$.  Denote their
+distance by $d$.  The length gap is at most $c$, so $d\le2c$.  Conversely,
+remove padding from any padded alignment.  A diagonal joining padding to a
+real character has cost one and can be replaced by an insertion or deletion
+of the same cost; other operations consuming padding can be removed.  Hence
+\begin{equation}\label{eq:padding-comparison}
+ 1\le c\le d\le2c,\qquad 1\le n\le N,\qquad d\le n.
+\end{equation}
+The last bound follows by substituting characters position by position.
+
+For each dyadic guess
+\[
+ k\in\{1,2,4,\ldots,2^{\ceil{\log_2 n}}\},
+\]
+split the first padded string in a complete balanced $B$-ary tree of depth
+$D_0=\ceil{\log_B n}$.  Its leaves have width zero or one.  Allowed shifts are
+the integers in $[-k,k]$.  At a width-one leaf $w$ starting at position $j$,
+let $T_w(v)$ be the mismatch indicator between its character and position
+$j+1+v$ of the second padded string.  A position outside the latter string
+has a virtual symbol that always mismatches.  At a width-zero leaf put
+$T_w(v)=0$.  At an internal node define
+\begin{equation}\label{eq:coarse-tree}
+ T_w(v)=\sum_{i=1}^B\min_{v'\in[-k,k]\cap\Z}
+       \{T_{w_i}(v')+2|v-v'|\}.
+\end{equation}
+Constant shifts show that $0\le T_w(v)\le |w|$, where $|w|$ denotes the node's
+width.
+
+The virtual symbols are chosen outside the alphabets of both padded
+strings. Thus every leaf value is an edit cost against a finite interval
+of an extended target string, to which Lemma~\ref{lem:geometry} applies.
+
+\begin{lemma}\label{lem:shift-tree}
+At the root $o$,
+\[
+ d\le T_o(0),\qquad
+ T_o(0)\le(1+2BD_0)d\quad\hbox{if }k\ge d.
+\]
+\end{lemma}
+\begin{proof}
+The recurrence minimizes the sum of leaf mismatches and twice the total
+absolute shift difference along tree edges, with root shift zero.  For any
+assignment, concatenate the shifted leaf target intervals.  By traversing
+the tree in depth-first order, the sum of jumps between consecutive leaf
+intervals, including the connections to the outer endpoints, is at most
+twice the sum of edge shift differences.  The connection inequality from
+Section~\ref{sec:geometry}, including its virtual-position version, therefore
+bounds $d$ by the assignment's cost.  This proves the first assertion.
+
+For the second, fix an optimal padded alignment and choose ordered points
+$(j,b_j)$ at every source cut, with $b_0=0$ and $b_n=n$.  Assign shift $b_j-j$
+to every node starting at $j$.  Its absolute value is at most $d$, because
+only insertion and deletion steps change the shift.  These assignments are
+allowed when $k\ge d$.
+
+For each child, the shift difference from its parent is at most the cost of
+the alignment subpath between their chosen starting points, and thus at most
+the cost of the parent's subpath.  There are $B$ children per parent; the
+parent subpaths at each depth partition the alignment.  Edge differences
+therefore sum to at most $Bd$ at each of the $D_0$ depths.  A mismatching
+width-one leaf has positive cost in its corresponding subpath: a zero-cost
+subpath would be a matching diagonal.  Leaf mismatches sum to at most $d$,
+and width-zero leaves contribute nothing.  The assignment has total cost at
+most $(1+2BD_0)d$.
+\end{proof}
+
+\subsection{Pruning and precision sampling}
+
+Nonuniform additive precision is the sampling principle developed by
+Andoni, Krauthgamer and Onak~\cite[Lemma~3.12]{AndoniKrauthgamerOnak2010}
+and refined in~\cite[Lemma~1.2]{AndoniKrauthgamerOnak2011}, with earlier
+multiscale sampling antecedents in Indyk and
+Woodruff~\cite{IndykWoodruff2005}. The reconstruction arguments of Andoni,
+Krauthgamer and Onak already allow estimates to depend on the sampled
+precisions. Here we use a finite threshold
+distribution and prove an event covering all potential interval states,
+together with the conditional cost of a first request.
+
+Computing all of \eqref{eq:coarse-tree} would be too expensive. The guess
+$k$ will also serve as an additive allowance at the root: on one event
+of high probability, we will obtain an estimate $\widetilde T_o$ between $T_o/2-k$ and
+$2T_o+k$ simultaneously for every entry and guess. Then
+$2(\widetilde T_o(0)+k)$ is an upper bound on $d$ for every guess,
+and the guess $d\le k<2d$ gives an $O(1+BD_0)$ approximation.
+We can therefore replace a node by zero whenever its entire cost fits
+within its additive allowance. Larger guesses permit more pruning;
+their larger allowances are paid back in the returned estimate. Set
+\[
+ Q_0=H^4,\qquad \lambda=\frac1{64H},\qquad a_o=k.
+\]
+At a node with allowance $a_w$, independently for its children draw
+$R_i$ uniformly from $\{1,\ldots,B\}$ and set
+\begin{equation}\label{eq:coarse-threshold}
+ t_i=\frac{a_wR_i}{BQ_0},\qquad a_{w_i}=\lambda t_i.
+\end{equation}
+All these random choices can be defined in advance, even below nodes that
+will be pruned.  The implementation exposes only those it needs.
+
+If $|w|\le a_w$, use the identically zero estimate $\widetilde T_w$.  At any
+other leaf use its exact array.  At an unpruned internal node first compute
+\[
+ \widehat s_i(v)=\min_{v'\in[-k,k]\cap\Z}
+       \{\widetilde T_{w_i}(v')+2|v-v'|\},
+\]
+and then put
+\begin{equation}\label{eq:coarse-estimate}
+ \widetilde T_w(v)=\sum_{i=1}^B
+     \ind_{\widehat s_i(v)\ge t_i}
+     \max\{\widehat s_i(v),a_w/Q_0\}.
+\end{equation}
+The descendants used to compute $\widehat s_i(v)$ depend on $t_i$, so
+these child estimates cannot be treated as fixed in a concentration
+bound. The proof below first compares their sampled contributions with
+two lists formed from true child costs. It then concentrates those lists
+without assuming that any child estimate is accurate.
+
+\begin{lemma}\label{lem:coarse-precision}
+Except on an event of probability less than $0.01$, simultaneously for all
+initial entries, all guesses, all their nodes, and all shifts,
+\begin{equation}\label{eq:coarse-accuracy}
+ T_w(v)/f_w-a_w\le\widetilde T_w(v)\le f_wT_w(v)+a_w,
+ \qquad
+ f_w=\left(\frac{1+\lambda}{1-\lambda}\right)^{\operatorname{height}(w)}
+ \le2.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Fix an internal node and a shift, and write $s_i$ for the true child penalty minimum
+in \eqref{eq:coarse-tree}. Let $f'$ be the factor in
+\eqref{eq:coarse-accuracy} at its children's structural height. Both $s_i$
+and $f'$ are independent of all thresholds. Suppose for the moment that
+the child accuracy inequalities hold with this factor. Adding a nonnegative
+penalty preserves the lower bound after division by $f'$ and the upper
+bound after multiplication by $f'$.  Taking minima gives
+\[
+ s_i/f'-\lambda t_i\le\widehat s_i(v)\le f's_i+\lambda t_i.
+\]
+Let $u=a_w/Q_0$ and define
+\[
+ \phi_i(h)=\ind_{h\ge t_i}\max\{h,u\},\qquad
+ h_i^- =\frac{s_i}{f'(1+\lambda)},\qquad
+ h_i^+=\frac{f's_i}{1-\lambda}.
+\]
+If $h_i^-\ge t_i$, then
+$\widehat s_i(v)\ge(1+\lambda)h_i^--\lambda t_i\ge h_i^-$.
+If $\widehat s_i(v)\ge t_i$, then
+$\widehat s_i(v)\le f's_i+\lambda\widehat s_i(v)$, and consequently
+$\widehat s_i(v)\le h_i^+$.  These implications prove the pathwise sandwich
+\begin{equation}\label{eq:threshold-sandwich}
+ \phi_i(h_i^-)\le\phi_i(\widehat s_i(v))\le\phi_i(h_i^+).
+\end{equation}
+
+We now establish concentration independently of the supposition about child
+accuracy.  Conditional only on ancestor thresholds, $u$ is fixed and
+$t_i=uR_i/B$ are independent.  For either of the two fixed argument lists
+$h_i=h_i^\pm$, if $0\le h_i<u$ then
+\[
+ \phi_i(h_i)=u\,\operatorname{Bernoulli}
+       \left(\frac{\floor{Bh_i/u}}B\right);
+\]
+if $h_i\ge u$, it equals $h_i$ deterministically.  Thus
+\[
+ 0\le h_i-\E\phi_i(h_i)\le u/B,\qquad
+ \operatorname{Var}(\phi_i(h_i))\le uh_i,
+ \qquad |\phi_i(h_i)-\E\phi_i(h_i)|\le u.
+\]
+Write $V=\sum_i h_i$ and $Z=\sum_i\phi_i(h_i)$.  The total bias is at most
+$u$.  Bernstein's inequality~\cite[Theorem~4.16]{Tropp2021Probability} at
+deviation $z=\lambda V+a_w/2$ gives
+\[
+ \Pr(|Z-\E Z|>z)
+ \le2\exp\left(-\frac{z^2}{2uV+(2/3)uz}\right)
+ \le2\exp(-\lambda Q_0/12).
+\]
+For the last inequality, if $V\ge a_w$, the denominator is at most $3uV$
+and $z^2\ge\lambda a_wV$; if $V\le a_w$, the denominator is at most
+$3ua_w$ and $z^2\ge a_w^2/4$.  Since $u\le a_w/2$, adding the bias yields
+\begin{equation}\label{eq:threshold-concentration}
+ |Z-V|\le\lambda V+a_w
+\end{equation}
+outside the indicated event.
+
+These conditional bounds are uniform in the ancestor thresholds, so they
+also hold unconditionally.  Take their intersection over both argument
+lists and all fixed node and shift labels.  On that intersection, induction
+from the leaves combines \eqref{eq:threshold-sandwich} and
+\eqref{eq:threshold-concentration}.  The lower and upper bounds become
+\[
+ \frac{1-\lambda}{f'(1+\lambda)}T_w(v)-a_w
+ \le\widetilde T_w(v)
+ \le\frac{f'(1+\lambda)}{1-\lambda}T_w(v)+a_w,
+\]
+which is exactly the desired factor update.  A pruned node also satisfies
+the inequalities because $T_w(v)\le |w|\le a_w$; exact leaves do so directly.
+The factor satisfies $f_w\le\exp(2/63)<2$, since $D_0\le H$.
+
+For completeness, the event count includes the entire domain, not merely
+requested entries.  There are $O(M(N+1)^3)$ labeled main-tree states, $O(H)$
+guesses per entry, $O(BN)$ nodes per coarse tree, and $O(N)$ shifts per guess.
+The count of the two lists is therefore at most
+\[
+ CMBH(N+1)^5\le\exp(20H)
+\]
+for an absolute constant $C$ under the stated cutoff.  Here one may use
+$B,M,H\le N$ in this regime and $\log_2(N+2)\le H$.  The union failure is at
+most $2\exp(20H-H^3/768)<0.01$.  In particular, no conditioning on successful
+descendants was used in the concentration calculation.
+\end{proof}
+
+\subsection{Converting the estimate to an integer seed}
+
+For the padded entry, take the ceiling of
+\begin{equation}\label{eq:initial-output}
+ \min_k 2\bigl(\widetilde T_o(0)+k\bigr)
+\end{equation}
+and clamp it to $[0,N]$.  On the event of Lemma~\ref{lem:coarse-precision},
+every candidate is at least $T_o(0)\ge d\ge c$.  A listed guess satisfies
+$d\le k<2d$, and its rounded candidate is at most
+\[
+ 4(1+2BD_0)d+4k+1
+ \le (25+16BH)c
+ \le BH^4c=A_{\mathrm{init}}c.
+\]
+Clamping preserves both bounds because $c\le N$.  Together with the direct
+branches this proves the approximation assertion in Theorem~\ref{thm:seed}.
+
+\subsection{The conditional cost of an adaptive request}
+
+We next prove the cost assertion, including executions outside the accuracy
+event.  For an array $E$ on $[-k,k]\cap\Z$, its penalty transform is computed
+by a left sweep
+\[
+ L(v)=\min\{E(v),L(v-1)+2\}
+\]
+with the natural initial value, and the symmetric right sweep.  Their
+pointwise minimum is
+\[
+ \min_{v'}\{E(v')+2|v-v'|\}.
+\]
+Both sweeps take $O(k)$ operations.  An identically zero child array, whose transform is also zero,
+is represented by a marker without allocation.  At an unpruned internal
+node the array work is $O(Bk)$, including visits and thresholds for all
+children.  An unpruned leaf costs $O(k)$.  A pruned node needs only its width
+test and marker.
+
+Let $r$ be a node's depth in the coarse tree.  From
+\eqref{eq:coarse-threshold}, along any fixed path,
+\[
+ a_w=\frac{k\prod R_e}{(64BH^5)^r},\qquad
+ \E\left[\frac{a_{\mathrm{parent}}}{a_w}\,\middle|\,
+          a_{\mathrm{parent}}\right]
+ =64H^5\sum_{j=1}^B\frac1j\le H^8.
+\]
+It follows that $\E[k/a_w]\le H^{8r}$.  A node can incur array work only if
+$|w|>a_w$, and pointwise
+\[
+ k\ind_{|w|>a_w}\le |w|\frac{k}{a_w}.
+\]
+Widths sum to $n$ at each depth.  Thus the expected array work for one guess,
+including child overhead charged to expanded parents, is at most
+\begin{equation}\label{eq:initial-array-work}
+ O\bigl(1+Bn(D_0+1)H^{8D_0}\bigr).
+\end{equation}
+This estimate uses the random allowances alone and remains valid when the
+estimated arrays are inaccurate.
+
+All arithmetic and sampling can be performed with finite binary integers.
+The quantities in \eqref{eq:coarse-threshold} are dyadic; a common denominator
+for their descendants and the arrays needs
+$O(D_0(p_*+5)\log H+\log H)$ bits.  Minima and maxima select existing dyadic
+values, and sums preserve this common precision.  The same-shift candidate
+in the penalty minimum gives
+\[
+ \widetilde T_w(v)\le\sum_i\widetilde T_{w_i}(v)+Ba_w/Q_0.
+\]
+Since $a_w\le k$ and there are $O(Bn)$ nodes, all estimate magnitudes are
+bounded by $n+O(B^2nk)$.  Their bit lengths, and the cost of ordinary binary
+arithmetic on them, fit the factor $H^{O(D_0+p_*+1)}$.  Each $R_i$ requires
+exactly $\log_2B$ fair random bits.  Zero arrays are never materialized.
+
+There are $O(H)$ guesses, and
+\[
+ D_0\le1+\frac{H}{p_*\log_2H},\qquad
+ \log_2\bigl(H^{O(D_0+p_*+1)}\bigr)
+ =O\left(\frac H{p_*}+(p_*+1)\log H\right)=o(H).
+\]
+Consequently \eqref{eq:initial-array-work}, including the arithmetic factors,
+all guesses, equality tests, and padding, is $(1+|I|)2^{o(H)}$ in expectation.
+Even a full coarse tree with all its shift arrays uses only polynomial
+space: it has $O(Bn)$ nodes, $O(n)$ entries per array, and the bit lengths
+just bounded.
+
+Finally, assign a separate random stream to every initial entry, keyed by
+its labeled main-tree node and endpoint pair, and cache the completed
+answer.  Its calculation does not query other initial entries.  Before its
+first request, none of the exposed computation can depend on its unused
+stream: such a dependence would already have required evaluating this
+entry.  Conditional on the entire preceding execution and the adaptive
+request, the stream therefore has its original distribution.  The expected
+cost bound applies conditionally exactly as stated; repeated requests use
+the cached answer and pay only lookup work.  This deferred exposure realizes
+the same full random table used in the simultaneous probability argument
+and completes the proof of Theorem~\ref{thm:seed}.

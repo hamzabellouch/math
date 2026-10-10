@@ -1,0 +1,530 @@
+
+
+
+
+
+
+
+
+
+
+\def\pgfooclass{%
+  \pgfutil@ifnextchar ({%
+    \pgfooclass@
+  }{%
+    \pgfooclass@()
+  }%
+}%
+\long\def\pgfooclass@(#1)#2#3{%
+  \def\pgfoo@classname{#2}%
+  \expandafter\ifx\csname pgfooY\pgfoo@classname.@pgfooinit\endcsname\relax\else
+    \pgferror{class #2 is already defined}%
+  \fi
+  \pgfoo@ciii{#2}{#1}%
+  \expandafter\let\csname pgfooY#2@pgfoo@mro\endcsname\pgfoo@mro
+  \let\pgfoo@origmethod=\method%
+  \let\pgfoo@origattribute=\attribute%
+  \let\method=\pgfoo@declaremethod%
+  \let\attribute=\pgfoo@declareattribute%
+  \let\pgfoo@attributes=\pgfutil@empty%
+  \let\pgfoo@methods=\pgfutil@empty%
+  #3%
+  \def\pgfoo@temp@baseclasses{#1}%
+  \pgfoo@inherit@methods
+  \pgfoo@inherit@attributes
+  \expandafter\let\csname pgfooY\pgfoo@classname.get handle\endcsname\pgfoo@obj%
+  \expandafter\let\csname pgfooY\pgfoo@classname.get id\endcsname\pgfoo@id%
+  \expandafter\let\expandafter\pgfoo@init\csname pgfooY\pgfoo@classname.init\endcsname
+  \expandafter\let\csname pgfooY\pgfoo@classname.\pgfoo@classname\endcsname\pgfoo@init
+  \let\method=\pgfoo@origmethod%
+  \let\attribute=\pgfoo@origattribute%
+}%
+
+\def\pgfoo@emptyinit(){}%
+\def\pgfoo@escapeif#1#2\fi{\fi#1}%
+
+
+
+\def\pgfoo@ciii#1#2{%
+  \def\pgfoo@seq{[#1,].}%
+  \pgfutil@for\pgfoo@baseclass:={#2}\do{%
+    \edef\pgfoo@baseclass@mro{\csname pgfooY\pgfoo@baseclass @pgfoo@mro\endcsname}%
+    \expandafter\ifx\expandafter\relax\pgfoo@baseclass@mro\relax\else
+      \edef\pgfoo@seq{\pgfoo@seq[\pgfoo@baseclass@mro,].}%
+    \fi
+  }%
+  \ifx\relax#2\relax\else
+    \edef\pgfoo@seq{\pgfoo@seq[#2,].}%
+  \fi
+  \edef\pgfoo@temp{()(\pgfoo@seq)}%
+  \expandafter\pgfoo@ciii@merge\pgfoo@temp
+}%
+
+\def\pgfoo@ciii@merge(#1)(#2){%
+  \ifx\relax#2\relax
+    \pgfoo@ciii@done(#1)%
+  \else\pgfoo@escapeif{%
+    \pgfoo@ciii@merge@A(#1)(#2)%
+  }\fi%
+}%
+\def\pgfoo@ciii@merge@A(#1)(#2.#3){%
+  \ifx\relax#3\relax %
+    \pgfoo@ciii@mergeA@done(#1)(#2)%
+  \else\pgfoo@escapeif{%
+    \pgfoo@ciii@merge@checkHead(#1)()(#2)()(#3)%
+  }\fi
+}%
+
+\def\pgfoo@ciii@mergeA@done(#1)([#2]){%
+  \pgfoo@ciii@done(#1#2)%
+}%
+
+\def\pgfoo@ciii@merge@checkHead(#1)(#2)([#3,#4])(#5)(#6){%
+  \pgfutil@in@{[#3,}{#2}%
+  \ifpgfutil@in@\pgfoo@escapeif{%
+    \pgfoo@ciii@clean\pgfoo@ciii@merge@checkHead@P{(#1)(#2[#3,#4].)(#5#6)}%
+  }\else\pgfoo@escapeif{%
+    \ifx\relax#6\relax\pgfoo@escapeif{%
+      \pgfoo@ciii@goodHeadFound(#1)(#3)(#2[#4].#5)%
+    }\else\pgfoo@escapeif{%
+      \pgfoo@ciii@merge@checkHead@A(#1)(#2)([#3,#4])(#5)(#6)%
+    }\fi
+  }\fi
+}%
+\def\pgfoo@ciii@merge@checkHead@A(#1)(#2)([#3,#4])(#5)(#6.#7){%
+  \pgfoo@ciii@merge@checkHead@B(#1)(#2)([#3,#4])(#5)(#6)(#7)%
+}%
+\def\pgfoo@ciii@merge@checkHead@B(#1)(#2)([#3,#4])(#5)([#6,#7])(#8){%
+    \pgfutil@in@{,#3,}{,#7}%
+    \ifpgfutil@in@\pgfoo@escapeif{%
+      \pgfoo@ciii@clean\pgfoo@ciii@merge@checkHead@P{(#1)(#2[#3,#4].)(#5[#6,#7].#8)}%
+    }\else\pgfoo@escapeif{%
+      \ifx\relax#8\relax\pgfoo@escapeif{%
+        \pgfoo@ciii@goodHeadFound(#1)(#3)(#2[#4].#5[#6,#7].)%
+      }\else\pgfoo@escapeif{%
+        \pgfoo@ciii@clean\pgfoo@ciii@merge@checkHead{(#1)(#2)([#3,#4])(#5[#6,#7].)(#8)}%
+      }\fi
+    }\fi
+}%
+
+\def\pgfoo@ciii@goodHeadFound(#1)(#2)(#3){%
+  \pgfutil@in@{,#2,}{#3}%
+  \ifpgfutil@in@\pgfoo@escapeif{%
+    \def\pgfoo@ciii@removeGoodHead(##1)(##2)(##3,#2,##4){%
+      \pgfoo@ciii@goodHeadFound(##1)(##2)(##3,##4)}%
+    \pgfoo@ciii@removeGoodHead(#1)(#2)(#3)%
+  }\else\pgfoo@escapeif{%
+    \pgfutil@in@{[#2,}{#3}%
+    \ifpgfutil@in@\pgfoo@escapeif{%
+      \def\pgfoo@ciii@removeGoodHead(##1)(##2)(##3[#2,##4){%
+        \pgfoo@ciii@goodHeadFound(##1)(##2)(##3[##4)}%
+      \pgfoo@ciii@removeGoodHead(#1)(#2)(#3)%
+    }\else\pgfoo@escapeif{%
+      \pgfoo@ciii@clean\pgfoo@ciii@merge{(#1#2,)(#3)}%
+    }\fi
+  }\fi
+}%
+
+\def\pgfoo@ciii@merge@checkHead@P(#1)(#2)(#3){%
+  \if\relax#3\relax %
+    \pgferror{Bad MRO: There is no good (monotonic etc.)
+      Method Resolution Order for your class hierarchy}%
+  \else\pgfoo@escapeif{%
+    \pgfoo@ciii@merge@checkHead@Q(#1)(#2)(#3)%
+  }\fi
+}%
+\def\pgfoo@ciii@merge@checkHead@Q(#1)(#2)(#3.#4){%
+  \pgfoo@ciii@merge@checkHead(#1)(#2)(#3)()(#4)%
+}%
+
+\def\pgfoo@ciii@clean#1#2{%
+  \pgfutil@in@{[].}{#2}%
+  \ifpgfutil@in@\pgfoo@escapeif{%
+    \pgfoo@ciii@clean@dot#1#2\pgfoo@ciii@clean@END
+  }\else\pgfoo@escapeif{%
+    #1#2%
+  }\fi
+}%
+\def\pgfoo@ciii@clean@dot#1#2[].#3\pgfoo@ciii@clean@END{%
+  \pgfoo@ciii@clean#1{#2#3}%
+}%
+
+\def\pgfoo@ciii@done(#1,){%
+  \def\pgfoo@mro{#1}%
+}%
+
+
+
+
+\long\def\pgfoo@declaremethod#1(#2)#3{%
+  \def\pgfoo@method{#1}%
+  \ifx\pgfoo@classname\pgfoo@method
+    \def\pgfoo@method{init}%
+  \fi
+  \expandafter\long\expandafter\def\csname pgfooY\pgfoo@classname.\pgfoo@method\endcsname(#2){#3}%
+  \edef\pgfoo@methods{\pgfoo@methods,\pgfoo@method}%
+}%
+
+\def\pgfoo@inherit@methods{%
+  \expandafter\ifx\expandafter\relax\pgfoo@temp@baseclasses\relax
+    \expandafter\ifx\csname pgfooY\pgfoo@classname.init\endcsname\relax
+      \expandafter\let\csname pgfooY\pgfoo@classname.init\endcsname\pgfoo@emptyinit%
+      \edef\pgfoo@methods{,init\pgfoo@methods}%
+    \fi
+  \fi
+  \if\relax\pgfoo@methods\relax\else
+    \edef\pgfoo@methods{\expandafter\pgfutil@gobble\pgfoo@methods}%
+  \fi
+  \expandafter\let\csname pgfooY\pgfoo@classname @pgfoo@methods\endcsname\pgfoo@methods
+  \expandafter\let\expandafter\pgfoo@mro\csname pgfooY\pgfoo@classname @pgfoo@mro\endcsname
+  \pgfutil@for\pgfoo@baseclass:=\pgfoo@mro\do{%
+    \ifx\pgfoo@baseclass\pgfoo@classname %
+    \else\pgfoo@escapeif{%
+      \expandafter\let\expandafter\pgfoo@methods\csname pgfooY\pgfoo@baseclass @pgfoo@methods\endcsname
+      \pgfutil@for\pgfoo@method:=\pgfoo@methods\do{%
+        \expandafter\ifx\csname pgfooY\pgfoo@classname.\pgfoo@method\endcsname\relax
+          \edef\pgfoo@temp{\noexpand\let
+            \expandafter\noexpand\csname pgfooY\pgfoo@classname.\pgfoo@method\endcsname
+            \expandafter\noexpand\csname pgfooY\pgfoo@baseclass.\pgfoo@method\endcsname}%
+          \pgfoo@temp
+        \fi
+      }%
+    }\fi
+  }%
+}%
+
+\def\pgfoosuper(#1,#2).#3({%
+  #2.get id(\pgfoo@temp@id)%
+  \edef\pgfoo@classname{\csname pgfooX\pgfoo@temp@id @class\endcsname}%
+  \def\pgfoo@super@A##1,#1,##2.##3({%
+    \pgfoo@super@B##2.##3(%
+  }%
+  \expandafter\let\expandafter\pgfoo@mro\csname pgfooY\pgfoo@classname @pgfoo@mro\endcsname
+  \expandafter\pgfoo@super@A\expandafter,\pgfoo@mro,.#3(%
+}%
+\def\pgfoo@super@B#1,#2.#3({%
+  \expandafter\ifx\csname pgfooY#1.#3\endcsname\relax
+    \pgfoo@escapeif{\pgfoo@super@B#2.#3(}%
+  \else
+    \pgfoo@escapeif{\expandafter\pgfoo@caller\pgfoo@temp@id.#1.#3(}%
+  \fi
+}%
+
+
+
+
+\def\pgfoo@declareattribute#1;{%
+  \pgfutil@in@{ =}{#1}%
+  \ifpgfutil@in@%
+    \pgfoo@declareunpackspace#1;%
+  \else%
+    \pgfutil@in@={#1}%
+    \ifpgfutil@in@%
+      \pgfoo@declareunpack#1;%
+    \else%
+      \pgfoo@declareattribute@\let{#1}\pgfutil@empty
+    \fi%
+  \fi%
+}%
+\def\pgfoo@declareunpack#1=#2;{\pgfoo@declareattribute@\def{#1}{{#2}}}%
+\def\pgfoo@declareunpackspace#1 =#2;{\pgfoo@declareattribute@\def{#1}{{#2}}}%
+
+\def\pgfoo@declareattribute@#1#2#3{%
+  \expandafter#1\csname pgfooY\pgfoo@classname @#2\endcsname#3%
+  \expandafter\def\expandafter\pgfoo@attributes\expandafter{\pgfoo@attributes,#2}%
+}%
+
+\def\pgfoo@inherit@attributes{%
+  \if\relax\pgfoo@attributes\relax\else
+    \edef\pgfoo@attributes{\expandafter\pgfutil@gobble\pgfoo@attributes}%
+  \fi
+  \expandafter\let\csname pgfooY\pgfoo@classname.@pgfoo@attributes\endcsname\pgfoo@attributes%
+  \expandafter\let\expandafter\pgfoo@mro\csname pgfooY\pgfoo@classname @pgfoo@mro\endcsname
+  \def\pgfoo@allattributes{}%
+  \pgfutil@for\pgfoo@baseclass:=\pgfoo@mro\do{%
+    \expandafter\let\expandafter\pgfoo@attributes\csname pgfooY\pgfoo@baseclass.@pgfoo@attributes\endcsname
+    \pgfutil@for\pgfoo@attribute:=\pgfoo@attributes\do{%
+      \edef\pgfoo@temp{{,\pgfoo@attribute=}{\pgfoo@allattributes,}}%
+      \expandafter\pgfutil@in@\pgfoo@temp
+      \ifpgfutil@in@\else %
+        \edef\pgfoo@allattributes{\pgfoo@allattributes,\pgfoo@attribute=\pgfoo@baseclass}%
+      \fi
+    }%
+  }%
+  \if\relax\pgfoo@allattributes\relax\else
+    \edef\pgfoo@allattributes{\expandafter\pgfutil@gobble\pgfoo@allattributes}%
+  \fi
+  \def\pgfoo@process@attributes{}%
+  \pgfutil@for\pgfoo@attributeclass:=\pgfoo@allattributes\do{%
+    \expandafter\pgfoo@inherit@attributes@appendattribute\pgfoo@attributeclass.%
+  }%
+  \expandafter\let\csname pgfooY\pgfoo@classname .@pgfoo@process@attributes\endcsname\pgfoo@process@attributes
+}%
+
+
+\def\pgfoo@inherit@attributes@appendattribute#1=#2.{%
+  \def\pgfoo@tempA{\pgfoo@attribute@op{#1}}%
+  \expandafter\expandafter\expandafter\def\expandafter\expandafter\expandafter\pgfoo@tempB\expandafter\expandafter\expandafter{\expandafter\pgfoo@tempA\csname pgfooY#2@#1\endcsname}%
+  \expandafter\expandafter\expandafter\def\expandafter\expandafter\expandafter\pgfoo@process@attributes\expandafter\expandafter\expandafter{\expandafter\pgfoo@process@attributes\pgfoo@tempB}%
+}%
+
+\def\pgfoo@gc@attribute#1#2{\pgfoolet{#1}\relax}%
+
+
+\newcount\pgfoo@objectcount
+\newcount\pgfoothis@count
+
+
+\def\pgfoovalueof#1{%
+  \csname pgfooX\the\pgfoothis@count @#1\endcsname%
+}%
+
+
+
+\def\pgfooget#1#2{%
+  \expandafter\let\expandafter#2\csname pgfooX\the\pgfoothis@count @#1\endcsname%
+}%
+
+
+
+\long\def\pgfooset#1#2{%
+  \expandafter\gdef\csname pgfooX\the\pgfoothis@count @#1\endcsname{#2}%
+}%
+
+
+
+\long\def\pgfooeset#1#2{%
+  \expandafter\xdef\csname pgfooX\the\pgfoothis@count @#1\endcsname{#2}%
+}%
+
+
+
+\def\pgfoolet#1#2{%
+  \expandafter\global\expandafter\let\csname pgfooX\the\pgfoothis@count @#1\endcsname#2%
+}%
+
+
+
+\def\pgfooappend#1#2{%
+  \expandafter\expandafter\expandafter\def%
+  \expandafter\expandafter\expandafter\pgf@oo@temp\expandafter\expandafter\expandafter{\csname pgfooX\the\pgfoothis@count @#1\endcsname#2}%
+  \expandafter\global\expandafter\let\csname pgfooX\the\pgfoothis@count @#1\endcsname\pgf@oo@temp%
+}%
+
+
+
+\def\pgfooprefix#1#2{%
+  \pgfooget{#1}\pgf@oo@temp%
+  \def\pgf@oo@@temp{#2}%
+  \expandafter\expandafter\expandafter\def%
+  \expandafter\expandafter\expandafter\pgf@oo@temp%
+  \expandafter\expandafter\expandafter{\expandafter\pgf@oo@@temp\pgf@oo@temp}%
+  \pgfoolet{#1}\pgf@oo@temp%
+}%
+
+
+
+\newtoks\pgfoo@toks
+
+\def\pgfoo@collect@args{%
+  \pgfutil@ifnextchar\bgroup\pgfoo@collect@args@group\pgfoo@collect@args@nogroup%
+}%
+\def\pgfoo@collect@args@nogroup#1){%
+  \pgfoo@toks{#1}%
+  \pgfoo@continue%
+}%
+\def\pgfoo@collect@args@group#1{%
+  \pgfutil@ifnextchar){\pgfoo@toks{{#1}}\expandafter\pgfoo@continue\pgfutil@gobble}{\pgfoo@collect@args@nogroup{#1}}%
+}%
+
+
+
+\def\pgfoonew{%
+  \pgfutil@ifnextchar n{%
+    \pgfoo@new\pgfoo@dummy=%
+  }{%
+    \pgfutil@ifnextchar\bgroup{%
+      \pgfoo@new@attribute%
+    }{%
+      \pgfoo@new%
+    }%
+  }%
+}%
+\def\pgfoo@new#1={%
+  \def\pgfutil@reserved@a{#1}%
+  \let\pgfutil@next\pgfoo@@new
+  \futurelet\pgfutil@let@token\pgfutil@ignorespaces}%
+\def\pgfoo@@new new #1({%
+  \expandafter\ifx\csname pgfooY#1.get id\endcsname\relax%
+    \pgferror{Unknown class '#1'}%
+  \else%
+    \expandafter\pgfoo@new@create\pgfutil@reserved@a{#1}%
+    {%
+      \pgfoothis@count\pgfoo@objectcount%
+      \let\pgfoo@attribute@op\pgfoolet
+      \csname pgfooY#1.@pgfoo@process@attributes\endcsname%
+    }%
+    \let\pgfoo@continue=\pgf@oo@new@cont%
+    \expandafter\pgfoo@collect@args%
+  \fi%
+}%
+
+\def\pgf@oo@new@cont{%
+  \expandafter\pgfoolastobj\expandafter.\expandafter i\expandafter n\expandafter i\expandafter t\expandafter(\the\pgfoo@toks)%
+  \aftergroup\pgfoogc%
+}%
+
+\def\pgfoo@new@attribute#1={%
+  \def\pgfutil@reserved@a{#1}%
+  \let\pgfutil@next\pgfoo@@new@attribute
+  \futurelet\pgfutil@let@token\pgfutil@ignorespaces}%
+\def\pgfoo@@new@attribute new #1({%
+  \expandafter\ifx\csname pgfooY#1.get id\endcsname\relax%
+    \pgferror{Unknown class '#1'}%
+  \else%
+    \pgfoo@new@create\pgfoo@temp{#1}%
+    {%
+      \pgfoothis@count\pgfoo@objectcount%
+      \let\pgfoo@attribute@op\pgfoolet%
+      \csname pgfooY#1.@pgfoo@process@attributes\endcsname%
+    }%
+    \expandafter\pgfoolet\expandafter{\pgfutil@reserved@a}\pgfoo@temp%
+    \let\pgfoo@continue=\pgf@oo@new@cont%
+    \expandafter\pgfoo@collect@args%
+  \fi%
+}%
+
+\def\pgfoo@new@create#1#2{%
+  \advance\pgfoo@objectcount by 1\relax%
+  \edef\pgfoolastobj{\noexpand\pgfoo@caller{\the\pgfoo@objectcount}}%
+  \expandafter\gdef\csname pgfooX\the\pgfoo@objectcount @class\endcsname{#2}%
+  \let#1\pgfoolastobj%
+}%
+
+\def\pgfoo@caller#1.#2({%
+  \expandafter\let\expandafter\pgfoo@caller@temp\csname pgfooY\csname pgfooX#1@class\endcsname.#2\endcsname%
+  \ifx\pgfoo@caller@temp\relax%
+    \expandafter\let\expandafter\pgfoo@caller@temp\csname pgfooY#2\endcsname%
+    \ifx\pgfoo@caller@temp\relax%
+      \pgferror{Object #1 has no method '#2'}%
+    \fi%
+  \fi%
+  \def\pgf@marshal{%
+    \pgfoothis@count=#1\relax%
+  }%
+  \let\pgfoo@continue\pgfoo@caller@cont%
+  \pgfoo@collect@args%
+}%
+\def\pgfoo@caller@cont{%
+  \edef\pgf@marshal{%
+    \pgf@marshal%
+    \noexpand\pgfoo@caller@temp(\the\pgfoo@toks)%
+  }%
+  \expandafter\pgf@marshal\expandafter\pgfoothis@count\the\pgfoothis@count\relax%
+}%
+\let\pgfoo@orig@caller=\pgfoo@caller
+
+
+\def\pgfoothis.#1({%
+  \expandafter\let\expandafter\pgfoo@caller@temp\csname pgfooY\csname pgfooX\the\pgfoothis@count @class\endcsname.#1\endcsname%
+  \ifx\pgfoo@caller@temp\relax%
+    \expandafter\let\expandafter\pgfoo@caller@temp\csname pgfooY#1\endcsname%
+  \fi%
+  \let\pgfoo@continue\pgfoothis@cont%
+  \pgfoo@collect@args%
+}%
+\def\pgfoothis@cont{%
+  \expandafter\pgfoo@caller@temp\expandafter(\the\pgfoo@toks)%
+}%
+
+
+
+
+\def\pgfoo@id(#1){%
+  \edef#1{\the\pgfoothis@count}%
+}%
+
+
+\def\pgfooobj#1{%
+  \pgfoo@caller{#1}%
+}%
+
+
+
+\def\pgfoo@obj(#1){%
+  \edef#1{\noexpand\pgfoo@caller{\the\pgfoothis@count}}%
+}%
+
+
+
+
+\def\pgfoogc{%
+  {%
+    \pgfoothis@count\pgfoo@objectcount%
+    \let\pgfoo@next=\pgfoo@dogc%
+    \pgfoo@next%
+  }%
+}%
+\def\pgfoo@dogc{%
+  \advance\pgfoothis@count by 1\relax%
+  \expandafter\ifx\csname pgfooX\the\pgfoothis@count @class\endcsname\relax%
+    \let\pgfoo@next=\relax%
+  \else%
+    \let\pgfoo@attribute@op\pgfoo@gc@attribute
+    \csname pgfooY\csname pgfooX\the\pgfoothis@count @class\endcsname.@pgfoo@process@attributes\endcsname%
+    \expandafter\global\expandafter\let\csname pgfooX\the\pgfoothis@count @class\endcsname\relax%
+  \fi%
+  \pgfoo@next%
+}%
+
+
+
+
+\pgfooclass{object}{%
+  \method copy(#1) {%
+    \edef\pgfoo@temp@classname{\csname pgfooX\the\pgfoothis@count @class\endcsname}%
+    \expandafter\pgfoo@new@create\expandafter#1\expandafter{\pgfoo@temp@classname}%
+    \def\pgfoo@copy@attributes##1##2{%
+      \pgfooget{##1}\pgfoo@attrvalue
+      \expandafter\let\csname pgfooX\the\pgfoo@objectcount @##1\endcsname\pgfoo@attrvalue
+    }%
+    \let\pgfoo@attribute@op\pgfoo@copy@attributes
+    \csname pgfooY\pgfoo@temp@classname .@pgfoo@process@attributes\endcsname
+    \aftergroup\pgfoogc%
+  }%
+}%
+
+
+
+\pgfooclass{signal}
+{%
+
+  \attribute emitter;%
+
+  \method signal() {}%
+
+  \method connect(#1,#2) {%
+    {%
+      #1.get id(\pgf@tempid)%
+      \pgfooget{emitter}\pgf@temp%
+      \let\pgfoo@signal@call=\relax%
+      \edef\pgf@temp{\pgf@temp\pgfoo@signal@call{\pgf@tempid}{#2}}%
+      \pgfoolet{emitter}\pgf@temp%
+    }%
+  }%
+
+  \def\pgfoo@signal@call#1#2{%
+    \def\pgf@temp{\pgfooobj{#1}.#2}%
+    \expandafter\pgf@temp\expandafter(\pgfoo@signal@args)%
+  }%
+
+  \method emit(#1) {%
+    \def\pgfoo@signal@args{#1}%
+    \pgfoovalueof{emitter}
+  }%
+}%
+
+
+
+
+\endinput

@@ -1,0 +1,333 @@
+\section{Evaluating the weights with bounded rational computation}
+\label{sec:evaluation}
+
+The block integrals in Section~\ref{sec:ports} are definitions of weights,
+not oracles supplied with the input. We now construct their evaluators.
+The central step expresses a close approximation to an exponential
+integral as the volume of a rational polytope. We check its separation
+oracle, encoding lengths, and inner and outer geometric guarantees.
+These checks also explain why a free-coordinate interval of length
+$R+1$ causes only polynomial dependence on $\log(R+1)$.
+
+\subsection{Magnitude bounds before numerical approximation}
+
+\begin{lemma}[Integral and point-weight bounds]\label{lem:weight-bounds}
+For every block and every port argument in its box,
+\begin{equation}\label{eq:integral-bounds}
+ e^{-N^{50000}}\le\widetilde I_G(u)\le e^K.
+\end{equation}
+For the weight $h$ on the full paired slice of
+Proposition~\ref{prop:port-model},
+\begin{equation}\label{eq:weight-log-bound}
+ |\log h(a,b)|\le N^{60000}.
+\end{equation}
+All rational coefficients needed to define or evaluate its factors
+have polynomial encoding length in the input and in the query.
+\end{lemma}
+
+\begin{proof}
+The integral's upper bound is its free-box volume,
+$(R+1)^{|\mathcal F_G|}\le e^K$, since smoothing uses probability kernels.
+For the lower bound put $u^c_{iD}=c(D)$ and $z^c_e=c_e$ on free edges.
+The tree solve gives $X_1=X_2=c$, so the prefix-slack argument of
+Lemma~\ref{lem:port-penalties} gives
+$V_G(u^c,z^c)\le2N^4S$. For each free coordinate choose
+$z^*_e=\max\{c_e,1/4\}$. It lies in $[0,R+1]$ with at least $1/4$
+clearance from its boundary and differs from $c_e$ by at most $1/4$.
+On the cube of sup radius $1/8$ about $z^*$, and for every smoothing
+displacement, the port and free-coordinate displacements from
+$(u^c,z^c)$ are at most $N^{21}W+b_0+1$. Therefore
+\begin{equation}\label{eq:near-center-penalty}
+ \lambda V_G(u-v,z)
+ \le2\lambda N^4S+L_0(N^{21}W+b_0+1)<N^{5000}.
+\end{equation}
+Integrating over this cube and over the whole probability kernel gives
+$\widetilde I_G(u)\ge4^{-|\mathcal F_G|}e^{-N^{5000}}
+\ge e^{-N^{50000}}$. This proof includes $\mathcal F_G=\varnothing$.
+
+For the rank factors, choose any common integral base $x^*$, which
+exists by the feasibility and integrality results of Section~\ref{sec:polyhedra}.
+Its projected totals $v^*_i$ satisfy the rank constraint and are within
+$N^{10}W$ of the center totals by~\eqref{eq:part-total-range}.
+For any nonnegative vector $v$ on a rank index set, its rank penalty is
+\[
+ v(E_r)+r(E_r)-2m_r(v)
+  =\max_{A\subseteq E_r}
+       \{v(A)-v(E_r\setminus A)+r(E_r)-2r(A)\}.
+\]
+Every affine function on the right has coordinate slopes $\pm1$.
+Thus this penalty is 1-Lipschitz in the $1$-norm. It vanishes at $v_i^*$,
+so throughout a port box it is at most $N^{23}W$, independently of the
+numerical value of $R$. Multiplication by $H$ still gives a fixed power
+of $N$. For each component, $t_C$ vanishes at the center and has
+absolute value at most $N^{23}W$ throughout the boxes. Consequently
+all Gaussian and absolute-value exponents in~\eqref{eq:block-factor}
+have absolute value bounded by fixed powers below $N^{40000}$; the
+auxiliary quadratic is smaller than one. Summing these bounds and
+\eqref{eq:integral-bounds} over at most $n$ blocks proves
+\eqref{eq:weight-log-bound}.
+
+The center, endpoints, scales, and tree coefficients have polynomial
+encoding length. Ranks of unions and contracted ranks require ordinary
+rank queries. For the minima defining $m_r$ and the maxima defining
+$V_G$, rational modular terms are handled by clearing their common
+denominator and applying Proposition~\ref{prop:oracle-tools}. The binary
+length of that denominator is at most the sum of the individual
+denominator lengths. Thus the size parameter is polynomial in bits;
+no bound on its numerical value is needed.
+\end{proof}
+
+\subsection{A rational volume problem}
+
+We use the following form of the classical randomized volume theorem
+\cite{DFK1991,DyerFrieze1991}. In dimension $d$, a full-dimensional
+rational polytope supplied by strong separation, a polynomial bound
+on each inequality's encoding length, and rational inner and outer
+ball guarantees admits a relative volume approximation with success
+probability at least $3/4$. Its oracle and bit complexity is polynomial
+in $d$, these encoding lengths, and the reciprocal error. The radii
+enter through their binary lengths. We use the finite-precision volume
+algorithm in the rational oracle model of
+\cite[Section~2]{DyerFrieze1991}. Its polynomial random-bit bound is
+recorded in \cite[Section~6]{DyerFrieze1991}; finite-grid sampling within
+cubes and its error analysis appear in
+\cite[algorithm Step~2 and its finite-grid error analysis]{DFK1991}.
+Finite uniform integer choices can be generated from unbiased bits by
+rejection using fewer than two expected trials. The resulting expected
+polynomial bound includes bit operations, rational arithmetic, and
+oracle calls; we cap and amplify this procedure below. Strong separation
+supplies the weak membership required in the volume theorem.
+
+We first round each volume input by a rational change of coordinates.
+Apply Lemma~\ref{lem:center} to the full-dimensional
+polytope and send its returned simplex vertices to $0,e_1,\ldots,e_d$.
+The image contains the standard simplex and lies in $[-2,2]^d$,
+because its nonconstant barycentric coordinates have absolute value
+at most two. The standard simplex contains a Euclidean ball about
+its barycenter of radius at least $(d+1)^{-2}$. Translating that
+barycenter to zero and scaling by $(d+1)^2$ therefore give an inner
+unit ball and an outer ball of polynomial radius. The affine map,
+its determinant, and the inverse images of rational separation queries
+have polynomial encoding length. Correcting the returned volume by
+the determinant is exact rational arithmetic. The required optimization
+uses the rational separation theorem \cite{GLS1988}, through
+Proposition~\ref{prop:oracle-tools}. This supplies a rounded input
+even when the original geometric aspect ratio is numerically large.
+
+Fix a block and a rational port vector $u$ in its box. Let $m$ be the
+number of its port arguments, including fixed length-zero ports, and
+$f=|\mathcal F_G|$ its number of free variables. Length-zero ports are
+omitted only from the count slice; they remain arguments of the smoothing
+convolution.
+Replace its $6m$ uniform variables by $q_{ja}\in[0,1]$, putting
+\[
+ v_j(q)=\frac{b_0}{3}\sum_{a=1}^6(q_{ja}-1/2),\qquad
+ \mathcal B=[0,R+1]^f\times[0,1]^{6m},\qquad
+ D(z,q)=\lambda V_G(u-v(q),z).
+\]
+The normalized uniform density has been absorbed by this unit-interval
+parametrization, so there is no further Jacobian factor:
+\begin{equation}\label{eq:exponential-box-integral}
+ \widetilde I_G(u)=\int_{\mathcal B}e^{-D(x)}\dd x,
+ \qquad x=(z,q).
+\end{equation}
+Here $D$ is nonnegative, convex, and piecewise affine. Its value and an
+attaining affine piece can be computed exactly at rational points:
+submodular minimization returns a maximizing subset for each of the
+two maxima in $V_G$, and their sum is such a piece.
+
+For $0<\rho<1$, define
+\begin{equation}\label{eq:volume-lift-scales}
+ E_0=N^{51000}+\lceil\log_2(100/\rho)\rceil,
+ \qquad d_0=\lceil1000E_0^2/\rho\rceil.
+\end{equation}
+The ceiling of the logarithm can be found by integer comparisons of
+powers of two, without numerical logarithms. Consider the polytope
+\begin{equation}\label{eq:volume-lift}
+ \mathcal Q=\{(x,y):x\in\mathcal B,\ y\in\R_{\ge0}^{d_0},\quad
+                   D(x)+d_0y_a\le d_0\ (1\le a\le d_0)\}.
+\end{equation}
+Each inequality involving $D$ means all the affine-piece inequalities
+in its finite maximum representation. This makes $\mathcal Q$ a
+convex rational polytope, although its inequalities are not enumerated.
+Integrating over its $y$-fiber gives the exact identity
+\begin{equation}\label{eq:fiber-volume}
+ \vol(\mathcal Q)=\int_{\mathcal B}(1-D(x)/d_0)_+^{d_0}\dd x.
+\end{equation}
+
+\begin{lemma}[Accuracy and guarantees for the volume lift]
+\label{lem:volume-lift}
+The polytope~\eqref{eq:volume-lift} has dimension $f+6m+d_0$, a
+polynomial facet-encoding bound, and an exact polynomial-time strong
+separation oracle. It contains a known rational ball of radius $1/32$
+and has an outer ball of polynomial encoding length. Furthermore,
+\begin{equation}\label{eq:volume-lift-accuracy}
+ (1-\rho/10)\widetilde I_G(u)
+       \le\vol(\mathcal Q)\le\widetilde I_G(u).
+\end{equation}
+All polynomial bounds are in the original input length, the encoding
+lengths of $u$ and $\rho$, $N$, and $\rho^{-1}$, with absolute fixed exponents.
+\end{lemma}
+
+\begin{proof}
+The pointwise upper inequality follows from $1-t\le e^{-t}$. For
+$0\le D\le E_0$, expansion of $-\log(1-t)$, or integration of its
+derivative, gives
+\[
+ 0\le-d_0\log(1-D/d_0)-D
+ \le\frac{D^2}{2d_0(1-D/d_0)}<\rho/100.
+\]
+The part of~\eqref{eq:exponential-box-integral} where $D>E_0$ has
+integral at most $e^{K-E_0}$. Dividing by the lower bound in
+\eqref{eq:integral-bounds} makes its relative contribution at most
+\[
+ \exp(K+N^{50000}-E_0)<\rho/100.
+\]
+These two errors prove~\eqref{eq:volume-lift-accuracy}.
+
+For separation, first test the box inequalities and $y\ge0$. Compute
+$D(x)$ and choose an index $a$ with largest $y_a$. If
+$D(x)+d_0y_a>d_0$, the attaining affine piece of $D$ gives a rational
+hyperplane separating the point from $\mathcal Q$. Otherwise all
+inequalities hold. The coefficient bounds follow from the integral
+tree map, the rank-answer bit bound, the rational scales, and the
+input port encodings. At a rational query, clearing denominators for
+the two submodular minimizations takes polynomial bit work as in
+Lemma~\ref{lem:weight-bounds}. Each inequality, rather than the number
+of possible subsets, is the encoding parameter.
+
+For the inner ball choose
+\[
+ x^*=(z^*,q^*),\qquad z^*_e=\max\{c_e,1/4\},\qquad
+ q^*_{ja}=1/2,\qquad y^*_a=1/4.
+\]
+All box coordinates have clearance at least $1/4$. A Euclidean
+perturbation of radius $1/32$ changes each free coordinate by at most
+$1/32$ and each $v_j$ by at most $2b_0/32$. By
+\eqref{eq:port-lipschitz} its change in $D$ is at most
+$L_0\max\{1,2b_0\}/32<1$. The near-center estimate
+\eqref{eq:near-center-penalty} therefore gives $D<N^{5000}+1<d_0/2$
+throughout this ball. Also $0<y_a\le9/32$, so
+$D+d_0y_a<25d_0/32<d_0$. This proves the inner guarantee, including
+$f=0$. Every point of $\mathcal Q$ has $x\in\mathcal B$ and
+$0\le y_a\le1$. If $d=f+6m+d_0$, the ball centered at the origin
+with rational radius $d(R+2)$ is therefore an outer ball. Its binary
+encoding length is polynomial.
+
+Finally, the numerical value of $d_0$ is polynomial in $N$ and
+$\rho^{-1}$: the exponents in~\eqref{eq:volume-lift-scales} are fixed.
+Thus even its explicitly added coordinates can be written and
+processed within one fixed polynomial bound. The original capacity
+appears only in the box endpoint $R+1$ and the encoding lengths just
+verified.
+\end{proof}
+
+\subsection{Positive rational outputs and deterministic caps}
+
+\begin{proposition}[A bounded weight evaluator]\label{prop:weight-evaluator}
+Given a profile in the entire slice $\mathcal S$, rational
+$0<\rho,\beta<1$, and a rational power $s\in[0,1]$ with denominator
+$q_s$, there is an evaluator using fresh random bits and returning a strictly positive rational
+$\widehat h_s$ such that
+\[
+ \PP\bigl[(1-\rho)h^s\le\widehat h_s\le(1+\rho)h^s\bigr]
+       \ge1-\beta.
+\]
+Its output length, number of rank queries, and other bit operations
+are bounded on every execution by fixed polynomials in $N$, the
+input encoding lengths, $\rho^{-1}$, $\log(\beta^{-1})$, and $q_s$.
+In particular an equally spaced schedule with a polynomial number of
+phases has polynomially bounded denominators. Moreover $J$ admits
+a deterministic positive rational approximation $\widehat J$ with
+$|\log(\widehat J/J)|\le N^{-7}$ in polynomial work.
+\end{proposition}
+
+\begin{proof}
+First evaluate a single smoothed block integral. Round $\mathcal Q$
+by the rational affine construction above, apply the volume theorem
+with relative error $\rho/10$, and restore the exact determinant factor.
+Use the same parameter $\rho$ in~\eqref{eq:volume-lift-scales}. By
+Lemma~\ref{lem:volume-lift}, its successful output is a relative
+$\rho/2$ approximation to $\widetilde I_G$.
+
+For completeness, all resource bounds here are bounds on actual
+finite-bit executions. Let $B$ be a furnished polynomial upper bound
+on the expected combined number of bit operations and oracle calls
+of one volume run, including the cost of its separation queries.
+If the chosen version already has a deterministic bound, use that
+bound instead. Interrupt the run after $16B$ operations; Markov's
+inequality increases the failure probability by at most $1/16$.
+The resulting success probability is at least $11/16$. On interruption,
+a declared failure (including a zero denominator), or an invalid or
+nonpositive output, substitute a fixed positive rational. Repeat independently
+$O(1+\log\beta^{-1})$ times and take the median. The binomial tail
+bound gives failure probability at most $\beta$. Cap construction,
+query lengths, arithmetic, and random-bit generation are all included.
+Clip each output to
+\[
+ [2^{-2N^{50000}},\ 2^{2N^{50000}}].
+\]
+This interval has polynomial-bit endpoints and strictly contains all
+successful relative approximations from~\eqref{eq:integral-bounds}.
+Clipping therefore retains the success guarantee and ensures bounded
+positive outputs even on failed or interrupted runs.
+
+Evaluate all rank penalties and the other rational exponents exactly,
+and allocate relative error $\rho/(100(n+1))$ and failure allowance
+$\beta/(n+1)$ to each of the at most $n$ block integrals. Evaluate the
+remaining exponentials and all rational arithmetic to another
+$\rho/(100(n+1))$ relative error per factor. The log bounds in
+Lemma~\ref{lem:weight-bounds} ensure that these relative accuracies
+require only polynomial absolute precision. One elementary
+implementation uses the exponential Taylor series and factorial tail
+bounds: an exponent of magnitude at most $D_*$ and absolute precision
+$2^{-k}$ require polynomially many terms and bits in $D_*+k+1$.
+Negative exponents can be evaluated by inversion of a positive
+exponential approximation. Here $D_*$ is a fixed polynomial in $N$,
+not in $R$.
+
+Multiplying the factors gives a positive relative approximation to
+$h$. Before taking any power, clip this product to
+$[2^{-3N^{60000}},2^{3N^{60000}}]$. This interval contains $h$ by
+\eqref{eq:weight-log-bound}, so clipping cannot increase its relative
+error; it also gives valid bisection bounds even after failed block
+evaluations. On the simultaneous success event the sum of the factor
+logarithmic errors is below $\rho/10$, after reducing the indicated
+constants if necessary. To obtain $h^s$ for $s=a_s/q_s$, apply bisection to the
+$q_s$th root and integer powering to $a_s$, with positive rational
+endpoints whose binary exponents are bounded by
+$3N^{60000}$. Each comparison is an integer-power comparison, and
+$a_s\le q_s$; the number of bisections, lengths of operands, and
+bit work are polynomial in $q_s$, $N$, and $\log\rho^{-1}$.
+Taking a power in $[0,1]$ cannot increase the preceding logarithmic
+error. Approximate the root to logarithmic error at most
+$\rho/[100(q_s+1)]$ before taking the $a_s$th power; the resulting
+additional logarithmic error is at most $\rho/100$. This proves the
+required relative bound. For $s=0$ return one exactly.
+All steps have prescribed finite bounds; clipping the final output
+to $[2^{-3N^{60000}},2^{3N^{60000}}]$ gives the same positivity and
+encoding guarantee on every failure event. This proves the asserted
+evaluator without conditioning any future computation on its success.
+
+To approximate $J$, let $k$ be the number of nonroot components, so
+\[
+ J=\left(\sum_{j\in\Z}e^{-j^2/M^2}\right)^k,
+ \qquad 0\le k\le n.
+\]
+For $k=0$ return one. Otherwise truncate at the integer
+$B_J=MN^{10}$, a polynomial in $N$. The omitted two-sided tail is at
+most
+\[
+ 2\int_{B_J}^{\infty}e^{-x^2/M^2}\dd x
+ \le\frac{M^2}{B_J}e^{-B_J^2/M^2}
+ =MN^{-10}e^{-N^{20}}.
+\]
+The sum is at least one. Approximate each of its $2B_J+1$ retained
+terms to absolute error at most
+$N^{-7}/[100(n+1)(2B_J+1)]$, keeping the term at zero exactly one
+and the remaining terms nonnegative. The elementary exponential
+procedure above is bounded since each exponent has magnitude at most
+$N^{20}$. Adding the terms and raising to the integer power $k$
+gives a positive rational result whose logarithmic error is below
+$N^{-7}$. No random choices or numerical grid of length $R$ occurs.
+\end{proof}

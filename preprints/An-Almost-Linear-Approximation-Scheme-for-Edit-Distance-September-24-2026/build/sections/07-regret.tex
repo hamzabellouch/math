@@ -1,0 +1,398 @@
+\section{Conditional regret and the first crossing}\label{sec:regret}
+
+Fix a seed table satisfying the hypothesis of Theorem~\ref{thm:refinement},
+and fix the comparison tree from Section~\ref{sec:comparison}.
+We will bound the error accumulated at its nodes over the refinement indices.
+The estimates may lie below true cost when $a>1$. To keep such
+underestimation from cancelling an error elsewhere, define, for the analysis
+only,
+\[
+ \overline d_t(I,q)=\max\{c(I,q),d_t(I,q)\}.
+\]
+At a nonterminal comparison node use the notation
+$c,b,r,e,q_i,m_i,W,G,K$ of Section~\ref{sec:comparison}, and set
+\begin{equation}\label{eq:node-regret-definition}
+ \mathcal R_t(I,q)
+ =\overline d_t(I,q)-Le-\sum_i\overline d_t(I_i,q_i).
+\end{equation}
+These quantities telescope over the fixed comparison tree. We first bound
+their sum in time at an arbitrary node, then improve that bound on a node
+whose comparison action belongs to a computed band.
+
+\subsection{A telescoping bound at every comparison node}
+
+\begin{lemma}\label{lem:generic-regret}
+At every nonterminal comparison node,
+\begin{equation}\label{eq:generic-regret}
+ \sum_{t=1}^S\mathcal R_t
+ \le \sum_i\bigl(\overline d_0-\overline d_S\bigr)(I_i,q_i)
+ \le \sum_i(m_i-|z_i|)
+ \le W-|z(I,r)|,
+\end{equation}
+where $z_i=z(I_i,q_i)$. In particular, the bound is at most $4Fc$.
+If the node is not bad and $|\widehat v|>1-\tau$, it is at most
+$(H^{-1/4}+4\tau F)c$.
+\end{lemma}
+
+\begin{proof}
+The Bellman option and the comparison action give
+\[
+ d_t(I,q)\le Le+\sum_i d_{t-1}(I_i,q_i).
+\]
+The right side with all child values replaced by their clipped values is
+at least $c$, by Equation~\ref{eq:comparison-split}. It therefore also bounds
+$\overline d_t(I,q)$. Subtracting the same expression at index $t$ and
+summing proves the first inequality in Equation~\ref{eq:generic-regret}.
+
+For the second inequality, consider a child separately. If $d_0\le c_i$,
+monotonicity makes both clipped endpoint values equal to $c_i$, so their
+difference is zero, while $m_i\ge |z_i|$. If $d_0>c_i$, then
+$\overline d_0=d_0\le m_i$ and $\overline d_S\ge |z_i|$. This proves the
+required difference bound in both cases; it does not require
+$\overline d_0\le m_i$ in the first case. Finally,
+$\sum_i|z_i|\ge|z(I,r)|$ and $W\le4Fc$.
+
+For the last assertion, $|\widehat v|=|z(I,r)|/Z>1-\tau$ implies
+\[
+ W-|z(I,r)|\le G+\tau W
+ \le (H^{-1/4}+4\tau F)c,
+\]
+using $G\le bH^{-1/4}$ and $b\le c$ at a node that is not bad.
+\end{proof}
+
+\subsection{An entropy inequality with fixed block masses}
+
+Exponential weighting and its potential analysis have a classical role in
+online learning; see Freund and Schapire~\cite{FreundSchapire1997}.
+Our predicted objective has the form of optimistic regularized leader,
+as studied by Rakhlin and Sridharan~\cite[Section~2]{RakhlinSridharan2013}.
+For our action vectors, each child receives a fixed total probability mass.
+Cost decrements may differ greatly between children, but their variation
+within a child is small.  The following deterministic lemma isolates the
+reason that this weaker variation bound suffices.
+
+\begin{lemma}[Monotone costs with fixed block masses]\label{lem:entropy}
+Let $\mathcal Q$ be a nonempty compact convex set of probability vectors
+in $\mathbb R^d$, containing a vector with every coordinate positive.
+Partition the coordinates into blocks, and suppose that the total mass
+in each block is the same for every vector in $\mathcal Q$.
+For an integer $S\ge1$, let $f_0,\ldots,f_S\in[0,1]^d$ be
+coordinatewise nonincreasing.
+For $\eta>0$ and $0<\kappa<1/2$, set
+\[
+ \widehat g_t=-f_{t-1},\qquad
+ \Delta_t=f_{t-1}-f_t,\qquad
+ u_t=\widehat g_t+(1-2\kappa)\Delta_t.
+\]
+Suppose that the range of $\Delta_t$ within each block is at most
+$\kappa/\eta$ for every $1\le t\le S$.  Let $\rho_t$ maximize
+\[
+ \mathcal H(\rho)+
+ \eta\left\langle\sum_{j<t}u_j+\widehat g_t,\rho\right\rangle
+ \quad\text{over }\rho\in\mathcal Q,
+ \qquad \mathcal H(\rho)=-\sum_k\rho_k\ln\rho_k,
+\]
+with $0\ln0=0$.  For every $\rho^*\in\mathcal Q$ and every integer
+$0\le s\le S$,
+\begin{equation}\label{eq:entropy-regret}
+\begin{split}
+ \sum_{t=1}^s
+ \left\langle f_t+\kappa\Delta_t,\rho_t\right\rangle
+ \le {}&
+ \sum_{t=1}^s
+ \left\langle f_t,\rho^*\right\rangle
+ +\frac{\ln d}{\eta}+2\kappa.
+\end{split}
+\end{equation}
+For any $\zeta\ge0$, replacing each $\rho_t$ on the left by a vector
+within $\zeta$ in $\ell_1$ distance adds at most $s\zeta$ to the bound.
+\end{lemma}
+
+\begin{proof}
+The monotone cost vectors satisfy, coordinatewise,
+\begin{equation}\label{eq:increment-properties}
+ \Delta_t\ge0,
+ \qquad
+ \sum_{t=1}^S\Delta_t
+ =f_0-f_S\le1.
+\end{equation}
+Define the potential
+\[
+ \Psi(v)=\max_{\rho\in\mathcal Q}
+ \{\mathcal H(\rho)+\eta\langle v,\rho\rangle\}.
+\]
+Compactness gives a maximizer, and strict concavity of entropy makes it
+unique.  It is positive: moving a small
+distance $u$ from a vector with a zero coordinate toward the positive feasible
+vector increases entropy by a positive multiple of $u\ln(1/u)+O(u)$,
+whereas the linear term changes by only $O(u)$. At a positive maximizer
+$p$, first-order optimality along feasible segments gives
+\[
+ \langle\nabla\mathcal H(p)+\eta v,\rho-p\rangle\le0
+ \qquad(\rho\in\mathcal Q).
+\]
+Since
+$\mathcal H(\rho)-\mathcal H(p)
+ =\langle\nabla\mathcal H(p),\rho-p\rangle-\KL(\rho\Vert p)$,
+we obtain the precise penalty
+\begin{equation}\label{eq:entropy-penalty}
+ \mathcal H(\rho)+\eta\langle v,\rho\rangle
+ \le \Psi(v)-\KL(\rho\Vert p).
+\end{equation}
+Here $\KL(\rho\Vert p)=\sum_k\rho_k\ln(\rho_k/p_k)$, with zero terms
+interpreted as zero. The penalty therefore holds on $\mathcal Q$ itself,
+even when its feasible directions are restricted.
+
+Put $v_{t-1}=\sum_{j<t}u_j$.
+Evaluating the old objective at the maximizer $\rho_t$ of the new one
+gives
+\begin{equation}\label{eq:predicted-potential-increment}
+ \Psi(v_{t-1}+\widehat g_t)-\Psi(v_{t-1})
+ \le\eta\langle\widehat g_t,\rho_t\rangle.
+\end{equation}
+This inequality remains valid when the increment is negative.
+To add the remaining vector $(1-2\kappa)\Delta_t$, let $\mu$ be the
+vector whose coordinates are the minimum of $\Delta_t$ in their
+block, and write $v'=\Delta_t-\mu$. Then
+$0\le\eta v'_k\le\kappa$ and $\mu\ge0$.
+Moreover $\langle\mu,\rho\rangle$ is the same for every
+$\rho\in\mathcal Q$, because the block masses are fixed.
+Thus the possibly large block minima contribute exactly the same linear
+increment at every feasible vector; only the small within-block remainder
+needs an exponential estimate.
+Equation~\ref{eq:entropy-penalty} thus bounds the remaining potential
+increment by
+\begin{equation}\label{eq:innovation-potential-increment}
+ \eta(1-2\kappa)\langle\mu,\rho_t\rangle
+ +\ln\sum_k\rho_{t,k}
+       \exp\bigl(\eta(1-2\kappa)v'_k\bigr).
+\end{equation}
+To justify the logarithmic term, extend the supremum with its relative
+entropy penalty to the full probability simplex and normalize the weights
+$\rho_{t,k}\exp(\eta(1-2\kappa)v'_k)$.
+The resulting objective equals the displayed logarithm minus relative
+entropy to these normalized weights, whose nonnegativity proves the bound.
+
+For $0\le x\le\kappa\le1/2$,
+\begin{equation}\label{eq:entropy-exponential}
+ e^{(1-2\kappa)x}\le1+(1-\kappa)x.
+\end{equation}
+Indeed the derivative of
+$\ln(1+(1-\kappa)x)-(1-2\kappa)x$ is
+\[
+ \frac{\kappa-(1-2\kappa)(1-\kappa)x}{1+(1-\kappa)x}\ge0,
+\]
+and the expression vanishes at zero.
+Apply Equation~\ref{eq:entropy-exponential} with
+$x=\eta v'_k\le\kappa$, and then use
+$\ln(1+y)\le y$. Because $\mu\ge0$,
+Equation~\ref{eq:innovation-potential-increment} is at most
+$\eta(1-\kappa)\langle\Delta_t,\rho_t\rangle$.
+Combining the two increments yields
+\[
+ \Psi(v_t)-\Psi(v_{t-1})
+ \le\eta\left\langle
+      \widehat g_t+(1-\kappa)\Delta_t,\rho_t\right\rangle.
+\]
+
+Sum through $s$, use $\Psi(0)\le\ln d$, and evaluate the
+last potential at $\rho^*$. Its entropy is nonnegative. Replacing the
+coefficient $1-2\kappa$ in the accumulated comparator objective by $1$
+loses at most
+\[
+ 2\kappa\left\langle\sum_{t=1}^s\Delta_t,\rho^*\right\rangle
+ \le2\kappa
+\]
+by Equation~\ref{eq:increment-properties}.  Finally,
+\[
+ \widehat g_t+\Delta_t=-f_t,\qquad
+ \widehat g_t+(1-\kappa)\Delta_t=-(f_t+\kappa\Delta_t).
+\]
+Reversing the signs gives~\eqref{eq:entropy-regret}.
+The cost vector $f_t+\kappa\Delta_t=\kappa f_{t-1}+(1-\kappa)f_t$
+lies in $[0,1]^d$, so an $\ell_1$ error of at most $\zeta$ costs at most
+$\zeta$ per term.
+\end{proof}
+
+Apply the lemma to an unskipped band $\mathcal C=\mathcal C_{b,r}$,
+conditioning on the complete child tables, including the warmup and all
+indices through $S$.  The band, the scales $h_i$, and its action hull
+$\mathcal Q$ are then fixed.  Take the child coordinates as blocks and set
+\[
+ f_t(i,s)=d_t(I_i,s)/h_i.
+\]
+The action hull is compact and convex, and averaging its action vectors
+gives a positive feasible vector.  Every vector has mass $h_i/h_\Sigma$
+in child block $i$.  The refinement invariants give
+$0\le d_S\le\cdots\le d_0\le w_0\le h_i$ on band coordinates, so the
+normalized costs meet the monotonicity and unit bounds of the lemma.
+
+Two states in a child block have endpoint-pair distance at most
+$4\theta b/M$.  The spatial bound~\eqref{eq:refinement-lipschitz}, used
+in both directions and with $d_t\le h_i$, bounds their cost difference
+at one index by $\delta h_i+4L\theta b/M$; the stronger bound at index
+zero also suffices.  Since $h_i\ge b/M$, the within-block range of
+$\Delta_t$ is at most
+\begin{equation}\label{eq:increment-range}
+ 2\delta+8L\theta\le3\delta\le\kappa/\eta.
+\end{equation}
+Here $8L\theta=1024\ell^{-39}\le\ell^{-10}$ and
+$3\eta\delta=3\ell^{-5}\le\kappa$.
+The lemma therefore applies to exactly the objective
+\eqref{eq:online-objective}, with $d=d_{\mathcal C}$.
+Conditioning on child tables leaves the parent group samples and online
+draws with their prescribed laws, since their streams are separate from
+descendant streams.  No independence among child tables is needed.
+
+To express the conclusion in action costs, put
+\[
+ x_t(\alpha)=\sum_i d_t(I_i,s_i(\alpha)).
+\]
+The fixed coordinate weights give
+\[
+ \begin{aligned}
+ h_\Sigma\langle f_t,\rho(\alpha)\rangle&=x_t(\alpha),\\
+ h_\Sigma\langle f_t+\kappa\Delta_t,\rho(\alpha)\rangle
+ &=x_t(\alpha)+\kappa\bigl(x_{t-1}(\alpha)-x_t(\alpha)\bigr).
+ \end{aligned}
+\]
+If $\alpha_t$ is drawn from the computed mixture, its expected action
+vector is that mixture's mean.  Lemma~\ref{lem:entropy}, with
+$\zeta=H^{-3}$, thus gives every fixed band action $\alpha^*$ and prefix
+$0\le s\le S$ the conditional bound
+\begin{equation}\label{eq:band-action-regret}
+\begin{split}
+ \E\left[\sum_{t=1}^s
+   \left\{x_t(\alpha_t)
+       +\kappa\bigl(x_{t-1}(\alpha_t)-x_t(\alpha_t)\bigr)\right\}
+       \,\middle|\,\text{child tables}\right]
+ \le{}&\sum_{t=1}^s x_t(\alpha^*)\\
+ &+h_\Sigma\left(\frac{\ln d_{\mathcal C}}{\eta}
+                         +2\kappa+sH^{-3}\right).
+\end{split}
+\end{equation}
+The next argument shows why the decrement term on the left is enough
+to cover the clipping in the parent update.
+
+\subsection{Clipping before and after the first crossing}
+
+We now apply the entropy inequality at a comparison node that is not bad
+and satisfies $|\widehat v|\le1-\tau$.
+Lemma~\ref{lem:comparison-band} ensures that its comparison action
+$\alpha^*$ belongs to the unskipped band $\mathcal C_{b,r}$ and that
+all its guards pass. Write
+\[
+ A_t(\alpha)=Le+x_t(\alpha).
+\]
+The entropy bound controls these action costs. The following proposition
+transfers that control to the clipped parent regret.
+
+\begin{proposition}\label{prop:node-regret}
+Condition on the complete child tables at such a comparison node.
+Then
+\begin{equation}\label{eq:node-regret}
+\begin{split}
+ \E\left[\sum_{t=1}^S\mathcal R_t
+       \,\middle|\,\text{child tables}\right]
+ \le {}&h_\Sigma\left(
+       \frac{\ln d_{\mathcal C}}{\eta}
+       +2\kappa+SH^{-3}\right)\\
+       &+2\delta c+2SH^{-4}Fc.
+\end{split}
+\end{equation}
+Here $h_\Sigma\le64Fb$ and
+$\ln d_{\mathcal C}\le4(p_*+21)\ell$.
+\end{proposition}
+
+\begin{proof}
+Let $t_\times$ be the first $t\in\{1,\ldots,S\}$ for which
+$\min_{\alpha\in\mathcal C}A_t(\alpha)<c$, or put $t_\times=S+1$
+if there is none. This index depends only on the conditioned child tables.
+It is an analysis device, not a test performed by the algorithm.
+We will use~\eqref{eq:band-action-regret} on the fixed prefix
+$1\le t<t_\times$.
+
+Let $E_t$ be the failure event for the group approximation associated
+with this representative. By Lemma~\ref{lem:group-accuracy},
+$\Pr(E_t\mid\text{child tables})\le H^{-4}$, and on its complement
+Equation~\ref{eq:group-accuracy} holds for every action in the band.
+For the online action $\alpha_t$ sampled for this band, we claim that
+on the prefix
+\begin{equation}\label{eq:prefix-clipping}
+\begin{split}
+ \overline d_t(I,q)
+ \le {}&Le+x_t(\alpha_t)
+       +\kappa\bigl(x_{t-1}(\alpha_t)-x_t(\alpha_t)\bigr)\\
+       &+2Fc\,\ind_{E_t}.
+\end{split}
+\end{equation}
+Every action cost $A_t(\alpha)$ is at least $c$ on this prefix, and the
+online candidate satisfies $Y_t(q)\le A_t(\alpha_t)$.
+If $\overline d_t(I,q)\le A_t(\alpha_t)$, the claim follows at once
+from child monotonicity. Otherwise, the update
+Equation~\ref{eq:refined-update} forces
+\[
+ \Pi_t(q)>(1+\delta)A_t(\alpha_t),
+ \qquad d_t(I,q)=\frac{\Pi_t(q)}{1+\delta}.
+\]
+The earlier-index Bellman option also gives
+$\Pi_t(q)\le Le+x_{t-1}(\alpha_t)$, so, writing
+$\Delta x=x_{t-1}(\alpha_t)-x_t(\alpha_t)$,
+\[
+ \Delta x>\delta A_t(\alpha_t)\ge\delta c\ge\delta b.
+\]
+On $E_t^c$, Equation~\ref{eq:group-accuracy} and $e_*\le\kappa\delta$
+now give the full excess calculation
+\[
+ \begin{split}
+ d_t(I,q)-A_t(\alpha_t)
+ &\le\frac{e_*b-\delta Le}{1+\delta}
+ \le\frac{e_*b}{1+\delta}\\
+ &\le\frac{\kappa\delta b}{1+\delta}
+ \le\kappa\Delta x.
+ \end{split}
+\]
+On $E_t$, the added term $2Fc$ suffices because
+$\overline d_t(I,q)\le2Fc$. This proves
+Equation~\ref{eq:prefix-clipping} without requiring independence
+between the sampled action and the group event.
+
+If $t_\times\le S$, choose an action attaining the crossing.
+On $E_{t_\times}^c$, its group bound gives
+\[
+ \Pi_{t_\times}(q)
+ \le Le+(1+\delta)x_{t_\times}(\alpha)+e_*b
+ <c+\delta c+e_*b\le c+2\delta c.
+\]
+Thus the clipped regret at that index is at most $2\delta c$,
+with an additional $2Fc$ allowed on failure. At every later index,
+the same crossing action and child monotonicity imply
+$\mathcal B_I(d_{t-1})(q)<c$. Hence $d_t(I,q)<c$,
+$\overline d_t(I,q)=c$, and the regret is nonpositive by
+Equation~\ref{eq:comparison-split}.
+
+It remains to sum~\eqref{eq:prefix-clipping} on this prefix.
+Use~\eqref{eq:band-action-regret} with $s=t_\times-1$ and the
+comparison action $\alpha^*$.  Since
+$x_t(\alpha^*)\le\sum_i\overline d_t(I_i,q_i)$, its comparator costs
+are bounded by the child terms subtracted in each regret.  The expected
+prefix regret is therefore at most
+\[
+ h_\Sigma\left(\frac{\ln d_{\mathcal C}}{\eta}
+                  +2\kappa+SH^{-3}\right),
+\]
+apart from the explicit failure charges in~\eqref{eq:prefix-clipping}.
+The prefix and possible crossing contain at most $S$ failure events,
+each of conditional probability at most $H^{-4}$. Adding their expected
+costs and the crossing charge proves Equation~\ref{eq:node-regret}.
+
+Finally each child has at most $(21P)^2$ possible states within the wide
+shift radius. Thus $d_{\mathcal C}\le M(21P)^2$, from which
+$\ln d_{\mathcal C}\le4(p_*+21)\ell$ follows using
+$\log_2 H\le\ell$. The bound on $h_\Sigma$ is one of the band guards.
+\end{proof}
+
+The expectation in Proposition~\ref{prop:node-regret} concerns one node
+after fixing its child tables. Integrating it and summing over the fixed
+comparison tree uses only linearity of expectation. No event asserting
+that every group in the recursive computation succeeds is required.

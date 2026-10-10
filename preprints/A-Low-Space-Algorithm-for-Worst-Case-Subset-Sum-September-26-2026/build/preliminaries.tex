@@ -1,0 +1,222 @@
+\section{Counting and enumeration tools}
+\label{sec:preliminaries}
+
+Both trials use the same three facts about an arbitrary fixed input.
+The number of distinct sums changes little when one index is replaced;
+prescribed-cardinality choices have accurate entropy estimates; and a
+random prime rarely identifies two fixed unequal integer weights.
+We prove these facts first. We then give the small-state streams that
+turn stored lists into much larger generated lists.
+
+All logarithms are base two unless written $\ln$. Every finite decimal
+constant is an exact rational. Polynomial factors below have absolute
+degrees independent of the input-bit promise. We use the parameters
+\begin{equation}
+\label{eq:parameters}
+\begin{gathered}
+ u=n+b+2,\qquad m=8\lfloor3n/100\rfloor,\qquad
+ s=m/2,\qquad g=m/4,\\
+ C=2^{\lfloor .199n\rfloor},\qquad
+ B=2^{\lfloor .19n\rfloor},\qquad h_*=h(1/4),
+\end{gathered}
+\end{equation}
+where $h(x)=-x\log x-(1-x)\log(1-x)$ has its continuous endpoint
+values. Blocks used for compression have size $s$; the representation
+trial will use blocks of size $m$ and their halves and quarters.
+The capacity $C$ counts distinct dictionary entries, whereas $B$
+counts buffered occurrences in a stream. An entry can have many
+occurrences, so these capacities have different roles.
+
+The constructions below concern the \emph{main branch}, defined by
+$n\ge n_0$ and
+\begin{equation}
+\label{eq:guard}
+ u\le 2^{\lfloor n/10^9\rfloor},
+\end{equation}
+for one sufficiently large absolute integer $n_0$ fixed in the
+program. Outside this branch the program uses exact subset
+enumeration. Section~\ref{sec:implementation} gives the finite
+implementation of this test, the repetition schedule, and the operation
+cap. Each eventual fixed polynomial-bit class enters the main branch.
+
+\subsection{How many distinct sums does a block have?}
+
+For a domain $V\subseteq\{1,\ldots,n\}$, let $N(V)$ count the
+\emph{distinct integer values} of its subset sums, and define
+\[
+ \defect(V)=|V|-\log N(V).
+\]
+We call this its deficiency. In particular, $N(\varnothing)=1$ and
+$\defect(\varnothing)=0$. Here an actual weight is an integer sum,
+as opposed to a residue; masks always encode sets of indices, even
+when some input values agree. The next lemma applies also to signed
+weights, which arise later after a sign transformation.
+
+\begin{lemma}[Deficiency]
+\label{lem:deficiency}
+For arbitrary fixed weights on the $n$ indices, deficiency is
+nonnegative, invariant under sign changes of individual weights,
+inclusion-monotone, and superadditive on disjoint domains. Replacing
+one index in a domain of fixed size changes its deficiency by at most
+one. If $V$ is uniform among the size-$v$ domains, $0\le v\le n$,
+then
+\begin{equation}
+\label{eq:deficiency-variance}
+ \operatorname{Var}(\defect(V))\le v.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+There are $2^{|V|}$ subsets, so $N(V)\le2^{|V|}$.
+Adding one index multiplies the number of sums by a factor between
+one and two. Its addition therefore increases deficiency by a quantity
+in $[0,1]$, proving inclusion monotonicity. For disjoint $V,W$,
+every sum on their union is a sum of one value from each domain, so
+$N(V\cup W)\le N(V)N(W)$. Taking logarithms gives
+$\defect(V\cup W)\ge\defect(V)+\defect(W)$.
+
+For sign invariance, let $F\subseteq V$ be the negated indices.
+Toggling $F$ in a chosen subset is a bijection on all subsets of $V$.
+The new weight of a subset is the old weight of its toggle minus the
+old weight of $F$, so the set of sum values is merely translated.
+Finally, two equal-sized domains differing in one index are extensions
+of their common part. Each extension increases deficiency by a
+quantity in $[0,1]$, which proves the replacement bound.
+
+For the variance, expose a uniform ordered size-$v$ sample without
+replacement. Let $M_r$ be the conditional expectation of the final
+deficiency after the first $r$ positions, $0\le r\le v$.
+Given the first $r-1$ positions, couple the remaining completions for
+two possible next indices by transposing those indices. The final
+domains then agree or differ in one index. Their deficiencies, and
+hence their conditional means, differ by at most one. Thus all
+possible values of $M_r$ given the past lie in an interval of length
+at most one, and $|M_r-M_{r-1}|\le1$. Orthogonality of martingale
+differences now gives
+\[
+ \operatorname{Var}(\defect(V))
+ =\sum_{r=1}^v\mathbb E(M_r-M_{r-1})^2\le v.
+\]
+The empty-sample case is immediate.
+\end{proof}
+
+Consequently, for any fixed $\epsilon>0$, a deviation of
+$\epsilon n$ from the size-specific mean has probability $O(1/n)$,
+by Chebyshev's inequality. This concentration concerns a random
+\emph{domain} in a fixed input; it assumes no distribution of the
+numerical input values.
+
+\subsection{Exact entropy estimates}
+
+Cardinality restrictions on a block reduce its subset count from
+$2^v$ to a binomial coefficient. We will need the exact exponential
+rate, including in a later estimate with no exponential slack.
+
+\begin{lemma}[Elementary entropy bounds]
+\label{lem:entropy}
+For integers $0\le k\le v$,
+\[
+ \frac{2^{v h(k/v)}}{v+1}\le \binom vk\le 2^{v h(k/v)}.
+\]
+For $v=k=0$, interpret $v h(k/v)$ as zero. Entropy is concave,
+symmetric about $1/2$, and increasing on $[0,1/2]$. Moreover,
+\begin{equation}
+\label{eq:entropy-numbers}
+ h_*<.8114,\qquad h(1/3)<14/15,\qquad h(1/6)>5/8.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For $0<k<v$, consider the binomial distribution with success
+probability $k/v$. The probability of exactly $k$ successes is
+$\binom vk 2^{-v h(k/v)}$. It is at most one and at least
+$1/(v+1)$: adjacent probability ratios show that $k$ is a mode,
+and there are $v+1$ possible outcomes. This gives both estimates.
+The cases $k=0,v$ and $v=0$ are immediate. Differentiation gives
+the asserted monotonicity and concavity; symmetry follows from the
+formula for $h$.
+
+For the strict numerical inequalities, first
+$h_*=2-\tfrac34\log3$. We have
+$3^{12}/2^{19}>1+1/74$, whose fourth power exceeds
+$1+4/74=39/37>256/243$. Hence $3^{53}>2^{84}$ and
+$\log3>84/53>1.5848$, giving $h_*<.8114$.
+Next, $h(1/3)=\log3-2/3$ and $3^5<2^8$, so
+$h(1/3)<8/5-2/3=14/15$.
+Finally, $6^2>2^5$ and $(6/5)^4>2$ imply
+\[
+ h(1/6)=\tfrac16\log6+\tfrac56\log(6/5)
+ >\tfrac16\cdot\tfrac52+\tfrac56\cdot\tfrac14=\tfrac58.
+\]
+Thus none of the three bounds relies on floating-point optimization.
+\end{proof}
+
+\subsection{Random primes and the sampling interface}
+
+The modular filters must control collisions of actual weights, even
+when their bit length grows polynomially with $n$. We use the
+following elementary estimate with its full bit-length dependence.
+
+\begin{lemma}[Prime factors]
+\label{lem:prime}
+Let $4\le\ell\le n$ be an integer. The set
+\[
+ \mathcal P_\ell=
+ \{p\text{ prime}:p<2^\ell,\ 4\ell p\ge2^\ell\}
+\]
+has at least $2^\ell/(4\ell)$ elements. If $p$ is uniform on this
+set and $\Delta$ is a fixed nonzero integer with
+$|\Delta|<2^{2u}$, then
+\[
+ \Pr[p\mid\Delta]\le 8u^2 2^{-\ell}.
+\]
+In particular, this estimate applies to every nonzero actual-weight
+difference used by the two trials.
+\end{lemma}
+
+\begin{proof}
+Put $X=2^\ell$. The central binomial coefficient obeys
+$\binom{X}{X/2}\ge2^X/(X+1)$. In its factorial formula, the
+exponent of a prime $p$ is
+\[
+ \sum_{r\ge1}
+ \left(\left\lfloor\frac X{p^r}\right\rfloor
+      -2\left\lfloor\frac {X/2}{p^r}\right\rfloor\right).
+\]
+Each summand is zero or one, and at most
+$\lfloor\log_p X\rfloor$ of them are nonzero. Thus each prime
+contributes a factor at most $X$ to the binomial coefficient. If
+$\pi(X)$ is the number of primes at most $X$, taking logarithms gives
+\[
+ \ell\pi(X)\ge X-\log(X+1)\ge X/2
+ \qquad(X\ge16).
+\]
+Remove primes below $X/(4\ell)$. There are at most $X/(4\ell)$
+integers in that range, so at least $X/(4\ell)$ primes remain.
+The upper endpoint $X$ is composite, proving the cardinality bound.
+
+An integer $\Delta$ with $0<|\Delta|<2^{2u}$ has at most $2u$
+distinct prime divisors: the product of $r$ distinct primes is at
+least $2^r$. Dividing by the number of available primes and using
+$\ell\le n\le u$ gives the displayed collision bound.
+Actual weights and their relevant differences have magnitude
+$O(n2^b)$; the constructions sum each indexed weight at most twice,
+even before rejecting an overlapping tuple. They therefore meet
+$|\Delta|<2^{2u}$ for sufficiently large main-branch inputs.
+\end{proof}
+
+We analyze uniform independent draws, conditional on each specified
+finite range. The implementation uses at most $n^3$ attempts for each
+draw and fails the current trial if they all fail. The precise
+interface, proved in Lemma~\ref{lem:samplers}, is as follows. A draw
+from $\{0,\ldots,D-1\}$ has the uniform law on success and couples
+to an ideal draw with failure probability at most $2^{-n^3}$;
+$D=1$ needs no randomness. A draw from $\mathcal P_\ell$ has its
+uniform law on success and coupling failure at most $e^{-n^2/4}$.
+These conditional bounds remain valid for ranges determined by past
+choices. All requested prime parameters satisfy $\ell\le.258n$;
+bounded trial division therefore costs at most
+$\poly(n)2^{.129n}$ per prime search, including all its attempts.
+The final section proves the finite-word implementation and the
+aggregate coupling estimate. The trials below use no unbounded
+sampling operation in their resource guarantees.

@@ -1,0 +1,429 @@
+\section{Uniform computation and scalar-image constraints}\label{sec:computation}
+
+We represent a finite computation by a circuit whose exponential address
+space has a polynomial-size description, and then express the absence of
+accepting tests by scalar-image consistency. The computation proposition
+is stated for an arbitrary fixed deterministic machine: choosing a
+complement decider is a separate step at the end of this section.
+The product-address and buffer methods also appear in the fixed-dimension
+companion \citep[Sections~3--4]{CompanionFixedDimension}; here every bound
+is uniform in the growing number of binary coordinates.
+
+\paragraph{Circuit conventions.}
+A scalar gate takes the OR of its incoming connections and may additionally
+be declared a \emph{seed}. It is true precisely when it is a seed or at
+least one incoming source is true. An AND gate has two input ports; each
+port takes the OR of its incoming connections, and the gate is true when
+both ports are true. Empty ORs are false. The circuit is finite and
+acyclic, so these rules determine all truth values. Designated
+\emph{tests} are scalar gates with no outgoing connections.
+
+\begin{definition}[Product description]\label{def:computation-product}
+For an address length $r$, every gate type has one gate at each address in
+$\{0,1\}^r$. A connection schema specifies source and destination types,
+a destination port, nonempty coordinate domains
+$A_i\subseteq\{0,1\}$, and injections
+$\sigma_i:A_i\longrightarrow\{0,1\}$, for $1\le i\le r$.
+It describes the connections
+\[
+ (\text{source type},\mathbf a)
+ \longrightarrow
+ (\text{destination type},\boldsymbol\sigma(\mathbf a)),
+ \qquad
+ \mathbf a\in\prod_{i=1}^r A_i,
+\]
+at the specified port, where
+$\boldsymbol\sigma(\mathbf a)=(\sigma_i(a_i))_{i=1}^r$.
+A seed or test request specifies a scalar type and a product domain of
+addresses. The description lists these schemas and requests by their
+one-coordinate tables, rather than listing all addressed gates.
+\end{definition}
+
+Let \(M\) be a fixed deterministic one-tape machine on a doubly infinite
+tape, with a finite alphabet and head displacements in \(\{-1,0,1\}\).
+Its head starts at position zero, the input \(w\) of length \(m\) occupies
+positions \(0,\ldots,m-1\), and all other cells are blank. Halting
+configurations are frozen. Let \(p\) be a fixed integer polynomial with
+\(p(m)\ge m+2\) such that \(M\) halts on every input of length \(m\)
+within \(T=2^{p(m)}\) steps. Put
+\begin{equation}\label{eq:computation-parameters}
+ d=p(m)+2,\qquad H_*=2^d=4T,\qquad r=2d,\qquad K=r+1.
+\end{equation}
+Thus \(r\ge8\). An address is a pair \((t,j)\) of \(d\)-bit numbers
+with \(0\le t,j<H_*\). Time is not cyclic; position is interpreted
+modulo \(H_*\).
+
+\Needspace{18\baselineskip}
+\begin{proposition}[Uniform product-circuit compilation]\label{prop:computation}
+Fix a deterministic one-tape machine \(M\) with the initialization and
+frozen-halting convention just specified, and an integer polynomial \(p\)
+satisfying \(p(m)\ge m+2\) and bounding its running time by \(2^{p(m)}\).
+For every word \(w\) of length \(m\), one can generate a product description
+in the sense of \Cref{def:computation-product} of a finite acyclic circuit
+at address length \(r=2(p(m)+2)\), with scalar terminal tests, such that
+at least one test is true if and only if \(M\) accepts \(w\).
+
+There are \(O_M(1)\) gate types and \(O_M((r+1)^2+m)\) connection
+schemas and seed or test requests, each with \(r\) constant-size
+coordinate entries. All domains have nonempty binary factors and all
+coordinate maps are injections. The total number of coordinate entries
+is \(O_M(r((r+1)^2+m))\). The description is generated deterministically
+in time polynomial in \(r+m\), with constants depending only on \(M,p\),
+without enumerating times or full addresses.
+\end{proposition}
+
+\begin{proof}
+Let $\Gamma$ be the fixed tape alphabet and let $\Sigma$ consist of its
+plain symbols together with symbols carrying a head state of $M$. There
+is a fixed map
+\[
+ F:\Sigma^3\longrightarrow\Sigma
+\]
+that updates the center cell of every configuration with exactly one head.
+If the head is at the center, its state and scanned symbol determine the
+symbol written there and whether the head remains. If it is at a neighbor,
+that neighbor's marked symbol determines whether the head moves into the
+center and, if so, its new state; the center's tape symbol is already in
+the triple. If the triple has no head, the center stays unchanged. These
+rules also cover halted states, for which nothing changes. Complete $F$
+arbitrarily on triples impossible in a one-head configuration.
+
+The same rule implements one machine step on a ring of length $H_*$.
+Starting from one head, it writes at that head and transfers the head by
+the prescribed displacement, so the ring still has exactly one head.
+In particular, a triple crossing the ring's seam is a prescribed valid
+local case, not an arbitrary entry of the table.
+
+Initialize the ring with $w$ at $0,\ldots,m-1$, the head at zero, and
+blanks elsewhere; for $m=0$ the head carries a blank. This simulates the
+line computation through halting. All input positions and all positions
+visited within $T$ steps lie in $[-T,T]$, since $m\le T$. Reduction modulo
+$4T$ is injective on this interval, and the initial contents at these
+positions agree with the corresponding ring cells. Inductively, each
+scanned ring cell has received exactly the same previous writes as its
+unique potentially visited line counterpart. The next transition
+therefore writes the same symbol and moves to the same corresponding
+position, including a last move to either endpoint of the interval.
+There can be no change elsewhere: a valid machine update changes only
+the old and new head cells. Equivalently, all neighborhoods that could
+react to the head lie in the halo $[-T-2,T+2]$, whose $2T+5$ positions are
+distinct modulo $4T$ because $T\ge4$; centers with no head in their triple
+stay unchanged. Upon halting the whole ring configuration freezes.
+Its configuration at time $H_*-1$ consequently records the outcome of $M$.
+
+\paragraph{The gates.}
+For each $f\in\Sigma$, introduce a scalar type $S_f$. Seed exactly
+$S_f(0,j)$ when $f$ is the actual initial letter at position $j$, including
+the head information. For every $(a,b,c)\in\Sigma^3$, introduce two AND
+types $U_{abc}$ and $V_{abc}$. For $t>0$ use the connections
+\begin{align}
+ S_a(t-1,j-1)&\longrightarrow U_{abc}(t,j)\text{, port }1,
+ \label{eq:computation-left}\\
+ S_b(t-1,j)&\longrightarrow U_{abc}(t,j)\text{, port }2,
+ \label{eq:computation-center}\\
+ S_c(t-1,j+1)&\longrightarrow V_{abc}(t,j)\text{, port }2.
+ \label{eq:computation-right}
+\end{align}
+At every time, including zero, also use
+\begin{equation}\label{eq:computation-same-time}
+ U_{abc}(t,j)\longrightarrow V_{abc}(t,j)\text{, port }1,
+ \qquad
+ V_{abc}(t,j)\longrightarrow S_{F(a,b,c)}(t,j).
+\end{equation}
+All position indices in these formulas are cyclic.
+
+Assign ranks $3t$, $3t+1$, and $3t+2$ to the $U$, $V$, and $S$ gates at
+time $t$, respectively. Every connection strictly increases rank, proving
+acyclicity. At time zero, both ports of every $U$ are false, and every $V$
+is false; precisely the intended scalar seeds are true. Suppose the true
+scalars at time $t-1$ specify the actual letter at every cell. At $(t,j)$,
+$U_{abc}$ is true exactly when $a,b$ are the actual left and center
+letters, and $V_{abc}$ is true exactly when $c$ is also the actual right
+letter. Exactly one triple makes $V$ true there, so exactly the scalar
+for the next letter is true. Induction proves that the scalar gates
+record the ring computation at every time.
+
+For each letter $f$ carrying an accepting state, test all
+$S_f(H_*-1,j)$. Some test is true exactly when $M$ accepts $w$.
+These tests are terminal: a scalar's outgoing connections advance time,
+and none starts at time $H_*-1$. The same-time connections
+\eqref{eq:computation-same-time} do not leave scalar gates.
+
+\paragraph{Carry and borrow tables.}
+Number bits within either $d$-bit group from $0$ to $d-1$, least
+significant first. For $0\le h<d$, define the product domains
+\begin{align*}
+ I_h^+&=\{x\in\{0,1\}^d:x_i=1\ (i<h),\ x_h=0\},\\
+ I_h^-&=\{x\in\{0,1\}^d:x_i=0\ (i<h),\ x_h=1\}.
+\end{align*}
+Bits above $h$ are unrestricted. On either domain use the componentwise
+map
+\begin{equation}\label{eq:computation-bit-flip}
+ \theta_{h,i}(x_i)=
+ \begin{cases}
+  1-x_i,&i\le h,\\
+  x_i,&i>h.
+ \end{cases}
+\end{equation}
+Its restriction to each coordinate domain is injective. The $d$ domains
+$I_h^+$ partition all numbers below $H_*-1$, and their maps implement
+addition of one. They therefore give time increment without overflow.
+For cyclic position increment, add the all-ones singleton and flip all
+bits on that additional domain. For cyclic decrement, the $I_h^-$
+domains partition the nonzero numbers; their maps subtract one. Add the
+all-zero singleton, again flipping all bits, for its wraparound case.
+Thus each cyclic position shift has $d+1$ product cases.
+
+In source coordinates, the temporal connections
+\eqref{eq:computation-left}--\eqref{eq:computation-right} are, respectively,
+\begin{equation}\label{eq:computation-source-maps}
+ (t,j)\mapsto(t+1,j+1),\qquad
+ (t,j)\mapsto(t+1,j),\qquad
+ (t,j)\mapsto(t+1,j-1).
+\end{equation}
+Combining an $I_h^+$ time case with a position case remains a product
+domain because the two digit groups are disjoint. The two shifted kinds
+need $d(d+1)$ schemas each; the unshifted kind needs $d$. There is no
+all-ones time case. Each connection in
+\eqref{eq:computation-same-time} uses one identity schema.
+
+\paragraph{Initial and final requests.}
+Put $m'=\max\{1,m\}$, so $m'<H_*$. At time zero, give one singleton
+position request for each $0\le j<m'$, using its actual initial letter.
+When $m=0$ this specifies the head-bearing blank at position zero.
+All remaining initial positions carry the plain blank. Write the
+$d$ bits of $m'$ as $\mu_0,\ldots,\mu_{d-1}$. A disjoint product
+decomposition of $j\ge m'$ consists of the singleton $\{m'\}$ and,
+for every $h$ with $\mu_h=0$, the domain
+\begin{equation}\label{eq:computation-blank-domain}
+ j_i=\mu_i\quad(i>h),\qquad j_h=1,\qquad
+ j_i\in\{0,1\}\quad(i<h).
+\end{equation}
+Indeed, for $j>m'$ the largest bit at which the two numbers differ has
+exactly this form. Fixing every time bit to zero makes each such blank
+request a product in all $r$ coordinates. There are at most $d+1$ blank
+domains and hence at most $m'+d+1$ seed requests in total. Each accepting
+letter needs one test request, fixing every time bit to one and leaving
+the position bits unrestricted.
+
+Finally, write $q=|\Sigma|$. There are $q+2q^3$ gate types. The connection
+schemas number
+\begin{equation}\label{eq:computation-schema-count}
+ q^3\bigl(2d(d+1)+d+2\bigr)=q^3(2d^2+3d+2).
+\end{equation}
+The seed and test requests add $O_M(d+m+1)$ domains. Their total tables
+therefore have $O_M(r((r+1)^2+m))$ constant-size coordinate entries.
+To generate them, loop over the fixed alphabet, the carry or borrow
+indices, the $m'$ initial positions, and the zero-bit positions of $m'$;
+fill each coordinate using the displayed identity, flip, or fixed-bit
+rule. The initial letters come directly from $w$. All loop lengths are
+polynomial in $r+m$, and the counters and small position numbers have
+$O_M(\log(r+m+2))$ bits. No loop runs through $H_*$ times or $2^r$
+addresses. The bit-cost accounting, including evaluation of the fixed
+polynomial $p$, is given in Proposition~\ref{prop:uniform-general}.
+\end{proof}
+
+\subsection{Nonempty sets and individual scalar images}\label{sec:consistency}
+
+All vector spaces in the remaining construction are over $\F$. The
+intermediate problem compares images of nonempty sets under individual
+scalar forms. It does not ask for a simultaneous assignment of one vector
+to every variable.
+
+\begin{definition}[Product consistency instance]
+\label{def:scalar-images}
+Fix an address length $r$. A finite nonempty set $\mathcal P$ of
+\emph{real types} has dimensions $d_P\in\{1,2\}$. For every $P\in\mathcal P$
+and every $\mathbf a\in\{0,1\}^r$, there is a variable with value space
+$\F^{d_P}$. A schema $e\in\mathcal E$ consists of ordered endpoint types
+$P,R$, a product domain
+\[
+ A_e=\prod_{i=1}^r A_{e,i},\qquad
+ \varnothing\ne A_{e,i}\subseteq\{0,1\},
+\]
+coordinate injections $\sigma_{e,i}:A_{e,i}\to\{0,1\}$, and scalar
+affine forms $\phi_{e,0}$ on $\F^{d_P}$ and $\phi_{e,1}$ on $\F^{d_R}$.
+Write $\boldsymbol\sigma_e$ for their componentwise address map.
+Endpoint types may coincide, parallel schemas are allowed, and the
+linear part of an affine form may be zero.
+
+The instance is \emph{consistent} if there are nonempty sets
+$Q_{P,\mathbf a}\subseteq\F^{d_P}$ for all variables such that
+\begin{equation}\label{eq:scalar-images}
+ \phi_{e,0}(Q_{P,\mathbf a})
+ =\phi_{e,1}(Q_{R,\boldsymbol\sigma_e(\mathbf a)})
+ \qquad(e\in\mathcal E,\ \mathbf a\in A_e).
+\end{equation}
+Here $\phi(Q)=\{\phi(u):u\in Q\}$. Each equality compares one scalar
+image at each end; several comparisons are never combined into a joint
+image condition.
+\end{definition}
+
+This is a per-comparison local-support condition in the classical
+consistency tradition \citep[Sections~4 and~6]{Mackworth1977}:
+every value at one endpoint has some support at the other, in both
+directions. Supports can differ between comparisons and between the
+two occurrences of a self-comparison. This viewpoint does not assert
+one globally satisfying vector at every variable.
+Related existential pebble-game arguments use extendible families of
+partial maps \citep[Definition~4]{Berkholz2013}. Our later bijective-game
+argument must additionally select a whole bijection \emph{before}
+Spoiler chooses the new vertex; exact projection of affine offsets
+will supply that stronger order of choices.
+
+The buffer below implements directed Boolean propagation using symmetric
+image equalities. One-way propagation already plays a central role in
+Grohe's monotone-circuit reductions for finite-variable equivalence
+\citep[author manuscript, Lemma~14 and Section~5.4]{Grohe1999}
+and in the later identification
+construction of Lichter, Ra{\ss}mann and Schweitzer
+\citep[Section~5]{LichterRassmannSchweitzer2025}.
+Our private two-coordinate scalar-image buffer implements that directional
+effect by a different construction, proved directly below; neither a
+graph-switch theorem nor a growing-dimension bound is imported.
+Its two coordinates may use different witnesses from
+the source set; this is exactly why it transmits a forced zero without
+turning the intermediate problem into a global vector assignment.
+
+\Needspace{5\baselineskip}
+\begin{proposition}[Circuit consistency]\label{prop:consistency}
+For every finite acyclic circuit with the conventions of
+Section~\ref{sec:computation}, one can construct nonempty scalar-image
+constraints with vector dimensions at most two which are consistent if
+and only if every test is false.
+
+If the circuit has a product description with $g$ gate types, $c$
+connection schemas, and $b$ seed and test requests in total, the result is
+an instance of Definition~\ref{def:scalar-images} with $g+c+1$
+real types and $3c+b$ comparison schemas, at the same address length.
+Its one-coordinate domains and maps are copied from that description or
+are identities. In particular, the circuit in
+Proposition~\ref{prop:computation} gives
+$O_M((r+1)^2+m)$ real types and schemas with dimensions in $\{1,2\}$.
+\end{proposition}
+
+\begin{proof}
+We first describe the constraints for the expanded finite circuit, then
+give their product representation. A scalar gate has one scalar variable;
+its input and output directions are both the identity. An AND gate has
+a vector variable $(x_1,x_2)\in\F^2$. Its two input directions are the
+coordinate projections, and its output direction is $x_1+x_2$.
+
+Introduce one dummy scalar variable. For each seed, compare its scalar
+direction with the constant-zero form on the dummy. For each test, compare
+its scalar direction with the constant-one form on the dummy. The dummy
+may have any nonempty set of values: its two constant forms have images
+$\{0\}$ and $\{1\}$, respectively, without any restriction on that set.
+
+For each individual connection, with source output direction $o$ and
+destination input direction $s$, introduce a private buffer
+$(z,z')\in\F^2$ and impose the three separate image comparisons denoted by
+\begin{equation}\label{eq:consistency-buffer}
+ o=z,\qquad o=z',\qquad z+z'=s.
+\end{equation}
+The first two equalities do not require a common source value to be
+simultaneously equal to both buffer coordinates.
+
+\paragraph{A true test prevents consistency.}
+Consider any proposed family of nonempty sets satisfying all comparisons.
+If a source output image is $\{0\}$, the first two comparisons in
+\eqref{eq:consistency-buffer} force every buffer vector to have both
+coordinates zero. Nonemptiness makes its set exactly $\{(0,0)\}$, so
+the third comparison forces the destination direction to have image
+$\{0\}$.
+
+Induct in a topological order of the circuit. A true scalar gate is either
+seeded, in which case its constant comparison gives image $\{0\}$, or
+has a true predecessor, whose zero output image propagates to it. At a
+true AND gate each port has a true incoming source; both coordinate images
+are therefore $\{0\}$, and the sum output also has image $\{0\}$.
+Every true gate consequently has zero output image under every consistent
+family. A true test would also require image $\{1\}$, a contradiction.
+
+\paragraph{Witness sets when all tests are false.}
+Assign to each test scalar the set $\{1\}$. At every other scalar gate
+use $\{0\}$ if it is true and $\F$ if it is false. At an AND gate use
+\begin{equation}\label{eq:consistency-and-witness}
+ \{(x_1,x_2)\in\F^2:
+       x_j=0\text{ for each true input port }j\}.
+\end{equation}
+All these sets are nonempty. A true AND has zero output image; a false
+AND has at least one unconstrained coordinate, so its sum output image
+is $\F$. Thus every true source has output image $\{0\}$ and every
+false source has output image $\F$: the exceptional false tests are
+terminal and never serve as sources.
+
+For a connection with true source, the destination port is true, and its
+chosen direction image is $\{0\}$. Use the buffer set $\{(0,0)\}$.
+For a connection with false source, let $D\subseteq\F$ be the already
+chosen nonempty image of its destination direction and use
+\begin{equation}\label{eq:consistency-fiber}
+ B_D=\{(z,z')\in\F^2:z+z'\in D\}.
+\end{equation}
+Its sum image is exactly $D$, and each coordinate image is $\F$:
+given $d\in D$, the pairs $(u,u+d)$ as $u$ runs over $\F$ already
+give both full coordinate images. Explicitly,
+\[
+\begin{array}{c|c|c}
+ D & B_D & \text{each coordinate image}\\ \hline
+ \{0\} & \{(0,0),(1,1)\} & \F\\
+ \{1\} & \{(0,1),(1,0)\} & \F\\
+ \F & \F^2 & \F
+\end{array}
+\]
+Hence all three comparisons hold. In particular, a false source can feed
+a zero-forced port through the diagonal buffer, or a false test through
+the off-diagonal buffer, while retaining its full output image. Different
+incoming or outgoing connections have private buffers and require only
+these individual image equalities, so they impose no further coupling.
+The seed and test comparisons also hold; take the dummy set to be $\F$.
+This constructs a consistent family.
+
+\paragraph{Preserving the product description.}
+Give each gate type its corresponding one- or two-dimensional real type,
+with variables at all addresses. Give each connection schema its own
+two-dimensional buffer type, indexed in the source address system. On its
+source product domain, the first two comparisons in
+\eqref{eq:consistency-buffer} use identity address transmission from the
+source gate to its buffer. The third uses the original componentwise map
+from that buffer to the destination gate. Thus an allowed buffer address
+belongs to exactly the intended individual connection of that schema.
+Overlapping domains of different schemas use different buffer types.
+Buffer variables outside their schema's domain are unused and may receive
+the full set $\F^2$.
+
+Use one scalar dummy type with variables at all addresses. Seed and test
+requests become identity-transmission comparison schemas on the same
+product domains, with the appropriate constant form at the dummy end.
+This gives exactly one additional type per connection schema, one dummy
+type, three comparisons per connection schema, and one comparison per
+request. Every coordinate factor remains nonempty and every transmitted
+map is an injection. The displayed count follows, and the tables can be
+produced directly without expanding the addressed circuit.
+\end{proof}
+
+\begin{corollary}[The polarity of the reduction]\label{prop:computation-images}
+For every binary language \(L_0\in\EXPTIME\), there are a fixed machine
+\(M\) and fixed integer polynomial \(p\), with \(p(m)\ge m+2\), such that
+a word \(w\) of length \(m\) can be transformed into a product
+scalar-image instance at \(r=2(p(m)+2)\ge8\) that is consistent exactly
+when \(w\in L_0\). It has \(O_M((r+1)^2+m)\) real types and
+comparison schemas, with dimensions in \(\{1,2\}\), and is generated
+in deterministic polynomial time in \(m\).
+\end{corollary}
+\begin{proof}
+Choose an exponential-time decider for the complement of \(L_0\),
+by swapping the two halting outputs of a decider for \(L_0\).
+A fixed multitape machine can be simulated on one tape with polynomial
+overhead: store its tapes and head markers on fixed tracks, and scan the
+used interval to collect scanned symbols and then perform the updates.
+After \(t\) simulated steps the interval has length \(O_M(m+t+1)\);
+a fixed number of scans per step gives polynomial total overhead.
+Enlarging a fixed integer polynomial \(p\) absorbs that overhead and
+ensures \(p(m)\ge m+2\). Apply \Cref{prop:computation} to this normalized
+complement decider, then \Cref{prop:consistency}. Consistency is equivalent
+to all tests being false, hence to \(M\) not accepting \(w\), which is
+equivalent to \(w\in L_0\). The exact buffer counts give the claimed
+description size. Since \(r\) is polynomial in \(m\) for fixed \(p\),
+the generation time is polynomial in \(m\) as well.
+\end{proof}

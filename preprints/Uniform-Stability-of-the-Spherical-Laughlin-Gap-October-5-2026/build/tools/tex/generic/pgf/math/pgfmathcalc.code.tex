@@ -1,0 +1,353 @@
+
+
+
+\def\pgfmathsetlength#1#2{%
+  \expandafter\pgfmath@onquick#2\pgfmath@%
+  {%
+    \begingroup%
+      \pgfmath@selectfont%
+      #1#2\unskip%
+    \expandafter\endgroup%
+    \expandafter#1\the#1\relax%
+  }%
+  {%
+    \pgfmathparse{#2}%
+    \ifpgfmathmathunitsdeclared%
+      #1\pgfmathresult mu\relax%
+    \else%
+      #1\pgfmathresult pt\relax%
+    \fi%
+  }%
+  \ignorespaces%
+}
+
+\def\pgfmathaddtolength#1#2{%
+  \expandafter\pgfmath@onquick#2\pgfmath@%
+  {%
+    \begingroup%
+      \pgfmath@selectfont%
+      \advance#1#2\unskip%
+      \expandafter%
+    \endgroup%
+    \expandafter#1\the#1\relax%
+  }%
+  {%
+    \pgfmathparse{#2}%
+    \ifpgfmathmathunitsdeclared%
+      \advance#1\pgfmathresult mu\relax%
+    \else%
+      \advance#1\pgfmathresult pt\relax%
+    \fi%
+  }%
+  \ignorespaces%
+}
+
+\def\pgfmathsetcount#1#2{%
+  \expandafter\pgfmath@onquick#2\pgfmath@%
+  {%
+    \afterassignment\pgfmath@gobbletilpgfmath@%
+    #1#2\relax\pgfmath@%
+  }%
+  {%
+    \pgfmathparse{#2}%
+    \afterassignment\pgfmath@gobbletilpgfmath@%
+    #1\pgfmathresult\relax\pgfmath@%
+  }%
+  \ignorespaces%
+}
+
+\def\pgfmathaddtocount#1#2{%
+  \expandafter\pgfmath@onquick#2\pgfmath@%
+  {%
+    \edef\pgfmath@addtocounttemp{\the#1}%
+    \afterassignment\pgfmath@gobbletilpgfmath@%
+    #1#2\relax\pgfmath@%
+    \advance#1\pgfmath@addtocounttemp\relax%
+  }%
+  {%
+    \edef\pgfmath@addtocounttemp{\the#1}%
+    \pgfmathparse{#2}%
+    \afterassignment\pgfmath@gobbletilpgfmath@%
+    #1\pgfmathresult\relax\pgfmath@%
+    \advance#1\pgfmath@addtocounttemp\relax%
+  }%
+  \ignorespaces%
+}
+
+\def\pgfmathnewcounter#1{%
+  \expandafter\ifx\csname c@#1\endcsname\relax%
+    \def\pgfmath@marshal{\csname newcount\endcsname}%
+    \expandafter\pgfmath@marshal\csname c@#1\endcsname%
+    \expandafter\def\csname the#1\endcsname{\expandafter\the\csname c@#1\endcsname}%
+  \fi%
+}
+
+\def\pgfmathsetcounter#1#2{%
+   \expandafter\pgfmathsetcount\csname c@#1\endcsname{#2}%
+}
+
+\def\pgfmathaddtocounter#1#2{%
+  \expandafter\pgfmathaddtocount\csname c@#1\endcsname{#2}%
+}
+
+\def\pgfmath@pgftext{pgf}
+\def\pgfmath@tikztext{tikz}
+\def\pgfmathmakecounterglobal#1{%
+  \pgfmath@ifundefined{c@#1}{}{%
+    \expandafter\pgfmath@in@\expandafter{\pgfmath@pgftext}{#1}%
+    \ifpgfmath@in@%
+    \else%
+      \expandafter\pgfmath@in@\expandafter{\pgfmath@tikztext}{#1}%
+      \ifpgfmath@in@%
+      \else%
+        \expandafter\global\csname c@#1\endcsname\csname c@#1\endcsname\relax%
+      \fi%
+    \fi%
+  }%
+}
+
+\def\pgfmathsetmacro#1#2{%
+  \begingroup%
+    \pgfmathparse{#2}%
+    \let#1=\pgfmathresult
+    \pgfmath@smuggleone{#1}%
+  \endgroup%
+}
+
+\def\pgfmathsetlengthmacro#1#2{%
+  \begingroup%
+    \pgfmathsetlength\pgfmath@x{#2}%
+    \edef#1{\the\pgfmath@x}%
+    \pgfmath@smuggleone{#1}%
+  \endgroup%
+}
+
+\def\pgfmathtruncatemacro#1#2{%
+  \begingroup%
+    \pgfmathsetcount\c@pgfmath@counta{#2}%
+    \edef#1{\the\c@pgfmath@counta}%
+    \pgfmath@smuggleone{#1}%
+  \endgroup%
+}
+
+
+\def\pgfmath@onquick{%
+  \futurelet\pgfmath@next%
+  \pgfmath@@onquick}
+\def\pgfmath@@onquick#1\pgfmath@{%
+  \ifx\pgfmath@next+%
+    \let\pgfmath@next=\pgfmath@firstoftwo%
+  \else%
+    \let\pgfmath@next=\pgfmath@secondoftwo%
+  \fi%
+  \pgfmath@next%
+}
+
+
+\def\pgfmathanglebetweenpoints#1#2{%
+  \begingroup%
+    \pgf@process{\pgfpointdiff{#1}{#2}}%
+    \edef\pgf@marshall{\expandafter\noexpand\csname pgfmathatan2@\endcsname{\expandafter\Pgf@geT\the\pgf@y}{\expandafter\Pgf@geT\the\pgf@x}}%
+    \pgf@marshall%
+    \ifdim\pgfmathresult pt<0pt%
+      \pgfmathparse{\pgfmathresult+360}%
+    \fi%
+    \expandafter%
+  \endgroup\expandafter\def\expandafter\pgfmathresult\expandafter{\pgfmathresult}%
+}
+
+\def\pgfmathrotatepointaround#1#2#3{%
+  \pgf@process{%
+    \pgf@process{#1}%
+    \pgf@xc=\pgf@x%
+    \pgf@yc=\pgf@y%
+    \pgf@process{#2}%
+    \pgf@xa\pgf@x%
+    \pgf@ya\pgf@y%
+    \pgf@xb\pgf@x%
+    \pgf@yb\pgf@y%
+    \pgf@x=\pgf@xc%
+    \pgf@y=\pgf@yc%
+    \advance\pgf@x-\pgf@xa%
+    \advance\pgf@y-\pgf@ya%
+    \pgfmathsetmacro\angle{#3}%
+    \pgfmathsin@{\angle}%
+    \let\sineangle\pgfmathresult%
+    \pgfmathcos@{\angle}%
+    \let\cosineangle\pgfmathresult%
+    \pgf@xa\cosineangle\pgf@x%
+    \advance\pgf@xa-\sineangle\pgf@y%
+    \pgf@ya\sineangle\pgf@x%
+    \advance\pgf@ya\cosineangle\pgf@y%
+    \pgf@x\pgf@xb%
+    \pgf@y\pgf@yb%
+    \advance\pgf@x\pgf@xa%
+    \advance\pgf@y\pgf@ya%
+  }%
+}
+
+\def\pgfmathanglebetweenlines#1#2#3#4{%
+  \begingroup%
+    \pgfmathanglebetweenpoints{#1}{#2}%
+    \let\firstangle\pgfmathresult%
+    \pgfmathanglebetweenpoints{#3}{#4}%
+    \let\secondangle\pgfmathresult%
+    \ifdim\firstangle pt>\secondangle pt\relax%
+      \pgfmathadd@{\secondangle}{360}%
+      \let\secondangle\pgfmathresult%
+    \fi%
+    \pgfmathsubtract@{\secondangle}{\firstangle}%
+    \pgfmath@smuggleone\pgfmathresult%
+  \endgroup%
+}
+
+\def\pgfmathreflectpointalongaxis#1#2#3{%
+  \pgf@process{%
+    \pgfmathanglebetweenpoints{#2}{#1}%
+    \pgfmath@tempdima\pgfmathresult pt\relax%
+    \pgfmathparse{#3}%
+    \advance\pgfmath@tempdima-\pgfmathresult pt\relax%
+    \pgfmath@tempdima-2.0\pgfmath@tempdima%
+    \pgfmathrotatepointaround{#1}{#2}{\pgfmath@tonumber{\pgfmath@tempdima}}%
+  }%
+}
+
+
+
+\def\pgfmathpointintersectionoflineandarc#1#2#3#4#5#6{%
+  \pgf@process{%
+    \pgfmathanglebetweenpoints{#2}{#1}%
+    \let\x\pgfmathresult%
+    \pgfmath@in@{and }{#6}%
+    \ifpgfmath@in@%
+      \pgf@polar@#6\@@%
+    \else%
+      \pgf@polar@#6 and #6\@@%
+    \fi%
+    \edef\xarcradius{\the\pgf@x}%
+    \edef\yarcradius{\the\pgf@y}%
+    \pgfmathsetmacro\s{#4}%
+    \pgfmathsetmacro\e{#5}%
+    \pgfmathmod@{\s}{360}%
+    \ifdim\pgfmathresult pt<0pt\relax%
+      \pgfmathadd@{\pgfmathresult}{360}%
+    \fi%
+    \let\ss\pgfmathresult%
+    \pgfmathmod@{\e}{360}%
+    \ifdim\pgfmathresult pt<0pt\relax%
+      \pgfmathadd@{\pgfmathresult}{360}%
+    \fi%
+    \let\ee\pgfmathresult%
+    \ifdim\ee pt<\ss pt\relax%
+      \pgfmathadd@{\x}{180}%
+      \pgfmathmod@{\pgfmathresult}{360}%
+      \let\x\pgfmathresult%
+    \fi%
+    \def\m{360}%
+    \pgfmathadd@{\s}{\e}%
+    \pgfmathdivide@{\pgfmathresult}{2}%
+    \let\n\pgfmathresult%
+    \pgfmathloop%
+      \pgfmathadd@{\s}{\e}%
+      \pgfmathdivide@{\pgfmathresult}{2}%
+      \let\p\pgfmathresult%
+      \ifdim\p pt=\s pt\relax%
+      \else%
+        \pgfmathanglebetweenpoints{#2}{%
+          \pgfpointadd{#3}{%
+            \pgf@x\xarcradius\relax%
+            \pgfmathcos@{\p}%
+            \pgf@x\pgfmathresult\pgf@x%
+            \pgf@y\yarcradius\relax%
+            \pgfmathsin@{\p}%
+            \pgf@y\pgfmathresult\pgf@y%
+          }%
+        }%
+        \ifdim\ee pt<\ss pt\relax%
+          \pgfmathadd@{\pgfmathresult}{180}%
+          \pgfmathmod@{\pgfmathresult}{360}%
+        \fi%
+        \let\q\pgfmathresult%
+        \ifdim\x pt>335pt\relax%
+          \ifdim\q pt<45pt\relax%
+            \pgfmathadd@{\q}{360}%
+            \let\q\pgfmathresult%
+          \fi%
+        \fi%
+        \ifdim\x pt=\q pt%
+            \pgfmathbreakloop%
+          \else
+            \ifdim\x pt<\q pt\relax%
+              \let\e\p%
+            \else%
+              \let\s\p%
+            \fi%
+          \fi%
+          \pgfmathsubtract@{\x}{\q}%
+          \pgfmathabs@{\pgfmathresult}%
+          \ifdim\pgfmathresult pt<\m pt\relax%
+            \let\m\pgfmathresult%
+            \let\n\p%
+          \fi%
+    \repeatpgfmathloop%
+    \pgfpointadd{#3}{\pgfpointpolar{\n}{\xarcradius and \yarcradius}}%
+  }%
+}
+
+\def\pgfmathangleonellipse#1#2{%
+  \begingroup%
+    \pgfmath@in@{and }{#2}%
+    \ifpgfmath@in@%
+      \pgf@polar@#2\@@%
+    \else%
+      \pgf@polar@#2 and #2\@@%
+    \fi%
+    \pgf@xa\pgf@x%
+    \pgf@ya\pgf@y%
+    \pgf@process{#1}%
+    \ifdim\pgf@x=0pt\relax%
+      \pgfutil@tempdima1pt\relax%
+    \else%
+      \pgfutil@tempdima\pgf@x%
+      \pgfmathdivide@{\pgfmath@tonumber{\pgf@xa}}{\pgfmath@tonumber{\pgfutil@tempdima}}%
+      \pgfutil@tempdima\pgfmathresult pt\relax%
+    \fi%
+    \ifdim\pgf@y=0pt\relax%
+      \pgfutil@tempdima1pt\relax%
+    \else%
+      \pgfmathdivide@{\pgfmath@tonumber{\pgf@y}}{\pgfmath@tonumber{\pgf@ya}}%
+      \pgfutil@tempdima\pgfmathresult\pgfutil@tempdima%
+      \pgfmathatan@{\pgfmath@tonumber{\pgfutil@tempdima}}%
+    \fi%
+    \pgfutil@tempdima\pgfmathresult pt\relax%
+    \ifdim\pgfutil@tempdima<0pt\relax%
+      \advance\pgfutil@tempdima360pt\relax%
+    \fi%
+    \ifdim\pgf@x<0pt\relax%
+      \ifdim\pgf@y=0pt\relax%
+        \pgfutil@tempdima180pt\relax%
+      \else%
+        \ifdim\pgf@y<0pt\relax%
+          \advance\pgfutil@tempdima180pt\relax%
+        \else%
+          \advance\pgfutil@tempdima-180pt\relax%
+        \fi%
+      \fi%
+    \else%
+      \ifdim\pgf@x=0pt\relax%
+        \ifdim\pgf@y<0pt\relax%
+          \pgfutil@tempdima270pt\relax%
+        \else%
+          \pgfutil@tempdima90pt\relax%
+        \fi%
+      \else%
+        \ifdim\pgf@y=0pt\relax%
+          \pgfutil@tempdima0pt\relax%
+        \fi%
+      \fi%
+    \fi%
+    \pgfmath@returnone\pgfutil@tempdima%
+  \endgroup%
+}
+
+

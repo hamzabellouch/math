@@ -1,0 +1,183 @@
+\section{Exact values and optimal positional strategies}
+\label{sec:full-solution}
+
+We now use the winning-set algorithm to recover the numerical values
+and strategies of the game. For the input model of
+Theorem~\ref{thm:main}, write
+\[
+ \operatorname{val}_w(v)
+ =\sup_\sigma\inf_\tau \MP_w(\pi_{v,\sigma,\tau}),
+\]
+where the strategies may depend on the full finite history.
+
+\begin{corollary}[Full game solution]\label{cor:full-solution}
+A uniform deterministic algorithm returns the exact value
+$\operatorname{val}_w(v)$ as a reduced rational for every $v\in V$
+and one positional strategy $\sigma^\star$ for Max and one positional
+strategy $\tau^\star$ for Min such that, simultaneously for every
+$v\in V$ and every pair of history-dependent strategies $\sigma,\tau$,
+\[
+ \MP_w(\pi_{v,\sigma^\star,\tau})\ge\operatorname{val}_w(v),
+ \qquad
+ \MP_w(\pi_{v,\sigma,\tau^\star})\le\operatorname{val}_w(v).
+\]
+The complete computation takes
+$2^{O((\log_2(L+2))^2)}$ bit operations.
+\end{corollary}
+
+\begin{proof}
+\noindent\textbf{Positional values.}\enspace
+The uniform form of Ehrenfeucht--Mycielski positional determinacy
+\cite{EhrenfeuchtMycielski1979}, stated explicitly in
+\cite[Theorem~1 and the following paragraph]{BrimEtAl2011}, provides
+one positional strategy for each player attaining the value from all
+vertices at once, against arbitrary history-dependent opponents.
+The latter source uses an edge relation without parallel entries.
+For our convention, replace each explicit edge $e:u\to v$ by
+$u\to x_e\to v$ through a fresh vertex with a single outgoing edge,
+with weights $2w(e)$ and $0$. Keep ownership at the original vertices;
+the owner of $x_e$ is immaterial. The resulting graph has no parallel
+edges or loops. Expanded histories retain the identity of every
+original edge. Their averages at even prefixes equal the original
+averages, and the odd-prefix discrepancy tends to zero. Thus payoffs
+and the uniform positional guarantees transfer back to our graph,
+including loops and parallel entries.
+
+Set $W_{\mathrm{in}}=\max_{e\in E}|w(e)|$. Fix both uniform optimal
+positional strategies. From any vertex the resulting play eventually
+repeats a simple directed cycle of at most $n$ edges in the original
+graph, and its mean is the value at that vertex. Consequently every
+value has a reduced representation $a/b$ with
+\[
+ 1\le b\le n,\qquad |a|\le bW_{\mathrm{in}},
+ \qquad -W_{\mathrm{in}}\le a/b\le W_{\mathrm{in}}.
+\]
+The same bounds hold after restricting outgoing choices, provided at
+least one outgoing edge remains at every vertex.
+
+\par\medskip\noindent\textbf{Threshold queries and exact reconstruction.}\enspace
+We use the classical reduction from values to threshold queries
+\cite[Section~5.2]{BrimEtAl2011}, keeping track of binary lengths.
+For integers $p$ and $q>0$, replace each weight by
+$w_{p/q}(e)=qw(e)-p$. For every infinite play,
+\[
+ \MP_{w_{p/q}}(\pi)=q\MP_w(\pi)-p.
+\]
+Positional attainment therefore makes the winning set returned by
+Theorem~\ref{thm:main} exactly
+$\{v:\operatorname{val}_w(v)\ge p/q\}$.
+
+Choose
+$K=1+\lceil\log_2(2(W_{\mathrm{in}}+1)n^2)\rceil$, computable from
+integer bit lengths. For each vertex, start with the closed interval
+$[-W_{\mathrm{in}},W_{\mathrm{in}}]$ and make $K$ bisections. Query
+its midpoint and move the lower endpoint to the midpoint if the
+vertex belongs to the returned set; otherwise move the upper endpoint.
+The final interval contains its value and has width
+$2W_{\mathrm{in}}2^{-K}<1/n^2$. Distinct reduced rationals with
+positive denominators at most $n$ differ by at least $1/n^2$.
+To reconstruct the value from an interval $[\ell,h]$, for each
+$1\le b\le n$ test the integer $a=\lceil b\ell\rceil$ for
+$a/b\le h$, reduce the retained fractions, and remove repetitions.
+Since $b(h-\ell)<1$, this tests every possible numerator.
+The value bound above guarantees exactly one resulting rational.
+Call this value-vector procedure $\mathsf{Values}(H)$ for any
+restricted game $H$; the original $n,W_{\mathrm{in}},K$ remain valid
+for all such calls.
+
+\par\medskip\noindent\textbf{Separate strategy self-reductions.}\enspace
+An edge joining vertices of the same value need not be optimal.
+For example, let a Max vertex $u$ have a zero-weight self-loop and a
+zero-weight edge to a vertex $v$ whose only edge is a self-loop of
+weight $1$. Both vertices have value $1$, but staying at $u$ yields
+payoff $0$. We therefore test restrictions of the current game and
+preserve its entire value vector.
+
+First compute $\mathbf v=\mathsf{Values}(G)$. For Max, start from a
+fresh copy $H=G$ and process the Max vertices in any fixed order.
+At a vertex $u$, form a trial $H_e$ for each outgoing edge $e$ by
+keeping only $e$ at $u$. Keep a trial for which
+$\mathsf{Values}(H_e)=\mathbf v$, and continue from that trial.
+Such an edge always exists. Indeed, take the edge chosen at $u$ by a
+globally optimal positional Max strategy of the current $H$.
+Restricting Max's choices cannot increase any value, while that
+strategy remains available and secures the current entire value
+vector, so no value decreases either. This proves the invariant
+$\mathsf{Values}(H)=\mathbf v$.
+
+At the end, Max has one allowed edge at every owned vertex, whereas
+all of Min's original choices remain. The resulting single Max
+strategy therefore secures $\mathbf v$ from every vertex against
+every Min strategy. To recover Min's strategy, start again from a
+fresh copy of the original $G$, not from the Max-restricted game.
+At each Min vertex keep an outgoing edge whose trial preserves
+$\mathbf v$. A globally optimal positional Min strategy of the
+current game supplies such an edge: restricting Min cannot decrease
+values, and that strategy prevents any increase. The final Min
+strategy is optimal against every original Max strategy. Thus the two
+separately recovered strategies have the simultaneous guarantees in
+the statement.
+
+\par\medskip\noindent\textbf{Call and bit bounds.}\enspace
+Put $m=|E|$. At a vertex, at most its original outdegree many trials
+are tested, so the two self-reductions together use at most $m$ trial
+value-vector computations. Including the original computation, there
+are at most
+\begin{equation}
+ Q=nK(1+m)
+ \label{eq:threshold-call-bound}
+\end{equation}
+threshold calls. Every midpoint has denominator dividing $2^K$ and
+a numerator of $O(\log(W_{\mathrm{in}}+1)+K)$ bits. Each transformed
+weight has the same order of bit length. Since
+$K=O(L+\log(n+1))$, the full encoding length of every queried game
+is $O(L+mK)$, polynomial in $L+1$. Reconstruction, reduced-rational
+comparison, and copying restricted edge lists also have polynomial
+bit cost. The explicit encoding bounds $n,m$ polynomially in $L+1$,
+so $Q$ is polynomial. Applying Theorem~\ref{thm:main} to these
+polynomial-length games and multiplying by $Q$ gives
+$2^{O((\log_2(L+2))^2)}$ bit operations, including the polynomial-size
+value and strategy output.
+\end{proof}
+
+The preceding reduction also applies to the companion algorithm.
+Here the additional issue is that threshold queries depend on earlier
+answers, so the winning-set error must be controlled at each query.
+
+\begin{corollary}[Randomized full game solution]
+\label{cor:randomized-full-solution}
+For the game model of Theorem~\ref{thm:main}, a uniform randomized
+algorithm returns all exact values and both globally optimal positional
+strategies specified in Corollary~\ref{cor:full-solution} with
+probability at least $7/8$ for the entire output. Its running time is
+$2^{O((\log_2(L+2))^2)}$ bit operations on every random tape.
+\end{corollary}
+
+\begin{proof}
+The companion's Theorem~1.1 \cite{OpenAI2026Randomized} returns the
+whole winning set correctly with probability at least $7/8$ and has
+the quasipolynomial bit bound on every tape. Use the reduction above,
+whose number of threshold queries is bounded by the polynomial $Q$
+in Equation~\eqref{eq:threshold-call-bound}. For each query, take
+$r=2\lceil\log_2(8Q)\rceil+1$ independent fresh runs and use the
+coordinatewise majority of their winning sets. Conditional on the
+previous history, the current query is fixed. The amplified set is
+correct whenever more than half of the runs return the whole correct
+set, and its conditional failure probability is at most
+\[
+ \sum_{j=\lceil r/2\rceil}^{r}\binom rj(1/8)^j
+ \le 2^r(1/8)^{r/2}=2^{-r/2}<\frac1{8Q}.
+\]
+A first-error union bound over the adaptive queries makes every
+threshold answer correct with probability at least $7/8$. On this
+event the preceding deterministic argument gives all exact values and
+both globally optimal strategies. On other tapes, if reconstruction
+does not yield a unique rational or no value-preserving trial is
+found, the reduction stops with zero at every value coordinate and
+the first listed outgoing edge at every owned vertex.
+All loops have the stated caps even then. Since $r=O(\log(L+2))$ and
+all queried encodings retain their polynomial bound on every tape,
+the total bit bound remains quasipolynomial on every tape, including
+random-bit generation. This transfer uses only the winning-set
+interface.
+\end{proof}

@@ -1,0 +1,421 @@
+\section{A uniform decoder}\label{sec:decoding}
+
+Theorem~\ref{thm:separation} supplies a test for the first incorrect bit of
+a prefix: no moment system fixing that prefix can reproduce all the
+low-order trace statistics.  To turn this statement into an algorithm,
+we must also recognize a correct prefix in bounded time.  The useful
+additional fact is that a correct prefix admits a moment system with
+strict slack, both in its statistical constraints and in its positivity
+constraint.  We first exhibit that slack, then give a rational procedure
+which is guaranteed to find a feasible system whenever such slack exists.
+
+\subsection{Statistical constraints for a prefix}
+
+Assume for now that \(p<1\).  Choose an integer \(D\) and a positive dyadic
+number \(\zeta=2^{-b_\zeta}\) such that
+\begin{equation}\label{eq:decoder-parameters}
+ D_*\le D\le C Y^2,\qquad
+ \zeta\le \tfrac14,\qquad
+ 4\zeta<e^{-C_{\mathrm{sep}}B(n,p)},\qquad b_\zeta=O(B(n,p)),
+\end{equation}
+where \(C_{\mathrm{sep}}\) is the constant in
+Theorem~\ref{thm:separation}.  Integer formulas for these choices will be
+given below.  Let
+\[
+ \mathcal I_D=\{I\subseteq\{1,\ldots,n\}:1\le |I|\le D\},
+ \qquad N=|\mathcal I_D|,
+ \qquad T=512(1+N)\zeta^{-2}.
+\]
+The number \(T\) is an integer.  From \(T\) independent traces, form the
+empirical mean \(\widehat t_I\) of the rank observable defining \(T_I\),
+for every \(I\in\mathcal I_D\).  These are observables of the ordinary
+trace: if a requested rank is absent, its observable is zero.
+
+For each fixed input \(x\), let \(\mathcal G\) be the event
+\begin{equation}\label{eq:empirical-good}
+ |\widehat t_I-T_I(x)|\le \zeta/8
+ \quad\text{for every }I\in\mathcal I_D.
+\end{equation}
+Each observable takes values in \(\{0,1\}\), so its empirical mean has
+variance at most \(1/(4T)\).  Chebyshev's inequality and a union bound give
+\begin{equation}\label{eq:good-probability}
+ \mathbb P_x(\mathcal G^c)
+ \le \frac{16N}{T\zeta^2}\le\frac1{32}.
+\end{equation}
+The same event will control all the prefix tests, even though the
+prefixes are chosen using the data.
+
+For a proposed prefix, use the remaining sign variables and their moment
+matrix \(M(m)=\mathcal M_D(m)\) from \eqref{eq:moment-matrix}.  Its nonempty moment
+coordinates form a real vector \(m\).  Consider the rational constraints
+\begin{equation}\label{eq:prefix-feasibility}
+ m\in[-1,1]^l,\qquad M(m)\succeq0,\qquad
+ |\EE_m[T_I]-\widehat t_I|\le\zeta
+ \quad(I\in\mathcal I_D),
+\end{equation}
+where \(l\) is the number of moment coordinates.  Substituting the prefix
+and writing each remaining bit as one half of one plus its sign makes
+\(\EE_m[T_I]\) an affine function of \(m\).  Its nonconstant coefficients
+have absolute sum at most \(1\), by the coefficient bound for \(T_I\)
+in Section~\ref{sec:setup}.
+
+\begin{lemma}\label{lem:prefix-slack}
+On \(\mathcal G\), a prefix whose first incorrect bit is at its last
+position has no solution to \eqref{eq:prefix-feasibility}.  Every correct
+prefix has a moment vector \(m^*\in[-1,1]^l\) such that, writing \(G\)
+for the dimension of its moment matrix,
+\begin{equation}\label{eq:prefix-slack}
+ M(m^*)\succeq(\zeta/8)\operatorname{Id}_G,\qquad
+ |\EE_{m^*}[T_I]-\widehat t_I|\le\zeta/2
+ \quad(I\in\mathcal I_D).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+If a wrong prefix had a feasible moment vector, then
+\eqref{eq:empirical-good} and \eqref{eq:prefix-feasibility} would give
+\[
+ |\EE_m[T_I]-T_I(x)|\le 9\zeta/8
+ \quad(I\in\mathcal I_D).
+\]
+This contradicts Theorem~\ref{thm:separation} and
+\eqref{eq:decoder-parameters}.
+
+For a correct prefix, take the moments of the true completion with
+weight \(1-\zeta/8\), and the moments of independent uniform signs on
+the remaining positions with weight \(\zeta/8\).  The moment matrix of
+the latter distribution is the identity: its \((I,J)\) entry is zero
+unless \(I=J\).  The mixture therefore has the stated matrix lower
+bound, and its coordinates lie in \([-1,1]\).  Both constituent
+distributions give channel expectations in \([0,1]\), so mixing changes
+each \(T_I(x)\) by at most \(\zeta/8\).  Equation~\eqref{eq:empirical-good}
+then bounds the discrepancy from \(\widehat t_I\) by \(\zeta/4\),
+which is stronger than required.
+\end{proof}
+
+\subsection{Finding a moment system with slack}
+
+The next lemma gives the bounded procedure needed for
+\eqref{eq:prefix-feasibility}.  It only promises to succeed when there
+is slack; every reported solution satisfies the exact inequalities.
+This distinction avoids any need to decide arbitrary instances of
+semidefinite feasibility.
+The procedure is a projected relaxation method for inequalities, in
+the tradition of Agmon and Motzkin--Schoenberg
+\cite{Agmon1954,MotzkinSchoenberg1954}.  We give the iteration and its
+rounding analysis explicitly.
+
+\begin{lemma}[Rational feasibility with slack]\label{lem:rational-feasibility}
+Let \(r\ge0\) and \(D\ge1\) be integers, and let \(m\) consist of the
+\[
+ l=\sum_{j=1}^{\min(2D,r)}\binom rj
+\]
+nonempty sign moments.  Let \(M(m)\) be their moment matrix, of
+dimension
+\[
+ G=\sum_{j=0}^{\min(D,r)}\binom rj.
+\]
+Suppose a finite list of rational affine inequalities
+\(\ell_t(m)\le b_t\) is given, each with nonconstant coefficient vector
+of \(\ell^1\)-norm at most \(1\), together with a dyadic
+\(0<\zeta\le1/4\).
+
+There is a deterministic rational procedure which either returns a
+vector satisfying
+\[
+ m\in[-1,1]^l,\qquad M(m)\succeq0,\qquad \ell_t(m)\le b_t
+ \quad\text{for all }t,
+\]
+or reports failure.  It returns a vector whenever some
+\(m^*\in[-1,1]^l\) satisfies
+\[
+ M(m^*)\succeq(\zeta/8)\operatorname{Id}_G,\qquad
+ \ell_t(m^*)\le b_t-\zeta/2\quad\text{for all }t.
+\]
+Put \(\lambda=\zeta/(16G)\).  The procedure performs at most
+\(\lceil10(1+l)/\lambda^2\rceil\) feasibility checks, each taking a
+number of bit operations polynomial in the list dimensions, the
+input bit lengths, and \(\log(1/\zeta)\).  These time bounds hold
+without the slack assumption.
+\end{lemma}
+
+\begin{proof}
+If \(l=0\), the matrix is \([1]\) and all inequalities are constant,
+so direct rational comparisons suffice.  Suppose \(l>0\).  We describe
+exact separating directions, then an iteration with bounded precision.
+
+\paragraph{Directions from violated constraints.}
+At a current point \(m^{\mathrm{cur}}\in[-1,1]^l\), first check the
+affine inequalities and the matrix condition exactly.  If all hold,
+return the current vector.  A violated inequality
+\(\ell_t(m^{\mathrm{cur}})>b_t\) gives the direction \(a\) equal to
+minus its nonconstant coefficient vector.  Then \(\norm{a}_2\le1\);
+under the slack assumption,
+\[
+ \langle m^*-m^{\mathrm{cur}},a\rangle\ge\zeta/2\ge\lambda.
+\]
+
+If instead the matrix condition fails, find a nonzero rational vector
+\(v\) with \(v^\top M(m^{\mathrm{cur}})v<0\).  The exact construction
+of \(v\) is given just below.  Write the associated affine form as
+\[
+ v^\top M(m)v=c+h\cdot m,\qquad
+ a=\frac{h}{Gv^\top v}.
+\]
+Each matrix entry is either the constant \(1\) or one moment
+coordinate.  Consequently
+\[
+ \norm{h}_1\le\norm{v}_1^2\le G\norm{v}_2^2,
+ \qquad \norm{a}_2\le1.
+\]
+The slack matrix lower bound gives
+\[
+ \langle m^*-m^{\mathrm{cur}},a\rangle
+ =\frac{v^\top(M(m^*)-M(m^{\mathrm{cur}}))v}{Gv^\top v}
+ \ge\frac{\zeta}{8G}\ge\lambda.
+\]
+Thus either violated condition provides a rational direction satisfying
+\begin{equation}\label{eq:feasibility-direction}
+ \norm{a}_2\le1,\qquad
+ \langle m^*-m^{\mathrm{cur}},a\rangle\ge\lambda
+\end{equation}
+whenever a slack solution exists.  If a constant affine inequality is
+violated, its direction is zero; this cannot happen in the slack case,
+and in all other cases the iteration is still bounded.
+
+\paragraph{An exact matrix check.}
+For a rational symmetric matrix, eliminate a positive diagonal pivot
+by taking its Schur complement.  Congruence by an invertible triangular
+matrix shows that the original matrix is positive semidefinite exactly
+when the positive pivot and this Schur complement are.  A negative
+diagonal supplies a negative unit vector.  If a remaining diagonal at
+\(i\) is zero and its entry \(b\) in column \(j\) is nonzero, let \(c\)
+be the diagonal at \(j\).  We may assume \(c\ge0\), since otherwise
+there is already a negative diagonal.  The rational vector
+\[
+ y=e_i-\frac{b}{1+c+|b|}e_j
+\]
+has quadratic form
+\[
+ \frac{b^2}{(1+c+|b|)^2}
+ \bigl[-2(1+c+|b|)+c\bigr]<0.
+\]
+If no negative vector is found, continue with a positive diagonal
+pivot; when none remain, all entries are zero and the remainder is
+positive semidefinite.
+
+For completeness, a negative vector of a Schur complement lifts to
+one of the original matrix using only rational arithmetic.  If \(P\)
+is the original block of eliminated pivots and \(B\) its block of
+entries against the remaining indices, the lift of \(y\) is
+\[
+ v=(-P^{-1}By,y).
+\]
+Its quadratic form is exactly the quadratic form of \(y\) for the
+Schur complement.
+
+These operations have polynomial bit complexity.  Indeed, clear
+denominators in a rational matrix with \(t\)-bit entries; even the
+product of all denominators has at most \(G^2t\) bits.  If \(H\) is
+the resulting integer matrix and its entries have at most \(s\) bits,
+the determinant expansion bounds every \(j\)-row minor by
+\(j!\,2^{js}\).  Its bit length is therefore \(O(G(s+\log G))\).
+Schur-complement entries are ratios of minors of the original matrix,
+and the inverse formula for \(P\) gives the same bound for the lift.
+Fraction-reduced elimination, with rational comparisons at each step,
+therefore computes the check and the negative vector in polynomially
+many bit operations.  This argument applies however small a positive
+pivot or a negative quadratic form may be.
+
+\paragraph{Iteration and rounding.}
+Start with \(m^{\mathrm{cur}}=0\).  Choose the dyadic grid with mesh
+\[
+ \eta=2^{-g},\qquad
+ g=\left\lceil\log_2\frac{100(1+l)}{\lambda^2}\right\rceil.
+\]
+The integer \(g\) is computed by rational comparisons with powers of
+two; thus \(\eta\le\lambda^2/(100(1+l))\), with
+\(O(1+\log((1+l)/\lambda))\) fractional bits.  After an
+unsuccessful check, add \(\lambda a\), clip every coordinate to
+\([-1,1]\), and round to the nearest point of this grid in the box.
+The endpoints of the box belong to the grid.  Repeat up to the
+stated number of checks, reporting failure if none accepts.
+
+Under the slack assumption, \eqref{eq:feasibility-direction} implies
+\[
+ \norm{m^{\mathrm{cur}}+\lambda a-m^*}_2^2
+ \le \norm{m^{\mathrm{cur}}-m^*}_2^2-\lambda^2.
+\]
+Clipping cannot increase the distance to \(m^*\).  Since both the
+clipped vector and \(m^*\) lie in the box, rounding changes the squared
+distance by at most \(4l\eta+l\eta^2<\lambda^2/2\).  Each failed check
+thus decreases squared distance by at least \(\lambda^2/2\).
+Its initial value is at most \(l\), so acceptance must occur before
+the cap.
+
+Finally, rounding keeps every iterate on a single grid of the indicated
+bit length.  The exact matrix check, the affine comparisons, the
+formation and normalization of \(h\), and one update involve
+polynomially many rational operations on numbers of polynomial bit
+length.  Temporary denominators within an update therefore have
+polynomial bit length, and they do not accumulate across updates.
+The fixed cap and these bounds apply to every rational input list,
+whether or not it admits a slack solution.
+\end{proof}
+
+For a prefix test, write each absolute-value constraint in
+\eqref{eq:prefix-feasibility} as two affine inequalities and apply
+Lemma~\ref{lem:rational-feasibility}.  Lemma~\ref{lem:prefix-slack}
+verifies exactly the slack hypotheses for a correct prefix.  Every
+acceptance, on any data, gives an actual moment system satisfying
+\eqref{eq:prefix-feasibility}.
+
+The decoder starts with the empty prefix and tests both one-bit
+extensions.  If precisely one accepts, it appends that bit; otherwise
+it appends \(0\).  It repeats until the prefix has length \(n\).
+The latter rule specifies a length-\(n\) output even for data on which
+the statistical estimates fail.  There are at most \(2n\) tests.
+
+\subsection{Integer parameters and bit complexity}
+
+We now make the choices in \eqref{eq:decoder-parameters} using only
+the binary input.  This also accounts for the size of every list and
+every rational calculation in the decoder.  Continue to assume
+\(p<1\), and use \(q_*,Q,Y\) from \eqref{eq:aux-parameters}.  Define
+the positive integers
+\begin{align*}
+ u&=1+\lceil\log_2 n\rceil,
+ &v&=1+\lfloor\log_2(1/q_*)\rfloor,\\
+ y&=1+\lceil u/v\rceil,
+ &w&=1+\lceil\log_2 y\rceil,
+ &a_p&=\lceil1/p\rceil.
+\end{align*}
+All logarithms appearing in these integer formulas mean integer
+length comparisons.  In particular, the integer part of a logarithm
+of a rational number is found by comparing its numerator with
+power-of-two multiples of its denominator.  The rational maximum
+defining \(q_*\) is also found by an integer comparison.
+
+The elementary comparisons
+\[
+ u\asymp\log n,\qquad v\asymp Q,\qquad
+ Y\le y\le C Y,\qquad
+ w\asymp1+\log Y,\qquad p^{-1}\le a_p\le2p^{-1}
+\]
+have absolute constants.  For the asserted lower bound on \(y\),
+use \(u\ge(\log n)/\log2\) and \(v\le Q/\log2\).
+Together with \(Y\asymp\mathsf X(n,p)\), these comparisons give
+\begin{equation}\label{eq:integer-budget-proxy}
+ B(n,p)\le a_pu y^2w^6\le C B(n,p).
+\end{equation}
+Choose fixed positive integers \(K_D,K_m\), sufficiently large for
+the constants in Theorem~\ref{thm:separation}, and set
+\begin{equation}\label{eq:integer-decoder-parameters}
+ D=K_Dy^2,\qquad b_\zeta=K_m a_pu y^2w^6,\qquad
+ \zeta=2^{-b_\zeta}.
+\end{equation}
+Since \(D_*\le C Y^2\) and \(B(n,p)\ge\log2\), these choices ensure
+all of \eqref{eq:decoder-parameters}.  The integers \(D,b_\zeta\), in binary,
+are computable in time polynomial in the input bit lengths.  Writing
+the denominator \(2^{b_\zeta}\) subsequently costs \(O(b_\zeta)\) bits, which will
+be included in the bounds below.
+
+We next describe how to form the rational constraints.  For
+\(I=\{l_1<\cdots<l_k\}\) and \(i_1<\cdots<i_k\), the coefficient
+of \(X_{i_1}\cdots X_{i_k}\) in \(T_I\) is
+\begin{equation}\label{eq:explicit-channel-coefficient}
+ \binom{i_1-1}{l_1-1}
+ \prod_{j=1}^{k-1}
+ \binom{i_{j+1}-i_j-1}{l_{j+1}-l_j-1}
+ \,p^{l_k}q^{i_k-l_k},
+\end{equation}
+when all the gap counts are possible, and is zero otherwise.
+Indeed, the selected positions must be retained, and the prefix and
+successive open gaps must contain the indicated numbers of additional
+retentions.  Positions after \(i_k\) are unrestricted.  Formula
+\eqref{eq:explicit-channel-coefficient} follows by multiplying these
+independent binomial probabilities.
+
+If the input representation is \(p=a/b\), every denominator in
+\eqref{eq:explicit-channel-coefficient} divides \(b^n\).
+Binomial coefficients have \(O(n)\) bits.  Sign expansion adds a
+denominator dividing \(2^D\), and empirical means have denominator
+\(T\).  Consequently the constraint coefficients have polynomial
+bit length in \(n+L+D+\log T\).  Enumerating the rank and input tuples,
+then expanding the resulting bit monomials and substituting the
+prefix, constructs them directly.  No list of complete trace masks
+is required.
+
+All these enumerations fit the permitted resource scale.  From
+\(D=O(Y^2)\), \(Y\asymp\mathsf X(n,p)\), and \eqref{eq:budget},
+\begin{equation}\label{eq:decoder-size-bound}
+ D\log n=O(B(n,p)).
+\end{equation}
+The rank list, every matrix basis, and every moment list have size
+at most \((n+1)^{2D}=\exp(O(B(n,p)))\).  Input tuple lists satisfy the
+same bound.  A sign expansion has at most \(2^D\) terms; products
+of these enumeration bounds remain \(\exp(O(B(n,p)))\).  Subsets
+larger than the available number of positions are simply absent,
+so this statement includes \(D>n\) and prefixes with very few
+remaining positions.
+
+By \eqref{eq:decoder-parameters}, the trace count \(T\) is
+\(\exp(O(B(n,p)))\).  For every prefix, the iteration cap in
+Lemma~\ref{lem:rational-feasibility} is bounded by
+\[
+ 2560(1+l)G^2\zeta^{-2}+1=\exp(O(B(n,p))).
+\]
+The bit length of its grid is
+\(O(b_\zeta+\log G+\log(1+l))=O(B(n,p))\).
+The preceding coefficient bounds and that lemma therefore bound
+all computation by a fixed polynomial in
+\begin{equation}\label{eq:decoder-total-resource}
+ n+L+\exp(O(B(n,p))).
+\end{equation}
+In particular, this includes the construction of parameters and
+constraints, exact rational arithmetic, and the at most \(2n\)
+prefix tests.
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+If \(p=1\), request one trace and output it.  For the universal
+halting specification, output \(0^n\) if the supplied well-formed
+trace has a different length.  The actual channel always supplies
+the input itself, and this branch takes polynomially many bit
+operations in \(n+L\).
+
+For \(p<1\), use \eqref{eq:integer-decoder-parameters}, request the
+specified \(T\) traces, and compute their empirical statistics.
+Run the prefix rule specified above.  This defines the machine on
+every stream of well-formed traces.
+
+On \(\mathcal G\), induction on the prefix length shows that
+precisely the correct extension accepts: the incorrect extension
+is infeasible by Lemma~\ref{lem:prefix-slack}, and the correct one
+has the slack that guarantees acceptance.  Thus the output is \(x\)
+on \(\mathcal G\), whose probability is at least \(31/32>2/3\) for
+each fixed \(x\).
+
+Each supplied trace has at most \(n\) bits and one delimiter.
+Reading them, and computing each of the finitely many rank
+observables, costs polynomially many bit operations in \(n+T+N\);
+the empirical counters have \(O(\log T)\) bits.  All loops, including
+all feasibility tests, have the input-dependent caps already given.
+Thus \eqref{eq:decoder-total-resource} is a bound for every
+well-formed trace stream, independently of the success event.
+The machine can ignore its internal random bits.
+
+To be explicit about the computational model, the described finite
+lists may be stored sequentially on tapes; replacing an indexed
+lookup by a scan incurs at most a polynomial overhead in their
+total encoded length.  Integer addition, multiplication, division,
+and fraction reduction have elementary polynomial-time multitape
+implementations.  The bit-length and loop bounds above therefore
+give absolute constants \(K,d\) for which the trace count is at most
+\(\exp(KB(n,p))\) and the total bit cost is at most
+\((n+L+\exp(KB(n,p)))^d\), after enlarging \(K,d\) to absorb fixed
+factors.  This enlargement is uniform because \(B(n,p)\ge\log2\).
+Choose absolute \(C,c\) large enough, with \(C\ge K\) and \(c\ge d\).
+Both the sample bound \(M_C(n,p)\) and the required runtime
+\((n+L+M_C(n,p))^c\) follow.  All constants used in parameter
+selection are fixed integers in a single finite program.
+\end{proof}

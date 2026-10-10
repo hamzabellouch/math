@@ -1,0 +1,149 @@
+\section{Finite verification}\label{sec:finite-verification}
+
+The certificates in Section~\ref{sec:polynomial-certificates} reduce the two
+product inequalities to signs of rational coefficient arrays.  We now specify
+a finite subdivision of $\mathcal S\times\mathcal S$ on which those signs can
+be checked.  The subdivision and all coefficient operations are exact.  The
+complete verifier is printed in Appendix~\ref{app:verifiers}.
+
+\subsection{Subdivision and coverage}
+
+A cell is specified by two affinely independent lists of four rational vertices
+$a=(a_0,a_1,a_2,a_3)$ and $b=(b_0,b_1,b_2,b_3)$ in $\mathcal S$; its domain is
+$\operatorname{conv}(a)\times\operatorname{conv}(b)$.  Initially both lists
+are $(S_0,S_1,S_2,S_3)$.  On a cell we substitute
+\[
+ p=\sum_{i=0}^3X_i a_i,\qquad q=\sum_{j=0}^3Y_j b_j,
+ \qquad X,Y\in\Deltafour,
+\]
+into the arrays of Section~\ref{sec:polynomial-certificates}.
+
+\begin{lemma}[Midpoint subdivision]\label{lem:subdivision}
+Let $\varepsilon_0,\ldots,\varepsilon_3$ be the unit vectors in the
+barycentric coordinate space.  Replace vertex $a_i$ by $(a_i+a_j)/2$, where
+$i\ne j$, leaving the other vertices unchanged.  For an ordinary homogeneous coefficient indexed by
+$I\in\mathcal I_r$, its contributions to the new coefficients are indexed by
+\begin{equation}\label{eq:midpoint-substitution}
+ I+t\varepsilon_i-t\varepsilon_j,\qquad 0\le t\le I_j,
+ \qquad\text{with multiplier}\quad
+ 2^{-I_i-t}\binom{I_j}{t}.
+\end{equation}
+The same formula holds in the $Y$ index when a vertex of $b$ is replaced.
+The two cells obtained by replacing vertex $i$, respectively vertex $j$,
+by their midpoint cover the original cell.
+\end{lemma}
+
+\begin{proof}
+Write $X'$ for the new barycentric coordinates.  The old coordinates satisfy
+$X_i=X'_i/2$, $X_j=X'_j+X'_i/2$, with the others unchanged.  Expanding
+$X_i^{I_i}X_j^{I_j}$ gives \eqref{eq:midpoint-substitution}.  The first child
+contains precisely the barycentric points with $X_i\le X_j$: one can take
+$X'_i=2X_i$ and $X'_j=X_j-X_i$.  The second child contains the points with
+$X_j\le X_i$.  These two inequalities exhaust the original simplex.
+Each replacement preserves affine independence, since its barycentric
+change of coordinates has nonzero determinant.
+\end{proof}
+
+Here is the entire decision rule for one row of \eqref{eq:rational-rows}.
+Start at depth zero.  At each cell:
+\begin{enumerate}
+\item Try the Type T coefficient test of Lemma~\ref{lem:type-t}.  Accept the
+cell if every coefficient is nonnegative.
+\item If neither vertex list contains $\unif$, try the Type P test of
+Lemma~\ref{lem:type-p}, with $M=2^{32}$.  If the correction
+\eqref{eq:remainder-correction} is undefined, report failure immediately.
+Otherwise accept the cell if its coefficient test succeeds.
+\item If neither test has accepted the cell and its depth is 24, report
+failure.  Otherwise select an edge as follows.  For $y\in\{0,1\}$, put
+$c=a$ when $y=0$ and $c=b$ when $y=1$.  Among all $i>j$, maximize
+lexicographically the tuple
+\[
+ (w,y,i,j),\qquad
+ w=\|c_i-c_j\|_2^2
+ \begin{cases}
+ 16,&c_i=\unif\text{ or }c_j=\unif,\\
+ 1,&\text{otherwise}.
+ \end{cases}
+\]
+Replace vertex $j$ by the midpoint and recursively check that child; then
+replace vertex $i$ by the midpoint and check the other child.  Both children
+have depth one greater than their parent.
+\end{enumerate}
+Skipping Type P on cells having a uniform vertex is part of this specified
+rule; no claim about the success or failure of that test on such cells is
+needed.  Lemma~\ref{lem:subdivision} shows that successful termination proves
+the required sign on the entire initial domain.
+
+\subsection{The completed verification}
+
+The verifier represents every coefficient matrix by integer numerators and
+a common positive denominator, using arbitrary-precision integers for both.
+Its polynomial arithmetic consists of convolution, degree elevation,
+rational addition, and the exact substitutions of
+Lemma~\ref{lem:subdivision}.  The fixed-width quantities used for indices,
+counters, vertices, and small combinatorial factors remain within their integer
+ranges.  Appendix~\ref{app:verifiers} proves these bounds and identifies
+the implementation routines with the mathematical certificates.  Thus a
+successful run verifies exact coefficient signs, without a numerical
+tolerance.
+
+
+\begin{proposition}[Finite sign verification]\label{prop:finite-verification}
+For each row of \eqref{eq:rational-rows}, the decision rule above terminates
+without failure, with the counts in Table~\ref{tab:verification-counts}.
+Every terminal cell is accepted by Type T or Type P.  Consequently both
+rational expressions \eqref{eq:rational-target} are nonnegative on
+$\mathcal S\times\mathcal S$.
+\end{proposition}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|r|r|r|r|r}
+Row & Cells visited & Maximum depth & Type T leaves & Type P leaves & Unresolved\\
+\hline
+(a)&4479&19&166&2074&0\\
+(b)&1935&20&97&871&0
+\end{tabular}
+\caption{Exact subdivision counts.  The initial cell has depth zero;
+visited cells include both internal nodes and terminal cells.}
+\label{tab:verification-counts}
+\end{table}
+
+\begin{proof}
+Run the integer verifier in Appendix~\ref{app:verifiers}, once in each
+mode, with assertions enabled.  It returns the two lines
+\begin{verbatim}
+done 4479 19 lp=2074 lt=166
+done 1935 20 lp=871 lt=97
+\end{verbatim}
+Here \texttt{lp} and \texttt{lt} count the terminal cells accepted by
+Types P and T.  The substitutions are those of Lemma~\ref{lem:subdivision},
+and Appendix~\ref{app:implementation} verifies their exact implementation
+and the coefficient arithmetic.  Lemmas~\ref{lem:type-t} and~\ref{lem:type-p} certify the sign on
+each accepted cell, and Lemma~\ref{lem:subdivision} proves coverage.  The
+continuous extension at zero denominators established in
+Section~\ref{sec:polynomial-certificates} includes the cell boundaries.
+\end{proof}
+
+For reproduction, the paper directory contains \path{verification/checks/certificate.cpp}
+and \path{verification/checks/small_polynomials.py}, printed in full in
+Appendix~\ref{app:verifiers}.  The first requires a C++17 compiler with
+GCC-compatible standard-library headers and the Boost multiprecision
+headers; the second uses only the Python 3 standard
+library.  For example, from the paper's \path{verification/} directory run
+\begin{verbatim}
+mkdir -p artifacts
+g++ -std=c++17 -O3 -UNDEBUG checks/certificate.cpp \
+    -o artifacts/certificate
+./artifacts/certificate
+./artifacts/certificate b
+python3 checks/small_polynomials.py
+\end{verbatim}
+The C++ program writes progress and its final result to standard error.
+Its no-argument mode checks row (a); any argument selects row (b).
+The Python program independently computes the four scalar coefficient
+minima of Lemma~\ref{lem:scalar-checks}, using rational convolution, and
+checks all 24 coordinate actions.  Assertions must remain enabled in both
+programs: do not define \texttt{NDEBUG} or run Python with \texttt{-O}.
+Together with the scalar checks, Proposition~\ref{prop:finite-verification}
+completes the proof of Proposition~\ref{prop:polynomial-inequalities}.

@@ -1,0 +1,323 @@
+\section{A bounded table for an unbounded suffix}
+\label{sec:bounded-suffix}
+
+A fixed table horizon does not by itself suffice for an unbounded request
+stream: a long interval may contain many requests while the optimum hardly
+moves. We will retain a bounded word for the table and restart it only after
+enough offline movement has accrued to absorb a fixed per-epoch cost.
+Throughout this section the finite table is assumed available;
+Section~\ref{sec:uniform-computation} schedules its construction.
+
+The routine may begin at any deterministic request index, from arbitrary
+actual server positions.  Partition the suffix into \emph{raw blocks}:
+a block ends at the request that first raises its number of distinct
+requested points to $k+1$, and the next request starts a new block.
+Every completed block forces any service to pay at least $\delta$, since
+its entering $k$ server positions cannot cover all $k+1$ requested points.
+Set
+\begin{equation}\label{eq:epoch-length}
+ R=\left\lceil\frac{kD}{\delta}\right\rceil
+\end{equation}
+and let an \emph{epoch} consist of $R$ completed raw blocks. A completed
+epoch therefore forces cost at least $R\delta\ge kD$; this lower bound
+will absorb restart charges proportional to $kD$. A finite input may end inside a
+block or at a block boundary; every nonempty epoch then contains at most
+$R$ nonempty blocks, counting a final incomplete block. Block and epoch
+boundaries depend only on raw requests and can be recognized before
+serving their last request.
+
+Within each epoch, we follow the finite table until its number of positive
+moves exceeds a fixed cap. After the cap is exceeded, a marking rule will
+serve the remainder at a cost of at most $(k+1)D$ per block
+(Lemma~\ref{lem:fallback}). Accordingly, choose
+\begin{equation}\label{eq:suffix-parameters}
+ F=R(k+1)D,\qquad
+ M=\left\lceil\frac{F}{\delta}\right\rceil,\qquad
+ H=\sum_{i=0}^{M}k^i.
+\end{equation}
+Here $F$ reserves the entire fallback cost, and $M+1$ positive table moves
+cost more than $F$. The filter below records capped trajectories in a tree
+with at most $H$ nodes and charges each retained request to a different
+node. Use the dyadic table of Proposition~\ref{prop:finite-table} for this
+$H$, and write $a$ for its coefficient. All parameters are fixed by the
+instance, independently of the request sequence and its length.
+
+\subsection{A universal capped filter}
+
+The filter, cap, and fallback mechanism is related to the request filtering
+and reset construction of Mikkelsen~\cite[Section~5.2,
+Lemmas~8--9]{Mikkelsen2016}. We prove the particular branching-tree version
+needed here, including a bound on all created entries. That bound will
+control both the table horizon and the storage needed during service.
+
+At the start of each epoch initialize a list with the single entry
+$(u,0)$.  An entry $(c,i)$ consists of a distinct-position labeled tuple
+and a nonnegative move count.  Separate entries with identical data are
+permitted.  On each raw request $r$ apply these deterministic rules:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item If every listed tuple covers $r$, drop the request and leave the
+list unchanged.  This rule also applies to an empty list.
+\item Otherwise keep the request.  Preserve entries that cover $r$.
+Remove every other entry $(c,i)$; if $i<M$, replace it by the $k$ entries
+$(T(c,r,j),i+1)$, for $j=1,\ldots,k$.  An entry with $i=M$ is removed
+without replacement.
+\end{enumerate}
+Maintain the word of kept requests.  The filter is run on every raw
+request of the epoch, including requests served by the fallback below;
+it uses no random bits and does not inspect the virtual or actual service.
+
+\begin{lemma}[Universal filter]\label{lem:filter}
+After any raw prefix, the list represents exactly the endpoint tuples
+and move counts of all strongly lazy services from $u$ of the kept word
+using at most $M$ positive moves.  Over the entire epoch the filter creates
+at most $H$ entries, counting removed entries.  In particular, its live
+list and its kept word both have size at most $H$, regardless of the
+number of raw requests.
+\end{lemma}
+
+\begin{proof}
+The representation assertion follows by induction.  Dropping a request
+does not alter the kept word.  On a kept request, a strongly lazy service
+at a covering tuple makes no move and retains its tuple and count.  At a
+noncovering tuple it must choose one of the $k$ labels, increasing the
+positive-move count by one.  These are exactly the replacements in the
+rule, with paths exceeding the cap discarded.  Starting from distinct
+positions ensures that every resulting tuple remains distinct.
+
+Give the initial entry a root node.  When an entry is removed, call its
+node spent; if replacements are made, give them $k$ distinct child nodes.
+The resulting rooted tree has branching at most $k$ and depth at most
+$M$, so it has at most $\sum_{i=0}^{M}k^i=H$ nodes.  A hit keeps the same
+node, and a spent node never returns.  Every kept request spends at least
+one previously unspent node.  This proves the bound on the kept word as
+well as the bound on all created entries.  It includes the last request
+that might empty the list; all subsequent requests are then dropped.
+\end{proof}
+
+The quantifier over \emph{all} strongly lazy services is useful here.
+In particular, the list includes every legal rounded-table trajectory
+within the move cap, even one that visits a configuration having zero
+probability before the table's dyadic rounding.
+
+\subsection{Virtual service and fallback}
+
+At every epoch start, initialize a virtual tuple at $u$, a positive-move
+counter at zero, and the filter and kept prefix as above.  Virtual service
+has two modes, initially table mode.  Every virtual choice of a label is
+also the actual algorithm's choice: it moves that actual labeled server
+to the current request and leaves the others fixed.  Actual positions
+are never reset.
+
+In \emph{table mode}, feed each kept request to the table, using its
+pre-request kept prefix and current virtual tuple and fresh unbiased
+bits.  On a dropped request, choose the label virtually occupying the
+request.  Count positive virtual moves.  If serving a request brings
+this count to $M+1$, enter fallback mode \emph{after} serving that
+request, for the remainder of the epoch.
+
+These instructions are valid on every random branch.  Before a
+table-mode request, the virtual tuple is the endpoint of the table path
+on the kept prefix and its move count is at most $M$.  By
+Lemma~\ref{lem:filter} it occurs in the pre-request list.  A dropped
+request is therefore covered and does not change this tuple.  A kept
+request continues the table path legally, possibly making move $M+1$
+and triggering the switch.  Lemma~\ref{lem:filter} also guarantees that
+no table decision beyond its horizon $H$ is requested.  In particular,
+an empty list cannot cause an uncovered dropped request in table mode.
+
+In \emph{fallback mode}, serve raw requests by marking points. This is
+the protection rule of paging marking algorithms
+\cite[Section~3]{FKLMSY1991}; we use its deterministic bound on the number
+of moves within a block. Begin
+with an empty mark set on entry into the remainder of the current raw
+block, and again at each subsequent raw-block start.  Each mark has a
+different assigned label, kept at that marked point until the block
+ends.  Use the following rules, always resolving arbitrary choices by
+the smallest label:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item At a raw-block endpoint, choose a covering virtual label if one
+exists, and otherwise choose any virtual label.  Serve the request and
+discard the marks.
+\item At any other request, if the point is marked, choose its assigned
+label.  If it is unmarked, choose a covering virtual label if possible;
+otherwise choose a label not assigned to a mark.  Serve the request,
+mark its point, and assign the chosen label to it.
+\end{enumerate}
+An already covering label at a new point is unassigned, since labels
+assigned to previous marks remain at those different points.  All
+virtual rules preserve distinct positions.
+
+The raw-block set and completed-block counter are updated using
+\emph{every} raw request, independently of modes and the filter.  If
+the switch occurs at a block endpoint, fallback marks start empty in
+the next block, if any.  If it occurs at an epoch endpoint, there is
+no fallback remainder in that epoch.  In all cases, the next epoch
+begins in table mode with a fresh virtual tuple and fresh filter;
+these are changes to internal state only.  This specifies a causal
+algorithm without needing to know when the input ends.
+
+\begin{lemma}[Fallback cost]\label{lem:fallback}
+The marking rules are always feasible.  Following any switch, their
+total virtual cost over the rest of the epoch is at most $F$, including
+when the input ends inside a raw block.
+\end{lemma}
+
+\begin{proof}
+Consider a nonendpoint request at a newly marked point.  Through this
+request the whole raw block contains at most $k$ distinct points.  Since
+the existing marks are different previously requested points of that
+block, there are fewer than $k$ marks before the new point is marked.
+An unassigned label therefore exists.  No movement at a nonendpoint
+disturbs a previously assigned label, so repeated marked requests cost
+zero.
+
+There are at most $k$ distinct nonendpoint points in a raw block.  Each
+costs at most $D$ on its first fallback appearance, and the endpoint,
+if served in fallback, costs at most one further $D$.  Thus any remaining
+block portion costs at most $(k+1)D$.  This argument also covers a raw
+endpoint reached before its fallback portion has seen $k+1$ distinct
+points: the endpoint rule simply discards its marks early.  An incomplete
+final block has no endpoint cost.  At most $R$ block portions remain in
+the epoch, proving the bound $R(k+1)D=F$.  The request that triggers the
+switch belongs entirely to table mode and is not counted here.
+\end{proof}
+
+\subsection{Comparisons and amortization}
+
+The filter and fallback now have bounds independent of the raw epoch
+length. To combine them, we compare the virtual service with a complete
+table trajectory on a deterministic word. This avoids conditioning the
+table estimate on the random switch time. We then pay separately for the
+actual entering configuration and for each epoch restart.
+
+Fix a finite request sequence $\sigma$ independently of all random bits,
+and fix the deterministic index at which the routine begins.  Choose
+one optimal labeled service of the \emph{whole} sequence from $s$.
+For each nonempty epoch $E$, including its possibly truncated final
+portion, let $O_E$ be this optimum's movement during $E$, and let $w_E$
+be the filter's full kept word in $E$.  Both the epoch boundaries and
+$w_E$ are deterministic.
+
+\begin{lemma}[Epoch comparison]\label{lem:epoch-comparison}
+For every such epoch, from any actual entering tuple, the expected actual
+cost of the routine satisfies
+\begin{equation}\label{eq:epoch-cost}
+ \E[\operatorname{cost}_{\rm actual}(E)]
+ \le 2aO_E+(2a+2)kD.
+\end{equation}
+The bound also holds if the entering tuple depends on earlier random bits.
+\end{lemma}
+
+\begin{proof}
+Run a shadow copy of the table from $u$ on all of $w_E$, and let $V_E$
+be its cost.  More precisely, assign independent blocks of $b$ unbiased
+bits to the successive positions of this deterministic word.  Use the
+same blocks for the actual table-mode decisions; blocks after a switch
+are needed only for the shadow's analysis.  Dropped requests leave the
+table-mode tuple unchanged, so the shadow and virtual service agree
+through every table-mode decision, including a triggering move.
+The shadow has the ordinary full-table law, without conditioning on
+whether or when the switch occurs; Figure~\ref{fig:epoch-shadow} depicts
+this comparison. Proposition~\ref{prop:finite-table}
+and Lemma~\ref{lem:filter} give
+\begin{equation}\label{eq:shadow-table}
+ \E[V_E]\le a\operatorname{OPT}_u(w_E)+D.
+\end{equation}
+
+Table-mode cost is at most $V_E$.  If there is a switch, its common
+prefix already contains $M+1$ positive moves, each costing at least
+$\delta$, and hence
+\[
+ V_E\ge (M+1)\delta\ge F.
+\]
+Lemma~\ref{lem:fallback} then pays for the entire fallback by a second
+copy of $V_E$.  If there is no switch, that extra copy is unnecessary.
+Thus, pathwise,
+\begin{equation}\label{eq:virtual-shadow}
+ \operatorname{cost}_{\rm virtual}(E)\le 2V_E.
+\end{equation}
+This includes a switch on the final raw request or final kept request,
+and any truncation of an epoch.  The expectation in
+Equation~\eqref{eq:shadow-table} is always applied to a fixed full word.
+
+For each label, its first use in the epoch brings both its actual and
+virtual positions to the same requested point.  By the triangle
+inequality its actual cost on that use exceeds its virtual cost by at
+most $D$, the maximum distance between their entering positions.  All
+later costs for that label agree, until the next virtual reset.  Unused
+labels cost nothing.  Therefore
+\begin{equation}\label{eq:actual-virtual}
+ \operatorname{cost}_{\rm actual}(E)
+ \le \operatorname{cost}_{\rm virtual}(E)+kD.
+\end{equation}
+Equation~\eqref{eq:actual-virtual} also covers a virtual hit on which the actual chosen label must
+move, and it allows repeated actual positions.
+
+We next compare the table's optimum with the fixed whole-sequence
+optimum.  For each label $j$, keep only its visits at times retained in
+$w_E$, and shortcut its other visits within $E$.  Starting these retained
+visits from its original epoch-entering point costs no more than its
+movement during $E$.  Replacing that point by $u_j$ adds at most $D$
+on the first retained visit, by the triangle inequality; if there is no
+retained visit, the label costs zero.  These $k$ paths constitute a legal
+labeled service of $w_E$ from $u$, because at each kept time they use the
+label chosen there by the whole-sequence optimum.  Consequently
+\begin{equation}\label{eq:subsequence-comparison}
+ \operatorname{OPT}_u(w_E)\le O_E+kD.
+\end{equation}
+Combining Equations~\eqref{eq:shadow-table}--\eqref{eq:subsequence-comparison}
+gives
+\[
+ \E[\operatorname{cost}_{\rm actual}(E)]
+ \le 2a(O_E+kD)+2D+kD
+ \le 2aO_E+(2a+2)kD,
+\]
+where the last inequality uses $k\ge2$.  All comparisons involving the
+entering actual tuple were pathwise and uniform in that tuple; fresh
+table bits give the same shadow law after any earlier history.
+\end{proof}
+
+\input{figures/epoch-shadow}
+
+\begin{proposition}[Unbounded suffix guarantee]\label{prop:suffix}
+For every fixed finite sequence $\sigma$, the routine starting at any
+deterministic index, from arbitrary actual positions, has expected
+suffix cost at most
+\begin{equation}\label{eq:suffix-bound}
+ (4a+2)\operatorname{OPT}_s(\sigma)+(2a+2)kD.
+\end{equation}
+Its table horizon and all parameters in
+Equations~\eqref{eq:epoch-length}--\eqref{eq:suffix-parameters}
+are fixed by the instance.
+\end{proposition}
+
+\begin{proof}
+As observed when defining the blocks, the fixed whole-sequence optimum
+pays at least $\delta$ inside each completed block, regardless of its
+entering tuple. The completed blocks are disjoint intervals of request
+times.
+
+Let $N$ be the number of nonempty epochs.  The empty-suffix case is
+immediate.  Otherwise the first $N-1$ epochs each contain $R$ completed
+blocks, so
+\[
+ (N-1)R\delta\le \operatorname{OPT}_s(\sigma),
+ \qquad
+ N\le 1+\frac{\operatorname{OPT}_s(\sigma)}{kD},
+\]
+where $R\delta\ge kD$ follows from
+Equation~\eqref{eq:epoch-length}.  Also
+$\sum_E O_E\le\operatorname{OPT}_s(\sigma)$ because the epochs are
+disjoint parts of the original sequence.  Summing
+Equation~\eqref{eq:epoch-cost} therefore yields
+\begin{align*}
+ \E[\operatorname{cost}_{\rm suffix}]
+ &\le 2a\operatorname{OPT}_s(\sigma)+(2a+2)kD\,N\\
+ &\le (4a+2)\operatorname{OPT}_s(\sigma)+(2a+2)kD.
+\end{align*}
+\end{proof}
+
+Only one epoch's fixed charge remains in this bound.  A final unfinished
+epoch may contain arbitrarily many raw requests: its kept word is still
+bounded by $H$, and its fallback cost is still bounded by $F$.  Thus no
+table error or restart charge accumulates with the raw request count.

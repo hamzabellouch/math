@@ -1,0 +1,575 @@
+\section{An explicit saving for a fixed two-coordinate transform}
+\label{net:section}
+\label{sec:network}
+
+Put
+\begin{equation}\label{net:C}
+ C=\begin{pmatrix}a&b\\b&a\end{pmatrix},
+ \qquad a=\frac{1+i}{2},\qquad b=\frac{1-i}{2}.
+\end{equation}
+The ordinary algorithm applies the $k$ factors of $C^{\otimes k}$
+separately, using $O(k2^k)$ operations.  We obtain a smaller exponent
+of $k$ by a fixed network from the complex construction of
+\cite[Proposition~8 and Section~3.5]{motif}.  The network exchanges two banks and
+restores arbitrary auxiliary values.  Changing the coordinate frame
+along its wires then transforms \emph{every} bank and auxiliary array.
+The total dimension of the frame changes is smaller than the cost of
+transforming the arrays separately.  We give the complete finite
+construction because this strict saving and the treatment of arbitrary
+auxiliaries are the main inputs to the recursion.
+
+\subsection{A scalar network with arbitrary auxiliary values}
+
+Fix
+\begin{equation}\label{net:parameters}
+ h=100,\quad
+ \mathcal T=\{T\subseteq\{1,\ldots,h\}:|T|=3\},\quad
+ v=\binom h3=161700,\quad N_0=v^3,\quad m=h^3=10^6.
+\end{equation}
+There are two banks of scalar wires $X_d,Y_d$, indexed by
+$d=(d_1,d_2,d_3)\in\mathcal T^3$.  Two triples are \emph{neighbors}
+when they have even intersection; neighboring triples are distinct.
+The network has three stages.  At stage $j$, fix the two indices other
+than $d_j$ and operate on the two lists obtained by varying $d_j$.
+There are $I_0=3v^2$ such invocations.  Each has its own auxiliary
+wires, distinct from all other invocations: one side wire $A_{ST}$
+for each \emph{ordered} neighboring pair $(S,T)$, and $h+1$ central
+wires $c_1,\ldots,c_h,c_*$.
+
+For one invocation, call the logical source and target banks
+$x=(x_T)$ and $y=(y_S)$.  Define the fixed linear maps
+\begin{align*}
+ (Vx)_{ST}&=x_T,&
+ (Gx)_j&=\sum_{T\ni j}x_T,& (Gx)_*&=\sum_Tx_T,\\
+ (JA)_S&=-\sum_{T:\,T\text{ neighbors }S}
+                  \frac{|S\cap T|-1}{2}A_{ST},&
+ (Rc)_S&=\frac{\sum_{j\in S}c_j-c_*}{2}.
+\end{align*}
+The forward invocation consists of the following eight rows, in order:
+\begin{equation}\label{net:schedule}
+\begin{array}{c|l|l}
+ \text{row}&\text{update}&\text{gate grouping}\\\hline
+ 0&y\gets y-JA&\text{one gate per target and its side wires}\\
+ 1&y\gets y-Rc&\text{one gate on the targets and center}\\
+ 2&A\gets A+Vx&\text{one gate per source and its side wires}\\
+ 3&c\gets c+Gx&\text{one gate on the sources and center}\\
+ 4&y\gets y+Rc&\text{one gate on the targets and center}\\
+ 5&y\gets y+JA&\text{one gate per target and its side wires}\\
+ 6&c\gets c-Gx&\text{one gate on the sources and center}\\
+ 7&A\gets A-Vx&\text{one gate per source and its side wires}.
+\end{array}
+\end{equation}
+A gate is simply the indicated finite linear map on its wires.  Its
+scalar implementation, including all additions and multiplications,
+has a fixed finite cost.
+
+\begin{lemma}\label{net:scalar}
+For arbitrary initial auxiliary values, the forward invocation sends
+$(x,y,A,c)$ to $(x,y+x,A,c)$.  Forward invocations from $X$ to $Y$
+at stages $1$ and $3$, and the inverse forward invocation from $Y$
+to $X$ at stage $2$, give
+\[
+ (X_d,Y_d)\longmapsto(-Y_d,X_d)
+ \quad(d\in\mathcal T^3)
+\]
+and restore every auxiliary value.
+\end{lemma}
+
+\begin{proof}
+The first two rows subtract $JA+Rc$ from $y$.  The middle rows add
+$R(c+Gx)+J(A+Vx)$, and the last two restore $c$ and $A$.  The net
+addition is $(RG+JV)x$.  The coefficient from $x_T$ to $y_S$ in
+$RG$ is $(|S\cap T|-1)/2$.  It is $1$ for $S=T$, $0$ when the
+intersection has size $1$, and is canceled by $JV$ when the
+intersection has size $0$ or $2$.  Hence $RG+JV=\Id$.
+The three stages therefore send
+$(x,y)$ to $(x,y+x)$, then $(-y,y+x)$, then $(-y,x)$.
+The auxiliary values cancel in each invocation separately.
+\end{proof}
+
+A triple has
+\[
+ d_{\mathrm{nbr}}=\binom{97}{3}+3\cdot97=147731
+\]
+neighbors: the two terms count intersections of size $0$ and $2$.
+Consequently the number of physical wires is
+\begin{equation}\label{net:wire-count}
+ W=2N_0+I_0(vd_{\mathrm{nbr}}+101)
+   =1873807244643542670000.
+\end{equation}
+The factor $vd_{\mathrm{nbr}}$ counts ordered pairs, as required by
+the schedule.
+
+\subsection{Frames turn binary dimensions into directional operations}
+
+We now explain how to turn the scalar exchange into a tensor transform.
+An edge of the scalar network connects consecutive touches of a physical
+wire, including its source and sink.  We will assign a binary subspace
+to each gate and terminal, with one common subspace for all wires touched
+by a gate.  This subspace specifies a change of frame on the complex
+array replacing each wire.  The construction below has two useful
+properties: common frames commute with scalar gates, and moving between
+suitable nested subspaces costs one directional operation per added or
+removed binary dimension.
+
+For this purpose use the binary space $\mathcal D=\Ftwo^m$ with its
+ordinary dot product.  A subspace is \emph{nondegenerate} if its restricted
+bilinear form has zero radical.  Its orthogonal complement and all
+projections below are taken over $\Ftwo$; these are separate from the
+complex spaces carrying the data.
+
+For $z\in\Ftwo^m$, write $R_z$ for translation of array addresses:
+$(R_zf)(x)=f(x+z)$.  The normalized Walsh matrix
+\[
+ J_m=2^{-m/2}\bigl((-1)^{x\cdot y}\bigr)_{x,y\in\Ftwo^m}
+\]
+satisfies $J_m^2=\Id$.  Conjugating the diagonal character
+$(-1)^{z\cdot x}$ by $J_m$ gives $R_z$, by cancellation of
+nontrivial binary characters.  For a nondegenerate label $U$, let
+$P_U$ be projection onto $U$ along $U^\perp$, and set
+\begin{equation}\label{net:frame}
+ q_U(x)=\wt(P_Ux)\pmod4,\qquad
+ \Phi_U=J_m\diag_x(i^{q_U(x)})J_m.
+\end{equation}
+Here $\wt$ is integer Hamming weight.  These matrices prove
+identities; the algorithm does not execute Walsh transforms.
+In particular $\Phi_0=\Id$ and $\Phi_{\mathcal D}=C^{\otimes m}$.
+
+\begin{lemma}\label{net:edge}
+Let $U,V\subseteq\mathcal D$ be nested nondegenerate subspaces.
+Call the orthogonal complement of the smaller subspace inside the
+larger their \emph{residual}.  Suppose it has an orthonormal binary
+basis of size $\rho$.
+Then $\Phi_V\Phi_U^{-1}$ is a product of exactly $\rho$
+\emph{directional kernels} of the form $C_z=a\Id+bR_z$ or $C_z^{-1}$,
+where $z\ne0$.  Each inverse requires one forward kernel and a
+translation.
+\end{lemma}
+
+\begin{proof}
+For binary vectors $x,y$,
+\[
+ \wt(x+y)=\wt(x)+\wt(y)-2|\supp(x)\cap\supp(y)|.
+\]
+Thus weight is additive modulo four for orthogonal vectors.
+If $V=U\mathbin\perp E$ and $z_1,\ldots,z_\rho$ is an
+orthonormal basis of $E$, then
+\[
+ q_V(x)-q_U(x)
+   =\sum_{j=1}^{\rho}\wt(z_j)[z_j\cdot x]\pmod4,
+\]
+where brackets mean the integer representative $0$ or $1$.
+Every $\wt(z_j)$ is odd, so its value modulo four is $1$ or $-1$.
+For a decreasing edge the entire expression is negated.
+The identity
+$i^{[z\cdot x]}=a+b(-1)^{z\cdot x}$ and Walsh conjugation
+give the stated kernels.  Finally $R_z^2=\Id$ and
+$C_z^2=R_z$, whence $C_z^{-1}=R_zC_z$.
+\end{proof}
+
+To apply this calculation to the network, replace each scalar wire by
+an array indexed by $\mathcal D$.  Give every gate a nondegenerate label
+$U$, common to all wires it touches, and give each source and sink its
+own label.  Insert $\Phi_V\Phi_U^{-1}$ along an edge from label $U$ to
+label $V$, and apply the scalar gates pointwise.  A scalar gate mixes
+its touched arrays with scalar coefficients, whereas their common
+frame acts on the address coordinate.  These two operations commute.
+The intermediate frames therefore cancel, leaving the scalar network
+between its source and sink frames.
+
+More generally, for an integer $f\ge1$, index every array by $f$ columns
+of $m$ bits and use $\Phi_U^{\otimes f}$ as its frame.  The same
+cancellation gives the complete linear map
+\begin{equation}\label{net:telescoping}
+ \diag_{\mathrm{sinks}}(\Phi_U^{\otimes f})\,
+ \mathcal S\,
+ \diag_{\mathrm{sources}}((\Phi_U^{-1})^{\otimes f}),
+\end{equation}
+where $\mathcal S$ is the pointwise signed bank exchange of
+Lemma~\ref{net:scalar}, acting as the identity on auxiliary roles.
+This is an identity on arbitrary values in every physical role.
+The remaining task is to choose labels whose terminal frame ratios
+give the desired transform and whose total residual dimension is less
+than $Wm$.  Lemma~\ref{net:edge} will then convert that dimension
+saving into fewer directional operations.
+
+\subsection{Binary labels and the dimension budget}
+
+Identify $\mathcal D$ with $D^{\otimes3}$, where $D=\Ftwo^h$;
+the tensor dot product is the ordinary dot product on $\Ftwo^m$.
+For $T\in\mathcal T$, let $t_T$ be its indicator.
+Then $t_T\cdot t_T=1$, and neighboring indicators are orthogonal.
+Put
+\[
+ u_d=t_{d_1}\otimes t_{d_2}\otimes t_{d_3},\qquad
+ U_d=\langle u_d\rangle.
+\]
+Each $u_d$ has norm one, so $U_d$ is nondegenerate.
+
+Start with the terminal labels.  Sources have label $0$, except that
+$X_d$ has label $U_d$; sinks have label $\mathcal D$, except that
+$Y_d$ has label $U_d^\perp$.  A route with terminal labels $0$ and
+$\mathcal D$ has frame ratio $C^{\otimes m}$.  The exceptional
+route $X_d\to Y_d$ will have the same ratio up to a translation, as
+we verify below.  The total increase of terminal dimensions is
+$Wm-2N_0$.  Thus the margin below $Wm$ is $2N_0$ before we
+charge twice the dimensions lost at any internal decreases.
+
+At an invocation in stage $j$, write
+\[
+ E=D^{\otimes(j-1)},\qquad
+ P=\Big\langle\bigotimes_{l<j}t_{d_l}\Big\rangle,
+ \qquad B=P^\perp\subset E,\qquad
+ Q=\Big\langle\bigotimes_{l>j}t_{d_l}\Big\rangle.
+\]
+An empty tensor product is the full one-dimensional binary space.
+Thus $E=B\mathbin\perp P$, with $B=0$ in stage $1$, and $Q$ is
+the full future space in stage $3$.
+For a physical bank entry $d$, write $t=t_{d_j}$.
+
+The stage expands its current tensor factor from a triple line to
+all of $D$, while retaining the future line $Q$.  More precisely,
+its incoming labels are
+$(E\otimes\langle t\rangle)\otimes Q$ on $X$ and
+$(B\otimes\langle t\rangle)\otimes Q$ on $Y$; its outgoing
+labels are $(E\otimes D)\otimes Q$ on $X$ and
+\[
+ \bigl((B\otimes D)\mathbin\perp(P\otimes t^\perp)\bigr)\otimes Q
+ = (P\otimes\langle t\rangle)^\perp_{E\otimes D}\otimes Q
+\]
+on $Y$.  Separating the next triple from $Q$ makes these exactly
+the next stage's incoming labels.  At the first and last stages
+they agree with the specified terminal labels.  We may insert these
+stage boundaries as extra vertices without changing any edge operation.
+
+The following gate labels realize those boundary conditions.  In the
+table each label is further tensored with $Q$, and $t$ is the
+indicator at the physical bank entry of an entry-specific gate.
+The $X$ labels increase to $E\otimes D$, while the $Y$ labels
+increase through $B\otimes D$.  A central wire must visit both
+levels: its return from $E\otimes D$ in row $3$ to $B\otimes D$
+in row $4$ is the only decrease that will consume part of the margin.
+
+\begin{equation}\label{net:labels}
+\begin{array}{c|l|l}
+ \text{row}&\text{physical wires touched}&
+                 \text{label before tensoring with }Q\\\hline
+ 0&Y,\ \text{side}& B\otimes\langle t\rangle\\
+ 1&Y,\ \text{center}& B\otimes D\\
+ 2&X,\ \text{side}&(B\otimes D)\mathbin\perp(P\otimes\langle t\rangle)\\
+ 3&X,\ \text{center}&E\otimes D\\
+ 4&Y,\ \text{center}&B\otimes D\\
+ 5&Y,\ \text{side}&(B\otimes D)\mathbin\perp(P\otimes t^\perp)\\
+ 6&X,\ \text{center}&E\otimes D\\
+ 7&X,\ \text{side}&E\otimes D.
+\end{array}
+\end{equation}
+The row numbers here are chronological, including in stage $2$.
+At that stage, reverse the eight scalar updates and their signs, with
+logical source $Y$ and target $X$.  The physical touch sequence is
+$Y$--side, $Y$--center, $X$--side, $X$--center, $Y$--center,
+$Y$--side, $X$--center, $X$--side, exactly as in the table.
+Relabeling the ordered side pairs accordingly leaves their two
+physical triples neighboring.  Every displayed label is nondegenerate.
+
+\begin{lemma}\label{net:residuals}
+Every edge has nested nondegenerate endpoint labels.  Each nonzero
+orthogonal residual, meaning the complement of the smaller label
+inside the larger, has an orthonormal binary basis.  If $s$ is the
+sum of the residual dimensions, then
+\begin{align}
+ s&=Wm-2N_0+2I_0(101)100
+   =1873807244636671267308000000,\label{net:s}\\
+ \Delta:=Wm-s&=6871402692000000>0.\label{net:delta}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Here is the full list of nonzero or potentially nonzero residuals.
+All rows except the last are tensored with $Q$.  The vectors
+$t_X,t_Y$ on a side wire are its two physical triple indicators.
+The omitted edges have zero residual.
+\[
+\begin{array}{l|l}
+ \text{wire and edge}&\text{orthogonal residual}\\\hline
+ X:\ \mathrm{in}\to2&B\otimes t_X^\perp\\
+ X:\ 2\to3&P\otimes t_X^\perp\\
+ Y:\ 0\to1&B\otimes t_Y^\perp\\
+ Y:\ 4\to5&P\otimes t_Y^\perp\\
+ \text{center}:\ \mathrm{source}\to1&B\otimes D\\
+ \text{center}:\ 1\to3,\ 3\to4,\ 4\to6&P\otimes D\quad\text{(each)}\\
+ \text{side}:\ \mathrm{source}\to0&B\otimes\langle t_Y\rangle\\
+ \text{side}:\ 0\to2&(B\otimes t_Y^\perp)\mathbin\perp
+                              (P\otimes\langle t_X\rangle)\\
+ \text{side}:\ 2\to5&P\otimes\langle t_X,t_Y\rangle^\perp\\
+ \text{side}:\ 5\to7&P\otimes\langle t_Y\rangle\\
+ \text{auxiliary}:\ \mathrm{last}\to\mathrm{sink}
+                         &E\otimes D\otimes Q^\perp.
+\end{array}
+\]
+In the last row $Q^\perp$ is taken in the full future tensor space.
+The side edge $2\to5$ explains the use of neighboring triples.
+Because $t_X\cdot t_Y=0$ and both vectors have norm one,
+\[
+ t_Y^\perp=\langle t_X\rangle\mathbin\perp
+                    \langle t_X,t_Y\rangle^\perp.
+\]
+Its row-$2$ label $(B\otimes D)\mathbin\perp
+(P\otimes\langle t_X\rangle)$ therefore lies in its row-$5$
+label $(B\otimes D)\mathbin\perp(P\otimes t_Y^\perp)$,
+with precisely the displayed residual.  The other rows follow by
+$E=B\mathbin\perp P$ and
+$D=\langle t\rangle\mathbin\perp t^\perp$.
+These decompositions verify all inclusions and show that the only
+decreases are the central edges $3\to4$, each of dimension $h$.
+
+The signed changes telescope along physical wires.  Source
+dimensions sum to $N_0$ and sink dimensions to $Wm-N_0$, so their
+total is $Wm-2N_0$.  Each of the $I_0(101)$ central wires loses
+$h=100$ dimensions once.  Replacing signed changes by absolute
+changes adds twice these losses, proving the formula for $s$.
+In particular,
+\[
+ \Delta=2N_0-2I_0(h+1)h
+       =2v^2\bigl(v-3h(h+1)\bigr)>0,
+\]
+since $v>3h(h+1)$.  Substituting $h=100$ and $v=161700$ gives
+the displayed integers.
+
+Nondegeneracy alone would not guarantee an orthonormal basis in
+characteristic two: a nondegenerate form may be alternating.  Here
+every nonzero residual contains a vector of norm one.  Indeed,
+$t^\perp$ and $\langle t_X,t_Y\rangle^\perp$ contain coordinate
+units outside supports of size at most $3$ and $6$ respectively.
+If nonzero, $B$ contains a coordinate unit outside a support of
+size $3^{j-1}<h^{j-1}$, and the same argument applies to nonzero
+$Q^\perp$.  Full spaces and the lines $P,Q,\langle t\rangle$
+also contain norm-one vectors.  Taking tensor products and choosing
+a nonzero summand in an orthogonal sum proves the claim for every
+residual in the table.
+
+For completeness, a nondegenerate binary symmetric space with a
+norm-one vector has an orthonormal basis.  Split off unit lines
+until the remaining space is alternating.  A nonzero nondegenerate
+alternating space splits into orthogonal planes with bases $p,q$
+satisfying $p\cdot p=q\cdot q=0$ and $p\cdot q=1$: choose $p\ne0$,
+choose $q$ by nondegeneracy, and split off their plane.  Retain a
+unit vector $w$ from a line already removed.  A plane perpendicular
+to $w$ is absorbed by replacing $(w,p,q)$ with
+\[
+ w+p,\qquad w+q,\qquad w+p+q.
+\]
+These are pairwise orthogonal unit vectors and span the same
+three-dimensional space.  Repetition absorbs all alternating
+planes.  All choices can be made by finite binary linear algebra
+with a fixed ordering of coordinates and pivots.
+\end{proof}
+
+\subsection{Transforming every physical role}
+
+\begin{proposition}[Finite network interface]\label{net:finite-interface}
+For every integer $f\ge1$, the explicit network applies
+$C^{\otimes mf}$ to each of $W$ arbitrary arrays indexed by
+$\Ftwo^{mf}$.  It uses $s$ directional steps, each on one physical
+array and conjugate by address permutations to copies of
+$C^{\otimes f}$ on fibers.  All other work consists of a fixed
+number of pointwise linear maps and address permutations.  The
+same assertion holds with any spectator address bits.
+\end{proposition}
+
+\begin{proof}
+Use the gate and terminal labels just constructed in
+\eqref{net:telescoping}, with each array address viewed as $f$ columns
+of $m$ bits.  It remains to calculate the terminal frame ratios and
+implement the edge changes.
+
+Except for the route $X_d\to Y_d$, a source and its routed sink
+have labels $0$ and $\mathcal D$, so their frame ratio is
+$C^{\otimes mf}$.  For the exceptional route put $u=u_d$.
+Since $u\cdot u=1$, $P_{U_d}x=u[u\cdot x]$, and orthogonal
+weight additivity gives
+\[
+ q_{U_d^\perp}(x)-q_{U_d}(x)
+ =\wt(x)-2\wt(u)[u\cdot x]
+ =\wt(x)+2[u\cdot x]\pmod4.
+\]
+Here $\wt(u)=27$ is odd.  Hence the exceptional frame ratio is
+$R_uC^{\otimes m}$ in each column.  Correct these translations
+at the sinks and undo the signed bank exchange.  The result is
+$C^{\otimes mf}$ on each physical role, including every
+auxiliary array.
+
+By Lemma~\ref{net:edge}, an edge with residual dimension $\rho$
+uses $\rho$ products $C_z^{\otimes f}$ or
+$(C_z^{-1})^{\otimes f}$.  Extend $z$ to a binary basis and apply
+the corresponding invertible address change in each column.
+Translation by $z$ becomes a flip of one selected bit, so the
+forward product is $C^{\otimes f}$ on those $f$ selected bits,
+for each setting of all other bits.  Inverse products add only
+translations.  Summing the residual dimensions gives precisely
+$s$ directional steps.  The network, all its bases, and the
+number of remaining pointwise operations are fixed independently
+of $f$.  Spectator bits merely index additional copies of these
+identities.
+\end{proof}
+
+\subsection{Linear-time address changes}
+
+The address permutations in Proposition~\ref{net:finite-interface}
+must not introduce a factor $f$.  The following enumeration also
+explains the uniform construction of the recursive batches.
+
+\begin{lemma}\label{net:indexing}
+Let $k=mf+r$ with $0\le r<m$, and fix an invertible binary map
+on an $m$-bit column.  Applying it in all $f$ columns, translating
+columns by prescribed fixed vectors, and collecting one chosen
+output bit from every column into a contiguous $f$-bit address
+field can be implemented in $O(2^k)$ time.  This includes all
+index preparation and data movement; the constant may depend on
+$m$ and the fixed maps, but not on $f$ or $k$.
+\end{lemma}
+
+\begin{proof}
+An $m$-bit column is a digit of radix $2^m$.  Since $m$ and the
+maps are fixed, a finite table gives, for each possible column
+digit, its old bits, transformed bits, selected output bit, and
+remaining output bits.  This table can be constructed once by
+the specified binary arithmetic; its cost is an absolute constant.
+The $r$ spectator bits form one additional digit of radix $2^r$,
+omitted when $r=0$.
+
+For a given $k$, compute the input and output bit-position strides
+and the displaced table contributions for each column.  This
+costs $O(f+1)$ operations with a constant depending on $m$.
+An input address and the desired output address are each sums
+of the contributions of their column digits and the spectator
+digit; the output contributions put the selected bits in their
+common field and all other bits outside it.  Traverse the digit
+prefix tree, retaining these two partial sums.  Extending a prefix
+by a digit adds its two tabulated contributions in constant time.
+At a leaf, copy the value between the two resulting addresses,
+using a separate output array to avoid overwriting unread values.
+Every internal node has at least two children.  There are $2^k$
+leaves, so fewer than $2^{k+1}$ nodes, including the root.
+The preparation cost is also $O(2^k)$.  Reversing the source and
+destination addresses implements the inverse permutation with
+the same bound.
+
+Take the selected $f$ bits as the least significant output field.
+Each fiber is then contiguous, and consecutive groups of $W_*$
+fibers, for any fixed $W_*$, are consecutive blocks of
+$W_*2^f$ entries.  No per-entry scan of the columns is needed
+to form or undo these groups.  Addresses have $k+O(1)$ bits,
+with the fixed network sizes included in the constant.
+\end{proof}
+
+\subsection{Exact batching and the critical exponent}
+
+The least power of two at least $W$ is
+\begin{equation}\label{net:padding}
+ W_*=2^{71},\qquad
+ S=s+(W_*-W)m=W_*m-\Delta,\qquad
+ \lambda=\frac{S}{W_*}=m-\frac{\Delta}{2^{71}},\qquad
+ \theta=\log_m\lambda.
+\end{equation}
+In particular $1<\lambda<m$, so $0<\theta<1$.
+The $W_*-W$ extra roles each use the $m$ ordinary coordinate
+directions, preserving the absolute saving $\Delta$.
+
+\begin{samepage}
+\begin{theorem}\label{net:tensor-bound}
+There is a deterministic exact algorithm applying $C^{\otimes k}$
+to an arbitrary complex array of length $2^k$ in
+\[
+ O\bigl(2^k(k+1)^\theta\bigr)
+\]
+time, for every integer $k\ge0$.  The bound includes fixed-table
+construction, all scalar arithmetic, array initialization, index
+preparation, and data movement.  Only the rational constants and
+$i$ are required.
+\end{theorem}
+\end{samepage}
+
+\begin{proof}
+We first transform $W_*$ arbitrary arrays simultaneously.  Set
+$K=m(71+1)$.  For $k<K$, apply the $k$ factors of $C$ one at a
+time along their fibers.  Because $K$ is fixed, the cost divided
+by $W_*2^k$ is bounded by an absolute constant throughout this
+base range, including $k=0$.
+
+For $k\ge K$, write $k=mf+r$, where $f=\lfloor k/m\rfloor$
+and $0\le r<m$.  Apply the $r$ remaining bit factors directly.
+On $W$ arrays use Proposition~\ref{net:finite-interface} with
+$f$ columns and $r$ spectator bits.  On each of the $W_*-W$
+remaining arrays use one directional step for each of the $m$
+coordinate positions, again simultaneously over all $f$ columns.
+There are $S$ directional steps in total.
+
+Each such step requires $2^{k-f}$ independent transforms
+$C^{\otimes f}$.  Since $f\ge72$ and
+$k-f\ge(m-1)f\ge71$, the number $2^{k-f}$ is divisible by
+$W_*=2^{71}$.  After the permutation of
+Lemma~\ref{net:indexing}, partition its fibers into exactly
+$2^{k-f}/W_*$ batches and use the present $W_*$-array algorithm
+recursively on each batch.  No partially filled recursive batch
+occurs.  Its correctness follows by induction on $k$, since
+$f<k$, and because the network interface applies to arbitrary
+values on \emph{all} its roles.
+
+Let $T(k)$ be the cost for $W_*$ arrays and
+$t(k)=T(k)/(W_*2^k)$.  The fixed number of pointwise gates,
+permutations, terminal corrections, and at most $m-1$ leftover
+bit layers cost at most $A W_*2^k$ outside recursive calls,
+for an absolute constant $A$.  Batch setup and returning results
+are included in this bound: the batches partition a packed array,
+and their number is at most its length.  Thus
+\begin{align*}
+ T(k)&\le A W_*2^k+
+          S\frac{2^{k-f}}{W_*}T(f),\\
+ t(k)&\le A+\lambda t(\lfloor k/m\rfloor)
+                   \qquad(k\ge K).
+\end{align*}
+This exact recurrence permits the critical exponent
+$\theta=\log_m\lambda$.  To see this directly, unroll it for
+$d$ steps until the argument falls below $K$.  Successive
+arguments are $\lfloor k/m^j\rfloor$, and
+$d\le\lceil\log_m(k+1)\rceil$.  If $B$ bounds the normalized
+base costs, then
+\[
+ t(k)\le A\sum_{j=0}^{d-1}\lambda^j+B\lambda^d
+       \le\left(\frac{A}{\lambda-1}+B\right)\lambda^d
+       =O((k+1)^\theta).
+\]
+Here $\lambda^d\le\lambda(k+1)^\theta$.  The same estimate
+holds in the base range by increasing the constant.
+
+Fixed tables may be generated once and reused; even generating
+them on the first invocation contributes an absolute constant.
+The recursive calls can run serially and reuse their working
+arrays.  Their address fields, counters, and strides use
+$O(k+1)$ bits: at each active level only a fixed number of
+arrays of the current length is needed, and the lengths shrink
+from $2^k$ to $2^{\lfloor k/m\rfloor}$ and so on.
+The recursion stack has $O(\log(k+2))$ levels.  Thus the claimed
+workspace is bounded by a constant times
+$\sum_{j=0}^{d}W_*2^{\lfloor k/m^j\rfloor}+O(k+1)
+=O(W_*2^k)$; consecutive nonterminal array lengths decrease
+by at least a factor of two.  The claimed index costs therefore
+use exactly the logarithmic-word model of the paper.
+
+Finally, initialize $W_*-1$ unused arrays to zero, put the
+requested array in the remaining role, run the simultaneous
+procedure, and retain that role's output.  Initialization costs
+$O(W_*2^k)=O(2^k)$, and $W_*$ is an absolute constant.  This
+proves the stated single-array bound.
+\end{proof}
+
+\begin{remark}\label{net:role-remark}
+Restoring arbitrary auxiliary values in Lemma~\ref{net:scalar}
+is essential.  After the frame changes, those physical roles
+are required to undergo the same tensor transform as the data
+banks.  A network valid only with zero auxiliary values would
+not justify using arbitrary transform fibers as all $W_*$ roles
+in the recursive batches.  Equation~\eqref{net:telescoping}
+establishes the required full linear-map identity.
+\end{remark}

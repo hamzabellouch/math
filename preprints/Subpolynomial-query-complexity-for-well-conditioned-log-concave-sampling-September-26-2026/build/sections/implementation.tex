@@ -1,0 +1,729 @@
+\section{Finite evaluation of nested conditional means}\label{sec:compiler}
+
+Suppose that a deterministic numerical formula calls for a conditional
+mean at a center that depends on other conditional means.  Even a very
+accurate unbiased estimate is awkward here: its error changes the next
+center, and the next call must be analyzed at that random center.  We
+will instead add a prescribed Gaussian to every computed center.  A
+translation identity of the lower-level routine allows that Gaussian to
+be absorbed into its random seeds.  The identity restores the law of a
+call at the intended center, which is fixed after conditioning on the
+parent formula's random input anchors.
+
+We first prove that identity.  We then give the full finite recursive
+construction, including its termination, its query cap on every
+execution, and its distributional error.  The analytical input is a
+family of finite affine formulas in exact conditional means.  Theorem~\ref{thm:numerical-interface} supplies these formulas and their
+complete numerical construction.  We now implement them and thereby
+prove Theorem~\ref{thm:primitive}.
+
+\subsection{Why Gaussian center noise helps}
+
+A seeded mean routine at scale $r>0$ is a measurable deterministic map
+$\mathsf Q(x;z_1,\ldots,z_m)\in\R^d$, whose input is a center
+$x\in\R^d$ and $m$ seed slots $z_j\in\R^d$.  It may query a fixed
+oracle.  A vector $v=(v_1,\ldots,v_m)\in\R^m$ gives a
+\emph{query-preserving translation} if, for every center, displacement
+and fixed seed list,
+\begin{equation}\label{eq:mean-shift-warmup}
+ \mathsf Q(x+\Delta;z+v\otimes\Delta/r)=\mathsf Q(x;z),
+\end{equation}
+and the two computations ask exactly the same physical oracle queries.
+Here $(v\otimes a)_j=v_ja$.  This is a deterministic identity; it does
+not require independent or Gaussian seeds.
+
+\begin{lemma}[Absorbing a Gaussian center displacement]
+\label{lem:compiler-absorption}
+Let $D_s>0$, and let $\mathsf Q$ satisfy
+\eqref{eq:mean-shift-warmup}, with $\|v\|_2\le D_s$.  Put
+\[
+ n=\frac r{2D_s},\qquad
+ P=\left(I_m-\frac{vv^T}{4D_s^2}\right)^{1/2}.
+\]
+For a deterministic $x\in\R^d$, let $Z,G_1,\ldots,G_m$ be independent
+standard Gaussian vectors in $\R^d$.  Then the output of
+$\mathsf Q(x+nZ;(P\otimes I_d)G)$ has exactly the law of
+$\mathsf Q(x;G)$.
+\end{lemma}
+\begin{proof}
+The eigenvalues of $P$ lie in $[\sqrt3/2,1]$.  The translation identity
+rewrites the first output as
+\[
+ \mathsf Q\left(x;PG-\frac{v\otimes Z}{2D_s}\right).
+\]
+We suppress the tensor product with $I_d$ on slot-space matrices.
+The seed array in this expression is centered Gaussian and has slot
+covariance
+\[
+ PP^T+\frac{vv^T}{4D_s^2}=I_m.
+\]
+Its slots are therefore independent standard Gaussian vectors.  They
+may remain correlated with $Z$; that is harmless because the rewritten
+call is at the deterministic center $x$.
+\end{proof}
+
+The covariance reduction $P$ is essential.  With unmodified fresh
+seeds, translating the noisy center back would add variance.  With
+$P$, the center noise restores precisely the variance removed from the
+seeds.  The construction below maintains the deterministic translation
+identity at every level, so that this argument applies recursively.
+
+\subsection{The numerical input and the implementation task}
+
+We retain the primitive notation of Section~\ref{sec:preliminaries}:
+$g=\nabla F$, $\operatorname{Lip}(g)\le\lambda=\delta=d^{-e}$,
+$0<r\le1$, and $\nu_{x,r}$ is the law in
+\eqref{eq:primitive-law}.  Write $u_{x,r}=\E_{\nu_{x,r}}g(x+rZ)$,
+$L=\lambda r$, $l=\lambda r^2$, and $D(x)=\sqrt d+|g(x)|$.
+We use the uniform moment bounds \eqref{eq:primitive-moments} and
+conditional coupling rules of Lemma~\ref{lem:coupling-smoothing}.
+Only evaluations of $g$ will be used by the implementation.
+
+Fix $K_0,t$ as in Theorem~\ref{thm:primitive}, and retain the
+numerical parameters
+\[
+ R=\delta^t,\qquad b_*=(1-R^2)^{1/2},\qquad
+ \psi=\delta^{4t},\qquad J=K_0+2.
+\]
+Theorem~\ref{thm:numerical-interface} supplies two finite acyclic
+circuits, $\mathcal C_M$ and $\mathcal C_S$, whose nodes are exact
+conditional means.  We use its notation $A$ for the positive declared
+bound on a center's absolute coefficient sum, $A_f$ for the output
+bound, $D_0$ for the mean-dependency depth, and $c_1$ for the absolute
+constant in the fan-out exponent.  A center has the form
+$x+r(\ell_i y+m_iG)+\sum_{j<i}a_{ij}u_{x_j,r_j}$, with
+$r_i=r\tau_i$.  All these scalar data are deterministic functions of
+the prescribed numerical parameters, independent of centers, anchors,
+and oracle responses.  We will use the circuit theorem's explicit
+coefficient and scale bounds when constructing shifts and propagating
+sizes; the circuits themselves are comparison formulas, not additional
+runtime oracles.
+
+For the mean circuit the parameter supplied is the parent's
+$\sigma$.  Its underlying centering flow uses $s=\sigma/2$ once,
+so its direct output is $(\sigma/2)G$.  Under the specified ideal
+anchor law, its error is
+\[
+ W_2\bigl(\mathcal L(\mathcal C_M),N(u_{x,r},\sigma^2I_d/4)\bigr)
+ \le\polylog(d)\sigma\delta^JD(x).
+\]
+For the sampling circuit the direct
+output is $y/\rho_e$, where
+$\rho_e=(1+\eta^2/4)^{-1/2}$, and the ideal target is
+$\nu_{x,r}*N(0,\eta^2I_d/4)$.  These numerical statements require
+the anchor laws and size assumptions specified in
+Theorem~\ref{thm:numerical-interface}; we shall verify those assumptions
+at their uses.
+
+The remaining task is to replace every exact mean by finitely many
+queries while preserving enough independent Gaussian noise for the
+absorption identity.  The construction below first establishes a
+query cap on every execution.  Its subsequent accuracy proof uses
+pathwise stability at inaccurate centers, then absorption at ideal
+noisy centers, and only then a standalone law for a child call.
+
+\subsection{Two routines and two different kinds of depth}
+
+We construct a mean routine $\mathsf M(x,r,\sigma;b,p)$ targeting
+$u_{x,r}+\sigma G$ and a sampling routine
+$\mathsf S(x,r,\eta;b,p)$ targeting $Z+\eta G$, for independent
+$Z\sim\nu_{x,r}$ and standard Gaussian $G$.
+The top call is $\mathsf S(x,r,1;1,K_0)$.  Throughout, a reachable
+call means a descendant of this call, including the call itself.
+The first label $b$ records the size conditions
+\begin{equation}\label{eq:routine-sizes}
+ \max\{l,L/\sigma\}\le\polylog(d)\delta^b\quad(\mathsf M),
+ \qquad l/\eta\le\polylog(d)\delta^b\quad(\mathsf S),
+\end{equation}
+where $R\le\eta\le1$.  The second label $p$ records the requested
+error power.  The intended errors are
+$\polylog(d)\sigma\delta^pD(x)$ and
+$\polylog(d)\delta^pD(x)$, respectively.
+A call is terminal precisely when $p\le b$; it is nonterminal
+when $p>b$.
+Every sampling routine reserves a final noise $\eta G/2$, unused
+in its own queries.  Before adding that reserve, its target law is
+$\nu_{x,r}*N(0,3\eta^2I_d/4)$.
+
+For a nonterminal sampling call, use $\mathcal C_S$ with a standard
+Gaussian position anchor, supply additional final noise
+$n=\eta/\sqrt2$, and then add the reserve.  For a nonterminal mean
+call, pass the parent parameter $\sigma$ to $\mathcal C_M$ and supply
+final noise $n=\sqrt3\sigma/2$.  Obtain its position anchor from an
+$\mathsf S$ call at the same center and scale with
+$\eta=R/b_*$, multiplying that output by $b_*$.  An ideal such
+anchor has exactly the required law $b_*Z+RN$.
+Its momentum anchor is an independent standard Gaussian.  For all
+sufficiently large $d$, $R/b_*\in[R,1]$, so the anchor call has an
+admissible noise parameter.
+
+An expression dependency and a routine call play different roles.
+For example, suppose a parent circuit contains
+$E_f=a\,u_{x_2,r_2}$ and $x_2=x+c\,u_{x_1,r_1}$.
+Evaluating $E_f$ invokes two new mean routines: one to help supply
+$x_2$, and one at that supplied center.  Both are children of the
+\emph{same parent routine}.  Their own internal circuits begin the
+next routine level.  The two nested affine expressions do not create
+two successive losses in the parent's accuracy label.  Figure
+\ref{fig:two-depths} makes this distinction explicit.
+
+\input{figures/implementation-two-depths}
+
+
+To evaluate an expression, we expand its mean dependencies as an
+uncached tree, duplicating every mean occurrence together with its
+entire center-supplying subtree.  All mean calls at any expression tier
+are direct children of the routine whose circuit is being evaluated.
+
+The children of a parent labeled $(b,p)$ receive labels as follows:
+\begin{equation}
+ \begin{array}{c|c}
+ \text{child's role}&\text{child labels}\\ \hline
+ \text{term of }E_f\text{ in an }\mathsf M\text{ parent}&(b+t,p)\\
+ \text{term of }E_f\text{ in an }\mathsf S\text{ parent}&(b,p)\\
+ \text{any other term, or the }\mathsf M\text{ position anchor}
+       &(b-10t,p-1/4).
+ \end{array}
+ \label{eq:compiler-labels}
+\end{equation}
+In the last row the labels are always those of the parent routine,
+not successively decreased while descending its expression tree.
+
+\begin{lemma}[Bounded routine height]
+\label{lem:compiler-height}
+Starting at $(b,p)=(1,K_0)$, the rules
+\eqref{eq:compiler-labels} give a finite routine tree of height at most
+a constant $H=H(K_0,t)$.  Every reachable label satisfies $b>1/2$.
+\end{lemma}
+\begin{proof}
+Before $4K_0+1$ decreasing transitions, the total loss in $b$ is less
+than $10t(4K_0+1)<1/4$, so $b>3/4$.  At that many transitions,
+$p\le K_0-(4K_0+1)/4<0$, forcing termination.  Therefore no branch
+can have more such transitions.  Positive transitions increase $b$
+by $t$, while a nonterminal satisfies $b<p\le K_0$; their total
+number is consequently bounded in terms of $K_0,t$ and the already
+bounded total decrease in $b$.  A neutral transition is an
+$\mathsf S$-to-$\mathsf M$ transition.  Another neutral transition
+requires first reaching another $\mathsf S$, which can occur only
+through a decreasing transition.  This bounds the neutral transitions
+as well and proves both claims.
+\end{proof}
+
+A routine is a deterministic function of its center, scalar
+parameters, oracle, and a finite ordered list of $d$-dimensional seed
+slots.  Standalone use fills these slots by independent standard
+Gaussians.  In addition, each routine will have a deterministic vector
+$v$ of scalar coefficients, one per slot, with
+\begin{equation}
+ \|v\|_2\le D_s,\qquad D_s:=\delta^{-t}.
+ \label{eq:shift-budget}
+\end{equation}
+For \emph{every} fixed seed list, changing $x$ to $x+\Delta$ and
+adding $v\otimes\Delta/r$ to the seeds will preserve every physical
+query point.  The output of $\mathsf M$ will be unchanged; the
+normalized output of $\mathsf S$ will decrease by $\Delta/r$.
+These are pathwise properties, not statements restricted to Gaussian
+seeds.
+
+Within each call write $u=u_{x,r}$ and $\nu=\nu_{x,r}$.
+At a terminal call define
+\begin{align*}
+ \mathsf M&=g(x+rZ)+\sigma G,\\
+ \mathsf S&=Z-rg(x+rZ)+(\sqrt3\eta/2)G_1+(\eta/2)G_2,
+\end{align*}
+with separate seed slots.  The last term in $\mathsf S$ is its
+reserved noise.  Taking $v=-1$ on the $Z$ slot and zero elsewhere
+proves the shift property and $\|v\|_2=1$.
+
+
+
+\subsection{Evaluating an expression at a noisy center}
+
+Fix a parent circuit and its anchors, and write $M_i=u_{x_i,r_i}$
+for its exact mean nodes.  For each expression
+$E=b_0+\sum_i a_iM_i$, the operation $\operatorname{Eval}(E,n)$
+will approximate its exact value plus an independent
+$N(0,n^2I_d)$ noise.  Assign disjoint seed blocks to every term
+occurrence, its center-supplying computation, and each residual noise;
+keep all these blocks separate from the anchors.  Thus the term
+blocks are independent conditional on the anchors in a standalone
+call.
+
+Here is the recursive evaluation rule, assuming the child routines
+and their shift vectors have already been constructed.  Take $A'=A$
+for a center expression and $A'=A_f$ at the output, and put
+$\sigma_i=n/(2A')$.  For the term of scale $r_i=r\tau_i$, first
+evaluate its center expression with noise
+\begin{equation}
+ n_i=\frac{r_i}{2D_s}.
+ \label{eq:compiler-center-noise}
+\end{equation}
+At this supplied center run the child $\mathsf M$ with scale $r_i$,
+noise $\sigma_i$, and labels from \eqref{eq:compiler-labels}.
+If its shift vector is $v_i$, apply to its fresh seed block $G_i$
+the deterministic slot-space transformation
+\begin{equation}
+ P_i=\left(I-\frac{v_iv_i^T}{4D_s^2}\right)^{1/2},
+ \qquad\text{and use seeds }(P_i\otimes I_d)G_i.
+ \label{eq:compiler-seed-transform}
+\end{equation}
+Denote its output by $Q_i$.  Return
+\begin{equation}
+ b_0+\sum_i a_iQ_i+
+ \left(n^2-\sum_i a_i^2\sigma_i^2\right)^{1/2}G_E,
+ \label{eq:compiler-eval}
+\end{equation}
+where $G_E$ is a separate slot.  The square root is defined, since
+\[
+ \sum_i a_i^2\sigma_i^2
+ \le\left(\sum_i|a_i|\right)^2\frac{n^2}{4(A')^2}
+ \le n^2/4.
+\]
+If there are no terms, return $b_0+nG_E$.  The mean-node ordering
+makes the expression recursion finite.  At the parent's output use
+the value of $n$ specified above; add the reserved noise for
+$\mathsf S$.  A routine supplied with correlated seeds performs
+these same deterministic operations, without any change of rule.
+
+At an ideal supplied center $x_i+n_iZ$, Lemma~\ref{lem:compiler-absorption}
+now identifies this child with its standalone law at $x_i$.  We still
+owe the construction of the shift vectors and a proof that the noisy
+supplied centers are accurate.  We prove these in that order.
+
+\subsection{Query-preserving shifts and the deterministic cap}
+
+We next show that the shift vectors required in
+Lemma~\ref{lem:compiler-absorption} exist with the universal bound
+\eqref{eq:shift-budget}.  This also verifies that the definition is
+noncircular and has a deterministic query cap.
+
+For a nonterminal $\mathsf S$, shift its Gaussian position anchor by
+$-\rho_e\Delta/r$.  For a nonterminal $\mathsf M$, we require its
+position anchor $y_*$ to shift by $-\Delta/(b_*r)$ and leave its
+momentum anchor unchanged.  To obtain this, apply the shift of its anchor
+$\mathsf S$ call and additionally shift that call's reserved seed
+by the coefficient $-2R/b_*$ times $\Delta/r$.  The ordinary shift
+changes its output by $-\Delta/r$.  Since the reserved standard
+deviation is $R/(2b_*)$, the additional change is
+$-R^2\Delta/(b_*^2r)$.  Multiplication by $b_*$ makes the total
+change
+\[
+ -\left(b_*+\frac{R^2}{b_*}\right)\frac{\Delta}{r}
+ =-\frac{\Delta}{b_*r}.
+\]
+The extra slot is used in no query, so query invariance is preserved.
+
+For a term of scale $r\tau_i$, the direct part of its supplied
+center then changes by $k_i\Delta$, where
+\[
+ k_i=1-\ell_i\rho_e\quad(\mathsf S),
+ \qquad
+ k_i=1-\ell_i/b_*\quad(\mathsf M).
+\]
+These coefficients satisfy $|k_i|/\tau_i\le C$.  For $\mathsf S$,
+$\rho_i\le\rho_e$ gives
+$1-\rho_i\rho_e\le2(1-\rho_i)\le2\tau_i$.
+For $\mathsf M$, its two possible coefficients obey
+\[
+ 0\le1-\rho_i\cos z/b_*
+ \le C(1-\rho_i)+Cz^2,
+\]
+with $z=0$ when there is no cosine.  Use
+$1-\rho_i\le\tau_i$, $\tau_i\ge cR$, and
+$z^2/R\le C\delta^{7t}\to0$.
+
+Shift that child's untransformed seed block by
+\begin{equation}
+ \frac{k_i}{\tau_i}P_i^{-1}v_i\otimes\frac{\Delta}{r}.
+ \label{eq:compiler-child-shift}
+\end{equation}
+If \eqref{eq:shift-budget} holds for the child, the smallest
+eigenvalue of $P_i$ is at least $\sqrt3/2$, so
+$\|P_i^{-1}\|_{\op}\le2$.  Formula
+\eqref{eq:compiler-child-shift} induces exactly the child's shift
+for center displacement $k_i\Delta$.  Leave all residual noise
+slots fixed.  Induction from leaf expressions upward shows that
+every mean output is unchanged, and therefore that the actual
+supplied-center change is precisely its direct-term change.
+All queries are preserved.  The parent's final direct term is
+unchanged for $\mathsf M$ and changes by $-\Delta/r$ for
+$\mathsf S$, giving the required output behavior.
+
+The center-supplying subtree and the invoked child have disjoint
+slots.  In particular, the factor $k_i/\tau_i$ in
+\eqref{eq:compiler-child-shift} multiplies only the shift of that
+child, not the shifts of routines used to supply its center.  Those
+are other direct children of the same parent and are charged once
+in its total shift vector.
+
+\begin{lemma}[Well-defined construction and query cap]
+\label{lem:compiler-count}
+One can choose $w>0$, depending only on $K_0,t$ and the fixed Picard
+counts, and then choose the interpolation orders, so that the entire
+construction is well defined for all sufficiently large $d$.
+Every routine reached from a top call satisfies
+\eqref{eq:shift-budget}.  Its total number of seed slots and oracle
+queries is at most $\polylog(d)\delta^{-t}$ on every execution.
+\end{lemma}
+\begin{proof}
+Let $D_0$ be the dependency-depth bound in
+Theorem~\ref{thm:numerical-interface}, and let $F_0$ be its direct
+fan-out bound.  Expanding a circuit into an expression tree costs
+at most $(D_0+1)(1+F_0)^{D_0}$ nodes.  Its size is thus
+$\polylog(d)\delta^{-C_2w}$, where $C_2$ depends on the Picard
+counts but not on $w$ or the interpolation orders.  This bounds its
+direct child invocations and its own anchor and residual slots.
+Expanding through the height $H$ from
+Lemma~\ref{lem:compiler-height} gives
+$\polylog(d)\delta^{-C_3w}$ slots and terminal queries.
+Interpolation orders change only fixed multiplicative constants in
+these bounds, not $C_2$ or $C_3$.
+
+The terminal shift has norm $1$.  Assuming the shift bound for the
+children, the bounded ratios and inverse norms above show that a
+parent's shift norm is at most a fixed constant times one plus the
+sum of its direct children's shift norms, including the anchor
+call.  The extra reserved-slot shift has bounded coefficient.
+The triangle inequality is sufficient even if ordinary and extra
+anchor shifts affect the same slot.  Iterating through the fixed
+routine height gives the same bound
+$\polylog(d)\delta^{-C_3w}$, after increasing $C_3$ if necessary.
+
+Choose $w>0$ with
+\[
+ C_3w<t/2,\qquad w<t,\qquad c_1w<t,
+\]
+and only then choose the fixed interpolation orders needed in
+Theorem~\ref{thm:numerical-interface}.  For sufficiently large $d$, the last
+shift bound is smaller than $D_s=\delta^{-t}$.  This is a valid
+bottom-up induction: it proves each child's bound before using its
+inverse transformation in the parent.  The count bound is also at
+most $\polylog(d)\delta^{-t}$.
+
+To make the parameter order explicit, first fix the Picard counts,
+hence $D_0,H,C_3$, then $w$, then the interpolation orders.  The
+universal scalar $D_s$ fixes every center-noise budget.  The circuit
+shapes, labels, requested noises, and slot counts are determined by
+these scalar parameters before any shifts are computed.  Compute
+child shifts before their matrices and the parent shift.  No center
+value, oracle response, numerical-error estimate, or assumption
+\eqref{eq:routine-sizes} enters this finite construction or the
+count.  Only terminal routines query $g$, once each; hence the bound
+is a cap on every execution, not an expected query count.
+\end{proof}
+
+\subsection{Terminal errors and propagation of scales}
+
+The finite construction and its cap are now established independently
+of accuracy.  We next verify its terminal errors and the size conditions
+needed by the numerical estimates.
+
+\begin{lemma}[Terminal accuracy]
+\label{lem:compiler-terminal}
+In standalone use, a terminal call satisfying \eqref{eq:routine-sizes}
+obeys
+\begin{align*}
+ W_2\bigl(\mathcal L(\mathsf M),N(u,\sigma^2I_d)\bigr)
+ &\le\polylog(d)\sigma\delta^pD(x),\\
+ W_2\bigl(\mathcal L(\mathsf S_{\rm pre}),
+          \nu_{x,r}*N(0,3\eta^2I_d/4)\bigr)
+ &\le\polylog(d)\delta^pD(x),
+\end{align*}
+where $\mathsf S_{\rm pre}$ is the output before adding its reserved
+noise $\eta G_2/2$.  The sampling bound also holds after adding that
+same independent reserve to both laws.  The fixed-seed center
+Lipschitz constant is at most $\lambda$ for $\mathsf M$ and
+$r\lambda$ for $\mathsf S$.
+\end{lemma}
+\begin{proof}
+For the standard Gaussian seed $Z$, the primitive moment bounds give
+\[
+ \|g(x+rZ)-u\|_{L^2}
+ \le CL\bigl(\sqrt d+r|g(x)|\bigr)\le CLD(x).
+\]
+Since $L/\sigma\le\polylog(d)\delta^b$ and $p\le b$, this is
+within the mean error budget; couple the added Gaussian identically.
+
+Let $z_0$ be the mode of $\nu_{x,r}$, so
+$z_0=-rg(x+rz_0)$.  Then
+\[
+ \|Z-rg(x+rZ)-(Z+z_0)\|_{L^2}
+ \le l\|Z-z_0\|_{L^2}\le ClD(x).
+\]
+Also $W_2(N(z_0,I_d),\nu_{x,r})\le Cl\sqrt d$.
+Apply the synchronous comparison in
+Lemma~\ref{lem:convex-preliminaries} with Gaussian potential
+$H_0(z)=|z-z_0|^2/2$ (contraction constant $1$) and tilted potential
+$H(z)=|z|^2/2+F(x+rz)$.  Their gradient difference is
+$r[g(x+rz)-g(x+rz_0)]$, whose $L^2(\nu_{x,r})$ norm is at most
+$l\|Z-z_0\|_{L^2(\nu_{x,r})}\le Cl\sqrt d$.
+This proves the displayed Wasserstein bound under exactly the
+$C^2$ and bounded-Hessian hypotheses of that lemma.
+Adding the same independent comparison noises proves the sampling
+error $ClD(x)\le\polylog(d)\eta\delta^bD(x)$, which is at most
+the requested bound because $\eta\le1$ and $p\le b$.  Omitting
+$G_2$ proves the pre-reserved assertion.  The Lipschitz bounds follow
+directly from the two displayed terminal formulas.
+\end{proof}
+
+\begin{lemma}[Size conditions descend through the routine tree]
+\label{lem:compiler-sizes}
+Starting with a top call satisfying
+\eqref{eq:routine-sizes}, every descendant satisfies that condition
+with its assigned labels, up to a uniform polylogarithmic factor.
+At each nonterminal circuit,
+\begin{equation}
+ \lambda A\le\polylog(d)\delta^{1/3}.
+ \label{eq:small-coefficients}
+\end{equation}
+For nonfinal expression terms within an $\mathsf M$ parent,
+$\sigma_i\le C\sigma$; within an $\mathsf S$ parent,
+$r\sigma_i\le C$.
+\end{lemma}
+\begin{proof}
+For a final term of an $\mathsf M$ parent, the output uses only means of scale $rR$, so $r_i=rR$, while $\sigma_i$ is a fixed positive multiple
+of $\sigma$.  Thus $L_i/\sigma_i$ gains a factor $R$ and $l_i$
+gains $R^2$, allowing labels $(b+t,p)$.
+For a final term of an $\mathsf S$ parent,
+$\sigma_i$ is a fixed positive multiple of $\eta/r$.
+Therefore $L_i/\sigma_i\le Cl/\eta$ and $l_i\le l$, allowing
+the unchanged labels.
+
+For a nonfinal term, let $r\tau_{\rm prev}$ be the scale of the
+node whose center is currently being supplied.  Its expression is
+evaluated with budget $r\tau_{\rm prev}/(2D_s)$, irrespective of
+the tier at which it occurs.  Consequently
+\[
+ \sigma_i=\frac{r\tau_{\rm prev}}{4D_sA},
+ \qquad
+ \frac{L_i}{\sigma_i}
+ \le \frac{CD_s\lambda A}{R}.
+\]
+The coefficient estimates give
+$\lambda A\le\polylog(d)\delta^{b-4t-c_1w}$ for an
+$\mathsf M$ parent.  For an $\mathsf S$ parent,
+$\lambda A=C_1l\le\polylog(d)\delta^b$, since $\eta\le1$.
+Using $D_s/R=\delta^{-2t}$ and $c_1w<t$ costs less than the
+allowed $10t$ decrease in $b$.  Also $l_i\le l$.
+For the position-anchor $\mathsf S$ call of $\mathsf M$,
+$l/\eta\le l/R$, which has the same allowance.
+This proves the size conditions by the bounded routine height.
+All accumulated fixed and polylogarithmic factors are still one
+polylogarithmic factor.
+
+As $b>1/2$ and $4t+c_1w<5t<1/6$, the coefficient bounds imply
+\eqref{eq:small-coefficients}.  Finally, the positive declared bound
+for $A$ includes a fixed multiple of $r/\sigma$ in an
+$\mathsf M$ parent, so
+$\sigma_i\le r/(4D_sA)\le C\sigma$.
+For $\mathsf S$, $A=C_1r^2$ gives
+$r\sigma_i\le1/(4C_1D_s)\le C$.
+\end{proof}
+
+\subsection{Stability for arbitrary fixed seeds}
+
+\begin{lemma}[Fixed-seed stability]
+\label{lem:compiler-lipschitz}
+For every seed array, including correlated or transformed arrays,
+the compiled $\mathsf M$ output is a function of $x$ with Lipschitz
+constant at most $\polylog(d)\lambda$; the normalized
+$\mathsf S$ output has constant at most
+$\polylog(d)r\lambda$.  If the anchors of a nonterminal
+$\mathsf M$ are treated as separate inputs, its Lipschitz constant
+in the position anchor is at most $\polylog(d)L$.
+\end{lemma}
+\begin{proof}
+Induct on routine height, with the terminal case supplied by
+Lemma~\ref{lem:compiler-terminal}.  First hold the anchors fixed.
+A direct center term has Lipschitz constant $1$ in $x$ and at most
+$Cr$ in a position anchor.  The center-supplying expression combines
+child outputs with total absolute coefficient at most $A$.
+Using the child $\mathsf M$ bound, the contribution of earlier
+supplied-center sensitivities is at most
+$\polylog(d)\lambda A$ times their maximum.  By
+\eqref{eq:small-coefficients}, this is small.  Induction through
+the bounded expression depth therefore bounds center sensitivities
+by a constant times their direct sensitivities, with an allowed
+polylogarithmic factor.
+
+At the final expression the coefficient sum is $A_f$.  Its direct
+term has no center dependence when anchors are held fixed; for
+$\mathsf M$ it also has no position-anchor dependence.  Hence its
+center sensitivity is at most
+$\polylog(d)A_f\lambda$, and its $\mathsf M$ position-anchor
+sensitivity at most $\polylog(d)A_f\lambda r$.
+These are the asserted bounds with anchors treated as separate inputs.
+The $\mathsf S$ Gaussian anchor is indeed center independent.
+The $\mathsf M$ position anchor is supplied by $\mathsf S$ at
+the same center, whose center Lipschitz constant by induction is
+$\polylog(d)r\lambda$.  Its additional contribution is at most
+$\polylog(d)Lr\lambda=\polylog(d)L^2$, and
+$L^2\le\lambda$ for $r\le1$ and $\lambda\le1$.
+All seed transformations depend only on scalar parameters, not on
+$x$.  The proof uses only fixed-seed identities and Lipschitz
+bounds, and therefore requires no seed independence.
+\end{proof}
+
+\subsection{Standalone accuracy and the primitive theorem}
+
+We prove the law guarantees by induction on routine height.  This is
+the only stage at which a routine's seeds are assumed independent
+standard Gaussians.  Such an assumption will be used for a child only
+after the absorption identity has restored its full standalone seed
+law.
+
+\begin{proposition}[Accuracy of the compiled routines]
+\label{prop:compiler-accuracy}
+For every call reached from the top labels, the standalone routines
+satisfy
+\begin{align*}
+ W_2(\mathcal L(\mathsf M),N(u,\sigma^2I_d))
+ &\le\polylog(d)\sigma\delta^pD(x),\\
+ W_2\bigl(\mathcal L(\mathsf S_{\rm pre}),
+       \nu_{x,r}*N(0,3\eta^2I_d/4)\bigr)
+ &\le\polylog(d)\delta^pD(x),
+\end{align*}
+where $\mathsf S_{\rm pre}$ denotes the output before its reserved
+noise.  The latter bound also holds after adding the reserved noise
+to both laws, and
+\[
+ \|\mathcal L(\mathsf S)-\nu_{x,r}*N(0,\eta^2I_d)\|_{\TV}
+ \le\polylog(d)\frac{\delta^pD(x)}{\eta}.
+\]
+\end{proposition}
+
+\begin{proof}
+The terminal assertion is Lemma~\ref{lem:compiler-terminal}.
+All random variables below have finite second moments: the actual
+algorithms are finite compositions of affine maps and globally
+Lipschitz oracle evaluations, while ideal tilted variables have the
+primitive moment bounds.  Thus all $W_2$ comparisons are defined.
+
+For a nonterminal $\mathsf M$, first couple its approximate
+$\mathsf S$ position anchor to an ideal anchor, independently of
+all remaining seed blocks.  The child labels are
+$(b-10t,p-1/4)$.  By induction and
+Lemma~\ref{lem:compiler-lipschitz}, replacing this anchor costs at
+most
+\[
+ \polylog(d)L\delta^{p-1/4}D(x).
+\]
+After division by the mean error unit $\sigma\delta^pD(x)$,
+the cost is at most
+$\polylog(d)\delta^{b-1/4}$, hence is bounded for large $d$.
+We may now assume that the position anchor has law $b_*Z+RN$,
+where $Z\sim\nu_{x,r}$ and $N$ is standard Gaussian, and that the
+momentum anchor is an independent standard Gaussian.  These are exactly
+the input laws in Theorem~\ref{thm:numerical-interface}.
+
+Let $x_i$ be the centers of the deterministic exact-mean circuit
+under these anchors, and put $D_i=\sqrt d+|g(x_i)|$.
+Their RMS values over anchors obey
+\begin{equation}
+ \max_i\|D_i\|_{L^2}\le\polylog(d)D(x).
+ \label{eq:compiler-center-moments}
+\end{equation}
+Indeed, both position and momentum anchors have RMS at most $CD(x)$.
+Use $|g(x_i)|\le|g(x)|+\lambda|x_i-x|$ and the circuit's
+direct terms.  An exact primitive mean at a preceding center has
+magnitude at most $CD_j$.  Their contribution to this maximum-of-RMS
+recurrence is at most $C\lambda A$ times its previous maximum.
+This is small by \eqref{eq:small-coefficients}; the direct terms cost
+at most $CD(x)$.  Induction through the node ordering proves
+\eqref{eq:compiler-center-moments} without a maximum inside the
+expectation.
+
+Condition on the anchors.  For an expression $E$, write
+$\epsilon_E$ for the $W_2$ error of
+$\operatorname{Eval}(E,n)$ relative to its deterministic exact
+value plus $N(0,n^2I_d)$.  Couple the supplied center of its $i$th
+term to $x_i+n_iZ$ with its conditional $W_2$ error
+$\epsilon_{E_i}$.  Use the same transformed child seeds on these
+two centers, drawn independently of this coupling.  The fixed-seed
+Lipschitz bound costs at most
+$\polylog(d)\lambda\epsilon_{E_i}$.
+At the ideal noisy center, Lemma~\ref{lem:compiler-absorption}
+identifies the child's law with its standalone law at $x_i$.
+The induction hypothesis therefore supplies the additional error
+$\polylog(d)\sigma_i\delta^{p_i}D_i$.
+
+Different term occurrences have disjoint blocks, so their outputs
+are independent conditional on the anchors.  Product couplings
+compare them to independent noised exact means.  Together with the
+independent residual in \eqref{eq:compiler-eval}, the ideal sum
+has exactly covariance $n^2I_d$.  We conclude that
+\begin{equation}
+ \epsilon_E\le\sum_i|a_i|
+ \left[\polylog(d)\lambda\epsilon_{E_i}
+       +\polylog(d)\sigma_i\delta^{p_i}D_i\right].
+ \label{eq:compiler-error-recursion}
+\end{equation}
+Notice the order of this argument: inaccurate supplied centers use
+only pathwise stability, and standalone accuracy is invoked only
+after Gaussian absorption.  No assertion is made that the actual
+algorithm's intermediate states have the ideal input laws.
+
+Take RMS in the anchors and expand
+\eqref{eq:compiler-error-recursion} through the finite expression
+tree.  At its root, direct-child labels have $p_i=p$ and
+\[
+ \sum_i|a_i|\sigma_i
+ \le A_f\frac{n}{2A_f}=n/2.
+\]
+Thus their intrinsic errors fit the requested budget.  At tier
+$j\ge2$, absolute coefficient sums and Lipschitz factors contribute
+at most
+\[
+ A_f\bigl(\polylog(d)\lambda A\bigr)^{j-1}.
+\]
+All such children have the single accuracy-label loss $p_i=p-1/4$,
+not one loss per expression tier.  Their noise units are at most
+$C\sigma$ in an $\mathsf M$ parent and $C/r$ in an
+$\mathsf S$ parent by Lemma~\ref{lem:compiler-sizes}; these units
+combine with $A_f=C_1$ or $C_1r$, respectively.
+Already the first factor
+$\polylog(d)\lambda A\le\polylog(d)\delta^{1/3}$
+pays for the loss $\delta^{-1/4}$, leaving a positive power
+$\delta^{1/12}$.  The bounded expression depth allows all further
+tiers and polylogarithmic factors to be summed.  Leaf affine
+expressions have zero error.  This proves the required final
+evaluation error.
+
+Conditionally on the anchors, the ideal final evaluation is its
+deterministic exact-mean circuit value plus a Gaussian of the
+specified fixed covariance.  Its noise may therefore be taken
+independent of the anchors.  By Lemma~\ref{lem:compiler-sizes},
+Theorem~\ref{thm:numerical-interface} applies.  It compares the ideal mean
+circuit to $N(u,\sigma^2I_d/4)$ and the ideal sampling circuit to
+$\nu_{x,r}*N(0,\eta^2I_d/4)$, with the respective errors
+$\polylog(d)\sigma\delta^JD(x)$ and
+$\polylog(d)\delta^JD(x)$.  Since $J=K_0+2$ and $p\le K_0$,
+both errors fit the requested bounds.
+Couple the independent evaluation noise identically in each comparison.
+For $\mathsf M$, its variance $3\sigma^2/4$ raises the Gaussian
+target variance from $\sigma^2/4$ to $\sigma^2$.
+For $\mathsf S$, its variance $\eta^2/2$ raises the Gaussian
+convolution variance from $\eta^2/4$ to $3\eta^2/4$.
+This closes the standalone induction.  Adding the common reserved
+noise preserves the $W_2$ bound; Gaussian smoothing by its standard
+deviation $\eta/2$ gives the stated total variation bound by
+\eqref{eq:gaussian-smoothing}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:primitive}]
+Use the top $\mathsf S$ call with $(b,p,\eta)=(1,K_0,1)$.
+Because $l=\delta r^2\le\delta$, its size condition holds with
+constant $1$.  Proposition~\ref{prop:compiler-accuracy} gives both
+$W_2$ and total variation error at most
+$\polylog(d)\delta^{K_0}D(x)$ from
+$\nu_{x,r}*N(0,I_d)$, uniformly in $x$ and $0<r\le1$.
+Lemma~\ref{lem:compiler-count} gives at most
+$\polylog(d)\delta^{-t}$ evaluations of $g$ on every execution.
+The output has the form $X_{\rm pre}+G/2$, where the reserved standard
+Gaussian $G$ is independent of $X_{\rm pre}$ and all queries, and the
+pre-reserved conclusion of Proposition~\ref{prop:compiler-accuracy}
+gives $W_2(\mathcal L(X_{\rm pre}),\nu_{x,r}*N(0,3I_d/4))
+\le\polylog(d)\delta^{K_0}D(x)$.
+The exact means and numerical comparison laws serve only to analyze this finite
+algorithm; its only oracle operations are the terminal evaluations.
+\end{proof}

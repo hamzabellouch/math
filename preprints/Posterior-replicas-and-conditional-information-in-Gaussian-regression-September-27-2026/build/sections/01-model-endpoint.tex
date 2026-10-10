@@ -1,0 +1,445 @@
+\section{Finite states and the information required at the endpoint}
+\label{sec:model-endpoint}
+
+The block estimates will bound information in a state after an independent
+projection is known. After specifying the learner model, we show why an
+accurate state must still carry order $d\log(1/\epsilon)$ information in
+that experiment. We also record
+the reductions for randomized rules, rare states, and bounded stopping,
+so that later applications need only specify their block dimensions and
+their way of charging the clock.
+
+\subsection{Finite-state learners}
+
+\begin{definition}[Finite-state noiseless regression]\label{def:streaming-model}
+An unknown unit vector $s\in S^{d-1}$ is fixed before sampling. At index
+$j\ge1$ the learner receives
+\[
+ X_j\sim N(0,I_d),\qquad Y_j=\langle X_j,s\rangle,
+\]
+where the $X_j$ are independent. It cannot choose a row or revisit an earlier
+one. At each index its persistent state has at most $2^M$ values. Its
+transition and stopping rule may be any measurable randomized kernel of
+the current state and the entire current pair $(X_j,Y_j)$. Computation
+within a transition is unrestricted, and every piece of information retained
+for later indices must be in the finite state.
+
+The learner stops at an index $\tau\in\{0,\ldots,T\}$, where the integer
+$T$ is a prescribed deterministic horizon. Its unit-vector output is drawn
+using only the terminal state, the rule at index $\tau$, and fresh randomness.
+In particular, the last observation can affect the output only through the
+terminal state. Rules may depend on $d$, the target accuracy, and the index,
+and may be selected by a shared random seed. The initial state and that
+seed are jointly independent of the signal and the entire sample sequence.
+Fresh transition and output random variables may also be used; each is
+independent of that pair, the signal, the sample sequence, and all earlier
+fresh random variables before it is used. Memory is measured in bits,
+not real registers.
+
+The construction from the signal, pre-generated sample rows, shared seed,
+initialization, and fresh transition and output randomness through the
+state path, stopping index, and output must form a jointly measurable
+probability experiment. Per-seed measurability of the sample kernels alone
+is not a definition of the mixture over seeds.
+\end{definition}
+
+For each fixed seed, the transition and stopping coordinates may be
+measurable in the completion of the Borel sigma field under
+$\lambda(dx,dy)=\gamma_{1,d}(dx)\,dy$ on $\R^d\times\R$, where
+$\gamma_{1,d}$ is standard Gaussian probability on $\R^d$.
+Lemma~\ref{lem:borel-rules} supplies Borel versions for the fixed-seed
+uniform-prior experiment. The original randomized experiment must still
+be jointly measurable as stated in the definition.
+
+\subsection{Spherical caps and residual fibers}
+
+\begin{lemma}[Spherical balls]\label{lem:spherical-ball}
+Let $\sigma_q$ be uniform probability on $S^{q-1}$, where $q\ge2$.
+For every $z\in S^{q-1}$ and $r>0$,
+\begin{equation}\label{eq:spherical-ball}
+ \sigma_q\{u:\norm{u-z}\le r\}\le r^{q-1}.
+\end{equation}
+In particular an angular cap of radius $0<\epsilon\le\pi$ has mass at most
+$\epsilon^{q-1}$.
+\end{lemma}
+
+\begin{proof}
+For $r\le1$, rotate $z$ to the north pole. A point in the chordal ball has
+last coordinate at least $1-r^2/2\ge1/2$. As a graph over its first $q-1$
+coordinates, the surface has area element at most twice Lebesgue measure,
+and its projection lies in the $(q-1)$-ball of radius $r$. The whole sphere
+has area at least twice the volume of the unit $(q-1)$-ball, by projecting
+both hemispheres. This proves \eqref{eq:spherical-ball}. For $r>1$, total
+mass one suffices. Angular distance at most $\epsilon$ implies chordal
+distance $2\sin(\epsilon/2)\le\epsilon$, proving the last assertion.
+\end{proof}
+
+\begin{lemma}[Residual sphere and radius bounds]\label{lem:residual-sphere}
+Let $S\sim\sigma_d$ and let $G$ be independent of $S$, with $b$ rows,
+where $0\le b\le d-2$. For $b\ge1$, let $G$ be either a standard Gaussian
+matrix or a uniform Haar frame of $b$ orthonormal rows in $\R^d$. For $b=0$,
+interpret $G$ and $GS$ as empty. Conditional on $(G,GS)$, the signal is uniform on an affine sphere
+parallel to $\ker G$, with ambient kernel dimension $d-b$ and radius
+\[
+ R=\norm{P_{\ker G}S}.
+\]
+For $b=0$, this is the original unit sphere and $R=1$ deterministically.
+For $1\le b\le d-2$, the squared radius has distribution
+\begin{equation}\label{eq:residual-beta}
+ R^2\sim\operatorname{Beta}\bigl((d-b)/2,b/2\bigr).
+\end{equation}
+For $0<r_0<1$ one has
+\begin{equation}\label{eq:residual-markov}
+ \Prob\{R<r_0\}\le \frac{b}{d(1-r_0^2)}.
+\end{equation}
+When $0\le b\le d/2$, two useful bounds at radius $1/2$ are
+\begin{equation}\label{eq:residual-chebyshev}
+ \Prob\{R<1/2\}\le\frac{8}{d+2},
+ \qquad
+ \Prob\{R<1/2\}\le\frac{90}{d}.
+\end{equation}
+The second inequality also follows directly from two Gaussian norm
+estimates, without using the beta variance.
+\end{lemma}
+
+\begin{proof}
+The zero-row case is immediate: conditioning on empty data changes nothing,
+and the residual radius is one. It does not involve a beta law with a zero
+shape parameter.
+
+Suppose $b\ge1$. The matrix is full row rank almost surely in the Gaussian
+case and by definition in the Haar case. For fixed $G$,
+write $S=Z/\norm Z$ with $Z$ standard Gaussian and split $Z$ into the row
+space of $G$ and its kernel. The squared lengths are independent
+chi-squares with $b$ and $d-b$ degrees of freedom. Their normalized ratio
+gives \eqref{eq:residual-beta}; the direction in the kernel is independent
+and uniform. Given the projection, its row-space component is fixed, so
+the remaining signal is uniform on the asserted affine sphere. Its radius
+has
+\[
+ \E R^2=\frac{d-b}{d},\qquad
+ \operatorname{Var}(R^2)=\frac{2b(d-b)}{d^2(d+2)}.
+\]
+These formulas also hold for the deterministic zero-row radius. Markov's
+inequality applied to $1-R^2$, whose mean is $b/d$, proves
+\eqref{eq:residual-markov}. If $b\le d/2$, the mean of $R^2$ is at least
+$1/2$ and its variance is at most $1/(2(d+2))$. Chebyshev's inequality
+at distance $1/4$ from the mean gives the first bound in
+\eqref{eq:residual-chebyshev}.
+
+For the second bound, still with $b\le d/2$, let $Z_{\ker}$ be the kernel
+component of $Z$. Its squared norm has mean $d-b\ge d/2$ and variance at
+most $2d$, while $\norm Z^2$ has mean $d$ and variance $2d$. Chebyshev gives
+\[
+ \Prob\{\norm{Z_{\ker}}^2<d/3\}\le\frac{72}{d},\qquad
+ \Prob\{\norm Z^2>4d/3\}\le\frac{18}{d}.
+\]
+Outside these events $R^2\ge1/4$. Their union gives $90/d$. For $b=0$
+the probability is zero, as already established.
+\end{proof}
+
+The next estimate tests success against a law in which the signal and
+output are conditionally independent. This is the binary-relative-entropy
+event method; see Bassily et al.~\cite[Appendix~A.1, Lemmas~14--15]{BassilyEtAl2018}
+for finite-space information bounds. Here the reference signal lies on
+a residual sphere.
+
+\begin{lemma}[Information on a residual sphere]\label{lem:residual-information}
+Let $S\sim\sigma_d$, let $V$ be a random variable with values in a standard
+Borel space, jointly distributed with $S$, and let $G$ be independent of
+$(S,V)$, with $0\le b\le d-2$ rows. For $b\ge1$, $G$ may be either a standard
+Gaussian matrix or a uniform Haar frame of $b$ orthonormal rows; at $b=0$
+it is empty. Let $\widehat S\in S^{d-1}$
+be generated from $V$ by a kernel conditionally independent of $(S,G)$.
+Write
+\[
+ p=\Prob\{\arccos\langle\widehat S,S\rangle\le\epsilon\},
+ \qquad R=\norm{P_{\ker G}S}.
+\]
+For $2\epsilon<r_0\le1$, if $\alpha:=p-\Prob\{R<r_0\}>0$, then
+\begin{equation}\label{eq:residual-information}
+ I(S;V\mid G,GS)\ge
+ \alpha(d-b-1)\log\frac{r_0}{2\epsilon}-\log2.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Put $Z=(G,GS)$. Compare the true law of $(S,V,Z)$ with
+$P_ZP_{S\mid Z}P_{V\mid Z}$, and in both laws generate $\widehat S$ using
+the same kernel from $V$. Adding that kernel preserves the divergence,
+which is $I(S;V\mid Z)$.
+
+Fix side data with residual radius $R\ge r_0$ and fix an output. If the
+set of successful points on the fiber is nonempty, choose one such point.
+Angular success implies Euclidean distance at most $\epsilon$ from the
+output, so any two successful fiber points are at Euclidean distance at
+most $2\epsilon$. After translating and rescaling the fiber to its unit
+sphere, the successful set therefore lies in a chordal ball of radius
+$2\epsilon/R\le2\epsilon/r_0<1$ centered on that sphere. By
+Lemma~\ref{lem:spherical-ball}, its conditional mass is at most
+$(2\epsilon/r_0)^{d-b-1}$. Under the comparison law, the output and signal
+are conditionally independent given $Z$, so the event of success and
+$R\ge r_0$ has probability at most this quantity. Under the true law it has
+probability at least $\alpha$.
+
+For Bernoulli probabilities $a,c$, relative entropy obeys
+\[
+ \KL(\operatorname{Bern}(a)\Vert\operatorname{Bern}(c))
+ \ge a\log(1/c)-\log2;
+\]
+this follows by dropping the nonnegative term
+$(1-a)\log(1/(1-c))$ and using binary entropy at most $\log2$.
+Apply data processing to the event just described. If the comparison
+probability is zero the conclusion is immediate; otherwise its upper bound
+and the true lower bound give \eqref{eq:residual-information}.
+\end{proof}
+
+We record three numerical forms used below. The first uses an angular
+cap bound: a chordal radius $4\epsilon$ corresponds to angular radius
+$2\arcsin(2\epsilon)\le5\epsilon$ for $\epsilon\le1/10$.
+
+\begin{corollary}[Three endpoint substitutions]\label{cor:replica-endpoints}
+Assume $0<\epsilon\le1/10$ in Lemma~\ref{lem:residual-information}.
+For sufficiently large $d$ the following bounds hold.
+\begin{enumerate}[label=(\roman*)]
+\item If $G$ is Gaussian, $p\ge3/5$, and $0\le b\le d/2$, the beta-variance bound (with
+the separate deterministic case at $b=0$) and the angular cap just described
+give
+\begin{equation}\label{eq:endpoint-gaussian}
+ I(S;V\mid G,GS)\ge
+ \tfrac12(d-b-1)\log\frac1{5\epsilon}-\log2.
+\end{equation}
+\item If $G$ is a Haar frame, $p\ge2/3$, and $b=\lfloor d/4\rfloor$, Markov's bound
+$\Prob\{R<1/2\}\le4b/(3d)\le1/3$ gives
+\begin{equation}\label{eq:endpoint-haar}
+ I(S;V\mid G,GS)\ge
+ \tfrac13(d-b-1)\log\frac1{4\epsilon}-\log2.
+\end{equation}
+\item If $G$ is Gaussian, $p\ge3/5$, and $b=\lfloor d/2\rfloor$, the direct Gaussian bound
+$\Prob\{R<1/2\}\le90/d$ gives
+\begin{equation}\label{eq:endpoint-bins}
+ I(S;V\mid G,GS)\ge
+ \tfrac12(d-b-1)\log\frac1{4\epsilon}-\log2.
+\end{equation}
+\end{enumerate}
+Each right side is at least $c\,d\log(1/\epsilon)$ for an absolute $c>0$
+and all sufficiently large $d$.
+\end{corollary}
+
+\begin{proof}
+Use $r_0=1/2$. In (i), the failure probability is at most $8/(d+2)$, so
+the true event has mass at least $1/2$ for large $d$. The angular cap bound
+is $(5\epsilon)^{d-b-1}$, which gives the displayed version of the binary
+entropy calculation. In (ii), Markov's estimate leaves event mass at least
+$1/3$, and the chordal cap is $(4\epsilon)^{d-b-1}$. In (iii), the stated
+$90/d$ estimate leaves mass at least $1/2$. The last assertion follows from
+$d-b-1\ge d/2-1$ and
+\[
+ \log\frac1{c_0\epsilon}\ge
+ \left(1-\frac{\log c_0}{\log10}\right)\log\frac1\epsilon
+ \qquad(c_0=4\text{ or }5).
+\]
+The positive multiple of $d\log(1/\epsilon)$ absorbs $\log2$ eventually.
+\end{proof}
+
+\subsection{Borel rules, randomness, and bounded stopping}
+
+\begin{lemma}[Borel versions for the averaged experiment]\label{lem:borel-rules}
+Fix $d\ge2$, a finite horizon $T$, and finite state sets. For fixed
+data-independent rule parameters, suppose each transition and stopping
+coordinate is measurable in the completion of the Borel sigma field on
+$\R^d\times\R$ under
+$\lambda(dx,dy)=\gamma_{1,d}(dx)\,dy$, where $\gamma_{1,d}$ is standard
+Gaussian probability on $\R^d$. The output law depends only on the
+terminal state and stopping index. There are Borel transition and stopping
+kernels, with the same state sets and output laws, having the same joint law
+of the signal, state path, stopping index, and output when $S\sim\sigma_d$.
+\end{lemma}
+
+\begin{proof}
+For each state and index combine the next-state and stopping alternatives
+into a finite destination set. Choose a Borel version of every coordinate
+of this finite probability vector. Such versions exist for completed-
+measurable real functions: approximate by simple functions and replace
+their countably many level sets by Borel sets modulo null sets. On the Borel
+null set where the resulting vector is negative in a coordinate or fails
+to sum to one, replace it by a fixed point mass. The finite union over all
+states and indices is contained in one Borel $\lambda$-null set $N$.
+
+For a nonzero fixed $x$, the scalar $\langle x,S\rangle$ has a Lebesgue
+density when $S\sim\sigma_d$ and $d\ge2$. Rotation and the one-coordinate
+spherical law show this directly. The event $x=0$ is Gaussian-null.
+Consequently each pre-generated sample pair
+$(X_j,\langle X_j,S\rangle)$ has law absolutely continuous with respect
+to $\lambda$, and it avoids $N$ almost surely. This remains true on the
+event that any particular state is reached, because that event intersected
+with the pair lying in $N$ is contained in the marginal null event.
+The finite union over sample indices is still null. Coupling each original
+finite kernel and its Borel version by the same fresh uniform random
+variable now makes their state paths and stopping decisions agree by
+induction. Their output laws agree at the identical terminal pair.
+\end{proof}
+
+This lemma preserves the experiment averaged over the uniform signal; it
+does not claim pointwise preservation at every fixed signal. We may therefore
+apply it after passing to the uniform-prior hypothesis of
+Theorem~\ref{thm:streaming}.
+When a shared seed is present, apply the replacement separately in its
+fixed-seed experiments. The original jointly measurable law supplies
+well-defined conditional success probabilities and their average. No
+jointly measurable selection of the replacement Borel versions is needed.
+
+\begin{lemma}[Fixing randomness and padding the clock]\label{lem:padding}
+Consider a learner in Definition~\ref{def:streaming-model} under the uniform
+prior. If its average success is at least $p$, some fixed shared-seed
+conditional experiment has success at least $p$. Its initialization remains
+independent of the signal and samples, and its fixed-seed Borel replacement
+has the same success. In this Borel experiment the initialization and all
+remaining randomized rules can be represented by data-independent variables
+chosen before sampling, followed by deterministic state-based rules. For
+every $p'<p$, some realization of those variables gives deterministic rules
+with average success at least $p'$.
+
+Padding a learner stopped by $T$ so that its halted states are absorbing,
+while retaining the stopping index and postponing the output, uses at most
+$(T+2)2^M$ states at every layer. Hence every padded state has entropy at
+most
+\begin{equation}\label{eq:padded-entropy}
+ h_T=M\log2+\log(T+2).
+\end{equation}
+Extra ignored samples may be generated to complete a last block.
+\end{lemma}
+
+\begin{proof}
+The original jointly measurable law gives a measurable conditional success
+function of the shared seed whose average is the original success. Work on
+a common full-measure set of seed values where the conditional law is the
+stated fixed-seed experiment and the conditional initialization remains
+independent of the signal and rows. The latter property follows from the
+joint independence of the initial state and shared seed from the signal and
+all rows. Some seed in this set has conditional success at least $p$:
+otherwise the strictly positive difference between $p$ and that conditional
+success would have a positive integral. Apply
+Lemma~\ref{lem:borel-rules} to this one fixed-seed experiment. Its
+uniform-prior success is unchanged. This step does not require a jointly
+measurable choice of Borel replacements across seeds.
+
+In the resulting fixed-seed Borel experiment, for a finite destination
+kernel use an independent uniform variable and
+the cumulative coordinate probabilities to choose the destination. There
+are only finitely many state/index rules; unused choices can be generated
+in advance as well. Similarly pre-generate, for each terminal state/index,
+an output with its prescribed distribution, independently of the data.
+Together with the conditional initial state, these variables are jointly
+independent of the signal and samples. Conditional on their realization,
+the initialization and rules are deterministic and state based. The finite
+Borel construction is jointly measurable, and averaging its success gives
+that of the selected fixed-seed experiment. Some realization therefore has
+success at least $p'<p$.
+
+At a layer the active state set has at most $2^M$ values. Each earlier
+stopping index contributes a disjoint frozen copy of a state set of that
+size, and there are at most $T+1$ stopping indices, including zero. The
+stated count follows. The frozen pair retains exactly the information
+allowed to determine the postponed output, and ignored fresh samples add
+no information to it.
+\end{proof}
+
+\begin{lemma}[Conditional priors at finite events]\label{lem:conditional-priors}
+Let $S\sim\sigma_d$ and let $H$ be a finite-valued random variable jointly
+distributed with $S$. Every positive-probability value $h$ gives a
+conditional signal density bounded by
+$L_h=1/\Prob\{H=h\}$ relative to $\sigma_d$, and
+\begin{equation}\label{eq:rare-event-entropy}
+ \E\log L_H=H(H).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Bayes' formula gives the Borel density
+\[
+ \frac{dP_{S\mid H=h}}{d\sigma_d}(s)
+ =\frac{\Prob\{H=h\mid S=s\}}{\Prob\{H=h\}}\le L_h.
+\]
+Averaging $\log L_h$ gives \eqref{eq:rare-event-entropy}. In particular,
+$H$ may be one padded state or a history of padded states; these have
+different entropy costs.
+\end{proof}
+
+\begin{lemma}[Output capacity and the early clock bound]\label{lem:early-clock}
+Consider a family of learners indexed by $d$, with uniform-prior success
+at least a fixed $p_0>0$, and set
+$\beta=\log(1/\epsilon)$ for $0<\epsilon\le1/10$.
+At each dimension, the terminal output capacity satisfies
+\begin{equation}\label{eq:output-capacity}
+ p_0\le (T+1)2^M\epsilon^{d-1}.
+\end{equation}
+On the branch $T\le d\beta$, if $M=o(d^2)$, then
+\begin{equation}\label{eq:early-clock}
+ \beta=o(d),\qquad T=o(d^2),\qquad h_T=o(d^2).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+First fix a shared seed in the original conditional experiment.
+There are at most $(T+1)2^M$ terminal state/index pairs. For a fixed pair,
+write $\nu_{j,v}$ for its prescribed output law and
+$r_{j,v}(s)$ for the conditional probability of reaching it given $S=s$.
+Its contribution to success is
+\[
+ \int r_{j,v}(s)\int
+ \ind_{\{\arccos\langle u,s\rangle\le\epsilon\}}
+ \,\nu_{j,v}(du)\,\sigma_d(ds)
+ \le\epsilon^{d-1},
+\]
+because $r_{j,v}\le1$ and each angular cap has mass at most
+$\epsilon^{d-1}$ by Lemma~\ref{lem:spherical-ball}.
+Summing gives \eqref{eq:output-capacity} for its
+conditional success. The same numerical bound holds for almost every seed,
+so averaging the original conditional success probabilities gives the
+stated bound for the jointly measurable mixture.
+
+On $T\le d\beta$, the inequalities $\beta\ge\log10$ and
+$T+1\le2d e^\beta$ imply
+\[
+ (d-2)\beta\le M\log2+\log(2d)+\log(1/p_0).
+\]
+Dividing by $d$ proves $\beta=o(d)$ for a subquadratic memory sequence.
+The branch then gives $T=o(d^2)$, and \eqref{eq:padded-entropy} gives
+$h_T=o(d^2)$.
+\end{proof}
+
+\begin{lemma}[A raw-sample endpoint]\label{lem:raw-sample-bound}
+Let $0<\epsilon\le1/10$, and let an estimator use all exact measurements
+$(G,GS)$ from $b\le\lfloor d/2\rfloor$ independent Gaussian rows, together
+with independent randomness, when $S\sim\sigma_d$. Its angular success
+probability is at most
+\begin{equation}\label{eq:raw-sample-bound}
+ \frac{8}{d+2}+(4\epsilon)^{d-b-1}.
+\end{equation}
+The separate Gaussian-norm estimate gives the also valid bound
+$90/d+(4\epsilon)^{d-b-1}$. In particular, uniform-prior success at least
+$3/5$ requires $T>\lfloor d/2\rfloor$ for all sufficiently large $d$,
+even if all raw data up to the horizon are retained.
+\end{lemma}
+
+\begin{proof}
+For $d\le2$, both numerical bounds exceed one. We may therefore assume
+$d\ge3$, when $b\le\lfloor d/2\rfloor\le d-2$.
+Condition on all the data. The estimator and the signal are then
+conditionally independent, and the conditional signal is the residual
+sphere in Lemma~\ref{lem:residual-sphere}. On radius at least $1/2$,
+the successful points have relative chordal cap mass at most
+$(4\epsilon)^{d-b-1}$, by the argument in
+Lemma~\ref{lem:residual-information}. Add the corresponding failure
+probability from \eqref{eq:residual-chebyshev}. The zero-row case uses
+the deterministic radius one.
+
+If a learner stops by $T\le\lfloor d/2\rfloor$, grant it all of the first
+$\lfloor d/2\rfloor$ rows and labels, including unused ones. Its output is
+a kernel of those data and independent randomness. The displayed bound
+tends to zero uniformly for $\epsilon\le1/10$, contradicting success
+$3/5$. This proves the last assertion. The angular-cap version used in
+the first replica route follows as well by replacing $4\epsilon$ by
+the weaker $5\epsilon$.
+\end{proof}

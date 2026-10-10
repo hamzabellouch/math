@@ -1,0 +1,206 @@
+\section{The stability dichotomy and the final algorithm}
+\label{asm:section}
+
+We now combine the two constructions. The distinction between the
+cases is used only to analyze the candidates: the algorithm computes
+all candidates without knowing any optimum cost.
+
+\subsection{Choosing the constants}
+
+Take $C_0$ from Equation~\eqref{loc:main-count-constant}, put
+$T=200C_0$, and let $c=c(T)>0$ be given by
+Equation~\eqref{str:constants}. Fix the rational constants
+\begin{equation}\label{asm:constants}
+ \gamma=\min\{3/100,c/100\},\qquad
+ \xi=\varepsilon_0=\gamma/16,\qquad
+ \sigma=\gamma/4.
+\end{equation}
+In particular $0<\gamma<1$. The choice of $\varepsilon_0$ fixes the
+polynomial distance bound in Lemma~\ref{pre:rounding} before the
+external surplus construction is invoked. Choose $v$ as in
+Equation~\eqref{sur:parameter-choices}, then choose $N_*$ and the
+common integer $L$ as in Equation~\eqref{sur:size-threshold} and the
+paragraph following it. Thus
+\[
+ L=O(\log(N+2)),\qquad L\ge1,
+\]
+where all hidden constants are fixed independently of the input.
+There is no dependence of $C_0,T,c,\gamma,\xi$, or $\varepsilon_0$
+on $L$. This order also accommodates the fixed coefficient in the
+rounded distance bound.
+
+\begin{lemma}[A sensitive cardinality]\label{asm:sensitive}
+Suppose $k>2L$, $0<\xi\le1$, and
+\[
+ \operatorname{opt}_{k-2L}>(1+\xi)\operatorname{opt}_k.
+\]
+Put $\beta=\xi/(4L)$. There is an integer $h'$ with
+$k-2L<h'\le k$ such that
+\begin{equation}\label{asm:sensitive-ratios}
+ \operatorname{opt}_{h'-1}\ge(1+\beta)\operatorname{opt}_{h'},
+ \qquad
+ \operatorname{opt}_{h'}\le(1+\xi)\operatorname{opt}_k.
+\end{equation}
+For an optimum $O$ of size $h'$, of cost
+$P=\operatorname{opt}_{h'}$, every comparison cluster satisfies
+\begin{equation}\label{asm:separation}
+ n_i\operatorname{sep}_i\ge\beta P,
+ \qquad \operatorname{sep}_i=d(i,O\setminus\{i\}).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+All optimum costs in the integral model are positive. Since
+$\log(1+\xi)\ge\xi/2$ for $0\le\xi\le1$ and
+$\log(1+\beta)<\beta$,
+\begin{equation}\label{asm:product-bound}
+ (1+\beta)^{2L}<\exp(\xi/2)\le1+\xi.
+\end{equation}
+The product of the $2L$ ratios
+$\operatorname{opt}_{r-1}/\operatorname{opt}_r$, for
+$k-2L<r\le k$, is greater than $1+\xi$. Hence at least one
+ratio is at least $1+\beta$. Choose the largest such index $h'$.
+Every later ratio is less than $1+\beta$, and their product is
+at most $(1+\beta)^{2L}<1+\xi$ (the empty product is one).
+This proves both inequalities in
+Equation~\eqref{asm:sensitive-ratios}.
+
+We have $h'\ge k-2L+1\ge2$. For $i\in O$, reroute all its
+clients to a nearest other member of $O$ and keep the remaining
+assignments. This constructs an $(h'-1)$-center solution of cost
+at most $P+n_i\operatorname{sep}_i$. The first inequality in
+Equation~\eqref{asm:sensitive-ratios} gives
+$P+n_i\operatorname{sep}_i\ge(1+\beta)P$, proving
+Equation~\eqref{asm:separation}. In particular no cluster of this
+optimum is empty.
+\end{proof}
+
+\subsection{Candidates on the bounded integral instance}
+
+\begin{proposition}[Integral-instance algorithm]\label{asm:integral}
+With the constants above, for every $0<\zeta<1$ there is a randomized
+algorithm which always returns at most $k$ facilities and cost at
+most $5\operatorname{opt}_k$, and with probability at least
+$1-\zeta$ returns cost at most
+\begin{equation}\label{asm:integral-guarantee}
+ (2-\gamma)(1+\xi)\operatorname{opt}_k.
+\end{equation}
+Its running time is polynomial in $N$ and $\log(2/\zeta)$ for the
+fixed constants and the fixed polynomial distance bound.
+\end{proposition}
+
+\begin{proof}
+Compute a width-$5$ local optimum $S_k$ of size $k$ and retain it
+as a candidate. Lemmas~\ref{loc:descent} and~\ref{loc:swap} give
+polynomial time and $\operatorname{cost}(S_k)\le5\operatorname{opt}_k$.
+Every other retained candidate will also satisfy the budget, and we
+return the least-cost candidate.
+
+If $k\le2L$, apply Theorem~\ref{comp:recovery} to $S_k$ with
+the supplied count bound $M_0=2L$ and failure parameter $\zeta$.
+For its analysis, take an optimum of size $k$ and declare every
+cluster bad. Then $m=k\le M_0$, and the proxy condition is vacuous.
+Recovery gives cost at most $1.97\operatorname{opt}_k$ with
+probability at least $1-\zeta$. Since
+$1.97\le2-\gamma$, this implies
+Equation~\eqref{asm:integral-guarantee}, including the case $k=1$.
+
+Suppose now that $k>2L$. Compute the candidate of
+Proposition~\ref{sur:low-sensitivity} with target $h=k-L$.
+In addition, for every integer $h'$ with $k-2L<h'\le k$, compute
+a width-$5$ local optimum $S_{h'}$ of size $h'$ and apply
+Theorem~\ref{comp:recovery} with
+\begin{equation}\label{asm:count-bound}
+ M_0=\left\lceil\frac{4C_0L}{\xi}\right\rceil,
+ \qquad\text{failure parameter }\zeta.
+\end{equation}
+These calls require only the computed local sets, $M_0$, and $\zeta$.
+They enumerate their unknown comparison costs internally.
+All their feasible outputs have at most $h'\le k$ centers.
+
+If $\operatorname{opt}_{k-2L}\le(1+\xi)\operatorname{opt}_k$,
+Proposition~\ref{sur:low-sensitivity} gives cost at most
+\[
+ (2-c/100)(1+\xi)\operatorname{opt}_k
+ \le(2-\gamma)(1+\xi)\operatorname{opt}_k.
+\]
+This conclusion is deterministic.
+
+Otherwise, let $h'$ be supplied by Lemma~\ref{asm:sensitive},
+take an optimum $O$ of size $h'$, and put
+$P=\operatorname{opt}_{h'}$, $b=\beta P$.
+The local set $S_{h'}$ has no surplus relative to $O$.
+Equation~\eqref{asm:separation} says that no center is short
+at scale $b$, so the left side of the scale condition in
+Theorem~\ref{loc:anchoring} is zero. With tolerance $1/100$,
+that theorem supplies distinct good proxies with total assignment
+cost at most $P_g+P/100$, and
+\[
+ m\le C_0P/b=C_0/\beta=4C_0L/\xi\le M_0.
+\]
+The recovery call at this particular $h'$ therefore has, with
+probability at least $1-\zeta$, cost at most
+\[
+ 1.97P\le1.97(1+\xi)\operatorname{opt}_k
+ \le(2-\gamma)(1+\xi)\operatorname{opt}_k.
+\]
+The algorithm need not recognize this index or its success event:
+its returned minimum is no worse than this candidate. Only this
+one call must succeed, so there is no union-bound loss over the
+other indices.
+
+Both supplied count bounds are $O(\log(N+2))$. There are at most
+$N$ cardinality choices; the local searches and the surplus
+construction are polynomial, and the recovery calls have polynomial
+time by Theorem~\ref{comp:recovery}. Keeping $S_k$ proves the
+unconditional factor-five bound.
+\end{proof}
+
+\subsection{General metrics and the expected guarantee}
+
+\begin{proof}[Proof of Theorem~\ref{main:theorem}]
+Handle the elementary cases and zero optimum as in
+Section~\ref{pre:section}. Apply Lemma~\ref{pre:rounding} with
+the fixed $\varepsilon_0=\gamma/16$ and the algorithm of
+Proposition~\ref{asm:integral}. The successful approximation factor
+on the original rational metric is at most
+\[
+ (2-\gamma)(1+\xi)(1+\varepsilon_0)
+  =(2-\gamma)(1+\gamma/16)^2
+  \le2-\gamma/2.
+\]
+For the last inequality, expand the product:
+\[
+ (2-\gamma)(1+\gamma/16)^2
+ =2-\frac34\gamma-\frac{15}{128}\gamma^2
+                  -\frac1{256}\gamma^3
+ \le2-\gamma/2.
+\]
+The transferred unconditional bound is
+$5(1+\varepsilon_0)\operatorname{opt}_k<6\operatorname{opt}_k$.
+
+For the prescribed fixed $a>0$, choose a rational failure parameter
+\[
+ 0<\zeta\le\min\{(N+2)^{-\lceil a\rceil},\gamma/24\}.
+\]
+It has polynomial bit length and
+$\log(2/\zeta)=O_a(\log(N+2))$ with fixed constants.
+The least original-cost candidate over all rounding guesses is
+no worse than the candidate for the correct guess. Hence its
+probability of exceeding $(2-\gamma/2)\operatorname{opt}_k$
+is at most $\zeta\le(N+2)^{-a}$.
+Since $\sigma=\gamma/4$, this proves the asserted probability bound.
+Finally, split expectation according to that successful event and
+use the unconditional cost bound:
+\[
+ \mathbb E\operatorname{cost}(S)
+ \le (2-\gamma/2)\operatorname{opt}_k
+              +6\zeta\operatorname{opt}_k
+ \le(2-\gamma/4)\operatorname{opt}_k
+ =(2-\sigma)\operatorname{opt}_k.
+\]
+Every candidate is a real facility set of size at most $k$.
+All enumerations and arithmetic have polynomial bit complexity,
+as established in the reduction, sampling, and completion proofs.
+This completes the theorem.
+\end{proof}

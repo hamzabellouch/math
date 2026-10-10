@@ -1,0 +1,159 @@
+\section{Introduction}
+\label{sec:introduction}
+
+A vertex cover of a graph is a set of vertices meeting every edge.
+Its complement is an independent set, a set containing no two adjacent
+vertices. This elementary duality lets us express the hardness gap
+in terms of the densities of independent sets.
+For a finite simple undirected graph \(G\), write \(\tau(G)\) for
+the minimum size of a vertex cover and \(n=|V(G)|\). An
+\(\alpha\)-approximation returns an actual cover of size at most
+\(\alpha\tau(G)\). The endpoints of a maximal matching give a
+factor-\(2\) approximation. We prove that every fixed improvement
+in this factor is NP-hard.
+
+\begin{theorem}[Explicit cover gap]
+\label{thm:gap}
+For every fixed integer \(m\geq4\), there is a deterministic
+polynomial-time reduction from \(\mathrm{3SAT}\) to finite simple
+undirected unweighted graphs with the following guarantees:
+\[
+\begin{array}{ll}
+\text{the formula is satisfiable}
+ &\Longrightarrow\quad
+ \tau(G)<\left(\dfrac12+\dfrac1m\right)|V(G)|,\\[6pt]
+\text{the formula is unsatisfiable}
+ &\Longrightarrow\quad
+ \tau(G)>\left(1-\dfrac1m\right)|V(G)|.
+\end{array}
+\]
+The output lists all vertices and edges explicitly.
+\end{theorem}
+
+\begin{corollary}
+\label{thm:hardness}
+For every fixed real \(\alpha\) with \(1\leq\alpha<2\),
+approximating Vertex Cover within factor \(\alpha\) is NP-hard.
+Thus, unless \(\mathrm P=\mathrm{NP}\), no deterministic
+polynomial-time algorithm achieves factor \(2-\varepsilon\)
+for any fixed \(\varepsilon\in(0,1]\).
+\end{corollary}
+
+The ratio of the two thresholds is \(2-6/(m+2)\), which tends to
+\(2\). The reduction is polynomial for each fixed \(m\); its
+constants are allowed to depend on the desired approximation factor.
+We prove the approximation consequence, including an exact rational
+separating threshold, in \Cref{sec:conclusion}.
+
+\input{sections/history}
+
+\subsection{The construction and the soundness mechanism}
+
+A Label Cover instance is a bipartite constraint system: every edge
+asks that a specified map send the label on its left endpoint to the
+label on its right endpoint. Its value is the largest fraction of
+constraints satisfied by one assignment of labels to all variables.
+Our source promise separates value one from arbitrarily small fixed
+value. The alphabets may grow as that fixed value decreases; our
+analytic estimates will not depend on their sizes.
+The exact source theorem is stated in \Cref{src:hardness}.
+
+Imagine \(d\) positions, with an independent source constraint
+assigned to each unordered pair. At a pair \(j<k\), position
+\(j\) receives the constraint's left endpoint and position \(k\)
+its right endpoint. A position's \emph{query} is its type together
+with these \(d-1\) endpoint questions. It does not reveal constraint
+indices or opposite endpoints. A local label assigns symbols to the
+variables in one query and satisfies every source constraint internal
+to that scope. A compatible family chooses at most one label per query;
+its members agree on overlaps and satisfy every constraint internal
+to their combined scopes.
+
+Give one vector coordinate to each query--label pair. A compatible
+family acts on a vector by summing the coordinates it selects; the
+largest absolute value of these sums defines a norm,
+\(\norm{\cdot}\). At each position, a vector of grid weights is
+supported on that position's query block. A graph vertex specifies
+all pair constraints and all position weights. Let \(S_v\) be
+the sum of its position vectors. For a positive threshold \(t\),
+distinct vertices \(v,w\) are adjacent precisely when
+\(\norm{S_v+S_w}\leq2t\).
+
+A satisfying source assignment restricts to compatible labels for
+every query. Its linear functional exceeds \(t\) on an independent
+set: on the sum of two such vertices it exceeds \(2t\). A tail
+estimate for a sum of symmetric weights shows that this set occupies
+nearly half the graph. \Cref{graph:section} gives the construction,
+its deterministic implementation, and this completeness argument.
+
+\paragraph{Why endpoint information matters.}
+For soundness, we will extract short lists of local labels from a
+large independent set. Each list must depend only on its position's
+own query and weights. To see why, fix a pair of positions and all
+data except their shared source constraint. Each of the two lists
+then varies only with its own endpoint of that constraint. Choosing
+one rank in each list defines a labeling of all source variables,
+so source soundness bounds the probability that these two labels are
+compatible. This argument fails if either list also sees the opposite
+endpoint or the occurrence index. The main task is therefore to
+obtain both enough compatibility among the lists and this restriction
+on their information.
+
+\paragraph{Retaining variance in own-question means.}
+Discard from a large independent set its at most one vertex with
+vector norm at most \(t\). The remaining vectors are separated
+from the negatives of one another. The half-difference of their
+distance functions gives one fixed odd Lipschitz function \(F\).
+Replace the grid weights by independent continuous uniform weights
+on cubes; rounding and the Lipschitz bound control the error.
+On fresh random sums, \(F\) then has variance at least a fixed
+multiple of \(d\), as proved in \Cref{ana:function}.
+
+Choose a small batch \(J\) of \(h\) positions, freeze the
+weights outside it and the constraints on pairs not contained in it,
+and average \(F\) conditional only on one remaining position's
+own endpoint questions and weights. Such averaging might erase the
+variance. \Cref{res:private-variance} shows that a suitable
+restriction retains total variance at least a fixed multiple of
+\(h\) in these own-question means. The proof decomposes over the independent weights
+and pair seeds. Its crucial estimate resamples every seed incident
+to one position while preserving the questions received at all other
+positions. Only the first position's query can then change. This
+bounds the energy lost when the conditional means forget other
+positions' questions, independently of the label alphabets.
+
+\paragraph{From variance to compatible lists.}
+For fixed batch queries, differentiate \(F\) composed with the
+sum of the position vectors. The full gradient lies in the convex
+hull of signed incidence vectors of compatible label selections
+(\Cref{ana:gradient}). It carries a compatible representation, but
+can depend on all batch inputs. Conversely, the derivatives of the
+own-question means have the required information restriction, but
+need not together lie in that same hull.
+
+The cube variance bound in \Cref{ana:cube} gives enough squared
+energy in the own-question gradients. Each block has \(\ell^1\)
+norm at most one, so thresholding its entries produces a short list
+without an alphabet-size factor. Conditional Jensen then transfers
+the retained list mass back to the single full gradient before its
+compatible-incidence bound is used. If \(Z\) is the largest
+number of lists hit by one compatible selection, this gives
+\(\E Z\geq2\) (\Cref{ana:lists}). The pair-decoding argument
+above, summed over pairs of positions, gives \(\E Z<3/2\)
+under source soundness (\Cref{dec:pair}), a contradiction.
+
+\paragraph{Organization.}
+\Cref{sec:source} states the source promise and introduces the
+construction parameters.
+\Cref{graph:section} constructs the graph and proves completeness;
+\Cref{ana:section} converts an independent set into the analytic
+input. The restriction, gradient, and decoding arguments occupy
+\Cref{sec:restriction,ana:private-section,dec:section}, respectively.
+\Cref{sec:conclusion} verifies a joint choice of all parameters and
+turns the density gap into the approximation threshold.
+
+The construction enumerates all its finite seeds and grid weights.
+Random variables describe the uniform distribution on this output
+and appear only in its analysis. Neither the independent set, the
+function \(F\), nor the conditional means need to be computed by
+the reduction.

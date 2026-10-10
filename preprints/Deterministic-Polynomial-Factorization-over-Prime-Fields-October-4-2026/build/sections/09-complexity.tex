@@ -1,0 +1,308 @@
+\section{Uniform bit complexity}
+\label{sec:complexity}
+
+We now charge the constructions to the dense binary input.  The main point
+is that neither the degree of the curve nor the order of a primary subgroup
+is treated as a constant.  A second issue is the large infinity divisor in
+the final label tests: its coefficients are stored in binary, and the
+corresponding functions are evaluated from circuits rather than expanded.
+
+Throughout this section, $B=20+(n+1)(L+1)$ is the parameter in
+Equation~\eqref{eq:B}.  We use dense polynomial arithmetic and ordinary
+Gaussian elimination.  We first count bit operations with indexed arrays,
+charging for binary addresses as well as arithmetic, and then allow a
+quadratic overhead for a sequential bit implementation.  The exponents
+below deliberately allow substantial slack; their purpose is to give one
+uniform bound.
+
+\begin{samepage}
+\begin{proposition}\label{complexity:bound}
+Let $E$ be the largest supplied auxiliary prime, or $2$ when none is needed,
+as in Theorem~\ref{thm:reduction}.  The complete algorithm uses
+\begin{equation}
+ O\left(B^{500000}+B^{100}E^{20}\right)
+ \label{complexity:total}
+\end{equation}
+bit operations.  The same bound applies if the auxiliary primes are found
+by upward search and $E$ denotes the largest prime found.  In particular,
+if $E=O(B^{20000000})$ with an absolute implied constant, the bit cost is
+$O(((n+1)L)^{10^{12}})$.
+\end{proposition}
+\end{samepage}
+
+\begin{proof}
+We first analyze the branch $p>B^{200000}$.  Let $N\le n$ be the degree of
+a polynomial passed to the splitting procedure.  In an odd-degree split,
+the prime $q\mid N$, the integer $r=v_q(N)$, the extension field $k$, and
+the genus $g$ satisfy
+\begin{equation}
+ \begin{gathered}
+ q,N,L\le B,\qquad [k:\mathbf F_p]\le N(q-1)<B^2,\\
+ 2g<B^2,\qquad m=(q-1)r+1<B^2.
+ \end{gathered}
+ \label{complexity:basic}
+\end{equation}
+The intermediate fields used in making one table entry also have degree
+at most $B^2$ after the invariant algebra has been extracted.
+
+\smallskip
+\noindent\emph{Scalar arithmetic and rational functions.}
+A scalar of $k$ has fewer than $B^3$ bits in a basis over $\mathbf F_p$.
+A multiplication table, or the equivalent tower representation, gives
+addition, multiplication, and inversion by schoolbook arithmetic and
+linear algebra.  The algebra $A=k[T]/F$ has dimension $N$ over $k$;
+its zero tests with split detection use polynomial gcds, as in
+Lemma~\ref{ff:simultaneous}.  Allowing these tests and inversions, we may
+charge $O(B^{40})$ bit operations to each scalar instruction over $k$ or
+over its simultaneous model $A$.  This bound also covers scalar arithmetic
+in the even-degree algebra of dimension $N^2$ over $\mathbf F_p$.
+The auxiliary algebras of dimension comparable to $\ell_q$ are charged
+separately below.
+
+In calculations over $k(X)$, fractions are reduced after arithmetic
+operations.  More specifically, a linear system can first be given one
+common polynomial denominator.  For a polynomial matrix of dimension
+at most $d$ and entry degrees at most $a$, all its minors have degree at
+most $da$.  Pivotal elimination entries are ratios of minors, and solutions
+may likewise be obtained by minors after selecting independent rows and
+columns.  We use these degree bounds throughout; unreduced expression trees
+are never used as representations of rational functions.  Polynomial
+determinants can be computed by evaluation and interpolation, with the
+grid sizes verified at the end of the proof.
+
+\smallskip
+\noindent\emph{One norm equation.}
+Each call to $\mathsf{NormSolve}$ from Theorem~\ref{norm:solve} arises
+from a divisor of absolute degree
+at most $2g$, or from the initial divisor $P_i-\infty_0$.  Compression
+expresses its pushforward as $j=h^+/h^-$, with numerator and denominator
+degrees at most the absolute degree of that divisor.  Multiplication by
+the normalizing constant does not change degrees.  Thus the parameter
+$D_G$, the maximum of the numerator and denominator degrees of $G=cj$,
+is at most $B^3$.
+
+Here is a size account for the linear construction of global sections of
+the order.  The polynomial $H$ is the product of the distinct finite bad
+places, and $M=10q^2(N+D_G+1)$ is the local valuation bound used in that
+construction.
+\begin{center}
+\begin{tabular}{ll}
+\hline
+Quantity & Bound \\
+\hline
+$D_G$ & $B^3$ \\
+$\deg H\le N+2D_G$ & $B^4$ \\
+$M$ & $B^7$ \\
+Section numerator and common denominator degrees & $B^{12}$ \\
+Length of each truncated residue algebra & $B^{13}$ \\
+Number of rows and columns in the section system & $B^{17}$ \\
+\hline
+\end{tabular}
+\end{center}
+For completeness, the section coordinates have the form
+$P_{ab}/H^M$, with $\deg P_{ab}\le M(\deg H+1)$.
+There are $q^2$ coordinates.  The local conditions involve $q^2$ matrix
+entries at precision at most $3M+3$; summing the residue degrees over all
+finite groups gives $\deg H$.  Infinity contributes the same precision
+without a residue-degree factor.  These observations give the last three
+rows of the table, including a bound on all scalar equations, rather than
+only on the number of groups of places.
+
+The root computations in these residue algebras also have bounded sizes.
+Their square-free moduli have degree at most $B^4$.  In
+Lemma~\ref{ff:unitroot}, every extension degree $d$ is at most $B^4$, so
+the bit length of $|k|^d$, and hence the number of primary digits, is at
+most $B^8$.  At each digit level there are at most $B^4$ nonempty pieces,
+each testing at most $q\le B$ digits.  The kernel-combination search uses
+at most $B^9$ scalars.  Thus neither the numerical value of $|k|^d$ nor
+the order of its primary subgroup occurs as a loop length.
+
+Let $b$ be the global section lifting the selected rank-one matrix at
+infinity.  To form the idempotent $b^q$, retain one common denominator in
+the standard cyclic-algebra basis.  Multiplication by $b$ contributes its
+denominator and, in reducing powers of the cyclic generator, at most one
+additional denominator of $G$.  The numerator degrees grow by at most the
+corresponding numerator degrees and a further $O(qN)$ from reducing
+powers of $Y$.  Repeating at most $q$ times therefore keeps all degrees
+below $B^{15}$.  The system $Ve'=he'$ for $h$ has at most $q$ unknown
+coefficients and $q^2$ equations.  The ratio-of-minors bound gives a common
+denominator representation
+\[
+ h=\frac{1}{d_h(X)}\sum_{j=0}^{q-1}a_j(X)Y^j,
+ \qquad \deg a_j,\deg d_h\le B^{20}.
+\]
+The pole estimate for a function in this representation implies
+$\|\operatorname{div}h\|\le B^{40}$, where
+$\|D\|$ denotes the absolute degree of a divisor.
+
+These sizes also bound the number of operations.  Put $U=B^{25}$.
+All polynomial lengths, system dimensions, truncation lengths, and
+integer bit lengths just listed are below $U$.  A dense polynomial or
+truncated-series operation costs at most $O(U^4)$ scalar operations;
+ordinary linear algebra is cubic in its scalar dimensions.  The loops
+for residue roots range over groups, degrees, digit levels, nonempty
+pieces, possible digits, and powering positions, each with at most $U$
+choices.  Constructing local conditions ranges over groups, basis entries,
+ansatz coefficients, and precision positions.  Even coefficient-by-
+coefficient Hensel lifting and separate construction of every matrix
+entry are covered by $O(U^{30})$ scalar and integer operations.
+Charging the scalar cost above, and schoolbook costs for the indicated
+integers, gives the convenient bound
+\begin{equation}
+ \text{bit cost of one }\mathsf{NormSolve}\text{ call}=O(B^{2000}).
+ \label{complexity:norm}
+\end{equation}
+
+\smallskip
+\noindent\emph{Divisor arithmetic and reduction.}
+After a norm solution in $\mathsf{LambdaDivide}$, the divisor
+$E_D=D-\operatorname{div}h$ has absolute degree at most $B^{41}$.
+Each orbit partial sum has at most $q$ terms.  The absolute degree of
+their coefficientwise maximum is bounded by the sum of their absolute
+degrees, so allowing the subtraction of $(\deg V)P_i$ leaves a reduction
+input of absolute degree at most $B^{46}$.
+All other reduction inputs satisfy the same bound: tracing adds at most
+$N$ reduced divisors, and class additions and doublings reduce after
+every operation.
+
+Compression gives a bound polynomial of degree at most $\|D\|$ for
+each stored divisor.  The Riemann--Roch ansatz for reducing a divisor
+of size at most $B^{46}$ consequently uses coefficient and denominator
+degrees at most $B^{50}$.  The explicit local pole bounds give series
+precision at most $B^{55}$.  Forming the associated principal ideal
+also requires an inverse function.  Its multiplication matrix has
+dimension $q$ over $k(X)$, so the minor bound gives inverse coefficient
+degrees below $B^{54}$.  Clearing denominators for the function and its
+inverse, and multiplying the bound polynomials of the ideals being
+combined, keeps temporary polynomial degrees below $B^{60}$.
+The subspace representation $H^{-1}O/HO$ then has dimension
+$2q\deg H<B^{65}$.
+
+The ideal product used for tracing merits a separate check.  Each
+component ideal has already been reduced, so its bound polynomial has
+degree at most $B^3$ and its generator list has length at most $B^6$.
+The determinant formulas multiply at most $N$ such functions.  Before
+reduction by $Y^q=F(X)$, the degrees in each of $X$ and $Y$ are less
+than $B^{10}$.  The number of scalar parameters in the generator search
+is at most $Nb+1$, where $b$ is the generator-list length.  Thus tracing
+does not enumerate all choices of one generator from each ideal.
+
+Put $U'=B^{200}$.  The bounds just established place all lengths,
+dimensions, precisions, and intermediate generator lists below $U'$,
+including the lists of pairwise products in an ideal multiplication.
+For an ideal given by generators, closing their span under $X$ and $Y$
+requires at most the ambient dimension many strict span enlargements.
+Each enlargement uses polynomial arithmetic and linear algebra.
+Intersections, inverse-ideal conditions, compression, and the
+Riemann--Roch conditions are linear systems in the same representations.
+Dense bivariate multiplication takes at most $O((U')^4)$ scalar
+operations; determinant interpolation uses at most two grids, each
+of length $O((U')^2)$.  Together with the orbit sums and the trace
+construction, $O((U')^{30})$ scalar and integer operations bounds any
+one of these divisor procedures.
+
+\smallskip
+\noindent\emph{Large multiplicities and scalar grids.}
+The infinity vectors $W_t$ are the only divisors whose coefficient
+magnitudes need not be bounded by a fixed power of $B$.  Their
+coefficients have magnitude at most $N(2q)^m$, so their binary lengths
+are at most $B^4$, by Equation~\eqref{complexity:basic}.
+The construction of $(1-\sigma)D_t-W_t$ uses binary additions and
+doublings of divisor classes, reducing the representative after each
+instruction and retaining a circuit for the correcting function.
+Across all $m$ label tests, at most $B^{10}$ instructions suffice:
+there are at most $q$ infinity differences per test and at most $B^4$
+binary digits per coefficient.  All leaf functions have the degree
+bounds for a single reduction established above.
+
+At a ramification point, evaluate a leaf by its truncated expansion and
+propagate its valuation and leading coefficient through the circuit.
+Valuations are only added, doubled, or negated.  Even allowing their
+magnitudes to double at every circuit instruction, their bit lengths
+are below $B^{12}$.  Thus the circuit evaluation does not expand either
+a large function or a divisor with a large absolute degree.
+Charging $O(B^{100})$ for any of these integer operations is ample.
+Together with the bounds on $m$, the number of divisions, and the
+primitive procedures above, we obtain
+\begin{equation}
+ \text{bit cost of one splitting call}=O(B^{20000}).
+ \label{complexity:split}
+\end{equation}
+The even-degree splitter satisfies this bound as well: its algebra has
+dimension at most $N^2$, its primary logarithms have at most $L$ digits,
+and all exponentiations are binary.
+
+Every scalar grid used above exists in the prime field.  The separator
+search in the Berlekamp algebra uses at most $B^3+1$ scalars, the residue
+root search at most $B^9$, and the trace search at most $B^8$.
+For determinant interpolation, matrix dimensions and entry degrees
+are bounded by $U'$, so each grid needs at most $B^{400}+1$ points.
+All these lengths are less than $p>B^{200000}$.  The norm solver's
+assumption $p>(N+2D_G+1)^2$ follows from the same cutoff and $D_G\le B^3$.
+In particular, its derivative-based square-free decompositions have
+polynomial degrees smaller than the characteristic.
+
+\smallskip
+\noindent\emph{The table and the factorization driver.}
+For one auxiliary prime $\ell$, the cyclotomic algebra has dimension
+$\ell-1$.  Its automorphisms are computed on the monomial basis, and
+their fixed space can be found by stacking at most $\ell$ systems of
+at most $\ell$ equations each.  Multiplying a basis of the fixed space
+and expressing its products in that basis produces the $q$-dimensional
+field representation used subsequently.  Schoolbook polynomial
+arithmetic and rectangular elimination, without interpolation grids
+depending on $\ell$, give the bound
+\begin{equation}
+ O(\ell^{10}B^{40})
+ \label{complexity:table}
+\end{equation}
+for this construction, including the other field operations for the
+entry but excluding its recursive factorization call.  Trial division
+verifies a supplied $\ell$ within the same bound.  If instead it is
+found by upward search, trial division and the modular power test for
+every integer up to $\ell$ also fit Equation~\eqref{complexity:table}.
+Here residues modulo $\ell$ use $O(\log\ell)$ bits and the exponent
+test also uses the $L$-bit input $p$.  Powers of $\log\ell$ are absorbed
+by the displayed power of $\ell$; no comparison between $\log\ell$
+and $\log B$ is needed.  There are at most $B$ table entries, yielding
+$O(B^{41}E^{10})$ bit operations outside the recursive calls.
+
+The table is built once, in increasing order of $q$.  Its call to factor
+$\Phi_q$ has degree $q-1$ and uses only entries already constructed.
+For a factorization input of degree at most $n$, every nontrivial
+recursive step decreases degree, and the child degrees in a binary
+split sum to the parent degree.  Allowing $O(B^2)$ calls per input,
+and including all table inputs, $O(B^4)$ calls is more than sufficient.
+The Berlekamp linear systems, polynomial gcds, and evaluations preceding
+each split have polynomial dimensions at most those already charged.
+Equation~\eqref{complexity:split} therefore bounds all this work by
+$O(B^{20004})$.
+
+In the branch $p\le B^{200000}$, no auxiliary table or curve is used.
+The extra scalar loop in the Berlekamp splitter has length at most $p$;
+all polynomial, matrix, and recursion costs besides this loop are
+bounded, for example, by $O(B^{1000})$.  Hence the entire small-prime
+branch takes $O(B^{201000})$ bit operations.  The same elementary
+operations handle zero derivatives, multiplicities, constants, and
+normalization by the leading coefficient.  Multiplicities never
+exceed $n$, so their integer bookkeeping is negligible in these bounds.
+
+Combining the two branches gives
+\[
+ O\left(B^{201000}+B^{41}E^{10}\right)
+\]
+bit operations with indexed arrays.  The total stored binary data is
+bounded by the same quantity; a sequential implementation can locate
+entries by scanning the stored data, incurring at most quadratic overhead.
+Squaring the preceding bound and enlarging the powers of $B$ gives
+Equation~\eqref{complexity:total}.  If $E\le T B^{20000000}$ for a fixed
+absolute $T$, its second term is at most $T^{20}B^{400000100}$.
+Finally $B=O((n+1)L)$, with an absolute constant, so the stated exponent
+$10^{12}$ suffices.
+\end{proof}
+
+Proposition~\ref{complexity:bound} completes the uniformity assertion in
+Theorem~\ref{thm:reduction}.  It also identifies precisely where a
+number-theoretic input can enter the running time: only the numerical
+sizes of the auxiliary primes remain outside the polynomial bounds in
+$B$ for the algebraic splitting construction.

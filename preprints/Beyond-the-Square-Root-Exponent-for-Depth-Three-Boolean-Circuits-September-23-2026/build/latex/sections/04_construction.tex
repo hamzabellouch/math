@@ -1,0 +1,305 @@
+\section{One explicit language and its hard slices}
+\label{sec:construction}
+
+The language will evaluate a polynomial at a linear hash of its data bits.
+The hash and the polynomial coefficients are themselves input bits.  This
+lets us choose them probabilistically when proving a lower bound, while
+keeping the membership algorithm fixed.  We first define that algorithm on
+every input, then prove that suitable settings of its non-data bits give
+small correlation with every bounded-width CNF on most random restrictions.
+The input-index construction in~\cite[Section~5]{PSZ00} supplies an earlier
+instance of this evaluator-and-hard-subfunction method.  Its lower-bound
+model has bottom fan-in two; the correlation property proved below is the
+one needed for arbitrary fixed CNF width.
+
+\begin{definition}[The language]\label{def:language}
+For an input of length $n$, put $d=\floor{n/5}$ and reject if $d<64$.
+Otherwise define
+\[
+ r=\ceil{d^{2/3}},\qquad
+ t=\max\{j\in\N\cup\{0\}: j\text{ is even and }j^6\le d\}.
+\]
+Reject if fewer than $2d+(t+2)r-1$ input bits are available.
+Otherwise parse the input into the following consecutive blocks:
+\begin{enumerate}
+\item $d$ data bits $x=(x_1,\ldots,x_d)$;
+\item $d+r-1$ hash bits $u_1,\ldots,u_{d+r-1}$;
+\item $r$ bits $p_0,\ldots,p_{r-1}$, encoding the monic polynomial
+\[
+ P(Z)=Z^r+\sum_{i=0}^{r-1}p_iZ^i\in\F_2[Z];
+\]
+\item $t$ blocks of $r$ bits, encoding elements $\beta_0,\ldots,\beta_{t-1}$ of
+the quotient ring $R_P=\F_2[Z]/(P)$, in the basis represented by
+$1,Z,\ldots,Z^{r-1}$.
+\end{enumerate}
+Unused bits are ignored.  Form
+\begin{equation}\label{eq:toeplitz-hash}
+ h_i(x)=\sum_{s=1}^d u_{i+s-1}x_s\pmod2
+ \quad(1\le i\le r),\qquad
+ h(x)=\sum_{i=1}^r h_i(x)Z^{i-1}\in R_P.
+\end{equation}
+Let $\lambda:R_P\to\F_2$ take the degree-zero coefficient of the unique
+representative of degree less than $r$.  The input belongs to $L$ exactly
+when
+\begin{equation}\label{eq:language-evaluation}
+ \lambda\left(\sum_{j=0}^{t-1}\beta_jh(x)^j\right)=0.
+\end{equation}
+\end{definition}
+
+The matrix in \eqref{eq:toeplitz-hash} is Hankel (constant on
+anti-diagonals), or Toeplitz after reversing the data coordinates.
+Fully random Toeplitz matrices give a standard universal linear hash
+family~\cite[pp.~136--137]{Krawczyk94}.  We use only the uniform image
+of each nonzero difference, proved below, not strong pairwise
+independence of hash values.  Once the hash is injective on a restricted
+cube, polynomial interpolation supplies limited-independent values,
+as in~\cite[Section~6, proof of Proposition~6.3]{ABI86}.
+
+The rejection rule fixes the language at the small lengths once and for
+all.  For $d\ge64$, the blocks always fit: they use
+\begin{equation}\label{eq:construction-block-length}
+ d+(d+r-1)+r+tr=2d+(t+2)r-1
+\end{equation}
+bits, and $r\le2d^{2/3}$ and $t+2\le2d^{1/6}$ imply
+$(t+2)r\le4d^{5/6}\le2d$.  Thus
+\eqref{eq:construction-block-length} is at most $4d-1\le n$.
+We also have $t\ge2$ and
+\begin{equation}\label{eq:construction-growth}
+ d^{1/6}-2<t\le d^{1/6},\qquad
+ d^{2/3}\le r<d^{2/3}+1.
+\end{equation}
+
+\begin{proposition}\label{prop:polytime}
+The language $L$ is decided on every input of length $n$ by one
+deterministic Turing machine in time $C(n+1)^a$, for some fixed positive
+integers $C,a$.
+\end{proposition}
+
+\begin{proof}
+After the small-length check, the integer parameters can be computed
+without real arithmetic: $r$ is the least positive integer with
+$r^3\ge d^2$, and $t$ can be found by testing even integers until their
+sixth powers exceed $d$.  Searching integers up to $n$ and using ordinary
+integer arithmetic takes polynomial time.  Reading and checking the
+block boundaries does also.
+
+Since $P$ is monic, division by $P$ gives a unique remainder of degree
+less than $r$, whether or not $P$ is irreducible.  Thus every allowed
+polynomial block gives well-defined ring operations.  Direct multiplication
+of two coefficient arrays and reduction by $P$ use $O(r^2)$ bit operations:
+form a polynomial of degree at most $2r-2$, then successively cancel its
+highest coefficients by shifted copies of $P$.  Addition uses $O(r)$ bit
+operations.  Formula~\eqref{eq:toeplitz-hash} uses $O(rd)$ bit operations,
+and Horner evaluation of \eqref{eq:language-evaluation} uses $O(t)$ ring
+multiplications and additions.  The evaluation therefore uses
+$O(rd+tr^2)$ bit-array operations and polynomial storage.
+
+These are fixed loops on finite bit arrays, with counters of polynomial
+size.  They can be implemented by a fixed Turing machine using direct tape
+scans, which incur only polynomial overhead per array operation.  Together
+with the initial integer computations this yields a polynomial time bound;
+increasing its coefficient and exponent to positive integers gives the
+stated $C,a$ and covers the finitely many small lengths as well.  In
+particular, the machine does not test irreducibility or search for any
+choice of parameter bits.  Neither its instructions nor its running-time
+constants depend on the proof parameters used below.
+\end{proof}
+
+For $d\ge64$ and fixed non-data bits, write $g:\bits^d\to\{-1,1\}$ for
+the sign of the resulting data function, with $+1$ on accepted inputs.
+It equals $(-1)^{\lambda(\sum_j\beta_jh(x)^j)}$.
+Although the evaluator allows every monic modulus, we will select an
+irreducible polynomial of degree $r$ for the hardness analysis.  Such a
+polynomial exists for every $r\ge1$; an elementary proof is given in
+Lemma~\ref{lem:field-existence} in Appendix~\ref{sec:field-existence}.
+The next proposition is the property of these slices that the circuit
+argument will use.
+
+\begin{proposition}\label{prop:good-slices}
+For each fixed integer $b\ge1$ and real $B>0$, all sufficiently large
+lengths $n$ admit fixed settings of the non-data bits such that, with
+\[
+ p=\frac{B}{\sqrt d},\qquad m_0=pd=B\sqrt d,
+\]
+the resulting sign $g$ satisfies
+\begin{equation}\label{eq:good-slices}
+ \Pr_{T,\rho}\left[
+ |T|\notin[m_0/2,2m_0]
+ \ \text{or}\ 
+ \corr_b(g_{T,\rho})>2^{-|T|/8}
+ \right]
+ \le4\cdot2^{-m_0/16}.
+\end{equation}
+Here $T$ includes each of the $d$ data coordinates independently with
+probability $p$, and $\rho$ is an independent uniform assignment outside
+$T$.  In particular, the correlation bound on a good restriction holds
+simultaneously for all members of $\mathcal C_b(T)$.
+\end{proposition}
+
+\begin{proof}
+Fix $b,B$ and take $d$ large enough that $0<p<1$ and $t\ge2$.
+Choose a monic irreducible polynomial $P$ of degree $r$, and identify
+$R_P$ with its field $F$ of size $2^r$.  Initially
+choose all the hash bits $u$ independently and uniformly, and choose
+$\beta_0,\ldots,\beta_{t-1}$ independently and uniformly in $F$.  We estimate
+the failure probability jointly over these choices and the restriction;
+the final step will fix one choice of these input bits.
+
+\paragraph{Injectivity on a restricted cube.}
+For any nonzero $w\in\bits^d$, the vector $h(w)$ is uniform in
+$\F_2^r$ over the hash bits.  Indeed, let $s$ be the largest coordinate
+with $w_s=1$.  The $i$th row in \eqref{eq:toeplitz-hash} contains
+$u_{i+s-1}$ with coefficient one, and every other bit it uses has a
+smaller index.  In particular no earlier row uses $u_{i+s-1}$.  The $r$
+rows therefore have independent successive pivots, so the linear map
+$u\mapsto h(w)$ has rank $r$ and takes a uniform input to a uniform
+output.  Equivalently, after choosing the other bits, these pivot bits
+can be set successively in exactly one way to give any prescribed output.
+Thus $\Pr_u[h(w)=0]=2^{-r}$.
+
+Fix a restriction with $m=|T|$.  Its affine data cube has exactly
+$2^m-1$ nonzero differences, namely the nonzero vectors supported on $T$.
+Since $h$ is linear, two cube points collide exactly when their nonzero
+difference hashes to zero.  A union bound gives
+\begin{equation}\label{eq:hash-collision}
+ \Pr_u[h\text{ is not injective on the restricted cube}]
+ \le(2^m-1)2^{-r}\le2^{m-r}.
+\end{equation}
+The fixed assignment $\rho$ only translates the hash image and has no
+effect on this estimate.
+
+\paragraph{Limited independence from interpolation.}
+Condition on a hash that is injective on this cube.  At any $q\le t$
+distinct cube points, let $a_1,\ldots,a_q\in F$ be their distinct hashes.
+For arbitrary desired values $v_1,\ldots,v_q\in F$, the polynomial
+\[
+ Q(X)=\sum_{i=1}^q v_i
+       \prod_{\substack{1\le j\le q\\j\ne i}}
+          \frac{X-a_j}{a_i-a_j}
+\]
+has degree at most $q-1<t$ and satisfies $Q(a_i)=v_i$.
+The denominators are nonzero field elements.  Consequently the linear map
+from $(\beta_0,\ldots,\beta_{t-1})\in F^t$ to the $q$ evaluation values is
+surjective.  Each fiber is a translate of its kernel and hence has the
+same size, so uniform coefficients give independent uniform values in
+$F^q$.  The coordinate map $\lambda$ is a nonzero $\F_2$-linear map,
+with $\lambda(1)=1$.  Its two fibers have equal size, for translation by
+$1$ interchanges them.  Applying $(-1)^\lambda$ coordinatewise therefore
+gives unbiased, $t$-wise independent signs on the restricted cube.
+
+\paragraph{One bound for every sparse test.}
+Apply Lemma~\ref{lem:sparse-partition} with $\eta=1/8$ and write
+$M=M(b,1/8)$ for its positive integer constant.  On a cube of dimension
+$m\ge1$, the number of possible normalized clauses of width at most $b$,
+including the false clause of width zero, is
+\[
+ C_m=\sum_{j=0}^{\min(b,m)}2^j\binom mj\le(2m+1)^b.
+\]
+For the inequality, list a clause's literals in a fixed order and pad
+to length $b$ with a symbol outside the $2m$ literals; this is an
+injective encoding.  A CNF with at most $Mm$ clauses can in turn be
+encoded by a list of length $Mm$ over these $C_m$ clauses and a padding
+symbol.  In particular the number of such CNF indicators is at most
+\begin{equation}\label{eq:sparse-test-count}
+ (C_m+1)^{Mm}
+ \le 2^{Mm[1+b\log_2(2m+1)]}.
+\end{equation}
+This list includes the constant true test (no clauses) and the constant
+false test (one empty clause).
+
+Fix one such test $J$, and write
+$Y=\sum_{z\in\bits^T}g_{T,\rho}(z)J(z)$.  Expectation in the next
+calculation is over the coefficients $\beta_j$, conditional on the injective
+hash.  Expand $Y^t$ as a sum over ordered $t$-tuples of cube points.
+If some point occurs exactly once, its sign is independent of all the
+other distinct signs in the term and has mean zero, so that term's
+expectation vanishes.  Otherwise at most $t/2$ distinct points occur.
+All such tuples are covered by listing $t/2$ cube points, with repetitions
+allowed to pad the list, and choosing a position in that list for each
+of the $t$ factors.  There are at most
+$2^{mt/2}(t/2)^t$ such descriptions.  Each term has absolute expectation
+at most one, and hence
+\begin{equation}\label{eq:even-moment}
+ \E Y^t\le t^t2^{mt/2}.
+\end{equation}
+Because $t$ is even, $Y^t=|Y|^t$.  Markov's inequality, obtained by
+bounding $|Y|^t$ below by a threshold on its exceedance event, gives
+\begin{equation}\label{eq:single-test-tail}
+ \Pr\bigl[|Y|>2^{3m/4}\bigr]
+ \le t^t2^{-mt/4}.
+\end{equation}
+By \eqref{eq:sparse-test-count}, the probability that any sparse test
+has $|\E_z g_{T,\rho}(z)J(z)|>2^{-m/4}$ is at most
+\begin{equation}\label{eq:all-sparse-tail}
+ 2^{Mm[1+b\log_2(2m+1)]+t\log_2t-mt/4}
+ \le2^{-mt/8}
+\end{equation}
+whenever
+\begin{equation}\label{eq:sparse-union-condition}
+ \frac{M[1+b\log_2(2m+1)]}{t}
+ +\frac{\log_2t}{m}\le\frac18.
+\end{equation}
+This condition holds uniformly for $m_0/2\le m\le2m_0$ once $d$ is
+sufficiently large.  Indeed, with $b,B,M$ fixed,
+\eqref{eq:construction-growth} bounds the two summands respectively by
+$O_{b,B,M}(\log d/d^{1/6})$ and $O_B(\log d/\sqrt d)$, both tending
+to zero.
+
+If no sparse test fails, any $J\in\mathcal C_b(T)$ is, by
+Lemma~\ref{lem:sparse-partition}, a sum of at most $2^{m/8}$ indicators
+from the sparse list.  The triangle inequality thus gives
+\begin{equation}\label{eq:all-width-tests}
+ \abs{\E_z g_{T,\rho}(z)J(z)}
+ \le2^{m/8}\,2^{-m/4}=2^{-m/8}.
+\end{equation}
+The sparse event already controls every indicator in the list, so this
+conclusion holds for every width-$b$ CNF simultaneously.  No further
+probability estimate depends on the choice of $J$.
+
+\paragraph{Restriction tails and a fixed setting.}
+The variable $m=|T|$ is binomial with mean $m_0$.  Independence and
+$1+v\le e^v$ give
+\[
+ \E 2^{-m}=(1-p/2)^d\le e^{-m_0/2},\qquad
+ \E 2^m=(1+p)^d\le e^{m_0}.
+\]
+Markov's inequality in these two estimates yields
+\begin{align}
+ \Pr[m<m_0/2]
+ &\le2^{-((\log_2e-1)/2)m_0},\label{eq:live-lower-tail}\\
+ \Pr[m>2m_0]
+ &\le2^{-(2-\log_2e)m_0}.\label{eq:live-upper-tail}
+\end{align}
+Both displayed exponents have coefficient greater than $1/16$.
+For example, tangent and secant bounds for $1/x$ on $[1,2]$ give
+$2/3<\ln2<3/4$, and therefore $4/3<\log_2e<3/2$.
+The total probability of leaving the prescribed range is at most
+$2\cdot2^{-m_0/16}$.
+
+For every restriction in that range, \eqref{eq:hash-collision} and
+\eqref{eq:all-sparse-tail} bound the conditional failure probability over
+the parameter bits by $2^{m-r}+2^{-mt/8}$.  Uniformly in this range,
+\[
+ 2^{m-r}\le2^{-m_0/16},\qquad
+ 2^{-mt/8}\le2^{-m_0/16}
+\]
+for all sufficiently large $d$: the first inequality follows from
+$r/m_0\to\infty$, by taking $r\ge(2+1/16)m_0$, and the second from
+$m\ge m_0/2$ and $t\ge1$.  Adding these two errors and the two
+restriction tails gives joint failure probability at most
+$4\cdot2^{-m_0/16}$.
+
+For each fixed choice of $(u,\beta_0,\ldots,\beta_{t-1})$, let its failure
+probability be the probability over $(T,\rho)$ of the event in
+\eqref{eq:good-slices}.  The average of these finitely many numbers is
+the joint failure probability just bounded.  At least one setting
+therefore has failure probability at most $4\cdot2^{-m_0/16}$.
+Fix that setting, the already selected $P$, and arbitrary unused bits.
+This proves the proposition.
+\end{proof}
+
+The choices in Proposition~\ref{prop:good-slices} may depend on $b,B$
+and the input length.  The quantifiers require only that $b,B$ be fixed
+before the length tends to infinity.  These choices select restrictions
+of the single language in Definition~\ref{def:language}; computing
+membership never requires finding them.

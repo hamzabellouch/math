@@ -1,0 +1,435 @@
+\section{From noisy conditional samples to the target law}
+\label{sec:sampling}
+
+The auxiliary algorithm returns a conditional sample with an added
+Gaussian. We now use it to sample the original, unnoised law
+$\pi_V$. The construction has two stages. A contracting proximal chain
+first approaches $\widetilde\pi=\pi_V*N(0,hI_d)$. Conditional on its
+output, a sequence of variance-halving steps reduces the remaining
+sampling problem to a law close to a mode-centered Gaussian. The
+numbers of calls in both stages are prescribed in advance.
+
+Throughout this section, $V\in C^2(\R^d)$ satisfies
+$V(0)=0$, $\nabla V(0)=0$, and
+$I_d\preceq\nabla^2V\preceq2I_d$ everywhere. The origin is therefore
+the supplied minimizer. Each original query returns both $V$ and
+$\nabla V$ at the queried point. The main construction uses only the
+gradient; the bounded-dimensional fallback also uses the value.
+We fix $0<e<1$, put $\delta=d^{-e}$ and $h=\delta/2$, and take an
+integer $K_0>2+1/e$. Choose $t>0$ as in \eqref{eq:t-choice}, and
+fix the approximation orders required by Theorem~\ref{thm:primitive}.
+All sufficiently-large-dimension thresholds below are uniform in $V$.
+
+\subsection{A contracting noised chain}
+
+The Gaussian proximal sampler alternates a Gaussian step with a
+restricted Gaussian conditional draw
+\citep[Definition~1 and Lemmas~2 and~4]{lee2021proximal}; see also
+\citet[Section~3 and Theorem~1]{chen2022proximal}. We use the chain
+on the noised variable and prove its contraction directly.
+
+For $y\in\R^d$, denote by $\kappa_y$ the probability law with density
+proportional to
+\begin{equation}\label{eq:proximal-conditional}
+              \exp\!\left(-V(x')-\frac{|x'-y|^2}{2h}\right).
+\end{equation}
+The ideal transition $P_h$ draws $x'\sim\kappa_y$ and returns
+$x'+\sqrt h\,N$, where $N$ is an independent standard Gaussian.
+Thus $P_h(y,\cdot)=\kappa_y*N(0,hI_d)$.
+
+\begin{lemma}[Proximal contraction]\label{lem:proximal-contraction}
+The law $\widetilde\pi$ is invariant for $P_h$, and
+\[
+ \Wtwo(\kappa_{y_1},\kappa_{y_2})
+       \le\frac{|y_1-y_2|}{1+h}.
+\]
+Consequently, for input laws $\mu,\eta$ of finite second moment,
+\[
+ \Wtwo(\mu P_h,\eta P_h)
+       \le\frac{\Wtwo(\mu,\eta)}{1+h}.
+\]
+\end{lemma}
+\begin{proof}
+Under the joint law $\pi_V(dx)N(x,hI_d)(dy)$, the conditional law
+of $x$ given $y$ is $\kappa_y$. Drawing this conditional and then
+redrawing $y$ given $x$ preserves the joint law, whose $y$-marginal
+is $\widetilde\pi$.
+
+The potential in \eqref{eq:proximal-conditional} has curvature at
+least $1+1/h$. Replacing $y_1$ by $y_2$ changes its gradient by the
+constant vector $(y_1-y_2)/h$. The synchronous comparison
+\eqref{eq:synchronous-comparison} therefore bounds the conditional
+$\Wtwo$ distance by $|y_1-y_2|/(1+h)$. Couple the subsequent Gaussian
+increments identically. Integrating these conditional couplings
+against an input coupling, as in Lemma~\ref{lem:coupling-smoothing},
+proves the kernel contraction.
+\end{proof}
+
+To implement this transition, substitute $x'=y+\sqrt h\,z$ in
+\eqref{eq:proximal-conditional}. The normalized conditional potential
+becomes $|z|^2/2+F_y(z)$, where
+\begin{equation}\label{eq:proximal-primitive}
+ F_y(z)=V(y+\sqrt h\,z),\qquad
+ g_y(z)=\nabla F_y(z)=\sqrt h\,\nabla V(y+\sqrt h\,z).
+\end{equation}
+The Hessian bound and $\nabla V(0)=0$ give
+\[
+ \Lip(g_y)\le2h=\delta,\qquad |g_y(0)|\le2\sqrt h\,|y|.
+\]
+An evaluation of $g_y$ is one original first-order query. Apply
+Theorem~\ref{thm:primitive} to $F_y$ at center zero and scale one,
+with fresh standalone seeds, and map its output $S$ to
+$y+\sqrt h\,S$. This defines the actual transition $\widehat P_h$.
+The primitive already approximates $Z+N$, so the ideal comparison
+law of this affine image is exactly $P_h(y,\cdot)$.
+In particular, the primitive's independent final reserve $G/2$
+is retained. Its pre-reserve $\Wtwo$ guarantee and Gaussian smoothing
+are what supply the following TV guarantee:
+\begin{equation}\label{eq:proximal-local-errors}
+ \begin{aligned}
+ \Wtwo(\widehat P_h(y,\cdot),P_h(y,\cdot))
+   &\le\sqrt h\,B_d\delta^{K_0}
+                    (\sqrt d+2\sqrt h\,|y|),\\
+ \norm{\widehat P_h(y,\cdot)-P_h(y,\cdot)}_{\TV}
+   &\le B_d\delta^{K_0}(\sqrt d+2\sqrt h\,|y|).
+ \end{aligned}
+\end{equation}
+Here and below $B_d=C(1+\log d)^C$ may be increased by a fixed
+factor or power. Its constants depend only on the fixed parameters,
+not on the center, oracle, or random history.
+
+\begin{proposition}[Mixing of the approximate noised chain]
+\label{prop:noised-mixing}
+With $K_0>2+1/e$ and $t$ chosen above, start the
+$\widehat P_h$-chain at zero and run
+$\lceil Ch^{-1}\log d\rceil+1$ steps. For a sufficiently large
+fixed $C$, its output has total-variation distance $o(1)$ from
+$\widetilde\pi$, uniformly over all admissible $V$.
+\end{proposition}
+\begin{proof}
+Lemma~\ref{lem:convex-preliminaries}, applied at the mode zero,
+gives $\E_{\pi_V}|X|^2\le d$. Hence the root mean square under
+$\widetilde\pi$ is at most $C\sqrt d$.
+Let $\mu_k$ be the actual law after $k$ steps, and set
+$a_k=\Wtwo(\mu_k,\widetilde\pi)$. Then
+\[
+ \left(\int |y|^2\,\mu_k(dy)\right)^{1/2}
+       \le a_k+C\sqrt d.
+\]
+All these moments are finite. Indeed they are finite at $k=0$, and
+the local $\Wtwo$ bound in \eqref{eq:proximal-local-errors}, together
+with the conditional moment bounds for $P_h$, propagates finite
+second moments to the next step.
+
+Take the root mean square of the first local error in
+\eqref{eq:proximal-local-errors}. Conditional coupling and
+Lemma~\ref{lem:proximal-contraction} give
+\[
+ a_{k+1}\le
+ \left(\frac1{1+h}+2hB_d\delta^{K_0}\right)a_k
+       +C\sqrt h\,B_d\delta^{K_0}\sqrt d.
+\]
+For all large $d$, the coefficient of $a_k$ is at most $1-ch$
+for an absolute $c>0$. Since $a_0\le C\sqrt d$, summing this
+geometric recurrence yields
+\begin{equation}\label{eq:proximal-global-error}
+ a_k\le C\sqrt d\,e^{-chk}
+       +Ch^{-1/2}B_d\delta^{K_0}\sqrt d.
+\end{equation}
+The second term is $o(\sqrt h)$: after division by $\sqrt h$,
+it is bounded by a constant times
+$B_d\delta^{K_0-1}\sqrt d$, which tends to zero because
+$e(K_0-1)>1/2$. At $k=\lceil Ch^{-1}\log d\rceil$, a sufficiently
+large fixed $C$ makes the first term $o(\sqrt h)$ as well.
+
+Use one more transition to obtain TV control. The mixture bound
+in Lemma~\ref{lem:coupling-smoothing} gives
+\[
+ \norm{\mu_k\widehat P_h-\mu_kP_h}_{\TV}
+ \le B_d\delta^{K_0}
+       \bigl[\sqrt d+2\sqrt h\,(a_k+C\sqrt d)\bigr]=o(1).
+\]
+For the remaining comparison, the conditional $x'$-laws from
+$\mu_k$ and $\widetilde\pi$ can be coupled with root mean square
+at most $a_k/(1+h)$. Their common independent $\sqrt h$-Gaussian
+then gives, by \eqref{eq:gaussian-smoothing},
+\[
+ \norm{\mu_kP_h-\widetilde\pi P_h}_{\TV}
+       \le\frac{a_k}{(1+h)\sqrt h}=o(1).
+\]
+Invariance of $\widetilde\pi$ completes the proof.
+\end{proof}
+
+\subsection{Conditional descent and its ideal histories}
+
+An exact draw from $\kappa_y$ with $y\sim\widetilde\pi$ has
+marginal $\pi_V$. We next implement this unnoised conditional draw.
+For its analysis, first replace the incoming approximate $y$ by
+$y\sim\widetilde\pi$. Applying the same conditional algorithm to
+both inputs costs at most the TV error of
+Proposition~\ref{prop:noised-mixing}, by data processing.
+
+For a related recursive restricted-Gaussian-oracle framework, see
+Chen--Chewi--Lu--Zhang \cite[Algorithm~3.3 and Section~6.3]{chen2026picard}.
+The construction here uses fixed variance halving, mode-centered Gaussian
+termination, and an every-execution query cap.
+
+Fix $y$ temporarily. Keep $F_y$ and its oracle $g_y$ fixed throughout
+the conditional algorithm; only the primitive center and scale
+change. At center $x$ and scale $r$, the desired normalized law is
+\[
+ \nu_{x,r}(dz)\propto
+             \exp\bigl(-|z|^2/2-F_y(x+rz)\bigr)\,dz.
+\]
+Suppose first that $Z\sim\nu_{x,r}$ and that $N$ is an independent
+standard Gaussian. Given $Y=Z+N$, the conditional density of $Z$
+is proportional to
+\[
+             \exp\bigl(-|z-Y/2|^2-F_y(x+rz)\bigr).
+\]
+Substitute $z=Y/2+z_{\rm new}/\sqrt2$ to obtain the exact identity
+\begin{equation}\label{eq:conditional-descent}
+ Z=\frac Y2+\frac{Z_{\rm new}}{\sqrt2},\qquad
+ Z_{\rm new}\mid Y\sim\nu_{\,x+rY/2,\;r/\sqrt2}.
+\end{equation}
+
+The actual algorithm starts at $x_0=0,r_0=1$ and uses
+$J=\lceil C_1\log d\rceil$ levels. At each $0\le j<J$, it calls
+Theorem~\ref{thm:primitive} with fresh seeds at $(x_j,r_j)$ to
+produce a noised observation $Y_j$, and sets
+\[
+ x_{j+1}=x_j+r_jY_j/2,\qquad r_{j+1}=r_j/\sqrt2.
+\]
+At level $J$, it produces a base sample $Z_J$ by the Gaussian
+rule given below and returns
+\[
+                         y+\sqrt h\,(x_J+r_JZ_J).
+\]
+To identify this output, define the backwards variables
+$Z_j=Y_j/2+Z_{j+1}/\sqrt2$ for the analysis. The center update gives
+\[
+ x_j+r_jZ_j
+ =x_j+r_jY_j/2+(r_j/\sqrt2)Z_{j+1}
+ =x_{j+1}+r_{j+1}Z_{j+1}.
+\]
+Since $x_0=0$ and $r_0=1$, the returned point is therefore
+$y+\sqrt h\,Z_0$. By \eqref{eq:conditional-descent}, ideal
+observations and an exact base conditional sample would make this
+an exact draw from $\kappa_y$.
+
+We must control the errors at random centers. The useful moment
+bound concerns the history in which all preceding observations
+have their ideal laws.
+
+\begin{lemma}[Moments along the ideal descent]
+\label{lem:descent-moments}
+If $y\sim\widetilde\pi$ and every conditioning observation preceding
+level $j$ is ideal, then
+\[
+ b_j:=\left(\E|g_y(x_j)|^2\right)^{1/2}\le C\sqrt d
+             \qquad(0\le j\le J),
+\]
+with an absolute $C$ for all sufficiently large $d$.
+\end{lemma}
+\begin{proof}
+The initial estimate follows from
+$|g_y(0)|\le2\sqrt h\,|y|$ and the moment bound for
+$\widetilde\pi$. Conditional on an ideal history, the next
+observation has the law of $Z+N$ at center $x_j$ and scale
+$r_j=2^{-j/2}$. Equation~\eqref{eq:primitive-moments} therefore gives
+\[
+ \left(\E[|Y_j|^2\mid x_j,y]\right)^{1/2}
+          \le C(\sqrt d+r_j|g_y(x_j)|).
+\]
+The center update and $\Lip(g_y)\le\delta$ imply, by the
+conditional and then unconditional $L^2$ triangle inequalities,
+\[
+ b_{j+1}\le(1+C\delta r_j^2)b_j+C\delta r_j\sqrt d.
+\]
+Both $\sum_{j\ge0}r_j$ and $\sum_{j\ge0}r_j^2$ are bounded
+by absolute constants. In particular the products of
+$1+C\delta r_j^2$ are bounded by
+$\exp(C\delta\sum_jr_j^2)$. Expanding the recurrence proves
+the stated uniform bound.
+\end{proof}
+
+Here is the precise replacement order used to sum the TV errors.
+For $0\le j\le J$, let $H_j$ be the output law when the first
+$j$ observations are ideal, all later observations use the actual
+primitive, and the base rule is the actual Gaussian rule.
+For $0\le j<J$, the laws $H_j$ and $H_{j+1}$ have the same ideal prefix of length
+$j$. Conditional on that prefix, only the next observation kernel
+changes; all subsequent computation is the same probability kernel.
+Data processing and the mixture TV bound therefore give
+\[
+ \norm{H_j-H_{j+1}}_{\TV}
+    \le B_d\delta^{K_0}\E_{\rm ideal}
+                        \bigl[\sqrt d+|g_y(x_j)|\bigr].
+\]
+The expectation includes $y\sim\widetilde\pi$ and the common
+ideal prefix. Lemma~\ref{lem:descent-moments} now yields
+\begin{equation}\label{eq:descent-tv}
+ \norm{H_0-H_J}_{\TV}
+       \le CJ B_d\delta^{K_0}\sqrt d=o(1).
+\end{equation}
+Thus errors are summed using only ideal-history moments. It remains
+to compare the actual and exact base laws under that same ideal history.
+
+\subsection{The Gaussian base rule}
+
+At depth $J$, write $l=\delta r_J^2$ and start at $z^{(0)}=0$.
+Make exactly $m_0=\lceil C_2\log d\rceil$ gradient iterations
+\begin{equation}\label{eq:mode-iteration}
+ z^{(k+1)}=-r_Jg_y(x_J+r_Jz^{(k)}),
+                         \qquad 0\le k<m_0.
+\end{equation}
+The base output is $Z_J=z^{(m_0)}+G$, for a fresh standard
+Gaussian $G$. The iteration map has Lipschitz constant at most $l$.
+Its unique fixed point is the mode $z_0$ of $\nu_{x_J,r_J}$, and
+\eqref{eq:primitive-moments} gives
+\begin{equation}\label{eq:mode-accuracy}
+ |z^{(m_0)}-z_0|
+       \le l^{m_0}|z_0|
+       \le l^{m_0}\frac{r_J|g_y(x_J)|}{1-l}.
+\end{equation}
+The following comparison explains why a Gaussian centered there
+completes the construction.
+
+\begin{lemma}[Mode-centered Gaussian approximation]
+\label{lem:mode-gaussian}
+For any $F\in C^2(\R^d)$ with $\Lip(\nabla F)\le\lambda$, center
+$x$, and scale $0<r\le1$ such that $l=\lambda r^2\le1/2$, let $z_0$ be
+the mode of $\nu_{x,r}$. Then
+\[
+ \norm{\nu_{x,r}-N(z_0,I_d)}_{\TV}\le Cl\sqrt d.
+\]
+\end{lemma}
+\begin{proof}
+Translate by $z_0$. Up to an additive constant, the potential of
+$w=z-z_0$ is $|w|^2/2+J(w)$, where
+\[
+ J(w)=z_0\cdot w+F(x+r(z_0+w))-F(x+rz_0).
+\]
+The mode equation gives $\nabla J(0)=0$, and
+$\Lip(\nabla J)\le l$. In particular $J(0)=0$ and
+$|J(w)|\le l|w|^2/2$.
+For $0\le s\le1$, the potential $|w|^2/2+sJ(w)$ has mode zero
+and Hessian between $(1-l)I_d$ and $(1+l)I_d$.
+Its law $\mu_s$ satisfies, by Lemma~\ref{lem:convex-preliminaries},
+\[
+ \Var_{\mu_s}J
+ \le\frac1{1-l}\E_{\mu_s}|\nabla J|^2
+ \le\frac{l^2}{1-l}\E_{\mu_s}|w|^2
+ \le\frac{l^2d}{(1-l)^2}\le4l^2d.
+\]
+The same quadratic bounds justify differentiating
+\[
+ \Phi(s)=\log\int_{\R^d}e^{-|w|^2/2-sJ(w)}\,dw
+\]
+twice under the integral, and give
+$\Phi''(s)=\Var_{\mu_s}J$. Since $\mu_0=N(0,I_d)$,
+\[
+ \KL(\mu_0\Vert\mu_1)
+  =\Phi(1)-\Phi(0)-\Phi'(0)
+  =\int_0^1(1-s)\Phi''(s)\,ds\le2l^2d.
+\]
+Pinsker's inequality, followed by translation back by $z_0$,
+proves the assertion.
+\end{proof}
+
+Under an ideal history, the Gaussian shift bound and
+\eqref{eq:mode-accuracy} bound the expected TV error of the base rule
+by
+\begin{equation}\label{eq:descent-base-error}
+ C\delta 2^{-J}\sqrt d
+ +C(\delta2^{-J})^{m_0}
+                 \frac{2^{-J/2}\sqrt d}{1-\delta2^{-J}}.
+\end{equation}
+Here the second term uses Lemma~\ref{lem:descent-moments}.
+Choose the fixed $C_1$ large enough that
+$\delta2^{-J}\sqrt d\to0$. A sufficiently large fixed $C_2$
+makes the second term tend to zero as well. Replacing the base law
+under the ideal history therefore changes TV by $o(1)$.
+By \eqref{eq:conditional-descent}, the resulting completely ideal
+conditional algorithm returns $\kappa_y$. Averaging over
+$y\sim\widetilde\pi$ gives $\pi_V$.
+
+Combining this base comparison, \eqref{eq:descent-tv}, and the
+initial replacement of the incoming $y$ proves
+\begin{equation}\label{eq:unnoised-output-error}
+            \norm{\mathcal L(X_{\rm out})-\pi_V}_{\TV}=o(1),
+\end{equation}
+uniformly over admissible $V$. The final Gaussian is used to
+approximate the last conditional law; the law in
+\eqref{eq:unnoised-output-error} is the original target without
+an additional convolution.
+
+\subsection{Query counts and all dimensions}
+
+\begin{theorem}[Subpolynomial upper bound]\label{thm:upper}
+For every fixed $\varepsilon>0$, there is $C_\varepsilon<\infty$
+such that, for every integer $d\ge2$, a measurable algorithm using
+the exact value-and-gradient oracle makes at most
+$C_\varepsilon d^\varepsilon$ queries on every execution and
+returns a sample within TV distance $1/10$ of $\pi_V$ for every
+$V$ satisfying \eqref{eq:original-class}. Thus
+\[
+                  Q(d)\le C_\varepsilon d^\varepsilon
+                       \qquad(d\ge2).
+\]
+\end{theorem}
+\begin{proof}
+Given $\varepsilon>0$, first choose $e\in(0,1)$ with
+$2e<\varepsilon$, then an integer $K_0>2+1/e$, and then
+$t>0$ satisfying \eqref{eq:t-choice}. Fix the auxiliary construction's
+orders in its prescribed order, and finally the constants in the
+chain, descent depth, and base iteration count. These choices may
+depend on $\varepsilon$, but they are fixed before observing the
+oracle or the random seeds.
+
+Every invocation of Theorem~\ref{thm:primitive} uses at most
+$\polylog(d)\delta^{-t}$ evaluations of the gradient oracle $g_y$. By
+\eqref{eq:proximal-primitive}, each evaluation is one original
+query, including calls at random descent centers. The cap is uniform
+in those centers. There are $O(\delta^{-1}\log d)$ proximal calls,
+$O(\log d)$ descent calls, and $O(\log d)$ additional gradient
+queries in the base rule. Summing gives the deterministic cap
+\begin{equation}\label{eq:upper-query-count}
+ \polylog(d)\delta^{-(1+t)}=d^{e(1+t)+o(1)}.
+\end{equation}
+The query counts and recursion shapes of this construction are
+fixed by the scalar parameters; they do not depend on oracle
+magnitudes or approximation events. All maps are measurable by
+the primitive theorem and the explicit finite operations above.
+Since $t<1$, we have $e(1+t)<2e<\varepsilon$.
+The fixed polylogarithmic factors fit $C_\varepsilon d^\varepsilon$
+for all sufficiently large $d$. Equation~\eqref{eq:unnoised-output-error}
+gives TV error at most $1/10$ above a uniform dimension threshold.
+
+For each of the finitely many smaller dimensions, use independent
+standard Gaussian proposals. Accept a proposal $X$ with probability
+\[
+                    \exp\bigl(-V(X)+|X|^2/2\bigr).
+\]
+Integrating the Hessian bounds from the known minimizer gives
+$|x|^2/2\le V(x)\le|x|^2$. The acceptance probability is therefore
+at most one, and its average is at least
+$\E e^{-|X|^2/2}=2^{-d/2}$. The proposal density times its
+acceptance probability is proportional to $e^{-V(x)}$, so an
+accepted proposal has law $\pi_V$.
+
+Cap the number of trials at $\lceil4\cdot2^{d/2}\rceil$.
+Return the first accepted proposal, or zero if none is accepted.
+The failure probability is at most $e^{-4}<1/10$; conditional on
+success, the returned proposal has law $\pi_V$. The fallback thus
+has TV error at most $e^{-4}$ and makes at most the prescribed
+number of original first-order queries on every execution, one per
+trial. Increasing $C_\varepsilon$ covers these finitely many caps.
+This proves the assertion for all $d\ge2$.
+\end{proof}
+
+Theorem~\ref{thm:upper} proves the upper assertion of
+Theorem~\ref{thm:main}. Its approximation orders depend on the fixed
+exponent $\varepsilon$; the result concerns oracle calls and imposes
+no bound on the real computation between them. The next section
+proves the independent logarithmic lower bound.

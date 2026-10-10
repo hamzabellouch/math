@@ -1,0 +1,272 @@
+\section{Finite-field computations without known roots}
+\label{ff:section}
+
+The splitting procedures will manipulate all roots of a polynomial at once.
+Two elementary tools make this possible.  First, a computation over a field
+can be executed in a product of fields until a zero test distinguishes two
+components.  Second, a supplied generator of a primary multiplicative subgroup
+permits logarithms and root extraction by short digit calculations.  We develop
+both tools explicitly, and then use them to split every totally split polynomial
+of even degree.
+
+Finite fields are represented by a basis over their prime field and a
+multiplication table, or by an equivalent tower of polynomial quotients.
+Field arithmetic, binary powering, polynomial Euclidean algorithms, and linear
+algebra are therefore deterministic procedures with polynomial bit complexity
+in the representation lengths.  All basis choices and pivot choices below use
+a fixed ordering.  For a prime $q$ and a positive integer $m$, write
+$v_q(m)$ for its $q$-adic valuation.  If $k$ has cardinality $Q$ and
+$q\mid Q-1$, its full $q$-primary subgroup is the unique subgroup of
+$k^*$ of order $q^{v_q(Q-1)}$.
+
+\subsection{Simultaneous execution and zero tests}
+
+Let $k$ be an explicitly represented finite extension of $\mathbf F_p$, and let
+$F\in\mathbf F_p[T]$ be monic, square-free, and totally split, of degree $N$.
+Write its roots as $x_1,\ldots,x_N$ for the proof; the algorithm does not know
+these roots.  The algebra
+\begin{equation}
+ A=k[T]/(F)\simeq\prod_{i=1}^N k,
+ \qquad a(T)\longmapsto(a(x_1),\ldots,a(x_N))
+ \label{ff:product}
+\end{equation}
+lets us carry out arithmetic on all components simultaneously.
+
+\begin{lemma}[Simultaneous execution]
+\label{ff:simultaneous}
+Suppose a deterministic field procedure uses arithmetic, zero tests, and
+integer control, and its scalar input at component $i$ is obtained by
+specializing given elements of $A$ at $T=x_i$.  Assume the procedure is
+defined for each specialized input.  One can either execute the
+procedure on all components with a common sequence of decisions, or return a
+nontrivial proper monic divisor of $F$ in $\mathbf F_p[T]$.
+The extra cost of each scalar operation or zero test is polynomial in
+$N$, $[k:\mathbf F_p]$, and $\log p$.
+\end{lemma}
+
+\begin{proof}
+For a zero test on $a\in A$, compute $d=\gcd(F,a)$ over $k$ using its
+representative of degree less than $N$.  If $d=1$, every component is nonzero;
+if $d=F$, every component is zero.  In the remaining case, $d$ is a proper
+factor and the procedure stops.  Although computed over $k$, its monic form
+belongs to $\mathbf F_p[T]$: it is the product of $T-x_i$ over the components
+where $a(x_i)=0$.
+
+Addition and multiplication take place in $A$.  A nonzero scalar is inverted
+only after the zero test has shown it nonzero in every component; the extended
+Euclidean algorithm then gives its inverse modulo $F$.  Thus, until a split
+occurs, every field instruction and decision is valid in every component.
+Polynomial degree tests and choices of pivots reduce to successive zero tests
+on coefficients, so the same argument applies inside polynomial arithmetic
+and linear algebra.  The usual dense implementations give the cost bound.
+\end{proof}
+
+This is the dynamic-evaluation principle~\cite{DellaDoraDicrescenzoDuval85};
+we call its use here \emph{simultaneous execution}.  In particular, a
+divergent pivot or a divergent polynomial degree is useful information: it
+already supplies the required factor.  The convention also applies to nested
+procedures whose coefficient field is being simulated by $A$.
+
+\subsection{Logarithms in primary subgroups}
+
+Let $q$ be a prime, and suppose $u$ generates a cyclic group of order $q^s$.
+For $a\in\langle u\rangle$, its logarithm $\ell\in[0,q^s)$ can be recovered
+one base-$q$ digit at a time, as in the prime-power logarithm algorithm of
+Pohlig and Hellman~\cite{PohligHellman78}.  If $\ell_j\equiv\ell\pmod{q^j}$ is already
+known, the next digit is the unique $c\in\{0,\ldots,q-1\}$ satisfying
+\begin{equation}
+ (au^{-\ell_j})^{q^{s-j-1}}
+   =(u^{q^{s-1}})^c,
+ \qquad 0\le j<s.
+ \label{ff:digit}
+\end{equation}
+Set $\ell_{j+1}=\ell_j+cq^j$ and begin with $\ell_0=0$.
+Indeed, if $\ell-\ell_j=q^j(c+qv)$, raising to $q^{s-j-1}$ removes the term
+$qv$ and leaves exactly Equation~\eqref{ff:digit}.  This uses $q$ equality
+tests per digit, rather than an enumeration of $q^s$ group elements.
+
+The same calculation works in a product of fields when $u$ has order $q^s$
+in every component.  When the product is presented as $k[X]/H$ with $H$
+square-free, gcds with $H$ partition the components at each digit according
+to the equality in Equation~\eqref{ff:digit}; retain each nonempty piece and
+its current digit string.  There are at most $\deg H$ pieces at every level.
+Keep each final integer logarithm together with its polynomial modulus.
+Algebra elements subsequently computed from these logarithms can be recombined
+by polynomial Chinese remaindering.  Alternatively, when zero components are represented by idempotent masks,
+perform the same partitions using those masks.  These two implementations
+will be used below.
+
+\subsection{Root extraction in a finite reduced algebra}
+
+We next give the root procedure used in the norm equations later in the paper.
+Its input already includes a generator over the constant field, but it does
+not include generators in extension fields, nor a factorization of the
+modulus.
+
+\begin{lemma}[Root extraction from a primary generator]
+\label{ff:unitroot}
+Let $k$ be an explicit finite field of cardinality $Q$ and characteristic $p$.
+Let $q$ be an odd prime dividing $Q-1$, let $\zeta\in k$ have order $q$, and
+let $\omega\in k$ generate the full $q$-primary subgroup of $k^*$.
+Let $H\in k[X]$ be monic and square-free, with $h=\deg H\ge1$, and suppose
+$p>h^2$.  Given a unit $a\in k[X]/H$ that is promised to be a $q$-th power,
+one can deterministically construct $b$ with $b^q=a$.
+The bit cost is polynomial in $q$, $h$, and the length of the given field
+representation.  The procedure uses only arithmetic and zero tests over $k$,
+and so admits simultaneous execution as in Lemma~\ref{ff:simultaneous}.
+\end{lemma}
+
+\begin{proof}
+The construction has three steps: separate extension degrees, obtain a primary
+generator on each resulting part, and take the two coprime parts of the root.
+
+\smallskip
+\noindent\emph{Separate extension degrees.}
+For $d=1,\ldots,h$, use gcds with $X^{Q^d}-X$, removing factors already found,
+to form the product $H_d$ of the irreducible factors of $H$ of degree $d$.
+All powers are computed modulo the current modulus by binary powering.
+Discard $H_d=1$.  Every field component of $k[X]/H_d$ has cardinality $Q^d$.
+Write
+\[
+ Q^d-1=q^s t,\qquad q\nmid t.
+\]
+Only division by the specified prime $q$ is needed to find $s$ and $t$.
+
+\smallskip
+\noindent\emph{Obtain a primary generator.}
+Since $q$ is odd and $q\mid Q-1$, the elementary lifting-the-exponent identity
+is
+\begin{equation}
+ v_q(Q^d-1)=v_q(Q-1)+v_q(d).
+ \label{ff:lte}
+\end{equation}
+To see this, raising a number congruent to $1$ modulo $q$ to an exponent
+prime to $q$ preserves the valuation of its difference from $1$, whereas
+raising it to the $q$-th power increases that valuation by exactly one.
+Both assertions follow from the binomial expansion: its linear term has
+strictly smaller $q$-valuation than all subsequent terms, using that $q$
+is odd in the second assertion.  Iterating proves Equation~\eqref{ff:lte}.
+If $q\nmid d$, set $u=\omega$, which already has order $q^s$ in every
+component.  Suppose instead that $q\mid d$.  Solve the $k$-linear equation
+\begin{equation}
+ v^{Q^{d/q}}=\zeta v
+ \quad\text{in }k[X]/H_d.
+ \label{ff:eigenvector}
+\end{equation}
+In each component its nonzero solutions exist: the cyclic group of order
+$Q^d-1$ contains a solution of $v^{Q^{d/q}-1}=\zeta$, because
+\[
+ \zeta^{(Q^d-1)/(Q^{d/q}-1)}=1.
+\]
+For such a solution, Equation~\eqref{ff:lte} shows that the $q$-valuation of
+its order is $s$.
+
+To choose a solution nonzero in every component without knowing those
+components, take a kernel basis $v_0,\ldots,v_{r-1}$ and try
+\begin{equation}
+ v(c)=\sum_{j=0}^{r-1}c^jv_j,
+ \qquad c=0,\ldots,h^2.
+ \label{ff:unit-search}
+\end{equation}
+Test each candidate for being a unit by a gcd with $H_d$.  In any component,
+at least one basis vector is nonzero, so at most $r-1$ values of $c$ make
+$v(c)$ zero there.  There are at most $h$ components and $r\le h$; fewer than
+$h^2$ values are excluded altogether.  The hypothesis $p>h^2$ makes the
+listed parameters distinct.  Hence the search succeeds.  Raising its result
+to $t$ produces a generator $u$ of order $q^s$ in every component.
+
+\smallskip
+\noindent\emph{Take the root.}
+Use the integer Chinese remainder theorem for $q^s$ and $t$ to choose
+exponents projecting $a$ to its primary and prime-to-$q$ parts.  Explicitly,
+put
+\[
+ a_q=a^{t(t^{-1}\bmod q^s)},\qquad
+ a_t=a^{q^s((q^s)^{-1}\bmod t)},
+\]
+with $a_t=1$ when $t=1$.  Then $a=a_q a_t$, the order of $a_q$ divides
+$q^s$, and the order of $a_t$ divides $t$.  A root of $a_t$ is obtained by
+raising it to $q^{-1}\bmod t$, again using $1$ when $t=1$.
+
+Compute the logarithm of $a_q$ to $u$ by Equation~\eqref{ff:digit},
+partitioning $H_d$ as necessary.  In each final piece its logarithm
+$\ell\in[0,q^s)$ is divisible by $q$, because $a$ is a $q$-th power.
+Therefore $u^{\ell/q}$ is a root of $a_q$ on that piece.  Multiply the two
+roots, recombine the pieces by polynomial Chinese remaindering, and finally
+recombine the relatively prime $H_d$.
+
+For complexity, $d\le h$, the bit length of $Q^d$ is at most $1+h\log_2Q$,
+and $s\le h\log_2Q$.  There are at most $h$ nonempty pieces at every digit
+level; each digit tests at most $q$ possibilities.  Equation~\eqref{ff:eigenvector}
+is a linear system of dimension at most $h$, and
+Equation~\eqref{ff:unit-search} uses at most $h^2+1$ trials.  All remaining
+operations are polynomial arithmetic, powering, or integer Euclidean
+algorithms of the indicated sizes.  This proves the claimed polynomial
+bound and also the assertion about field instructions.
+\end{proof}
+
+We denote this procedure by $\mathsf{UnitRoot}$.  To extract a root in $k$
+itself, apply it with the linear modulus $H=X$.  The proof explains why
+distinct-degree decomposition suffices: every subsequent partition is obtained
+by an equality test, and full irreducible factorization is never invoked.
+
+\subsection{Splitting an even number of roots}
+
+R\'onyai proved that a supplied quadratic nonresidue suffices to split
+a completely split polynomial of even degree in polynomial time~\cite{Ronyai88}.
+A quadratic nonresidue gives a full $2$-primary generator by raising it to
+the odd part of $p-1$.  We give the pair-orientation argument in the form
+needed here.  A primary generator forces a distinction among an even number of
+roots.  The mechanism is an orientation of the pairs of distinct roots: each
+pair contributes one to precisely one of its two row counts.  Equal row
+counts would then have the nonintegral value $(N-1)/2$.
+
+\begin{proposition}[Even-degree splitting]
+\label{ff:even-split}
+Let $p$ be odd, and let $F\in\mathbf F_p[T]$ be monic, square-free, and
+totally split of even degree $N\ge2$, with $p>N$.  Given a generator $u$ of
+the full $2$-primary subgroup of $\mathbf F_p^*$, one can deterministically
+find a nontrivial proper monic divisor of $F$ in a number of bit operations
+polynomial in $N$ and $\log p$.
+\end{proposition}
+
+\begin{proof}
+Set $A=\mathbf F_p[T]/F$ and $R=A\otimes_{\mathbf F_p}A$.  Write
+$p-1=2^s t$ with $t$ odd.  In the coordinate description indexed by ordered
+pairs of roots, the element
+\[
+ \Delta=T\otimes1-1\otimes T
+\]
+has coordinate $x_i-x_j$.  Thus $e=\Delta^{p-1}$ is the idempotent equal to
+$1$ off the diagonal and $0$ on the diagonal.  Work in the algebra $eR$,
+whose identity is $e$.  The element $\Delta^t$ has $2$-power order at every
+coordinate there, so compute its logarithm to $u$ by the digit procedure.
+For a masked equality test on an element $z$ in a subalgebra with identity
+mask $e_0$, its zero mask is $e_0-(e_0z)^{p-1}$.  Hence every partition is
+computed within $R$, with no knowledge of the roots.
+
+Let $e_*$ be the sum of the final masks whose logarithms lie in
+$[0,2^{s-1})$.  Replacing $(i,j)$ by $(j,i)$ changes $\Delta^t$ to its
+negative, because $t$ is odd.  The logarithm therefore changes by
+$2^{s-1}$ modulo $2^s$, and exactly one orientation of each unordered pair
+is selected by $e_*$.  Apply the ordinary algebra trace on the second factor:
+\begin{equation}
+ c=(\operatorname{id}\otimes\operatorname{Tr}_{A/\mathbf F_p})(e_*)\in A.
+ \label{ff:row-counts}
+\end{equation}
+Its $i$-th coordinate is the number $c_i$ of selected pairs in row $i$,
+viewed in $\mathbf F_p$.  As integers,
+\[
+ 0\le c_i\le N-1,
+ \qquad \sum_{i=1}^N c_i=\frac{N(N-1)}2.
+\]
+If these integers were all equal, their common value would be $(N-1)/2$,
+which is impossible for even $N$.  Since $p>N$, their images in the field
+are not all equal either.  Testing $\gcd(F,c-a)$ for $a=0,\ldots,N-1$
+therefore returns a nontrivial proper factor.
+
+The algebra $R$ has dimension $N^2$, and the number of nonempty masks at a
+digit level is at most $N^2$.  There are $s\le\log_2p$ levels, each with
+two possible digits.  Binary powering, the trace computation, and the final
+gcds all have the asserted polynomial cost.
+\end{proof}

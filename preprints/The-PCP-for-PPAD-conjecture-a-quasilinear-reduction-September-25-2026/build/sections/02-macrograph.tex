@@ -1,0 +1,436 @@
+\section{A sparse macrograph for End-of-Line}\label{sec:macrograph}
+
+We first replace the circuit transitions by a graph in which one edge
+changes at most one tape bit and its occupation bit.  The graph is
+specified by short labels and local transition rules; its vertices are
+not enumerated.  The use of a clock to expose sparse circuit updates
+has a close precedent in Rubinstein's LocalEndOfALine
+construction~\cite[Sections~5--5.1]{Rubinstein2016Settling}, where a
+counter schedules activation and deactivation of individual wires.
+We give the transcript, reciprocal proposals, and bounded-incidence
+validity description needed here explicitly.
+
+Throughout the outer construction, let $n_0$ be the
+number of input bits of the End-of-Line instance and let $N$ be its
+complete binary encoding length.  We use the promises
+\begin{equation}\label{macro:promises}
+ P(0^{n_0})=0^{n_0},\qquad S(0^{n_0})\ne0^{n_0},\qquad
+ P(S(0^{n_0}))=0^{n_0}.
+\end{equation}
+Thus a nonzero string $y$ is an answer if
+\begin{equation}\label{macro:answer}
+ P(S(y))\ne y\quad\hbox{or}\quad S(P(y))\ne y.
+\end{equation}
+
+\subsection{Sparse transcripts and their two orders}\label{macro:transcripts}
+
+Normalize both circuits to gates of fan-in at most two.  In particular,
+replace any larger AND or OR by a binary tree.  Give every input and
+every gate a distinct tape position.  For each listed output, introduce
+a separate terminal copy gate, even if several listed outputs originally
+name the same wire.  Replace the outgoing uses of a wire by a binary
+tree of copy gates, including its uses as feeds to terminal copies.
+A wire with $d$ uses needs $O(d)$ such gates.  The total number of
+positions is therefore bounded by a constant times the number of gates,
+connections, and input and output list entries in the original instance,
+and hence is $O(N)$.
+
+These changes preserve $S$ and $P$.  They also make every tape position
+an operand of only a bounded number of internal gate rules.  Choose a
+topological order of the nonterminal gates of each circuit, followed by
+all its terminal output copies.  Such an order exists because those
+copies have no internal consumers: any branching needed for other uses
+was placed before them.  Copy gates here are auxiliary transcript rules
+and need not belong to the source circuit's original basis.
+
+Pad the tape with dummy positions to a power of two $h=2^\ell$.
+An arbitrary fixed lower cutoff on $h$ may be imposed, and still
+$h=O(N)$.  Write $[h]=\{0,\ldots,h-1\}$.  On these same positions define
+the two permutations
+\begin{align*}
+ \pi_{\mathrm f}:\;&S\text{ inputs},\ S\text{ gates},\
+ P\text{ inputs},\ P\text{ gates},\ \text{dummies},\\
+ \pi_{\mathrm r}:\;&P\text{ inputs},\ P\text{ gates},\
+ S\text{ inputs},\ S\text{ gates},\ \text{dummies},
+\end{align*}
+using the chosen gate order inside each block.  For a content array
+$D\in\{0,1\}^{[h]}$, let $\operatorname{pref}_{\pi,k}(D)$ agree with
+$D$ on $\pi(0),\ldots,\pi(k-1)$ and be zero elsewhere.  Its occupation
+array is the indicator of these $k$ positions.  Empty and full tapes
+have occupation arrays $\mathbf 0$ and $\mathbf 1$, respectively.
+The content and occupation arrays are separate: an occupied position
+may contain zero.
+
+For a full content array $D$, the notation
+$\operatorname{in}_S(D)$, $\operatorname{out}_S(D)$,
+$\operatorname{in}_P(D)$, and $\operatorname{out}_P(D)$ denotes the
+vectors at the designated input or terminal output positions.  A
+\emph{valid full transcript} $Q_x$ computes $S$ on input $x$, copies
+its output to the inputs of $P$, computes $P$, and satisfies
+\begin{equation}\label{macro:full-transcript}
+ \operatorname{in}_S(Q_x)=x,\qquad
+ \operatorname{in}_P(Q_x)=\operatorname{out}_S(Q_x),\qquad
+ \operatorname{out}_P(Q_x)=x.
+\end{equation}
+Its dummy positions are zero.  Consequently $Q_x$ exists precisely
+when $P(S(x))=x$, and is unique when it exists.
+
+For every $y\in\{0,1\}^{n_0}$, define two complete computation templates,
+without imposing any terminal comparisons.  The template $U_y$ first
+computes $S(y)$ and then $P(S(y))$; the template $V_y$ first computes
+$P(y)$ and then $S(P(y))$.  Both occupy the same tape coordinates and
+have zero dummies.  In $V_y$, the $P$ inputs are $y$ and the $S$ inputs
+are $P(y)$.  Thus $U_y$ is a valid full transcript exactly when
+$P(S(y))=y$, in which case it is $Q_y$; and $V_y$ is a valid full
+transcript exactly when $S(P(y))=y$, in which case it is $Q_{P(y)}$.
+
+\begin{definition}[Computed prefixes]\label{macro:prefixes}
+A \emph{forward prefix of length $k$ with parameter $y$} has the first
+$k$ positions in $\pi_{\mathrm f}$ occupied.  At occupied positions it
+obeys these rules: $S$ inputs copy the corresponding bits of $y$;
+$P$ inputs copy the corresponding designated $S$ outputs; every gate
+obeys its Boolean or copy rule; and dummies are zero.  In addition,
+each occupied designated $P$ output equals the corresponding bit of
+$y$.  Unoccupied contents are zero.
+
+A \emph{reconstruction prefix of length $k$ from $y$} uses
+$\pi_{\mathrm r}$.  Its occupied $P$ inputs copy $y$, its occupied
+$S$ inputs copy the designated $P$ outputs, and its occupied gates
+and dummies obey the same rules as above.  Each occupied designated
+$S$ output must additionally equal the corresponding bit of $y$.
+Unoccupied contents are again zero.
+\end{definition}
+
+Every operand in a prefix rule is either an earlier occupied position
+or a specified bit of $y$.  In particular, a designated comparison is
+an extra test on the newly computed terminal copy, not a substitute
+for its computation rule.
+
+\begin{lemma}[Unique prefixes and their first obstruction]
+\label{macro:prefix-uniqueness}
+For a fixed $y$, the valid forward prefixes exist uniquely for an
+initial interval of lengths $0\le k\le k_{\mathrm f}(y)$ and equal
+$\operatorname{pref}_{\pi_{\mathrm f},k}(U_y)$.  The valid
+reconstruction prefixes likewise exist uniquely for
+$0\le k\le k_{\mathrm r}(y)$ and equal
+$\operatorname{pref}_{\pi_{\mathrm r},k}(V_y)$.  Moreover,
+\begin{align}
+ k_{\mathrm f}(y)=h&\quad\Longleftrightarrow\quad P(S(y))=y,
+ \label{macro:forward-obstruction}\\
+ k_{\mathrm r}(y)=h&\quad\Longleftrightarrow\quad S(P(y))=y.
+ \label{macro:reverse-obstruction}
+\end{align}
+If a maximal length is less than $h$, the next position is a designated
+output at which the additional comparison fails.
+\end{lemma}
+
+\begin{proof}
+Induct along the relevant order.  Input copies, gates, and dummies
+uniquely determine the next content bit from data already determined.
+These are exactly the bits of $U_y$ or $V_y$.  The only possible
+obstruction is an additional terminal comparison.  Shortening a valid
+prefix removes requirements without changing retained bits, so the
+valid lengths form an initial interval.  At length $h$, all terminal
+comparisons have been imposed, giving the two equivalences.
+\end{proof}
+
+\subsection{The cyclic schedule and reciprocal proposals}
+\label{macro:schedule}
+
+A logical tape vector is
+\[
+ b=(A,E^A,B,E^B)\in\{0,1\}^{4h},
+\]
+where $A,B$ are contents and $E^A,E^B$ are occupations.  The schedule
+uses four phases.  To see their effect when all computations succeed,
+suppose $Q_x$ and $Q_y$ exist and $y=S(x)$.  Starting with $A=Q_x$
+and $B$ empty, it fills $B$ with $Q_y$, erases $A$ by reversing
+reconstruction from $y$, copies $B$ into $A$, and erases $B$.
+The resulting tapes are $A=Q_y$ and $B$ empty.  The identity
+$P(y)=x$, which follows from validity of $Q_x$, is what makes the
+reconstruction recover the old tape.
+
+For intermediate prefixes, including those at a failed terminal
+comparison, validity is defined as follows.  The stage $s$ lies in
+$\mathbb Z/(4h)\mathbb Z$.  Write $\mathcal V_s$ for the following
+set of valid logical vectors; the endpoint descriptions in adjacent
+cases are identified.
+\begin{enumerate}[label=\textup{(\roman*)}]
+ \item $0\le s\le h$: $A=Q_x$ is full for some $x$, and $B$ is a
+ forward prefix of length $s$ with parameter
+ $y=\operatorname{out}_S(A)=S(x)$.
+ \item $h\le s\le2h$: $B=Q_y$ is full for some $y$, and $A$ is a
+ reconstruction prefix of length $2h-s$ from
+ $y=\operatorname{in}_S(B)$.
+ \item $2h\le s\le3h$: $B$ is a valid full transcript and
+ $A=\operatorname{pref}_{\pi_{\mathrm f},s-2h}(B)$.
+ This copied prefix has no additional computation requirements.
+ \item $3h\le s\le4h$: $A$ is a valid full transcript and
+ $B=\operatorname{pref}_{\pi_{\mathrm f},4h-s}(A)$.
+\end{enumerate}
+Occupations in every case are the stated full or prefix indicators.
+Stage $4h$ is stage $0$, at which $A$ is full and $B$ is empty.
+
+\begin{lemma}[Boundary agreement]\label{macro:boundaries}
+The two validity descriptions agree at each of $h,2h,3h$, and $4h=0$.
+\end{lemma}
+
+\begin{proof}
+At stage $h$, the first description gives
+\[
+ A=Q_x,\qquad B=Q_y,\qquad y=S(x),\qquad P(y)=x.
+\]
+The reconstruction template from $y$ computes $P(y)=x$ and then
+$S(x)=y$, so it agrees with $A$ at every position and satisfies all
+its comparisons.  This gives the second description.  Conversely,
+the second description at $h$ gives $B=Q_y$ and a full reconstruction
+$A=V_y$ with $S(P(y))=y$.  Put $x=P(y)$.  Then
+$P(S(x))=P(y)=x$, so $A=Q_x$ and $\operatorname{out}_S(A)=y$.
+Since $B=Q_y$, it is the full forward prefix required in the first
+description.  These identities include all copy gates and dummies.
+At $2h$, both descriptions have $A$ empty and $B$ a valid full
+transcript.  At $3h$, both have $A=B$ a valid full transcript.
+At $4h=0$, both have $A$ full and $B$ empty.
+\end{proof}
+
+For each \emph{start frame} $c\in\{0,\ldots,4h-1\}$, define a
+forward proposal $F_c$ from stage $c$ to stage $c+1$, and a reverse
+proposal $R_c$ from stage $c+1$ to stage $c$, with stages reduced
+modulo $4h$.  Thus at current stage $s$, the successor uses $F_s$
+and the predecessor uses $R_{s-1}$, where the latter subscript is
+reduced modulo $4h$.  The following table specifies their content changes.
+Every fill or copy sets the corresponding occupation to one, and
+every erasure sets it to zero.  All other bits remain unchanged.
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Start frame & Position $j$ & $F_c$ & $R_c$ \\
+\midrule
+$0\le c<h$ & $\pi_{\mathrm f}(c)$ & fill $B_j$ forward & erase $B_j$ \\
+$h\le c<2h$ & $\pi_{\mathrm r}(2h-c-1)$ & erase $A_j$ & fill $A_j$ by reconstruction \\
+$2h\le c<3h$ & $\pi_{\mathrm f}(c-2h)$ & copy $B_j$ to $A_j$ & erase $A_j$ \\
+$3h\le c<4h$ & $\pi_{\mathrm f}(4h-c-1)$ & erase $B_j$ & copy $A_j$ to $B_j$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+A computed fill always writes its Boolean rule value, even if the
+additional terminal comparison fails.  Thus the proposal itself is
+defined separately from the test of whether its result is valid.
+
+The \emph{macrograph} has vertex set
+\[
+ \mathcal V=\{(s,b):s\in\mathbb Z/(4h)\mathbb Z, b\in\mathcal V_s\}.
+\]
+It has an edge $(c,b)\longrightarrow(c+1,b')$ precisely when
+$b'=F_c(b)$ and both endpoints are valid.
+
+\begin{lemma}[Reciprocity and local existence tests]
+\label{macro:local-edges}
+Whenever $b\in\mathcal V_c$ and $b'\in\mathcal V_{c+1}$,
+\begin{equation}\label{macro:reciprocity}
+ b'=F_c(b)\quad\Longleftrightarrow\quad b=R_c(b').
+\end{equation}
+For a valid input to either proposal, validity of its output is
+determined by a bounded number of bits at public, frame-dependent
+addresses.  The forward proposal can fail only when $0\le c<h$ and
+the new forward terminal comparison fails.  The reverse proposal can
+fail only when $h\le c<2h$ and the new reconstruction terminal
+comparison fails.  The graph has indegree and outdegree at most one,
+and no self-edges.
+\end{lemma}
+
+\begin{proof}
+In the first range, erasing the newly filled position recovers its
+previous blank content and occupation.  Conversely, a valid longer
+forward prefix has the uniquely prescribed value at its last
+position, so filling its shortened prefix recovers it.  In the second
+range, erasure shortens a reconstruction prefix.  Its erased value
+is uniquely determined by earlier retained positions and the
+unchanged full tape $B$, so reverse reconstruction recovers it.
+The converse follows from the same uniqueness.  In the last two
+ranges, the unchanged full tape determines the copied value,
+and erasure recovers the blank position.  Boundary agreement applies
+to each use of these statements at a boundary.  In particular,
+at $c=4h-1$, the reverse proposal from stage zero copies
+$A_{\pi_{\mathrm f}(0)}$ into the first forward position of the empty
+$B$ tape, exactly reversing the wraparound erasure.
+
+Shortening a valid computed prefix is always valid, as are extending
+or shortening a copied prefix.  When extending a computed prefix,
+all earlier conditions remain true.  Its next value is obtained
+from at most two earlier operands or a specified full-tape input
+bit, so the only new condition that can fail is the stated terminal
+comparison.  That comparison needs one additional specified bit.
+Thus the relevant operands, old bits, and comparison bits suffice
+to decide both proposals and the corresponding existence flags.
+Equation~\eqref{macro:reciprocity} gives at most one predecessor,
+and the definition gives at most one successor.  Every edge changes
+the stage by one modulo $4h$, and $4h\ge4$, so no edge is a self-edge.
+\end{proof}
+
+\subsection{Endpoints, sparse edits, and uniform size}
+\label{macro:interface}
+
+The following statement is the interface used by the evolving
+representation.
+
+\begin{lemma}[Macrograph interface]\label{lem:macrograph}
+From every promised End-of-Line instance of explicit length $N$, one
+can deterministically construct, in time polynomial in $N$, the
+above tape specification with $h=2^\ell=O(N)$, the stage conditions
+$\mathcal V_c$, and the following data and algorithms.
+\begin{enumerate}[label=\textup{(\roman*)}]
+ \item The macrograph has indegree and outdegree at most one, no
+ self-edges, and no isolated vertices.  It has a distinguished source
+ $v_*$ whose label and actual successor are computable in polynomial
+ time.  Every endpoint other than $v_*$ supplies a nonzero
+ End-of-Line answer by reading a designated vector on a full tape.
+ \item Forward and reverse proposals at the same start frame are
+ reciprocal on valid pairs.  Their edits and existence flags use
+ only a fixed number of logical bits at public addresses, with a
+ fixed finite set of Boolean decision rules.
+ \item There is a fixed finite alphabet
+ $\Sigma=\{-1,0,1\}^4$ and public edit vectors $h_\sigma(c)$ such
+ that each chosen proposal has the form
+ $b\mapsto b+h_\sigma(c)$.  One public address is allotted to each
+ logical array.  On actual edges only the active tape's content
+ position and its occupation position can change.  The same fixed
+ edit formulas are defined over any field, whether or not their
+ arguments represent valid Boolean tapes.
+ \item For each fixed phase, the local tape requirements have
+ bounded arity and bounded operand multiplicity, uniformly in $N$.
+ The full tape specification and all frame-dependent rule and
+ address tables have $O(h)$ records of $O(\log(N+2))$ bits each.
+ A vertex label has $4h+\lceil\log_2(4h)\rceil=O(N)$ bits;
+ validity and endpoint decoding take polynomial time.  These
+ bounds concern descriptions and individual labels and do not
+ require enumeration of the macrograph.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We first identify all endpoints.  A missing successor can occur
+only in the first range of the schedule.  Write its full tape as
+$A=Q_x$ and put $y=\operatorname{out}_S(A)=S(x)$.  The current
+$B$ tape is its longest valid forward prefix, so
+Lemma~\ref{macro:prefix-uniqueness} gives
+\begin{equation}\label{macro:sink-identity}
+ P(S(y))\ne y,\qquad P(y)=x.
+\end{equation}
+If $y=0^{n_0}$, then $x=P(0^{n_0})=0^{n_0}$ and
+$y=S(0^{n_0})\ne0^{n_0}$, a contradiction.  Thus this designated
+vector is a nonzero End-of-Line answer.  Such a vertex has a
+predecessor: shorten its forward prefix when its length is positive;
+at stage zero use the reverse wraparound copy from the preceding
+frame.
+
+A missing predecessor can occur only at a stage $s=c+1$ with
+$h\le c<2h$.  Its full tape is $B=Q_y$, where
+$y=\operatorname{in}_S(B)$, and its reconstruction prefix has its
+maximal length $k_{\mathrm r}(y)<h$.  Hence
+\begin{equation}\label{macro:source-identity}
+ s=2h-k_{\mathrm r}(y),\qquad S(P(y))\ne y.
+\end{equation}
+For $y\ne0^{n_0}$ this is again a permitted answer.  The vertex
+has a successor obtained by shortening the reconstruction prefix;
+if the prefix is empty, the next copying step supplies a successor.
+Every proposal in the two copying ranges succeeds in the relevant
+direction, except that an incoming reconstruction proposal at stage
+$2h$ is covered by the case just considered.  Together with
+Lemma~\ref{macro:local-edges}, this exhausts the possible missing
+neighbors and proves that no vertex is isolated.
+
+It remains to specify the zero-labelled exception.  The last promise
+in \eqref{macro:promises} supplies the unique full transcript
+$Q_{0^{n_0}}$, whereas the first two promises give
+\[
+ S(P(0^{n_0}))=S(0^{n_0})\ne0^{n_0}.
+\]
+Let $k_*=k_{\mathrm r}(0^{n_0})<h$.  Then $v_*$ is exactly the
+vertex at stage $2h-k_*$ whose $B$ tape is $Q_{0^{n_0}}$ and whose
+$A$ tape is
+$\operatorname{pref}_{\pi_{\mathrm r},k_*}(V_{0^{n_0}})$,
+with their prescribed occupations.  Prefix uniqueness proves that
+this is the only missing-predecessor vertex with designated vector
+zero.  It has no predecessor and has the successor just described.
+Evaluate $U_{0^{n_0}}$ and $V_{0^{n_0}}$, locate the first failed
+reconstruction terminal comparison, and take the preceding prefix.
+This computes $v_*$ and its successor in polynomial time.  This
+proves the endpoint claims, including the existence of the public
+source.  Other directed paths and directed cycles may remain in the
+graph; nothing here requires one connected component.
+
+We next make the local edit interface explicit.  At start frame $c$,
+let $j(c)$ be the position in the transition table.  Allot this
+position to the content and occupation arrays of the active tape,
+and allot the fixed default position $0$ to the two inactive arrays.
+Denote these four addresses by $j_D(c)$, for
+$D\in\{A,E^A,B,E^B\}$.  If $\mathbf e_{D,j}$ is the unit vector
+at position $j$ of array $D$, define, over a field $K$,
+\begin{equation}\label{macro:finite-edits}
+ h_\sigma(c)=\sum_{D\in\{A,E^A,B,E^B\}}
+       \sigma_D\mathbf e_{D,j_D(c)}\in K^{4h},
+ \qquad \sigma\in\{-1,0,1\}^4,
+\end{equation}
+where the integers $-1,0,1$ are mapped into $K$.  For a proposed
+Boolean write, choose its content coefficient as the desired bit
+minus the old bit and its occupation coefficient as the desired
+occupation minus the old occupation.  Set both inactive coefficients
+to zero.  Each coefficient lies in $\{-1,0,1\}$, and the resulting
+additive edit is precisely the proposal, in either direction.
+The vector in \eqref{macro:finite-edits} is public once $c$ and
+$\sigma$ are fixed; addition by it is defined on all of $K^{4h}$.
+The assertion about valid Boolean proposals does not require a
+validity interpretation for other field-valued inputs.
+
+The necessary public data at a frame are its phase, active tape,
+write position, rule type, at most two operand addresses, the old
+content and occupation addresses, and, when applicable, the extra
+comparison address.  A forward fill uses its forward rule; a reverse
+fill uses its reconstruction rule.  Lemma~\ref{macro:local-edges}
+shows that the existence flag is the new comparison result in the
+only direction where failure is possible, and is one otherwise.
+These are fixed Boolean decisions once the finitely many addressed
+bits and public rule data are supplied.  Define the decisions on
+arbitrary Boolean reads by the same formulas, using a fixed default
+rule and address for unused roles.  Their agreement with graph
+neighbors is asserted on valid input vertices.  No global validity
+check or full circuit evaluation is hidden in an existence flag.
+
+For completeness, the bounded-multiplicity assertion includes more
+than internal gate edges.  Each internal value has boundedly many
+uses after copy-tree normalization.  Each designated output is used
+once by the other circuit's input-copy rule and participates in only
+a bounded number of terminal or external-vector comparisons.  Each
+external-vector bit is used once as an input bit and once for its
+corresponding terminal comparison.  Copied-prefix equations use each
+full-tape position once.  Occupation indicators condition only the
+rules at their positions; prefix monotonicity, if expressed by
+adjacent-position tests, reads a position at most twice in each
+order.  Thus all local content, bitness, occupation, gate, copy,
+comparison, and dummy conditions use bounded-arity records, and each
+logical position appears as an operand only boundedly often across
+the fixed list of phases.  The requirement that the occupied prefix
+have its specified length is separate: one may either inspect the
+prescribed occupation pattern directly, or use prefix monotonicity
+together with the occupation sum.  The latter is a single global
+count condition for each tape and will be represented separately in
+the algebraic construction.
+
+All normalization and ordering operations are deterministic.  Their
+records and the two permutations occupy $O(h\log(N+2))$ bits.
+Tabulate the transition data for the $4h$ frames in the same space
+bound, including both directions and defaults.  Scanning the arrays
+and these records tests membership in $\mathcal V_s$ in polynomial
+time.  The designated endpoint vectors and the circuit inequalities
+\eqref{macro:sink-identity} and \eqref{macro:source-identity} give a
+polynomial-time endpoint decoder.  At every fixed stage a valid
+vertex is determined by the input of its full transcript, since
+its other tape is a unique computed or copied prefix.  Consequently
+the graph has at most $4h\,2^{n_0}$ vertices, even though an individual
+label has only $O(N)$ bits.  The construction outputs the normalized
+records, public tables, and algorithms, never this potentially
+exponential vertex list.  All constants in these bounds depend only
+on the fixed Boolean basis and padding cutoff.  This proves the
+remaining uniformity and size assertions.
+\end{proof}

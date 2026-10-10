@@ -1,0 +1,366 @@
+\section{Introduction}\label{sec:intro}
+
+A logarithmic-space machine can remember a bounded number of positions
+in its input, but cannot keep a polynomial-length computation or random
+tape. Can fresh random bits increase what such a machine can decide?
+We answer this question by giving a deterministic logarithmic-space
+simulation of every polynomial-time randomized logarithmic-space
+computation with bounded error.
+
+We use machines with finite control, an endmarked read-only input,
+finitely many work tapes, and fresh independent fair bits. Input heads
+are confined between the endmarkers. All randomized running-time
+bounds hold on every random tape. Space counts traversed writable cells
+in bits, including every simultaneously live counter, numerical register
+and suspended call; visiting a blank work cell counts toward space.
+A transducer has a one-way write-only output tape. Throughout,
+$n$ is the input length and logarithms have base two.
+
+The class $\Lclass$ consists of languages decidable by deterministic
+machines in $O(\log(n+2))$ work space. Such a halting deterministic
+machine has only polynomially many configurations and hence runs in
+polynomial time. The class $\RL$ permits
+polynomial-time randomized machines in this space, with acceptance
+probability zero on no inputs and at least $1/2$ on yes inputs.
+For $\BPL$, the corresponding probabilities are at most $1/3$ and at
+least $2/3$.
+
+\begin{theorem}[Exact logarithmic-space derandomization]\label{thm:main}
+\[
+                 \Lclass=\RL=\BPL.
+\]
+\end{theorem}
+
+The proof approximates arbitrary acceptance probabilities. This gives
+the two-sided statement directly, and also applies to computations
+whose acceptance probabilities have no decision gap. Its quantitative
+form separates the memory needed for the input from the memory needed
+for the requested accuracy.
+
+\begin{theorem}[Acceptance-probability approximation]\label{thm:probability}
+Fix a randomized machine $\mathcal M$ with polynomial worst-case
+running time and $O(\log(n+2))$ work space. Let $p_{\mathcal M}(x)$ be
+its acceptance probability on an input $x$ of length $n$. There is a
+uniform deterministic algorithm which, on input $(x,1^q)$ with $q\ge1$,
+outputs an integer $0\le a\le2^{q+2}$ satisfying
+\[
+       \left|a2^{-(q+2)}-p_{\mathcal M}(x)\right|\le2^{-q}.
+\]
+It uses $O(\log(n+2)+q)$ work space and
+$(n+2)^{O(1)}2^{O(q)}$ time. The constants depend only on $\mathcal M$.
+\end{theorem}
+
+In particular, every fixed inverse-polynomial accuracy is attained in
+logarithmic space and polynomial time. The precision parameter is unary;
+the running-time bound is exponential in general $q$. We first prove
+the fixed inverse-polynomial result and then obtain the single
+variable-precision algorithm by padding. Section~\ref{sec:conclusion}
+also derives total deterministic separators for bounded-error promise
+problems and constructs accepting runs when the machine's acceptance
+probability has a specified inverse-polynomial lower bound.
+
+The simulation is also effective at the level of machine descriptions.
+Given a source program and supplied polynomial-time and logarithmic-space
+bounds, one terminating compiler produces a deterministic decider and
+explicit numerical bounds for its space and time
+(Theorem~\ref{thm:effective-simulation}). The supplied bounds are
+hypotheses on the source, rather than properties the compiler must decide.
+Section~\ref{sec:compiler} constructs this compiler by specializing one
+fixed deterministic library.
+
+\subsection{Historical context}
+
+The complexity of probabilistic Turing machines was developed by
+Gill~\cite{Gill1977}, including measures of both time and tape usage.
+Random walks made the logarithmic-space question concrete:
+Aleliunas, Karp, Lipton, Lov\'asz and Rackoff obtained polynomial-time
+randomized algorithms for undirected connectivity and explicitly asked
+whether polynomial-time randomized logarithmic space could be simulated
+in deterministic logarithmic space~\cite{AleliunasKLLR1979}.
+Early work also studied probabilistic machines without a polynomial-time
+restriction. Borodin, Cook and Pippenger obtained a quadratic-space
+deterministic simulation in this broader setting
+\cite{BorodinCookPippenger1983}.
+The distinction between a space bound and simultaneous time and space
+bounds is essential throughout this history.
+
+Pseudorandom generators attack the problem by replacing a long sequence
+of fresh random bits with the output generated from a short seed.
+Ajtai, Koml\'os and Szemer\'edi gave early logarithmic-space
+constructions that hit small-space tests using short random
+strings~\cite{AjtaiKomlosSzemeredi1987}. Babai, Nisan and Szegedy
+subsequently obtained pseudorandom generators through multiparty
+communication bounds~\cite{BabaiNisanSzegedy1992}.
+Nisan's generator uses $O(S\log R)$ seed bits for a space-$S$
+computation reading $R$ random bits~\cite{Nisan1992}.
+For logarithmic space and polynomially many bits this gives
+$O(\log^2 n)$ seed length; direct seed enumeration has a
+quasipolynomial time bound. Nisan's later simultaneous simulation
+achieves polynomial time and $O(\log^2 n)$ space
+\cite{Nisan1994RLinSC}. Although its title uses $\mathrm{RL}$,
+that result includes two-sided bounded error.
+For $S(n)\ge\log n$, Nisan and Zuckerman showed that a space-$S$
+computation using $\operatorname{poly}(S)$ random bits can be simulated
+using only $O(S)$ random bits and $O(S)$ space~\cite{NisanZuckerman1996}.
+The restriction on the original number of random bits is substantive;
+for logarithmic space it permits polylogarithmically many bits.
+
+Saks and Zhou reduced the deterministic space needed for general
+bounded-error logarithmic-space computation to
+$O(\log^{3/2}n)$~\cite{SaksZhou1999}.
+Cai, Chakaravarthy and van Melkebeek established a simultaneous
+tradeoff: for each fixed rational $0\le\alpha\le1/2$, the simulation
+uses time $n^{O(\log^{1/2-\alpha}n)}$ and space
+$O(\log^{3/2+\alpha}n)$
+\cite{CaiChakaravarthyVanMelkebeek2006}.
+The polynomial-time endpoint has squared-logarithmic space.
+Hoza subsequently improved the general space bound to
+$O(\log^{3/2}n/\sqrt{\log\log n})$
+\cite[Theorem~1.6 and Corollary~A.5]{Hoza2021}.
+These smaller space containments do not assert the same polynomial-time
+endpoint. Hoza's work also develops weighted pseudorandomness, in which
+signed or real weights replace an ordinary probability distribution;
+the space-containment improvement and the new weighted-generator
+construction are distinct results of that paper.
+
+Acceptance-probability estimation also connects derandomization to
+stochastic matrix products and inverses. Ahmadinejad, Kelner, Murtagh,
+Peebles, Sidford and Vadhan developed high-precision small-space
+algorithms for random-walk probabilities, with stronger bounds for
+Eulerian graphs~\cite{AhmadinejadKelnerMurtaghPeeblesSidfordVadhan2020}.
+Cohen, Doron, Sberlo and Ta-Shma later used varying precision across
+recursion to improve the space complexity of long stochastic matrix
+products~\cite{CohenDoronSberloTaShma2023}. The construction below
+works with a finite inverse on a time-layered configuration graph;
+its correction and copy hierarchy controls the information retained
+while individual entries are evaluated.
+
+Structural restrictions on a computation provide another route.
+For undirected connectivity, Nisan, Szemer\'edi and Wigderson obtained
+deterministic space $O(\log^{3/2}n)$~\cite{NisanSzemerediWigderson1992},
+subsequently improved to $O(\log^{4/3}n)$ by Armoni, Ta-Shma,
+Wigderson and Zhou~\cite{ArmoniTaShmaWigdersonZhou2000}.
+Reingold's logarithmic-space algorithm, whose conference version
+appeared at STOC 2005, settles undirected connectivity~\cite{Reingold2005,Reingold2008}.
+Reingold, Trevisan and Vadhan studied regular directed graphs and gave
+logarithmic-space path search for Eulerian directed graphs
+\cite{RTV2006}. Their oblivious walk constructions impose additional
+labeling conditions. General directed configuration graphs need not
+have these properties, so those results did not settle the unrestricted
+randomized computation problem.
+A read-once branching program is a layered deterministic computation
+that reads the input symbols once in a fixed order (bits in the binary
+case). Its length is the number of steps,
+and its width is the largest number of states in a layer.
+A $1/2$-hitting set for a class of programs contains an accepting input
+for every member that accepts at least half of all input strings.
+The relation between one-sided and two-sided derandomization also
+requires care. Cheng and Hoza proved that one uniformly logarithmic-space-enumerable
+$1/2$-hitting-set family for all width-$n$, length-$n$ read-once branching
+programs would yield
+$\mathsf L=\mathsf{BPL}$~\cite{ChengHoza2022}.
+The premise is a hitting-set construction; it is not merely the
+language-class equality $\mathsf{RL}=\mathsf L$.
+
+Recent results refine both general and structured models.
+Chen, Cohen, Doron, Khaskelberg and Ta-Shma improve error reduction for
+weighted generators; in the polynomial-width regime their construction
+has seed length $\log|\Sigma|+O(\log^2 T+\log(1/\delta))$, where
+$T$ is branching-program length, $\Sigma$ its alphabet and $\delta$
+the error~\cite{ChenCohenDoronKhaskelbergTaShma2026}.
+Cheng and Wu obtain simultaneous polynomial-time and polylogarithmic-space
+simulations for regular branching programs, with extensions to polynomial-time
+randomized logarithmic-space machines whose two-way read-only random tape
+visits each cell at most constantly often, and to such machines with read-once randomness
+and an auxiliary stack whose push, pop and idle schedule is independent
+of the random bits. Consecutive stays on a random-tape cell count as one
+visit~\cite[Theorems~5--6]{ChengWu2026SC}.
+Hardness-versus-randomness approaches additionally give conditional,
+certified and per-instance alternatives; Pyne and Tell survey this
+line of work~\cite{PyneTell2026}.
+
+Effectivity has its own substantial antecedents.
+Pyne, Raz and Zhan construct a universal deterministic estimator whose
+$O(S(n))$ space guarantee follows from
+$\mathsf{prBPL}\subseteq\mathsf{SPACE}[O(S(n))]$, for
+space-constructible $S(n)\ge\log n$
+\cite[full version, Theorem~5.1]{PyneRazZhan2023}.
+Here $\mathsf{prBPL}$ denotes promise problems solvable in polynomial
+time and randomized logarithmic space with bounded error.
+The compiler below uses a fixed separator established in this paper
+and supplies explicit source-specific numerical resource bounds.
+Its construction should be read in this context of universal
+simulation, with the source bounds supplied as part of the compiler input.
+
+\subsection{Proof strategy}
+
+Fix a randomized machine and an input of length $n$, and write
+$B=\Theta(\log(n+2))$.  The proof constructs a finite family of estimates of its
+acceptance probability, indexed by $O(B)$-bit descriptions.  More than
+three quarters of these estimates are accurate;
+every member of the family can be evaluated by a halting deterministic computation
+using $O(B)$ space.  Exhaustive enumeration then gives a deterministic
+answer.  The second guarantee is essential: enumeration must finish even on choices
+for which the estimate is inaccurate.
+
+\paragraph{The exact target.}
+The configuration reduction of Section~\ref{sec:model} gives a strictly
+forward substochastic matrix $S$ on a polynomial-size set $V_0$ and a
+vector $e\in\{0,1\}^{V_0}$ indicating accepting final configurations.
+The vector
+\[
+                         p_0=(I-S)^{-1}e
+\]
+records acceptance probabilities from all configurations.  The inverse
+is a finite sum, because every transition advances time.
+Section~\ref{sec:hierarchy} replaces $S$ successively by transitions
+$C_l$ on sets $V_l$ of configuration copies, carrying accumulated
+rewards $W_l\in[0,1]^{V_l}$.  Each copy step has a designated primary
+copy.  If $z_l$ is obtained from the original start $x_0$ by always
+choosing that copy, then
+\[
+       0\le p_0(x_0)-W_l(z_l)
+                    \le |V_0|\,2^{-(H-1)l},
+\]
+where $H\ge4$ is fixed.  Thus $L=O(B)$ stages make $W_L(z_L)$ accurate
+to any fixed inverse-polynomial error.  Every stage has at most
+$N=2^{C_NB}$ vertices for a fixed constant $C_N$.
+
+\paragraph{From the estimator to a deterministic decision.}
+The algorithm estimates $W_L$ in one shared finite random environment
+$\sigma$.  Its law is uniform on a specified finite set of matrix-and-bit-string
+encodings of length $O(B)$.  On each channel a retention test
+selects vertices; write $X_f(v)$ for the indicator that $v$ is retained
+at the final stage rate $f=2^{-HL}$, and $\pi_f$ for its probability.
+Section~\ref{sec:env} gives $\pi_f\asymp f$.
+Theorem~\ref{thm:fp-estimators} proves, for the actual estimator $\bar W_L$,
+\[
+ \frac1N\mathbb E_\sigma\sum_{v\in V_L}\frac{X_f(v)}f
+          |\bar W_L(v)-W_L(v)|^8\le C^8 2^{-8p}.
+\]
+Here $p$ is the statistical accuracy exponent.
+Keeping only the summand at $z_L$ gives
+\[
+ \mathbb E\!\left[|\bar W_L(z_L)-W_L(z_L)|^8
+                     \mid X_f(z_L)=1\right]
+       \le N\frac f{\pi_f}C^8 2^{-8p}.
+\]
+The factor $N$ is the price of passing from the integrated bound to one
+specified start.  Since $\log N=O(B)$, taking the estimator's statistical
+budget to be a sufficiently large fixed multiple of $B$ makes $p$ large
+enough to pay this price and gives an
+accurate value on more than three quarters of the conditional
+environments.
+
+The implementation computes dyadic approximations to the same fixed
+value $\bar W_L(z_L)$ on every environment.  Numerical precision
+changes the requested digits, not the lists and ports defining that
+value.  Choosing the stage count, statistical budget and digit accuracy
+makes the total error less than $1/8$ on more than three quarters of
+the encodings conditioned on $X_f(z_L)=1$.  Their median has the same
+error bound.  We enumerate the original encodings with their original
+multiplicities, so the multiset reproduces exactly this conditional law.
+
+Repeated enumeration finds the median while retaining only the current
+encoding and $O(B)$-bit numerical and counting registers.  Every digit
+query used here requests one of the first $O(B)$ binary places,
+terminates in $O(B)$ space, and confines
+its physical input heads between the real endmarkers.  It therefore has only
+$2^{O(B)}$ complete configurations and takes at most that many steps.
+There are also $2^{O(B)}$ encodings, so the entire computation takes
+polynomial time.  Comparing its answer with $1/2$ distinguishes
+acceptance probabilities at most $1/3$ from those at least $2/3$.
+This proves the nontrivial containment in Theorem~\ref{thm:main}.
+
+\paragraph{Why the hierarchy can be estimated.}
+The hierarchy reduces transition entries more rapidly than it increases
+the number of vertices incident to positive entries.  A correction $E$ replaces $C$ by
+$D=C-E+EC$, with
+\[
+                         I-D=(I+E)(I-C).
+\]
+This identity transfers the removed transition contribution into the
+reward.  Detectors identify columns with many substantial entries and
+suppress correction there.  The copy step distributes the remaining
+large entries while controlling how many vertices are incident to them.  An ordered-support argument gives a factorial
+truncation bound, so only constantly many correction steps are needed
+at each stage.
+
+The exact matrices and conditional expectations define the targets;
+they are not stored.  Section~\ref{sec:atom} represents their
+contributions by sample-dependent tables with bounded row support.
+Corrections also have bounded incoming degree.  Their true conditional
+means recover the required entries.  The algorithm substitutes earlier
+estimates into these formulas, so the analysis must bound the resulting
+bias without assuming that the estimated factors are independent.
+Conditional averaging preserves the specified source and endpoint
+retention tests.  Its uniform mixing bound is derived from classical
+property~(T) results of Shalom~\cite{Shalom1999};
+Section~\ref{sec:averaging} proves the finite-action and sampling
+consequences used here.
+
+At parent budget $M$, Section~\ref{sec:est} averages differences between
+child estimates at consecutive budgets $m$ and $m-1$.  These differences
+have small norm because both approximate the same true sample term.
+Their contributions at the same endpoint are combined before measuring
+the difference.
+The slack $M-m$ has two roles: it determines the length of conditional
+averaging available to reduce the noise, and it bounds the description
+of an immediate sample path.  Grouping comparable slacks lets
+Section~\ref{sec:buf-compression} replace each row array by a short list
+of exceptions to a common default.  The proof charges deterministic
+conditional-mean error separately from residual noise.
+
+A product follows a correction edge to an intermediate vertex and then
+queries a right factor there.  Releasing the old source changes the
+weighted error domain.  Bounded incoming degree controls that change,
+and the task's accuracy assignment pays the resulting factor.  Thus
+the same construction that permits a source address to be discarded
+also appears explicitly in the error analysis.
+
+\paragraph{Why the lists fit in logarithmic space.}
+A list entry is found by a path.  Retaining a full endpoint at every
+recursive level would cost too much.  Section~\ref{sec:fp-blocks}
+therefore compares endpoints by short fingerprint keys at small slacks,
+combining polynomial
+evaluation and affine hashing~\cite{Schwartz1980,CarterWegman1979}.
+Candidate endpoints
+can depend on earlier comparisons, so a fixed-pair collision estimate
+alone is insufficient.  A comparison calculation using exact equality
+within one budget block produces candidate sets independent of that
+block's fingerprint bits.  Smooth support functions charge paths that
+leave these sets to lower-call errors; collisions within the fixed sets
+supply the remaining error.  This coupled induction proves the moment
+bound for the actual estimator.
+
+Sections~\ref{sec:arith} and~\ref{sec:ctrl} establish its total space
+bound.  Numerical operations request one bounded digit at a time.
+The controller keeps one vertex cursor, uses bounded inverse ports for
+correction moves, and recovers incoming accesses by traversing finite
+program trees, using the contour idea of Cook and
+McKenzie~\cite{CookMcKenzie1987} and the space-preserving traversal
+perspective of Lange, McKenzie and Tapp~\cite{LMT2000}.  A shared catalytic bit vector permits fingerprint
+comparisons without keeping a key index at every recursive level.
+The controller assigns each call a decreasing recursion allowance $w$,
+with top allowance $O(B)$, and uses the requested digit place $t$ as its
+numerical clock.  If the child has allowance $w'$ and digit place $j$,
+all local data retained during that call occupy at most
+\[
+                         A(w-w')+D(t-j)
+\]
+bits, including the controller copies used by a traversal.  The child
+clock may increase only in proportion to the decrease of allowance.
+These differences telescope along the active call chain; the environment,
+cursor, catalyst and scratch are shared once.  The bound and termination
+do not depend on statistical accuracy.
+
+Section~\ref{sec:conclusion} carries out the median construction for
+fixed inverse-polynomial error and derives the class equality and
+promise separation.  It then obtains one algorithm for all unary
+precision requests by padding, and constructs certified accepting
+computations when the machine's acceptance probability has an
+inverse-polynomial lower bound.
+Section~\ref{sec:compiler} is a separate application of fixed-precision
+approximation: one resource-capped universal interpreter yields a fixed
+deterministic library, whose syntactic specialization supplies explicit
+resource bounds for each source machine.

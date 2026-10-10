@@ -1,0 +1,211 @@
+\section{Recursive procedures and unconditional termination}
+\label{sec:algorithm}
+
+There are four mutually recursive procedures. The main procedure
+$\Solve$ narrows a box, using repeated smaller-rank solves through
+$\Ask$. It chooses the direction of the final narrowing through
+$\OrientPlus$, which repeats $\Orient$. We give all instructions
+first and then prove that this recursion terminates on every tape.
+The later correctness argument will place probabilistic guarantees on
+these already defined computations.
+
+The graph, transformed operator $F$, and number $B_*$ are fixed for the
+whole run. All vector operations are coordinatewise. Scalar shifts such
+as $a+C$ use the same scalar at every coordinate, and rational floors,
+including floors of negative values, are taken toward minus infinity.
+Set
+\begin{equation}\label{eq:global-parameters}
+\begin{gathered}
+ \eta=\frac45,\qquad
+ g=1+\left\lceil\log_2(B_*+1)\right\rceil,\qquad
+ s=\min\{2^j:j\in\N,\ 2^j\ge2^{17}(g+1)\},\qquad h=\frac1s,\\
+ J=2[s(n+1)]^6+1,\qquad \varepsilon=2^{-J}.
+\end{gathered}
+\end{equation}
+The repetition count $J$ is odd. Only the analysis uses $\varepsilon$;
+the algorithm never constructs its denominator $2^J$.
+
+A permitted solver input is
+\[
+ (a,b;B,\alpha,\beta,k,m),\qquad
+ a,b\in\Z^V,\quad a\le b,\quad1\le B\le B_*,\quad b-a\le B,
+\]
+with positive rational support weights and budgets. Unmentioned
+parameters are inherited by a subcall. A changed parameter belongs
+only to that subcall and never alters its caller's parameters.
+Each subcall uses fresh fair bits, independent of its pre-call history.
+Repetitions on a fixed input are independent.
+
+The deterministic routine $\Basic(a,b)$ is exactly that of
+Lemma~\ref{lem:box-solution}: start at $p=a$, compute
+$p'=\clip_{[a,b]}F(p)$ synchronously, return $p$ when $p'=p$, and
+otherwise replace $p$ by $p'$. It will be invoked only at small
+reference widths.
+
+\subsection{The two repetition wrappers}
+
+The following wrappers refer to procedures specified immediately below.
+Their termination, together with the rest of the mutual recursion, is
+proved in Proposition~\ref{prop:termination}.
+
+\begin{procedure}[Repeated comparison]\label{proc:ask}
+For its given solver input, $\Ask$ runs $J$ independent copies of
+$\Solve$ and returns their coordinatewise median.
+\end{procedure}
+
+\begin{procedure}[Repeated orientation]\label{proc:orient-plus}
+For its given orientation input, $\OrientPlus$ runs $J$ independent
+copies of $\Orient$. It returns the majority choice in $\{Y,Z\}$
+and the concatenation of all exceptional-set lists in trial order.
+It retains minority-trial lists and duplicate entries.
+\end{procedure}
+
+Every $\Ask$ below reduces a budget or applies
+Lemma~\ref{lem:reweighting}. The main continuation of $\Solve$ is
+a single unamplified call. Orientation is used only at $R\ge1$, and
+its own width recursion leaves all support parameters unchanged.
+
+\subsection{Narrowing the box}
+
+The tightening loop raises the lower bound or lowers the upper bound
+whenever a repeated solve moves some coordinate by at least $\delta$.
+After it stops, the choice $Z$ caps the upper boundary, while $Y$ caps
+the lower boundary. The exceptional-set calls supplement that one
+main continuation.
+
+\begin{procedure}[The solver]\label{proc:solve}
+Given $(a,b;B,\alpha,\beta,k,m)$, compute $R,\mu$ from
+Equation~\eqref{eq:rank-parameter} and execute these steps.
+\begin{enumerate}[label=\textbf{S\arabic*.},ref=S\arabic*,leftmargin=*]
+\item\label{alg:solve-base}
+If $R<1$, return the vector with coordinate $b_i$ when $\beta_i>m$
+and $a_i$ otherwise. If $R\ge1$ but $B\le128s$, return $\Basic(a,b)$.
+
+\item\label{alg:solve-tighten}
+Define $\delta=\lfloor B/(4s)\rfloor$ and $C=B-\delta$.
+Run the following loop with fixed $B,\alpha,\beta,k,m$ and changing
+bounds, still denoted by $a,b$.
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item Evaluate
+\[
+ r=\Ask(a,b;B,\alpha,\beta,\eta k,m).
+\]
+If $r_i-a_i\ge\delta$ for some $i$, replace the entire lower-bound
+vector $a$ by $r$ and restart the loop. Otherwise proceed without
+changing $a$.
+\item Evaluate
+\[
+ r=\Ask(a,b;B,\alpha,\beta,k,\eta m).
+\]
+If $b_i-r_i\ge\delta$ for some $i$, replace the entire upper-bound
+vector $b$ by $r$ and restart. Otherwise stop the loop with both
+bounds unchanged in this pass.
+\end{enumerate}
+
+\item\label{alg:solve-orient}
+Using the final tightening box, evaluate
+\[
+ (\chi,\mathcal H)=\OrientPlus(a,b;B,\alpha,\beta,k,m),
+\]
+where $\chi\in\{Y,Z\}$ and $\mathcal H$ is a list of subsets of $V$.
+
+\item\label{alg:solve-z}
+When $\chi=Z$:
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item For every entry $H$ of $\mathcal H$, form
+\[
+ \alpha_i^H=\begin{cases}\alpha_i/2,&i\in H,\\\alpha_i,&i\notin H,\end{cases}
+ \qquad r_H=\Ask(a,b;B,\alpha^H,\beta,3k/5,m).
+\]
+\item Execute the main continuation
+\[
+ p=\Solve\bigl(a,\min(b,a+C);C,\alpha,\beta,k,m\bigr),
+\]
+and return the coordinatewise maximum of $p$ and all $r_H$.
+\end{enumerate}
+
+\item\label{alg:solve-y}
+When $\chi=Y$:
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item For every entry $H$ of $\mathcal H$, form
+\[
+ \beta_i^H=\begin{cases}\beta_i/2,&i\in H,\\\beta_i,&i\notin H,\end{cases}
+ \qquad r_H=\Ask(a,b;B,\alpha,\beta^H,k,3m/5).
+\]
+\item Execute the main continuation
+\[
+ p=\Solve\bigl(\max(a,b-C),b;C,\alpha,\beta,k,m\bigr),
+\]
+and return the coordinatewise minimum of $p$ and all $r_H$.
+\end{enumerate}
+\end{enumerate}
+\end{procedure}
+
+A listed call always uses the final tightening box, independent of all
+previous listed outputs. Duplicate entries cause distinct calls. The
+maximum or minimum always includes $p$, so an empty list is permitted.
+
+\subsection{Choosing a direction from moving centers}
+
+An orientation trial repeatedly averages results from the two reduced
+budgets. Large final displacement can determine its choice immediately.
+Otherwise, a fresh sampled iterate supplies the center of a smaller
+orientation call.
+
+\begin{procedure}[Orientation]\label{proc:orient}
+For $(a,b;B,\alpha,\beta,k,m)$ with $R\ge1$, compute $\mu$ and proceed
+as follows.
+\begin{enumerate}[label=\textbf{O\arabic*.},ref=O\arabic*,leftmargin=*]
+\item\label{alg:orient-base}
+If $B\le128s$, compute $p=\Basic(a,b)$ and put
+\[
+ P=\{i:p_i\ge a_i+B/2\}.
+\]
+Return $Y$ with the one-entry list $(V\setminus P)$ if $\mu(P)>1/2$;
+otherwise return $Z$ with $(P)$.
+
+\item\label{alg:orient-loop}
+Initialize
+\[
+ q_0=\left\lfloor\frac{a+b}{2}\right\rfloor,\qquad
+ D=\left\lfloor\frac{B}{32s}\right\rfloor,\qquad
+ E_0=\left\lfloor\frac B8\right\rfloor.
+\]
+For $j=0,\ldots,s-1$, make independent calls
+\[
+\begin{aligned}
+ r_1&=\Ask(q_j-D,q_j+D;2D,\alpha,\beta,\eta k,m),\\
+ r_2&=\Ask(q_j-D,q_j+D;2D,\alpha,\beta,k,\eta m),
+\end{aligned}
+\]
+and set
+\[
+ q_{j+1}=\clip_{[a,b]}\left(\left\lfloor\frac{r_1+r_2}{2}\right\rfloor\right).
+\]
+
+\item\label{alg:orient-motion}
+Form the disjoint displacement sets
+\[
+ P=\{i:(q_s)_i-(q_0)_i>2hB\},\qquad
+ N=\{i:(q_s)_i-(q_0)_i<-2hB\}.
+\]
+If $\mu(P)>1/2$, return $Y$ and $(V\setminus P)$.
+If that test fails but $\mu(N)>1/2$, return $Z$ and $(V\setminus N)$.
+
+\item\label{alg:orient-child}
+If neither test returned, draw $j$ uniformly from $\{0,\ldots,s-1\}$
+using $\log_2s$ fresh bits. Evaluate
+\[
+ (\chi,\mathcal H)=
+ \Orient(q_j-E_0,q_j+E_0;2E_0,\alpha,\beta,k,m).
+\]
+Return $\chi$ and the list $\mathcal H$ followed by $P,N$.
+\end{enumerate}
+\end{procedure}
+
+Store the iterates $q_0,\ldots,q_{s-1}$ as they are produced so that the
+sampled one is available. This is finite local storage and will be charged
+in Section~\ref{sec:complexity}. The comparison cores used to analyze
+these procedures are never computed by the algorithm.
+
+\input{sections/04a-termination}

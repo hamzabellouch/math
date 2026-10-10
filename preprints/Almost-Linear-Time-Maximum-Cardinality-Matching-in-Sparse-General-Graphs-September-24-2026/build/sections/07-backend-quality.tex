@@ -1,0 +1,798 @@
+\section{Frozen decompositions and cycle quality}
+\label{sec:backend-quality}
+
+We now construct the flat-cycle backend of
+Lemma~\ref{lem:flat-cycle}.  This section proves its quality guarantee:
+one recursive level reduces an arbitrary current circulation to local
+correction cycles and a circulation in one smaller graph.  The construction
+uses verified covers of a frozen graph, so its conclusion holds for every
+subsequent state of an epoch, including states chosen adaptively.
+Section~\ref{sec:backend-updates} supplies the path assignments, maintains
+the smaller graph, and publishes a forest in which the returned walks have
+the required representation and recourse.
+
+\subsection{Parameters, scores, and the bottom level}
+
+Continue with the parameters of Lemma~\ref{lem:routing-helper}:
+\begin{equation}
+\label{back:helper-parameters}
+ b=M^{1/a^2},\qquad
+ \Lambda=2^{1000a^2}(1+u),\qquad
+ P_*=\Lambda^{400a^2},\qquad M=2^u.
+\end{equation}
+Here $u$ is a positive multiple of $2a^2$ and
+$S^{1/a}\le M\le S^2$.  All powers in the following display are
+integers:
+\begin{equation}
+\label{back:parameters}
+\begin{gathered}
+ d=2a-4,\qquad k=M^{1/a},\qquad
+ n_i=M^{1-i/(2a)},\qquad G_i=1200a+2i
+       \quad(0\le i\le d),\\
+ r=(1210a+3)a^2,\qquad \Gamma=K_h=\Lambda^2,\\
+ A_*=64r\Gamma K_h b,\qquad
+ p_*=(10P_*)^{a^2+1},\qquad Z_*=40(p_*+1).
+\end{gathered}
+\end{equation}
+In addition to the helper's prerequisites, impose the deterministic checks
+\begin{equation}
+\label{back:guards}
+                 P_*\le b,\qquad 20Z_*A_*\le b^2.
+\end{equation}
+For each fixed $a$, these inequalities hold for all sufficiently large
+$M$: every factor other than the displayed powers of $M$ is a fixed
+power of $1+u$.  A failed prerequisite suspends the parameter branch.
+
+Level $i$ accepts an undirected multigraph on fixed vertex slots, of total
+size at most $n_i$, counting slots and edge copies.  Its lengths are
+positive integers and its signed gradients are integers, with
+\[
+                   1\le\ell_e\le M^{G_i},\qquad
+                   |\gamma_e|\le M^{G_i}.
+\]
+Each edge has an identifier and a reference orientation.  The degree
+bound needed for the running time is a fixed-parameter logarithmic
+power; Section~\ref{sec:backend-updates} proves that this bound persists
+under recursion.  The outer input has degree at most three.
+Write $\OPT_i$ for the maximum circulation ratio on the current
+level-$i$ graph, with the same zero convention as in
+Lemma~\ref{lem:flat-cycle}.
+
+A \emph{certified score} is a nonnegative rational lower bound on the
+absolute gradient divided by the positive raw length of a returned
+traversal list.  A zero score may accompany no candidate.  Raw length
+counts every actual traversal with multiplicity; in the constructions
+below, assigning length one to an artificial null link only enlarges the
+length used for an upper bound.  When a vector is used solely in an
+existential comparison, its length norm is instead the sum of length
+times the absolute \emph{net} coefficient on each edge.  We explicitly
+distinguish these two uses throughout.
+
+\begin{lemma}[Bottom-level search]
+\label{back:base}
+At level $d$, a query can return individual oriented edges forming a
+circulation with certified score at least $\OPT_d/2$, whenever
+$\OPT_d>0$.  Initialization and each graph operation or query cost
+$M^{O(1/a)+o_a(1)}$, and the answer has at most $n_d=M^{2/a}$ pieces.
+\end{lemma}
+
+\begin{proof}
+Replace each undirected edge by its two possible traversals.  For each
+dyadic threshold $\rho=2^j$ with
+\[
+              -(G_d+2)u\le j\le (G_d+1)u,
+\]
+give these two arcs costs $\rho\ell_e-\gamma_e$ and
+$\rho\ell_e+\gamma_e$, respectively.  For every start vertex, tabulate
+minimum costs of walks with each number of arcs from zero through the
+number of vertices, retaining predecessor pointers.  This detects a
+negative closed walk whenever one exists, because a negative closed walk
+contains a negative simple directed cycle.  Keep a witness for the largest
+successful threshold, and return its exact absolute-gradient to raw-length
+ratio.
+
+To justify the approximation, negate a nonzero signed circulation if
+necessary to make its gradient nonnegative.  Orient its used edges along
+their coefficient signs and decompose the resulting nonnegative directed
+circulation into simple directed cycles.  Gradient and length add in this
+decomposition, so one cycle has ratio at least that of the circulation.
+Conversely, any positive-ratio directed cycle projects to a nonzero signed
+circulation; its projected length norm is at most its raw length.  It
+follows that $\OPT_d$ is attained by a directed cycle.  Integer gradients
+and positive integer lengths give
+\[
+        \frac{1}{n_d M^{G_d}}\le\OPT_d\le M^{G_d}
+                  \qquad\text{if }\OPT_d>0.
+\]
+The tested thresholds cover this interval with room on both sides.  The
+largest successful threshold is at least $\OPT_d/2$, and its negative
+walk has still larger ratio.  The witness has at most the number of
+vertices in the graph.
+
+There are $O_a(1+u)$ thresholds.  The elementary tables take at most
+$O(n_d^3)$ arithmetic operations per threshold, since both the vertex
+and arc counts are $O(n_d)$.  All costs have $O_a(1+u)$ bits after a
+common dyadic scaling.  This proves the stated bound, including charged
+multiword arithmetic, without a forest at the bottom level.
+\end{proof}
+
+For $i<d$, use epochs of
+\begin{equation}
+\label{back:epoch}
+                         h_i=n_i/k
+\end{equation}
+single input edits.  A price replacement is a deletion followed by an
+insertion.  At the beginning of an epoch, freeze the current nonloop
+graph $\bar G$, including its prices and edge identities.  An old edge
+keeps these data until its death.  Every later insertion is new, even
+when its endpoints and prices coincide with those of a dead edge.
+A heap on all current loops supplies exact single-loop candidates.
+Loops can otherwise be omitted: their coordinates are independently
+circulations, and the optimum on a graph is the maximum of its loop
+optimum and its nonloop optimum.
+
+Fix a current nonloop circulation $\Delta$, and write
+$\Delta=\Delta_s+\Delta_n$ on the surviving frozen and new edges.
+The surviving part need not be a circulation: its imbalance is the
+negative of that of $\Delta_n$, so it is supported at new-edge endpoints.
+We will express $\Delta$ as a linear combination of current circulation
+candidates plus the projection of one circulation in a smaller graph.
+The coefficient-weighted lengths and the child vector's length norm must
+be bounded by a controlled multiple of $\|\ell\Delta\|_1$.
+Each candidate, however, needs a bound on its own raw traversal length,
+because that is the cost charged when the engine uses it.
+
+\subsection{Verified covers and a finite family of forests}
+
+The covers below adapt the shortest-path partitions with random shifts
+of Miller, Peng, and Xu
+\cite[Algorithm~2 and Lemmas~4.1 and~4.4]{RandomShifts}.
+We prove the required guarantees for weighted distances, geometric
+delays, verified padding, and capped retries.
+
+For each layer $j=1,\ldots,r$, let $R_j=b^j$.
+
+\begin{lemma}[Verified padded covers]
+\label{back:covers}
+For every layer $j$ one can construct $K_h$ partitions of the frozen
+vertices into cells, with a shortest-path tree in each cell, such that:
+\begin{enumerate}[label=(\roman*)]
+\item every cell tree has radius at most $\Gamma R_j$ about its center;
+\item for every vertex, at least one of the partitions has a cell
+containing its entire closed $R_j$-ball in $\bar G$.
+\end{enumerate}
+The properties are verified before use.  The construction takes
+$n_iM^{o_a(1)}$ time on every path for fixed reliability parameter
+$\sigma$, with detected-failure probability at most
+$2^{-\sigma}S^{-800}$ conditional on any valid frozen input.  It uses
+integer operations and fresh fair random bits.
+\end{lemma}
+
+\begin{proof}
+Independently for each partition, give every vertex $c$ an integer delay
+$X_c$ with $\Pr[X_c\ge t]=2^{-t}$ for nonnegative integers $t$.
+At $v$, choose the center maximizing
+\begin{equation}
+\label{back:shifted-score}
+                        R_jX_c-\dist_{\bar G}(c,v),
+\end{equation}
+breaking ties by center identifier.  Reject the attempt if any delay
+exceeds $\Gamma$.  A vertex's own center has nonnegative score, so its
+winning center is at distance at most $\Gamma R_j$.  Dominance of a
+center persists along a shortest path towards it: the triangle
+inequality preserves every score comparison, including the common
+identifier tie rule.  Hence a shortest-path tree to the center lies
+inside the winning cell.
+
+For each vertex also compute the runner-up among distinct centers.
+Verify that at each layer every vertex has, in some partition, winning
+margin greater than $2R_j$.  The difference between the scores of two
+centers changes by at most twice the distance moved.  Thus this check
+implies containment of the whole closed $R_j$-ball.  A runner-up in
+another connected component has score minus infinity and causes no
+difficulty.
+
+For unlimited geometric draws, fix a vertex and all delays except that
+of a proposed winner $c$.  The event that $c$ wins is a lower integer
+threshold on $X_c$, truncated below at zero.  Exceeding that threshold
+by three raises its score by $3R_j$ and gives margin greater than
+$2R_j$.  The geometric tail assigns probability at least $1/8$ of the
+winning-event probability to this overshoot.  Summing over the disjoint
+winning events gives margin probability at least $1/8$.  Independence
+of the partitions and a union bound therefore bound the probability
+that the delay or coverage checks fail by
+\begin{equation}
+\label{back:cover-failure}
+       rK_hn_i2^{-\Gamma}+rn_i(1-1/8)^{K_h}<\frac12.
+\end{equation}
+The displayed inequality follows from the chosen scales in the checked
+parameter range.  Repeat with fresh draws at most
+$2(\sigma+1000\log_2 S+10)$ times.  Exhaustion is a detected failure;
+its probability is at most $2^{-\sigma}S^{-800}$.
+
+Generate a geometric delay by fair bits, stopping and rejecting when
+its cap is exceeded.  Shifted distances and the best two distinct
+center labels are computed by multi-source Dijkstra with initial
+offsets $-R_jX_c$, finalizing at most two distinct origins at each
+vertex.  An origin among the best two at a vertex has prefixes among
+the best two along a shortest path; otherwise two strictly preferred
+origins at a prefix would remain preferred at the endpoint.  Thus this
+truncation loses neither of the required origins nor a winning tree
+pointer.  Initial offsets can be negative because edge lengths are
+positive.  Each partition needs only near-linear integer graph work.
+The layer, partition, delay, and repetition counts are fixed powers of
+$1+u$ for fixed $a,\sigma$, and their integer data have
+fixed-parameter logarithmic bit length.  This proves the every-path
+cost bound.
+\end{proof}
+
+Let $H_j$ be the disjoint union of copies of all the cell trees in the
+$K_h$ partitions at layer $j$.  A tree edge maps to its frozen actual
+edge, with the appropriate endpoint correspondence and reference
+orientation.  Introduce additional vertices $V_j(v)$ for every frozen
+slot $v$ and $0\le j\le r$.  The layered system has two kinds of
+artificial links:
+\begin{itemize}
+\item an OUT link from $V_{j-1}(v)$ to the copy of $v$ in each partition
+of $H_j$;
+\item an IN link from every cell root $c$ to $V_j(c)$.
+\end{itemize}
+Each artificial link maps to a null traversal at one physical slot,
+and is assigned length one and gradient zero for the construction.
+
+The following finite family adapts the bit-selection construction of
+Chen et al.\ \cite[Definition~4.30 and Lemma~4.31]{IncrementalGraphs}.
+
+\begin{lemma}[Finite family of routing forests]
+\label{back:forest-family}
+There is a family of at most $(K_h^2(u+1))^{O(r)}$ forests $T^0$ with
+the following property.  At each layer, any two distinct lower slots
+can be prescribed arbitrary OUT options, and some family member
+realizes all these prescriptions simultaneously across the layers.
+Each member contains separate copies of all cell trees and IN links,
+and exactly one OUT link per lower slot.
+\end{lemma}
+
+\begin{proof}
+At a given layer choose a bit position of the slot index and two
+partition options, using the chosen option as a function of that bit.
+Include constant functions as well.  Two distinct indices differ in
+some bit, so any two prescribed options can be realized.  Choose these
+functions independently at the $r$ layers and include every choice in
+the family.  There are at most $2K_h^2(u+1)$ choices per layer, giving
+the claimed bound.
+
+Orient each cell tree towards its root, and the links towards higher
+layers.  Every vertex has outdegree at most one and there is no directed
+cycle.  Such an underlying undirected graph is a forest: an undirected
+cycle would, by its edge count and outdegree bound, force a directed
+cycle.  This also proves the asserted structure of each $T^0$.
+\end{proof}
+
+The chords of each $T^0$ are the frozen input nonloops on its $V_0$
+vertices, and a null pair chord between every two distinct OUT-option
+targets of the same lower vertex.  The latter has length one and
+gradient zero, whether or not either OUT option was selected in $T^0$.
+Retain only chords whose endpoints are connected in that forest.
+For such a chord $f$, let $C_f^0$ be its signed fundamental cycle,
+traversing $f$ forward and the tree path backwards.  Let $w_f$ be its
+full length, including artificial links, and fix the bucket
+\begin{equation}
+\label{back:bucket}
+                         W_f=2^{\lceil\log_2 w_f\rceil}.
+\end{equation}
+Its value is found by integer bit-length operations, so logarithms in
+this notation require no real arithmetic.
+
+Whenever a frozen actual edge dies, delete every tree edge mapping to
+it, both in the $T^0$ copies and in the separate raw forests $H_j$.
+These deletions are called \emph{holes}.  For a surviving chord $f$,
+write $C_f^{\mathrm{clip}}$ for the chord together with the surviving
+signed tree traversals of $C_f^0$.  Null chords always survive.
+The clipped vector need not be a circulation.
+
+\subsection{Fixed marginals and the clipped decomposition}
+
+Let $\pi$ denote projection onto the frozen actual edge coordinates,
+ignoring null links and adding signed coefficients of copies.  We
+first define a distribution of an upward route for every vertex.
+These distributions are used only in the proof, and are not sampled
+or evaluated by the algorithm.
+
+The normalized boundary-distance weights and retention of each starting
+vertex's route law adapt the origin-aware routing of Rozho\v{n} et al.\
+\cite[Section~4]{MinorAggregateRouting} and its dynamic development in
+Chen et al.\ \cite[Section~4.3]{IncrementalGraphs}.
+
+To account for the imbalance of $\Delta_s$, we will compare a surviving
+edge with the difference of two upward routes, one from each endpoint.
+The same vertex must have the same route law when it appears at the
+endpoint of different edges.  With this fixed marginal, the route
+contributions cancel wherever $\Delta_s$ is conserved; only its imbalance
+at new-edge endpoints remains.  Thus the route law will be indexed by
+the starting vertex, even when the route has reached a different
+representative in a higher layer.
+
+For a cell $C$ at layer $j$, including its partition identity, define
+\begin{equation}
+\label{back:cell-weight}
+ a_{j,C}(v)=
+ \max\!\left\{0,
+   \min\{R_j,\dist_{\bar G}(v,V(\bar G)\setminus C)\}
+                       -\frac{R_j}{2}\right\}.
+\end{equation}
+Distance to the empty set, or to vertices in other components only,
+is infinity.  Normalize these weights to a distribution
+$\mathcal L_j(v)$ on all cells at that layer.  A verified covering
+cell gives a weight of at least $R_j/2$, so the normalizer is at least
+$R_j/2$.  A positive-weight cell contains every vertex at distance at
+most $R_j/2$ from $v$.
+
+\begin{lemma}[Upward route laws]
+\label{back:path-law}
+The independent layer choices $\mathcal L_j(v)$ define an upward path
+$P(v)$ in the layered system with all OUT options.  For every frozen
+edge $e=vw$, its two path laws admit a coupling such that the closed
+walk $e+P(w)-P(v)$, after canceling a common final suffix, has expected
+full length at most $A_*\ell_e$.  The marginal law of $P(v)$ is the
+same for every incident edge used in this assertion.
+\end{lemma}
+
+\begin{proof}
+The functions in \eqref{back:cell-weight} are one-Lipschitz on a
+connected component.  At two vertices, at most $2K_h$ cell weights
+can be nonzero, since a positive weight requires membership in the
+cell.  Comparing normalized weights along $e=vw$ yields
+\begin{equation}
+\label{back:tv}
+              \TV(\mathcal L_j(v),\mathcal L_j(w))
+                        \le\frac{4K_h\ell_e}{R_j}.
+\end{equation}
+Indeed the sum of absolute unnormalized changes is at most
+$2K_h\ell_e$, and total variation of the normalized laws is at most
+that sum divided by the smaller normalizer.
+
+Starting at $V_0(v)$, use the chosen cell at layer one, then its tree
+path to its center and the IN link to the corresponding $V_1$ vertex.
+Continue likewise.  At layer $j\ge2$ the previous representative is
+the center of a cell containing $v$, so its distance from $v$ is at
+most $\Gamma R_{j-1}$.  The second check in \eqref{back:guards} implies
+$b>2\Gamma$, and therefore
+\[
+                  \Gamma R_{j-1}<R_j/2.
+\]
+Every positive next-layer choice contains that representative, so its
+OUT option exists.  This defines $P(v)$ using independent choices
+across layers and a marginal law fixed by $v$ alone.
+
+For the endpoints of $e$, couple their cell choices maximally at each
+layer, independently between layers.  At the top,
+$R_r/2$ exceeds every finite component diameter: such a diameter is
+at most $n_iM^{G_i}$, whereas $R_r=M^{1210a+3}$.
+A top-layer cell with positive weight at a vertex must consequently
+contain its whole connected component.  All such cells have weight
+$R_r/2$ at every vertex of that component.  The two endpoint laws
+therefore coincide at the last layer and can be coupled to agree,
+including the partition identity.
+
+Retain the two arms through one layer after their last cell
+disagreement; if there is no disagreement, retain layer one.  From
+then on their representative and choices coincide, so their suffixes
+are identical and cancel.  Two arms at layer $j$, including their
+OUT and IN links, cost at most $4\Gamma R_j$.  For $j\ge2$ this layer
+is retained only if a disagreement occurred at some layer $l\ge j-1$.
+Equation~\eqref{back:tv} and a geometric sum bound that probability by
+\[
+       \sum_{l\ge j-1}\frac{4K_h\ell_e}{R_l}
+                         \le\frac{8K_h\ell_e}{R_{j-1}}.
+\]
+Including the original edge and the first layer, the expected length
+is consequently at most
+\[
+ \ell_e+4\Gamma b+
+       \sum_{j=2}^r32\Gamma K_hb\ell_e
+                   \le64r\Gamma K_hb\ell_e=A_*\ell_e.
+\]
+The coupling changes none of the prescribed per-vertex marginals.
+\end{proof}
+
+The next decomposition uses the pair-chord construction of
+\cite[Definitions~4.28 and~4.30 and Lemma~4.31]{IncrementalGraphs}.
+
+Each coupled walk decomposes into fundamental cycles from the finite
+family.  To see this, split the two trimmed arms at their common
+representative vertices $V_j$.  Before the first common vertex, the
+two lower slots at every layer are distinct.  Lemma~\ref{back:forest-family}
+therefore supplies a forest containing the paths that close the input
+chord $e$.  Between successive common vertices, equal first OUT
+options give identical tree paths to the next layer and cancel.  If
+those first options differ, replace the two null OUT traversals by
+the corresponding null pair chord.  For the remaining arms in that
+piece, all simultaneous lower-slot prescriptions concern distinct
+slots; another family member realizes them.  The pair-chord endpoints
+are connected there, as the arms meet at the next common representative.
+Simplifying each tree walk preserves its signed tree vector and can
+only decrease length.  Replacing two unit null links by one unit pair
+chord also cannot increase length.  Thus the projected coupled walk
+is a sum of projected oriented fundamental cycles whose full lengths
+sum to at most its original length.
+
+\begin{lemma}[Frozen decomposition with holes]
+\label{back:frozen-decomposition}
+Fix any state of the epoch and any circulation $\Delta$ on its current
+nonloops.  Write $\Delta=\Delta_s+\Delta_n$ for its surviving frozen
+and new coordinates.  There are real coefficients $\alpha_f$ on live
+fundamental chords and a vector $z$ on the unduplicated raw forests
+$H_j$ such that, before restricting the frozen coordinates,
+\begin{align}
+ \sum_f\alpha_f\pi C_f^0&=\Delta_s+\pi z,
+                                      \label{back:frozen-identity}\\
+ \sum_f|\alpha_f|w_f&\le A_*\|\ell\Delta_s\|_1,
+                                      \label{back:coefficient-bound}\\
+ \|z\|_{\mathrm{length}}&\le A_*\|\ell\Delta_s\|_1.
+                                      \label{back:raw-residual-bound}
+\end{align}
+Moreover $z$ is the raw-tree part of
+\begin{equation}
+\label{back:marginal-cancellation}
+ \sum_v\bigl(\operatorname{in}_{\Delta_s}(v)
+                  -\operatorname{out}_{\Delta_s}(v)\bigr)\E[P(v)].
+\end{equation}
+Consequently this description uses only upward paths starting at slots
+incident to new edges.  If $z_L$ is the restriction of $z$ to live raw
+forest edges, then
+\begin{equation}
+\label{back:clipped-identity}
+             \sum_f\alpha_f\pi C_f^{\mathrm{clip}}-\pi z_L
+                                  =\Delta_s.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Apply the preceding coupled-walk decomposition separately to each
+surviving frozen edge, weighted by its signed coefficient in
+$\Delta_s$, and take expectations.  There are finitely many choices
+in these conceptual distributions.  Collecting coefficients of the
+oriented family chords gives $\alpha_f$; collecting the signed route
+parts on the raw copies gives $z$.  Only surviving input edges and
+null pair chords are used as chords, so every indexed chord is live.
+The triangle inequality and Lemma~\ref{back:path-law} give
+\eqref{back:coefficient-bound} and \eqref{back:raw-residual-bound},
+as well as the exact identity \eqref{back:frozen-identity}.
+
+Although the couplings may differ between incident edges, the law of
+each endpoint path is fixed.  Summing the route term
+$P(w)-P(v)$ over oriented edges therefore gives
+\eqref{back:marginal-cancellation}.  Cancellation of identical final
+suffixes does not change this signed vector.  Because $\Delta$ is a
+circulation, the displayed imbalance of $\Delta_s$ is the negative
+of that of $\Delta_n$ and vanishes away from new-edge endpoints.
+
+Finally delete every coordinate of every tree copy mapped to a dead
+frozen edge.  Projection after this deletion is the same as restriction
+of the projected physical vector.  Restricting
+\eqref{back:frozen-identity} therefore proves
+\eqref{back:clipped-identity}, even when coefficients on a dead edge
+had canceled between different copies.  No circulation property is
+asserted for an individual clipped cycle.
+\end{proof}
+
+The identity~\eqref{back:clipped-identity} accounts for every surviving
+frozen coordinate.  Its fundamental-cycle terms need not be current
+circulations, because holes may have opened them.
+We next extract current circulation candidates using short
+routed corrections and compress the remaining forest vectors.
+The description of $z$ uses only upward routes starting at new-edge
+endpoints.  The endpoints of their cell-tree legs, together with hole
+endpoints, will supply the compression terminals for this raw-forest
+remainder.
+
+\subsection{Portal legs and local correction cycles}
+
+\begin{lemma}[Portal grid]
+\label{back:portals}
+A forest admits a set of at most its number of vertices divided by $k$
+portals such that every component remaining after portal removal has
+fewer than $k$ vertices.  The set is constructed by one postorder
+traversal.
+\end{lemma}
+
+\begin{proof}
+Root each tree arbitrarily.  Accumulate the number of still-connected
+unmarked vertices in the subtrees of a vertex, including the vertex
+itself.  If the accumulated count is at least $k$, mark that vertex as
+a portal and pass count zero to its parent.  Every mark charges a
+disjoint group of at least $k$ vertices.  In any component off the
+marks, the residual count at its highest vertex is exactly its size
+and is below $k$.
+\end{proof}
+
+Place such a grid on every $T^0$ and separately on each raw forest.
+Call the components off the grid \emph{pockets}.  Grids remain
+compression terminals for the whole epoch.  Classify and assign each
+live fundamental chord separately in its forest and bucket $W$.
+\begin{enumerate}[label=(\roman*)]
+\item If its full frozen tree path touches the grid, call the chord
+\emph{regular}.  At each incidence choose the nearest portal to its
+endpoint in the full frozen tree metric, breaking ties by a fixed
+portal order.  Use the leg towards that portal, truncated at the first
+hole and ending on the incidence side of that hole.  The full path
+contains a portal at distance at most $w_f\le W$ from each endpoint,
+so each such leg has length at most $W$.
+\item Otherwise the full tree path lies in one pocket.  Root that
+pocket and measure weighted depth.  For this bucket take connected
+clusters in half-open depth bands of width $4W$, using both the
+unshifted bands and their translate by $2W$.  The depth range of the
+chord path has width at most its path length, hence at most $W$; one
+of the two band systems contains that whole range.  Assign the chord
+to its containing connected cluster there.  Its tree diameter is at
+most $8W$, since the least common ancestor of two vertices in a
+connected band cluster is in that cluster.
+
+Until any interior edge of that cluster is cut, use the intact
+fundamental cycle directly.  At its first such cut, activate all
+surviving assigned chords.  Give each of the two resulting sides a
+class with target its endpoint of the cut.  A later cut splits the
+corresponding live fragment into two fresh classes, with targets the
+new cut endpoints.  All resulting legs stay inside the original
+cluster and have length at most $8W$.
+\end{enumerate}
+
+A \emph{class} is a logical vertex whose incidences have a common
+target tree node.  Regular incidences are initially grouped by their
+target portal; holes subsequently split those classes.  Splits always
+create fresh child labels, including for an empty side.  The exact
+class maintenance is given in Lemma~\ref{update:classes}.  A chord
+using the leg scheme is called \emph{active}.
+
+For every active $f$, the construction in
+Section~\ref{sec:backend-updates} supplies a logical path $\Pi_f$
+between its endpoint classes, using selected active chords of the
+same forest and bucket and containing at most $p_*$ hops.  The
+assignments may use an empty path for a logical loop.  If $f$ is
+oriented from its tail to its head, let $L_f$ traverse from its tail
+target to its tail, then across $f$, and then from its head to its head
+target.  Such walks concatenate, also in reverse, to realize logical
+paths; write $L_{\Pi_f}$ for the resulting walk.  Every logical hop
+has full length at most
+\begin{equation}
+\label{back:logical-hop}
+                         8W+W+8W=17W.
+\end{equation}
+
+The local correction candidate is
+\begin{equation}
+\label{back:correction}
+ B_f=\begin{cases}
+       C_f^0,&\text{while the chord is used directly},\\
+       L_f-L_{\Pi_f},&\text{for an active chord}.
+     \end{cases}
+\end{equation}
+Here a negative walk is traversed backwards; this formula specifies a
+traversal list, not a cancellation rule for its denominator.  Its
+projection is a circulation, and its raw actual length is at most
+\begin{equation}
+\label{back:correction-length}
+             17(p_*+1)W_f\le Z_*W_f.
+\end{equation}
+The direct case satisfies the same bound because $w_f\le W_f$.
+Hence
+\begin{equation}
+\label{back:local-score}
+                     \frac{|\gamma^{\mathsf T}\pi B_f|}{Z_*W_f}
+\end{equation}
+is a certified score.  A positive numerator ensures positive actual
+raw length: null traversals have zero gradient.  The list consists of
+actual individual chord edges and live forest paths; null chord
+traversals can be omitted.  Its numerator is computed from integer
+path-gradient sums, with the fixed positive denominator above.
+
+\subsection{One joint child graph}
+\label{back:child}
+
+The smaller instance is one graph $J$ incorporating all family
+forests and the separate raw forests.  In each live component take
+the Steiner subtree of its terminals, retain the terminals and
+branching vertices, and suppress degree-two nonterminals.  A
+one-terminal component contributes its terminal alone; an empty
+terminal set contributes nothing.  The terminal set includes:
+\begin{enumerate}[label=(\roman*)]
+\item every initial portal and both endpoints of every hole;
+\item every class target and the \emph{original tree-node} endpoints
+of every selected chord;
+\item in the raw forests, for every slot ever incident to a new edge
+in this epoch, both forest endpoints of every possible cell-tree leg
+in its frozen upward route.
+\end{enumerate}
+All promotions may persist to the end of the epoch.  For item (iii),
+enumerating all sequences of partition options suffices, even if some
+enumerated routes have zero probability in the conceptual law.
+Only their endpoints are needed; the cell-tree paths need not be
+enumerated.  There are $K_h^{O(r)}$ such endpoints per incident slot,
+a fixed-parameter logarithmic factor.
+
+A compressed segment receives the sum of its constituent lengths
+and the oriented sum of their gradients.  Include each currently
+selected chord on its original tree-node endpoints, with its actual
+or null prices; earlier selected chords may also remain while live.
+For every needed physical slot introduce a hub, and join each
+compressed vertex to the hub of its physical image by a unit-length,
+zero-gradient null edge.  Include all current new nonloops directly
+between their hubs.  Unused child slots remain isolated.
+
+Every child edge expands into a live parent walk between the physical
+images of its endpoints, with exactly its gradient and with raw
+actual length at most its child length.  We also write $\pi$ for the
+induced projection from child coordinates to current parent coordinates;
+on surviving frozen edges it agrees with the earlier projection.
+A compressed segment has at
+most $k+1$ constituent edges: it has no internal portal and its
+internal nodes lie in one pocket.  Consequently its length and
+absolute gradient are at most
+\[
+                  (k+1)M^{G_i}\le M^{G_i+2}=M^{G_{i+1}}.
+\]
+The same bound holds for the other child edges.  The number of child
+slots and edits, and their degree bounds, are proved in
+Section~\ref{sec:backend-updates}; only the stated graph and maps are
+needed for the following comparison.
+
+\begin{lemma}[Compression of a forest vector]
+\label{back:compression}
+If a vector on a forest has divergence only at a specified terminal
+set, it vanishes off the terminal Steiner subtrees and has constant
+oriented coefficient along each suppressed segment.  Compression
+therefore preserves its gradient and its length norm exactly.
+\end{lemma}
+
+\begin{proof}
+Deleting an edge outside a terminal Steiner subtree leaves a side
+containing no terminal.  The sum of divergences on that side is zero,
+so the edge coefficient is zero.  At an internal degree-two
+nonterminal of a remaining segment, zero divergence forces the two
+consistently oriented coefficients to agree.  Replacing that segment
+by an edge with summed length and signed gradient consequently
+preserves both its gradient contribution and its length norm.
+\end{proof}
+
+For an active $f$, subtracting its correction from its clipped vector
+leaves the clipped tree path minus the two legs of $L_f$, together
+with $L_{\Pi_f}$.  The first part is a live forest vector with
+divergence only at hole endpoints and the two targets.  The original
+chord-endpoint divergences cancel, also when a hole is adjacent to
+one of those endpoints.  All remaining divergence points are
+terminals.  The second part uses only selected chords and live paths
+between terminals.  By Lemma~\ref{back:compression} there is a child
+vector $J_f$, not necessarily a circulation, satisfying
+\begin{equation}
+\label{back:remainder}
+ \pi J_f=\pi(C_f^{\mathrm{clip}}-B_f),\qquad
+                    \|\ell^J J_f\|_1\le Z_*W_f.
+\end{equation}
+For the length bound, the clipped tree part costs at most $W_f$,
+the two removed legs at most $16W_f$, and the routed selected path
+at most $17p_*W_f$.  Their sum is at most
+$17(p_*+1)W_f$.  In the direct case the relevant cluster path is
+intact, so $C_f^{\mathrm{clip}}=B_f$ and we take $J_f=0$.
+
+Likewise, the vector $z_L$ in
+Lemma~\ref{back:frozen-decomposition} compresses to a raw-forest child
+vector $\widehat z_L$ with its length norm preserved.  Indeed its
+description \eqref{back:marginal-cancellation} is a combination of
+cell-tree legs whose endpoints were included in terminal item (iii).
+Clipping creates additional divergence only at hole endpoints.
+It is this \emph{net forest vector} that is compressed; no assertion
+is made that its individual conceptual routes have disjoint support.
+
+Figure~\ref{fig:frozen-compression} illustrates the compression of one
+net forest contribution to the joint child graph.
+\input{figures/frozen-compression}
+
+\begin{samepage}
+\begin{lemma}[One-level quality reduction]
+In every state of an epoch, suppose the active logical path
+assignments use selected chords and have at most $p_*$ hops.
+\label{lem:backend-reduction}
+Let $L_{\mathrm{best}}$ be the largest local correction score
+\eqref{back:local-score}, or zero if there is none.  Then, for every
+nonzero circulation $\Delta$ on the current nonloops,
+\begin{equation}
+\label{back:reduction-bound}
+ \frac{|\gamma^{\mathsf T}\Delta|}{\|\ell\Delta\|_1}
+ \le 2Z_*A_*L_{\mathrm{best}}+12Z_*A_*\OPT(J)
+ \le b^2\max\{L_{\mathrm{best}},\OPT(J)\}.
+\end{equation}
+This conclusion is simultaneous for all current circulations and
+requires no independence between the state and the verified covers
+or path assignments.
+\end{lemma}
+\end{samepage}
+
+\begin{proof}
+Use the coefficients and raw vector of
+Lemma~\ref{back:frozen-decomposition}, and form on the child edges
+\begin{equation}
+\label{back:child-vector}
+                  \Xi_0=\sum_f\alpha_fJ_f-\widehat z_L+\Delta_n,
+\end{equation}
+with $\Delta_n$ carried by the hub-to-hub new edges.  Its physical
+projection is
+\[
+                \pi\Xi_0=\Delta-\sum_f\alpha_f\pi B_f,
+\]
+a physical circulation.  Since $W_f\le2w_f$, the norm estimates give
+\begin{align}
+ \|\ell^J\Xi_0\|_1
+ &\le 2Z_*A_*\|\ell\Delta_s\|_1
+            +A_*\|\ell\Delta_s\|_1+\|\ell\Delta_n\|_1\notag\\
+ &\le4Z_*A_*\|\ell\Delta\|_1.
+                                    \label{back:child-norm-before}
+\end{align}
+The vector $\Xi_0$ need not balance at each compressed copy of a
+physical vertex.  Route its imbalance there along the null edge to
+that vertex's hub.  The hub then balances because the sum of
+divergences over all copies with its physical image is zero.
+The total absolute imbalance at the compressed vertices is at most
+twice the sum of absolute coefficients of $\Xi_0$, and hence at
+most twice its length norm, since every child edge has length at
+least one.  The resulting child circulation $\Xi$ therefore satisfies
+\begin{equation}
+\label{back:child-norm-after}
+ \pi\Xi=\pi\Xi_0,\qquad
+              \|\ell^J\Xi\|_1\le12Z_*A_*\|\ell\Delta\|_1.
+\end{equation}
+Its gradient equals that of its projection because all connectors
+have zero gradient.
+
+For the local part, \eqref{back:local-score} and
+\eqref{back:coefficient-bound} give
+\[
+ \left|\sum_f\alpha_f\gamma^{\mathsf T}\pi B_f\right|
+ \le L_{\mathrm{best}}Z_*\sum_f|\alpha_f|W_f
+ \le2Z_*A_*L_{\mathrm{best}}\|\ell\Delta\|_1.
+\]
+The child circulation contributes at most its norm times $\OPT(J)$,
+with the same conclusion if it is zero.  Adding these inequalities
+proves the first bound in \eqref{back:reduction-bound}.  The second
+follows from $14Z_*A_*\le20Z_*A_*\le b^2$.
+
+Every distribution, coupling, coefficient, and comparison vector
+in this proof is existential.  The algorithm constructs only
+integral graphs, terminal sets, path assignments, and rational
+scores.  Once the covers and assignments have their verified
+properties, the argument applies to any state and any circulation
+chosen afterwards.  This proves the asserted adaptive scope.
+\end{proof}
+
+\begin{corollary}[Quality through the recursion]
+\label{back:quality-induction}
+Assume the path assignments and public forest lifting of
+Section~\ref{sec:backend-updates}.  The backend at level $i$ returns
+a certified score at least
+\begin{equation}
+\label{back:level-score}
+                    \frac12 b^{-2(d-i)}\OPT_i.
+\end{equation}
+At the outer level this is at least $M^{-10/a}\OPT$.
+\end{corollary}
+
+\begin{proof}
+At the bottom use Lemma~\ref{back:base}.  At a higher level compare
+the local correction scores, exact current-loop scores, and the
+recursive child score.  Lemma~\ref{update:flat-lift} preserves the
+child gradient under lifting and does not increase raw actual length,
+so the child's certified score remains valid.  If its approximation
+factor is $\eta\le1$, the maximum of its score and
+$L_{\mathrm{best}}$ is at least
+$\eta\max\{L_{\mathrm{best}},\OPT(J)\}$.  Apply
+Lemma~\ref{lem:backend-reduction} to lose at most $b^2$ at this
+level.  Exact loop candidates give the same conclusion for the full
+graph.  This proves \eqref{back:level-score} by induction.
+
+Since $d=2a-4$, the outer factor is
+$\tfrac12M^{-(4a-8)/a^2}$, which exceeds $M^{-10/a}$ in the checked
+range.  A zero optimum does not require a positive answer.  The
+representation size, explicit forest logs, and total operation cost
+are established next; the quality argument itself has incurred only
+one recursive child call at each level.
+\end{proof}

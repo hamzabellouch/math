@@ -1,0 +1,196 @@
+\section{Removing the vertex costs}
+\label{sec:unweighting}
+
+The weighted gap converts to an unweighted gap without requiring a common
+denominator for all vertex costs.  Rounding upward at a scale determined
+by the number of vertices controls the additive loss. Independent-copy
+blowups also occur in earlier DFVS hardness reductions
+\cite[Section~2]{GuruswamiLee2016}. The rounding below allows arbitrary
+rational costs of polynomial bit length without expanding a common
+denominator.
+
+\begin{lemma}[Rounding and cloning]
+\label{lem:round-and-clone}
+Let $G$ be a loopless digraph on $S\ge1$ vertices with positive rational
+vertex costs $w_v\le C$.  Set $c_v=\lceil Sw_v\rceil$.  Replace every vertex
+$v$ by an independent set $\mathcal C_v$ of $c_v$ unweighted vertices, and
+replace every arc $u\to v$ by all arcs from $\mathcal C_u$ to
+$\mathcal C_v$.  Call the resulting digraph $\widehat G$.  Then
+\begin{equation}
+  \DFVS(\widehat G)
+  =\min\left\{\sum_{v\in F}c_v:
+      F\text{ is a feedback vertex set of }G\right\}.
+  \label{eq:clone-exact-optimum}
+\end{equation}
+The number of vertices of $\widehat G$ is at most $CS^2+S$.  For fixed
+$C$, this is a deterministic polynomial construction in the encoding size
+of $G$ and its costs.  Moreover:
+\begin{enumerate}[label=(\roman*)]
+  \item a feedback vertex set of $G$ of cost at most $a$ yields a feedback
+  vertex set of $\widehat G$ of size at most $S(a+1)$;
+  \item if every feedback vertex set of $G$ has cost greater than $b$,
+  then $\DFVS(\widehat G)>Sb$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Let $F$ be a feedback vertex set of $G$.  Deleting every cluster
+$\mathcal C_v$ with $v\in F$ leaves only clusters over the acyclic digraph
+$G-F$.  Lift a topological order of $G-F$ by placing all vertices of each
+cluster consecutively.  Since clusters are independent, this is a
+topological order of the surviving vertices of $\widehat G$.  It gives a
+feedback vertex set of size $\sum_{v\in F}c_v$.
+
+Conversely, let $Q$ be any feedback vertex set of $\widehat G$, and define
+\[
+  F_Q=\{v\in V(G):\mathcal C_v\subseteq Q\}.
+\]
+If $G-F_Q$ contained a directed cycle, every cluster over that cycle would
+contain a surviving vertex.  Choosing one such vertex from each cluster
+would lift the original cycle to a directed cycle of $\widehat G-Q$,
+because all the intercluster arcs in the requisite directions are present.
+This is impossible.  Thus $F_Q$ is a feedback vertex set of $G$, and
+\[
+  \sum_{v\in F_Q}c_v\le\abs{Q}.
+\]
+Together with the preceding construction, this proves
+Equation~\eqref{eq:clone-exact-optimum}.  In particular, partial deletions
+from a cluster cannot improve the optimum beyond the corresponding
+choice of completely deleted clusters.
+
+For every $v$ we have
+\[
+  Sw_v\le c_v<Sw_v+1.
+\]
+Summing over any feedback vertex set $F$ gives
+\[
+  S\sum_{v\in F}w_v
+  \le\sum_{v\in F}c_v
+  \le S\sum_{v\in F}w_v+S.
+\]
+This proves both gap implications by
+Equation~\eqref{eq:clone-exact-optimum}.  Equivalently, the rounded costs
+$c_v/S$ increase the cost of any deletion set by at most one.
+
+Finally,
+\[
+  \abs{V(\widehat G)}=\sum_vc_v\le CS^2+S.
+\]
+There are at most the square of this number of arcs.  Each $c_v$ is
+computed exactly by integer arithmetic on the rational input cost.
+For fixed $C$, the vertices and arcs can therefore be listed in
+polynomial time.  Positivity of the costs ensures that every cluster is
+nonempty before deletions.  The assumption that $G$ is loopless ensures
+that independent clusters realize precisely the prescribed construction.
+\end{proof}
+
+\begin{remark}[Avoiding opposite arcs]
+\label{rem:no-opposite-arcs}
+The construction above already gives loopless digraphs, and unrestricted
+DFVS permits opposite arcs.  If opposite arcs are to be excluded, subdivide
+every weighted arc using a distinct private vertex of cost $D+1$ before
+applying Lemma~\ref{lem:round-and-clone}.  A feedback vertex set of cost at
+most $4$ in the original graph still works in the subdivided graph: a
+cycle avoiding that set would project to a directed closed walk, hence
+to a directed cycle, in the original remaining graph.  On the other hand,
+a deletion set of cost at most $D$ cannot contain any subdivision vertex.
+Every surviving original cycle would then lift through its private
+subdivisions, so the weighted soundness bound is preserved as well.
+Subdivision of every arc of a loopless digraph leaves no pair of opposite
+arcs, and the subsequent independent-cluster construction preserves this
+property.  The additional vertices have constant cost and polynomial
+number, so the size bounds needed for rounding remain valid.
+\end{remark}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+It suffices to prove the claim for every fixed integer $A\ge1$: given any
+fixed real factor, choose an integer at least as large.  For this integer
+$A$, choose the parameters of Section~\ref{sec:parameters} and start from
+the NP-hard promise problem of Theorem~\ref{thm:games} at the resulting
+fixed $\theta$.
+
+By Proposition~\ref{prop:polynomial}, the weighted reduction is
+deterministic and polynomial in the game input size, and all its costs are
+bounded by the constant $C_A$.  Proposition~\ref{prop:completeness} gives
+a feedback vertex set of cost at most $4$ in the YES case, while
+Proposition~\ref{prop:weighted-soundness} shows that every feedback vertex
+set has cost greater than $D=10A$ in the NO case.  Let $S$ be the number of
+weighted vertices.  Lemma~\ref{lem:round-and-clone} gives an unweighted
+digraph $\widehat G$ with the gap
+\[
+  \begin{array}{ll}
+    \text{YES:}&\DFVS(\widehat G)\le5S,\\[2pt]
+    \text{NO:}&\DFVS(\widehat G)>DS.
+  \end{array}
+\]
+This last transformation is polynomial because $C_A$ is fixed.  Set
+$k=5S$ and output the pair $(\widehat G,k)$.  In the YES case,
+$\DFVS(\widehat G)\le k$, whereas in the NO case
+\[
+  \DFVS(\widehat G)>DS=10AS>5AS=Ak.
+\]
+Thus this pair has the promised gap of Theorem~\ref{thm:main}.
+
+A deterministic polynomial-time $A$-approximation would return a feasible
+feedback vertex set of size at most $5AS<DS$ on every YES instance.  On a
+NO instance, every feasible feedback vertex set has size greater than
+$DS$.  Comparing the returned size with the known threshold $DS$ would
+therefore distinguish the NP-hard promise cases in polynomial time.
+This proves the asserted NP-hardness for every fixed constant factor,
+and its deterministic consequence under $\mathrm P\ne\mathrm{NP}$.
+\end{proof}
+
+
+A \emph{directed feedback arc set} is a set of arcs whose deletion leaves
+an acyclic digraph.  Write $\operatorname{DFAS}(H)$ for its minimum
+cardinality.
+
+\begin{corollary}[Directed feedback arc set]
+\label{cor:feedback-arc}
+For every fixed real $A\ge1$, approximating directed feedback arc set
+within factor $A$ is NP-hard on unweighted simple loopless digraphs.
+More precisely, there is a deterministic polynomial reduction producing
+such a digraph $H$ and a positive integer $k$ with the promise gap
+\[
+  \begin{array}{ll}
+    \text{YES:}&\operatorname{DFAS}(H)\le k,\\[2pt]
+    \text{NO:}&\operatorname{DFAS}(H)>Ak.
+  \end{array}
+\]
+\end{corollary}
+
+\begin{proof}
+Let $G=(V,E)$ be an unweighted loopless digraph, with $n=\abs{V}$ and
+$m=\abs{E}$.  Split each vertex $v$ into $v^-,v^+$ and insert the arc
+$a_v:v^-\to v^+$.  For every original arc $e=(u,v)$, introduce $n+1$
+fresh private vertices $w_{e,j}$ and the paths
+\[
+  u^+\longrightarrow w_{e,j}\longrightarrow v^-\qquad(1\le j\le n+1).
+\]
+Call the resulting unweighted digraph $H$.  All private vertices are
+distinct, so $H$ has no loops or repeated arcs, even if $G$ has opposite
+arcs.  It has $2n+(n+1)m$ vertices and $n+2(n+1)m$ arcs and is explicitly
+constructible in polynomial time.
+
+If $S$ is a feedback vertex set of $G$, deleting the arcs $a_v$ for
+$v\in S$ destroys every directed cycle of $H$: a surviving cycle would
+alternate distinguished arcs with connector paths and project to a
+directed closed walk in $G-S$.  Hence
+$\operatorname{DFAS}(H)\le\DFVS(G)\le n$.
+
+Conversely, let $F$ be any feedback arc set of $H$.  If $\abs{F}\ge n$,
+return $S=V$, which is a feedback vertex set of size at most $\abs{F}$.
+If $\abs{F}<n$, return $S=\{v:a_v\in F\}$, again of size at most
+$\abs{F}$.  Were there a directed cycle in $G-S$, every distinguished arc
+needed to lift it would survive.  For each original arc of the cycle,
+its $n+1$ connector paths are pairwise edge-disjoint, so at least one
+survives deletion of $F$.  Choosing these paths would lift the cycle to
+$H-F$, a contradiction.  Thus the returned $S$ is always a feedback
+vertex set, and this recovery is polynomial time.
+
+The two maps give $\operatorname{DFAS}(H)=\DFVS(G)$.  They also preserve
+approximation solutions: an $A$-approximate $F$ yields
+$\abs{S}\le\abs{F}\le A\operatorname{DFAS}(H)=A\DFVS(G)$.
+Composing this construction with Theorem~\ref{thm:main} and retaining its
+positive integer threshold $k$ proves the stated gap.
+\end{proof}

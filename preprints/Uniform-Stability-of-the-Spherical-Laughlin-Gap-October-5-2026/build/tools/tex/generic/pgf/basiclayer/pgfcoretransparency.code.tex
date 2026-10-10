@@ -1,0 +1,146 @@
+
+\ProvidesFileRCS{pgfcoretransparency.code.tex}
+
+
+
+\def\pgfsetstrokeopacity#1{%
+  \pgfmathparse{#1}%
+  \expandafter\pgfsys@stroke@opacity\expandafter{\pgfmathresult}}
+
+
+
+\def\pgfsetfillopacity#1{%
+  \pgfmathparse{#1}%
+  \expandafter\pgfsys@fill@opacity\expandafter{\pgfmathresult}}
+
+
+
+
+\def\pgfsetblendmode#1{\pgfsys@blend@mode{#1}}
+
+
+
+\def\pgfdeclarefading#1#2{%
+  \setbox\pgfutil@tempboxa=\hbox{{\pgfsys@beginscope\pgfutil@color{white}\ignorespaces#2\pgfsys@endscope}}%
+  \pgfsys@fadingfrombox{#1}\pgfutil@tempboxa%
+}
+
+\pgfutil@colorlet{pgftransparent}{black}
+
+
+
+\def\pgfsetfading#1#2{%
+  {%
+    \pgftransformreset%
+    #2%
+    \pgfgettransform{\pgftrans@temp}%
+    \edef\pgf@marshal{\noexpand\pgfsys@usefading{#1}\pgftrans@temp}%
+    \pgf@marshal%
+  }%
+}
+
+
+
+
+\def\pgfsetfadingforcurrentpath#1#2{%
+  \ifdim\pgf@pathminx=16000pt%
+    \pgfsetfading{#1}{#2}%
+  \else%
+    \pgfsetfading{#1}{%
+      \pgf@xb=.5\pgf@pathmaxx%
+      \advance\pgf@xb by.5\pgf@pathminx%
+      \pgf@yb=.5\pgf@pathmaxy%
+      \advance\pgf@yb by.5\pgf@pathminy%
+      \pgf@xc=\pgf@pathmaxx%
+      \advance\pgf@xc by-\pgf@pathminx%
+      \ifdim\pgf@xc<0.1pt\pgf@xc=0.1pt\fi%
+      \pgf@yc=\pgf@pathmaxy%
+      \advance\pgf@yc by-\pgf@pathminy%
+      \ifdim\pgf@yc<0.1pt\pgf@yc=0.1pt\fi%
+      \pgf@xc=.02\pgf@xc%
+      \pgf@yc=.02\pgf@yc%
+      \pgftransformcm{1}{0}{0}{1}{\pgfqpoint{\pgf@xb}{\pgf@yb}}%
+      \pgftransformcm{\pgf@sys@tonumber{\pgf@xc}}{0}{0}{\pgf@sys@tonumber{\pgf@yc}}{\pgfpointorigin}%
+      \pgfsys@clipfading%
+      #2%
+    }%
+  \fi%
+}
+
+
+
+
+
+\def\pgfsetfadingforcurrentpathstroked#1#2{%
+  \ifdim\pgf@pathminx=16000pt%
+    \pgfsetfading{#1}{#2}%
+  \else%
+    \pgfsetfading{#1}{%
+      \pgf@xb=.5\pgf@pathmaxx%
+      \advance\pgf@xb by.5\pgf@pathminx%
+      \pgf@yb=.5\pgf@pathmaxy%
+      \advance\pgf@yb by.5\pgf@pathminy%
+      \pgf@xc=\pgf@pathmaxx%
+      \advance\pgf@xc by-\pgf@pathminx%
+      \advance\pgf@xc by\pgflinewidth%
+      \ifdim\pgf@xc<0.1pt\pgf@xc=0.1pt\fi%
+      \pgf@yc=\pgf@pathmaxy%
+      \advance\pgf@yc by-\pgf@pathminy%
+      \advance\pgf@yc by\pgflinewidth%
+      \ifdim\pgf@yc<0.1pt\pgf@yc=0.1pt\fi%
+      \pgf@xc=.02\pgf@xc%
+      \pgf@yc=.02\pgf@yc%
+      \pgftransformcm{1}{0}{0}{1}{\pgfqpoint{\pgf@xb}{\pgf@yb}}%
+      \pgftransformcm{\pgf@sys@tonumber{\pgf@xc}}{0}{0}{\pgf@sys@tonumber{\pgf@yc}}{\pgfpointorigin}%
+      \pgfsys@clipfading%
+      #2%
+    }%
+  \fi%
+}
+
+
+
+\def\pgftransparencygroup{%
+  \pgfutil@ifnextchar[{\pgftransparencygroup@}{\pgftransparencygroup@[]}%
+}
+\def\pgftransparencygroup@[#1]{%
+  \begingroup%
+    \pgfkeys{/pgf/transparency group options/.cd,%
+      isolated=false,
+      knockout=false,
+      #1}%
+    \setbox\pgfutil@tempboxa=\hbox\bgroup%
+}
+\pgfkeys{
+  /pgf/transparency group options/.cd,
+  isolated/.is if=pgfsys@transparency@group@isolated,
+  knockout/.is if=pgfsys@transparency@group@knockout
+}
+
+\def\endpgftransparencygroup{%
+    \egroup%
+    \ifdim\pgf@picminx=16000pt%
+    \else%
+      \advance\pgf@picminx by-1cm%
+      \advance\pgf@picmaxx by1cm%
+      \advance\pgf@picminy by-1cm%
+      \advance\pgf@picmaxy by1cm%
+      \setbox\pgfutil@tempboxa=\hbox{%
+        \vrule width0pt height\pgf@picmaxy depth-\pgf@picminy%
+        \hskip-\pgf@picminx%
+        \box\pgfutil@tempboxa%
+        \hskip\pgf@picmaxx%
+      }%
+      \pgfsys@transparencygroupfrombox\pgfutil@tempboxa%
+      \wd\pgfutil@tempboxa=0pt%
+      \ht\pgfutil@tempboxa=0pt%
+      \dp\pgfutil@tempboxa=0pt%
+      \hskip\pgf@picminx\box\pgfutil@tempboxa\hskip-\pgf@picminx%
+    \fi%
+  \endgroup%
+}
+
+\let\startpgftransparencygroup=\pgftransparencygroup
+\let\stoppgftransparencygroup=\endpgftransparencygroup
+
+\endinput

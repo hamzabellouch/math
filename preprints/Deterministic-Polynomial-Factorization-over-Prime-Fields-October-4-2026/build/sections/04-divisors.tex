@@ -1,0 +1,376 @@
+\section{Divisor arithmetic without factoring supports}
+\label{sec:divisors}
+
+The lifting argument uses rational divisors, although the finite points in
+their supports are not given individually.  We now give a representation in
+which addition, reduction, and evaluation require only polynomial arithmetic
+and linear algebra.  Two further operations will be needed: summing divisors
+computed simultaneously at the unknown roots of $F$, and evaluating a
+principal function whose divisor has very large coefficients at infinity.
+Linear-algebra algorithms for Riemann--Roch spaces and divisor arithmetic
+are established tools; see Hess~\cite{Hess02} and
+Khuri-Makdisi~\cite{KhuriMakdisi04}.  We give the representation and size
+bounds explicitly because both the genus and the degree of the cover vary
+in this application.
+
+Throughout this section, $k$ is a finite field, $q$ is an odd prime different
+from its characteristic, $k$ contains a specified primitive $q$th root
+$\zeta$, and $F\in k[X]$ is monic and square-free of degree $N\geq q$, with
+$q\mid N$.  We use the curve, automorphism, and rational points at infinity
+introduced above.  Thus
+\[
+ C:\ Y^q=F(X),\qquad
+ \mathcal L=k(C),\qquad
+ O=k[X,Y]/(Y^q-F(X)),\qquad
+ g=\frac{(q-1)(N-2)}2.
+\]
+The automorphism $\sigma$ sends points by $Y\mapsto\zeta Y$ and acts on
+functions by $Y\mapsto\zeta^{-1}Y$.  All divisors in the computation are
+$k$-rational divisors, written as sums of closed points.  For a divisor $D$,
+write
+\[
+ \|D\|=\sum_P |v_P(D)|[k(P):k]
+\]
+for its absolute degree.  Bounds polynomial in $\|D\|$ do not mean bounds
+polynomial in the bit length of arbitrary divisor coefficients.  Large
+coefficients supported at infinity are treated separately at the end of
+this section.
+
+\begin{proposition}[Effective divisor arithmetic]\label{div:arithmetic}
+On the curve $C$ above, the following operations are deterministic and use
+a number of field operations polynomial in $q,N$, the degrees occurring in
+the input representation, the absolute degrees of the divisors
+materialized during the operation, and the parameter $\ell$ in the third
+operation:
+\begin{enumerate}
+ \item divisor addition, negation, coefficientwise minimum and maximum,
+ and the action of $\sigma$;
+ \item construction of the divisor of an explicitly represented nonzero
+ function, and evaluation of its valuation and leading coefficient at a
+ specified ramification point or point at infinity;
+ \item computation of the Riemann--Roch space
+ $L(D+\ell\infty_0)$ for $\ell\geq 0$;
+ \item replacement of a degree-zero divisor $D$ by a linearly equivalent
+ divisor $D'$ satisfying $\|D'\|\leq 2g$, with a function $a$ such that
+ $D'=D+\operatorname{div}(a)$.
+\end{enumerate}
+These algorithms do not require factorization of the polynomials defining
+the finite supports.  Their decisions use only field zero tests, so they
+admit simultaneous execution as in Lemma~\ref{ff:simultaneous}.
+\end{proposition}
+
+We prove the proposition by constructing the algorithms.  The final two
+subsections extend them to simultaneous sums and to binary infinity
+coefficients.
+
+\subsection{Fractional ideals and finite linear algebra}
+
+Smoothness of the affine curve implies that $O$ is a Dedekind domain.  It is
+a free $k[X]$-module with basis $1,Y,\ldots,Y^{q-1}$.  The finite part of a
+divisor $D$ is represented by the fractional ideal
+\begin{equation}\label{div:ideal}
+ I(D)=\{a\in\mathcal L:v_P(a)\geq v_P(D)
+                 \text{ at every finite point }P\}.
+\end{equation}
+The zero function is included in this definition.  The rest of the
+representation is the integer vector
+$(v_{\infty_0}(D),\ldots,v_{\infty_{q-1}}(D))$.
+
+To store a fractional ideal $I$, choose a monic polynomial $H\in k[X]$
+such that
+\begin{equation}\label{div:bound}
+ HO\subseteq I\subseteq H^{-1}O.
+\end{equation}
+Store the image of $I$ as a $k$-subspace of $H^{-1}O/HO$.  Multiplication
+by $H$ identifies this quotient with $O/H^2O$, of dimension $2q\deg H$.
+Thus a subspace basis consists of polynomial vectors modulo $H^2$ in the
+standard $Y$-basis.  Lifting this basis and adjoining $H$ gives a finite
+list of $O$-generators of $I$.  Conversely, from such generators and a
+bound~\eqref{div:bound}, take their images and repeatedly enlarge their
+$k$-span under multiplication by $X$ and $Y$.  The process stabilizes in
+at most $2q\deg H$ strict enlargements and gives the required ideal image.
+The convention $H=1$ represents $I=O$ with a zero-dimensional quotient.
+
+The identities
+\begin{align*}
+ I(D+E)&=I(D)I(E),& I(-D)&=I(D)^{-1},\\
+ I(\min(D,E))&=I(D)+I(E),&
+ I(\max(D,E))&=I(D)\cap I(E)
+\end{align*}
+reduce the first group of operations to finite linear algebra.  For a
+product, take pairwise products of generators and use the bound $H_DH_E$.
+For a sum or intersection, embed both subspaces using that same common
+bound, and take their sum or intersection.  For inversion, retain the
+bound $H$: an element $a\in H^{-1}O$ belongs to $I^{-1}$ precisely when
+$au\in O$ for every generator $u$ of $I$.  These are linear conditions
+on $H^{-1}O/HO$.  They are independent of the chosen representative of $a$,
+since $HI\subseteq O$.  The action of $\sigma$ is substitution of
+$\zeta^{-1}Y$ for $Y$ in the generators.  The corresponding operations on
+the infinity vectors are immediate.
+
+A known ramification point $P=(x,0)$ has ideal $(X-x,Y)$, with bound
+$H=X-x$.  For a nonzero function $a$, arithmetic in $\mathcal L$ uses
+rational coefficients in $k(X)$ in the standard $Y$-basis.  Inversion is
+linear algebra over $k(X)$.  Clearing denominators in both $a$ and $a^{-1}$
+gives a polynomial $H$ for which $aO$ satisfies~\eqref{div:bound}; hence
+the finite part of $\operatorname{div}(a)$ is computable without finding
+any of its points.
+
+Intermediate bound polynomials need not be minimal.  The following
+compression both controls their degrees and supplies the norm data used
+in class division.
+
+\begin{lemma}[Compression and pushforward]\label{div:compression}
+From the representation of $I=I(D)$ one can compute monic polynomials
+$h^+,h^-\in k[X]$ satisfying
+\[
+ \deg h^+=\sum_{P\text{ finite}}\max(v_P(D),0)[k(P):k],\qquad
+ \deg h^-=\sum_{P\text{ finite}}\max(-v_P(D),0)[k(P):k].
+\]
+The polynomial $H=h^+h^-$ satisfies~\eqref{div:bound}.  If $\deg D=0$ and
+$j=h^+/h^-$, then
+\begin{equation}\label{div:orbitnorm}
+ \operatorname{div}_C(j)=\sum_{a=0}^{q-1}\sigma^aD.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Form the integral ideals
+$I^+=I\cap O$ and $I^-=I^{-1}\cap O$.  Let $h^+$ and $h^-$ be the
+characteristic polynomials of multiplication by $X$ on $O/I^+$ and
+$O/I^-$, respectively.  These quotients are computed from the stored
+subspaces; the original bound $H_0$ has $H_0O\subseteq I^+,I^-$, so it
+suffices to work in $O/H_0O$.  A quotient at a closed point $P$ of
+multiplicity $d$ has a filtration with $d$ successive residue fields
+$k(P)$.  Its $k$-dimension is therefore $d[k(P):k]$, proving the degree
+formulas.
+
+Cayley--Hamilton gives $h^+O\subseteq I^+\subseteq I$ and
+$h^-O\subseteq I^-\subseteq I^{-1}$.  The second inclusion implies
+$I\subseteq(h^-)^{-1}O$.  Both sides of~\eqref{div:bound} now follow
+for $H=h^+h^-$.  Recompute the ideal subspace with this bound after each
+operation.  In particular, its dimension is at most twice $q$ times the
+absolute degree of the finite divisor.
+
+For the last assertion, let $Q=X(P)$ be a finite point downstairs and
+$f_Q$ its monic defining polynomial.  On $k(P)$, multiplication by $X$
+has characteristic polynomial $f_Q^{[k(P):k(Q)]}$.  Applying this fact to
+the preceding filtrations shows that the finite divisor of $j$ on
+$\mathbb P^1$ is $X_*D$ at the finite points.  Since $\deg D=0$, the
+infinity coefficient agrees as well.  Finally, for this cyclic cover,
+$X^*X_*D=\sum_{a=0}^{q-1}\sigma^aD$, including the ramified points and
+points with nontrivial residue extension.  This proves
+\eqref{div:orbitnorm}.
+\end{proof}
+
+\subsection{Local expansions and Riemann--Roch reduction}
+
+The ideal representation controls all finite points collectively.  At the
+few specified points where a value or inequality is required, local
+expansions give the additional information.
+
+At infinity use $z=X^{-1}$ and $U=Yz^{N/q}$.  The equation
+\[
+ U^q=z^NF(z^{-1}),\qquad U(0)=\zeta^j
+\]
+determines the expansion at $\infty_j$ by simple-root Hensel lifting.
+At $P=(x,0)$ use $Y$ as uniformizer and solve $F(X)=Y^q$ with $X(0)=x$;
+the derivative $F'(x)\ne0$ again permits coefficient-by-coefficient
+lifting.  The valuation and leading coefficient of a nonzero function
+are then found by substitution and division of the leading terms.
+
+Here is an explicit precision bound.  Write a function as
+$A(X,Y)/B(X)$, where $\deg_Y A<q$ and every coefficient in $X$, as well
+as $B$, has degree at most $E$.  The polynomial $A$ has poles only at
+infinity, with total pole degree at most $q(E+N)$; the same bound holds
+for $B$.  The degree of its zero divisor equals its pole degree, so no
+nonzero numerator or denominator can have an order of vanishing greater
+than this bound at a rational point.  Consequently local substitutions
+through precision
+\begin{equation}\label{div:precision}
+ 8q(E+N+1)
+\end{equation}
+suffice to identify their first nonzero Laurent coefficients, even after
+the possible pole at infinity has been removed.  For a represented
+divisor, its coefficient at a specified finite point is the minimum of
+the valuations of a list of ideal generators; zero generators may be
+discarded.
+
+We next turn Riemann--Roch existence into a linear computation.  Recall
+that
+\[
+ L(V)=\{a\in\mathcal L:\operatorname{div}(a)+V\geq0\}\cup\{0\}
+\]
+is a finite-dimensional $k$-vector space.  Given $D$ and $\ell\geq0$,
+choose a bound $H$ for $I(-D)$.  Every function in $L(D+\ell\infty_0)$
+has the form
+\begin{equation}\label{div:rransatz}
+ a=H^{-1}\sum_{j=0}^{q-1}a_j(X)Y^j,
+ \qquad \deg a_j\leq \deg H+\|D\|+\ell.
+\end{equation}
+To justify the degree bound, put
+\[
+ M=\max_{a_j\ne0}\bigl(\deg a_j+jN/q-\deg H\bigr).
+\]
+The coefficient of $z^{-M}$ in the expansions at infinity is a nonzero
+polynomial of degree less than $q$ evaluated at the $q$ distinct values
+$1,\zeta,\ldots,\zeta^{q-1}$.  It cannot vanish at all of them.  Thus
+at one infinity point the pole order, interpreted as $-v_{\infty_j}(a)$,
+is exactly $M$.  The defining inequalities for $L(D+\ell\infty_0)$ give
+$M\leq\|D\|+\ell$, which implies~\eqref{div:rransatz}.
+
+In this finite ansatz, membership in $I(-D)$ is a subspace condition, and
+\[
+ v_{\infty_j}(a)\geq-v_{\infty_j}(D)-\ell\,\mathbf1_{j=0}
+ \qquad(0\leq j<q)
+\]
+is a list of linear conditions on Laurent coefficients.  Expansions to
+the bound~\eqref{div:precision}, increased by
+$8q(\|D\|+\ell+1)$, suffice.  Solving the resulting linear system
+therefore computes the whole space $L(D+\ell\infty_0)$.
+
+For degree-zero $D$, the Riemann--Roch inequality
+\cite[Tag~0BS6]{StacksProject} gives
+$\dim_kL(D+g\infty_0)\geq1$.  Choose a nonzero solution $a$ by a fixed
+pivot convention and define
+\begin{equation}\label{div:reduce}
+ \operatorname{ReduceDivisor}(D)=D'=D+\operatorname{div}(a).
+\end{equation}
+Since $D'+g\infty_0$ is effective of degree $g$, we have
+$\|D'\|\leq2g$.  Retain $a$ whenever a later computation needs the
+linear equivalence.  If a degree-zero divisor $D$ is known to be
+principal, taking $\ell=0$ instead produces a nonzero $a$ with
+$D+\operatorname{div}(a)=0$: the effective divisor on the left has degree
+zero.
+
+All vector spaces and polynomial degrees in these constructions are
+polynomial in the parameters in Proposition~\ref{div:arithmetic}.
+Dense polynomial operations, fraction reduction over $k(X)$, and linear
+algebra therefore prove its complexity assertion.  For example, the
+ideal quotient has dimension $2q\deg H$, and the ansatz
+\eqref{div:rransatz} has at most
+$q(\deg H+\|D\|+\ell+1)$ unknowns.  Rational linear algebra does not
+cause uncontrolled degree growth: after common denominators are cleared,
+minors of an $s\times s$ matrix with polynomial entries of degree at
+most $d$ have degree at most $sd$.  Reduced elimination entries and
+solutions are ratios of such minors.  This completes the proof of
+Proposition~\ref{div:arithmetic}.
+
+\subsection{Summing divisors given over a product algebra}
+
+The odd-degree splitter first produces one divisor for each root of $F$,
+through a computation over $A=k[T]/F(T)$.  The next lemma computes their
+sum over $k$, while the roots remain unknown.  A norm from the finite
+algebra $A$ will replace the unavailable product over its components.
+
+\begin{lemma}[Simultaneous divisor sum]\label{div:trace}
+Suppose $A\simeq k^s$ is an explicitly represented split algebra.  Let
+$I_1,\ldots,I_s$ be fractional ideals of $O$ supplied together over $A$,
+with monic bounds $H_i$ and a common number $b$ of generators
+$u_{i0},\ldots,u_{i,b-1}$, including $H_i$.  If the prime subfield
+contains more than $s(b-1)$ elements, their product can be computed by
+polynomial arithmetic, determinants, and ideal closure, without a
+decomposition of $A$.  Together with addition of the infinity vectors,
+this computes the sum of the corresponding divisors.
+\end{lemma}
+
+\begin{proof}
+Let $H\in A[X]$ denote the tuple of bounds and let $u_j$ denote the tuple
+of $j$th generators.  Form
+\[
+ H_* =\operatorname{Norm}_{A/k}(H)=\prod_{i=1}^s H_i,
+ \qquad
+ w_a=\operatorname{Norm}_{A/k}\left(\sum_{j=0}^{b-1}a^ju_j\right)
+     =\prod_{i=1}^s\left(\sum_{j=0}^{b-1}a^ju_{ij}\right).
+\]
+The norm is the determinant of multiplication after extending scalars
+to the relevant polynomial or function ring.  The displayed products
+are identities proving correctness, not instructions to recover the
+components.  Denominators are cleared by multiplying the $i$th component
+by $H_i$; the resulting determinant lies in $O$, and division by $H_*$
+recovers $w_a$.  Polynomial determinants can be computed before reducing
+by $Y^q-F(X)$.  Use $s(b-1)+1$ distinct values of $a$ from the prime
+subfield.
+
+Each $w_a$ belongs to $\prod_i I_i$.  Fix a finite closed point $P$ and
+write $d_i=\min_jv_P(u_{ij})$.  After dividing the $i$th combination by
+a local uniformizer to power $d_i$, its residue is a nonzero polynomial
+in $a$, over $k(P)$, of degree at most $b-1$.  At most $b-1$ of our
+values fail to attain valuation $d_i$.  Thus some chosen $a$ attains all
+$d_i$ simultaneously, and $v_P(w_a)=\sum_i d_i$.  Fractional ideals in
+a Dedekind domain are determined by these minimum valuations.  The
+$w_a$ therefore generate exactly $\prod_i I_i$.  The polynomial $H_*$
+is a valid bound, so finite ideal closure computes its stored
+representation.
+
+Infinity coefficients are integers.  In a simultaneous field execution
+they are the same in every surviving component: any different outcome
+of a scalar zero test would already have supplied a factor.  Their sum
+is therefore obtained by multiplying the common vector by $s$.  More
+generally, if the computation has retained separate pieces, sum their
+vectors with the corresponding dimensions.
+\end{proof}
+
+For the application $s=N$.  The number $b$ can be bounded by
+$2q\deg H_i+1$ in the compressed representation, and the characteristic
+cutoff in Section~\ref{sec:complexity} guarantees the required distinct
+scalars.  Matrix determinants and ideal closure have sizes polynomial
+in these parameters.
+
+\subsection{Binary coefficients at infinity and function circuits}
+
+Riemann--Roch reduction has cost polynomial in absolute degree.  It must
+not be applied directly to an infinity divisor whose coefficients are
+exponentially large integers.  We instead perform the class arithmetic
+by binary additions and retain the accompanying rational function as a
+circuit.
+
+\begin{lemma}[Principal functions with large infinity coefficients]
+\label{div:circuits}
+Let $D$ be a represented degree-zero divisor of bounded absolute degree,
+and let $W=\sum_jw_j\infty_j$ have degree zero, with integer coefficients
+given in binary.  If
+$Z=(1-\sigma)D-W$ is principal, a circuit for a function $h$ satisfying
+$\operatorname{div}(h)=Z$ can be computed using a number of operations
+polynomial in $q,N,\|D\|$, the representation size, and
+$\max_j\log(2+|w_j|)$.  The circuit uses multiplication and inversion
+of explicitly represented small functions.  At each known ramification
+point $P$, it computes the nonzero value $h(P)$ within the same type of
+bound, without expanding $h$.
+\end{lemma}
+
+\begin{proof}
+Write $W=\sum_{j=1}^{q-1}w_j(\infty_j-\infty_0)$.  Build the divisor
+$Z$ from $(1-\sigma)D$ and these signed multiples by binary doubling
+and addition.  At every stage retain a reduced divisor $D_0$ and a
+function circuit $w$ with the invariant
+\begin{equation}\label{div:circuitinvariant}
+ D_0=D_{\mathrm{target}}+\operatorname{div}(w).
+\end{equation}
+On adding two stages, reduce $D_1+D_2$ with reducing function $u$ and
+replace the function circuit by $w_1w_2u$.  For doubling it becomes
+$w_1^2u$; negation uses inversion followed, if needed, by reduction.
+After the initial reduction, each materialized sum has absolute degree
+at most $4g$, and the number of reductions is
+$O(q\max_j\log(2+|w_j|))$, in addition to the initial operations on $D$.
+
+At the end obtain a small divisor $\widetilde Z=Z+\operatorname{div}(w)$.
+It is principal, so the $\ell=0$ Riemann--Roch computation gives $a$ with
+$\widetilde Z+\operatorname{div}(a)=0$.  Consequently
+\[
+ h=(aw)^{-1}
+\]
+has divisor $Z$.  All leaves of this circuit are functions produced by
+reductions on small divisors and hence have polynomial representation
+size.
+
+At $P$, expand each leaf and store its integer valuation and its nonzero
+leading coefficient.  Multiplication adds valuations and multiplies
+leading coefficients; inversion negates valuations and inverts leading
+coefficients.  The resulting integers have bit length polynomial in the
+circuit length and leaf bounds.  Because $P$ is fixed by $\sigma$ and
+$W$ is supported at infinity, $v_P(Z)=0$.  The final valuation is
+therefore zero, and the final leading coefficient is exactly $h(P)$.
+This also explains why the intermediate objects are leading coefficients
+of Laurent series, rather than values of functions that may have poles.
+\end{proof}

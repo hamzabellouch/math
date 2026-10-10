@@ -1,0 +1,818 @@
+\section{Describing sparse pairs: validation and geometry}
+\label{geom:section}
+
+We now describe one side of a pair having unusually few incidences. The
+decoder knows domains containing the two supports, but not the supports
+themselves. The description will give a moderately enlarged set capturing
+a fixed fraction of the smaller support. A separate validation step turns
+this into almost complete capture on both sides. Dimensions at least four
+are reduced by projection; the remaining geometric input concerns lines
+and planes in projective dimension three. Section~\ref{learn:section}
+supplies the sampling argument that completes the low-dimensional case.
+
+Throughout this section, the parameters are those in
+\eqref{base:parameters}; in particular, $q$ is prime and $P=o(\sigma)$,
+where $\sigma=\log q$. All constants are uniform in the allowed parameters
+and may depend on the fixed dimension bound, on $\eta$, and on fixed
+constants in the hypotheses. The estimates are for sufficiently large
+$q$. The reductions below change such constants only a bounded number of
+times. This is harmless: $\log\sigma=o(K_*)$, so adding
+$O(\log\sigma)$ to a deficiency bounded by a fixed multiple of $K_*$
+still gives a bound of the same form.
+
+\subsection{The description and its validation}
+
+We use independent public random tables, each addressed separately. Given
+a decoder-known finite set, a table provides independent rows of uniform
+samples from that set. The encoder may test a row against hidden supports
+and transmit the index of its first accepted row, up to a deterministic
+cutoff. The decoder reconstructs the row from its index, without knowing
+the acceptance predicate. Integers $m\geq 0$ are encoded with
+$O(1+\log(m+1))$ bits. Support sizes, row lengths, orientations, and mode
+choices are sent explicitly when needed. Every invocation below uses
+tables independent of all data making that invocation ready.
+
+\begin{lemma}[Sparse-pair description]\label{geom:description}
+Let $2\leq j\leq d$. Let $S,T$ be nonempty sets in opposite point
+systems of $\PG(j,q)$, contained in decoder-known sets $U_S,U_T$.
+Suppose, for a fixed constant $C_b$, that
+\begin{equation}\label{geom:sparse-hypotheses}
+ |S||T|\geq q^{j+1}e^{-b},\qquad
+ \frac{e(S,T)}{|S||T|}\leq\frac{\tau}{q},\qquad
+ 0\leq b\leq C_bK_*,\quad
+ 0<\tau\leq C_b\sigma^{-100\beta}.
+\end{equation}
+Write
+\[
+ d_S=\log\frac{|U_S|}{|S|},\qquad
+ d_T=\log\frac{|U_T|}{|T|},
+\]
+and orient the systems so that $n=|S|\leq |T|$. There is a public-table
+description, of length at most
+\[
+ CqP(d_S+d_T+P),
+\]
+which, except with probability $Ce^{-cq}$, produces a decoder-known set
+$W\subseteq U_S$ satisfying
+\begin{equation}\label{geom:description-output}
+ |W|\leq ne^{CP},\qquad |W\cap S|\geq cn.
+\end{equation}
+The probability bound holds conditional on any earlier data independent
+of the tables used by this invocation.
+\end{lemma}
+
+The proof is organized as dimension induction. We first prove validation
+without assuming this lemma, then establish the induction step and the
+geometric preparation in dimensions two and three. The final sampling
+step is Proposition~\ref{learn:short-row}; the induction is closed
+explicitly at the end of Section~\ref{learn:section}.
+
+The sparse-incidence consequence of Lemma~\ref{base:incidence} gives
+\begin{equation}\label{geom:product-upper}
+ |S||T|\leq Cq^{j+1},\qquad
+ n\leq Cq^{(j+1)/2},\qquad n\geq cq e^{-b}=q^{1-o(1)}.
+\end{equation}
+The last inequality uses $|T|\leq Q_j\leq Cq^j$. These bounds will be
+used even when the product lower bound is weak by a factor $e^b$.
+Figure~\ref{geom:validation-figure} separates the initial description
+from the two fresh validation steps.
+
+\begin{lemma}[Fresh validation]\label{geom:validation}
+Under \eqref{geom:sparse-hypotheses}, suppose a decoder-known
+$W\subseteq U_S$ satisfies \eqref{geom:description-output}. Further
+independent tables and a message of length
+$CqP(d_S+d_T+1)$ produce caps $U_T'\subseteq U_T$ and
+$U_S'\subseteq U_S$, with additional failure probability $Ce^{-cq}$,
+such that
+\begin{equation}\label{geom:validation-output}
+ \begin{aligned}
+ |U_T'|&\leq \frac{Cq^{j+1}}{|S|},&
+ |U_S'|&\leq \frac{Cq^{j+1}}{|T|},\\
+ |U_T'\cap T|&\geq .99|T|,&
+ |U_S'\cap S|&\geq .99|S|.
+ \end{aligned}
+\end{equation}
+Each cap is its input domain intersected with an ambient test: a candidate
+passes if it is incident with fewer than $h/(5q)$ entries of the
+transmitted row of length $h$ in the opposite system.
+\end{lemma}
+
+\begin{proof}
+Put $X=W\cap S$, so $|X|\geq c|S|$, and first consider an ideal row
+of $h=\lceil C_0q(d_T+1)\rceil$ independent uniform points of $X$.
+For an opposite point $y$, write
+$p_X(y)=|X\cap N(y)|/|X|$, where $N(y)$ is its incident neighborhood.
+The variance identity in Lemma~\ref{base:incidence} yields
+\[
+ \sum_y\bigl(p_X(y)-p_j\bigr)^2
+ \leq \frac{q^{j-1}}{|X|},
+ \qquad p_j=\frac{Q_{j-1}}{Q_j}.
+\]
+Since $qp_j=1-Q_j^{-1}$, there are at most
+$Cq^{j+1}/|X|\leq Cq^{j+1}/|S|$ ambient points with
+$p_X(y)<1/(2q)$. Every other point passes the row test with probability
+at most $e^{-c_0h/q}$, by a lower binomial tail. The expected number of
+such passing points in $U_T$ is at most
+\[
+ |U_T|e^{-c_0h/q}
+ =|T|e^{d_T-c_0h/q}.
+\]
+Choosing $C_0$ large and then the cap-size constant large makes the
+probability of violating the first size bound less than $.04$, by
+Markov's inequality and $|T|\leq Cq^{j+1}/|S|$.
+
+For capture, if $H_y$ denotes the row's hit count at $y$, then
+\begin{equation}\label{geom:pointwise-iid}
+ \Prob\{H_y\geq h/(5q)\}
+ \leq 5q p_X(y).
+\end{equation}
+Averaging over $y\in T$ gives expected excluded fraction at most
+\[
+ \frac{5q e(X,T)}{|X||T|}
+ \leq C\tau.
+\]
+Thus the probability of losing more than $.01|T|$ is $O(\tau)=o(1)$.
+For large $q$, both desired properties hold for an ideal row with
+probability at least $.9$.
+
+To implement the ideal experiment, propose independent rows from the
+known set $W$. Accept only rows whose entries all lie in $X$ and whose
+ambient test has the two properties just proved. Conditional on all
+entries lying in $X$, a proposal has exactly the ideal law. Moreover,
+\[
+ \frac{|W|}{|X|}\leq e^{C_1P}.
+\]
+A proposal is therefore accepted with probability at least
+$.9e^{-C_1hP}$. Search at most
+$\lceil e^{C_2hP}\rceil$ rows, with $C_2>C_1$ sufficiently large.
+The failure probability is at most $e^{-cq}$, and the index costs
+$O(hP)=O(qP(d_T+1))$ bits. The decoder intersects the resulting ambient
+test with $U_T$, obtaining $U_T'$.
+
+For the second test, the hidden source is $X_T=U_T'\cap T$ and its
+proposal domain is $U_T'$. At readiness, the first successful test gives
+\[
+ \frac{|U_T'|}{|X_T|}
+ \leq \frac{Cq^{j+1}}{|S||T|}
+ \leq Ce^b\leq e^{CP}.
+\]
+Repeat the argument with $h=\lceil C_0q(d_S+1)\rceil$ and a fresh
+table. The tested domain on the other side is the original $U_S$, not
+$W$. Conditional on the first cap, its source is fixed, has at least
+$.99|T|$ points, and satisfies
+$e(S,X_T)/(|S||X_T|)\leq\tau/(.99q)$. Thus the same ideal-row
+acceptance bound holds uniformly over every successful first cap.
+Consequently this second test captures $.99$ of the original $S$.
+The two costs and failure bounds give the conclusion; all finite
+diagnostics cost $O(\sigma)$ and fit within the stated budget.
+\end{proof}
+
+\input{figures/validation.tex}
+
+\begin{lemma}[The law of a produced test]\label{geom:produced-test}
+Consider either test in Lemma~\ref{geom:validation}, conditional on
+all data making that test ready, but not on any later event. Suppose its
+hidden source $X_0$ is a subset of an original support $X$ with
+$|X_0|\geq c|X|$. For every fixed opposite point $y$,
+\begin{equation}\label{geom:exclusion-bound}
+ \Prob\{\text{the test is produced and its ambient test excludes }y\}
+ \leq Cq\frac{|X\cap N(y)|}{|X|}.
+\end{equation}
+Conditional on production, the row law is dominated by a constant times
+the independent uniform row law on $X_0$. The bound
+\eqref{geom:exclusion-bound} may be averaged over earlier readiness data
+whenever its right-hand side is fixed.
+\end{lemma}
+
+\begin{proof}
+Let $\nu$ be one proposal's law and $A$ its acceptance event. For
+independent proposals and any deterministic cutoff $m$, the first
+accepted row, conditional on there being one among the first $m$, has
+law $\nu(\,\cdot\mid A)$. Indeed, the contribution of acceptance at
+index $i$ is $(1-\nu(A))^{i-1}\nu(A)$ times that same conditional
+law. Given that all entries lie in $X_0$, the proposal is an independent
+uniform row on $X_0$, and the further acceptance probability is at least
+$.9$. The claimed domination follows. Apply
+\eqref{geom:pointwise-iid} and use
+\[
+ \frac{|X_0\cap N(y)|}{|X_0|}
+ \leq c^{-1}\frac{|X\cap N(y)|}{|X|}.
+\]
+Multiplication by the probability of production can only decrease the
+bound. No later success, including production of the other validation
+test, has been conditioned on.
+\end{proof}
+
+\subsection{Reduction from higher projective dimensions}
+
+\begin{proposition}[Repeated projection]\label{geom:projection}
+For $j\geq4$, assume Lemma~\ref{geom:description} in projective
+dimension $j-1$, for every fixed value of its hypothesis constant.
+Then the lemma holds in dimension $j$.
+\end{proposition}
+
+\begin{proof}
+For a point $z$ represented by a vector line $\langle z\rangle$, the
+quotient vector space has dimension $j$ and hence projectivization
+$\PG(j-1,q)$. Projection maps a point different from $z$ to its
+image in this quotient; its fibers are the $q$ noncentral points of
+lines through $z$. The dual operation retains hyperplanes containing
+$z$, identified with hyperplanes of the quotient. Write $S_0,T_0$ for
+the projected $S\setminus\{z\}$ and the cut $T\cap z^\perp$.
+Apply the same operations to the decoder domains.
+
+Lifting a quotient cap can enlarge it by a factor $q$, the size of a
+projection fiber. We remove that enlargement by intersecting caps from
+eight projections, always using the original $S,T$. At a given call let
+$A\subseteq U_S$ be the intersection of all caps lifted so far, initially
+$A=U_S$. The next center will preserve almost all of $S$ and limit
+collisions among the points of this current set $A$; the latter property
+makes successive intersections contract.
+There exists a center, chosen before that
+call's fresh tables, satisfying
+\begin{equation}\label{geom:center-properties}
+ \begin{aligned}
+ |T_0|&\asymp |T|/q,&
+ |U_T\cap z^\perp|&\leq C|U_T|/q,\\
+ |S_0|&\geq(1-o(1))n,&
+ e(S_0,T_0)&\leq C\tau |S_0||T_0|/q,\\
+ \operatorname{coll}_z(A)&\leq C|A|^2/q^{j-1}.&&
+ \end{aligned}
+\end{equation}
+Here $\operatorname{coll}_z(A)$ counts unordered distinct pairs of
+$A\setminus\{z\}$ with the same projection.
+
+To prove existence, choose $z$ uniformly in the ambient point space.
+The variance identity gives
+\[
+ \Prob\left\{\left||T\cap z^\perp|-p_j|T|\right|
+                >\frac{|T|}{3q}\right\}
+ \leq Cq/|T|=o(1).
+\]
+Here $|T|\geq q^{(j+1)/2}e^{-b/2}\gg q$, and replacing the constant
+$1/3$ by any other fixed positive constant is harmless. Markov's
+inequality gives the stated cut-domain bound with arbitrarily high
+fixed probability. A distinct pair projects together only if $z$ lies
+on its joining line, an event of probability at most
+$(q+1)/Q_j=O(q^{1-j})$. Thus
+\[
+ \E\operatorname{coll}_z(A)\leq C|A|^2/q^{j-1},\qquad
+ \frac{\E\operatorname{coll}_z(S)}{n}
+ \leq Cq^{(3-j)/2}=o(1).
+\]
+The latter implies projection loss $o(n)$ with probability $1-o(1)$:
+each nonempty fiber loses at most its number of unordered pairs, and
+omitting $z$ loses at most one more point. Finally, an original
+incidence survives the dual cut with probability $p_j\leq C/q$.
+Its expected count before collapsing fibers is at most
+$C\tau n|T|/q^2$, and collapsing cannot increase it. A union bound,
+using large fixed constants in the three Markov bounds, proves
+\eqref{geom:center-properties}. This reasoning is valid for every
+realized current $A$: fix that set and all earlier data, then combine
+the two events of probability $1-o(1)$ with the three Markov bounds.
+Their constants can be chosen so that the simultaneous event has
+positive probability. Choose a center in that event before exposing
+any of the fresh tables used by this call.
+
+Transmit $z$ in $O(\sigma)$ bits and use a fixed coordinate convention
+on the quotient. The new product is at least $q^je^{-b-O(1)}$ and the
+density at most $C\tau/q$. The projected $S$ domain has size at most
+$|U_S|$, whereas $|S_0|=(1-o(1))n$; on the other side both domain and
+support shrink by comparable factors $q$. Hence both logarithmic gaps
+increase by $O(1)$. These are the induction hypotheses, with changed
+fixed constants. Reorient if necessary, apply induction, and then
+Lemma~\ref{geom:validation}, which returns caps on both quotient
+sides. In particular, the projected $S$ cap captures $.99|S_0|$ and
+has size at most
+\[
+ \frac{Cq^j}{|T_0|}\leq \frac{Cq^{j+1}}{|T|}
+ \leq m_0:=ne^{C_3P}.
+\]
+Lift this cap, excluding $z$, and intersect it with $A$.
+The original support loss is at most $.01n$, plus the $o(n)$ total
+fiber excess, plus one possible center: among the lost images there
+are at most $.01|S_0|$ first preimages, and all additional preimages
+are charged to $n-|S_0|-\boldsymbol 1_{\{z\in S\}}=o(n)$.
+This bound concerns the original $S$, not merely the points retained
+by earlier calls. Thus each call loses fewer than $.02n$ of its
+original points, and losses from intersecting the lifted caps add.
+
+The first call gives $|A_1|\leq qm_0$. For any later call let $k_i$
+be the retained nonzero fiber sizes; there are at most $m_0$ of them.
+Cauchy--Schwarz and \eqref{geom:center-properties} give
+\[
+ \begin{split}
+ |A_{\mathrm{new}}|
+ &\leq m_0+\sum_i(k_i-1)
+ \leq m_0+\sqrt{m_0\sum_i k_i(k_i-1)}\\
+ &\leq m_0+C|A|\sqrt{m_0/q^{j-1}}.
+ \end{split}
+\]
+By \eqref{geom:product-upper}, the last coefficient is
+\[
+ \rho\leq e^{C_4P}q^{(3-j)/4}\leq q^{-1/4+o(1)}.
+\]
+After seven further calls,
+$|A_8|\leq m_0(1+\rho+\cdots+\rho^6)+qm_0\rho^7=O(m_0)$,
+while more than half of the original $S$ remains. Eight calls multiply
+the cost and failure bounds by fixed constants. The center at each
+stage depends only on data available before its fresh tables, so all
+conditional failure bounds apply. The set $W=A_8$ proves the result.
+\end{proof}
+
+\subsection{Preparing dimensions two and three}
+
+The remaining analysis will use a retained support $S'$ and, in one
+case, an ordered list of planes. The list isolates planar concentrations;
+for a query point we remove the training cell in its first containing
+plane before measuring overlaps.
+
+\begin{proposition}[Low-dimensional preparation]\label{geom:preparation}
+Suppose \eqref{geom:sparse-hypotheses} holds with $j\in\{2,3\}$ and
+$n=|S|\leq|T|$. Either enumeration already proves
+Lemma~\ref{geom:description}, or the following preparation costs
+$O(q+\sigma)$ bits. In dimension three there is also a possible
+reduction to the dimension-two description lemma, with the same final
+cost, size, capture, and failure bounds as
+Lemma~\ref{geom:description}.
+
+In the case not resolved by enumeration or that reduction, we have
+$n>100qP$, a retained set $S'\subseteq S$ of size
+$n'\in[n/2,n]$, and either an empty list or an ordered plane list
+$\Pi_1,\ldots,\Pi_J$ in $\PG(3,q)$. In the latter case the sets
+\begin{equation}\label{geom:cells}
+ C_i=(S\cap\Pi_i)\setminus\bigcup_{h<i}\Pi_h
+ \quad(1\leq i\leq J)
+\end{equation}
+partition $S'$, have nonincreasing sizes, and satisfy
+$|C_i|<.04n'$. The decoder knows the list and all cell sizes, but need
+not know $S'$ or the cells themselves.
+
+Write
+\begin{equation}\label{geom:lowdim-parameters}
+ n=q^{1+v},\quad g=(v-1/2)\sigma,\quad
+ \chi=P/100,\quad\chi_0=P/10000,\quad B=q^j/n'.
+\end{equation}
+For every ambient query point $x$, define $O_x$ to be the cell $C_i$
+of its earliest containing listed plane, and $O_x=\varnothing$ if
+there is none. Define
+\begin{equation}\label{geom:outside-support}
+ f_x=|O_x|/n'\leq .04,\qquad
+ X_x=S'\setminus(O_x\cup\{x\}).
+\end{equation}
+If no list is present, $O_x=\varnothing$ for all $x$. When
+$j=3$ and $g>\chi_0$, the preparation additionally ensures either
+\begin{enumerate}[label=(\roman*)]
+ \item every plane meets $S'$ in fewer than
+ $K_p=n^{4/3}q^{-1}e^{-g/5}$ points and the list is empty; or
+ \item the list is present and
+ $J\leq n/K_p=q^{1/2}e^{-2g/15}$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+If $n\leq100qP$, transmit $n$ and the index of $S$ among the
+$n$-subsets of $U_S$. The cost is at most
+\[
+ O(\sigma)+\log_2\binom{|U_S|}{n}
+ \leq C\bigl(\sigma+n(d_S+1)\bigr),
+\]
+which is within the description budget. It gives $W=S$ without
+failure. Assume henceforth $n>100qP$, so $v>0$.
+
+When $j=3$ and $g>\chi_0$, greedily choose a plane richest in the
+remaining points of $S$, provided it contains at least $K_p$ of them,
+and remove those points. Stop as soon as at least $n/2$ points have
+been removed or no qualifying plane remains. In the first case retain
+the captured prefix, with its list and cells; in the second retain the
+residual without a list. Otherwise retain all of $S$ without a list.
+The asserted size and cap properties follow directly from the stopping
+rule. Greedy maximality makes the removed cell sizes nonincreasing.
+Since each removal has size at least $K_p$, the list has length at
+most $n/K_p=q^{1/2}e^{-2g/15}\leq q^{1/2}$. Plane identifiers and
+cell sizes each cost $O(\sigma)$ bits, so the list costs $O(q)$.
+
+Suppose now that a retained list has a cell of size at least $.04n'$,
+and let $\Pi$ be its containing plane. Then
+$S_1=S\cap\Pi$ has size at least $.02n$. The original sparsity and
+Markov's inequality imply that at least half of $T$ consists of
+hyperplanes having incidence proportion at most $C\tau/q$ into
+$S_1$. For large $q$ this is less than one, so their restrictions to
+$\Pi$ are nonzero projective covectors. Each nonzero projective
+restriction has exactly $q$ projective lifts: normalize its restriction
+to a fixed representative and choose the coefficient on a complement
+of the vector space underlying $\Pi$.
+
+Group the retained lifts by their restriction multiplicities. One
+dyadic class $[h,2h)$, with $1\leq h\leq q$, carries at least
+$c|T|/\sigma$ lifts. If $T_1$ is its set of distinct restrictions,
+then
+\[
+ |T_1|\geq c|T|/(h\sigma),\qquad
+ |S_1||T_1|\geq q^3e^{-b-O(\log\sigma)}.
+\]
+Every member of $T_1$ has incidence proportion at most $C\tau/q$
+into $S_1$, since all its lifts have identical incidences there.
+Transmit $\Pi$ and $h$. Use decoder domains $U_S\cap\Pi$ and the
+nonzero restrictions having at least $h$ lifts in $U_T$. The latter
+has size at most $|U_T|/h$, so its logarithmic gap increases by
+$O(\log\sigma)$; the former gap increases by $O(1)$.
+
+Apply the dimension-two description, with reorientation if needed,
+and then Lemma~\ref{geom:validation}. The resulting cap on $S_1$
+has size at most
+\[
+ \frac{Cq^3}{|T_1|}
+ \leq\frac{Cq^4\sigma}{|T|}
+ \leq Cn\sigma e^b\leq ne^{CP}
+\]
+and captures $.99|S_1|\geq cn$ points of $S$. Its cost is within
+the required budget because $\log\sigma=o(P)$; its failure
+probability has the required order. This deals with every large cell.
+All other cases have the stated small-cell preparation. Notice that
+$O_x$ is a subset of the training support: even when $x\notin S'$,
+the earliest containing plane still specifies the same whole cell.
+\end{proof}
+
+\subsection{A polynomial bound for rich lines}
+
+We give the needed algebraic estimate with its richness and
+characteristic hypotheses explicit. It is used only when the line
+richness substantially exceeds the cubic-root scale and planar
+concentration cannot account for many rich lines. The interpolation
+and tangent-plane method has antecedents in
+\cite{GuthKatz2010,ElekesKaplanSharir2011}. Positive-characteristic
+obstructions are discussed in \cite{EllenbergHablicsek2016}; here the
+argument keeps every relevant surface degree below the characteristic.
+
+\begin{lemma}[Rich lines with a plane cap]\label{geom:rich-lines}
+Let $q$ run through sufficiently large primes. Let $\mathcal S$ be
+at most $n\leq Cq^2$ points of $\PG(3,q)$, with at most $K_p$
+points in every projective plane. Let $M>0$ satisfy
+\begin{equation}\label{geom:rich-regime}
+ \frac{M^3}{n}\longrightarrow\infty,\qquad
+ \frac{M^2}{K_p}\longrightarrow\infty,\qquad
+ cq\leq\frac nM\leq Cq^{41/40}.
+\end{equation}
+Then at most $Cn/M$ projective lines contain at least $M$ points of
+$\mathcal S$. The constant is uniform once the displayed limits hold
+uniformly in the family under consideration.
+\end{lemma}
+
+\begin{proof}
+Work over the algebraic closure $\mathbb K$ of $\mathbb F_q$.
+Choose an affine chart containing all points of $\mathcal S$, which
+is possible because $\mathbb K$ is infinite. The plane cap remains
+valid for planes over $\mathbb K$: rational points on such a plane
+have rational vector-span dimension at most three. Otherwise four
+linearly independent rational representatives would remain independent
+over $\mathbb K$. The points therefore lie in an $\mathbb F_q$-plane
+and obey the same cap.
+
+Independently sample each point with probability
+$A\sqrt{n/M^3}=o(1)$, where $A$ is a sufficiently large fixed
+constant. The expected sample count on any $M$-rich line is at least
+$A\sqrt{n/M}\geq cA\sqrt q$. There are at most $n^2$ lines to
+test, since $M\to\infty$ and two distinct points determine a line.
+Binomial tails and a union bound show that, simultaneously with
+positive probability, every rich line contains more than
+$(A/2)\sqrt{n/M}$ sampled points, and the total sample has size at
+most $2A(n/M)^{3/2}$. The latter assertion follows from an upper
+binomial tail, or from stochastic domination if $|\mathcal S|<n$.
+
+There are $\binom{D+3}{3}$ monomials of degree at most $D$ in three
+variables. Solving the homogeneous linear system requiring vanishing
+at the sample therefore gives a nonzero polynomial of degree at most
+$CA^{1/3}\sqrt{n/M}$. Choose $A$ large enough that this degree is
+smaller than the guaranteed number of sampled points on each rich
+line. Restriction to a line is a univariate polynomial, so it vanishes
+identically there. Replace the polynomial by its squarefree part.
+Its degree $D_0$ satisfies
+\begin{equation}\label{geom:interpolating-degree}
+ D_0=O(\sqrt{n/M})=o(M),\qquad
+ D_0\leq Cq^{41/80}<q.
+\end{equation}
+
+We now count three groups of rich lines. Plane factors are controlled
+by the plane cap. Among the other lines, those with few points incident
+to three lines are controlled by the total point count. The remaining
+lines will lie in the common zero set of the nonplane surface and an
+auxiliary polynomial coprime to it, whose degrees bound their number.
+
+First count rich lines lying in plane factors. There are at most
+$\binom{D_0}{2}$ lines lying in two distinct such planes. For one
+plane let $u$ be the number of remaining rich lines it contains.
+Select $M'=\lfloor M\rfloor$ points of $\mathcal S$ on each.
+If $r_a$ is the number of selected occurrences at point $a$, then
+\[
+ \sum_a r_a=uM',\qquad
+ \sum_a r_a^2\leq uM'+u(u-1).
+\]
+The second inequality uses the fact that two distinct lines meet in
+at most one point. Cauchy--Schwarz and the plane cap give
+\[
+ (uM')^2\leq K_p\bigl(uM'+u(u-1)\bigr).
+\]
+For $u>0$ this implies
+$u\leq K_pM'/((M')^2-K_p)=o(M')$. Remove from each selected line
+its intersections with all other plane factors, losing at most $D_0$
+points. The remaining union in this plane has size at least
+\[
+ u(M'-D_0)-\binom u2\geq uM'/2.
+\]
+Such unions for different planes are disjoint. Thus the plane factors
+account for $O(n/M+D_0^2)=O(n/M)$ rich lines.
+
+Let $F_0$ be the squarefree product of the nonplane irreducible factors.
+Every as yet uncounted rich line lies on $F_0$: the coordinate ring of
+a line is an integral domain, so vanishing of a product on the line
+implies vanishing of one factor. If there are no such factors we are
+done. For coordinate vectors $e_1,e_2,e_3$, form
+\begin{equation}\label{geom:flatness-polynomials}
+ Q_{ij}=(e_i\times\nabla F_0)^{\mathsf T}
+       \operatorname{Hess}(F_0)(e_j\times\nabla F_0),
+ \qquad 1\leq i,j\leq3.
+\end{equation}
+At a point on at least three of the remaining lines, all $Q_{ij}$
+vanish. At a singular point this follows from the gradient factors.
+At a nonsingular point, the three distinct line directions lie in the
+two-dimensional tangent vector space. Restricting $F_0$ to each line
+shows that its Hessian quadratic form vanishes on each direction. A
+binary quadratic vanishing on three distinct projective directions is
+zero; since the characteristic is odd, its associated bilinear form
+is also zero. The vectors $e_i\times\nabla F_0$ span that tangent
+space, proving the assertion.
+
+Among incidences with points of $\mathcal S$, points on at most two
+remaining lines account for at most $2n$ incidences. Hence all but
+$O(n/M)$ remaining rich lines have at least $M/2$ points incident
+with three or more remaining lines. Since
+$\deg Q_{ij}<3D_0=o(M)$, every such line lies on every $Q_{ij}$.
+
+To obtain a polynomial coprime to $F_0$, we must show that the
+$Q_{ij}$ do not all vanish identically on any of its irreducible
+components. The reason is local: their vanishing makes all second
+derivatives of a smooth formal graph zero, while the degree bound
+below the prime characteristic forces a plane factor.
+
+We claim that no irreducible factor $F$ of $F_0$ divides all these
+polynomials. Its degree is less than the prime characteristic $q$,
+so a nonconstant $F$ has a nonzero partial derivative. Rename its
+variable $z$, and write the other variables as $x_1,x_2$. By
+squarefreeness, $F$ and $(F_0)_z$ are coprime in
+$\mathbb K(x_1,x_2)[z]$. Indeed, modulo $F$ the derivative is
+$F_z(F_0/F)$, and neither factor is divisible by $F$. Clearing a
+univariate Bezout identity gives
+\[
+ A F+B(F_0)_z=a(x_1,x_2)\ne0
+\]
+with polynomial coefficients. Choose $x_1,x_2$ so that $a$ and
+the leading coefficient of $F$ in $z$ are nonzero. A root in $z$
+then gives a point on $F$ where $(F_0)_z\ne0$.
+
+Translate this point to the origin. The invertible coefficient of
+$z$ in $F_0$ determines, recursively by total degree, a unique formal
+series $z=h(x_1,x_2)$ with $F_0(x_1,x_2,h)=0$. The other factors
+are units on this branch. If $F$ divided every $Q_{ij}$, those
+polynomials would vanish after this substitution. To see the tangent
+space statement over the formal series ring explicitly, write
+$g=\nabla F_0(x_1,x_2,h)$. Its third coordinate $g_3$ is a unit,
+and the kernel of the row vector $g$ has basis
+\[
+ t_1=(1,0,-g_1/g_3),\qquad t_2=(0,1,-g_2/g_3).
+\]
+Moreover $e_2\times g=g_3t_1$ and $e_1\times g=-g_3t_2$.
+The vanishing $Q_{ij}$ therefore makes the Hessian bilinear form
+zero on this entire formal tangent module. Twice differentiating
+$F_0(x_1,x_2,h)=0$ gives
+\[
+ (F_0)_z h_{ab}=0\quad (a,b\in\{1,2\}),
+\]
+so all second partial derivatives of $h$ vanish. For a monomial
+$x_1^u x_2^v$ of total degree less than $q$, these conditions require
+\[
+ u(u-1)=uv=v(v-1)=0\pmod q.
+\]
+Only the constant and linear monomials satisfy these conditions.
+Writing $h_1$ for the affine-linear part, we obtain
+$h-h_1\in(x_1,x_2)^q$. Thus the polynomial
+$F_0(x_1,x_2,h_1)$ vanishes to order at least $q$. Its degree is
+less than $q$, so it is identically zero. The plane $z=h_1$ would
+be a factor of $F_0$, a contradiction. This proves the claim.
+
+Because $\mathbb K$ is infinite, a constant linear combination $Q$
+of the $Q_{ij}$ can be chosen coprime to $F_0$: for each of its
+finitely many irreducible factors, combinations divisible by that
+factor form a proper linear subspace of the coefficient space. We
+finish by justifying the elementary common-line bound used here.
+
+If coprime polynomials in three variables have degrees $D_1,D_2$,
+they contain at most $2D_1D_2$ common lines. To see this, take any
+finite collection of such lines and choose coordinates $(t,u,v)$
+with $t$ nonconstant on each. Over the fraction fields in the other
+two variables, univariate coprimality gives cleared identities
+\[
+ A F+B G=a(t,u)\ne0,\qquad
+ C F+D G=b(t,v)\ne0.
+\]
+For a generic $c\in\mathbb K$, both right-hand sides remain
+nonzero polynomials after $t=c$. Any common factor of the sliced
+polynomials would divide both a polynomial in $u$ alone and one in
+$v$ alone, and hence would be constant. Choose the slice also to
+meet the selected lines in distinct points; only finitely many
+values are forbidden by pairwise intersections of lines.
+Choose coordinates on this slice so that these points have distinct
+first coordinates. The resultant eliminating the second coordinate
+is nonzero by coprimality and has degree at most $2D_1D_2$ in the
+first coordinate. Indeed its Sylvester determinant has at most
+$D_2$ columns with coefficients of degree at most $D_1$, and at
+most $D_1$ columns with coefficients of degree at most $D_2$.
+It vanishes at each of the distinct first coordinates, bounding
+the collection. If both sliced polynomials omit the second
+coordinate, their univariate coprimality gives no common point.
+If just one omits it, say it is $f(u)$ and the other has degree
+$m>0$ in the second coordinate, the resultant is $f(u)^m$;
+it is again nonzero and vanishes at every common point.
+As this bounds every finite collection, it bounds all common lines.
+
+Apply the bound to $F_0,Q$, whose degrees are at most $D_0$ and
+$3D_0$. The remaining lines number $O(D_0^2)=O(n/M)$. Together
+with the earlier exceptional lines this proves the lemma.
+\end{proof}
+
+\subsection{Radial lines and overlap graphs}
+
+The next two lemmas quantify the benefit of removing $O_x$. Planes
+through a query point can overlap along a line, but after this removal
+there are few lines carrying substantial retained mass, except at a
+small set of query points.
+
+\begin{lemma}[Radial rich lines]\label{geom:radial}
+Consider the dimension-three output of
+Proposition~\ref{geom:preparation}. A line $\ell$ through a query
+point $x$ has strength
+\[
+ a_\ell(x)=q|X_x\cap\ell|/n'.
+\]
+Outside one exceptional set of $o(n)$ ambient points, simultaneously
+for dyadic $a\in[q^{-10},2]$,
+\begin{equation}\label{geom:radial-count}
+ \#\{\ell\ni x:a_\ell(x)\geq a\}
+ \leq q^{2-2v}e^\chi a^{-100}.
+\end{equation}
+In addition, whenever $g>\chi_0$ and $a>e^{-g/20}$ with
+$0<a\leq2$, the total number of ambient center--line pairs
+$(x,\ell)$ having strength at least $a$ is at most $Cq^2/a^2$.
+\end{lemma}
+
+\begin{proof}
+The radial lines partition $X_x$, so their total strength is at most
+$q$. Thus there are at most $q/a$ qualifying lines through any
+center. Comparing this with \eqref{geom:radial-count} reduces to
+\[
+ e^{2g}a^{99}\leq e^\chi.
+\]
+This holds for $g\leq\chi_0$ and large $q$, since $a\leq2$ and
+$2\chi_0<\chi$. It also holds when $g>\chi_0$ but
+$a\leq e^{-g/20}$.
+
+In the remaining regime put $M=n'a/q$. Since $n'\geq n/2$ and
+$n=q^{3/2}e^g$,
+\[
+ \frac M{n^{1/3}}\geq c e^{(2/3-1/20)g},\qquad
+ \frac{M^2}{K_p}\geq c e^{(2/3+1/10)g}.
+\]
+Also $cq\leq n/M\leq Cqe^{g/20}$, and
+\eqref{geom:product-upper} gives $g\leq\sigma/2+O(1)$.
+Hence all hypotheses of Lemma~\ref{geom:rich-lines} hold uniformly.
+In the capped residual case, that lemma gives $Cn/M\leq Cq/a$
+rich lines; each has $q+1$ rational centers. This yields at most
+$Cq^2/a\leq Cq^2/a^2$ relevant pairs.
+
+Suppose instead that the plane list is retained. Here own-cell removal
+will force the center of a surviving rich line into a plane earlier
+than the first listed plane containing that line. This gives a bound
+on its possible centers. First, the list length satisfies
+\[
+ \frac JM\leq C e^{-(1+2/15-1/20)g}=o(1).
+\]
+A relevant line must be contained in a listed plane, since otherwise
+it meets the union of the list in at most $J<M$ points. Let $i$
+be its first containing plane. Earlier planes contribute at most
+$J$ points to this line and later cells contribute none, so
+$|C_i\cap\ell|\geq M-J\geq M/2$. Its center must be in an
+earlier plane: otherwise $O_x=C_i$, leaving at most $J<M$ points
+on this line in $X_x$. Since the line is not contained in any
+earlier plane, there are at most $i-1$ possible centers for it.
+
+Put $f_i=|C_i|/n'$. Fix a sufficiently large constant $C_0$.
+If $a>C_0f_i$, the mean number of $C_i$ points on a line of
+$\Pi_i$ is at most $2f_i n'/q$, much less than $M/2$.
+The projective-plane incidence variance bounds the number of lines
+with at least $M/2$ points by
+\[
+ \frac{Cq|C_i|}{M^2}
+ \leq Cq^{2-v}f_i/a^2.
+\]
+Multiplying by at most $i$ centers and summing gives
+\[
+ Cq^{2-v}a^{-2}\sum_i i f_i
+ \leq Cq^{2-v}J/a^2\leq Cq^2/a^2,
+\]
+because $\sum_i f_i=1$ and $J\leq q^v$. In the other case
+$a\leq C_0f_i$, nonincreasing cell fractions and their unit sum
+imply $i\leq C_0/a$; there are at most $C_0/a$ such indices.
+Each corresponding plane has $O(q^2)$ lines and each line at
+most $i$ possible centers. Their total is again $O(q^2/a^2)$.
+This proves the center--line bound in all remaining cases.
+
+For a fixed dyadic threshold, divide that bound by the right-hand
+side of \eqref{geom:radial-count}. The number of centers where
+the latter fails, divided by $n=q^{1+v}$, is at most
+\[
+ Cq^{v-1}e^{-\chi}a^{98}.
+\]
+Since $v\leq1+O(1/\sigma)$ and the sum of $a^{98}$ over all
+dyadic $a\leq2$ is bounded, the union of these exceptional sets
+has size $o(n)$, as asserted.
+\end{proof}
+
+\begin{lemma}[Overlap bounds for pencils]\label{geom:overlap}
+Use the prepared data of Proposition~\ref{geom:preparation} in
+dimension $j=2$ or $3$. For a query point $x$, let $\mathcal H_x$
+be any family of hyperplanes through $x$ such that
+\[
+ \lambda'_H:=q|X_x\cap H|/n'\leq2\quad(H\in\mathcal H_x).
+\]
+For distinct $H,H'\in\mathcal H_x$ put
+$\theta_{HH'}=q|X_x\cap H\cap H'|/n'$.
+Let $E_a$ be the number of ordered pairs with $\theta_{HH'}\geq a$
+and let $\Delta_a$ be the maximum degree of this graph. Outside
+$o(n)$ ambient centers, simultaneously for dyadic
+$a\in[q^{-10},2]$ and for every such family,
+\begin{equation}\label{geom:overlap-bounds}
+ E_a\leq B^2e^{2\chi}a^{-200},\qquad
+ \Delta_a\leq Be^{2\chi}a^{-200}.
+\end{equation}
+Let $p$ be any even integer in
+$[10000\sigma/P,10000\sigma/P+2]$ and put
+$t_*=1/(100p)$. Outside a further set of at most $ne^{CP}$ ambient
+centers, also
+\begin{equation}\label{geom:strong-degree}
+ \Delta_{t_*}\leq Be^{-3P}.
+\end{equation}
+The further exceptional set is used only for ambient output-size
+control, not for support capture.
+\end{lemma}
+
+\begin{proof}
+In dimension two, two distinct hyperplanes in the pencil are lines
+intersecting only at $x$. Because $x\notin X_x$, all overlaps are
+zero and all claims follow. Consider dimension three. The
+intersection of two distinct planes through $x$ is a radial line;
+each radial line belongs to $q+1$ planes and therefore accounts for
+at most $Cq^2$ ordered pairs. Lemma~\ref{geom:radial} gives
+\[
+ E_a\leq Cq^{4-2v}e^\chi a^{-100}
+ \leq B^2e^{2\chi}a^{-200}.
+\]
+The last inequality uses $B=q^3/n'\asymp q^{2-v}$ and $a\leq2$;
+the factor $e^\chi$ absorbs fixed constants. Within one plane,
+the radial lines partition its points other than $x$, so the sum
+of their strengths is at most $2$. There are at most $2/a$
+qualifying lines, each giving at most $q$ other planes. Thus
+\begin{equation}\label{geom:crude-degree}
+ \Delta_a\leq Cq/a.
+\end{equation}
+Since $B\geq cq$, this implies the second bound in
+\eqref{geom:overlap-bounds}.
+
+For the stronger assertion, $\log(1/t_*)=O(\log\sigma)=o(P)$.
+If $(v-1)\sigma<-4P$, then
+\[
+ Be^{-3P}\geq cq e^P\geq Cq/t_*
+\]
+for large $q$, so \eqref{geom:crude-degree} suffices at every
+center. Otherwise $n\geq q^2e^{-4P}$ and
+$g\geq\sigma/2-4P>\chi_0$. Moreover
+$t_*\gg e^{-g/20}$. The center--line estimate of
+Lemma~\ref{geom:radial}, which does not require a dyadic threshold,
+bounds the number of centers lying on even one radial line of
+strength at least $t_*$ by
+\[
+ Cq^2/t_*^2\leq ne^{CP}.
+\]
+Remove these centers. At every remaining center
+$\Delta_{t_*}=0$, proving \eqref{geom:strong-degree}.
+\end{proof}
+
+The geometry is now ready for the learning step. Its training support
+is $S'$, the ordered plane data are known to the decoder, and the
+own-cell rule in \eqref{geom:outside-support} is available for every
+query point. Removing up to half of $S$ changes the sparse-incidence
+bound by at most a factor of two. The overlap estimates are uniform
+over all allowed pencil subfamilies, so those families may be selected
+later using the prepared supports. Proposition~\ref{learn:short-row}
+uses precisely these inputs to produce the cap required by
+Lemma~\ref{geom:description}; the stronger ambient exceptional set
+is never charged against support capture.

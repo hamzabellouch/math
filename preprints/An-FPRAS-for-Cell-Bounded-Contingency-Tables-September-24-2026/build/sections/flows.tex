@@ -1,0 +1,209 @@
+\section{Counting and sampling bounded integral flows}\label{sec:flows}
+
+The table theorem also applies to integral single-commodity flows in
+arbitrary explicitly listed finite directed networks. Let $G=(V,E)$ be
+a directed multigraph, allowing loops, and give each arc finite bounds
+$\ell_e,u_e\in\mathbb Z$ and each vertex a balance $\beta_v\in\mathbb Z$,
+all encoded in binary. With the convention ``outflow minus inflow equals
+balance,'' define
+\begin{equation}\label{eq:flow-set}
+\begin{aligned}
+\mathcal F=\bigl\{f\in\mathbb Z^E:\;&
+ \ell_e\le f_e\le u_e\quad(e\in E),\\
+ &
+ \sum_{e:\,\mathrm{tail}(e)=v}f_e-
+ \sum_{e:\,\mathrm{head}(e)=v}f_e=\beta_v\quad(v\in V)\bigr\}.
+\end{aligned}
+\end{equation}
+A loop occurs once in each sum and cancels from the balance. Each
+arc-value vector is counted once, not each path or cycle decomposition.
+Circulations have $\beta=0$; for distinct $s,t$, prescribed value $k$
+from $s$ to $t$ is expressed by balances $k,-k,0$ at $s,t$, and the
+other vertices, respectively.
+
+\begin{corollary}[Bounded integral flows]\label{cor:integral-flows}
+For the network data above, there are algorithms with these guarantees.
+\begin{enumerate}[label=(\roman*)]
+\item Given rational $\varepsilon,\delta\in(0,1)$, the counting algorithm
+outputs a nonnegative rational $\widehat Z_{\mathrm{flow}}$ satisfying
+\[
+ \P\bigl((1-\varepsilon)|\mathcal F|\le\widehat Z_{\mathrm{flow}}
+             \le(1+\varepsilon)|\mathcal F|\bigr)\ge1-\delta.
+\]
+If $\mathcal F$ is empty, it outputs zero on every execution.
+\item Given rational $\tau\in(0,1)$, the sampling algorithm reports
+infeasibility exactly when $\mathcal F$ is empty. Otherwise it outputs
+$\widehat f\in\mathcal F$ on every execution, with
+\[
+ \TV\bigl(\mathcal L(\widehat f),\operatorname{Unif}(\mathcal F)\bigr)
+ =\frac12\sum_{f\in\mathcal F}
+   \left|\P(\widehat f=f)-\frac1{|\mathcal F|}\right|\le\tau.
+\]
+\end{enumerate}
+Both algorithms use independent unbiased bits. Let $L$ denote the total
+binary input length, including the corresponding accuracy parameters.
+Fixed polynomials in $L,\varepsilon^{-1},\log(\delta^{-1})$ for counting
+and in $L,\tau^{-1}$ for sampling bound the total bit operations on
+every execution.
+\end{corollary}
+
+\begin{proof}
+\emph{The flow-to-table bijection.}
+If some $\ell_e>u_e$, or if $\sum_v\beta_v\ne0$, the flow set is empty;
+return zero for counting and report infeasibility for sampling. The
+second test is necessary because every arc cancels in the sum of the
+balance equations. If $V=E=\varnothing$, there is one empty flow, which
+can be counted and returned directly. In all other cases, shift the
+lower bounds by putting
+\[
+\begin{aligned}
+ x_e&=f_e-\ell_e,\qquad c_e=u_e-\ell_e,\\
+ \beta'_v&=\beta_v-\sum_{e:\,\mathrm{tail}(e)=v}\ell_e
+                    +\sum_{e:\,\mathrm{head}(e)=v}\ell_e.
+\end{aligned}
+\]
+Then $0\le x_e\le c_e$ and the new balance is $\beta'_v$.
+
+For each original arc $e=(u,v)$ introduce a private new vertex $w_e$
+and replace the arc by $u\to w_e\to v$, giving both arcs cap $c_e$ and
+giving $w_e$ balance zero. The two arc values must agree at $w_e$, so
+this is a bijection on flows, including when $u=v$. The private vertices
+make all subdivided arc cells distinct and off-diagonal, also for parallel
+arcs. Write $W=V\cup\{w_e:e\in E\}$ and $E'$ for the subdivided vertices
+and arcs, and let $c_a$ be the inherited cap of $a\in E'$. Extend
+$\beta'$ by zero at the new vertices. For $q=|W|=|V|+|E|>0$, put
+\[
+\begin{gathered}
+ K=1+\sum_{a\in E'}c_a+\sum_{w\in W}|\beta'_w|,\\
+ R_w=K+(\beta'_w)^+,\qquad C_w=K+(\beta'_w)^-,
+\end{gathered}
+\]
+where $h^+=\max\{h,0\}$ and $h^-=\max\{-h,0\}$. Index a $q\times q$
+table by $W$ in both coordinates, use row margins $R$ and column margins
+$C$, and set
+\[
+ b_{st}=\begin{cases}
+ c_a,&a=(s,t)\in E',\\
+ K,&s=t,\\
+ 0,&\text{otherwise}.
+ \end{cases}
+\]
+The cases are disjoint, and the margin totals agree because
+$\sum_w\beta'_w=0$.
+
+Given a subdivided flow $z$, put its arc values in the arc cells. At
+vertex $w$ the unique possible diagonal entry is
+\[
+ y_w=R_w-\operatorname{out}_w(z)
+     =C_w-\operatorname{in}_w(z).
+\]
+It is nonnegative since $K$ dominates every incident capacity sum.
+If $\beta'_w\ge0$, then $y_w=K-\operatorname{in}_w(z)$; if
+$\beta'_w\le0$, then $y_w=K-\operatorname{out}_w(z)$. Thus $y_w\le K$,
+so the table is feasible. Conversely, subtracting a table's column
+equation from its row equation gives the subdivided balance at every
+vertex. The private-vertex balances equate the two copies of each
+original arc, and the diagonal entries are forced by the displayed
+formula. Adding back $\ell$ gives the unique original flow. This proves
+a bijection with $\Omega(R,C,b)$.
+
+The table has $q^2$ explicitly written caps. Its parameters are sums
+and differences of polynomially many binary integers, so their bit
+lengths and the total table-data length $L_{\mathrm{tab}}$ are polynomial
+in the network-data length. Both directions of the bijection use only
+polynomially many operations on such integers; no capacity is expanded
+in unary. The deterministic feasibility test in Section~\ref{sec:scales}
+handles all remaining infeasibility, including edgeless and zero-capacity
+cases. If the table is infeasible, return zero for counting and report
+infeasibility for sampling. Otherwise Theorem~\ref{thm:main} on the table
+gives the counting assertion with the stated bit bound.
+
+\emph{Sampling by conditional counts.}
+We use the self-reduction principle connecting approximate counting
+and almost-uniform generation~\cite[Theorem~6.3]{JVV1986}, implemented
+here by bisecting binary cell intervals. The argument below gives the
+required feasibility, total-variation, and bounded-bit guarantees.
+
+After this root feasibility test, write $\Omega(r,c,b)=\Omega(R,C,b)$
+for the constructed feasible table set and initialize each cell interval
+to $[0,b_{ij}]$. At a reached node, let
+$[a_{ij},d_{ij}]\subseteq[0,b_{ij}]$ be the current integer interval for
+cell $(i,j)$.
+Shifting $X_{ij}$ by $a_{ij}$ is a bijection to a bounded-table instance
+with
+\[
+ b'_{ij}=d_{ij}-a_{ij},\qquad
+ r'_i=r_i-\sum_j a_{ij},\qquad c'_j=c_j-\sum_i a_{ij}.
+\]
+Reject negative residual data before applying the feasibility test.
+Process the cells in a fixed order. For a nonsingleton interval $[a,d]$,
+put $m=\lfloor(a+d)/2\rfloor$ and use the disjoint children $[a,m]$ and
+$[m+1,d]$, continuing until every interval is a singleton. A path has at
+most
+\[
+ D=\sum_{i,j}\left\lceil\log_2(b_{ij}+1)\right\rceil
+ \le L_{\mathrm{tab}}
+\]
+decisions, and every conditioned input has polynomial binary length.
+If $D=0$, the already-tested feasible table is unique and is returned
+directly. No assumption that attainable cell values form an interval
+is used.
+
+At a reached node, test both children for feasibility. Their feasible
+sets partition the parent's feasible set, so at least one is feasible.
+If exactly one is feasible, take it. If both are feasible, let their positive counts
+be $N_0,N_1$ and call Theorem~\ref{thm:main} separately on the two child
+instances with relative error $\eta$ and failure probability $\gamma$,
+using fresh independent bits. Write the nonnegative outputs as
+$\widehat N_0,\widehat N_1$. If their sum is zero, take child zero,
+which is known to be feasible. Otherwise put
+$\widehat p=\widehat N_0/(\widehat N_0+\widehat N_1)$. Using $t$ further fresh
+bits, draw $U$ uniformly from $\{0,\ldots,2^t-1\}$ and take child zero
+exactly when $U<\lfloor2^t\widehat p\rfloor$. This implements probability
+$p_t=2^{-t}\lfloor2^t\widehat p\rfloor$, with $|p_t-\widehat p|\le2^{-t}$, in bounded
+bit time. In particular, a zero estimate is never used as an
+infeasibility certificate, and every reached child is feasible.
+
+For exact counts the branch probability is $p=N_0/(N_0+N_1)$, and
+these exact conditional probabilities telescope to the uniform law on
+feasible singleton leaves. On successful estimates, write
+$\widehat N_i=N_i(1+e_i)$ with $|e_i|\le\eta$. Then
+\[
+ |\widehat p-p|=\frac{p(1-p)|e_0-e_1|}{1+pe_0+(1-p)e_1}
+       \le\frac{\eta}{2(1-\eta)}.
+\]
+At each reached history, the fresh count calls fail with probability at
+most $2\gamma$ in total. Averaging over them and the fresh branch bits,
+the conditional total-variation error of the implemented branch choice
+relative to the exact one is therefore at most
+\[
+ a=\frac{\eta}{2(1-\eta)}+2\gamma+2^{-t}.
+\]
+This bound also covers the zero-sum fallback; a one-feasible-child node
+has zero error. Couple the two branch choices whenever their prefixes
+agree. The probability of any mismatch is at most $Da$, so the output
+total-variation distance from the uniform table law is at most $Da$.
+This averages failures at each adaptive history, without conditioning
+on a path-dependent event that all count calls succeed.
+
+Set $D_+=\max\{1,D\}$ and choose
+\[
+ \eta=\gamma=\frac{\tau}{8D_+},\qquad
+ t=\left\lceil\log_2\frac{8D_+}{\tau}\right\rceil.
+\]
+Since $\eta<1/2$, the preceding bound gives $Da\le\tau/2\le\tau$.
+There are at most $2D$ count calls and $2D+1$ feasibility tests. Their
+input lengths are polynomial in $L$, including the binary encoding of
+$\tau$, while $\eta^{-1}=8D_+/\tau$ and
+$\log(\gamma^{-1})=\log(8D_+/\tau)$. Theorem~\ref{thm:main} bounds both
+the work and the output lengths of every count call, including failed
+ones. Thus exact ratio arithmetic and the $t$-bit threshold draw also
+have polynomial cost on every execution; the ceiling defining $t$ is
+computable by integer shifts and comparisons. The inverse bijection
+returns a feasible flow and preserves the total-variation distance.
+This proves the sampling and runtime assertions.
+\end{proof}
+
+The sampling conclusion is the stated total-variation approximation
+with polynomial dependence on $\tau^{-1}$. It asserts neither exact
+sampling nor a polynomial-in-$\log(\tau^{-1})$ error dependence.

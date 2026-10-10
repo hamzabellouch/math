@@ -1,0 +1,675 @@
+\section{A rational certificate for the degree-31 example}
+\label{cert:section}
+
+This appendix proves the root bounds in Proposition~\ref{np:roots} and
+the predictor estimates in Proposition~\ref{np:moments}.  The root
+calculation uses exact rational arithmetic.  The moment calculation
+combines finite rational products with an analytic estimate for their
+infinite tails.  We specify the rounding and the order of operations so
+that the rational weights in~\eqref{cert:weights} are completely determined.
+The accompanying script \texttt{verification/verify\_degree31.py} implements
+these instructions using only Python integers and rational fractions;
+the recurrences below give the complete certificate independently of
+that implementation.  Every terminating decimal in this appendix
+denotes its exact rational value.
+
+\subsection{Locating all the roots}
+\label{cert:roots}\label{cert:root-proof}
+
+Recall the polynomial
+\[
+ p(t)=\sum_{j=0}^{9}(-t^{3j}+t^{3j+1})-2t^{30}+t^{31}.
+\]
+Put $E=10^{40}$.  The entries in Table~\ref{cert:root-table} are the real
+and imaginary numerators of centers $z=(a+\mathrm i b)/E$.
+Include the conjugate of each nonreal center.  Thus the table specifies
+$31$ disks, all of radius $\delta=10^{-35}$.
+Denote its first and sixth centers by $z_\beta$ and $z_\alpha$,
+respectively.
+
+\begin{table}[htbp]
+\centering
+\begingroup\scriptsize\ttfamily
+\begin{tabular}{rr}
+\normalfont Real numerator & \normalfont Imaginary numerator\\\hline
+18392867573155250211326543340571993487329 & 0\\
+-9741384652837567528189111907762645564212 & 960611633124778624015947511546714789832\\
+-9390979934023233037686839914141181659013 & 2848063934279278841200845525848576791934\\
+-8707010393241200595697704637503228167256 & 4634358961359777463662031763152574795910\\
+-7723118558199735333585947045021501410451 & 6250214494152701297733561366714273855663\\
+-6480873022754265587670654805348739312397 & 7617033927823246411701558316834470378693\\
+-3296776282962928450195355562079974291919 & 9362810613239308448752821856735617305389\\
+-1442513481645415489053007250852371013818 & 9733039088635544125591234293715446465839\\
+473579005983151143865690217073943282984 & 9759329295153416086962240697595385836176\\
+2372858204750359429049351486827380431084 & 9430908396110323024329804770889268443510\\
+4184061662454447896993374181551299054853 & 8750376307352230997951514116951420713869\\
+5840543823426662247726359012202878127980 & 7733999914049269380846159864123679516166\\
+7280042164772721585016920411987150804420 & 6409668313572020921539025901166241650504\\
+8444162922855313595050499086097221186662 & 4814843758334683329011653039104490553475\\
+9275649862302447872891854755866108397375 & 2996533501299661135726051235425500195711\\
+9715324892541617145821300300817663390044 & 1019107767839771580294306582422817927060
+\end{tabular}
+\endgroup
+\caption{Rational centers for the roots; both columns have denominator $10^{40}$.}
+\label{cert:root-table}
+\end{table}
+
+For a complex number write $\|z\|_1=|\Re z|+|\Im z|$ and
+$\|z\|_\infty=\max(|\Re z|,|\Im z|)$.  Exact Horner evaluation gives,
+at every displayed center,
+\begin{equation}\label{cert:residual}
+ |z|<2,\qquad \|p'(z)\|_\infty>1,\qquad
+ 2\cdot10^{35}\|p(z)\|_1<\|p'(z)\|_\infty.
+\end{equation}
+Here is an integer prescription for these comparisons.  For
+$q(t)=\sum_{j=0}^d q_jt^j$ and the Gaussian integer $Z=Ez$, initialize
+$(V,h)=(q_d,1)$ and, for $j=d-1,d-2,\ldots,0$, replace
+\[
+ h\leftarrow Eh,\qquad V\leftarrow ZV+hq_j.
+\]
+The final value is $q(z)=V/h$.  Apply this to $p$ and $p'$, and clear
+the positive denominators in~\eqref{cert:residual}.  Comparisons of
+squared distances give $|z-z'|>.01$ for distinct centers, including
+conjugates.  Comparisons of coordinates and squared moduli also give
+\begin{equation}\label{cert:center-bounds}
+ \begin{gathered}
+ 1.83928<z_\beta<1.83929,\qquad
+ 1.0002090<|z_\alpha|^2<1.0002093,\\
+ |z|<.9939\quad\hbox{at all other displayed centers}.
+ \end{gathered}
+\end{equation}
+For $|h|=\delta$, the terms of degree at least two in
+$p(z+h)-p(z)-p'(z)h$ have total modulus at most
+\[
+ \delta^2\sum_{j=0}^{31}|p_j|3^j<10^{17}\delta^2.
+\]
+Indeed, $|z|<2$ and $\delta<1$, so the binomial expansion gives this
+bound term by term.  By~\eqref{cert:residual}, the constant term is
+less than $|p'(z)|\delta/2$, whereas the displayed remainder is less
+than $|p'(z)|\delta/2$.  Rouch\'e's theorem therefore puts exactly one
+root, counted with multiplicity, in each disk.  The disks are disjoint
+and their number is the degree, so these are all the roots and all are
+simple.  The root in the real-centered disk is real by conjugation.
+Every other disk misses the real axis, so the remaining roots form
+fifteen nonreal conjugate pairs.
+The radius $10^{-35}$ and~\eqref{cert:center-bounds} imply every bound
+in Proposition~\ref{np:roots}, including $|1/\alpha|<.9999$.
+
+\subsection{Rounded coefficient arrays and finite products}
+\label{cert:algorithm}
+
+The numerical inputs are the sequences $C_0,C_1$ defined in the
+main text in~\eqref{np:coefficients}.  We approximate their single and paired moments
+\begin{equation}\label{cert:exact-moments}
+ P_A=\prod_{m\in\mathbb Z}\cos(\pi C_A(m)),\qquad
+ P_{AB}^{\sigma}(k)=
+ \prod_{m\in\mathbb Z}\cos\bigl(\pi(C_A(m)+\sigma C_B(m+k))\bigr),
+\end{equation}
+where $A,B\in\{0,1\}$, $\sigma\in\{1,-1\}$, and $k\ge0$.
+Both products converge by exponential decay of the coefficients.
+The sign notation $+$ and $-$ means $\sigma=1$ and $\sigma=-1$.
+
+We now specify the approximations used to define the weights.  Use
+\[
+ S=10^{30},\qquad R=3000,\qquad H=100,\qquad K=2000,
+ \qquad W=10^9.
+\]
+For a real rational $x$ set
+\[
+ [x]=\frac{\lfloor Sx+1/2\rfloor}{S},
+\]
+and round complex numbers componentwise.  Thus, if $x=u/v$ with
+integers $u,v$ and $v>0$, its rounded numerator is
+$\lfloor(2Su+v)/(2v)\rfloor$.  Additions, subtractions, conjugation,
+and multiplication by an integer are exact unless brackets are
+explicitly displayed.  Set
+\[
+ \pi'=\frac{3141592653589793238462643383279}{S}.
+\]
+The inequality $|\pi'-\pi|<1/S$ follows by using $30$ terms of the
+alternating series for $\arctan(1/5)$ and $10$ for $\arctan(1/239)$
+in Machin's identity
+$\pi=16\arctan(1/5)-4\arctan(1/239)$.  The total remainder bound is
+\[
+ \frac{16}{61\cdot5^{61}}+\frac4{21\cdot239^{21}}.
+\]
+In particular this verification, too, uses rational arithmetic only.
+
+The contracting and expanding roots are denoted by $I$ and $D$, as in
+the main text.  For each representative center $z$ first form
+$r_z=[1/p'(z)]$, with $p'(z)$ evaluated exactly.  Store a base and a
+coefficient as follows:
+\begin{equation}\label{cert:base-pairs}
+ (a_z,v_z)=
+ \begin{cases}
+ ([z],r_z),&|z|<1,\\
+ ([1/z],-[[1/z]r_z]),&|z|>1.
+ \end{cases}
+\end{equation}
+For a contracting representative, start $v=v_z$ and add $2\Re v$
+to $c_0(-1)$, then to $c_0(-2),c_0(-3),\ldots$, replacing
+$v\leftarrow[va_z]$ after each addition.  For an expanding
+representative do the same on $c_0(0),c_0(1),\ldots$; the multiplier
+is $1$ for the real root and $2$ for the nonreal representative.
+All arrays start at zero.  Compute $c_0(m)$ on
+\[
+ -R-K-5\le m\le H+K+5
+\]
+and define, wherever these three entries are present,
+\begin{equation}\label{cert:shift-array}
+ c_1(m)=c_0(m+3)-c_0(m)+c_0(m-1).
+\end{equation}
+These extra endpoint entries ensure that every subsequent use of
+$c_1$ lies in its defined range.  The arrays approximate the sequences
+$C_0,C_1$ in the main text.
+
+For a rational input $c$ let $g(c),h(c)$ be the following rounded
+cosine and sine values.  The displayed loop fixes the order of the
+summation.
+\begin{verbatim}
+x = [pi' c];  y = [x*x]
+t = 1;  u = x;  g = t;  h = u
+for j = 1,...,50:
+    t = [-t*y/(2*j*(2*j-1))]
+    u = [-u*y/(2*j*(2*j+1))]
+    g = g+t;  h = h+u
+return (g,h)
+\end{verbatim}
+Write $g_A(m)=g(c_A(m))$ and $h_A(m)=h(c_A(m))$.
+
+The only expanding root close to the unit circle is $\alpha$ and its
+conjugate.  To treat their long tail, set
+\begin{equation}\label{cert:weak-coefficients}
+ a=1/\alpha,\qquad u_0=-a/p'(\alpha),\qquad
+ u_1=u_0(a^3-1+1/a).
+\end{equation}
+Their contribution to $C_A(m)$ for $m\ge H$ is
+$u_Aa^m+\overline{u_Aa^m}$.  Let $(a',u'_0)$ be the pair in
+\eqref{cert:base-pairs} belonging to $z_\alpha$.  Compute
+\[
+ a'_0=1,\qquad a'_{n+1}=[a'a'_n]\quad(0\le n<K),\qquad
+ u'_1=[u'_0(a'_3-1+[1/a'])].
+\]
+The subscript in $a'_n$ is a power-array index.
+
+For a single moment use $w=u'_A$ and $k=0$.  For a paired moment
+of types $A,B\in\{0,1\}$, sign $\sigma\in\{1,-1\}$, and lag
+$0\le k\le K$, use
+$w=u'_A+\sigma[u'_Ba'_k]$.  In either case the following calculation
+returns an approximate moment.  It retains the finite factors
+$-R-k\le m<H$, omits the rapidly convergent negative tail, and treats
+the positive tail by summing the degree-$2$, $4$, and $6$ terms of
+$-\log\cos$ through geometric series.  Their sum is the variable
+\texttt{pen}; the divisors $2,12,45$ are the corresponding Taylor
+denominators.  To compute $e^{-\texttt{pen}}$, the algorithm first
+approximates $e^{-\texttt{pen}/32}$ and then squares five times.
+This tail value is computed first, and the finite factors are then
+multiplied in increasing order of $m$.  Section~\ref{cert:error}
+bounds all omissions and rounding errors.
+\begin{verbatim}
+U = [w*a'_H]
+q_0 = 1;  q_i = [q_{i-1}*U]       for i = 1,...,6
+b_0 = 1;  b_i = [b_{i-1}*pi']     for i = 1,...,6
+pen = 0
+for d = 2,4,6:
+    mom = 0
+    for j = 0,...,d:
+        num = [q_j*conj(q_{d-j})]
+        den = 1-[a'_j*conj(a'_{d-j})]
+        mom = mom+binomial(d,j)*Re([num/den])
+    pen = pen+[b_d*mom/f_d]       (f_2,f_4,f_6) = (2,12,45)
+x = [-pen/32];  t = 1;  value = t
+for j = 1,...,40:
+    t = [t*x/j];  value = value+t
+repeat five times: value = [value*value]
+for m = -R-k,...,H-1, in increasing order:
+    v = g_A(m)                               (single)
+    v = [g_A(m)*g_B(m+k)-sigma*h_A(m)*h_B(m+k)] (pair)
+    value = [value*v]
+return value
+\end{verbatim}
+Denote the outputs by $\widetilde P_A$ and
+$\widetilde P_{AB}^{\sigma}(k)$, respectively.
+
+We use only lags $30\le k\le2000$.  With $s=0$ for $\sigma=1$ and $s=1$ for
+$\sigma=-1$, put $r=\widetilde P_{00}^{\sigma}(k)$ and set
+\begin{equation}\label{cert:weights}
+ w_{ks}=\frac{\operatorname{sgn}(r)}{W}
+ \left\lfloor .68W\max(0,|r|-.00026)+\frac12\right\rfloor,
+ \qquad 30\le k\le2000.
+\end{equation}
+Take $\operatorname{sgn}(0)=0$ and omit zero weights from subsequent
+sums.  The recurrences above and this formula define the weights
+without any choices or numerical tolerances.
+
+\subsection{A uniform error bound for the moment calculation}
+\label{cert:error}
+
+We prove
+\begin{equation}\label{cert:delta}
+ |\widetilde P_A-P_A|<\Delta,
+ \qquad
+ |\widetilde P_{AB}^{\sigma}(k)-P_{AB}^{\sigma}(k)|<\Delta,
+ \qquad \Delta=5\cdot10^{-6},
+\end{equation}
+for all types, signs, and lags used above.  The important issue is the
+weakly contracting base $a=1/\alpha$: truncating its powers at $H=100$
+would not be accurate.  The geometric sums in the tail calculation
+retain all of these powers.
+
+\paragraph{Coefficient and trigonometric errors.}
+For $|z|<2.001$, termwise differentiation gives
+\[
+ |p''(z)|<4\cdot10^{13}.
+\]
+Hence $p'$ changes by less than $4\cdot10^{-22}$ between a center
+and its root.  By~\eqref{cert:residual}, reciprocal differentiation
+and rounding in~\eqref{cert:base-pairs} give base errors less than
+$2/S$ and coefficient errors less than $10^{-21}$.  Direct squared
+modulus comparisons give $|a_z|<1$ and $|v_z|\le1$ for every stored
+pair.  The corresponding exact coefficients have modulus less than
+$1.001$.  Thus each recurrence step $v\leftarrow[va_z]$ propagates
+the existing error with factor at most $1$ and adds less than $4/S$.
+There are fewer than $5100$ such steps in any needed entry.  Each
+coefficient-times-power term consequently has error less than
+$2\cdot10^{-21}$, and
+\begin{equation}\label{cert:coefficient-errors}
+ |c_0(m)-C_0(m)|<7\cdot10^{-20},\qquad
+ |c_1(m)-C_1(m)|<2.1\cdot10^{-19}.
+\end{equation}
+
+The finite recurrence also gives the following rational comparisons:
+\begin{equation}\label{cert:array-bounds}
+ \begin{gathered}
+ \max_{A,m}|c_A(m)|<.847,\qquad
+ \max_{m\ge-20}|c_0(m)|<.018,\qquad
+ \max_A|u'_A|<.0087,\\
+ .8460<\max_{A,m}|c_A(m)|<.8462.
+ \end{gathered}
+\end{equation}
+The maxima here range over the computed entries; use squared
+moduli for the complex coefficients $u'_A$.  To reproduce them, perform
+the coefficient recurrences in~\eqref{cert:base-pairs}, the additions
+in~\eqref{cert:shift-array}, and the displayed definition of $u'_1$.
+These comparisons require neither evaluation of trigonometric
+functions nor a root-finding routine.
+
+Every later trigonometric input is a sum of at most four of these
+coefficients, counted with multiplicity.  Its error is less than
+$10^{-18}$, and its rounded angle satisfies $|x|\le13$ and $|y|\le170$.
+The angle error is less than $4\cdot10^{-18}$.  For the Taylor
+recurrences at a fixed value of $y$, each term-rounding error
+contributes at most $e^{14}/S$ to the final sum: the subsequent
+factorial denominators bound the amplification by
+$\sum_{j\ge0}170^j/(2j)!<e^{14}$.  Replacing $x^2$ by $y$ costs
+at most $100e^{14}/S$, by differentiating the absolute term sums.
+The omitted Taylor tails at $|x|\le13$ are less than $10^{-30}$.
+Together these effects give errors below $10^{-20}$ relative to
+the computed angle, and below $10^{-16}$ relative to the true
+cosine and sine.  In particular every single or paired finite
+factor has error less than $10^{-15}$.
+
+There are at most $R+K+H=5100$ finite factors.  The true factors have
+modulus at most $1$, and their approximations have modulus at most
+$1+10^{-15}$.  Telescoping the product, including its roundings,
+shows that with an initial value of modulus at most $2$ these errors
+contribute less than $3\cdot10^{-11}$.
+
+\paragraph{Terms omitted at the two ends.}
+On the negative side, $|C_0(m)|\le32(.994)^{-1-m}$ for $m<0$,
+by summing the contracting-root terms.  Including the three shifts
+for type $1$, a single or paired coefficient at $m<-R-k$ is bounded by
+\[
+ 200(.994)^{-4-(m+k)}.
+\]
+Using $1-\cos u\le u^2/2$ and telescoping products, the total omitted
+product costs at most
+\[
+ \frac{3.142^2\,200^2}{2}
+ \frac{(.994)^{5994}}{1-(.994)^2}<5\cdot10^{-8}.
+\]
+For example, the rational inequality $(.994)^{2996}<3\cdot10^{-8}$
+already suffices for this estimate.  On the positive side the only
+terms omitted from the coefficients are those from $\beta$.
+Their bases are less than $.545$, and their type-$0$ and type-$1$
+coefficients have modulus at most $4$.  The cosine Lipschitz bound
+therefore gives a total error at most
+$3.142\cdot8\cdot(.545)^{100}/(1-.545)<10^{-20}$.
+
+\paragraph{The geometric tail and its rounding.}
+Let $w_*=u_A$ in the single case and
+$w_*=u_A+\sigma u_Ba^k$ in the paired case.  Put $U_*=w_*a^H$.
+The exact sums of the even powers of the weak-root tail are
+\begin{equation}\label{cert:geometric-moments}
+ \mu_d=\sum_{n\ge0}(U_*a^n+\overline{U_*a^n})^d
+ =\sum_{j=0}^d\binom dj\Re
+ \frac{U_*^j\overline{U_*}^{d-j}}{1-a^j\bar a^{d-j}}
+ \quad(d=2,4,6).
+\end{equation}
+The equality follows by the binomial theorem and absolutely
+convergent geometric series.  In particular $\mu_d\ge0$.
+
+The power-array errors satisfy $|a'_n-a^n|\le3n/S$.  Because
+$|a|,|a'|>.99$, the formula for $u'_1$ gives errors below
+$5\cdot10^{-21}$ for both $u'_A$, and $|u_A|\le.00871$.
+It follows that the computed $U$ has error below $10^{-19}$;
+its powers through degree $6$ have errors below $10^{-18}$.
+In each quotient in the algorithm, the numerator error is below
+$3\cdot10^{-18}$ and the denominator error is below $10^{-28}$.
+The true and computed denominators have modulus greater than
+$.00019$: use
+\[
+ |1-a^j\bar a^{d-j}|\ge1-|a|^d
+ >1-(.9999)^2>.00019
+\]
+and the stated rounding error.  Hence each quotient error is below
+$2\cdot10^{-14}$, the error in each computed $\mu_d$ is below
+$2\cdot10^{-12}$, and $|\mu_d|<4\cdot10^5$ by the same denominator
+bound.  The rounded powers of $\pi'$ through degree $6$ have errors
+below $10^{-22}$.  Consequently \texttt{pen} approximates the
+nonnegative number
+\begin{equation}\label{cert:penalty}
+ P=\frac{\pi^2\mu_2}{2}+\frac{\pi^4\mu_4}{12}
+       +\frac{\pi^6\mu_6}{45}
+\end{equation}
+to within $10^{-9}$.
+
+For $m\ge H$, the weak coefficient has angle bounded by
+\[
+ 3.142\cdot4\cdot.00871\cdot(.9999)^m
+ <.11(.9999)^m.
+\]
+Summing the powers of this bound gives
+\[
+ P\le\frac{.11^2}{2(1-.9999^2)}
+      +\frac{.11^4}{12(1-.9999^4)}
+      +\frac{.11^6}{45(1-.9999^6)}<31.
+\]
+Thus $|\texttt{pen}|<32$ and $|x|<1.1$ in the exponential
+calculation.  The $40$-term exponential recurrence has Taylor
+remainder less than $10^{-40}$.  Its rounding errors, bounded using
+$e^{1.1}$, are negligible compared with $10^{-9}$.  Each squaring
+amplifies its existing error by at most $3$, since the true
+intermediate values for the computed penalty are at most
+$e^{10^{-9}}$.  Including the error in~\eqref{cert:penalty}, the
+returned exponential is within $4\cdot10^{-9}$ of $e^{-P}$.
+
+\paragraph{The analytic remainder of the tail.}
+For real $z$ with $|z|\le.11$ one has
+\begin{equation}\label{cert:logcos-remainder}
+ \left| -\log\cos z-\frac{z^2}{2}-\frac{z^4}{12}
+                         -\frac{z^6}{45}\right|\le.1z^8.
+\end{equation}
+Here are elementary bounds proving the stated constant.  Set
+$y=z^2$, $h=1-\cos z$, and
+$h_0=y/2-y^2/24+y^3/720$.  Then $0\le h\le y/2$ and
+$|h-h_0|\le y^4/40320$.  In
+$-\log(1-h)=h+h^2/2+h^3/3+\cdots$, the terms after the third
+are bounded by $h^4/(4(1-h))<.016y^4$.  Substitution of $h_0$
+in the first three terms costs less than $.00004y^4$.
+The terms through degree $3$ are $y/2+y^2/12+y^3/45$;
+the sum of the absolute values of the remaining coefficients is
+less than $.03$, so their contribution is less than $.03y^4$
+for $0\le y\le.0121$.  These bounds imply~\eqref{cert:logcos-remainder}.
+
+Applying~\eqref{cert:logcos-remainder} to all weak tail angles gives
+\[
+ \left|\sum_{m\ge H}-\log\cos
+       \bigl(\pi(w_*a^m+\overline{w_*a^m})\bigr)-P\right|
+ \le\frac{.1(.11)^8}{1-(.9999)^8}<3\cdot10^{-6}.
+\]
+Both penalties are nonnegative, so the same bound applies to the
+difference of their exponentials.  Combining this with the rounding
+error, the finite-factor error, and the two omitted ends proves
+\eqref{cert:delta}; indeed the sum of the stated errors is below
+$3.055\cdot10^{-6}$.
+
+\subsection{Correlation, variance, and the absolute Gram sum}
+\label{cert:moments}\label{cert:moment-proof}
+
+For the rest of the appendix, abbreviate
+$Z_i=\mathcal Z_i^{(0)}$ and $G_i=\mathcal G_i$ from
+\eqref{np:stationary} and~\eqref{np:predictor}.  All expectations are
+under the stationary law of the two-sided independent bits.
+
+The preceding calculation defines exact rational weights and bounds
+each moment error uniformly.  We next sum those moments to prove
+the first three estimates of Proposition~\ref{np:moments}.  A final
+finite-product estimate will prove the fourth.
+
+Write $X=-.001$, $Y=.0055$, and let $\mathcal R$ be the nonzero
+rows $(w_{ks},k,s)$ with $30\le k\le2000$.  Define
+\[
+ b_A=\widetilde P_A,\qquad
+ m_{k0}=\widetilde P_{00}^{+}(k),\quad
+ m_{k1}=\widetilde P_{00}^{-}(k),\qquad
+ e=\widetilde P_{01}^{+}(33).
+\]
+The approximated correlation is
+\begin{equation}\label{cert:corr-sum}
+ \widetilde c=Xb_0+Ye+\sum_{(w,k,s)\in\mathcal R}wm_{ks}.
+\end{equation}
+For each lag $k$, let $J_{k0}$ and $J_{k1}$ be respectively the
+second (minus) and first (plus) entries of the following pair:
+\[
+ \begin{cases}
+ (\widetilde P_{10}^{+}(k-33),\widetilde P_{10}^{-}(k-33)),&k\ge33,\\
+ (\widetilde P_{01}^{+}(33-k),\widetilde P_{01}^{-}(33-k)),&k<33.
+ \end{cases}
+\]
+The approximated squared norm and absolute Gram sum are
+\begin{align}
+ \widetilde v={}&X^2+Y^2+2XYb_1
+ +2\sum_{(w,k,s)\in\mathcal R}w(Xb_0+YJ_{ks})
+ \notag\\[-2pt]
+ &+\sum_{(w,k,s),(v,l,t)\in\mathcal R}
+           wv\,m_{|k-l|,\,\mathbf1_{s=t}},\label{cert:var-sum}\\
+ \widetilde T={}&
+ \sum_{\substack{(w,k,s),(v,l,t)\in\mathcal R\\k,l\ge50}}
+       |wv\,m_{|k-l|,\,\mathbf1_{s=t}}|.\label{cert:T-sum}
+\end{align}
+Both double sums are over ordered pairs.  Equal signs require the
+minus moment in a conjugated phase pair; opposite signs require the
+plus moment.  This explains the index $\mathbf1_{s=t}$, including
+the diagonal cases.
+
+The exact finite calculations give
+\begin{equation}\label{cert:exact-output}
+ \begin{aligned}
+ |\mathcal R|&=753,\\
+ |X|+|Y|+\sum_{\mathcal R}|w|&=198442946/W,\\
+ |X|+|Y|+\sum_{\substack{(w,k,s)\in\mathcal R\\k<50}}|w|
+     &=11816095/W,\\
+ WS\widetilde c&=211815537786494774284357596751188225,\\
+ W^2S\widetilde v&=143920884250294630908494564120361905955993456,\\
+ W^2S\widetilde T&=105303788239450118397416374596041413014338334.
+ \end{aligned}
+\end{equation}
+These are integer equalities: compute the arrays and products in
+Section~\ref{cert:algorithm}, round the weights by~\eqref{cert:weights},
+and use the unrounded rational sums
+\eqref{cert:corr-sum}--\eqref{cert:T-sum}.  In particular
+\[
+ 211810<10^9\widetilde c<211820,\quad
+ 143910<10^9\widetilde v<143930,\quad
+ 105300<10^9\widetilde T<105310.
+\]
+This gives $|G_i|<.199$ and $|G_i^{(N)}(x)|<.199$ by the triangle
+inequality.  The total
+correlation error is at most $\Delta\cdot.199$, and the squared-norm
+error is at most $\Delta\cdot.199^2$.  Thus
+\[
+ \mathbb E\Re(Z_iG_i)>.0002108205>.000210,
+ \qquad
+ \mathbb E|G_i|^2<.000144119<.000145.
+\]
+
+To prepare for the last estimate, call the constant row, the type-$1$
+row, and the rows with $k<50$ the \emph{small rows}; the remaining
+rows are the \emph{big rows}.  A row of weight $w_v$ has phase
+$U_v=\exp(\pi\mathrm i\sum_m f_v(m)e_m)$, where
+$e_m=2b_{i+m}-1$.  Its sequence $f_v$ is zero for the constant,
+$C_1(m+33)$ for the type-$1$ row, and
+$(1-2s)C_0(m+k)$ for a row $(w,k,s)$.  Define the true absolute
+Gram sum
+\begin{equation}\label{cert:true-T}
+ T=\sum_{v,v'\ {\rm big}}|w_vw_{v'}\mathbb E U_v\overline{U_{v'}}|.
+\end{equation}
+The error between this sum and~\eqref{cert:T-sum} is at most
+$\Delta\cdot.199^2$, by $||x|-|y||\le|x-y|$.  Hence
+\begin{equation}\label{cert:T-bound}
+ T<.000116,\qquad \sqrt T<.011.
+\end{equation}
+The total absolute weight of the small rows is less than $.012$.
+
+\subsection{Finite products controlling the remaining moment}
+\label{cert:finite-products}
+
+We now bound $\mathbb E(Z_i^2G_i^2)$.  The big rows have small
+coefficients on the $71$ positions $-70\le m\le0$.  More precisely,
+with $t=.06$, \eqref{cert:coefficient-errors} and
+\eqref{cert:array-bounds} give
+\begin{equation}\label{cert:tangent-bound}
+ |\tan(\pi f_v(m))|\le t
+ \quad(v\hbox{ big},\ -70\le m\le0).
+\end{equation}
+Indeed $m+k\ge-20$ for these rows, and the coefficient bound $.018$,
+together with $\sin u\le u$ and $\cos u\ge1-u^2/2$, is sufficient.
+
+For any real sequence $V$ put $c_m=|\cos(\pi V(m))|$ and
+$s_m=|\sin(\pi V(m))|$.  The finite products needed below are
+\begin{align}
+ B_2(V)&=\prod_{m=-70}^0
+  \min\left(1,\frac{(1+t^2)c_m+2ts_m}{1-t^2}\right),\notag\\
+ B_1(V)&=\prod_{m=-70}^0
+  \min\left(1,\frac{c_m+ts_m}{\sqrt{1-t^2}}\right),\label{cert:B-def}\\
+ B_0(V)&=\prod_{m=-200}^0c_m.\notag
+\end{align}
+Their bounds are
+\begin{equation}\label{cert:B-bounds}
+ B_2(2C_0)<.011,\qquad
+ \max_{f\ {\rm small}}B_1(2C_0+f)<.015,\qquad
+ \max_{f,g\ {\rm small}}B_0(2C_0+f+g)<.0032.
+\end{equation}
+Here the maxima range over the actual phase sequences of the small
+rows.  Besides the constant and the type-$1$ row, their eight
+nonzero rows are as follows:
+\[
+\begin{array}{c|rrrrrrrr}
+ k&32&36&37&39&40&43&44&47\\
+ s&0&1&0&1&0&0&1&1\\
+ Ww_{ks}&-536932&1265024&331701&47119&1483338&436861&458216&756904
+\end{array}
+\]
+
+For completeness, the following upper-rounding calculation verifies
+all of~\eqref{cert:B-bounds}.  For each of its three cases and each
+indicated choice of small rows, form the approximate sequence $V'$
+by replacing $C_A$ by $c_A$.  Initialize $v=1$.  For increasing $m$
+in the relevant interval, compute
+\begin{align*}
+ b&=|g(V'(m))|+10^{-15},& y&=|h(V'(m))|+10^{-15},\\
+ F_0&=b,&
+ F_1&=S^{-1}+[1.002(b+.06y)],\\
+ &&F_2&=S^{-1}+[1.004(1.0036b+.12y)],\\
+ v&\leftarrow S^{-1}+[v\min(1,F_j)]&&\text{in case }j.
+\end{align*}
+The factors $1.002$ and $1.004$ bound
+$(1-t^2)^{-1/2}$ and $(1-t^2)^{-1}$, respectively.  The added
+$10^{-15}$ exceeds the trigonometric error proved above, and each
+added $S^{-1}$ compensates for a possibly downward rounding.
+Thus this calculation gives upper bounds, including for $B_0$
+because its true factors are at most $1$.  The maximum final
+numerators at scale $S$, in the order $B_2,B_1,B_0$, are
+\begin{equation}\label{cert:B-output}
+ \begin{gathered}
+ 10861284406435197401851134503,\\
+ 14731866010915969694738277129,\\
+ 3155364376927094122833206055.
+ \end{gathered}
+\end{equation}
+Multiplication by $10^6/S$ bounds them respectively by $10862$,
+$14732$, and $3156$, proving~\eqref{cert:B-bounds}.
+
+\subsection{From the finite products to the anisotropy bound}
+\label{cert:walsh}
+
+The estimates just obtained concern individual coefficients and
+finite products.  We finish by showing how they control the full
+sum of phases without expanding every three-phase moment.
+Write $G_i=G_{\rm small}+G_{\rm big}$ according to the preceding
+partition, and fix any subset $J\subset\{-70,\ldots,0\}$.
+Expanding the big phases in the independent signs $e_m$ on $J$ gives
+\begin{equation}\label{cert:walsh-expansion}
+ G_{\rm big}=\sum_{A\subset J}\mathrm i^{|A|}e_AH_A,
+ \qquad e_A=\prod_{m\in A}e_m,
+\end{equation}
+where
+\[
+ H_A=\sum_{v\ {\rm big}}w_vU_v^{\rm out}
+       \prod_{m\in J}\cos(\pi f_v(m))
+       \prod_{m\in A}\tan(\pi f_v(m)).
+\]
+The phase $U_v^{\rm out}$ depends only on signs outside $J$, so
+each $H_A$ is independent of the signs on $J$.
+
+We claim that
+\begin{equation}\label{cert:H-bound}
+ \|H_A\|_2\le\sqrt T\,t^{|A|}(1-t^2)^{-|J|/2}.
+\end{equation}
+For two big rows, independence gives their full Gram entry as the
+outside Gram entry times
+\[
+ \prod_{m\in J}\cos(\pi f_v(m))\cos(\pi f_{v'}(m))
+       \bigl(1+\tan(\pi f_v(m))\tan(\pi f_{v'}(m))\bigr).
+\]
+By~\eqref{cert:tangent-bound}, each last factor is at least $1-t^2$.
+In the expansion of $\|H_A\|_2^2$, the extra tangent products have
+modulus at most $t^{2|A|}$.  Taking absolute values term by term
+therefore bounds the squared norm by
+$Tt^{2|A|}(1-t^2)^{-|J|}$, proving~\eqref{cert:H-bound}.
+
+First consider $\mathbb E(Z_i^2G_{\rm big}^2)$ and set $V=2C_0$.
+For a pair $A,A'\subset J$ in~\eqref{cert:walsh-expansion},
+averaging the signs on $J$ contributes a factor of modulus $c_m$
+where membership in $A,A'$ agrees, and a factor of modulus $s_m$
+where it differs.  The outside expectation is bounded by
+$\|H_A\|_2\|H_{A'}\|_2$ using Cauchy--Schwarz and the unit modulus
+of the outside part of $Z_i^2$.  Summing over the four membership
+choices at each site gives
+\[
+ |\mathbb E(Z_i^2G_{\rm big}^2)|
+ \le T\prod_{m\in J}\frac{(1+t^2)c_m+2ts_m}{1-t^2}.
+\]
+Choose $J$ to contain precisely those positions whose displayed
+factor is less than $1$.  This yields
+\begin{equation}\label{cert:big-square}
+ |\mathbb E(Z_i^2G_{\rm big}^2)|\le T B_2(2C_0).
+\end{equation}
+
+For a fixed small phase $U$ with sequence $f$, use the same expansion
+with $V=2C_0+f$.  There is now one subset $A$; summing its two
+membership choices produces $c_m+ts_m$.  The outside expectation
+is bounded by $\|H_A\|_2$.  Optimizing $J$ as before gives
+\[
+ |\mathbb E(Z_i^2UG_{\rm big})|
+ \le\sqrt T B_1(2C_0+f).
+\]
+For two small phases with sequences $f,g$, independence directly
+bounds their full moment by $B_0(2C_0+f+g)$: discard all the other
+absolute cosine factors, which are at most $1$.
+
+Finally sum these bounds with the absolute row weights.  Using
+\eqref{cert:T-bound}, \eqref{cert:B-bounds}, and the small-weight
+bound $.012$, we obtain
+\[
+ \begin{split}
+ |\mathbb E(Z_i^2G_i^2)|
+ &\le T\cdot.011+2(.012)\sqrt T\cdot.015
+                           +(.012)^2\cdot.0032\\
+ &<.000116\cdot.011+2\cdot.012\cdot.011\cdot.015
+                           +.012^2\cdot.0032\\
+ &=.0000056968<.000007.
+ \end{split}
+\]
+This proves the remaining estimate of Proposition~\ref{np:moments}.

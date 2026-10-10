@@ -1,0 +1,195 @@
+\section{A rational objective for counting matchings}
+\label{d:sec-objective}
+
+The weighted entropy estimate reduces counting to a continuous maximum.
+We now replace that maximum by one computed from exact rational data.
+Assume throughout this section that \(n\ge4\) is even.  Let \(N\) be the
+number of perfect matchings in the input graph, with parallel edges
+counted as distinct choices.  We allow the multiplicity \(k_e\) of each
+unordered pair \(e\in\binom V2\) to be supplied in binary; an absent pair
+has \(k_e=0\).  For a simple graph, every multiplicity is zero or one.
+
+We work on the complete simple graph \(K_n\), writing
+\[
+  P=P(K_n),\qquad p=\binom n2.
+\]
+The objective functions below have one coordinate for each of these
+\(p\) unordered pairs.  In particular, \(P\) is nonempty even when
+the input graph has no perfect matching. Small positive weights on absent
+pairs will encode the input support in the objective. Completion also
+provides the uniform feasible mean \(u_{ij}=1/(n-1)\), whose nontrivial
+odd-cut inequalities are strict. Section~\ref{d:sec-optimization} uses
+that slack to repair cut violations after correcting the degree sums.
+
+\subsection{Completing the graph with small weights}
+
+Set
+\begin{equation}
+\label{d:eq-completion-weights}
+\begin{split}
+ b_{\max}&=\max\bigl(\{0\}\cup
+       \{\lfloor\log_2 k_e\rfloor:k_e>0\}\bigr),\\
+ L&=100(n+b_{\max}+1)^3,\qquad
+ \beta_e=
+ \begin{cases}
+   \lfloor\log_2 k_e\rfloor,&k_e>0,\\
+   -L,&k_e=0.
+ \end{cases}
+\end{split}
+\end{equation}
+For a positive integer \(k_e\), its binary bit length minus one equals
+\(\lfloor\log_2 k_e\rfloor\).  Thus these coefficients are computed
+exactly by integer arithmetic, and their numerical magnitudes are
+polynomial in \(n+b_{\max}\).
+
+Use \(Z_\beta\) and \(q^*\) from Corollary~\ref{d:coarse-weighted} for \(K_n\)
+with the weights in Equation~\eqref{d:eq-completion-weights}.  A term in
+\(Z_\beta\) is called valid if its matching uses only pairs with positive
+input multiplicity; write \(Z_{\mathrm{good}}\) and
+\(Z_{\mathrm{bad}}\) for the sums of valid and remaining terms,
+respectively.
+
+\begin{lemma}[Weighted completion]
+\label{d:lem-penalized-count}
+The contribution of matchings using an absent pair satisfies
+\[
+  0\le Z_{\mathrm{bad}}\le2^{-20n}.
+\]
+Moreover,
+\begin{equation}
+\label{d:eq-penalized-count}
+\begin{aligned}
+ N=0&\quad\Longrightarrow\quad \log_2 Z_\beta\le-20n,\\
+ N>0&\quad\Longrightarrow\quad
+       \max\{1,2^{-n/2}N\}\le Z_\beta\le2N.
+\end{aligned}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For each pair with \(k_e>0\), put
+\(r_e=2^{\lfloor\log_2 k_e\rfloor}\).  Then
+\[
+  \frac{k_e}{2}\le r_e\le k_e.
+\]
+For a valid matching of \(K_n\), the product of its \(k_e\)'s is the
+number of corresponding perfect matchings in the input multigraph.
+Replacing these \(n/2\) factors by \(r_e\) and summing therefore gives
+\begin{equation}
+\label{d:eq-valid-rounded-count}
+  2^{-n/2}N\le Z_{\mathrm{good}}\le N.
+\end{equation}
+If \(N>0\), there is at least one valid matching, and its rounded
+weight is a positive integer.  Hence \(Z_{\mathrm{good}}\ge1\).
+
+Every remaining matching uses a pair of weight \(2^{-L}\), and each
+of its other pair weights is at most \(2^{b_{\max}}\).  There are at most
+\(2^p\) matchings, since each is a subset of the \(p\) pairs.  Thus
+\[
+  Z_{\mathrm{bad}}\le 2^{p+b_{\max}n/2-L}\le2^{-20n}.
+\]
+For the last inequality, put \(t=n+b_{\max}+1\ge5\) and note that
+\[
+  p+\frac{b_{\max}n}{2}+20n\le t^2+20t\le100t^3=L.
+\]
+When \(N=0\), every term is in \(Z_{\mathrm{bad}}\); also \(Z_\beta>0\)
+because \(K_n\) has a perfect matching and every assigned weight is
+positive.  This proves the first implication in
+Equation~\eqref{d:eq-penalized-count}.
+When \(N>0\), Equation~\eqref{d:eq-valid-rounded-count} gives the lower
+bounds, while
+\[
+  Z_\beta\le N+2^{-20n}\le2N
+\]
+because \(N\) is a positive integer.
+\end{proof}
+
+\subsection{Interpolating entropy on a dyadic grid}
+
+Let \(K\) be the least nonnegative integer such that \(2^K\ge p\).
+Define \(\phi(t)=-t\log_2 t\) on \([0,1]\), with \(\phi(0)=0\), and
+let \(\psi\) be its continuous linear interpolant at
+\[
+  0,\ 2^{-K},\ 2^{-(K-1)},\ \ldots,\ 2^{-1},\ 1.
+\]
+The interpolant has the explicit rational formulas
+\begin{equation}
+\label{d:eq-dyadic-chords}
+ \psi(t)=
+ \begin{cases}
+   Kt,&0\le t\le2^{-K},\\
+   (k-1)t+2^{-k},
+     &2^{-(k+1)}\le t\le2^{-k},\quad 0\le k<K.
+ \end{cases}
+\end{equation}
+The formulas agree at common endpoints.
+
+\begin{lemma}[Dyadic entropy approximation]
+\label{d:lem-dyadic-entropy}
+The function \(\psi\) is concave, with integer slopes of absolute value
+at most \(K\).  For every \(x\in P\),
+\begin{equation}
+\label{d:eq-dyadic-entropy-error}
+  0\le h_2(x)-\sum_e\psi(x_e)
+     \le\frac n2+1\le n.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+At a positive knot, \(\phi(2^{-k})=k2^{-k}\).  The chord between
+\(2^{-(k+1)}\) and \(2^{-k}\) therefore has slope \(k-1\) and
+intercept \(2^{-k}\), whereas the chord from zero has slope \(K\).
+This proves Equation~\eqref{d:eq-dyadic-chords}.  Reading the intervals
+from left to right, the slopes are nonincreasing, so \(\psi\) is
+concave.  Since \(p\ge6\), we have \(K\ge1\), and all its slopes lie
+between \(-1\) and \(K\).
+
+The concavity of \(\phi\) puts every chord below its graph.  If
+\(2^{-(k+1)}\le t\le2^{-k}\), then
+\[
+  \psi(t)-kt=2^{-k}-t\ge0,
+  \qquad \phi(t)\le(k+1)t.
+\]
+Consequently \(0\le\phi(t)-\psi(t)\le t\) on this interval.
+On the interval adjacent to zero, write \(t=2^{-K}r\), where
+\(0\le r\le1\).  Then
+\[
+  \phi(t)-\psi(t)=2^{-K}(-r\log_2 r)\le2^{-K}.
+\]
+Here the expression at \(r=0\) is interpreted by continuity; on
+\((0,1]\), differentiation gives the maximum
+\(1/(e\ln2)<1\).
+
+For \(x\in P\), summing the degree equations gives
+\(\sum_e x_e=n/2\).  Apply the bound \(x_e\) on intervals above
+\(2^{-K}\), and the bound \(2^{-K}\) on the interval below it.
+The total error is at most
+\[
+  \sum_{e:x_e\ge2^{-K}}x_e
+     +\bigl|\{e:x_e<2^{-K}\}\bigr|\,2^{-K}
+  \le \frac n2+p2^{-K}
+  \le \frac n2+1
+  \le n.
+\]
+This proves Equation~\eqref{d:eq-dyadic-entropy-error}.
+\end{proof}
+
+Define the concave function \(f\) on the entire box \([0,1]^p\) by
+\begin{equation}
+\label{d:eq-surrogate-objective}
+  f(x)=\sum_e\psi(x_e)+\beta\cdot x,\qquad
+  f^*=\max_{x\in P}f(x).
+\end{equation}
+Equation~\eqref{d:eq-dyadic-entropy-error} gives
+\(f(x)\le h_2(x)+\beta\cdot x\le f(x)+n\) on \(P\).
+Taking maxima yields
+\begin{equation}
+\label{d:eq-surrogate-gap}
+  f^*\le q^*\le f^*+n.
+\end{equation}
+On each affine piece, \(f\) has integer coordinate slopes of absolute
+value at most \(K+L\), since \(|\beta_e|\le L\).  All breakpoints and
+intercepts in Equation~\eqref{d:eq-dyadic-chords} have denominators
+dividing \(2^K<2p\).  Thus \(f\) can be evaluated exactly at rational
+points using rational arithmetic.  Section~\ref{d:sec-optimization}
+uses these properties to estimate \(f^*\).

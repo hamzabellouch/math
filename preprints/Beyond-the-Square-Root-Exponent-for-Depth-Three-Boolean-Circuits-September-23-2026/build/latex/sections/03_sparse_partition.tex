@@ -1,0 +1,264 @@
+\section{A disjoint sparse partition of bounded-width CNFs}
+\label{sec:sparse}
+
+We next reduce arbitrary bounded-width CNF tests to tests with only linearly
+many clauses.  The proof adapts the sparsification method of Impagliazzo,
+Paturi, and Zane~\cite[Section~2]{IPZ01}, including its occurrence bounds,
+insertion accounting, and entropy count of branches.  A disjoint
+refinement is described by Dell, Husfeldt, Marx, Taslaman, and
+Wahl\'en~\cite[Appendix~A of the full version]{DHMTW14}.
+Here we prove a version with the bookkeeping needed for our partition.
+Disjointness
+lets us add the correlations of the pieces without inclusion--exclusion.
+
+\begin{lemma}[Sparse partition]\label{lem:sparse-partition}
+For every integer $b\ge 1$ and real $\eta>0$, there is a positive integer
+$M=M(b,\eta)$ with the following property.  Every CNF indicator $H$ of width
+at most $b$ on $m\ge 1$ variables can be written pointwise as
+\[
+  H=\sum_{a=1}^{q} H_a,
+  \qquad q\le 2^{\eta m},
+\]
+where the $H_a$ are CNF indicators of width at most $b$, each represented by
+at most $Mm$ clauses, and their satisfying sets are pairwise disjoint.
+The empty sum is permitted when $H=0$.
+\end{lemma}
+
+We use the classical sunflower bound of Erd\H{o}s and Rado~\cite{ER60}
+to identify a branching step, and include its short proof.
+A \emph{sunflower} is a collection of distinct sets whose pairwise
+intersections all equal a fixed set $C$, called its \emph{core}.  The sets
+obtained by removing $C$ are its \emph{petals}; they are pairwise disjoint.
+
+\begin{lemma}\label{lem:sunflower-bound}
+Let $s\ge 0$ and $r\ge 2$ be integers.  A family of more than
+$s!(r-1)^s$ distinct sets of cardinality $s$ contains a sunflower with
+$r$ members.
+\end{lemma}
+
+\begin{proof}
+For $s=0$ there is at most one distinct set, so the hypothesis is impossible.
+Proceed by induction on $s$.  If the family contains $r$ pairwise disjoint
+sets, these already form a sunflower with empty core.  Otherwise, take a
+maximal pairwise disjoint subfamily.  It has at most $r-1$ members, and its
+union $U$ has at most $s(r-1)$ elements.  Maximality implies that every set
+in the original family meets $U$.  Some element of $U$ therefore belongs
+to more than
+\[
+  \frac{s!(r-1)^s}{s(r-1)}=(s-1)!(r-1)^{s-1}
+\]
+members.  Delete this element from all those members.  The resulting
+sets remain distinct and have cardinality $s-1$.  By induction, $r$ of
+them form a sunflower.  Restoring the deleted element gives the required
+sunflower in the original family.
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lem:sparse-partition}]
+We regard clauses as sets of literals.  Discard true and tautological
+clauses, duplicates, and any clause that contains another clause.  If an
+empty clause remains, use the empty partition and stop.  Otherwise the
+remaining clauses are nonempty and form an antichain under inclusion.
+The empty family is allowed and represents the constant true function.
+
+The partition will come from a binary branching tree.  Fix for now
+arbitrary integers $r_2,\ldots,r_b\ge2$; we will choose their values after
+bounding the number of leaves.  A sunflower is \emph{eligible at size $i$}
+if it consists of $r_i$ size-$i$ clauses and has nonempty core.  All set
+operations below concern literals.  In particular, disjoint petals may
+contain opposite literals of one variable, and a branch may be
+unsatisfiable.
+
+\medskip\noindent
+\textbf{Branching and disjointness.}
+Each state consists of an active antichain and a separate conjunction of
+unit clauses, called its \emph{side condition}.  Initially the side
+condition is true.  It is never used to select sunflowers or to delete
+active clauses.  Whenever an eligible sunflower exists, choose one of
+the smallest possible size $i$, with fixed deterministic tie-breaking,
+and write its clauses as
+\[
+ C\cup P_1,\ldots,C\cup P_{r_i}.
+\]
+The core $C$ is nonempty.  The petals are nonempty, pairwise disjoint, and
+all of the same size; their nonemptiness follows from distinctness and
+equal size of the sunflower members.  Make two updates:
+\begin{itemize}
+ \item On branch $0$, insert the clause $C$ into the active family.
+ \item On branch $1$, insert all petal clauses $P_1,\ldots,P_{r_i}$ and
+ append to the side condition the requirement that every literal of $C$
+ be false.
+\end{itemize}
+After either insertion, delete all subsumed active clauses to restore
+the antichain.  Every inserted clause has size strictly less than $i$,
+so width never increases; the side condition uses only unit clauses.
+The extra requirement on branch $1$ is the disjointness device
+of~\cite[Appendix~A of the full version]{DHMTW14}.  Keeping it separate
+ensures that every deletion from the active family is caused by an
+active insertion, a fact needed in the counting argument below.
+
+Every clause in an insertion batch is new and remains active immediately
+after the update.  Indeed, an inserted clause $D$ is a strict subset of
+some current clause $A$.  A current clause $B\subseteq D$ would satisfy
+$B\subsetneq A$, contrary to the antichain property.  Within a petal
+batch, distinct equal-size clauses do not subsume one another either.
+
+Let $F$ be the active CNF indicator before a step, and let $F_0,F_1$ be
+the active indicators after its two updates, without side conditions.
+Subsumption deletion preserves the conjunction, so
+\[
+ F_0=F\,\one[C\text{ is true}],\qquad
+ F_1=F\prod_{j=1}^{r_i}\one[P_j\text{ is true}].
+\]
+When $C$ is false, the selected clauses in $F$ require every petal to be
+true.  Therefore
+\begin{equation}\label{eq:sparse-branch-identity}
+ F=F_0+\one[C\text{ is false}]F_1,
+\end{equation}
+with disjoint supports on the right.  Multiplying by the accumulated
+side condition gives the corresponding disjoint identity for the state.
+Once we prove termination, iteration of this identity will give a
+partition into leaf indicators.
+
+\medskip\noindent
+\textbf{Occurrence bounds and insertion budgets.}
+We next bound the number of steps on every finite path prefix.  The
+smallest-size rule bounds how many active clauses inserted in earlier
+branching steps can contain any one literal.  Define
+\[
+ e_1=1,\qquad e_i=(i-1)!(r_i-1)^{i-1}\quad(2\le i\le b).
+\]
+If the current size-$i$ clauses contain no eligible sunflower, each
+literal occurs in at most $e_i$ of them.  For $i\ge2$, remove a fixed
+literal from the clauses containing it.  More than $e_i$ distinct
+resulting sets would contain an $r_i$-member sunflower by
+Lemma~\ref{lem:sunflower-bound}; restoring the literal gives an eligible
+sunflower with nonempty core.  For $i=1$, the claim follows because the
+clauses are distinct.
+
+Call an active clause \emph{added} if it was inserted in a branching step.
+At every state, for every size $u$ and every literal, we claim
+\begin{equation}\label{eq:sparse-added-invariant}
+ \#\{\text{active added size-$u$ clauses containing this literal}\}
+ \le e_u+1.
+\end{equation}
+Initially there are no added clauses.  A step can increase this count
+only by inserting size-$u$ clauses, and such a step processes a size
+$i>u$.  The smallest-size rule then guarantees that there is no eligible
+size-$u$ sunflower before the insertion.  Thus the occurrence bound
+applies to all current size-$u$ clauses, giving at most $e_u$ occurrences
+of each literal.  The insertion adds at most one further occurrence,
+because it adds either one core or pairwise disjoint petals.  Deletions
+only decrease the count.  This proves the invariant; the initial family
+itself need not satisfy an occurrence bound.
+
+For any finite path prefix, let $N_u$ count the size-$u$ insertions,
+counting members of a batch individually.  Every deleted added size-$u$
+clause was subsumed by a newly inserted strictly smaller clause.
+Equality is excluded by the freshness of insertions, and side
+conditions never delete active clauses.  Charge each such deletion to
+one smaller inserted clause that caused it.  A fixed inserted clause
+$D$ receives at most $e_u+1$ charges: choose a literal of the nonempty
+clause $D$, and apply \eqref{eq:sparse-added-invariant} just before its
+batch was inserted.  Every size-$u$ clause subsumed by $D$ contains that
+literal.  If several batch members could receive a charge, choose only
+one of them.
+
+At the end of the prefix, at most $2m(e_u+1)$ added size-$u$ clauses are
+still active, since each is nonempty and there are only $2m$ literals.
+Counting deleted and surviving insertions therefore gives
+\begin{equation}\label{eq:sparse-insertion-charge}
+ N_u\le(e_u+1)\left(2m+\sum_{v<u}N_v\right).
+\end{equation}
+Define the positive integers
+\begin{equation}\label{eq:sparse-constants}
+ D_1=4,\qquad
+ D_i=(e_i+1)\left(2+\sum_{u<i}D_u\right)\quad(2\le i\le b).
+\end{equation}
+The same recurrence holds for $i=1$ with an empty sum.  Induction on
+$u$ in \eqref{eq:sparse-insertion-charge} proves
+\begin{equation}\label{eq:sparse-insertion-budget}
+ N_u\le D_um.
+\end{equation}
+These bounds hold on every finite prefix, without assuming termination.
+Every step inserts at least one clause of size less than $b$, so every
+path has at most $m\sum_{u<b}D_u$ steps.  The binary tree is therefore
+finite.
+
+For $2\le i\le b$, put $F_i=\sum_{u<i}D_u$.  Each step processing size
+$i$ contributes at least one insertion below size $i$, and each
+branch-$1$ step contributes exactly $r_i$ such insertions.  Hence
+\begin{equation}\label{eq:sparse-branch-budgets}
+ \#\{\text{steps processing size }i\}\le F_im,\qquad
+ \#\{\text{branch-$1$ steps processing size }i\}\le F_im/r_i.
+\end{equation}
+Insertions caused by other processed sizes may also use this budget;
+including them only enlarges the upper bound.
+
+\medskip\noindent
+\textbf{Counting leaves and choosing thresholds.}
+For each leaf and each $i=2,\ldots,b$, record in order the decisions made
+at steps processing size $i$, and pad this binary string with zeros to
+length $F_im$.  By \eqref{eq:sparse-branch-budgets}, it has at most
+$F_im/r_i$ ones.  The tuple of strings determines the leaf.  Indeed,
+distinct leaf paths have a first differing branch: neither can be a
+proper prefix of the other.  Before this difference their states agree,
+so their selected size and their positions in that size's stream agree.
+The different bits occur before padding in both streams, so the padded
+tuples remain different.
+
+Write $h_2(x)=-x\log_2x-(1-x)\log_2(1-x)$ for $0<x<1$.
+For integer $N$ and $0<x\le1/2$, the number of binary strings of length
+$N$ with at most $Nx$ ones is at most $2^{Nh_2(x)}$.  A string with
+$j\le Nx$ ones has Bernoulli-$x$ probability
+\[
+ x^j(1-x)^{N-j}\ge x^{Nx}(1-x)^{N-Nx}=2^{-Nh_2(x)},
+\]
+because $x/(1-x)\le1$.  Their total probability is at most one, proving
+the bound even when $Nx$ is not an integer.  Applied to the decision
+streams, this gives
+\[
+ \#\{\text{leaves}\}\le
+ \prod_{i=2}^{b}2^{mF_i h_2(1/r_i)}.
+\]
+We can now choose the thresholds to make this exponent small.  The
+constant $F_i$ depends only on $r_2,\ldots,r_{i-1}$, because it involves
+only $D_u$ with $u<i$.  Choose $r_2,r_3,\ldots,r_b$ in order, each large
+enough that
+\begin{equation}\label{eq:sparse-thresholds}
+ F_i h_2(1/r_i)\le\eta/b,\qquad r_i\in\N,\quad r_i\ge2.
+\end{equation}
+This is possible since $h_2(1/r)\to0$.  An explicit choice is
+$r_i=2^{q_i}$, where $q_i\ge1$ is the least integer satisfying
+$F_i(q_i+2)2^{-q_i}\le\eta/b$: the inequality
+$-(1-x)\ln(1-x)\le x$ implies
+$h_2(2^{-q})\le(q+\log_2e)2^{-q}<(q+2)2^{-q}$.
+For these choices,
+\begin{equation}\label{eq:sparse-leaf-count}
+ \#\{\text{leaves}\}\le
+ \prod_{i=2}^{b}2^{mF_i h_2(1/r_i)}
+ \le2^{\eta m(b-1)/b}\le2^{\eta m}.
+\end{equation}
+
+\medskip\noindent
+\textbf{Clause counts at the leaves.}
+At a terminal state no eligible sunflower remains.  The occurrence
+bound now applies to the entire active antichain: each literal occurs
+in at most $e_i$ size-$i$ clauses, so there are at most $2me_i$ such
+clauses.  The side condition contributes at most $2m$ distinct unit
+clauses after repetitions are removed.  Thus the leaf indicator has
+width at most $b$ and at most $Mm$ clauses, where
+\begin{equation}\label{eq:sparse-M}
+ M=2+2\sum_{i=1}^{b}e_i.
+\end{equation}
+All constants depend only on $b,\eta$.  An inconsistent side condition
+gives an empty piece, which may be discarded.  The branching identities
+\eqref{eq:sparse-branch-identity} give coverage and disjointness, and
+\eqref{eq:sparse-leaf-count} bounds the number of pieces.
+
+When $b=1$ there are no branching sizes or streams.  The tree has one
+leaf, its empty product of stream counts is one, and at most $2m$
+distinct unit clauses suffice; \eqref{eq:sparse-M} gives $M=4$.
+The constant true function has the empty conjunction representation,
+and the constant false function can use the empty partition.  This
+covers every $m\ge1$.
+\end{proof}

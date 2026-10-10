@@ -1,0 +1,414 @@
+\section{Coding with a decreasing dependency bound}
+\label{sec:bootstrap}
+
+We prove Theorem~\ref{thm:monoids}.  The two monoids in that theorem
+must contain information about one another: the finitely presented monoid
+will multiply representatives of the decidable monoid, while the latter
+will contain a coded copy of the former.  We arrange this using a program
+whose evaluations on words of length $n$ depend only on its values at
+strictly smaller lengths.  The other ingredient is a family of separated
+words that supplies the finite-tuple selectors.
+
+\subsection{The bounded compiler}
+
+Fix a finite alphabet $\Sigma$ containing the disjoint triples
+\[
+ (\mathtt b_T,\mathtt a_T,\mathtt c_T),\qquad
+ (\mathtt b_G,\mathtt a_G,\mathtt c_G)
+\]
+and the six further letters
+$\mathtt z,\mathtt d,\mathtt l,\mathtt r,\mathtt h,\zeta$.
+Fix a total order with $\mathtt a_T<\mathtt c_T$ and
+$\mathtt a_G<\mathtt c_G$.  Words are ordered by \emph{shortlex}:
+first by length and then lexicographically.  We use an acceptable
+programming system for partial functions $\Sigma^*\to\Sigma^*$, writing
+$f_\eta$ for the function with index $\eta$.  In particular, universal
+evaluation and effective substitution of parameters are available;
+integers and tuples are represented by fixed computable word encodings.
+
+The following finite construction is proved in
+Appendix~\ref{sec:compiler}.  Its conditional statement is essential:
+the program index determines the presentation without running the
+program. The evaluator is also fixed independently of a length bound;
+its termination and compatibility with equations will be proved from
+the program's behavior within that bound.
+
+\begin{lemma}[Bounded compiler]\label{lem:compiler}
+From a program index $\eta$ one can compute a finite monoid presentation
+$K_\eta$ with a zero letter $\Omega$, a finite presentation alphabet
+$X_\eta$, and an additive grade $\gamma$ on words, such that
+$0\le\gamma(x)\le M=2$ for every letter and $\gamma(\Omega)=0$.
+There is a partial word algorithm $N_\eta$, independent of any budget,
+with the following properties.
+
+The alphabet contains letters $\alpha,\mathsf Q,\omega$ and right
+anchor letters $a_R$ for $a\in\Sigma$, all mutually distinct and
+different from $\Omega$. For a word $u$, let $u_R$ replace each
+letter $a$ by $a_R$, and set
+\[
+ \operatorname{raw}(u)=\alpha\mathsf Q u_R\omega\qquad(u\in\Sigma^*).
+\]
+Unconditionally, the algorithm fixes the empty word, $\Omega$, and
+every literal word $\operatorname{raw}(u)$, and sends every word
+containing $\Omega$ to $\Omega$. On an input word $a$, its only calls
+to $f_\eta$ are on words of length at most $\gamma(a)$; apart from
+those calls it performs finite computations.
+
+Suppose that, for some integer $m\ge0$,
+\begin{align}
+ &f_\eta(w)\text{ is defined and }|f_\eta(w)|\le |w|
+       &&(|w|\le m),\label{eq:budget-total}\\
+ &f_\eta(xf_\eta(w)y)=f_\eta(xwy)
+       &&(|xwy|\le m).\label{eq:budget-context}
+\end{align}
+Then $N_\eta$ terminates on all words of grade at most $m$.
+Each such word is joined to its literal output by a finite derivation
+in the presentation whose intermediate grades do not exceed the input
+grade.  A single presentation equation, used in any context, preserves
+the output whenever both endpoints have grade at most $m$.
+Consequently
+\begin{equation}\label{eq:bounded-context}
+ N_\eta(u)=N_\eta(v)\quad\Longrightarrow\quad
+ N_\eta(xuy)=N_\eta(xvy)
+ \quad\text{if }\gamma(xuy),\gamma(xvy)\le m.
+\end{equation}
+
+If
+\eqref{eq:budget-total}--\eqref{eq:budget-context} hold for all $m$,
+then $N_\eta$ decides equality in $K_\eta$ and
+\begin{equation}\label{eq:raw-product}
+ N_\eta\bigl(\operatorname{raw}(u)\operatorname{raw}(v)\bigr)=\operatorname{raw}\bigl(f_\eta(uv)\bigr).
+\end{equation}
+The presentation is computed without evaluating $f_\eta$.
+\end{lemma}
+
+For clarity, \eqref{eq:bounded-context} follows from the preceding
+derivation statement.  Transplant the paths from $u$ and $v$ to their
+common output into $x(-)y$.  Neither contextual path leaves the budget,
+so one-step invariance identifies their outputs.  A general machine
+encoding without this bounded conclusion would not suffice below.
+The raw singleton rule has a different role: it will distinguish the
+elements used for the injection $H\to K$. Multiplication of two raw
+words, rather than evaluation of a singleton, will encode the product
+in $H$ through \eqref{eq:raw-product}.
+
+\subsection{Codes and finite rule tables}
+
+First consider any index $\eta$.  The auxiliary monoid $\mathcal P$
+has decidable equality by Lemma~\ref{lem:partial-affine}.
+
+Let $Y$ be the disjoint union of $X_\eta$ and a fixed finite generating
+alphabet for $\mathcal P$.  For a $Y$-word $v$, write $v_K,v_{\mathcal P}$
+for its projections, obtained by deleting the letters of the other
+alphabet.  Its \emph{tested class} is zero if $N_\eta(v_K)=\Omega$;
+otherwise it is the pair consisting of $N_\eta(v_K)$ and the value of
+$v_{\mathcal P}$ in $\mathcal P$.  This is at present a partial test.
+For the second type of code, fix a finite monoid generating alphabet
+$Z$ for $\widehat G$, including the inverses of a finite group
+generating set, and test words by their values in $\widehat G$.
+This second test is total by the hypothesis of Theorem~\ref{thm:monoids}.
+
+Choose computably an integer $D_0>M$ such that
+$2^{D_0-1}\ge\max\{|Y|,|Z|\}$.  Encode the letters of $Y$, in their
+chosen order, by distinct words beginning with $\mathtt b_T$ and
+followed by $D_0-1$ letters from
+$\{\mathtt a_T,\mathtt c_T\}$, in lexicographic order.  Encode $Z$
+in the same way using the other triple.  Write $C(v)$ for concatenation
+of the appropriate codes and put $C(\varepsilon)=\varepsilon$.
+The type of a nonempty code sequence is unambiguous.  Codes preserve
+shortlex comparison and have length $D_0$ per generator.
+
+Enumerate all nonempty finite ordered tuples
+\[
+ (w_1^{(j)},\ldots,w_{s_j}^{(j)})\qquad(j\ge1)
+\]
+of distinct $\Sigma$-words avoiding $\zeta$; the empty word is allowed
+as a member.  Choose integers $N_j$ recursively so that
+\begin{equation}\label{eq:envelope-spacing}
+ N_j>j,\qquad N_j>\max_i|w_i^{(j)}|,\qquad
+ N_j>2N_h+2+\max_i|w_i^{(h)}|\quad(h<j).
+\end{equation}
+These inequalities concern \emph{all potential} earlier envelopes,
+regardless of which rules will be selected.  The increasing sequence
+$N_j$ is computable without performing any tested-class evaluation.
+
+We now define a partial procedure $F(\eta,w)$.  Put $n=|w|$ and form
+the following finite rule table $\mathcal R_n$.
+\begin{enumerate}
+\item Include $\zeta a\to\zeta$ and $a\zeta\to\zeta$ for every
+letter $a\in\Sigma$.  For each nonempty $Y$-word $v$ with
+$D_0|v|\le n$, test its class.  If it is zero, include
+$C(v)\to\zeta$.  Otherwise find the shortlex least word $v'$ of the
+same tested class among all words of length at most $|v|$, including
+the empty word; include $C(v)\to C(v')$ if $v'\ne v$.
+Do the same for $Z$-words using equality in $\widehat G$, with no
+zero case.  Call these the \emph{static rules}.
+
+\item Process the tuples with $N_j\le n$ in order.  If every member
+of tuple $j$ has no reducible occurrence under the static rules and
+previously selected rules, include
+\begin{equation}\label{eq:selector-rules}
+ \mathtt d\mathtt l^{N_j}w_i^{(j)}\mathtt r^{N_j}\mathtt h
+ \longrightarrow
+ \begin{cases}
+ \varepsilon,&i=1,\\
+ \zeta,&i>1.
+ \end{cases}
+\end{equation}
+Some of these left sides may be longer than $n$; they simply cannot
+act on the input.
+
+\item Reduce $w$ until no rule applies, using a fixed deterministic
+choice of occurrence and rule.
+\end{enumerate}
+Whenever the tests terminate, the last step terminates: every rule
+decreases shortlex.  In particular a nonempty code reduced to $\zeta$
+shortens, since $D_0>2$.  All other non-code rules shorten as well.
+Thus $F$ is uniformly partial computable.
+
+\subsection{The fixed point and its length induction}
+
+Effective substitution of parameters gives a total computable index
+transformation $\tau(\eta)$ for the function $F(\eta,-)$.  Kleene's
+Recursion Theorem~\cite{Kleene38} supplies an index with
+\begin{equation}\label{eq:fixed-point}
+ f_\eta(w)=F(\eta,w)
+\end{equation}
+as partial functions.  Here is the short parameterization argument.
+Let $U$ be universal evaluation and let $d(a)$ be an effectively
+obtained index for the partial function
+$w\mapsto U(U(a,a),w)$.  Choose an index $b$ computing the total
+function $a\mapsto\tau(d(a))$.  For $\eta=d(b)$,
+\[
+ U(\eta,w)=U(U(b,b),w)=U(\tau(d(b)),w)=F(\eta,w).
+\]
+Only now fix the presentation alphabet and code length belonging to
+this particular $\eta$.  There is no advance bound on the machine's
+size or working space.  Write $f=f_\eta$ and $K=K_\eta$.
+
+\begin{lemma}\label{lem:bootstrap}
+The function $f$ is total and length-nonincreasing.  The rule tables
+are stable on bounded-length words: for $k\le n$, $\mathcal R_k$
+and $\mathcal R_n$ have the same rules whose left sides have length
+at most $k$.  Each $\mathcal R_n$ is confluent on words of length at
+most $n$, and
+\begin{equation}\label{eq:f-context}
+ f(xf(w)y)=f(xwy)\qquad(x,w,y\in\Sigma^*).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+We prove all bounded assertions together by induction on $n$.
+For $n=0$, there are no tested classes or tuple decisions, and the
+empty word is unchanged.  Suppose $n>0$ and the assertions are known
+at smaller bounds.  Every use of $N_\eta$ in a static test, including
+each candidate in a least-representative search, uses a $Y$-word of length at most
+$\lfloor n/D_0\rfloor$.  Its $K$-projection has grade at most
+\begin{equation}\label{eq:strict-dependency}
+ m=M\lfloor n/D_0\rfloor<n.
+\end{equation}
+The induction hypothesis supplies
+\eqref{eq:budget-total}--\eqref{eq:budget-context} at $m$.
+Lemma~\ref{lem:compiler} therefore makes all these tests terminate.
+There are only finitely many tests and tuple decisions, and the
+subsequent shortlex-decreasing reduction terminates.
+
+We first establish stability.  For a fixed generator word $v$, its
+static rule is determined by the same tests and the same candidates
+of length at most $|v|$ at every larger bound.  Consider a tuple with
+$N_j\le k\le n$.  Each tested body has length less than $N_j$, hence
+less than $k$.  New static left sides longer than $k$ cannot occur
+in it.  Induction over earlier tuple numbers shows that the previously
+selected rules that can occur in the bodies also agree.  Hence the
+decision for tuple $j$ agrees at both bounds.  A new tuple with
+$N_j>k$ has every selector side longer than $k$, so cannot add a rule
+on a word of length at most $k$.  This proves stability, including
+the decisions for selected rules too long to act at the smaller bound.
+
+It remains to prove local confluence for $\mathcal R_n$.  All
+reductions stay inside the length-at-most-$n$ ball.  Disjoint
+occurrences can be reduced in either order. If the word contains
+$\zeta$, every branch still contains it: absorption retains $\zeta$,
+and no other rule has a left side containing that letter. Absorption joins all
+branches at $\zeta$.  We check the other overlaps explicitly.
+
+\smallskip\noindent
+\emph{Selectors from different stages.}
+Let the older left side have total length $L$, and let the newer one
+be $\mathtt d\mathtt l^N w\mathtt r^N\mathtt h$.
+By \eqref{eq:envelope-spacing}, $L<N$ and $|w|<N$.
+A nonempty old suffix cannot equal a new prefix: the former ends in
+$\mathtt h$, while a prefix of length at most $L$ lies in the initial
+$\mathtt d\mathtt l^N$.  An old prefix cannot equal a new suffix,
+since their first letters are respectively $\mathtt d$ and either
+$\mathtt r$ or $\mathtt h$.  These exclude both orientations of a
+proper boundary overlap.  For containment, an old occurrence cannot
+start at the new initial $\mathtt d$, because its terminal
+$\mathtt h$ would lie in the initial $\mathtt l$-run.  Any other
+start must be in the body.  It cannot leave the body: it cannot end
+in the final $\mathtt r$-run, and reaching the final $\mathtt h$
+would require crossing a run longer than the entire old side.
+Thus it would lie wholly in the body, contrary to the newer tuple's
+irreducibility test.
+
+\smallskip\noindent
+\emph{Selectors from one stage.}
+A second start strictly inside one side must lie in its body.
+There are then fewer than $N$ body letters left before the final
+$\mathtt r$-run, so that start cannot be followed by $N$ consecutive
+$\mathtt l$'s.  If two sides start at the same place and their body
+lengths differ, the terminal $\mathtt h$ of the shorter falls in the
+final $\mathtt r$-run of the longer, because both body lengths are
+less than $N$.  Equal body lengths force equal bodies, hence the same
+rule, as tuple members are distinct.  This also covers an empty body.
+
+\smallskip\noindent
+\emph{A code and a selector.}
+Code letters are disjoint from the envelope markers.  An overlapping
+code side would therefore have to lie wholly inside the selector's
+body.  The static irreducibility test excluded this.  All static sides
+short enough to occur there were already present when the tuple was
+processed, because the body's length is less than $N_j$.
+
+\smallskip\noindent
+\emph{Two code sides.}
+They have the same type and aligned starts: within a code sequence,
+$\mathtt b_T$ or $\mathtt b_G$ occurs only at a block boundary.
+Their union is therefore an entire code sequence $C(v)$, of length
+at most $n$.  For group codes, a replacement preserves the value of
+this union by group multiplication.  For product codes, replacing
+a subword by a nonzero tested-equal word preserves the tested class
+of the union by \eqref{eq:bounded-context} and equality in
+$\mathcal P$.  Indeed each old or new union has generator length
+at most $\lfloor n/D_0\rfloor$, and hence its $K$-projection has
+grade at most $m$.  We use this bound separately for both endpoints:
+a shorter generator word need not have smaller actual $K$-grade.
+
+If a subword tests zero, apply \eqref{eq:bounded-context} to its
+$K$-projection and $\Omega$, whose grade is zero.  The contextual
+word containing $\Omega$ has output $\Omega$, so the union also
+tests zero.  Hence if one branch introduces $\zeta$, it reduces the
+whole union to $\zeta$, and the other either does the same or retains
+a zero-class code sequence, to which its whole-word zero rule applies.
+That remaining sequence cannot be empty, since
+$N_\eta(\varepsilon)=\varepsilon\ne\Omega$.
+The same argument covers a zero-class union when both first
+replacements are code sequences.
+
+If the union class is nonzero, let $v_*$ be its least representative
+among words of length at most $|v|$.  Either branch yields a word
+$v_b$ of the same class with $|v_b|\le|v|$.  Since $v_b$ is one of
+the candidates defining $v_*$, we have
+$|v_*|\le|v_b|$, and $v_*$ is also the least candidate within this
+smaller bound.  Each branch therefore reduces by its whole-word rule
+to $C(v_*)$, unless it already equals that word.  The representative
+$v_*$ may be empty; no empty left side is needed.  These joining
+reductions can be made on the union before acting on any newly
+adjacent outside letters.
+
+This exhausts the local peaks.  Termination and local confluence give
+confluence on the ball by Newman's Lemma~\cite{Newman42}.
+Indeed, by well-founded induction, assume every proper descendant of
+a word has a unique normal form.  Any two first steps have a common
+descendant by local confluence; the induction hypothesis makes their
+normal forms equal, proving uniqueness for the original word and
+hence confluence.  Finally, if $|xwy|\le n$,
+perform inside $x(-)y$ the normalization of $w$ computed at bound
+$|w|$.  By stability every rule used belongs to $\mathcal R_n$, and
+length never increases.  Confluence gives
+$f(xf(w)y)=f(xwy)$.  This establishes the budget hypotheses at $n$
+and completes the induction.
+\end{proof}
+
+\subsection{The two monoids and their embeddings}
+
+Let $H$ be the monoid on $\Sigma$ whose equations are the union of
+all the rule tables.  Every word is related to its computed normal
+form, which is irreducible for this union by stability.
+Conversely, a contextual use of any one
+equation preserves that form: choose a bound containing both
+endpoints and the equation, and apply stability and confluence from
+Lemma~\ref{lem:bootstrap}.  Thus two words represent the same element
+of $H$ if and only if their literal $f$-outputs agree.  This proves
+decidability.  The empty word and the single letter $\zeta$ are
+distinct irreducibles; they represent the identity and the absorbing
+zero of $H$.
+
+The budget hypotheses now hold at every length, so
+Lemma~\ref{lem:compiler} gives an equality test for $K$.  In
+particular its identity and zero are distinct.  The tested product
+classes are now the actual elements of
+\[
+ T=\bigl((K\setminus\{\Omega\})\times\mathcal P\bigr)\cup\{0_T\},
+\]
+with coordinatewise multiplication and every pair having first
+coordinate $\Omega$ collapsed to zero.
+Here a letter of $X_\eta$ acts in the first coordinate and a
+generator of $\mathcal P$ in the second; the letter $\Omega$ maps to
+$0_T$.  Thus $Y$ generates $T$.
+
+For a nonzero element of $T$, take its least shortlex $Y$-representative
+$v$.  The code $C(v)$ is irreducible: a subcode rule would either
+force the element to be zero or produce a smaller representative;
+no selector or absorption side occurs in a pure code word.
+Every other representative reduces by its whole-word rule to this
+same code, and every zero-class code reduces to $\zeta$.
+Consequently coding defines an injective zero-preserving monoid map
+\[
+ \kappa:T\longrightarrow H.
+\]
+It is unital because the least representative of the identity is
+empty, and it is multiplicative because codes concatenate.
+The identical argument for $Z$-words embeds $\widehat G$ unitally in
+$H$.  Its image consists of units, since the products of mutually
+inverse group words have the empty representative.  This includes
+the trivial group and does not require a nonempty generating set.
+
+Let $z\in H$ be represented by the separator $\mathtt z$.
+For least representatives $v,v'$ of nonzero elements of $T$, the words
+\begin{equation}\label{eq:separator-words}
+ C(v)\mathtt z C(v')
+\end{equation}
+are irreducible.  No code crosses the separator; each code portion
+is already irreducible; and there are no selector markers or
+$\zeta$.  These literal words recover the ordered pair, including
+when one or both representatives are empty.  They are nonzero
+because none equals $\zeta$.  This proves the separator assertion
+of Theorem~\ref{thm:monoids}.
+
+\subsection{Selectors and multiplication by raw words}
+
+Take any ordered tuple of distinct nonzero elements
+$h_1,\ldots,h_s$ of $H$, and let $w_1,\ldots,w_s$ be their normal
+words.  These words avoid $\zeta$, since any word containing it
+reduces to the zero word.  Their tuple occurs in the enumeration,
+say at stage $j$.  A word irreducible for the final rule set is
+irreducible for the static and selected rules present at stage $j$.
+Hence this tuple passes its test.  With
+\[
+ L=\mathtt d\mathtt l^{N_j},\qquad
+ R=\mathtt r^{N_j}\mathtt h
+\]
+as elements of $H$, the selected equations give
+$Lh_1R=1$ and $Lh_iR=\zeta$ for $i>1$.  The argument includes a tuple
+containing the identity, whose normal representative is empty.
+
+Finally define a multiplicative map in the opposite direction by
+\[
+ c:H\longrightarrow K,\qquad c([w])=[\operatorname{raw}(f(w))].
+\]
+The normal-form characterization of $H$ makes this well-defined.
+Every raw singleton is its own literal $N_\eta$-output.  Distinct
+normal words therefore give distinct elements of $K$, and none of
+these elements is its identity or its zero.  For normal words $u,v$,
+\eqref{eq:raw-product} gives
+\[
+ c([u])c([v])=[\operatorname{raw}(f(uv))]=c([uv]).
+\]
+Thus $c$ is injective and multiplicative, as required.  It is not
+unital: even $c(1)=[\operatorname{raw}(\varepsilon)]$ is distinct from $1_K$.
+Also $c(\zeta)\ne\Omega$; it is absorbing only within $c(H)$.
+The finite presentation of $K$ came from the compiler, while the
+finite alphabet and normal-form procedure give the claimed finite
+generation and decidability of $H$.  All conclusions of
+Theorem~\ref{thm:monoids} are proved.

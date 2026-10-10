@@ -1,0 +1,252 @@
+\section{Introduction}\label{l:introduction}
+
+An exact linear observation can convey arbitrarily many bits about a
+real-valued signal. A finite message computed from several observations
+need not convey that much, but its information is not controlled by
+the number of observations alone: the prior distribution matters.
+If earlier messages have concentrated the signal in a small region,
+the next message may exploit that concentration. This paper studies
+how to restore a useful geometric spread condition while accounting
+for the information revealed in doing so.
+
+The observation model is noiseless Gaussian regression. The unknown
+signal is a unit vector \(S\in S^{d-1}\). A row
+\(x\sim N(0,I_d)\), independent of the signal and previous rows,
+arrives together with its exact label \(\langle x,S\rangle\).
+A learner processes these pairs in order. Between observations it
+retains one of at most \(2^M\) states; arbitrary computation and fresh
+randomness are allowed during a transition. It stops by a deterministic
+finite horizon \(T\), and its unit-vector output uses its terminal
+state, stopping index, and fresh randomness. The precise measurable
+model, including data-independent shared randomness, is given in
+Section~\ref{l:model}. Angular accuracy \(\epsilon\) means
+\(\arccos\langle S,\widehat S\rangle\le\epsilon\).
+
+Our first information theorem concerns a prior for which the
+localization cost can be seen directly. Put \(n=d-1\), take \(Z\) uniformly
+in the cube
+\[
+ [-1/(2\sqrt n),1/(2\sqrt n))^n,
+ \qquad S=\phi(Z)=(Z,\sqrt{1-\|Z\|^2}),
+\]
+and group observations into blocks of \(k=\lfloor n/16\rfloor\)
+rows. A message from a block may depend on all its rows and labels
+and on preceding messages. If each message has at most
+\(\exp(Ad^2)\) possible values, with \(A\) fixed, then the
+first \(t\) messages contain at most \(C_A dt\) nats of mutual
+information about \(Z\). Theorem~\ref{ld:thm:main} proves a
+stronger statement: the same bound holds after each message is
+supplemented with a nested dyadic cell containing \(Z\) that restores
+the required spread condition. The constant depends on \(A\), and
+the theorem gives the exact alphabet condition. The prior is the
+image of uniform cube volume, rather than uniform area on the
+spherical patch. This theorem serves as a complete first example; each later
+route establishes its own information estimate from its stated
+assumptions.
+
+\subsection{Why localization can pay for itself}
+
+Suppose the current posterior is supported in a dyadic parent cell.
+It is sufficiently spread for our projection estimate when each
+descendant at relative depth \(j\) has probability at most
+\(B2^{-nj/2}\). A fresh block then carries at most
+\(Cd+\log B+(2/m+e^{-ck})\log N\) information in a message
+with \(N\) possible values, where \(m=\lfloor n/8\rfloor\).
+The proof first inserts arbitrary \(L^2\) weights into the
+posterior, bounds the exact projected density in \(L^m\), and
+then uses duality to control the message likelihoods.
+
+After the message, we reveal the deepest cell on the sampled point's
+dyadic chain whose posterior mass is at least \(2^{-nj/2}\).
+At depth \(j\) there are at most \(2^{nj/2}\) such cells.
+Naming the selected cell therefore costs about \(nj/2\) bits,
+plus the entropy of its depth. In contrast, confinement to any
+depth-\(j\) cell certifies \(nj\) bits relative to the initial
+uniform cube. This difference pays for the extra revelations.
+The normalization is by the probability of selecting the cell,
+not merely the probability of lying in it. Controlling that
+selection probability is what also pays for the next value of
+\(\log B\).
+
+Section~\ref{l:dyadic} completes this argument and its finite-state
+application. The next eight arguments change the localization or
+geometric input, with the distinct estimates in Table~\ref{l:routes}.
+The final two routes instead correct the information itself. Each
+route has its own hypotheses and parameters.
+
+\newpage
+\begin{table}[!ht]
+\centering
+\small
+\begin{tabular}{@{}p{0.28\linewidth}p{0.66\linewidth}@{}}
+\toprule
+Construction & Estimate or information retained \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{The cube-chart prior}} \\
+\raggedright Maximum score\newline
+(Section~\ref{l:maxscore:section}) &
+A finite maximizing-cell selection, with a one-block information
+bound charging half the concentration slack. \\
+\addlinespace
+\raggedright Finite entropy\newline
+(Section~\ref{l:finite-entropy:section}) &
+Regularization of a possibly unbounded density of finite relative
+entropy, with finite expected termination and the complete stopping
+transcript retained. \\
+\addlinespace
+\raggedright Bounded-density split\newline
+(Section~\ref{l:bounded-split:section}) &
+A finite partition and a depth--entropy balance; two independent
+block copies at the same signal control a squared state likelihood. \\
+\addlinespace
+\raggedright Likelihood truncation\newline
+(Section~\ref{sec:l-likelihood-truncation}) &
+A finite-horizon success bound from explicitly bounded exceptional
+mass and a pointwise density bound on the surviving histories. \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{The uniform spherical prior}} \\
+\raggedright Grid refinement\newline
+(Section~\ref{l:grid:section}) &
+Unconditional information in the full history, including the entire
+selected grid-cell label after each block. \\
+\addlinespace
+\raggedright Side projection\newline
+(Section~\ref{l:side:section}) &
+Information in the full state history conditional on one fixed
+Gaussian side observation; predicting adaptive cells bounds the
+conditional entropy of their labels. \\
+\addlinespace
+\raggedright Separated tuples\newline
+(Section~\ref{l:sep:section}) &
+A terminating radius refinement and an equal-label tuple of controlled
+affine volume; a sliced-entropy recurrence for at most \(d\) blocks. \\
+\addlinespace
+\raggedright Predecessor spans\newline
+(Section~\ref{l:span:section}) &
+A selected posterior draw and a discrete smaller-ball code, paid by
+radius reduction, for possibly unbounded finite-entropy posteriors. \\
+\bottomrule
+\end{tabular}
+\caption{Eight localization estimates following the dyadic proof.
+The group labels indicate the priors in the learner applications;
+the local estimates apply to the conditional laws specified in each
+section. The side-observation matrix is drawn independently of the
+learner's observations and the signal. All auxiliary cells,
+projections, and posterior draws belong to the analysis;
+the learner retains only its prescribed finite state.}
+\label{l:routes}
+\end{table}
+
+For the first information correction, let \(\nu\) be a bounded-density
+probability on the sphere and put \(p=2\lfloor d/16\rfloor\). Define
+\[
+ J_\nu(s)=\int\|u-s\|^{-p}\,d\nu(u),\qquad
+ \Phi(\nu)=D(\nu\|\sigma)-\int\log J_\nu(s)\,d\nu(s),
+\]
+where \(\sigma\) is uniform spherical probability and \(D\) denotes
+relative entropy. Section~\ref{lk:section} proves that \(\Phi\) is
+convex, controls a fixed fraction of relative entropy up to \(O(d)\),
+and grows by at most \(O(d)\) per block in its stated width range.
+Convexity permits averaging away the entering state, so the iteration
+follows the current padded state, including its terminal label and
+stopping index. Section~\ref{lc:cell} instead keeps the complete
+boundary-state history and subtracts a correction built from the
+largest cell mass weighted by scale. Its geometric input bounds an
+inverse simplex volume under local ball bounds with no support
+restriction. The two corrections use different conditioning variables;
+neither is identified with the entropy cost of the dyadic revelations.
+
+For \(M(d)=o(d^2)\), the learner applications give
+\[
+ T(d)\ge c d\log(1/\epsilon(d)),\qquad
+ 0<\epsilon(d)\le1/10,
+\]
+with an absolute \(c>0\) and a dimension threshold that may depend
+on the memory sequence. The cube arguments assume success at least
+\(2/3\) for every signal, which supplies both their cube prior and
+the full-sphere prior used at constant accuracy. The spherical
+arguments assume average success at least \(2/3\) for a uniform
+signal. Each application accounts for the stopping index and the
+constant-accuracy endpoint. For the controlled-horizon estimate,
+output counting first puts any putative shorter run within the
+required range.
+
+\subsection{Context and companion inputs}
+
+Memory constraints distinguish what a learner can extract from a sample
+from what it can retain for later samples. Steinhardt and Duchi
+\cite{SteinhardtDuchi2015} established memory--sample tradeoffs for noisy
+sparse regression. Steinhardt, Valiant, and Wager
+\cite{SteinhardtValiantWager2016} formulated a parity-learning conjecture;
+Raz \cite{Raz2016} proved a quadratic-memory versus exponential-sample
+separation and subsequently extended the method to broader finite
+learning problems \cite{Raz2017}. For real-valued linear prediction,
+Dagan, Kur, and Shamir \cite[Section~3.3, Theorem~10]{DaganKurShamir2019}
+proved a quadratic-memory lower bound for approximately solving a
+consistent linear system whose rows arrive once in random order.
+Their guarantee concerns residual error on that fixed system, whereas
+here the signal is fixed before independent Gaussian samples are drawn.
+
+Sharan, Sidford, and Valiant \cite{SSV2019} studied the statistical
+Gaussian-regression problem with small positive observation noise.
+Their Theorem~1 gives a sample lower bound of \(\Omega(d\log r)\)
+for Euclidean error \(\epsilon=d^{-r}\), memory at most \(d^2/4\)
+bits, and \(r\le O(d/\log d)\). Their Section~7, Lemma~12 expands
+projection moments into independent signal copies and controls them
+by successive orthogonalization. This is a close methodological
+predecessor of the projection arguments below. We prove the exact
+multirow density estimates, their limiting passages, and the costs
+of restoring geometric spread locally. The separate condition-number
+conjecture in their Section~1.1 concerns exact labels and
+ill-conditioned Gaussian covariance at constant error; the covariance
+here is the identity and the lower bound tracks the required accuracy.
+
+The information layer uses relative entropy on standard Borel spaces.
+Austin \cite{Austin2020} gives the conditional chain rules and
+product decompositions that make these identities meaningful without
+a finite signal alphabet. The variational inequality used to charge
+selected laws is recorded in \cite{DupuisMao2022}; at each use we
+prove the necessary integrability or truncation step for the
+unbounded logarithm. The tuple arguments use total correlation in
+Watanabe's terminology \cite{Watanabe1960}. Spherical slicing is
+related to Federer's coarea formula \cite{Federer1959}, and
+Section~\ref{l:sep:section} gives the specific surface-area
+calculation. Its subset-entropy comparison credits the entropy
+covering argument of Chung, Graham, Frankl, and Shearer
+\cite{ChungGrahamFranklShearer1986}; the conditional
+differential-entropy argument is proved here. The predecessor-span
+code uses Kraft's inequality \cite{Kraft1949}, with the countable
+form in \cite[Theorem~2.4.2]{Duchi2023}, followed by a local
+conditional entropy calculation.
+
+Only two long analytic inputs are taken from companion articles.
+The finite-measure identity of \cite[Theorem~3.3]{OpenAIReplica2026}
+supplies the exact equal-label reference in
+Section~\ref{l:span:section}. We apply its uniform spherical case
+at two separate row counts and prove the finite-entropy extension
+locally. The mixed projection moment of
+\cite[Theorem~3.1]{OpenAIRow2026} supplies the positive-scale
+estimate in Section~\ref{lk:section}. We verify its two local-mass
+bounds after reweighting, change the actual-row law while the scale
+is positive, and then take the exact-label limit under the actual
+law. The remaining localization arguments are proved in this paper.
+
+\subsection{Reading the arguments}
+
+Sections~\ref{l:model} and~\ref{l:dyadic} give a complete first proof:
+the model, measurable-rule reduction, information conventions, and
+endpoint, followed by dyadic localization and its learner application.
+The four other cube routes require this common model and the cube
+geometry of Lemma~\ref{ld:cube-geometry}, but not the preceding cube
+proofs. The spherical routes can be read after the common model.
+In particular, the side-projection argument uses the statement of
+Corollary~\ref{l:grid:precision}, not the grid proof, and the two tuple
+arguments are independent of each other.
+
+Only the predecessor-span and kernel routes use the companion inputs
+described above, stated locally in
+Proposition~\ref{l:span:equal-label-assumption} and
+Theorem~\ref{lk:mixed-input}. The other geometric and localization
+estimates are proved here. Each route fixes its parameters at its
+outset, and its final application states the prior and stopping
+conventions used for the sample bound.

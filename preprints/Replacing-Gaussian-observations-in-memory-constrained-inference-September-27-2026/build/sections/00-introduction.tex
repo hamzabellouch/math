@@ -1,0 +1,267 @@
+\section{Introduction}\label{sec:r-introduction}
+
+A finite message chosen from data changes the conditional distribution
+of those data.  This elementary fact becomes a central issue in
+memory-constrained inference.  Suppose a signal \(S\) is observed
+through exact Gaussian equations and a learner retains a finite state
+\(W\).  After conditioning on \(W\), the rows used to select that
+state are generally biased.  An independent Gaussian matrix has the
+same unconditional row law, but it need not leave the same information
+about \(S\) once its labels are revealed.
+
+This paper quantifies that change.  We compare information beyond a
+wholly independent auxiliary projection with information beyond a
+projection containing the actual rows used by the learner.  The two
+experiments keep the signal--message marginal and the signal--matrix
+marginal fixed.  Their full joint laws differ.  At suitable row
+dimensions proportional to \(d\), the comparison cost is \(O(d)\)
+when the message entropy is at most \(d^2\).  We also prove the
+projection moment that makes this possible and develop two further
+comparisons based on replacing one row at a time and on a
+two-signal fiber measure.
+
+Here is one precise comparison.  Write \(H\) for discrete entropy
+in nats, \(h\) for differential entropy, and
+\(I(\cdot;\cdot\mid\cdot)\) for conditional mutual
+information.  Let \(S\) be uniform on \(S^{d-1}\), put
+\(m=\lfloor d/10\rfloor\) and \(\ell=\lfloor d/2\rfloor\), and
+let \(A\) be an \(m\)-row standard Gaussian matrix independent of
+\(S\).  A countable message \(W\) may have arbitrary joint
+dependence on \((S,A)\), subject to \(H(W)\le d^2\).
+Draw an \((\ell-m)\)-row Gaussian matrix \(C\) independently of
+\((S,A,W)\), and an \(\ell\)-row Gaussian matrix \(G\) independently of
+\((S,W)\).  Theorem~\ref{thm:r-critical-comparison} proves
+\[
+ I(S;W\mid G,GS)
+ \le I(S;W\mid A,C,AS,CS)+Kd
+\]
+for all sufficiently large \(d\), with an absolute threshold and
+an absolute constant \(K\).  Thus replacing rows that helped select
+the message by fresh rows costs only \(O(d)\) additional conditional
+information, despite the possible bias of \(A\) given \(W\).
+
+\subsection*{Memory, exact equations, and prior methods}
+
+Memory restrictions affect statistical estimation even when
+computation is unrestricted.  Steinhardt and Duchi established
+memory-dependent minimax bounds for sparse noisy regression
+\cite{SteinhardtDuchi2015}.  Raz's branching-program lower bounds
+for parity learning and broader discrete learning tasks showed how
+finite width can force a large sample cost \cite{Raz2016,Raz2017}.
+Sharan, Sidford, and Valiant developed a closely related finite-state
+framework for continuous regression \cite{SSV2019}.
+
+Their precision theorem uses isotropic Gaussian covariates with
+independent uniform additive noise of half-width \(2^{-d/5}\).
+For Euclidean accuracy \(d^{-r}\), with \(r\le O(d/\log d)\),
+at most \(d^2/4\) bits of memory, and success probability at least
+\(2/3\), it gives an \(\Omega(d\log r)\) sample lower bound
+\cite[Theorem~1]{SSV2019}.  The present observation law has exact
+labels, which contain more information than noisy labels.
+Accordingly, our proof needs an estimate for exact projection
+densities.  Sharan, Sidford, and Valiant's expansion of a projection
+moment into independent signal copies is a direct method precedent
+\cite[Section~7, Lemma~12]{SSV2019}; their one-row interval estimate
+uses a positive noise scale and global \(L^2\) control, while the
+mixed multirow estimate below is proved from local mass bounds.
+Dagan, Kur, and Shamir give related space lower bounds for an
+approximate-nullvector task with independent Gaussian rows and for
+empirical regression on a randomly ordered finite data set with
+exactly consistent labels \cite[Theorems~3 and~10]{DKS2019}.
+The latter result bounds the empirical residual under a hard joint
+data distribution; our recovery problem uses independent Gaussian
+rows and a fixed signal.
+
+Information-theoretic analyses of adaptive selection also compare a
+selected statistic with an independent reference.  Russo and Zou
+bound the divergence between a selected statistic on the observed
+data and its evaluation on an independent copy by the information
+used for selection \cite[Section~2.4, Proposition~4]{RussoZou2016}.
+Xu and Raginsky bound an expectation difference between a joint law
+and the product of its marginals for a test that is sub-Gaussian
+under the product law
+\cite[Section~3.1, Lemma~1]{XuRaginsky2017}.  These comparisons
+explain the role of an information charge for selection.  Here the
+test is an exact projection density, and a locally proved \(q\)th
+moment makes the row-information charge appear with coefficient
+\(1/q\).
+
+The geometric calculation also belongs to the tradition of
+controlling projection energies by inverse distances.  Mattila's
+two-point averaging estimate gives a classical instance of that
+principle \cite[proof of Lemma~5.1, p.~236]{Mattila1975}.  Our mixed moment
+contains both inverse lengths and inverse distances to the span of
+earlier signal differences.  The specific Gaussian factors,
+dimension conditions, and finite fiber normalization are proved in
+this paper.
+
+\subsection*{The streaming model and the application}
+
+The comparison theorems concern finite messages with arbitrary
+dependence on a signal and some Gaussian rows.  Their streaming
+application uses the following model.
+
+\begin{definition}[Finite persistent-state learner]
+\label{def:r-streaming-model}
+Fix \(d\ge2\), an integer memory bound \(M\ge0\), an angular
+accuracy \(0<\epsilon\le1/10\), and a deterministic finite integer
+horizon \(T\ge0\).  The signal is a unit vector.  It may be fixed
+before sampling, or sampled from a specified prior; the
+average-case statements in this paper use uniform probability on
+\(S^{d-1}\).  Pre-generate independent
+\[
+ X_t\sim N(0,I_d),\qquad Y_t=\langle X_t,S\rangle,\qquad t\ge1.
+\]
+The row sequence is independent of \(S\).
+
+Let \(\Xi\) be a shared rule seed, constant if no shared seed is
+used, and let \(U_0\) be the initial finite state.  The pair
+\((\Xi,U_0)\) is jointly independent of
+\((S,(X_t)_{t\ge1})\); \(\Xi\) and \(U_0\) may depend on one
+another.  The original randomized experiment is jointly measurable
+in the signal, the complete row sequence, the shared seed,
+initialization, and all transition and output randomness.  All
+variables and kernels are taken on standard Borel spaces, with the
+completed-measurability convention below for sample arguments.
+
+At every index, including index zero, the persistent state has at most \(2^M\)
+possible values.  Conditional on \(\Xi\), the rule at time \(t\)
+uses only the current state, the index \(t\), and the entire current
+pair \((X_t,Y_t)\), together with fresh randomness that has no
+additional signal or sample information.  The rule may perform
+unrestricted computation on that pair, but everything retained for
+later samples must be encoded in the new finite state.  The learner
+receives the rows once in their prescribed order and cannot choose a
+row or revisit an earlier one.
+
+The learner stops at an index \(\tau\in\{0,\ldots,T\}\).  Conditional
+on the fixed seed, its unit-vector output \(\widehat S\) is drawn
+from a kernel depending only on the terminal state and \(\tau\),
+using fresh output randomness.  In particular the last observed pair
+can affect the output only through that terminal state.  The seed
+may select nonuniform rules depending on \(d,\epsilon,t\), but it
+has no data-dependent content.
+Before the first sample, a stopping choice may use only the seed,
+the initial state, and fresh randomness.
+
+For each fixed seed, state, and index, the transition and stopping
+probabilities may be Borel functions of the sample pair, or
+measurable in the completion of Gaussian row measure times Lebesgue
+label measure.  This per-seed convention supplements the required
+joint measurability of the original mixed experiment; it does not
+replace it.  Success means
+\(\arccos\langle\widehat S,S\rangle\le\epsilon\).
+\end{definition}
+
+The joint condition on \((\Xi,U_0)\) ensures that fixing the rule
+seed leaves initialization data-independent.  We record this
+reduction because the information potentials start from the
+conditional initial-state law.
+
+\Needspace{6\baselineskip}
+\begin{lemma}[Fixing the shared rule seed]\label{lem:r-seed-reduction}
+In the model above, for almost every seed value \(\xi\),
+\begin{equation}\label{eq:r-seed-factorization}
+ \mathcal L\bigl(S,(X_t)_{t\ge1},U_0\mid\Xi=\xi\bigr)
+ =\mathcal L\bigl(S,(X_t)_{t\ge1}\bigr)
+       \otimes\mathcal L(U_0\mid\Xi=\xi).
+\end{equation}
+If the original uniform-prior success probability is at least
+\(p_0\), one may choose such a seed value whose conditional
+uniform-prior success is at least \(p_0\), with the same state
+bound and horizon.  This assertion is about the uniform-prior
+experiment.
+\end{lemma}
+
+\begin{proof}
+Disintegrate the joint independence of
+\((\Xi,U_0)\) and \((S,(X_t)_{t\ge1})\) over \(\Xi\).
+It gives \eqref{eq:r-seed-factorization} for almost every seed.
+Joint measurability of the original experiment makes its conditional
+success probability a measurable function of \(\xi\), whose mean
+is the original success probability.  Averaging therefore supplies
+a seed with the stated success and factorization.  The conditional
+initial-state law is retained.  A later Borel replacement is
+performed separately in this fixed-seed experiment; no jointly
+measurable selection of replacement versions is required.
+\end{proof}
+
+The critical-radius comparison gives the following streaming
+consequence: for \(M(d)=o(d^2)\), every accuracy sequence
+\(0<\epsilon(d)\le1/10\), and uniform-sphere average success at
+least \(3/5\), the deterministic horizon must satisfy
+\[
+ T(d)=\Omega\!\left(d\log\frac1{\epsilon(d)}\right).
+\]
+The lower-bound constant is absolute; the eventual dimension
+threshold may depend on the memory sequence.  Section~\ref{sec:r-streaming}
+proves this statement and records the distinct constants and
+thresholds arising from the other comparisons.  A learner that
+succeeds with probability at least \(2/3\) for every fixed signal
+also has that success under the uniform prior, so the worst-signal
+consequence follows separately.  The auxiliary projections used in
+the proof are analysis variables; the learner receives only the
+exact stream in Definition~\ref{def:r-streaming-model}.
+
+\subsection*{How the comparisons work}
+
+Section~\ref{sec:r-experiments} defines the aligned and independent
+experiments explicitly.  Their information difference contains a
+negative conditional row-information term.  Data processing
+compares that term with the divergence between the actual
+conditional label law and the projection of the posterior
+\(P_{S\mid W}\).  What remains is the entropy of the independent
+projection plus an aligned log density.
+
+Section~\ref{sec:r-mixed-moments} proves the analytic estimate for
+that density.  In a \(q\)th moment, the actual rows are shared by
+all \(q\) factors while independent auxiliary rows are averaged
+separately in each factor.  Gaussian integration produces inverse
+lengths and the inverse Gram determinant of the signal differences.
+A local mass bound controls thin tubes around their successive
+spans, and a second bound controls the sum over small radial scales.
+The section treats exact density versions and the order of the
+change of row law and limiting operation.
+
+Sections~\ref{sec:r-critical-radius} and
+\ref{sec:r-density-levels} use this estimate after refining a
+posterior by its local mass.  The critical-radius refinement records
+both a radius and its logarithmic mass level.  Two further
+comparisons use a single maximal level or a pair of density labels.
+Their entropy costs are explicit, and the density-level terms
+cancel with opposite signs.  The two-label argument also retains
+its own Gaussian-mollifier and first-density passage.
+
+These comparisons have different scopes.  The critical-radius result
+allows countable messages and \(\lfloor d/10\rfloor\) actual rows.
+The two-label result treats finite messages with the larger actual
+block \(\lfloor d/8\rfloor\); its Gaussian-mollifier density version
+supports an estimate at every fixed target.  The one-level result
+uses only one refinement label, a net-weight entropy estimate, and
+\(\lfloor d/32\rfloor\) actual rows.  It keeps the entropy-dependent
+comparison cost explicit rather than imposing \(H(W)\le d^2\)
+in its statement.
+
+The last two comparisons use different geometric objects.
+Section~\ref{sec:r-hybrids} keeps the actual ending state fixed
+while replacing an actual prefix of rows by an independent suffix,
+one row at a time.  Independent random kernels and a normalized
+reciprocal-distance selection control the successive changes.
+Section~\ref{sec:r-fiber} constructs a finite measure on pairs
+having the same Gaussian label.  It proves that measure's exact
+kernel and normalizes the reference before applying probability
+data processing.  Local-mass ratios then bound the resulting
+information difference.
+The hybrid argument averages over the number of auxiliary observations,
+whereas the fiber comparison concerns a state transition through an
+actual block, rather than an arbitrary message jointly distributed
+with its rows.  These scopes explain the separate applications below.
+
+Finally, Section~\ref{sec:r-streaming} applies these comparisons
+to successive fresh blocks.  It includes a local Borel-version
+reduction for the fixed-seed uniform-prior experiment, the state
+and stopping-index costs, and the residual-sphere information
+required by an accurate output.  A separate memory-unrestricted
+sample bound absorbs the final-block rounding cost.  This separates the
+analytic comparisons from the bookkeeping needed to apply them
+to a learner.

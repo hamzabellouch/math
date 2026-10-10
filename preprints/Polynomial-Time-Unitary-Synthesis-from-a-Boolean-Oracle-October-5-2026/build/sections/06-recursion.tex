@@ -1,0 +1,163 @@
+\section{Assembling the recursion}\label{sec:recursion}
+
+The two field encodings now reduce synthesis of $V$ to synthesis of the
+smaller controlled unitary $F(z)$.  The reduction uses the smaller circuit
+exactly once.  This fact keeps the total circuit size polynomial even though
+the number of recursion levels grows with $n$.
+
+\begin{lemma}[One synthesis step]\label{rec:step}
+Let $V$ be a unitary on $\C^{k+s}$ in the block form of
+Proposition~\ref{contract:block}, and let $\norm D\leq r<1$.
+Use the fields and encoders of Sections~\ref{sec:fields} and~\ref{sec:encoders}
+with truncation length $L$.  Suppose a circuit synthesizes the family of
+$k$-dimensional unitaries $F(z)$, controlled by $z$, with clean-workspace
+operator norm error $\delta'$.  Then one use of that circuit, preceded by
+$\mathsf U_E$ and followed by $\mathsf U_R^*$, synthesizes $V$ with
+clean-workspace error at most
+\begin{equation}\label{rec:step-error}
+ \delta'+\frac{2r^L}{1-r}+10r^{2L}.
+\end{equation}
+The assertion also holds coherently for a family $V_\lambda$, with the
+smaller circuit controlled by both $\lambda$ and $z$.
+\end{lemma}
+
+\begin{proof}
+Let $\iota$ embed the current index space into the full register layout by
+initializing all working qubits to zero.  Include the fresh working qubits
+of the smaller circuit in this definition.  Let $\jmath$ embed the field space
+$\C^{\mathcal G}\otimes\C^k$ into the encoder's good subspace, again with
+the smaller circuit's fresh workspace zero.  Write $\mathsf C$ for the
+smaller synthesis circuit acting on its target, control, and fresh working
+registers, and as the identity on the remaining registers.  Its approximation
+guarantee implies
+\begin{equation}\label{rec:restricted-error}
+ \norm{\mathsf C\jmath-\jmath\widetilde F}\leq\delta'.
+\end{equation}
+Indeed, the good subspace has a valid port index, and $\widetilde F$ applies
+$F(z)$ with the phase register as control.
+
+Put $\tau=r^L/(1-r)$.  Proposition~\ref{encode:implementation} gives
+\[
+ \norm{\mathsf U_E\iota-\jmath\mathcal E_L}\leq5r^{2L},
+ \qquad
+ \norm{\mathsf U_R\iota-\jmath\mathcal R_L}\leq5r^{2L}.
+\]
+The field maps are contractions by Proposition~\ref{fields:gram}, and their
+intertwining bound is~\eqref{fields:intertwine}.  Consequently,
+\begin{align*}
+ &\norm{\mathsf C\mathsf U_E\iota-\mathsf U_R\iota V}\\
+ &\quad\leq
+ \norm{\mathsf C(\mathsf U_E\iota-\jmath\mathcal E_L)}
+ +\norm{(\mathsf C\jmath-\jmath\widetilde F)\mathcal E_L}\\
+ &\qquad\quad
+ +\norm{\jmath(\widetilde F\mathcal E_L-\mathcal R_LV)}
+ +\norm{(\jmath\mathcal R_L-\mathsf U_R\iota)V}\\
+ &\quad\leq5r^{2L}+\delta'+2\tau+5r^{2L}.
+\end{align*}
+Multiplication by $\mathsf U_R^*$ proves~\eqref{rec:step-error}.
+This calculation invokes the smaller circuit's approximation only on the
+ideal field-map output, whose norm is at most one.  Any component of the
+actual encoded state outside the good subspace is covered by the first
+error term and is not enlarged by $\mathsf C$.
+
+For additional labels $\lambda$, all maps are block diagonal in the label
+basis and all bounds are uniform over the labels.  Their operator norms on
+the full controlled space are the maxima of the block norms.  The same
+calculation therefore applies to arbitrary coherent superpositions of labels.
+\end{proof}
+
+Figure~\ref{fig:recursion} shows the comparison made in this proof.  The
+amplification inside $\mathsf U_E$ and $\mathsf U_R$ repeats only their own
+state-preparation circuits.  It never repeats $\mathsf C$.
+\input{figures/recursion}
+
+We can now choose one set of parameters for all recursion levels.  Keep
+$M,r,J$ from~\eqref{contract:parameters} and~\eqref{contract:J}, and set
+\begin{equation}\label{rec:parameters}
+ L=10000J,\qquad
+ b=nL+\lceil\log_2(L+1)\rceil,\qquad
+ K=b(L+1).
+\end{equation}
+Thus $K$ is the number of qubits in each field's phase register.
+
+\begin{proposition}[Uniform programmable synthesis]\label{rec:skeleton}
+Let $n\geq1$, $1\leq d\leq2^n$, and $t\geq0$.  There is a programmable-slot
+circuit structure, determined by $n,d,t$, with the following property.
+For every family $(U_\lambda)_{\lambda\in\{0,1\}^t}$ of unitaries on
+$\C^d$, its slot tables can be chosen so that the circuit implements the
+controlled unitary $U_\lambda$, preserves the labels, and has clean-workspace
+operator norm error less than $1/100$ in the sense of~\eqref{slot:clean-error}.
+The circuit uses
+\begin{equation}\label{rec:resources}
+ t+O((n+1)^{10})\quad\text{qubits},
+ \qquad O((n+1)^{13})\quad\text{slots}.
+\end{equation}
+Its structure, including each slot's ordered control list, is generated
+deterministically in time polynomial in $n+t$ from $n,d,t$.
+\end{proposition}
+
+\begin{proof}
+We recurse on the valid order $d$, retaining $n$-bit index and port registers
+at every level.  If $d=1$, each $U_\lambda$ is a scalar phase, implemented
+exactly by one slot on an index bit that is zero throughout the valid input
+subspace.
+
+For $d\geq2$, Proposition~\ref{contract:block} gives
+$V_\lambda=P_{\mathrm L,\lambda}U_\lambda P_{\mathrm R,\lambda}$ with
+internal order $s$ and port order $k=d-s$.  Apply the one-step construction
+of Lemma~\ref{rec:step}, prescribing the recursive family to be
+$F_\lambda(z)$ and adding $z$ to the existing control labels.  Supply fresh
+working qubits for this recursive circuit.  To implement $U_\lambda$, apply
+$P_{\mathrm R,\lambda}^*$ before this construction and
+$P_{\mathrm L,\lambda}^*$ afterward.  These transformations have exact slot
+implementations, so they introduce no further error.  Their order is correct
+because $P_{\mathrm L,\lambda}^*V_\lambda P_{\mathrm R,\lambda}^*=U_\lambda$.
+
+At each step, Lemma~\ref{rec:step} adds at most
+\[
+ \frac{2r^L}{1-r}+10r^{2L}
+ =8r^L+10r^{2L}\leq18r^L
+\]
+to the error of the smaller circuit.  There are fewer than $J$ steps by
+Lemma~\ref{contract:depth}.  Bernoulli's inequality gives
+$(4/3)^L\geq1+L/3$, and hence $r^L\leq3/L$.  The total error is therefore
+\begin{equation}\label{rec:total-error}
+ 18Jr^L\leq\frac{54J}{L}=\frac{54}{10000}<\frac1{100}.
+\end{equation}
+In particular, all working qubits, including those introduced at inner
+recursion levels, return to zero in the ideal comparison map.
+
+We next count the circuit resources.  Write $N=n+1$ and
+$h=\lceil\log_2(L+1)\rceil$.  Our parameters satisfy
+\[
+ J,L=O(N^3),\qquad b=O(N^4),\qquad K=O(N^7),\qquad h=O(N).
+\]
+Proposition~\ref{encode:implementation} uses $O(K+n+h)$ fresh qubits for a
+pair of encoders and $O(L(K+n+h)+K)$ slots for each encoder.  The two encoders
+at one level share the same register layout.  The pre- and post-conditioning
+operations require only $O(n)$ more clean working qubits and slots.
+All registers from an outer level remain allocated during an inner call,
+so summing over the at most $J$ levels gives
+\[
+ t+O(J(K+n+h))=t+O(N^{10})
+\]
+total qubits.  Summing the slots gives
+\[
+ O\bigl(J[L(K+n+h)+K+n]\bigr)=O(N^{13}).
+\]
+These sums suffice because there is only one recursive call at a level.
+The local amplification repetitions have already been included in the
+factor $L$ in the encoder cost.
+
+Finally, the structure can be generated without computing any of its table
+contents.  The successive orders $d,q,s,k$ have $O(n)$-bit descriptions and
+are computed in polynomial time.  Register allocations, state-preparation
+bit order, Fourier transforms, reflections, and the fixed number $L$ of
+amplification rounds depend only on these sizes.  Every operation depending
+on $U_\lambda$---the signs, permutations, state-preparation amplitudes,
+support lists, and recursively prescribed matrices---changes only a slot
+table.  At most $t+O(N^{10})$ register positions occur in any ordered control
+list, so writing all such lists for $O(N^{13})$ slots still takes polynomial
+time in $n+t$.  No list of possible label values is generated.  This proves
+both the uniformity assertion and~\eqref{rec:resources}.
+\end{proof}

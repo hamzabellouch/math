@@ -1,0 +1,217 @@
+\section{Producing a contracting block}\label{sec:contraction}
+
+The reduction will remove a small group of indices from the synthesis problem.
+For its geometric series to converge rapidly, the corresponding diagonal block
+of the unitary must have norm bounded away from one.  We now obtain such a block
+using only permutations, diagonal signs, and Walsh--Hadamard transforms.  All
+these transformations have short programmable-slot implementations.
+
+We first record the matrix estimate needed to choose the signs.  A
+\emph{Rademacher variable} takes the values $1$ and $-1$ with equal probability.
+The following elementary moment argument is a finite-dimensional form of the
+noncommutative Khintchine estimate; see Tropp~\cite[Sections~6--7]{Tropp2018}
+for the Gaussian integration-by-parts and trace-product method.  We include
+the proof with the constants used below.
+
+\begin{lemma}[A matrix sign estimate]\label{contract:moment}
+Let $L_1,\ldots,L_q$ be Hermitian $h\times h$ matrices, and let
+$\varepsilon_1,\ldots,\varepsilon_q$ be independent Rademacher variables.
+Set $v=\norm{\sum_i L_i^2}$.  For every integer $a\geq1$,
+\begin{equation}\label{contract:sign-bound}
+ \E\norm{\sum_{i=1}^q\varepsilon_iL_i}
+ \leq 2h^{1/(2a)}\sqrt{(2a-1)v}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+We first replace the signs by independent standard real Gaussians $g_i$ and
+write $X=\sum_i g_iL_i$.  Gaussian integration by parts, applied to this matrix
+polynomial, gives
+\begin{equation}\label{contract:ibp}
+ \E\Tr X^{2a}
+ =\sum_{i=1}^q\sum_{l=0}^{2a-2}
+   \E\Tr\bigl(L_iX^lL_iX^{2a-2-l}\bigr).
+\end{equation}
+Indeed, write the first factor of $X^{2a}$ as $\sum_i g_iL_i$, use
+$\E[g_iP(g)]=\E[\partial_iP(g)]$, and differentiate each of the remaining
+$2a-1$ factors in turn.
+
+Put $m=2a-2$.  For a fixed Hermitian $X$, diagonalize it with real eigenvalues
+$\lambda_j$.  In this basis, for $m>0$,
+\begin{align*}
+ \Tr(L_iX^lL_iX^{m-l})
+ &=\sum_{j,k}|(L_i)_{jk}|^2\lambda_k^l\lambda_j^{m-l}\\
+ &\leq\sum_{j,k}|(L_i)_{jk}|^2
+   \left(\frac lm|\lambda_k|^m+
+              \frac{m-l}{m}|\lambda_j|^m\right)
+ =\Tr(L_i^2X^m).
+\end{align*}
+The inequality is the weighted arithmetic--geometric mean inequality after
+taking absolute values.  The last equality uses the symmetry
+$|(L_i)_{jk}|^2=|(L_i)_{kj}|^2$ and the evenness of $m$.
+For $m=0$ the same assertion is equality.  Since $X^m$ is positive semidefinite
+and $\sum_iL_i^2\preceq vI$, equation~\eqref{contract:ibp} implies
+\[
+ \E\Tr X^{2a}\leq(2a-1)v\,\E\Tr X^{2a-2}.
+\]
+Iterating from $\Tr I=h$ yields
+\[
+ \E\Tr X^{2a}
+ \leq h(2a-1)!!\,v^a
+ \leq h(2a-1)^a v^a.
+\]
+Here $(2a-1)!!=1\cdot3\cdots(2a-1)$.  Therefore
+\begin{equation}\label{contract:gaussian-bound}
+ \E\norm X
+ \leq\bigl(\E\norm X^{2a}\bigr)^{1/(2a)}
+ \leq h^{1/(2a)}\sqrt{(2a-1)v}.
+\end{equation}
+
+To return to signs, write $g_i=\varepsilon_i t_i$, where the $t_i=|g_i|$ are
+independent of the signs and have common mean $\mu=\sqrt{2/\pi}$.  Conditional
+Jensen gives
+\[
+ \mu\,\norm{\sum_i\varepsilon_iL_i}
+ \leq\E_t\norm{\sum_i\varepsilon_i t_iL_i}.
+\]
+Average over the signs, apply~\eqref{contract:gaussian-bound}, and use
+$\mu^{-1}<2$.
+\end{proof}
+
+Fix throughout the construction
+\begin{equation}\label{contract:parameters}
+ M=4096(n+1)^2,\qquad r=\frac34.
+\end{equation}
+For an integer $2\leq d\leq2^n$, let $q$ be the largest power of two not
+exceeding $d$, and define
+\begin{equation}\label{contract:orders}
+ s=\max\{1,\lfloor q/M\rfloor\},\qquad k=d-s.
+\end{equation}
+We call the first $k$ indices \emph{ports} and the last $s$ indices
+\emph{internal indices}.  Both groups are nonempty.
+
+\begin{proposition}[A block of uniformly small norm]\label{contract:block}
+For every unitary $U$ on $\C^d$, there are unitaries $P_{\mathrm L}$ and
+$P_{\mathrm R}$ on $\C^d$ such that
+\begin{equation}\label{contract:block-form}
+ V=P_{\mathrm L}UP_{\mathrm R}
+ =\begin{pmatrix}A&B\\C&D\end{pmatrix},
+ \qquad \norm D\leq r,
+\end{equation}
+where the block sizes are $k,s$ from~\eqref{contract:orders}.
+The transformations $P_{\mathrm L},P_{\mathrm R}$ and their inverses have
+implementations using $O(n)$ programmable slots and $O(n)$ clean working
+qubits, with a structure determined by $n,d$.  The same structure works
+simultaneously for any family $U_\lambda$, using the label $\lambda$ as an
+additional control.
+\end{proposition}
+
+\begin{proof}
+If $s=1$, the last column of $U$ has an entry of modulus at most $1/\sqrt d$.
+A row permutation moves this entry to the last position.  The resulting
+one-dimensional block satisfies $\norm D\leq1/\sqrt d<3/4$, and the permutation
+has the claimed slot implementation by Lemma~\ref{slot:permutation}.
+
+Suppose $s>1$.  Let $M_0$ be the last-by-last $q\times q$ submatrix of $U$;
+it is a contraction.  Set
+$H_q=H^{\otimes\log_2q}$, and let $W$ consist of its last $s$ columns.  We
+will choose diagonal sign matrices $E_1,E_2$ on $\C^q$ and use
+$H_qE_1$ on the left and $E_2H_q$ on the right, acting as the identity on the
+remaining $d-q$ indices.  The resulting internal block is
+\begin{equation}\label{contract:D-signs}
+ D=W^*E_1C',\qquad C'=M_0E_2W.
+\end{equation}
+We choose $E_2$ first to bound the entries of $C'$, then choose $E_1$ to
+bound the operator norm of $D$.
+
+For independent signs in $E_2$, each entry of $C'$ is a sign sum
+$\sum_j\varepsilon_j\alpha_j$ with $\sum_j|\alpha_j|^2\leq1/q$.
+For completeness, a real sign sum with squared coefficient sum at most $1/q$
+satisfies
+\[
+ \E\exp\left(t\sum_j\varepsilon_j a_j\right)
+ =\prod_j\cosh(ta_j)\leq\exp(t^2/(2q)).
+\]
+Markov's inequality, optimized over $t$, bounds its two-sided tail at $u$ by
+$2e^{-qu^2/2}$.  Applying this to the real and imaginary parts shows
+\[
+ \Pr\left(\left|\sum_j\varepsilon_j\alpha_j\right|\geq u\right)
+ \leq4e^{-qu^2/4}.
+\]
+There are $qs$ entries.  With $u=4\sqrt{(n+1)/q}$, the union-bound failure
+probability is at most
+\[
+ 4qs e^{-4(n+1)}\leq4\cdot2^{2n}e^{-4(n+1)}<1.
+\]
+We may therefore fix $E_2$ such that every entry of $C'$ has modulus at most
+$4\sqrt{(n+1)/q}$.  Also $\norm{C'}\leq1$.
+
+Let $h_i,c_i$ be row $i$ of $W,C'$, respectively, regarded as row vectors.
+Then
+\[
+ \norm{h_i}^2=s/q,\qquad
+ \norm{c_i}^2\leq v:=16s(n+1)/q.
+\]
+Choosing independent signs $\varepsilon_i$ for $E_1$, write
+\[
+ D=\sum_i\varepsilon_i h_i^*c_i,
+ \qquad
+ L_i=\begin{pmatrix}0&h_i^*c_i\\c_i^*h_i&0\end{pmatrix}.
+\]
+The two diagonal blocks of $\sum_iL_i^2$ satisfy
+\[
+ \sum_i\norm{c_i}^2h_i^*h_i\preceq vW^*W=vI_s,
+ \qquad
+ \sum_i\norm{h_i}^2c_i^*c_i
+ =\frac sq C'^*C'\preceq\frac sq I_s\preceq vI_s.
+\]
+The norm of $\sum_i\varepsilon_iL_i$ equals $\norm D$.  Apply
+Lemma~\ref{contract:moment} with $h=2s$ and $a=n+1$.  Since
+$(2s)^{1/(2n+2)}\leq\sqrt2$, we obtain
+\[
+ \E\norm D
+ \leq 2\sqrt2\sqrt{2(n+1)\,16s(n+1)/q}
+ =16(n+1)\sqrt{s/q}
+ \leq\frac14.
+\]
+The last inequality uses $s\leq q/M$.  Some choice of $E_1$ consequently
+satisfies $\norm D\leq1/4$, which is more than required.
+
+It remains to check the circuit structure.  A permutation on the $n$-bit
+index register moves the last $q$ valid indices to the first $q$ valid
+indices, an aligned $q$-element block.  On that block, $H_q$ uses at most
+$n$ Hadamard slots, controlled on
+the remaining bits; each diagonal sign matrix uses one diagonal slot.  Undo
+the permutation afterward.  Lemma~\ref{slot:permutation} supplies clean
+$O(n)$-slot implementations of the permutations.  All operations preserve
+the valid $d$-dimensional subspace and are extended unitarily to unused index
+states.  Labels change only the row permutation or diagonal-sign tables,
+so the same slot structure works for every $U_\lambda$.
+\end{proof}
+
+The random signs are used only to prove that suitable tables exist.
+Each label may use its own choices; the resulting slot circuit is deterministic.
+The size of the removed block is large enough to make recursion short.
+\begin{lemma}[Dimension decrease]\label{contract:depth}
+For the parameters in~\eqref{contract:orders}, $s\geq d/(4M)$.
+Starting at any $d\leq2^n$ and repeatedly replacing $d\geq2$ by $d-s$, one
+reaches $d=1$ in fewer than
+\begin{equation}\label{contract:J}
+ J=8M(n+1)
+\end{equation}
+steps.
+\end{lemma}
+
+\begin{proof}
+If $q/M\geq2$, then
+$s=\lfloor q/M\rfloor\geq q/(2M)>d/(4M)$, because $d<2q$.
+If $q/M<2$, then $s=1$ and $d<2q<4M$, with the same conclusion.
+Thus every nontrivial step multiplies the order by at most $1-1/(4M)$.
+If there were $J$ such steps, their final order would be at most
+\[
+ 2^n(1-1/(4M))^J
+ \leq2^n e^{-J/(4M)}
+ =2^n e^{-2(n+1)}<1,
+\]
+contrary to its being a positive integer.
+\end{proof}

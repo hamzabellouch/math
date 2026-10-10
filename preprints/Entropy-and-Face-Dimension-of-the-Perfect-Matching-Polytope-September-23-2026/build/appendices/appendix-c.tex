@@ -1,0 +1,107 @@
+\section{A convention allowing singleton loops}
+\label{c:app-loops}
+
+Suppose a loop is allowed to cover its single incident vertex.
+Let \(\ell_i\) be the number of distinguished loop choices at vertex
+\(i\), and retain the multiplicities \(k_{\{i,j\}}\) for pairs of
+distinct vertices.  All these integers are given in binary.
+A matching under this convention covers every vertex exactly once by
+either a chosen loop or an ordinary pair.
+Write \(N_j\) for the number of such matchings using exactly \(j\)
+loops, and \(N_{\mathrm{loop}}=\sum_{j=0}^n N_j\).
+
+\begin{proposition}
+\label{c:prop-loops}
+There is one deterministic algorithm which, given a graph on \(n\)
+vertices with nonnegative binary integer pair and singleton-loop
+multiplicities, returns a nonnegative rational number
+\(A_{\mathrm{loop}}\) such that
+\[
+             \frac{N_{\mathrm{loop}}}{2^{18n}}
+                  \le A_{\mathrm{loop}}\le N_{\mathrm{loop}}.
+\]
+It returns zero exactly when \(N_{\mathrm{loop}}=0\).
+Its running time and output length are polynomial in the input bit
+length, including when the input gives \(n\) in binary and lists only
+the positive pair and loop records.
+\end{proposition}
+
+\begin{proof}
+First count the distinct vertices occurring in a positive ordinary pair
+or having a positive loop count. If any of the \(n\) vertices is missing,
+it cannot be covered, so return zero. This test uses only the listed
+records, without enumerating the vertex set. Otherwise, if there are
+\(r\) positive pair records and \(s\) positive loop records, then
+\(n\le2r+s\). Thus the constructions indexed by vertices below have
+size polynomial in the input length, even for a compact binary vertex
+count.
+
+For each \(j\in\{0,\ldots,n\}\), construct an ordinary loopless graph
+\(G_j\) by adjoining \(j\) labeled new vertices.
+Keep all original edges between distinct vertices.
+There are no edges among the new vertices, and the pair joining
+original vertex \(i\) to any new vertex has multiplicity \(\ell_i\).
+Label these parallel edges by the corresponding original loop choices.
+
+Every perfect matching of \(G_j\) pairs the new vertices to \(j\)
+distinct original vertices.  Replace those pairs by their labeled
+loop choices and retain the other edges; this gives a matching counted
+by \(N_j\).
+Conversely, each matching counted by \(N_j\) has exactly \(j!\) lifts,
+one for each bijection from the new vertices to its \(j\) loop-covered
+vertices.  Edge labels preserve the loop choices independently of this
+bijection.  Thus, including \(j=0\),
+\begin{equation}
+\label{c:eq-loop-count-identity}
+                         N(G_j)=j!\,N_j.
+\end{equation}
+
+Run the ordinary algorithm on each \(G_j\), obtaining a nonnegative
+integer \(A_j\), and
+return
+\begin{equation}
+\label{c:eq-loop-estimate}
+                         A_{\mathrm{loop}}
+                              =\sum_{j=0}^n\frac{A_j}{j!}.
+\end{equation}
+Parity is tested on each transformed order \(n+j\), as part of that
+ordinary algorithm.  There is no initial rejection for odd \(n\):
+a single vertex with a loop is already a positive-count example.
+The parity of \(n+j\) equals that of the number \(n-j\) of original
+vertices that remain to be paired by ordinary edges.
+
+By Theorem~\ref{thm:algorithm-guarantee} and
+Equation~\eqref{c:eq-loop-count-identity},
+\[
+             \frac{N_j}{512^{\,n+j}}
+                   \le\frac{A_j}{j!}\le N_j.
+\]
+Since \(n+j\le2n\), summing these inequalities proves the claimed
+factor \(512^{2n}=2^{18n}\).
+All terms are nonnegative, and \(A_j=0\) exactly when \(N_j=0\), so
+zero recognition is also exact.
+
+The construction retains compressed multiplicity records:
+\(G_j\) has at most \(r+js\) positive pair records. No parallel-edge
+list is expanded. Each transformed graph has at most \(2n\) vertices and uses only
+multiplicities already present in the input.  If \(b_{\max}\) is the largest
+binary exponent of any positive pair or loop multiplicity, taking
+\(b_{\max}=0\) when all multiplicities are zero,
+Proposition~\ref{d:prop-bit-complexity} bounds each call and gives
+\(O(n^2+nb_{\max}+1)\) bits for \(A_j\).
+There are only \(n+1\) calls.
+The rational sum can be represented exactly with the common denominator
+\(n!\):
+\begin{equation}
+\label{c:eq-loop-common-denominator}
+       A_{\mathrm{loop}}
+          =\frac{\displaystyle\sum_{j=0}^n
+                              A_j\,\frac{n!}{j!}}{n!}.
+\end{equation}
+The denominator has \(O(n\log_2(n+1)+1)\) bits, and the numerator has
+\(O(n^2+nb_{\max}+n\log_2(n+1)+1)\) bits.
+Factorials, exact integer divisions, products, and the sum therefore
+take polynomial bit time.  The case \(n=0\) uses the single term
+\(j=0\), with \(0!=1\) and \(A_0=1\), so the empty matching is counted
+exactly.
+\end{proof}

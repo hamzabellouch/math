@@ -1,0 +1,1399 @@
+\section{Scalar bounds for the Gaussian construction}
+\label{sec:arithmetic}
+
+The elementary inequalities and scalar error budgets below are the numerical
+inputs to the interpolation and sign arguments in
+Sections~\ref{sec:interpolation} and~\ref{sec:signs}.  We give rational
+proofs of these bounds.  The supplied program
+\path{verification/arithmetic_bounds.py} checks these scalar budgets and the
+numerical error-propagation majorants in Appendix~\ref{app:floor-certificate}, using $512$-bit Arb balls, exact rational
+arithmetic, and exact integer samples of the rounded exponential routine.
+It does not implement the degree-$2000$ rational exponential enclosures described below.
+
+The finite matrix certificate has a separate verification.  The program
+\path{verification/numeric_balls.py} encloses the exact quadrature arrays at
+$256$-bit precision and tests every strict comparison in
+Tables~\ref{table:power-bounds}--\ref{table:sign-bounds}.  This is the finite
+route used in Proposition~\ref{prop:finite-certificate}; its relation to the
+exact spectral integrals is supplied by Lemma~\ref{lem:quadrature-error}.
+
+Appendix~\ref{app:floor-certificate} gives a separate conditional
+floor-rounded rational procedure, with all its error estimates and finite
+loops.  That full matrix construction is not executed by the supplied
+programs.  Commands and dependencies for the two programs are listed in
+\path{verification/README.md}.
+
+\subsection{Rational enclosures of elementary constants}
+
+Every terminating decimal specifying a parameter or comparison threshold is
+an exact rational number.  Set $\epsilon=10^{-80}$ and define
+\begingroup\small
+\begin{equation}\label{eq:rational-pi-b}
+\begin{split}
+ p_*={}&3.14159265358979323846264338327950288419716939937510582097494459230781640628620899,\\
+ b_*={}&0.86602540378443864676372317075293618347140262690519031402790348972596650845440001.
+\end{split}
+\end{equation}
+\endgroup
+
+\begin{lemma}[Decimal enclosures]\label{lem:rational-pi-b}
+For $b=\sqrt3/2$, these rationals satisfy
+\begin{equation}\label{eq:rational-pi-b-error}
+ p_*<\pi<p_*+\epsilon,\qquad b_*<b<b_*+\epsilon.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Put
+\[
+ A(x)=\sum_{j=0}^{65}\frac{(-1)^jx^{2j+1}}{2j+1}.
+\]
+For $0<x<1$, integrate the finite geometric expansion of $1/(1+x^2)$.
+Its remainder has the sign and magnitude giving
+$A(x)<\arctan x<A(x)+x^{133}/133$.  The tangent addition formula gives
+$\tan(4\arctan(1/5))=120/119$; subtracting an angle with tangent $1/239$
+gives tangent one, and the resulting angle is in $(0,\pi/2)$.  Therefore
+$\pi/4=4\arctan(1/5)-\arctan(1/239)$.  The two required rational comparisons
+are
+\[
+\begin{split}
+ p_*&<16A(1/5)-4\bigl(A(1/239)+239^{-133}/133\bigr),\\
+ 16\bigl(A(1/5)+5^{-133}/133\bigr)-4A(1/239)&<p_*+\epsilon.
+\end{split}
+\]
+They follow by clearing positive denominators.  Likewise, the second bracket
+is exactly the pair of integer-square comparisons
+$b_*^2<3/4<(b_*+\epsilon)^2$.
+\end{proof}
+
+The threshold in Lemma~\ref{lem:gaussian-duality} needs only a shorter
+rational comparison.  Squaring gives $\sqrt3<1733/1000$.  Using the
+Machin identity proved above, the alternating arctangent series gives
+\[
+ \pi>16\left(\frac15-\frac1{3\cdot5^3}\right)-\frac4{239}
+ =\frac{281476}{89625}>\frac{157}{50}.
+\]
+Consequently
+\[
+ \pi(2/\sqrt3-2/5)
+ >\frac{157}{50}\left(\frac{2000}{1733}-\frac25\right)
+ =\frac{1025838}{433250}>\frac{59}{25}=2.36.
+\]
+
+We will also use a rational enclosure of a real exponential.  For rational
+$a\ge0$ and an integer $q\ge0$, put $P_q(a)=\sum_{j=0}^qa^j/j!$.
+If $a>0$ and $q+2>a$, comparison of successive terms in the positive tail
+gives
+\begin{equation}\label{eq:scalar-rational-enclosure}
+\begin{gathered}
+ P_q(a)<e^a<
+ P_q(a)+\frac{a^{q+1}}{(q+1)!}\frac1{1-a/(q+2)},\\
+ \frac1{P_q(a)+\frac{a^{q+1}}{(q+1)!}\frac1{1-a/(q+2)}}
+ <e^{-a}<\frac1{P_q(a)}.
+\end{gathered}
+\end{equation}
+Indeed, the first omitted term is $a^{q+1}/(q+1)!$, and every subsequent
+ratio is at most $a/(q+2)<1$.  The lower bound is the positive partial sum,
+and reciprocation reverses the two positive bounds.  At $a=0$ both
+exponentials equal one.  Lemma~\ref{lem:quadrature-error} uses only the
+$a=1,q=6$ instance to prove $e<2719/1000$; its three final numerical
+allowances have already been established there.
+
+\subsection{Scalar bounds for interpolation and signs}
+
+We now evaluate the scalar majorants derived in
+Sections~\ref{sec:interpolation} and~\ref{sec:signs}.  The first is the tail
+bound from Lemma~\ref{lem:kernel-bounds}, for a positive integer $r$:
+\[
+ U_r(w,c)=
+ \frac{800(w+c)e^{-.70r}}{1-e^{-.70}}
+ +\frac{5.3(2.54w/r+2c)e^{-.187r}}{1-e^{-.187}}.
+\]
+In each application, $w$ bounds the sum of the absolute node coefficients
+and $c$ bounds the absolute constant coordinate, summed over the input lists
+when there are two.  Lemma~\ref{lem:kernel-bounds} then bounds the sum of
+the absolute transformed jet coordinates over all output nodes $n\ge r$
+by $U_r(w,c)$.
+
+\Needspace{8\baselineskip}
+The following strict outward bounds collect the numerical inputs for
+interpolation and the first sign estimates:
+\begin{equation}\label{eq:scalar-error-budgets}
+\begin{array}{c|c|c}
+\text{quantity}&\text{outward upper bound}&\text{allowance used}\\ \hline
+ U_{168}(1,0)&1.0670\cdot10^{-14}&1.1\cdot10^{-14}\\
+ U_{168}(5,.02)&8.1575\cdot10^{-14}&8.3\cdot10^{-14}-10^{-170}\\
+ U_{91}(5,.02)&2.2711\cdot10^{-7}&2.4\cdot10^{-7}\\
+ \displaystyle\frac{1+(1+2.12)/2.36}{1.75}
+       \frac{e^{-2.36\cdot11}}{1-e^{-2.36}}
+       &7.7915\cdot10^{-12}&8\cdot10^{-12}\\[2pt]
+ \displaystyle(2.3+5.6/2.36)
+       \sum_{n\in\{1,3,4,7,9\}}e^{-2.36(n-1)}
+       &4.7185&4.8\\[2pt]
+ \displaystyle\frac{36}{2}(2\cdot10^{-8})3(3\pi)^2
+       &9.5933\cdot10^{-5}&.00011
+\end{array}
+\end{equation}
+The first tail residual has a deliberately finer margin:
+$8.3\cdot10^{-14}-8.1575\cdot10^{-14}
+=1.425\cdot10^{-15}>10^{-170}$.  For the high-node list, the finer
+$2.2711\cdot10^{-7}$ bound is retained before the target jets are added.
+
+\paragraph{Local target tails and interpolation arithmetic.}
+Write
+\[
+ c_{\mathrm{jet}}=\frac{1+(1+2.12)/2.36}{1.75}
+ =\frac{548}{413},\qquad \rho=e^{-2.36}.
+\]
+The target-jet estimate \eqref{eq:target-jet-bound}, monotonicity in
+$k\ge2.36$, and overcounting by all integers show that the target cost
+from nodes $n\ge r+1$ is at most
+$c_{\mathrm{jet}}\rho^r/(1-\rho)$.  A small rational check suffices even
+for the very distant tail:
+\[
+ P_7(59/25)>1+2.36+2.78+2.19+1.29+.61+.239+.08
+ =10.549>21/2.
+\]
+Each termwise lower comparison is rational.  Thus
+$\rho<2/21$.  Also
+\[
+ \frac{548}{413}\frac{21}{19}<\frac32,\qquad
+ (21/20)^{168}>(21/20)^{160}>
+ (3/2)^{16}>150.
+\]
+The middle inequality follows from
+$(1+1/20)^{10}>1+10/20=3/2$, and the last follows by comparing
+$3^{16}$ with $150\cdot2^{16}$.  Therefore the target tail above $168$
+satisfies the explicit local bound
+\begin{equation}\label{eq:target-tail-168}
+ c_{\mathrm{jet}}\frac{\rho^{168}}{1-\rho}
+ <\frac{548}{413}\frac{21}{19}(2/21)^{168}
+ <\frac{3}{2}\frac{10^{-168}}{150}=10^{-170}.
+\end{equation}
+Combining this with the finer $U_{168}(5,.02)$ row of
+\eqref{eq:scalar-error-budgets} proves the tail allowance
+$U_{168}(5,.02)+10^{-170}<8.3\cdot10^{-14}$.
+This direct rational bound handles the exponent
+$2.36\cdot168=396.48$, outside the range of exponents used in the
+degree-$2000$ comparisons below.
+
+The same local estimate for the first high node $91$ gives
+\begin{equation}\label{eq:target-tail-91}
+ c_{\mathrm{jet}}\frac{e^{-2.36\cdot90}}{1-e^{-2.36}}
+ <\frac32\,10^{-90}<10^{-89}.
+\end{equation}
+Thus the transformed and target contributions to the high-list norm obey
+$U_{91}(5,.02)+10^{-89}<2.4\cdot10^{-7}$.  The finer $U_{91}$ bound
+leaves the margin needed to include the target jets.
+
+The same $\rho<2/21$ gives a direct bound for the first five target jets:
+\[
+ \frac{548}{413}\left(1+(2/21)^2+(2/21)^3+(2/21)^6+(2/21)^8\right)
+ <1.35.
+\]
+The reference-list bound in \eqref{eq:scalar-error-budgets} includes the
+extras, so their combined norm is below $4.8$.  Their constant coordinates
+also retain a stronger bound.  For $k\ge2.36$, the first expression below
+is negative and the second positive, whence
+\[
+ |-.0074+.0115/k|+|.0096-.017/k|
+ =.017-.0285/k<.02.
+\]
+The first-five jet bound and the quadrature-operator bound imply
+$1.35+(4000+2\cdot10^{-27})4.8<20000$ for the combined data norm
+used in the geometric residual.
+
+For clarity, the remaining local inverse and residual arithmetic is
+\[
+\begin{gathered}
+ \frac{36}{1-.004^8}<37,\qquad
+ \frac{37}{1-37(2\cdot10^{-27})}<40,\\
+ (1.1\cdot10^{-14})(1+40\cdot4000)
+ =1.760011\cdot10^{-9}<1,\\
+ 20000(.004)^8=1.31072\cdot10^{-15}<1.4\cdot10^{-15}.
+\end{gathered}
+\]
+The finite residual is consequently bounded by
+$8\cdot10^{-12}+10^{-24}+1.4\cdot10^{-15}<10^{-11}$ after its three
+terms have been derived in Section~\ref{sec:interpolation}.
+For the correction inequalities \eqref{eq:correction-system}, put
+$\beta=1.1\cdot10^{-14}$.  Their rational solution is bounded by
+\[
+ u_{\mathcal T}\le
+ \frac{8.3\cdot10^{-14}+40\beta\cdot10^{-11}}
+ {1-\beta(1+40\cdot4000)},\qquad
+ u_{\mathcal F}\le40(10^{-11}+4000u_{\mathcal T}).
+\]
+The denominator is positive by the preceding Schur bound, and the two
+right sides give
+$u_{\mathcal F}+u_{\mathcal T}<1.3681\cdot10^{-8}<2\cdot10^{-8}$.
+Together with the operator-derived inequalities
+\eqref{eq:correction-system}, this proves the correction bound.  The
+reference norm then gives a combined
+exact-list norm below $4.8+2\cdot10^{-8}<5$, with the fixed constant
+coordinates still bounded by $.02$.
+
+\paragraph{Half-gap and tail sign arithmetic.}
+For the Taylor remainder in \eqref{eq:half-gap-series-tail}, put
+\[
+ \mathcal R(m,Y,\nu)=
+ \frac{Y^{-\nu}36\cdot5}
+ {(41+\nu)!\bigl(1-3\pi Y/(42+\nu)\bigr)}
+ \left((\pi Y)^{41+\nu}
+ +3\sum_{j=1}^6e^{-\pi\Ima z(t_j)m}
+       (\pi|z(t_{j-1})|Y)^{41+\nu}\right).
+\]
+\begin{samepage}
+The denominators are positive for the four tuples below; for example,
+$3\pi Y/(42+\nu)\le(9\pi/2)/42<1$.  The sum of six nonnegative
+candidates dominates the maximum in the analytic remainder.  The strict
+outward bounds are
+\[
+\begin{array}{c|c}
+(m,Y,\nu)&\mathcal R(m,Y,\nu)\text{ is below}\\ \hline
+(0,1/2,0)&1.8\cdot10^{-19}\\
+(1,1,2)&1.0\cdot10^{-11}\\
+(3,1,2)&3.0\cdot10^{-16}\\
+(4,3/2,2)&2.0\cdot10^{-11}.
+\end{array}
+\]
+\end{samepage}
+The included-moment quadrature cost is separately at most
+$41\cdot4\cdot5\cdot10^{-31}=8.2\cdot10^{-29}$.
+Adding it to each displayed remainder still gives less than $10^{-8}$.
+As proved after \eqref{eq:half-gap-series-tail}, the bound decreases when
+$m$ increases or $Y$ decreases, so these four tuples cover every half-gap.
+
+The two target-support Taylor tails satisfy
+\[
+ \frac{e^6}{6}\frac{3^{41}}{41!}\frac1{1-3/42}
+ <8\cdot10^{-29}<10^{-6},\qquad
+ 6\frac{6^{41}}{43!}\frac1{1-6/44}
+ <10^{-20}<10^{-6}.
+\]
+These estimates are applied after the parameter monotonicity and signed
+half-gap cases in Lemma~\ref{lem:exponential-support}; in particular,
+$K\le6$ also in the final unbounded parameter box.
+
+At $s_0=89.5$, the four terms in the tail second-derivative majorant obey
+\begin{align*}
+ &36\pi^2(2.4\cdot10^{-7})
+ +3(3\pi)^2\,36\cdot5\,e^{-.70s_0}\\
+ &\quad
+ +1.25(1.32\pi)^2(2.54\cdot5/s_0+.04)e^{-.187s_0}
+ +2.36e^{-2.36(s_0-1)}
+ <8.5485\cdot10^{-5}<.0002.
+\end{align*}
+The last term is the supremum of $ke^{-k(s_0-1)}$ for $k\ge2.36$:
+its logarithmic derivative is $1/k-(s_0-1)<0$ there.
+The smallest endpoint ratio for the divided periodic product satisfies
+$12-8\sqrt2>.6862>.68$.  The midpoint identities and logarithmic concavity in
+Lemma~\ref{lem:sine-product-barrier} extend this endpoint bound to every
+nearest-node half-gap.
+
+The final numerical implications are elementary once their separate error
+terms and barriers have been proved:
+\[
+ .001-.00011-.000001-.000001=.000888>0,\qquad
+ .0021-2\cdot10^{-8}>.002,\qquad
+ .68\cdot.002>.0001.
+\]
+These give, respectively, the bounded-range quotient margin, the exact
+low-node rational margin, and the comparison with the tail remainder.
+
+\paragraph{A nonmatrix rational route for these scalars.}
+For the three $U_r$ evaluations and the reference-list, omitted-jet,
+deleted-quotient, four half-gap-remainder, two target-support-tail,
+second-derivative, and product
+endpoint comparisons above, use \eqref{eq:scalar-rational-enclosure} with
+$q=2000$.  Square roots, when present, are enclosed between positive
+rationals of width $10^{-80}$ whose squares straddle the radicand.
+Explicitly, write a radicand as $A_{\mathrm{num}}/A_{\mathrm{den}}$ with
+positive integers $A_{\mathrm{num}},A_{\mathrm{den}}$.  Integer search over
+$0\le m<3\cdot10^{80}$ finds $m$ with
+$m^2A_{\mathrm{den}}\le10^{160}A_{\mathrm{num}}<(m+1)^2A_{\mathrm{den}}$.
+Then $m/10^{80}\le\sqrt{A_{\mathrm{num}}/A_{\mathrm{den}}}<(m+1)/10^{80}$;
+equality at the lower endpoint is kept exact.  The radicands used here exceed
+one, so both bracket endpoints are positive.
+The tail and interpolation comparisons need only rational arithmetic and
+exponential enclosures, with positive geometric denominators.
+The deleted-quotient, half-gap-remainder, and second-derivative comparisons
+also use the $\pi$ output of Lemma~\ref{lem:rational-pi-b}; they do not
+need its $b$ output.  For the half-gap remainders,
+\[
+ \Ima z(t)=\frac{Bh}{t^2+h^2}-h,\qquad
+ |z(t)|^2=h^2+\frac{B(B-2h^2)}{t^2+h^2}
+\]
+at rational $t=t_j$, so only the latter positive rational radicand needs
+a square-root bracket.  For $0\le t\le1$,
+$1<4/25+304/261\le |z(t)|^2<9$, by this formula and $|z|<3$.
+The endpoint ratio uses a bracket for $\sqrt2$, whose radicand also lies
+between one and nine.
+Thus each of these scalar comparisons requires no matrix construction.
+
+All exponential magnitudes in this list are below $250$: the largest
+explicit target phase is $2.36(s_0-1)=208.86$, the largest tail phase
+is $.70\cdot168=117.6$, and the four half-gap phases are below
+$\pi\cdot3\cdot4<38$ by $|z|<3$.  Finite rational evaluation with
+$q=2000$ and the indicated root brackets gives the printed outward
+margins.  The two more distant target-jet tails instead use the local
+$P_7(59/25)$ calculation above; the quadrature proof uses $q=6$.
+
+\section{Periodic approximation for the field energy}
+\label{app:normalized-periodic-approximation}
+
+Fix $s$ and the exponent $p$ as in Section~\ref{sec:renormalized}.
+Throughout this appendix we suppress the subscript $s$ in
+$g_s,w_s,\kappa_s,f_{s,\eta},\mathcal W_{s,\eta},\mathcal W_s$, and $V_s$,
+retaining the same order of limits.
+Thus $L=-\operatorname{div}(w\nabla\cdot)$,
+$Lg=\kappa\delta_0$, and $\kappa=2\pi$ for the planar logarithm,
+whereas $\kappa=4\pi$ for $g(X)=|X|^{-s}$, $0<s<2$, with
+$k=1$, $\gamma=s-1$, and $w=|y|^\gamma$ on the full extension
+space; for the logarithm set $k=0$, $\gamma=0$, and $w=1$.
+A compatible field also
+satisfies $wE\in L^1_{\rm loc}$; its equation is understood through
+the finite weak integrals $\int wE\cdot\nabla\varphi$.
+This requirement is automatic whenever a truncation has finite local
+weighted energy.  Write $K_R=[-R/2,R/2]^2$ and
+\[
+ Q_\eta(E,R)=\int_{K_R\times\mathbb R^k}w|E_\eta|^2,
+ \qquad
+ F_\eta=\int_{\mathbb R^2}f_\eta(x,0)\,dx
+ =\begin{cases}\pi\eta^2/2,&s=0,\\
+ \pi s\eta^{2-s}/(2-s),&s>0.
+ \end{cases}
+\]
+
+\begin{proposition}[Normalized cubic approximation]
+\label{prop:normalized-cubic-approximation}
+Let $0\le s<2$, and fix
+$1<p<2$ for $s=0$, or
+$1<p<\min(2,2/s,3/(s+1))$ for $s>0$.
+Let $\mathcal A_1$ be the compatible gradient fields in this fixed
+$L^p_{\rm loc}$ class, with simple locally finite configurations and
+unit background.  Then the limit
+\[
+ \mathcal W(E)=\lim_{\eta\downarrow0}
+ \left[\limsup_{R\to\infty}R^{-2}Q_\eta(E,R)
+                    -\kappa g(\eta)\right]
+\]
+exists in $\mathbb R\cup\{+\infty\}$ and is bounded below uniformly
+over $\mathcal A_1$.  Its infimum $m$ is finite.
+There are integers $R_j\to\infty$ and simple configurations
+$\mathcal C_j$, periodic under $2R_j\mathbb Z^2$, with
+$4R_j^2$ points per period cell, whose canonical periodic values satisfy
+\[
+                   V(\mathcal C_j)\longrightarrow m.
+\]
+The approximating fields may therefore be chosen to be canonical
+periodic gradients in the same fixed-$p$ class.
+\end{proposition}
+
+The proof has three inputs: cutoff control, a stationary minimizing law,
+and a screening construction. The following lemmas establish them before
+we reflect and project the screened fields to prove the proposition.
+
+A cutoff-energy estimate alone does not control the renormalized energy:
+removing the cutoff can expose arbitrarily close pairs.  We first obtain a
+stationary law supported on minimizing fields whose expected close-pair
+defect tends to zero with the cutoff.  We then screen one realization
+without creating new close pairs, and reflect it to obtain a periodic
+configuration.  The periodic defect identity below converts its cutoff
+bound into a bound for the renormalized energy.
+
+The screening fields need not be gradients.  At that stage we preserve
+the divergence equation, obtain zero exterior normal flux, and bound the
+cutoff energy.  After reflection, projection onto the canonical periodic
+gradient preserves the charges and decreases that energy.
+For cutoff estimates and compactness we temporarily allow integer
+multiplicities; the stationary-law lemma will rule out collisions before
+using the infimum over simple configurations.
+Let $B_\eta$ be the ball of radius $\eta$ centered at zero in
+$\R^{2+k}$. The positive unit sphere measure is
+\[
+ d\delta_0^{(\eta)}
+   =\kappa^{-1}[-g'(\eta)]w\,d\sigma_{\partial B_\eta},
+ \qquad Lf_\eta=\kappa(\delta_0-\delta_0^{(\eta)}).
+\]
+The measure $\delta_p^{(\eta)}$ is its translate to $(p,0)$.
+The sign is fixed by the decreasing kernel. 
+Write $\nu=\sum_pN_p\delta_p$, $\nu_\eta=\sum_pN_p\delta_p^{(\eta)}$,
+and $N_B=\nu(B)$.
+Fix the geometric constants
+\[
+ a_0=\frac14\sqrt{\frac23},\qquad a_1=4\sqrt2,
+ \qquad \eta_0=\min\left\{\frac18,\frac{a_0}{16}\right\}.
+\]
+These constants are independent of the cutoffs, the realization,
+$\varepsilon$, and $R$.  Indeed, the planar subdivision in
+Petrache and Serfaty~\citep[Lemma~6.3]{PetracheSerfaty2017} gives sidelengths in
+$[\frac14\widetilde m^{-1/2},4\widetilde m^{-1/2}]$;
+for $\widetilde m\in[1/2,3/2]$ this interval is contained in
+$[a_0,a_1]$.  Fix once and for all a dyadic auxiliary cutoff
+$\eta'\in(0,\eta_0)$ for the local count estimates, and include it
+among the cutoffs controlled by the stationary law.  The cutoffs used for
+stationary approximation will run through dyadic values $0<\eta<\eta'$.
+
+
+\subsection{Cutoff control and spatial density}
+
+\begin{lemma}[Cutoff control]\label{lem:field-cutoff-control}
+For compatible gradients in the prescribed fixed-$p$ class, allowing
+integer multiplicities, the cutoff limit $\mathcal W(E)$ exists in
+$\R\cup\{+\infty\}$. There is a constant $C_s$ independent of the field
+such that
+\[
+ -C_s\le\mathcal W_\eta(E)\le\mathcal W(E)+2\kappa F_\eta
+ \qquad(0<\eta<\eta_0).
+\]
+If $Q_\eta(E,R)=O(R^2)$ at one fixed cutoff, $Q_\rho(E,R)=O(R^2)$ holds at every
+fixed cutoff $\rho$ and $\nu(K_R)/R^2\to1$. In particular, the infimum $m$ in
+Proposition~\ref{prop:normalized-cubic-approximation} is a finite real number.
+\end{lemma}
+
+\begin{proof}
+Testing the
+smeared field equation against a nonnegative smooth function equal to
+one near all spheres centered in a fixed unit cell gives
+\begin{equation}
+ N_B^2\le C_{B,\eta}\left(1+
+          \int_{B'\times[-h,h]^k}w|E_\eta|^2\right).
+ \label{eq:normalized-local-count}
+\end{equation}
+Here $B'$ and $h$ are fixed enlargements.  These enlargements have
+bounded overlap over a unit-cell tiling.  Also
+\[
+ \int w|\nabla(f_\alpha-f_\eta)|^2
+       =\kappa[g(\alpha)-g(\eta)],\qquad 0<\alpha<\eta.
+\]
+Consequently, if $Q_\alpha(E,R)=O(R^2)$ at one fixed cutoff, then
+$Q_\eta(E,R)=O(R^2)$ at every fixed cutoff: apply
+\eqref{eq:normalized-local-count} to the finite-range difference
+$\sum_pN_p\nabla(f_\alpha-f_\eta)(\cdot-p)$.
+
+The smeared Gauss equation also gives
+$\nu(K_R)/R^2\to1$ whenever one cutoff has volume-order energy.
+For completeness, choose a lateral boundary at distance at most one
+from $\partial K_R$ with squared flux energy $O(R^2)$.
+For $k=1$, choose height $L\in[1,\sqrt R]$ with top and bottom
+squared energy $O(R^{3/2})$.  Weighted Cauchy--Schwarz bounds the
+total flux by
+\[
+ C L^{(\gamma+1)/2}R^{3/2}
+       +C L^{\gamma/2}R^{7/4}=o(R^2),
+\]
+since $-1<\gamma<1$ (for negative $\gamma$, use $L^{\gamma/2}\le1$).
+The smeared count lies between the counts in squares whose sidelengths
+differ from $R$ by a fixed constant.  Applying these inequalities at
+the correspondingly shifted radii proves full-radius density
+convergence.  In the logarithmic case only the lateral term is needed.
+This is the argument of Petrache and Serfaty~\citep[Lemma~2.1]{PetracheSerfaty2017}, with
+the actual flux in the weak equation.
+
+Put $S=\sum_pN_p(f_\alpha-f_\eta)(\cdot-p)\le0$.
+For a horizontal cutoff $\chi$, integration by parts gives
+\begin{align*}
+ \int\chi w(|E_\eta|^2-|E_\alpha|^2)
+  &=\kappa\int\chi S(\nu_\eta+\nu_\alpha-2\delta_{\mathbb R^2})\\
+  &\quad-\int S w(E_\alpha+E_\eta)\cdot\nabla\chi.
+\end{align*}
+Distinct-charge terms are nonpositive.  An interior self term is
+$-\kappa[g(\alpha)-g(\eta)]N_p^2$, bounded above by the same
+expression with $N_p$ in place of $N_p^2$.  The background contributes
+at most $2\kappa F_\eta$ per particle.  The commutator and transition
+terms are bounded by the sum of the two energies and the counts in a
+fixed-width shell, using \eqref{eq:normalized-local-count}.
+
+To remove that shell, choose $r_j$ realizing the $\eta$-limsup.
+Averaging both fixed-cutoff shell energies over
+$t\in[r_j+b_0,r_j+\sqrt{r_j}]$, where $b_0$ exceeds twice the
+shell width, gives a radius $t_j$ at which their sum is
+$O(r_j^{3/2})=o(r_j^2)$.
+Since $t_j/r_j\to1$ and $Q_\eta$ is nonnegative and increasing,
+\[
+ \frac{Q_\eta(E,t_j)}{t_j^2}
+   \ge\frac{r_j^2}{t_j^2}\frac{Q_\eta(E,r_j)}{r_j^2}.
+\]
+Thus these radii still realize the $\eta$-limsup.  Only an upper
+limsup bound is needed for $Q_\alpha(E,t_j)/t_j^2$.
+The count shell is $o(t_j^2)$ by the density conclusion.  Hence
+\begin{equation}
+ \mathcal W_\eta(E)\le\mathcal W_\alpha(E)+2\kappa F_\eta,
+ \qquad 0<\alpha<\eta<\eta_0.
+ \label{eq:normalized-almost-monotonicity}
+\end{equation}
+These selected radii suffice for the upper-limit comparison.
+Comparing with one fixed cutoff proves a uniform lower bound;
+then \eqref{eq:normalized-almost-monotonicity} proves existence of the
+full cutoff limit and
+\begin{equation}
+ -C_s\le\mathcal W_\eta(E)\le\mathcal W(E)+2\kappa F_\eta.
+ \label{eq:normalized-cutoff-bound}
+\end{equation}
+If every cutoff has infinite energy, the conclusion is immediate.
+These arguments also hold with integer multiplicities.
+A canonical unit-lattice field has finite renormalized value, so
+$-\infty<m<\infty$.
+
+\end{proof}
+
+\subsection{A minimizing stationary law and its close-pair defect}
+
+The cutoff estimate does not exclude rare clusters. We now use translation
+averages to obtain a stationary law for which their contribution can be
+measured exactly. Fix the unit square $Q=[-1/2,1/2)^2$ and a decreasing
+dyadic sequence $\eta_\ell\downarrow0$ beginning with $\eta_1=\eta'$.
+For distinct locations define the nonnegative kernel
+\[
+ q_\eta(p-q)=f_\eta(p-q,0)
+             +\int f_\eta(X-(p,0))\,d\delta_q^{(\eta)}(X).
+\]
+It vanishes when $|p-q|\ge2\eta$.
+Anchor each ordered pair at its first point and define the measure
+\[
+ \mu_\eta=\kappa\sum_{p\in\mathcal C}
+          \left(\sum_{q\in\mathcal C\setminus\{p\}}q_\eta(p-q)\right)\delta_p.
+\]
+
+\begin{lemma}[Stationary minimizers with vanishing defect]
+\label{lem:stationary-field-minimizers}
+There is a horizontally stationary probability law $P$ on compatible
+simple gradient fields in the fixed-$p$ class, supported on
+$\mathcal W(E)=m$. For the selected dyadic cutoffs, put
+\[
+ a_\eta=\mathbb E_P\mathcal W_\eta(E),\qquad
+ D_\eta=\mathbb E_P\mu_\eta(Q).
+\]
+Then $a_\eta\to m$ and $0\le D_\eta\le m-a_\eta+2\kappa F_\eta\to0$.
+For each selected $\eta$, one can choose a realization for which the
+spatial averages of every selected cutoff energy have finite limits, the density
+$d_\eta=\lim_{R\to\infty}R^{-2}\mu_\eta(K_R)$ satisfies
+$d_\eta\le2D_\eta$, and, when $k=1$, for every fixed $\varepsilon>0$,
+\[
+ \frac1{\varepsilon^4R^2}
+ \int_{K_R\times\{|y|>\varepsilon^2R/4\}}w|E|^2\longrightarrow0.
+\]
+\end{lemma}
+
+\begin{proof}
+Choose simple fields $E^j$ with $\mathcal W(E^j)\le m+1/j$.
+For each $j$ choose one radius $S_j$, with $S_j/j\to\infty$,
+large enough that the upper limsup estimates for $E^j$ hold
+simultaneously at $\eta_1,\ldots,\eta_j$ on $K_{S_j+2j}$.
+This enlargement handles all observation windows contained in the
+centered exhaustion square $K_{2j}$.
+This is possible because there are only finitely many estimates at
+each stage.  Let $P_j$ be the law of
+$(E^j(\cdot+(x,0)),\nu_j(\cdot+x))$ when $x$ is uniform in $K_{S_j}$.
+For the unit square $Q$ fixed above, Tonelli's theorem and the
+enlargement by $2j$ give the limiting bounds
+\begin{equation}
+ \limsup_j\int\Gamma_{\eta_\ell}\,dP_j
+ \le m+2\kappa F_{\eta_\ell}+\kappa g(\eta_\ell),
+ \qquad
+ \Gamma_\eta(E)=\int_{Q\times\mathbb R^k}w|E_\eta|^2.
+ \label{eq:normalized-orbit-bound}
+\end{equation}
+The analogous bounds hold on every fixed base square.
+
+Here are the compactness details.  Use $H^{-r}_{\rm loc}$ for $E$,
+with $r>(2+k)/2+1$, together with the vague topology for
+the positive charge measure.  Bounded local $L^p$ sets are relatively
+compact in the first space.  Equation
+\eqref{eq:normalized-local-count} bounds second moments of local
+counts.  Weighted H\"older bounds $E_\eta$ in local unweighted $L^p$
+when $p<\min(2,2/s)$; the singular correction belongs to local $L^p$
+when $p<3/(s+1)$.  For the logarithm both requirements reduce to
+$p<2$.  Thus Markov's inequality and a countable exhaustion give
+tightness.  Allow multiplicities in the resulting integer point
+measure.
+
+On sets with bounded local counts, vague convergence identifies every
+fixed singular correction distributionally (indeed in the permitted
+local $L^p$ topology).  On bounded-energy subsequences, the truncated
+fields have weak $L^2(w)$ limits, identified by that correction.
+It is this weighted convergence that passes the smeared divergence
+equation, since test gradients belong to $L^2(w)$.
+Adding back the singular correction recovers the unsmeared equation;
+weighted Cauchy--Schwarz and the locally integrable singular flux give
+$wE\in L^1_{\rm loc}$.  Distributional curl remains zero and the local
+$L^p$ bounds persist, so the limit is a gradient in the prescribed
+class.  These statements hold on compact sets of arbitrarily large
+probability, by a summable allocation of the Markov bounds.
+They therefore apply to the limiting law, not merely to a deterministic
+subsequence of configurations.
+
+Weighted quadratic energy is lower semicontinuous in this topology.
+On a bounded cylinder this follows also from
+\[
+ \int w|F|^2
+ =\sup_{\psi\in C_c^\infty}
+       \left(2\langle F,\psi\rangle-\int w^{-1}|\psi|^2\right).
+\]
+Take the increasing supremum over cylinder heights for the full
+extension integral.  Consequently a subsequential law $P$ satisfies
+\eqref{eq:normalized-orbit-bound} with $P$ in place of $P_j$.
+At this point the limit law is supported on compatible gradients and has
+the required energy bounds; it may still have multiple charges.
+It is horizontally stationary: for a fixed translation $z$, the
+total variation discrepancy of an orbit law and its translate is at
+most $|K_{S_j}\mathbin\triangle(K_{S_j}+z)|/S_j^2\to0$.
+
+The $L^1$ pointwise and mean ergodic theorems along tempered
+F\o lner sequences \citep[Section~1]{Lindenstrauss1999}, applied to
+the centered square sequence in $\mathbb Z^2$, apply to each
+integrable observable $\Gamma_{\eta_\ell}$.
+The tiled sums of this observable are exactly the raw energies on integer squares;
+positivity and nested squares extend the limits to every real radius.
+Each limit is the conditional expectation of its observable on the
+$\mathbb Z^2$-invariant sigma-algebra. It may depend on the realization;
+no ergodicity of $P$ is assumed. Its expectation equals the mean of the
+observable. Thus, on one event of full probability for all selected cutoffs,
+\[
+ a_{\eta_\ell}:=\mathbb E_P\mathcal W_{\eta_\ell}
+       =\mathbb E_P\Gamma_{\eta_\ell}-\kappa g(\eta_\ell)
+       \le m+2\kappa F_{\eta_\ell}.
+\]
+Fatou and the uniform lower bound give $\mathbb E_P\mathcal W\le m$.
+This does not yet use minimality, because the limit could have
+multiplicities.  It shows that $\mathcal W$ is finite and integrable.
+Equation \eqref{eq:normalized-cutoff-bound} then gives dominated
+convergence $a_{\eta_\ell}\to\mathbb E_P\mathcal W$.
+
+\emph{Unit intensity and simplicity.}
+The local count bound gives finite point intensity $\rho$.
+In the logarithmic case the expected smeared PDE immediately gives
+$\rho=1$ by horizontal stationarity.  In the extension case, let
+$b_\eta(y)=\mathbb E_P(E_\eta)_y$ and let $\mu_{\eta,y}$ be the
+vertical probability marginal of one smeared charge.  Jensen gives
+$\int |y|^\gamma|b_\eta|^2<\infty$, and the mean PDE is
+\[
+ -\partial_y(|y|^\gamma b_\eta)
+       =\kappa(\rho\mu_{\eta,y}-\delta_0).
+\]
+Outside $[-\eta,\eta]$ the weighted flux is constant on each tail.
+They must vanish, since $\int_1^\infty y^{-\gamma}\,dy=\infty$.
+Integrating the equation proves $\rho=1$.
+
+For cutoffs $0<\alpha<\eta$ from the selected dyadic sequence, put
+$d=\sum_p(f_\eta-f_\alpha)(\cdot-p)$, counting labeled particles.  Then
+\begin{equation}
+ w(|E_\alpha|^2-|E_\eta|^2)
+  =\operatorname{div}[wd(E_\alpha+E_\eta)]
+     +\kappa d(\nu_\alpha+\nu_\eta-2\delta_{\mathbb R^2}).
+ \label{eq:normalized-two-cutoff-local}
+\end{equation}
+At positive cutoffs the kernels in $d$ are bounded and have finite
+range.  The second count moment and Cauchy--Schwarz justify all local
+expected products.  Test with a smooth horizontal function of integral
+one and, if needed, a vertical cutoff equal to one on $|y|\le\eta$.
+Stationarity annihilates the expected horizontal divergence; the
+vertical cutoff varies outside the support of $d$.  Separating self,
+distinct-labeled-pair, and background terms gives exactly
+\begin{equation}
+ D_{\alpha,\eta}=a_\alpha-a_\eta+2\kappa(F_\eta-F_\alpha),
+ \qquad D_{\alpha,\eta}\ge0.
+ \label{eq:normalized-two-cutoff-mean}
+\end{equation}
+Here $D_{\alpha,\eta}$ is the ordered-pair intensity of the kernel
+\[
+ \kappa\int(f_\eta-f_\alpha)(X-(p,0))
+                (d\delta_q^{(\alpha)}+d\delta_q^{(\eta)})(X),
+ \qquad p\ne q\text{ as labeled particles}.
+\]
+A coincident pair contributes $\kappa[g(\alpha)-g(\eta)]$.
+If $c_{\rm coll}=\mathbb E_P\sum_{p\in Q}N_p(N_p-1)$, then
+\[
+ 0\le\kappa[g(\alpha)-g(\eta)]c_{\rm coll}
+       \le D_{\alpha,\eta}.
+\]
+The right side stays bounded as $\alpha\downarrow0$, whereas
+$g(\alpha)\to\infty$.  Hence $c_{\rm coll}=0$; stationarity and a
+countable tiling show simplicity almost surely.  Only now do we use
+$\mathcal W\ge m$, proving $\mathcal W=m$ almost surely and
+$a_{\eta_\ell}\to m$.
+
+We have obtained simple minimizing fields. The remaining task is to select
+one whose close pairs and vertical tail remain controlled during screening.
+
+\emph{Vanishing defect and selection of a realization.}
+Fatou in \eqref{eq:normalized-two-cutoff-mean}, with only
+$\alpha\downarrow0$, gives
+\begin{equation}
+ 0\le D_\eta:=\kappa\mathbb E_P
+           \sum_{p\in Q}\sum_{q\ne p}q_\eta(p-q)
+       \le m-a_\eta+2\kappa F_\eta\longrightarrow0.
+ \label{eq:normalized-defect-small}
+\end{equation}
+The measure $\mu_\eta$ thus has finite mean intensity $D_\eta$.
+The ergodic theorem therefore gives its spatial density
+\[
+ d_\eta(E)=\lim_{R\to\infty}\frac{\mu_\eta(K_R)}{R^2},
+ \qquad \mathbb E_Pd_\eta=D_\eta
+\]
+almost surely.  For $k=1$, apply the same ergodic theorem
+to the raw energy over each fixed integer height $|y|>z>1$.
+These integrable observables decrease to zero, so their spatial
+densities decrease to zero almost surely.  Intersect all the energy,
+tail, and selected defect events, a countable family of full-measure
+events. For each selected $\eta$, choose a realization $(E,\mathcal C)$
+in this intersection with $d_\eta\le2D_\eta$; if $D_\eta=0$, choose
+$d_\eta=0$.  This realization may depend on $\eta$.
+For every fixed $\varepsilon>0$, define
+\begin{equation}
+ e_{\varepsilon,R}:=\frac1{\varepsilon^4R^2}
+ \int_{K_R\times\{|y|>\frac14\varepsilon^2R\}}w|E|^2
+                         \longrightarrow0.
+ \label{eq:normalized-moving-tail}
+\end{equation}
+The coefficient $\frac14$ in this threshold is fixed independently of
+the cutoffs and the realization.
+Indeed, compare the moving height with each fixed integer height and
+then let that fixed height tend to infinity.  No uniform rate in
+$\varepsilon$ is needed.
+
+\end{proof}
+
+\subsection{Screening at a fixed cutoff}
+
+We use the rectangular shell construction of
+Petrache and Serfaty~\citep[Section~6.2]{PetracheSerfaty2017}. The next lemma records the
+precise input and output needed here; the proof supplies the local field
+equations and their constants in the present normalization.
+
+\begin{lemma}[Screening without new close pairs]\label{lem:field-screening}
+Fix the auxiliary cutoff $\eta'$ chosen above and $0<\eta<\eta'$.
+Let $E$ be a compatible simple gradient field for which
+\[
+ M_{R,\rho}:=R^{-2}Q_\rho(E,R)
+\]
+has a finite limit for $\rho=\eta,\eta'$. If $k=1$, suppose also that
+$e_{\varepsilon,R}$ defined in \eqref{eq:normalized-moving-tail} tends to
+zero for every fixed $\varepsilon>0$; set $e_{\varepsilon,R}=0$ if $k=0$.
+For every $0<\varepsilon<1/8$ and every sufficiently large integer $R$,
+there are exactly $R^2$ distinct points $\widehat\Lambda\subset K_R$
+and a field $\widehat E$ with zero exterior normal flux satisfying
+\[
+ -\operatorname{div}(w\widehat E)
+ =\kappa\left(\sum_{p\in\widehat\Lambda}\delta_{(p,0)}
+                 -\mathbf1_{K_R}\delta_{\R^2}\right).
+\]
+Its truncation has finite weighted energy and obeys
+\begin{align*}
+ R^{-2}\int_{K_R\times\R^k}w|\widehat E_\eta|^2
+ &\le M_{R,\eta}
+ +C_{s,\eta'}\varepsilon(1+g(\eta))
+                     (1+M_{R,\eta}+M_{R,\eta'})+o_R(1)\\
+ &\quad+C_s e_{\varepsilon,R}
+                     \varepsilon^{1+\min(2\gamma,0)}.
+\end{align*}
+Every pair in $\widehat\Lambda$ at distance below $2\eta$ is a retained
+pair of the original configuration in $K_R$, and every point has distance
+at least $a_0/2$ from $\partial K_R$. The field $\widehat E$ need not be
+a gradient. All constants are independent of $R$ and the realization;
+$R$ is chosen after $\eta',\eta$, the field, and $\varepsilon$.
+\end{lemma}
+
+\begin{proof}
+Keep the field and both cutoffs fixed. We first choose the inner cylinder
+where its truncated field is retained, then construct the shell and caps.
+Coarea supplies an inner rectangle $K'_R$ whose corresponding faces
+are at distances between $\varepsilon R$ and $2\varepsilon R$ from
+the outer boundary, with
+\[
+ \int_{\partial K'_R\times\mathbb R^k}w|E_\eta|^2
+       \le C M_{R,\eta}\varepsilon^{-1}R,
+ \quad
+ \int_{(\partial K'_R)_b\times\mathbb R^k}w|E_{\eta'}|^2
+       \le C M_{R,\eta'}\varepsilon^{-1}R,
+\]
+where $b$ is a fixed sufficiently large shell width and
+$M_{R,\rho}=R^{-2}Q_\rho(E,R)$.
+For $k=1$, choose
+$\ell\in[\frac12\varepsilon^2R,\varepsilon^2R]$.
+Such a height with the required trace bound exists because
+\begin{align*}
+ \int_{\frac12\varepsilon^2R}^{\varepsilon^2R}
+   \left(\int_{K'_R\times\{\pm t\}}w|E|^2\right)\,dt
+ &\le \int_{K_R\times\{|y|>\frac14\varepsilon^2R\}}w|E|^2\\
+ &=\varepsilon^4R^2e_{\varepsilon,R}.
+\end{align*}
+Dividing by the interval length $\frac12\varepsilon^2R$ gives
+\[
+ \int_{K'_R\times\{\pm\ell\}}w|E|^2
+                    \le2\varepsilon^2R e_{\varepsilon,R}.
+\]
+For $k=0$, retain the choice $\ell=\varepsilon^2R$.
+In both cases $R$ is then taken large enough that $\ell>2\sqrt2$.
+The fixed-cutoff energy limits bound both $M$'s as $R\to\infty$.
+
+Let $D_0=K'_R\times[-\ell,\ell]^k$, $A_{\rm sh}=|K_R|-|K'_R|$, and,
+when $k=1$,
+let $T_\pm$ be the outward weighted flux of the old field through the
+top and bottom of $D_0$.  The cap constants must be
+\begin{equation}
+ C^\pm=-\frac{T_\pm}{A_{\rm sh}\ell^\gamma}.
+ \label{eq:normalized-two-caps}
+\end{equation}
+They impose separate compatibility in the disconnected upper and
+lower caps $K_R\times(\ell,R)$ and $K_R\times(-R,-\ell)$.
+For $k=0$ all $T_\pm,C^\pm$ and cap terms are omitted.
+Let $\Lambda_0=\{p\in\mathcal C:\operatorname{dist}(p,\partial K'_R)\le\eta\}$
+be the retained crossing centers and
+$\rho_0=\sum_{p\in\Lambda_0}N_p\delta_p^{(\eta)}$ their full
+smeared measure.  The retained old centers are
+$\Lambda_{\rm old}=(\mathcal C\cap K'_R)\cup\Lambda_0$;
+$N_{\rm old}$ counts all of them, including multiplicity if present.
+All pieces assembled below are finite-energy components of the
+\emph{truncated} field.  In particular the new-charge component uses
+smeared sources; the point singularities are restored only after the
+pieces have been assembled.
+On a shell cell $H_i$, denote the old side flux by
+$B_i=\int_{(\partial K'_R\cap\partial H_i)\times[-\ell,\ell]^k}wE_\eta\cdot\nu_0$,
+where $\nu_0$ points outward from $D_0$.
+The truncated shell field is the sum of five components, constructed below:
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Field & Role in the shell\\
+\midrule
+$E_{\rm cross}$ & Complete the retained smeared charges across the inner boundary.\\
+$E_{\rm vert}$ & Match the upper and lower cap data.\\
+$E_{\rm side}$ & Match the old lateral flux and the ideal background density.\\
+$E_{\rm round}$ & Correct the density when cell masses are rounded to integers.\\
+$E_{\rm new}$ & Place new smeared charges against the rounded background.\\
+\bottomrule
+\end{tabular}
+\end{center}
+For $k=0$, $E_{\rm vert}=0$ and there are no caps.
+We use two independent fixed partitions of the shell, so that corner
+completion and integer charge counts do not require moving its faces.
+
+For the large cells, include the coordinates of every inner and outer
+face as breakpoints in each coordinate axis.  Subdivide each resulting
+interval into lengths in $[\ell,2\ell]$, and remove the product cells
+inside $K'_R$.  The remaining rectangles $H_i$ form a connected annular
+grid.  Adjacent rectangles share full edges of length at least $\ell$,
+and there are $O_\varepsilon(1)$ rectangles at fixed $\varepsilon$.
+All the one-dimensional intervals exceed $\ell$ for sufficiently large
+$R$ and the chosen small $\varepsilon$.
+
+We spell out the field estimates needed in this construction.
+First consider a fixed cell $\Omega=S\times[-1,1]^k$, where $S$ is a
+rectangle with sidelengths in $[1,2]$; when $k=0$, take $\Omega=S$.
+Suppose the cell carries a restriction $\nu$ of smeared charges, of total
+mass $Q$. A constant outward normal component $b_F$ on a chosen lateral
+face $F$ is compatible with $Lh=\kappa\nu$ precisely when
+\[
+                 b_F\int_Fw=-\kappa Q.
+\]
+Use the representative $u$ of weighted cell mean zero; compatibility
+allows this choice because the Neumann functional annihilates constants.
+The weighted Poincar\'e and trace estimates on these cells can be seen
+directly. Apply ordinary Poincar\'e and trace in the horizontal variables,
+then integrate against $|y|^\gamma$. In the vertical variable use
+\[
+ |v(y)-v(z)|^2
+ \le\left(\int_{-1}^1|t|^\gamma|v'(t)|^2\,dt\right)
+     \left(\int_{-1}^1|t|^{-\gamma}\,dt\right).
+\]
+Both $w$ and $w^{-1}$ are integrable on this interval because
+$-1<\gamma<1$. Averaging this inequality proves weighted Poincar\'e
+and the trace bound at $y=0$; horizontal trace gives the lateral-face
+bound. The constants are uniform over the stated sidelengths.
+
+For the extension, reflect across the coordinate faces of the base rectangle $S$, which
+preserves $w$. If $k=1$, extend in $y$ only to $[-3/2,3/2]$, reflecting
+each added collar into $1/2<|y|<1$, where the original and reflected
+weights are comparable. Multiply by a smooth cutoff equal to one on
+$\Omega$ and supported in this fixed enlargement. Poincar\'e controls
+the term $u\nabla\chi$ from that multiplication, giving an extension
+$Tu$ with
+\[
+ \|\nabla Tu\|_{L^2(w)}
+       \le C_\gamma\|\nabla u\|_{L^2(w;\Omega)}.
+\]
+When $k=0$, the same construction uses only the horizontal reflections.
+
+Put $g_\eta=g-f_\eta$, the fundamental solution capped at $g(\eta)$.
+The retained centers contributing to this cell lie in a fixed enlargement
+of it. On the support of $Tu$, radial integration of the fundamental
+solution's flux gives
+\[
+ \int_{\operatorname{supp}(Tu)}w
+                  |\nabla g_\eta(X-(p,0))|^2\,dX
+       \le C_s(1+g(\eta)).
+\]
+For $s>0$ the full-space integral is $\kappa g(\eta)$; for the
+logarithm the integral over a ball of fixed radius is
+$\kappa\log(1/\eta)+O(1)$. Only this local integral is used.
+Positivity of the smearing measure then gives
+\[
+ \left|\int_\Omega u\,d\delta_p^{(\eta)}\right|
+ \le\int |Tu|\,d\delta_p^{(\eta)}
+ =\kappa^{-1}\left|\int w\nabla g_\eta(\cdot-p)
+                                      \cdot\nabla|Tu|\right|
+ \le C\sqrt{1+g(\eta)}\,\|\nabla u\|_{L^2(w)}.
+\]
+The Neumann functional annihilates constants.  Lax--Milgram therefore
+gives energy at most $C N^2(1+g(\eta))$ when at most $N$ labeled
+charges contribute and the sum of the absolute prescribed face fluxes
+is at most $C\kappa N$.  The same proof allows several constant face
+data whose total is $-\kappa Q$: apply the trace bound to each face.
+This proves the local estimate needed from
+Petrache and Serfaty~\citep[Lemma~6.6]{PetracheSerfaty2017}, with the outward flux fixed by
+$Lh=\kappa\nu$.
+
+For crossing-charge completion, form a separate tensor grid with
+sidelengths in $[1,2]$, again containing all inner and outer face
+coordinates.  Restrict $\rho_0$ to its exterior cells times
+$[-1,1]^k$.  Its exterior support lies within distance $2\eta$ of
+$\partial K'_R$.  With $2\eta<1/2$, every such cell either lies in
+the first layer outside exactly one inner coordinate face, and shares
+a full face with $K'_R$, or is one of the four diagonal corner cells.
+Route each corner cell to an adjacent first-layer cell through their
+full shared face.  These are trees of uniformly bounded size; cells
+not receiving a corner contribution are single-cell trees.
+
+All face data in the following construction are constant normal
+derivatives: a prescribed integrated weighted flux $F_0$ means the value
+$F_0/\int_Fw$ on that face. On a leaf, prescribe outward weighted flux $-\kappa$ times its
+restricted source mass through the face leading to the root.  At a
+root, prescribe the opposite incoming flux through each child face,
+and export $-\kappa$ times the total tree mass through its full inner
+face.  All other face data are zero.  More generally the outgoing
+flux of a tree vertex is $-\kappa$ times the mass in its subtree.
+The sum of its outward fluxes is exactly $-\kappa$ times its own
+source mass, so the cell problems are compatible.  Internal normal
+fluxes cancel.  This gives one global completion field $E_{\rm cross}$
+with source $\kappa\rho_0$ on the exterior part, and a nonnegative
+outlet density
+\[
+ j=-E_{\rm cross}\cdot\nu_{\rm shell}
+   =\sum_{F\ {\rm outlet}}\mathbf1_F
+                   \frac{\kappa Q_F}{\int_Fw}
+       \quad\hbox{on the inner shell boundary}.
+\]
+Here $Q_F$ is the total tree mass and $\nu_{\rm shell}=-\nu_0$.
+Figure~\ref{fig:normalized-corner-routing} shows the local corner relay.
+
+\begin{figure}[tb]
+\centering
+\begin{tikzpicture}[
+  x=1.8cm,y=1.8cm,
+  >=Latex,
+  line cap=round,
+  font=\small
+]
+  \fill[black!7] (0,0) rectangle (1.5,1.5);
+  \draw[black!45,line width=.4pt] (-1.5,-1.5) rectangle (1.5,1.5);
+  \draw[black!45,line width=.4pt] (0,-1.5) -- (0,0);
+  \draw[line width=.65pt] (-1.5,0) -- (0,0);
+  \draw[line width=1pt] (0,1.5) -- (0,0) -- (1.5,0);
+
+  \node at (.83,1.05) {$K'_R$};
+  \node at (-.85,1.26) {side root};
+  \node at (-.78,-1.12) {corner cell};
+  \node[align=center] at (.80,-.98) {another\\side cell};
+
+  \draw[->,line width=.85pt] (-.82,-.65) -- (-.82,.52)
+    node[pos=.42,left=3pt] {$Q_{\rm d}$};
+  \draw[->,line width=.85pt] (-.74,.68) -- (0,.68);
+  \node at (-.75,.95) {$Q_{\rm d}+Q_{\rm r}$};
+
+  \draw[line width=.65pt] (.08,.08) circle[radius=.22];
+  \fill (.08,.08) circle[radius=1.25pt];
+  \draw[black!65,line width=.4pt] (.11,.11) -- (.43,.34);
+  \node[anchor=west,inner sep=2pt] at (.43,.34) {$p$};
+  \draw[black!65,line width=.4pt] (.25,-.06) -- (.53,-.29);
+  \node[anchor=west,inner sep=2pt] at (.53,-.29) {$\eta$-ball};
+\end{tikzpicture}
+\caption{Auxiliary-cell routing near an inner corner (base-plane view).
+The corner cell has no full face on $K'_R$, so its restricted
+smeared mass $Q_{\rm d}$ is routed to the side root, whose own restricted
+mass is $Q_{\rm r}$. The arrows indicate mass routing. On each outgoing
+face, the assigned integrated outward flux is $-\kappa$ times the indicated
+mass; the internal face fluxes cancel.
+One retained center and the section of its $\eta$-ball are illustrated.
+These auxiliary cells are independent of the large cells $H_i$ and of
+the rectangles used for new particles. The completion field
+$E_{\rm cross}$ is added to the other shell fields.}
+\label{fig:normalized-corner-routing}
+\end{figure}
+
+The completion field is not cut at the boundaries of the large cells
+$H_i$; thus no trace on an arbitrary such cut is required.
+The local count estimate and bounded overlap of the unit trees give
+\[
+ \int w|E_{\rm cross}|^2
+       \le C(1+g(\eta))\sum_{\rm trees}N_{\rm tree}^2,
+ \qquad
+ \int_{\partial K'_R\times\mathbb R^k}w j^2
+       \le C\sum_{\rm trees}N_{\rm tree}^2
+       \le C(1+M_{R,\eta'})\varepsilon^{-1}R.
+\]
+The additive $1$ in the count-square bound is required.
+
+The crossing field now completes every retained smeared charge and provides
+its actual outlet flux on the inner boundary. We next balance that flux
+against the background, then choose an integer number of new particles.
+
+For each large cell set
+$Q_i=\int_{(\partial K'_R\cap\partial H_i)\times[-\ell,\ell]^k}w j$,
+its actual inner-face outlet flux.  This need not equal the restricted
+source mass $\kappa\rho_0(H_i\times[-\ell,\ell]^k)$, because the
+completion field may transport that source across a large-cell boundary.
+Define the ideal density by
+\begin{equation}
+ \kappa(m_i-1)|H_i|
+       =B_i-\ell^\gamma(C^++C^-)|H_i|-Q_i.
+ \label{eq:normalized-shell-density}
+\end{equation}
+Since $\sum_iQ_i=\kappa\rho_0(D_0^c)$, Gauss' equation and
+\eqref{eq:normalized-two-caps} give
+$\sum_i m_i|H_i|=R^2-N_{\rm old}=:N_{\rm new}\in\mathbb N$.
+At fixed parameters the lateral-flux, cap-flux and outlet bounds make
+$\max_i|m_i-1|\to0$ as $R\to\infty$; choose this maximum below $1/4$.
+For example the outlet term divided by $|H_i|$ is bounded by
+$C(1+M_{R,\eta'})\varepsilon^{-5}R^{-1}$.
+
+Set $r_i=m_i|H_i|$.  Round the $r_i$ down, and increase the required
+number of entries by one, obtaining integers $n_i$ with
+$\sum_i n_i=N_{\rm new}$ and $|n_i-r_i|\le1$.
+Put $\widetilde m_i=n_i/|H_i|$.  For large $R$ these densities lie
+in $[1/2,3/2]$.  To compensate this rounding, write
+$\delta_i=n_i-r_i$, whose sum is zero, and choose a rooted spanning
+tree of the large-cell adjacency graph.  On the face from a child
+cell $i$ to its parent prescribe outward weighted flux
+$-\kappa\sum_{a\text{ in the subtree of }i}\delta_a$, with opposite
+flux on the adjacent cell.  The total outward flux of cell $i$ is
+$-\kappa\delta_i$.  There is therefore a compatible Neumann field
+$E_{{\rm round},i}$ with source
+$\kappa\delta_i|H_i|^{-1}\delta_{\mathbb R^2}$, these face fluxes,
+and zero flux on all other faces, including the caps.
+The paired fluxes make the union $E_{\rm round}$ a global field.
+It has no flux through the inner or outer shell boundary.
+After dilation by $\ell$, weighted trace and Poincar\'e on rectangles
+of bounded aspect ratio give
+\[
+ \int w|E_{\rm round}|^2\le
+ \begin{cases}C_{s,\varepsilon}\ell^{-s},&s>0,\\
+ C_\varepsilon,&s=0.
+ \end{cases}
+\]
+Indeed there are $O_\varepsilon(1)$ cells and each tree flux is
+$O_\varepsilon(1)$; the unit-scale variational problem has bounded
+energy, and dilation scales it by $\ell^{-s}$ for Riesz kernels and
+by one for the logarithm.  This is $o(R^2)$ at fixed parameters.
+For sufficiently large $R$, every sidelength of $H_i$ is at least
+$\ell>2\sqrt2\ge2\widetilde m_i^{-1/2}$, and
+$\widetilde m_i|H_i|=n_i\in\mathbb N$.
+Thus Petrache and Serfaty~\citep[Lemma~6.3]{PetracheSerfaty2017} partitions $H_i$ into
+$n_i$ rectangles of area $1/\widetilde m_i$, with every sidelength
+in
+\[
+ \left[\frac14\widetilde m_i^{-1/2},
+                      4\widetilde m_i^{-1/2}\right]
+                  \subset[a_0,a_1].
+\]
+In particular, the lower bound $a_0$ fixed at the start applies to
+every new-charge rectangle, independently of all later choices.
+
+The vertical correction on each shell cell is the gradient of
+\[
+ h_2(y)=\frac{\ell^\gamma}{1-\gamma}
+ \begin{cases}C^+y^{1-\gamma},&y\ge0,\\
+ C^-|y|^{1-\gamma},&y\le0.
+ \end{cases}
+\]
+It has source $-\ell^\gamma(C^++C^-)\delta_{\mathbb R^2}$.
+The side-flux correction has the opposite cap source plus
+$\kappa(m_i-1)\delta_{\mathbb R^2}$ and datum
+$-E_\eta\cdot\nu_0+j$ on the
+inner side, with zero data elsewhere.  Equation
+\eqref{eq:normalized-shell-density} is exactly its compatibility.
+
+The large-cell estimate used for this correction is as follows.
+Let $H$ have sidelengths in $[\ell,2\ell]$, set
+$\Omega=H\times[-\ell,\ell]$ and
+$\Sigma=\partial H\times[-\ell,\ell]$, and let $-1<\gamma<1$.
+For a constant $a$ and $b\in L^2(\Sigma,|y|^\gamma)$ satisfying
+\[
+              a|H|=-\int_\Sigma |y|^\gamma b,
+\]
+the weak Neumann problem
+\[
+ -\operatorname{div}(|y|^\gamma\nabla h)
+                  =a\delta_{\mathbb R^2}\quad\hbox{in }\Omega,
+ \qquad \partial_\nu h=b\quad\hbox{on }\Sigma,
+ \qquad \partial_\nu h=0\quad\hbox{on }H\times\{\pm\ell\}
+\]
+has a solution modulo constants and obeys
+\begin{equation}
+ \int_\Omega |y|^\gamma|\nabla h|^2
+ \le C_\gamma\left(a^2\ell^{3-\gamma}
+              +\ell\int_\Sigma |y|^\gamma|b|^2\right)
+ \le C_\gamma\ell\int_\Sigma |y|^\gamma|b|^2.
+ \label{eq:large-cell-side-estimate}
+\end{equation}
+The constants depend only on $\gamma$ and the stated aspect-ratio
+bounds.  To see the scaling, choose the weighted-mean-zero
+representative.  Weighted Poincar\'e and the one-dimensional trace
+inequalities, after dilation by $\ell$, give
+\[
+ \int_H|h(x,0)|^2\le C_\gamma\ell^{1-\gamma}
+                              \int_\Omega |y|^\gamma|\nabla h|^2,
+ \qquad
+ \int_\Sigma |y|^\gamma|h|^2
+          \le C_\gamma\ell\int_\Omega |y|^\gamma|\nabla h|^2.
+\]
+Testing the weak equation gives the first inequality in
+\eqref{eq:large-cell-side-estimate}.
+Compatibility, $|H|\asymp\ell^2$, and
+$\int_\Sigma|y|^\gamma\asymp\ell^{\gamma+2}$ give
+$a^2\ell^{3-\gamma}\le C_\gamma\ell\int_\Sigma|y|^\gamma|b|^2$,
+which proves the second.  This is the constant-source case of
+Petrache and Serfaty~\citep[Lemma~6.4]{PetracheSerfaty2017}, with the source coefficient
+written explicitly.  For the logarithm use $\Omega=H$,
+$-\Delta h=a$, and $\partial_\nu h=b$ on $\partial H$;
+ordinary Poincar\'e, trace, and compatibility give the same final
+bound $C\ell\int_{\partial H}|b|^2$.
+
+For the side field on $H_i$, take
+\[
+ a_i=\kappa(m_i-1)+\ell^\gamma(C^++C^-),\qquad
+ b_i=-E_\eta\cdot\nu_0+j
+       \quad\hbox{on its inner face,}
+\]
+with $b_i=0$ on its other lateral faces.  The cap term is omitted
+when $k=0$.  The density equation gives
+$a_i|H_i|=B_i-Q_i=-\int_{\Sigma_i}w b_i$ exactly, so the cap
+contribution to the constant source is included in the compatibility
+estimate.  The inner faces partition the old lateral boundary.
+Consequently the old-field coarea bound and the outlet bound yield
+\begin{align*}
+ \int w|E_{\rm side}|^2
+ &\le C_s\ell\sum_i\int_{\Sigma_i}w|b_i|^2\\
+ &\le C_s\ell\left(
+      \int_{\partial K'_R\times[-\ell,\ell]^k}w|E_\eta|^2
+          +\int_{\partial K'_R\times\mathbb R^k}wj^2\right)\\
+ &\le C_{s,\eta'}(\varepsilon^2R)(\varepsilon^{-1}R)
+                    (M_{R,\eta}+1+M_{R,\eta'})\\
+ &=C_{s,\eta'}\varepsilon R^2(M_{R,\eta}+1+M_{R,\eta'}).
+\end{align*}
+Here $\Sigma_i=\partial H_i\times[-\ell,\ell]^k$.
+This calculation supplies the length factor in the side-field row
+of the shell-energy estimate.  Its constant may depend on the single
+fixed auxiliary cutoff $\eta'$, but not on $\eta$, $\varepsilon$,
+$R$, or the realization.
+
+Finally, let $S\subset H_i$ be one of the area-$1/\widetilde m_i$
+rectangles, with barycenter $p$, and work on the fixed cylinder
+$\Omega_S=S\times(-1,1)^k$ (or $\Omega_S=S$ when $k=0$).
+Take the $\eta$-truncation of the neutral Neumann field with source
+$\kappa(\delta_{(p,0)}-\widetilde m_i\mathbf1_S\delta_{\mathbb R^2})$
+and zero normal component on its entire boundary.  The truncated source is
+$\kappa(\delta_p^{(\eta)}-\widetilde m_i\mathbf1_S\delta_{\mathbb R^2})$.
+Extend this truncated field by zero into $H_i\times[-\ell,\ell]^k$
+and the shell.  The sidelength bounds $[a_0,a_1]$, fixed height, and
+$\eta<a_0/16$ keep the charge uniformly away from the cell boundary.
+To verify its energy, write the point-source potential as
+$g(\cdot-(p,0))+v$. The correction solves
+\[
+ Lv=-\kappa\widetilde m_i\mathbf1_S\delta_{\R^2},\qquad
+ \partial_\nu v=-\partial_\nu g(\cdot-(p,0))
+                       \quad\hbox{on }\partial\Omega_S.
+\]
+The weighted trace and Poincar\'e estimates give a uniform bound on
+$\int_{\Omega_S}w|\nabla v|^2$; no smoothness across $y=0$ is needed.
+Test this compatible weak equation against $g_\eta(\cdot-(p,0))$.
+The resulting plane integral is uniformly bounded because $s<2$, and
+the boundary terms are uniformly bounded by the clearance from the pole.
+Hence $\int_{\Omega_S}w\nabla v\cdot\nabla g_\eta=O_s(1)$.
+The capped fundamental solution itself has energy
+$\kappa g(\eta)+O_s(1)$ in $\Omega_S$, so the truncated cell field has
+the same energy, uniformly over the allowed rectangles.
+In addition to the preceding $o(R^2)$ bound for $E_{\rm round}$,
+the shell fields satisfy
+\begin{align*}
+ \int w|E_{\rm cross}|^2
+   &\le C(1+g(\eta))(1+M_{R,\eta'})\varepsilon^{-1}R,\\
+ \int w|E_{\rm vert}|^2
+   &\le C e_{\varepsilon,R}\varepsilon^3R^2,\\
+ \int w|E_{\rm side}|^2
+   &\le C_{s,\eta'}\varepsilon(M_{R,\eta}+1+M_{R,\eta'})R^2,\\
+ \int w|E_{\rm new}|^2
+   &\le C(1+g(\eta))N_{\rm new},
+\end{align*}
+where $N_{\rm new}=O(\varepsilon R^2)+o(R^2)$ at fixed parameters.
+The first bound uses the sum of squared tree counts; the third
+uses the weighted rectangle trace estimate with height $\ell$.
+Write $\nu_{{\rm new},\eta}=\sum_{p\ {\rm new}}\delta_p^{(\eta)}$.
+The five shell fields have combined source
+\[
+ \kappa\rho_0
+ -\ell^\gamma(C^++C^-)\delta_{\mathbb R^2}
+ +\bigl[\kappa(m_i-1)+\ell^\gamma(C^++C^-)\bigr]\delta_{\mathbb R^2}
+ +\kappa(\widetilde m_i-m_i)\delta_{\mathbb R^2}
+ +\kappa(\nu_{{\rm new},\eta}-\widetilde m_i\delta_{\mathbb R^2}),
+\]
+which is $\kappa(\rho_0+\nu_{{\rm new},\eta}-\delta_{\mathbb R^2})$.
+On the inner shell boundary the crossing and side data sum to
+$-j+(-E_\eta\cdot\nu_0+j)=-E_\eta\cdot\nu_0$.
+The rounding field has zero inner data and paired internal data;
+the completion field remains global across the large-cell boundaries.
+Thus all interface fluxes cancel.  We sum squared energies only in
+the shell, where a fixed factor of five is harmless.  The old field
+inside $D_0$ is retained exactly, with coefficient one in the energy
+bound; no global factor multiplying its energy is introduced.
+
+The shell now has the required source and lateral flux. It remains to close
+the two vertical ends without changing these sources.
+
+The upper and lower weighted harmonic caps are solved separately.
+On the inner horizontal face of the upper or lower cap, prescribe the
+outward normal derivative $-E_\eta(x,\pm\ell)\cdot(\pm e_y)$ for
+$x\in K'_R$, and $-C^\pm$ for $x\in K_R\setminus K'_R$; here $e_y$
+is the positive vertical unit vector.  Prescribe zero normal derivative
+on every other face.  By \eqref{eq:normalized-two-caps}, the weighted
+integral of these data is
+$-T_\pm-A_{\rm sh}\ell^\gamma C^\pm=0$, so each cap problem is
+compatible.  If $u$ is adjusted by its ordinary mean on one cap,
+ordinary trace and Poincar\'e, followed by weight comparison, give
+\[
+ \int_{K_R\times\{\ell\}}w|u|^2
+   \le CR\max\{1,(\ell/R)^\gamma\}
+                              \int_{\rm cap}w|\nabla u|^2.
+\]
+Testing the compatible cap problem yields total cap energy at most
+\[
+       C e_{\varepsilon,R}
+                     \varepsilon^{1+\min(2\gamma,0)}R^2.
+\]
+The extra factor for $\gamma<0$ is retained.  It vanishes at fixed
+$\varepsilon$ by \eqref{eq:normalized-moving-tail}.
+There are no cap terms for $k=0$.
+
+Retain $E_\eta$ in $D_0$, use the sum of the five finite-energy
+components in the shell, and use the two harmonic cap fields above
+and below.  Extend this assembled field $\widehat F_\eta$ by zero past the
+outer square and the cap heights.  It has zero exterior normal flux
+and source $\kappa(\sum_{p\in\widehat\Lambda}\delta_p^{(\eta)}
+-\mathbf1_{K_R}\delta_{\mathbb R^2})$, where
+$\widehat\Lambda$ consists of the retained old and new barycenter
+charges, exactly $R^2$ points.  Now define
+\[
+ \widehat E=\widehat F_\eta+
+               \sum_{p\in\widehat\Lambda}\nabla f_\eta(\cdot-(p,0)).
+\]
+The singular corrections lie inside the outer square by its clearance.
+Thus $\widehat E_\eta=\widehat F_\eta$ exactly, and the fundamental-solution
+identity proves the required unsmeared divergence equation, with
+zero exterior normal flux.  At fixed cutoffs the preceding bounds
+give
+\begin{align}
+ R^{-2}\int_{K_R\times\mathbb R^k}w|\widehat E_\eta|^2
+ &\le M_{R,\eta}
+   +C_{s,\eta'}\varepsilon(1+g(\eta))
+                 (1+M_{R,\eta}+M_{R,\eta'})+o_R(1)\notag\\
+ &\quad+C_s e_{\varepsilon,R}
+                       \varepsilon^{1+\min(2\gamma,0)}.
+ \label{eq:normalized-screen-estimate}
+\end{align}
+Here $R$ is chosen after $\eta,\eta',\varepsilon$.
+For example, the count estimate is controlled once $R\gg(1+M_{R,\eta'})\varepsilon^{-5}$.
+
+Every new barycenter is at least $a_0/2$ from each face of its
+rectangle.  Retained old points lie inside $K'_R$ or within $\eta$
+of its boundary.  Since $\eta<\eta_0\le a_0/16$ was fixed before
+the realization was selected, every new--old distance is at least
+$a_0/2-\eta>2\eta$.
+Choose the integer radius large enough that
+$\varepsilon R-\eta\ge a_0/2$; this gives the same clearance at
+the outer boundary and hence at every reflected seam.
+New--new distances and all reflection-seam distances exceed $2\eta$.
+Thus every close pair after screening was already an old close pair.
+
+\end{proof}
+
+\subsection{Reflection, projection, and removal of the cutoff}
+
+\begin{proof}[Proof of Proposition~\ref{prop:normalized-cubic-approximation}]
+Lemma~\ref{lem:field-cutoff-control} proves existence and the uniform lower
+bound of the cutoff limit, as well as finiteness of $m$. To approximate $m$,
+choose a selected dyadic cutoff $\eta$ and a realization supplied by
+Lemma~\ref{lem:stationary-field-minimizers}. Apply
+Lemma~\ref{lem:field-screening} after choosing $\varepsilon$, and then
+choose its integer radius $R$. We now convert that screened field into a
+canonical periodic gradient and estimate its energy after removing the
+cutoff.
+
+Reflect the screened square in both coordinate directions and repeat
+with period $2R\mathbb Z^2$.  The reflected vector components have
+matching zero normal flux, so there are no interface charges.  The
+period cell has $4R^2$ points and area $4R^2$.
+Reflection multiplies both energy and defect by four.  The nonnegative
+defect of the resulting configuration is at most the old anchored
+defect in $K_R$, divided by $R^2$, and hence tends to at most
+$d_\eta(E)\le2D_\eta$.
+
+Write $E^{\rm per}$ for the reflected field, which need not be curl free,
+and let $E^{\rm can}$ be the canonical periodic gradient with exactly
+its charges and background. At fixed cutoff,
+$D=E^{\rm per}-E^{\rm can}=E^{\rm per}_\eta-E^{\rm can}_\eta$
+belongs to $L^2(w)$ on the full period cylinder and has zero weighted
+divergence.  Test against the canonical truncated potential, with
+vertical cutoffs tending to infinity; its nonconstant Fourier modes
+decay vertically and its zero mode has compactly supported derivative.
+The cross term vanishes, so
+\[
+ \int_{T\times\mathbb R^k}w|E^{\rm per}_\eta|^2
+  =\int_{T\times\mathbb R^k}w|E^{\rm can}_\eta|^2
+                       +\int_{T\times\mathbb R^k}w|D|^2.
+\]
+Canonical projection therefore decreases the cutoff energy and leaves
+the configuration defect unchanged. It also returns to the prescribed
+admissible class. For $s>0$, finite truncated $L^2(w)$ energy gives local
+unweighted $L^p$ by weighted H\"older when $p<\min(2,2/s)$, and each of
+the finitely many local singular corrections belongs to $L^p$ when
+$p<3/(s+1)$.
+For the logarithm both bounds reduce to $p<2$. Weighted Cauchy--Schwarz
+and the locally integrable singular flux give $wE^{\rm can}\in
+L^1_{\rm loc}$. Thus the canonical gradient is a member of
+$\mathcal A_1$ with the exponent fixed at the beginning, even though the
+intermediate screened field was not required to be a gradient.
+
+For a finite simple periodic configuration, integrate
+\eqref{eq:normalized-two-cutoff-local} over its period cell and let the
+auxiliary cutoff tend to zero. This gives
+\begin{equation}
+ V(\mathcal C)-\mathcal W_\eta(E^{\rm can}_{\mathcal C})
+   =\frac{\kappa}{|T|}\sum_{p\in T}\sum_{q\ne p}q_\eta(p-q)
+                        -2\kappa F_\eta.
+ \label{eq:normalized-periodic-defect}
+\end{equation}
+The second sum includes periodic images; the self image at zero is
+the only omitted particle.
+
+Keep the auxiliary cutoff $\eta'$ fixed at its initial value as $\eta$
+tends to zero.  For each selected $\eta$, take the realization chosen
+above, and choose $\varepsilon$ so the middle
+term of \eqref{eq:normalized-screen-estimate} is as small as desired;
+then choose an arbitrarily large integer $R$ so that all energy and
+defect limits, the moving-tail estimate, the size conditions, and the
+seam clearance hold simultaneously.  Subtract $\kappa g(\eta)$,
+project canonically, and apply \eqref{eq:normalized-periodic-defect}.
+Equations \eqref{eq:normalized-cutoff-bound} and
+\eqref{eq:normalized-defect-small} give
+\[
+ V(\mathcal C_{\eta,R})
+   \le m+2\kappa F_\eta+o(1)+2D_\eta-2\kappa F_\eta
+   =m+2D_\eta+o(1).
+\]
+Let the chosen cutoffs tend to zero, taking the screening thickness
+and integer radius in that order for each cutoff.  The canonical
+periodic gradients belong to $\mathcal A_1$, so their values are also
+at least $m$.  This proves the asserted cubic minimizing sequence.
+Every use of the box limit preceded removal of the cutoff; no
+interchange of the two limits has been made.
+\end{proof}

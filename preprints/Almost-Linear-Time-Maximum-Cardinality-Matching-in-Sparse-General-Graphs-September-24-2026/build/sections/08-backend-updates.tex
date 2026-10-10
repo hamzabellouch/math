@@ -1,0 +1,958 @@
+\section{Maintaining and exposing the cycle backend}
+\label{sec:backend-updates}
+
+We now implement the reduction of Section~\ref{sec:backend-quality}.
+There are two quantities to control: the work performed locally and the
+number of edits passed to the one recursive child.  The latter must be
+smaller, since it is multiplied through the recursion.  We also construct
+the public forest, with explicit persistent edge identities, so that a
+child path can be lifted without traversing all its edges.
+
+Recursive vertex and edge sparsification for dynamic minimum-ratio
+cycles is developed in \cite[Sections~5 and~7]{IncrementalGraphs}.
+Here we establish the snapshot, edit-count, and forest-lifetime
+guarantees required by Lemma~\ref{lem:flat-cycle}.
+
+Retain the parameters of Section~\ref{sec:backend-quality}.  Throughout
+this section a \emph{logarithmic factor} means
+$\log^{O_a(1)}(2+M)$, with a constant depending on the fixed parameters
+$a,\sigma$.  Different occurrences may denote different factors.  In
+particular $P_*,p_*$, the number of forest copies, and the number of width
+buckets are logarithmic factors.  We do not replace these factors by
+powers of $b$ when accounting for work.  At recursion level $i<d$, an
+epoch has $h_i=n_i/k$ single input edits.  A price replacement is a
+deletion followed by an insertion.  Queries do not advance this epoch
+counter.
+
+\subsection{Class changes and immutable assignment snapshots}
+
+Use one logical graph for each frozen tree $T^0$ and width $W$, grouping
+all components of that tree in the same graph.  Thus neither rebuilding
+nor taking the best score incurs a separate overhead for every component.
+Let $D_T$ bound the combined tree and chord degree at a frozen tree
+vertex, and set
+\begin{equation}
+ D_\ell=(k+1)(D_T+1)^2.
+ \label{update:logical-degree}
+\end{equation}
+The maximum can be measured when the tree is built.  Cell-tree edges use
+actual incidences; a null pair chord only joins copies of the same slot
+in different partitions of one layer.  At a vertex $V_j(v)$ there are
+only the appropriate OUT and IN links, and, at $V_0(v)$, the old actual
+chord incidences.  Hence $D_T$ is bounded by the input degree plus
+$O(K_h)$ and is a logarithmic factor whenever the input degree is.
+
+\begin{lemma}[Class edits]
+\label{update:classes}
+The leg assignments of Section~\ref{sec:backend-quality} can be maintained
+with logical degree at most $D_\ell$.  One input edit induces only a
+logarithmic factor many logical edit units across all tree--width
+graphs, where a unit is a class split, a pair of fragment-class births
+at a cluster activation, or a single chord death.  Each unit involves
+at most $O(D_\ell)$ incidence work.  Every change to the leg of a
+surviving active incidence entails a split of its class.
+\end{lemma}
+
+\begin{proof}
+Call a chord \emph{regular} when its frozen fundamental tree path meets
+the initial portal grid.  The nearest-portal regions are connected:
+along a shortest tree path toward the chosen portal, the distance
+comparison with every competing portal persists, as does the global
+index tie rule.  A region consists of its portal and parts of the
+adjacent pockets, and therefore has at most $1+kD_T$ vertices.
+
+The target of a regular incidence is the first hole on its fixed path
+toward its original portal, stopped on the incidence side, or the portal
+if there is no such hole.  For a fixed bucket, all current legs crossing
+a newly cut edge belong to one old class.  Indeed that edge lies in one
+nearest-portal region, and their earlier truncation, if present, is the
+first hole on their common suffix toward the portal.  Split this class
+by moving the crossing incidences to the incidence-side endpoint of the
+new cut.  This target is determined by the newly cut parent edge toward
+the portal, so no merging is needed.  Give \emph{both} children fresh
+labels, even when one is empty or one retains the old target.
+
+For a nonregular chord, use the two depth-band clusterings described in
+Section~\ref{sec:backend-quality}.  The first interior cut activates the
+cluster and creates two fresh fragment classes.  Every newly active
+chord has both incidences in these new classes, including chords whose
+two incidences lie on the same side.  Thereafter cuts split fragment
+classes, again with fresh labels on both sides.  Classes in different
+clusters remain distinct even if their targets are the same tree node.
+Each cluster is contained in an initial pocket.  Its number of
+incidences, and that of any regular region, is bounded by
+\eqref{update:logical-degree}.  The two incidences of a logical loop are
+counted separately.
+
+An old actual-edge deletion creates only a logarithmic factor many
+holes and chord deaths in all copies.  In one width bucket, a hole is
+interior to at most one cluster in each of the two shifted band
+partitions, and it causes at most the regular split just described.
+A newly inserted physical edge creates no frozen chord.  These facts
+give the asserted number of units.
+
+Here is an explicit way to list and process them.  At freezing time,
+compute tree ancestor tables, length and oriented-gradient prefix sums,
+portal mark counts, nearest portals, pockets, and cluster membership.
+The band index at a pocket vertex is an integer quotient of its weighted
+depth; connected components of equal band index give the clusters.
+No record is allocated for an empty band.  These computations take
+near-linear tree work up to logarithmic factors and determine the
+relevant path sums without scanning each fundamental path.  Initial
+regular legs have at most $k+1$ tree edges, so their membership lists on
+tree edges can also be built explicitly.  On a hole, inspect the
+region-bounded lists, discard dead incidences and legs already stopped
+before this hole, and update the remaining class lists.  A cluster cut
+can inspect the whole small cluster and its chord incidences.
+
+Before activation, keep each direct fundamental-cycle score in a heap
+using its frozen sums.  Delete its entry when the chord dies or its
+cluster activates.  For an input death, physical chord removals can be
+processed before the splits and activations that it causes.  Afterwards
+every surviving active leg is the unique live tree path to its stored
+target.  A leg whose class has not split retains that path and its
+gradient.  This also proves the last assertion.
+\end{proof}
+
+We maintain assignments by an inner hierarchy of snapshots.  At edit
+$h_i$ rebuild the whole outer epoch on the resulting input graph,
+without updating the obsolete child.  For edits $1\le t<h_i$, put
+\begin{equation}
+ z_0=\lceil\log_b h_i\rceil\le a^2,
+ \qquad s_j=b^{z_0-j}\quad(0\le j\le z_0).
+ \label{update:periods}
+\end{equation}
+These are integral powers of two under the divisibility assumption on
+$u$.  Level zero is the initial frozen assignment.  At tick $t$, choose
+the smallest $j\ge1$ for which $s_j\mid t$.  Rebuild from the parent
+snapshot at
+\begin{equation}
+ t_0=\left\lfloor\frac{t}{s_{j-1}}\right\rfloor s_{j-1}<t,
+ \qquad t-t_0\le b s_j,
+ \label{update:parent-time}
+\end{equation}
+and let all finer levels share the resulting snapshot.  Minimality of
+$j$ ensures $s_{j-1}\nmid t$, so the strict inequality in
+\eqref{update:parent-time} holds.  If a coarser level was rebuilt at
+$t_0$, its shared snapshot also supplies the indicated parent.
+
+An assigned path is simple; an empty path visits its sole vertex once.
+The invariants for a level-$j$ snapshot are
+\begin{equation}
+ p(j)=(10P_*)^{j+1},\qquad
+ C(j)=D_\ell(100P_*)^{j+1},
+ \label{update:snapshot-bounds}
+\end{equation}
+bounding its path hops and the number of assigned paths visiting any
+one class, respectively.  At initialization only regular chords are
+active and their classes are portals.  Apply
+Lemma~\ref{lem:routing-helper} with endpoint incidence counts as
+resources and simplify the returned walks.  For nonempty walks,
+vertex visits are bounded by endpoint incidence charges on their
+traversed edges; empty paths add at most the demand degree.  This proves
+\eqref{update:snapshot-bounds} for $j=0$.  All finer levels initially
+share this snapshot.
+
+Selections are physical chord identifiers.  A selected chord remains
+in support for the rest of the epoch while alive, even if its logical
+endpoint classes later split.  Repeated selection stores it just once
+in the child graph.
+
+\begin{lemma}[The anchor core]
+\label{update:anchor-core}
+Suppose the interval from a parent snapshot to a rebuild contains
+$E_0$ logical edit units in one tree--width graph.  The rebuild can
+restore \eqref{update:snapshot-bounds} using a helper instance on
+$O(E_0)$ incident labels.  It selects at most $O(P_*E_0)$ additional
+central chords.  The work is
+\begin{equation}
+ O(1+D_\ell E_0)\,bM^{o_a(1)},
+ \label{update:rebuild-work}
+\end{equation}
+in addition to scanning the interval's edit log with logarithmic
+overhead per tick and explicitly handled incidence.
+\end{lemma}
+
+\begin{proof}
+Mark labels of the snapshot at $t_0$ as follows.  Every split marks its
+ancestor at $t_0$, if one exists; every chord death marks the ancestors
+of both endpoint classes.  Let $Y$ be the marked set.  Then
+$|Y|\le2E_0$.  The \emph{anchors} are all current descendants of $Y$
+and all current classes born from activations after $t_0$, including
+their later descendants.  There are $O(E_0)$ anchors: initially marked
+labels contribute at most $2E_0$, and every subsequent split or
+activation adds only constantly many class labels.  Ancestors absent
+at $t_0$ belong to the latter activation families.
+
+Mark every old assigned path that visits $Y$, including at an endpoint.
+In particular the path of a deleted demand is marked, as is any path
+using a deleted support edge.  Every unmarked path still uses the same
+live oriented chords on unchanged labels.  Moreover its demand and
+all support edges on the path retain the same legs and leg gradients,
+by Lemma~\ref{update:classes}.  Thus its correction
+$B_f=L_f-L_{\Pi_f}$ has exactly the stored gradient.  A hole outside
+these legs can change the clipped comparison vector, but does not
+change this correction.  Inactive direct-cycle candidates are handled
+separately by their activation lists.
+
+Consider a marked old path whose demand $e$ survives.  Follow its
+prefix from the tail to the first marked label.  Every preceding label
+is unsplit.  Every edge of this prefix is live: if one had died, its
+earlier endpoint's old label would also have been marked.  The final
+edge now ends at a current descendant of the first marked label.
+Interpreting the same oriented edges therefore gives a current path
+$A_e$ from the current tail to an anchor.  If the old path starts
+marked, $A_e$ is the empty path at the current tail.  Reversing this
+argument gives a suffix $Z_e$ from a current anchor to the current head
+at the last marked label.  Repeated splits cause no ambiguity, since
+the current incidence of the last prefix edge specifies its current
+descendant.  For newly activated demands use empty $A_e,Z_e$; both
+endpoints are anchors by the activation rule.
+
+For each such demand put an edge in a core graph on the anchors,
+associated with the direct logical walk
+\begin{equation}
+                 -A_e+e-Z_e.
+ \label{update:core-walk}
+\end{equation}
+Its orientation is from the end of $A_e$ to the beginning of $Z_e$;
+a minus reverses a path.  For every current base class use its number
+of visits on this direct walk as a resource count.  Each count is at
+most two.  Indeed the prefix and suffix each come from a simple old
+path, with at most their final marked label replaced by a descendant;
+the two resulting vertex lists concatenate across $e$.  This also
+covers empty prefixes, suffixes, and a loop demand.  The total resource
+count at a class, over all direct walks, is at most
+\begin{equation}
+                  C_0=2C(j-1)+D_\ell.
+ \label{update:core-resource}
+\end{equation}
+Prefix visits and suffix visits of old demands charge separately to
+visits at that class's old ancestor; newly activated endpoint
+incidences charge to its current degree.  The same bound controls
+the core demand degree, because its endpoint incidences are among
+these resource visits.
+
+Apply Lemma~\ref{lem:routing-helper} to the core with the resources
+just defined.  Lift its assigned walks by substituting
+\eqref{update:core-walk}, and for demand $e$ prepend $A_e$ and append
+$Z_e$.  Simplify the resulting walk to a simple path, erasing the whole
+walk if its endpoints coincide.  Cycle erasure never increases hops
+or resource visits.  The hop count before simplification is at most
+\begin{equation}
+ 2p(j-1)+P_*\bigl(2p(j-1)+1\bigr)\le p(j).
+ \label{update:hop-induction}
+\end{equation}
+The substituted helper walks cost at most $P_*C_0$ visits at each
+class.  The added prefixes and suffixes cost at most
+$2C(j-1)+D_\ell$, including the empty paths; the unchanged assignments
+add at most $C(j-1)$.  Thus a valid upper bound is
+\[
+ P_*\bigl(2C(j-1)+D_\ell\bigr)+3C(j-1)+D_\ell
+ \le100P_*C(j-1)=C(j).
+\]
+All edges in the prefixes and suffixes were already live support
+edges.  Only the central chords of the selected core edges must be
+added to support.  The core has $O(E_0)$ incident labels, regardless
+of how many old paths met $Y$, so the helper selects at most
+$O(P_*E_0)$ such chords.  When $E_0=0$ the old snapshot can simply be
+retained.
+
+For completeness, the implementation does not copy whole snapshots.
+Each held snapshot consists of immutable balanced-dictionary roots
+for paths keyed by demand, an index from class to its visiting paths,
+and an ordered collection of correction-score keys.  Path copying
+changes only the search paths of modified dictionary entries.  Begin
+with the parent roots and replace marked or dead records and add the
+newly active records.  The class index enumerates at most
+$C(j-1)|Y|$ old path occurrences before their lists are read; a
+dictionary removes duplicates.  Activation lists enumerate new
+demands.  Every such path has logarithmic-factor length, and the
+number of newly activated demands is at most $O(D_\ell E_0)$.
+
+Store split-parent pointers with class birth ticks and jump pointers.
+To find the ancestor at $t_0$, follow this history to the class alive
+at the end of tick $t_0$.  All splits within one tick belong to that
+tick and snapshots are taken only after settlement, so equal birth
+ticks do not create a partially settled ancestor.  Physical chord
+identifiers, the two current incidence classes, and their targets
+are explicit records.  They determine the oriented lifted prefixes
+and suffixes.  Frozen tree prefix data gives each live leg's gradient
+and length; summing over the new short logical paths recomputes their
+correction-score keys.  Unmodified keys remain valid by the unmarked
+path argument.
+
+Building the direct lists and the helper's resource lists, simplifying
+its output, and changing the indices costs
+$O(1+D_\ell E_0)bM^{o_a(1)}$ by
+Lemma~\ref{lem:routing-helper}.  Comparing the maintained best keys
+over the logarithmic-factor many tree--width graphs has only
+logarithmic overhead.  The helper's input prerequisites can be checked:
+twice the demand count and the nonzero resource-list length must each
+be at most $M^2$.  They hold for all sufficiently large $M$ at fixed
+parameters, since even all frozen chords number at most
+$O(n_i)$ times a logarithmic factor, and every direct walk has
+logarithmic-factor length.  This proves the work assertion and both
+snapshot invariants.
+\end{proof}
+
+\begin{lemma}[Cumulative assignment work and support]
+\label{update:support}
+The initial assignments use at most $h_i$ times a logarithmic factor
+many support chords.  On every epoch prefix of $t'\le h_i$ edits, the
+additional support selections number at most $bt'$ times a logarithmic
+factor, and local assignment work is
+$t'M^{O(1/a)+o_a(1)}$ after initialization.  Initialization costs
+$n_iM^{O(1/a)+o_a(1)}$.
+\end{lemma}
+
+\begin{proof}
+Initially the number of portal classes, summed over all tree--width
+graphs, is at most $(n_i/k)$ times a logarithmic factor.  The helper
+selects at most $P_*$ times this many chords.  At inner level $j$ there
+are at most $\lfloor t'/s_j\rfloor$ rebuilds, each using an interval
+of at most $bs_j$ ticks.  By Lemma~\ref{update:classes}, the sum of
+their interval edit counts across all tree--width graphs is at most
+$bs_j$ times a logarithmic factor per rebuild.  Consequently the
+cumulative support additions at that level are at most $bt'$ times
+a logarithmic factor by Lemma~\ref{update:anchor-core}.  There are at
+most $a^2$ inner levels.  Summing
+\eqref{update:rebuild-work} similarly bounds the local work by
+$t'D_\ell b^2$ times a logarithmic factor, in addition to smaller
+constant-per-rebuild and log-scanning costs.  Since
+$D_\ell=(k+1)\log^{O_a(1)}(2+M)$, this has the asserted exponent with
+an absolute coefficient.  Initial tree preparation, the explicit
+short regular-leg lists, and initial helper calls fit the stated
+initialization bound.  A physical removal lists the deaths of selected
+copies in logarithmic-factor work.  Keeping earlier live selections
+therefore requires no additional support budget.
+\end{proof}
+
+In particular \eqref{update:hop-induction} gives
+$p(j)\le(10P_*)^{a^2+1}=p_*$, supplying the path assumption in
+Lemma~\ref{lem:backend-reduction}.
+
+\subsection{Small changes to the compressed child}
+
+The snapshot hierarchy now supplies the short selected-support paths
+required by the quality reduction.  We next bound the number of edits
+needed to maintain their compressed representation in the child graph.
+Afterwards, the public forest construction will expose child paths
+while preserving the identities of retained mapped edges.
+
+\begin{lemma}[Compressed graph edits]
+\label{update:compressed-edits}
+The single child graph $J$ can be initialized nonempty.  Throughout
+an epoch it uses at most $h_ib$ times a logarithmic factor many active
+slots and edges, including slots assigned earlier in that epoch.
+On an epoch prefix of $t'$ further input edits it receives at most
+$bt'$ times a logarithmic factor individual edits.  Its degree is a
+logarithmic factor, and its integral prices obey the level-$(i+1)$
+bounds.  The local construction work per parent edit is
+$M^{O(1/a)+o_a(1)}$ amortized.
+\end{lemma}
+
+\begin{proof}
+Initial terminal promotions number at most $h_i$ times a logarithmic
+factor.  Subsequent promotions come from hole endpoints, new class
+targets, endpoints of selected support chords, and the raw-hierarchy
+route endpoints needed for new physical incidences.  The first three
+counts follow from Lemmas~\ref{update:classes} and
+\ref{update:support}.  For the fourth, enumerate the
+$K_h^{O(r)}$ possible sequences of partition options from the given
+physical slot.  At each step look up the entering copy and its frozen
+cell root in stored tables.  This lists the needed endpoints without
+traversing the raw legs.  It costs a logarithmic factor per incidence.
+Thus the cumulative additional promotions on a prefix number at most
+$bt'$ times a logarithmic factor.  Retain all promoted terminals until
+the epoch ends.
+
+Build each initial Steiner subtree in bulk, using subtree terminal
+counts.  To promote one additional tree node, split its current
+compressed segment if it is already in the represented subtree.  If
+it is outside, explore its hanging component to the unique attachment
+and add the joining path, splitting the segment at that attachment if
+needed.  If the live component has no represented subtree, create an
+isolated terminal.  The explored exterior component contains no
+initial portal, and hence lies within one original pocket of fewer
+than $k$ vertices.  Existing segments have at most $k+1$ constituent
+edges.  Membership and segment pointers on these nodes, together with
+local forest adjacency, therefore suffice for
+$O(k+1)$ times degree and logarithmic-factor work.  Only $O(1)$
+compressed vertices and edges change per promotion.  No whole live
+component must be relabeled.
+
+Before cutting a frozen tree edge, promote both endpoints.  The edge
+is now itself a compressed segment and can be deleted.  On either
+side, every other represented edge still separates terminals: a
+terminal formerly reached across the deleted edge is replaced for
+this purpose by its now-terminal endpoint.  Thus there is no pruning
+or merging cascade.  Keep each segment's full constituent list with
+orientations.  A changed segment or changed realization is removed
+and replaced by a fresh edge, with deletion first.
+
+Assign each represented frozen tree or raw-forest node its own child
+slot, without reuse in this invocation, and assign at most one hub
+per physical label.  A selected chord remains attached at its
+original tree-node endpoints.  Its logical leg targets can therefore
+change in bulk without migrating its child edge.  New actual
+nonloops are inserted directly between hubs and removed at their
+deaths; actual loops have already been handled by the loop heap.
+These rules establish the claimed size and edit counts.
+
+Reserve $\lfloor n_{i+1}/2\rfloor$ child slots, with unused slots
+isolated, and check both assignment overflow and total slots plus
+current edges against the child's capacity.  For fixed parameters
+these checks hold eventually, because
+\begin{equation}
+ n_{i+1}=h_iM^{1/(2a)},\qquad
+ b=M^{1/a^2},\qquad \frac1{a^2}<\frac1{2a}.
+ \label{update:child-slack}
+\end{equation}
+The active-slot and edge bounds above are consequently smaller than
+either reserved half for all sufficiently large $M$.
+
+At a compressed node, segment degree is at most its frozen tree
+degree; add its chord degree and one hub connector.  At a hub, the
+connector degree is bounded by the number of frozen tree and
+raw-forest copies of its physical label, plus the current new actual
+incidences.  Both are logarithmic factors.  Deleting old segments
+before adding replacements preserves these degree bounds even
+during the child edit sequence.  This proves the degree hypothesis
+inductively from the degree-three outer input.
+
+A segment sums prices over at most $k+1$ edges, so its positive
+integral length and absolute gradient are at most
+$(k+1)M^{G_i}\le M^{G_i+2}=M^{G_{i+1}}$ for adequate parameters.
+Other child prices are inherited or are $(\ell,\gamma)=(1,0)$.
+The local work includes an $O(k+1)$ factor per promotion or changed
+segment and the assignment work already bounded.  Its exponent is
+therefore $O(1/a)$ with an absolute coefficient.  Only the smaller
+\emph{edit count} proved above is passed into the recursive time
+bound.
+\end{proof}
+
+\subsection{A public forest with prebuilt arms}
+
+This representation uses the flat-embedding viewpoint of
+\cite[Definition~2.3 and Theorem~3.5]{IncrementalGraphs}, whose
+minimum-ratio-cycle data structure is fully dynamic.
+The preallocation and reassignment of unused tree copies follow the
+flat-forest lifting construction of Kyng, Meierhans, and Probst Gutenberg
+\cite[Section~3.3, Lemma~3.21 and Algorithm~5]
+{KyngMeierhansProbstGutenberg2023FlatForest}.  Their construction already
+provides path-length domination and bounds on changes to the lifted
+forest.  Here the copied trees are the arms of compressed segments.
+We track the lifetime of every mapped edge and process each parent edit
+as one old-to-final transaction; these details preserve the engine's
+signed and absolute accumulations when an unused copy is reassigned.
+
+Put
+\begin{equation}
+                D_i=b^{2(d-i)}\qquad(0\le i\le d).
+ \label{update:occurrence-bounds}
+\end{equation}
+The bottom forest is empty.  At a higher level include full live
+copies of all $T^0$ and raw $H_j$ forests as separate public
+components, with their holes and their actual or null mappings.
+They represent local correction paths and individual compressed
+segments.  The following additional components, disjoint from the
+full copies, represent the recursively exposed forest $F^J$.
+
+For each active child slot $q$, including hubs, write $\varphi(q)$
+for its physical image.  Prebuild a pool of $D_{i+1}$ \emph{arm slots}.
+An arm slot has a center mapping to $\varphi(q)$.  For each tree
+segment of $J$ incident to $q$, attach an independent copy of its
+entire constituent path, oriented outward from $q$, with a fresh far
+tip and all constituent vertex and edge maps.  Different arms in
+one slot meet only at its center; different slots are disjoint.
+Retain the whole pool, including unassigned, or \emph{dormant}, slots.
+Assign a distinct arm slot to each occurrence of $q$ in $F^J$.
+Occurrences over an inactive child slot are ignored publicly: such
+a slot is isolated in $J$, so all its forest components have only
+null edges and project to that one slot.
+
+Add one connector for every child forest edge in the active part:
+\begin{enumerate}
+\item If its map is a segment $qz$, choose a fixed endpoint side,
+say $q$.  Use the corresponding arm in the slot assigned to its
+occurrence over $q$, and add a null connector from that arm's far
+tip to the center assigned to the other occurrence over $z$.
+\item If its map is a nonsegment child edge, join the two assigned
+centers with that edge's single actual-edge or null map.
+\item If the child forest edge itself is null, join its assigned
+centers with a null connector.
+\end{enumerate}
+The endpoints of each null connector have equal physical images.
+Centers have indexed identifiers, and tips are indexed by arm slot
+and incident segment identifier.  Connector endpoints can thus be
+looked up without scanning an arm.
+
+\begin{lemma}[Flat lifting]
+The construction is a forest with valid current actual or null edge
+maps.  \label{update:flat-lift}
+A child forest-path piece lifts to at most one public forest-path
+piece, preserving its signed projection and with parent raw length
+at most its child raw length.  An individual child-edge piece lifts
+to one path or one actual-edge piece, or can be omitted if null.
+The lifted sum of a child circulation is a circulation with the same
+gradient.  The number of returned pieces is
+$M^{O(1/a)+o_a(1)}$.
+\end{lemma}
+
+\begin{proof}
+Contract every arm-slot tree to its center.  On assigned slots the
+connector quotient is exactly the active subforest of $F^J$.
+Dormant slots have no connectors.  A cycle in the expanded graph
+would give a cycle in this quotient, since each contracted part is
+itself a tree.  Together with the disjoint full copies, the result
+is a forest.
+
+Expand each edge on an oriented child path using the prescribed
+arm and connector, or its nonsegment connector.  The concatenation
+has the expanded signed projection of that child path.  Segment
+length is the sum of its constituent parent lengths; null child
+edges contribute zero parent raw length, and other child null
+realizations can only decrease it.  Thus the concatenation's
+parent raw length is at most the sum of child-edge lengths counted
+with their traversal multiplicities.
+
+This concatenation may backtrack, even when the child path is
+simple, because several connectors can use the same arm in one
+slot.  In a forest, deleting a consecutive edge and its reverse
+preserves the signed count of every oriented edge and decreases
+nonnegative raw length.  Repeating this deletion leaves the unique
+forest path between the assigned endpoint centers.  It therefore
+has exactly the needed projection and no larger raw length.  We
+return its endpoints; we do not perform these cancellations by
+expanding the walk.  If the child path has an inactive endpoint,
+its whole component is one of the ignored null components, so the
+piece can be omitted.
+
+For a piece given as a single child segment, use its endpoints in
+the appropriate full live forest copy.  For a nonsegment piece,
+return its actual edge or omit its null realization.  Each edge
+expansion has divergence equal to its mapped endpoint divergence.
+Summing a child circulation therefore gives zero physical
+divergence and preserves its gradient.  In particular a positive
+child score gives positive gradient magnitude after lifting and
+therefore positive parent raw length.  Its score remains a valid
+lower bound for the lifted ratio.
+
+Only endpoint and slot lookups are needed in these conversions;
+no long lifted path is traversed or priced anew.  A local correction
+uses $O(p_*)$ pieces in full copies and individual actual chords,
+with opposite traversals explicitly reversed and null chords
+omitted.  An actual loop uses one piece.  A child answer gives at
+most as many parent pieces as it had child pieces.  At each level
+we return one best candidate, rather than concatenating candidates
+from several levels.  The bottom answer has at most
+$n_d=M^{2/a}$ pieces.  Taking the maximum of these bounds proves the
+last assertion.  Every listed piece has unit multiplicity;
+repetitions, if present, are listed and charged.
+\end{proof}
+
+Figure~\ref{fig:arm-slots} shows the shared-arm lift and a dormant slot
+whose internal edge lifetimes persist through reassignment.
+\input{figures/arm-slots}
+\clearpage
+
+\begin{lemma}[Occurrence multiplicity]
+\label{update:multiplicity}
+For all sufficiently large $M$ at fixed parameters, level $i$
+has at most $D_i$ public forest vertices over each input slot.
+In particular the outer multiplicity is at most $M^{10/a}/4$.
+\end{lemma}
+
+\begin{proof}
+Full copies contribute a logarithmic factor.  For one compressed
+frozen forest, segment interiors are disjoint.  Thus a node in
+such an interior occurs in at most two arms per pool index, one
+from each endpoint of its segment.  At a compressed endpoint,
+its own centers and the far tips of arms from adjacent endpoints
+contribute at most one plus its tree degree per pool index.
+These bounds include dormant slots.  A physical input label has
+only a logarithmic factor many frozen-tree and raw-forest copies,
+and at most one hub.  Consequently its total multiplicity is
+at most
+\begin{equation}
+       (1+D_{i+1})\log^{O_a(1)}(2+M).
+ \label{update:multiplicity-step}
+\end{equation}
+There is no factor of the segment length in this bound.  The
+$b^2$ gap between $D_i$ and $D_{i+1}$ absorbs the logarithmic
+factor for sufficiently large $M$.  Induction starts with the
+empty bottom forest.  Finally
+\[
+ D_0=M^{(4a-8)/a^2}\le M^{10/a}/4
+\]
+eventually.  Both the inductive multiplicities and the last
+inequality may be checked as deterministic prerequisites.
+\end{proof}
+
+\subsection{Explicit recourse and persistent edge lifetimes}
+
+An occurrence or forest edge has an immutable lifetime identifier.
+Changing an occurrence's label, an edge's endpoints, or its map
+requires a replacement with a fresh identifier.  A vertex death
+explicitly logs all incident edge removals first.  Additions use
+present endpoints.  The client retains old input labels, prices,
+and maps until all old public removals have been processed, then
+installs the new input state and public additions.  No path call
+occurs inside this transaction.  A whole epoch boundary can remove
+the old public forest and install the new one with these rules.
+
+\begin{lemma}[Forest recourse]
+\label{update:recourse}
+For one parent input edit within an epoch, let $Q$ be the set of
+child labels assigned or changed, or incident to a changed child
+edge or changed segment realization.  Apart from local full-copy
+edits, the public forest can be updated in
+\begin{equation}
+ |Q|D_{i+1}(k+1)\log^{O_a(1)}(2+M)
+       +\mathcal L\log^{O_a(1)}(2+M)
+ \label{update:recourse-cost}
+\end{equation}
+work and public log records, where $\mathcal L$ is the number of
+child log records processed.  Retained arm edges at labels outside
+$Q$ keep their lifetimes and maps, even if their arm slot is
+reassigned to a different child occurrence.
+\end{lemma}
+
+\begin{proof}
+First compute the batch of individual $J$ edits for this parent
+operation, without a child query, and determine $Q$.  Its size is
+bounded by a constant times the exogenous child edit and
+assignment counts of Lemma~\ref{update:compressed-edits}.  Retain
+access to the old occurrence assignments and old child forest
+records.  Run the child edit sequence while maintaining a
+\emph{passive} copy of its logs, indexed by lifetime identifier and
+label, with individual incidence lists.  Track which records were
+added or removed.  Each log changes only its own dictionary and
+incidence-list entries and costs logarithmic overhead.  In
+particular deleting an occurrence does not trigger an uncharged
+degree scan: its incident edge deletions have their own records.
+Persistent roots or saved old records retain the old information
+until the parent transaction is complete.
+
+At labels in $Q$, remove all old arm pools and construct the final
+active pools with final occurrence assignments.  Sweep their old
+and final incident child edges as well, to remove and reconstruct
+the corresponding connectors.  To bound these sweeps, fix a label
+$q$ in either the old or the final state and let $N_J(q)$ be its
+set of \emph{distinct} other neighbors.  Every child forest edge
+incident to an occurrence over $q$ belongs to the forest induced
+on the occurrence sets over $\{q\}\cup N_J(q)$.  That forest has
+at most
+\begin{equation}
+ D_{i+1}\bigl(1+|N_J(q)|\bigr)
+       \le D_{i+1}\bigl(1+\deg_J(q)\bigr)
+ \label{update:incident-forest-count}
+\end{equation}
+vertices, and hence no more than this many edges.  Parallel
+child-graph edges only increase the safe degree bound.  A
+child-null edge has both ends over $q$ and is already included.
+This proves the bound separately for the old and final sweeps;
+old lists can be saved before applying the child batch.
+Constructing each arm takes at most $k+1$ constituent steps.
+The degree bound on $J$ now gives the first term of
+\eqref{update:recourse-cost}.
+
+At every unaffected active label, retain the arm pools and the
+assignments of retained occurrences.  First free assignments of
+deleted old occurrences, then assign each final new occurrence
+from a free-slot stack.  There is sufficient space because the
+final occurrence count is at most $D_{i+1}$.  Remove the old
+connectors for changed child edge records and add the necessary
+final ones; also handle the connectors found in the affected
+sweeps.  Additions can wait until all final assignments exist.
+Deduplicate swept records by identifier.  Transient child records
+that are neither old nor final need not be published by the parent,
+although their individual processing is charged.
+
+If a child edge and both its assignments survive unchanged at
+unaffected labels, its connector retains the same map.  Every
+other change at these labels has an explicit child edge record:
+an occurrence replacement logs its incident edge removals and
+new edges, and an edge endpoint or map change is itself a
+replacement.  Thus the remaining work is logarithmic per child
+record, giving the second term in
+\eqref{update:recourse-cost}.  A high-degree child occurrence
+can have many incident records, but each is processed once; it
+does not add a degree sweep to each record.  Child lists over
+inactive slots are likewise kept passively until activation,
+which places their label in $Q$.
+
+Full-copy hole edits are performed separately.  Every public map
+to a dying parent input edge is removed: it lies in a full copy
+that receives the cut, in an arm of a changed or removed segment
+whose endpoints are in $Q$, or in a connector realizing a removed
+nonsegment child edge.  Remove connectors before their old pool
+vertices, and all old edges before their vertex deaths.  After
+these removals the retained public graph is a subforest of the
+final graph, so its final pools, vertices, and connectors can be
+inserted in a valid order.
+
+During this computation the child sees only its abstract slots,
+edges, and integral prices.  An intermediate child state may
+still contain the old realization of a parent segment whose
+physical edge is about to die.  Its abstract graph remains an
+in-range input, and it never asks for parent physical data.
+Only the final child state must be the reduction of the new
+parent input.  The parent therefore publishes one old-to-final
+transaction, using retained old data for all removals, rather
+than a lifted public state for every intermediate child edit.
+
+Finally, a dormant arm slot at an unaffected label retains all
+its internal edges when assigned to another occurrence.  Their
+identity is determined by the child label, pool index, and
+incident segment realization, not by the assigned occurrence
+identifier.  Existing signed and absolute accumulations in the
+client's path tracker consequently remain attached to the same
+mapped edges.  No $D_{i+1}$ or $k$ factor multiplies the processing
+of general child-internal occurrence changes.
+\end{proof}
+
+The two marking rules used above serve different purposes.  A
+terminal promotion or segment subdivision may merely reencode
+an unchanged physical path, so its logical correction need not
+be marked in Lemma~\ref{update:anchor-core}.  It nevertheless
+marks the endpoint arm pools in Lemma~\ref{update:recourse}.
+Conversely, a logical class split changes its leg data while
+selected central chords remain attached at their original tree
+nodes.  This is why the logical snapshot update and public
+forest update have the stated separate bounds.
+
+\subsection{Total work, finite arithmetic, and reliability}
+
+The recurrence must charge local arm-pool reconstruction separately
+from processing the child's forest logs.  A changed child label can
+require rebuilding its arms, whereas each general child log record
+incurs only logarithmic overhead.  Keeping these charges separate
+allows the small child edit count to control the recursive cost.
+
+\begin{lemma}[Recursive work bounds]
+\label{update:recurrences}
+For a prefix of $s$ graph operations, counting queries and edits
+and including an operation that terminates partway through,
+level $i$ has total work and explicit public-log size at most
+$n_iA_i+sU_i$, where
+\[
+                  A_i,U_i=M^{O(1/a)+o_a(1)}.
+\]
+All coefficients in the $O(1/a)$ exponents are absolute.
+\end{lemma}
+
+\begin{proof}
+Give the child its arbitrary nonempty initial graph directly.
+The parent's own initialization costs
+$n_iM^{O(1/a)+o_a(1)}$.  This includes tree preparation, initial
+assignments and compression, full forest copies, and initial
+arm pools.  Initially there are only $h_i$ times a logarithmic
+factor many active child labels; each has $D_{i+1}$ pools and
+arms of at most $k+1$ steps.  Since $D_{i+1}\le M^{4/a}$, this
+cost has the required absolute exponent.  Epoch teardown and its
+public logs obey the same allowance.  Allocations and eventual
+deallocation are charged; a discarded arena can be reclaimed
+against its earlier allocations.
+
+By Lemmas~\ref{update:support}, \ref{update:compressed-edits},
+and \ref{update:recourse}, all local incremental work costs
+$M^{O(1/a)+o_a(1)}$ amortized per input operation.  In particular
+the cumulative affected-label count in an epoch prefix is only
+$b$ times a logarithmic factor per parent edit.  Queries use
+the maintained best keys and lift one answer, with logarithmic
+overhead per child piece.  They need not alter the public forest.
+
+Let $L=M^{C/a+o_a(1)}$, for an absolute constant $C$, dominate
+these local factors and the bottom-level costs.  Such an absolute
+$C$ exists: all nonlogarithmic local factors above are fixed
+powers of $b$, $k$, and $D_{i+1}$; at the bottom the elementary
+negative-cycle computation is a fixed-degree polynomial in
+$n_d=M^{2/a}$.  Factors involving $r,a^2,P_*,p_*$ and degree
+bounds are fixed-parameter logarithmic factors.
+
+Initialization of the child contributes $n_{i+1}A_{i+1}$,
+with logarithmic overhead on its logs, and
+$n_{i+1}/n_i=M^{-1/(2a)}$.  At most $1+s/h_i$ parent epochs
+start.  After initialization the child receives at most
+$bM^{o_a(1)}$ times the parent operation count, including the
+one recursive query used for a parent query.  Only a
+logarithmic factor multiplies child log-processing work, by
+Lemma~\ref{update:recourse}.  Consequently it suffices to choose
+dominating upper estimates satisfying
+\begin{align}
+ A_i&=L+M^{-1/(2a)+o_a(1)}A_{i+1},\\
+ U_i&=L+kA_i+M^{1/a^2+o_a(1)}U_{i+1},
+ \label{update:time-recurrences}
+\end{align}
+with $A_d,U_d\le L$.  The term $kA_i$ pays rebuilding every
+$h_i=n_i/k$ edits, including its child initialization.
+
+For fixed $a$, the multiplier in the first recurrence tends to
+zero, so $A_i\le2L$ eventually after enlarging $L$ if necessary.
+Unrolling the second recurrence through at most $d\le2a$ levels
+gives
+\[
+ U_i\le (d+1)(L+2kL)
+       M^{d/a^2+o_a(1)}
+       =M^{(C+3)/a+o_a(1)}.
+\]
+This explicitly shows why no coefficient depending on $a$
+appears in the $1/a$ exponent.  Logarithmic overhead accumulated
+over the fixed number of levels remains $M^{o_a(1)}$.
+
+Each attempted cover or helper reconstruction has its own
+every-path bound, whether it succeeds or is rejected.  Charge
+such a reconstruction to the attempted operation, including if
+failure or a guard stops it before publication.  All previously
+published states satisfy their verified bounds.  The same
+recurrences therefore hold for these prefixes and unsuccessful
+computations.
+\end{proof}
+
+\paragraph{Finite arithmetic.}
+\label{update:arithmetic}
+All maintained data are finite integers, dyadics, explicit lists,
+or identifiers.  Frozen tree prefix sums and segment sums use
+at most the number of constituent edges times the level price
+bound.  Width buckets are integer powers of two.  Correction
+scores compare ratios of integral gradient magnitudes to the
+positive integral proxies $Z_*W_f$ by cross multiplication;
+bottom scores and inherited scores are likewise represented by
+bounded integral numerator--denominator pairs.  The construction
+requires no evaluation of the conceptual hierarchy-law
+probabilities, real flows in the comparison argument, or
+barrier logarithms.  Exact geometric delays, dyadic thresholds,
+and helper randomness are generated by the finite procedures
+already specified.  Fixed-parameter data have
+$\log^{O_a(1)} S$ bit length, and ordinary dictionary and forest
+record operations have multiword logarithmic-factor overhead.
+The integral-flow calls inside the helper use the simulation of
+Lemma~\ref{lem:capacity-scaling}; its logical addresses are not
+assumed polynomially bounded in their numerical values.
+
+\begin{lemma}[Guards and conditional failure]
+\label{update:reliability}
+The construction can enforce all size, multiplicity, arithmetic,
+and sampling prerequisites by finite checks.  For every sufficiently
+large fixed $a$ and every fixed $\sigma\ge0$, those deterministic prerequisites
+are adequate for all sufficiently large sizes in the permitted
+engine range, on every random path.  Conditional on any adaptively
+specified history before an invocation, the detected sampling
+failure probability over an entire engine instance is at most
+$2^{-\sigma}S^{-60}$.
+\end{lemma}
+
+\begin{proof}
+Share counters throughout the backend tree of an engine instance.
+Allow $S^{200}$ outer backend graph operations, and guard total
+records, fresh identifiers, and stochastic invocations by
+$S^{500}$.  Fresh identifiers can be sequential.  Count
+allocations and record creations as they occur; check child
+capacity, helper input-list sizes, public multiplicity, price
+ranges, and quality inequalities before using the corresponding
+state.  Deletion-first transactions maintain the capacity and
+degree bounds during replacement.  The checks
+$P_*\le b$ and $20Z_*A_*\le b^2$, the inequalities in
+\eqref{update:child-slack}, the multiplicity checks, and the
+price bounds all hold eventually by their positive power gaps
+over fixed-parameter logarithmic factors.
+
+We justify that the coarse guards do not hide a condition on
+successful randomness.  Published covers satisfy their verified
+coverage and radius requirements, and published helper outputs
+satisfy the verified support, path, hop, and resource bounds.
+Every rejected attempt separately has bounded work: sampled
+piece lists partition their input edges at a capped recursion
+depth; sample size and weight checks precede flow extraction;
+the router has a fixed number of jobs per label, shrinking label
+groups, no packet duplication, and capped walk trials and
+substitution depths.  Long real embeddings are filtered before
+expansion.  These properties, proved in the routing construction,
+hold even for unsuccessful samples.  Covers likewise have
+capped delays, attempts, and finite graph computations.
+
+Apply Lemma~\ref{update:recurrences} to a prefix ending just
+before a putative first coarse guard violation, charging the
+partially attempted operation as one operation.  With
+$S^{1/a}\le M\le S^2$, at most $S^{200}$ outer operations and
+initial construction cost at most
+\[
+ M^{1+O(1/a)+o_a(1)}
+       +S^{200}M^{O(1/a)+o_a(1)}
+       =S^{200+O(1/a)+o_a(1)}
+\]
+elementary records, invocations, and local operations.  This is
+strictly below $S^{500}$ for sufficiently large fixed parameters
+and size, including the attempted guard-reaching operation.
+The engine's motion and refresh accounting, independent of
+forest churn, keeps its outer graph-operation count below
+$S^{200}$ under its client bounds, including threshold-driven
+reprices.  Thus the first supposed violation is impossible.
+This argument uses deterministic bounds for retained states and
+attempted computations and applies on every random path.
+
+An inadequate deterministic prerequisite causes suspension.
+This includes a shared guard that interrupts a stochastic
+invocation before it has completed its prescribed attempts;
+such an interruption is not reported as a sampling failure.
+For an in-range helper call, Lemma~\ref{lem:routing-helper}
+gives conditional failure probability at most
+$2^{-\sigma}S^{-800}$.  A cover draw passes jointly with
+probability greater than $1/2$ under its checked parameters.
+Using fresh draws for the prescribed
+$2(\sigma+1000\log_2 S+10)$ attempts makes its exhaustion
+probability at most
+$2^{-2\sigma-20}S^{-2000}\le2^{-\sigma}S^{-800}$.
+The input to either invocation may depend on all earlier
+outputs: the stated bounds are conditional on that history,
+and the new randomness is fresh.
+
+There are at most $S^{500}$ such invocations.  Summing their
+conditional probabilities, or equivalently summing probabilities
+of the first exhausted invocation, bounds the probability of
+any sampling failure by
+\[
+ S^{500}\,2^{-\sigma}S^{-800}
+       \le2^{-\sigma}S^{-60}.
+\]
+Exhausting the full allowed retries is explicitly reported as
+detected failure, never as suspension.  Until such failure, all
+returned states satisfy the deterministic representation,
+length, and recourse guarantees, regardless of the samples
+that produced them.
+\end{proof}
+
+\begin{proof}[Completion of the proof of Lemma~\ref{lem:flat-cycle}]
+Lemma~\ref{update:anchor-core} supplies the simple selected-support
+paths required by Lemma~\ref{lem:backend-reduction}, with at most
+$p_*$ hops.  Lemma~\ref{update:compressed-edits} constructs its one
+child with the required capacity, integral prices, and degree.
+Lemma~\ref{update:flat-lift} preserves certified child scores in
+the public representation.  The bottom computation gives at
+least half the optimum; applying the reduction at each level
+and comparing the exact loop candidates therefore gives at
+level $i$ a score at least
+\[
+             \tfrac12 b^{-2(d-i)}\OPT_i.
+\]
+At the outer level this is at least $M^{-10/a}\OPT$ for
+sufficiently large parameters, as required by the checked
+quality inequalities.  If $\OPT>0$, the chosen pieces have
+positive raw length and achieve their certified score.  If
+$\OPT=0$, an empty answer is allowed.
+
+The pieces are unit-multiplicity actual edges or public forest
+paths, their signed sum is a circulation, and their number has
+the required bound by Lemma~\ref{update:flat-lift}.  Vertex
+multiplicity is at most $M^{10/a}/4$ by
+Lemma~\ref{update:multiplicity}.  Lemma~\ref{update:recourse}
+gives explicit forest edits, retained immutable lifetimes, and
+removals before map invalidation.  Finally
+Lemmas~\ref{update:recurrences} and \ref{update:reliability}
+give initialization time $M^{1+O(1/a)+o_a(1)}$, every-path
+amortized operation and log cost $M^{O(1/a)+o_a(1)}$, finite
+arithmetic, and the stated conditional instance failure bound.
+These are all the assertions of the flat-cycle interface.
+\end{proof}

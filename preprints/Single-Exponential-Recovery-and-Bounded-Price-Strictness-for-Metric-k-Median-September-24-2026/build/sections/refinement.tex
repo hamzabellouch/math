@@ -1,0 +1,406 @@
+\section{Sharper recovery when few clusters are unanchored}
+\label{ref:section}
+
+The recovery construction admits a sharper analysis when its proxy error is
+small.  Its polynomial running time still requires logarithmically many bad
+clusters.  Throughout this section distances have the positive integral,
+polynomially bounded representation defined in Section~\ref{pre:section}, and
+$N=|D|+|F|$.
+
+Theorem~\ref{ref:recovery}, stated in the introduction, is proved here.
+The approximation factor has its antecedent in the FPT algorithm of
+\cite[Section~2.3]{CGKLL2019}; the task here is to obtain it under the
+explicit proxy promise with single-exponential dependence on the number
+of bad clusters.  The proof uses the same sampling experiment and
+completion algorithm as Sections~\ref{sam:section}--\ref{comp:section},
+with a two-stage guide and a sharper accounting of client charges.
+
+
+We use the notation $P_i=\sum_{p\in C_i}d_p^*$, and put
+$\bar d_i=P_i/n_i$ when $n_i>0$.  Empty clusters have mean zero and all the
+near sets below are empty.  Fix
+\begin{equation}\label{ref:parameters}
+ a_1=1+\mu,\qquad a_2=\frac32,\qquad
+ q=1-\frac1{a_1}=\frac{\mu}{1+\mu},\qquad
+ \kappa=\mu^3,
+ \qquad \frac1e<\theta\le\frac1e+\mu,
+\end{equation}
+where $\theta$ is rational.  For $z\in\{1,2\}$ define
+\[
+ N_i^z=\{p\in C_i:d_p^*\le a_z\bar d_i\}.
+\]
+All these parameters are fixed before the input is processed.  The choice of
+$\theta$ is available in Lemma~\ref{comp:partition-max}; the resulting
+completion guarantee is Theorem~\ref{comp:completion}.
+
+\subsection{A guide with two stopping rules}
+
+Assume for now that $m>0$, and let
+\[
+ S_0=S\setminus\{\phi_i:i\ \mathrm{good}\},\qquad |S_0|=m.
+\]
+As in the sampling construction, a state consists of a set $Q\subseteq S_0$
+of deleted original centers and balls indexed by a set $A$ of distinct bad
+centers.  The ball for $i\in A$ has a leader $w_i\in C_i$, radius $R_i$, and
+leaf dummy $\delta_i$ attached to $w_i$ with edge length $R_i$.  Write
+$r_i=d(w_i,i)=d(w_i,O)$ and
+\[
+ H=(S\setminus Q)\cup\{\delta_i:i\in A\}\cup\{\delta_\infty\},
+ \qquad B=\{i:i\ \mathrm{bad}\}\setminus A.
+\]
+Here $\delta_\infty$ is the permanent diameter dummy of the sampling
+construction.  The computable scale and the correct radius guarantee are
+\begin{equation}\label{ref:radius}
+ \begin{split}
+ r^0(w)&=\min\{z\ge0:
+       z|\{p\in D:d(w,p)\le z\}|\ge P/m\},\\
+ r_i&\le R_i\le(1+\kappa)r_i+\kappa r^0(w_i).
+ \end{split}
+\end{equation}
+Every original-center assignment uses one fixed tie order; new dummies are
+appended to that order.  Denote by $J_s(H)$ the clients assigned to
+$s\in S\setminus Q$.  These assignments are defined by the state, whereas
+the identities of $S_0,A,B$ are used only by the guide.
+
+\begin{lemma}[Two-stage endpoint]\label{ref:two-stage}
+The blind sampling procedure, run for at most $2m$ steps and retaining all
+prefixes, has probability at least $\exp(-O_\mu(m))$ of producing a prefix
+with the following properties.
+
+There is an earlier prefix $H^0$, with covered set $A^1$ and remaining bad set
+$B^0$, at which the deleted set is the final set $Q$.  Put
+\[
+ R^*=S_0\setminus Q,\qquad
+ J^0=\bigcup_{s\in R^*}J_s(H^0),\qquad
+ T_i=\sum_{p\in N_i^1}d(p,H^0)\quad(i\in B^0).
+\]
+Then
+\begin{equation}\label{ref:first-stop}
+ \sum_{i\in B^0}T_i\le\kappa P,
+ \qquad \sum_{p\in J^0}d(p,H^0)\le\kappa P.
+\end{equation}
+For each nonempty cluster $i\in B^0$, define
+$f_i=|C_i\cap J^0|/n_i$.  All balls added after $H^0$ correspond to a set
+$A^2\subseteq\{i\in B^0:n_i>0,\ f_i<1/3\}$, and their leaders lie in
+$N_i^2$; the leaders for $A^1$ lie in $N_i^1$.  At the final prefix, set
+$A=A^1\cup A^2$, $B=B^0\setminus A^2$, and
+$J=\bigcup_{s\in R^*}J_s(H)$.  We have
+\begin{equation}\label{ref:second-stop}
+ J\subseteq J^0,\qquad
+ \sum_{p\in J}d(p,H)\le\kappa P,\qquad
+ \sum_{\substack{i\in B:n_i>0\\ f_i<1/3}}
+       \sum_{p\in N_i^2}d(p,H)\le\kappa P.
+\end{equation}
+Every ball satisfies Equation~\eqref{ref:radius}, and the collection satisfies
+\begin{equation}\label{ref:radius-sum}
+ \sum_{i\in A}n_i r^0(w_i)\le\frac{11}{2}P.
+\end{equation}
+The earlier prefix and the conditions defining it need not be recognized by
+the algorithm.
+\end{lemma}
+
+\begin{proof}
+The proof specifies a guide inside the same blind sampling procedure.
+For every prescribed mode and eligible client set, the guide draws from
+the actual law conditioned on that event and uses the correct radius-menu
+entry specified in Lemma~\ref{sam:radius-budget}.
+At a state of its first stage, write
+\[
+ T(H)=\sum_{i\in B}\sum_{p\in N_i^1}d(p,H),\qquad
+ I(H)=\sum_{s\in S_0\setminus Q}\sum_{p\in J_s(H)}d(p,H).
+\]
+If $T(H)>\kappa P$, the guide chooses a ball step whose sampled client belongs
+to $N_i^1$ for some $i\in B$.  If $T(H)\le\kappa P$ but
+$I(H)>\kappa P$, it chooses a removal step whose sampled client is assigned
+to a member of $S_0\setminus Q$.  It stops this stage as soon as both
+inequalities hold in the other direction.
+
+Here are the probability bounds needed to invoke the general guide lemma.
+Lemma~\ref{sam:near-clients} gives $|N_i^1|\ge qn_i$ for every nonempty
+uncovered cluster, and hence
+\begin{equation}\label{ref:near-bound}
+ d(i,H)\le a_1\bar d_i+
+       \frac{\sum_{p\in N_i^1}d(p,H)}{qn_i}.
+\end{equation}
+Indeed, take a member of $N_i^1$ of minimum distance to $H$ and use the
+triangle inequality.  Summing the resulting bound for all clients of an
+uncovered cluster gives
+\[
+ \sum_{p\in C_i}d(p,H)
+ \le(1+a_1)P_i+\frac1q\sum_{p\in N_i^1}d(p,H).
+\]
+Good clients have their proxies available.  A client of a covered cluster can
+use its dummy at distance at most
+$d_p^*+(2+\kappa)a_2\bar d_i+\kappa r^0(w_i)$.
+Since every leader used in either stage has $r_i\le a_2\bar d_i$,
+Lemma~\ref{sam:computable-radius} bounds the sum of the last radius terms by
+$(11/2)\kappa P$.  Thus throughout the first stage the total sampling weight
+$W(H)=\sum_{p\in D}d(p,H)$ satisfies the convenient bound
+\begin{equation}\label{ref:weight}
+ W(H)\le 6P+T(H)/q.
+\end{equation}
+For example, the coefficient of cluster cost before the additive proxy and
+radius errors is at most $1+(2+\kappa)a_2$, and
+$1+(2+\kappa)a_2+\mu+(11/2)\kappa<6$ for
+$0<\mu\le1/4$.
+
+The procedure samples proportionally to this weight and chooses its mode
+with probability $1/2$.  When $T(H)>\kappa P$, the joint event prescribed by
+the guide has probability at least
+\[
+ \frac{T(H)}{2(6P+T(H)/q)}
+ \ge \rho_\mu:=\frac{\kappa}{2(6+\kappa/q)}>0.
+\]
+When only the removal condition fails, its joint event has the same lower
+bound by Equation~\eqref{ref:weight}.  A zero total weight already satisfies both
+stopping conditions.  At the first stop call the state $H^0$ and use the
+notation of the statement; this proves Equation~\eqref{ref:first-stop}.
+
+In the second stage the guide deletes no further original centers.  The
+eligible centers are fixed using $H^0$: they are precisely the nonempty
+$i\in B^0$ with $f_i<1/3$.  While the final sum in
+Equation~\eqref{ref:second-stop} exceeds $\kappa P$, the guide adds a ball whose
+leader is in $N_i^2$ for an eligible, still uncovered center $i$.
+All reference distances can only decrease after $H^0$, so
+\[
+ W(H)\le W(H^0)\le(6+\kappa/q)P.
+\]
+The prescribed joint event therefore again has probability at least
+$\rho_\mu$.  Its termination gives the last inequality in
+Equation~\eqref{ref:second-stop}.
+
+The reference set only grows during this stage, and the order between old
+choices is fixed.  A client that was assigned outside the fixed set $R^*$
+cannot become assigned to it upon adding choices.  Consequently
+$J\subseteq J^0$, and monotonicity of distances gives the internal-cost
+bound in Equation~\eqref{ref:second-stop}.
+
+Across both stages each step either deletes a fresh member of $S_0$ or
+covers a fresh bad center.  Thus there are at most $2m$ steps in total.
+All leaves persist across the transition.  Lemma~\ref{sam:radius-budget}
+therefore applies once to the entire trajectory: its disjoint-ball
+amortization bounds the sum of costly radius-menu indices across both
+stages.  Correct radii satisfy Equation~\eqref{ref:radius}, and
+Lemma~\ref{sam:computable-radius} gives Equation~\eqref{ref:radius-sum} because
+$a_1\le a_2=3/2$.  The joint progress probabilities just proved and the
+global radius budget meet the hypotheses of Lemma~\ref{sam:probability}.
+That lemma gives the claimed $\exp(-O_\mu(m))$ probability.
+In particular, its guide may switch stages using the unobserved state
+$H^0$: the actual procedure continues its ordinary sampling and mode
+choices and retains every prefix.
+\end{proof}
+
+\subsection{The completion charges}
+
+Fix a successful endpoint from Lemma~\ref{ref:two-stage}.  Apply
+Theorem~\ref{comp:completion} with parameter $\theta$ and the surrogate
+$\Psi$ defined there.  Its comparison choice in the copied ball parts is
+$X^*=\{(i,i):i\in A\}$, with distances evaluated at the underlying
+facilities.  Conditional on its successful colors and labels, it
+returns a solution of cardinality at most $h$, and its expected cost is at
+most
+\begin{equation}\label{ref:completion-bound}
+ 2I+\sum_{p\in J}c_p+\sum_{p\notin J}b_p,
+ \qquad I=\sum_{p\in J}d(p,H),
+\end{equation}
+where, for $p\in C_i$,
+\[
+ c_p=
+ \begin{cases}
+   d(p,\phi_i),&i\ \mathrm{good},\\
+   d_p^*+\theta(r_i+R_i),&i\in A,\\
+   d_p^*,&i\in B,
+ \end{cases}
+ \qquad
+ b_p=\theta d(p,H)+(1-\theta)
+       \min\{d(p,H),d(p,X^*)\}.
+\]
+As usual a distance to the empty set is $+\infty$.  Keeping the exact
+expression for $b_p$ permits different estimates on the two groups of
+covered clusters.
+
+\begin{lemma}[Refined charge bound]\label{ref:charges}
+For the endpoint above, the cost bound in
+Equation~\eqref{ref:completion-bound} is at most
+\begin{equation}\label{ref:explicit-bound}
+ \left(1+2\theta a_1+\mu+11\kappa+\frac\kappa q\right)P
+ \le (1+2/e+6\mu)P.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For each cluster let $C_i^{\mathrm{chg}}$ denote the sum of its $c_p$ terms
+on $J$ and its $b_p$ terms outside $J$.  We account for these charges first,
+and then for $2I$.
+
+\paragraph{Good clusters.}
+Their proxies remain in $H$, so $b_p\le d(p,H)\le d(p,\phi_i)$.
+Together with the definition of $c_p$, their total charge is at most
+$P_g+\mu P$.
+
+\paragraph{Clusters covered in the first stage.}
+For $i\in A^1$, the comparison choice $X^*$ offers center $i$, and its dummy gives
+$d(p,H)\le d_p^*+r_i+R_i$.  Thus both types of client charge are at most
+$d_p^*+\theta(r_i+R_i)$.  Since $r_i\le a_1\bar d_i$,
+\begin{equation}\label{ref:first-covered}
+ C_i^{\mathrm{chg}}
+ \le (1+2\theta a_1)P_i
+       +\theta\kappa a_1P_i
+       +\theta\kappa n_i r^0(w_i).
+\end{equation}
+
+\paragraph{Clusters covered in the second stage.}
+For a nonempty $i\in A^2$, put
+$x_i=|C_i\cap J|/n_i\le f_i<1/3$.  On $J$ use the ball charge with
+$r_i\le a_2\bar d_i$.  Outside $J$, use the center $i$ offered by $X^*$ and the
+first-stage estimate in Equation~\eqref{ref:near-bound} at $H^0$:
+\[
+ b_p\le d_p^*+\theta\left(a_1\bar d_i+\frac{T_i}{qn_i}\right).
+\]
+It follows that
+\begin{align}
+ C_i^{\mathrm{chg}}
+ &\le P_i+\theta\bigl(2a_2x_i+(1-x_i)a_1\bigr)P_i
+       +\theta\kappa a_2x_iP_i
+       +\theta\kappa x_in_i r^0(w_i)
+       +\frac{\theta(1-x_i)T_i}{q}\notag\\
+ &\le (1+2\theta)P_i
+       +\theta\kappa a_2x_iP_i
+       +\theta\kappa x_in_i r^0(w_i)
+       +\frac{T_i}{q}.
+ \label{ref:second-covered}
+\end{align}
+For the last inequality, $2a_2-a_1=2-\mu>0$ and
+\begin{equation}\label{ref:second-coefficient}
+ 2a_2x_i+(1-x_i)a_1
+ \le 3f_i+(1-f_i)(1+\mu)
+ \le \frac53+\frac{2\mu}{3}\le2.
+\end{equation}
+In particular this coefficient estimate uses the fraction at the first
+stop and the inclusion $J\subseteq J^0$.
+
+\paragraph{Remaining clusters with $f_i\ge1/3$.}
+Clients in $J$ have charge $d_p^*$.  Clients in $J^0\setminus J$ have
+$b_p\le d(p,H)\le d(p,H^0)$.  For the at most $(2/3)n_i$ clients outside
+$J^0$, use
+$b_p\le d(p,H)\le d_p^*+a_1\bar d_i+T_i/(qn_i)$.
+Consequently
+\begin{equation}\label{ref:uncovered-large}
+ C_i^{\mathrm{chg}}
+ \le \left(1+\frac23a_1\right)P_i+\frac{T_i}{q}+E_i^+,
+ \qquad
+ E_i^+=\sum_{p\in C_i\cap(J^0\setminus J)}d(p,H^0).
+\end{equation}
+The sum of $E_i^+$ over this group of clusters is at most $\kappa P$ by
+Equation~\eqref{ref:first-stop}.
+
+\paragraph{Remaining clusters with $f_i<1/3$.}
+Again clients in $J$ have charge $d_p^*$.  For clients outside $J$ that lie
+in $N_i^2$, retain the base bound $b_p\le d(p,H)$.  Every other client
+outside $J$ has $d_p^*>a_2\bar d_i$, whence
+\[
+ b_p\le d_p^*+a_1\bar d_i+\frac{T_i}{qn_i}
+ \le\left(1+\frac23a_1\right)d_p^*+\frac{T_i}{qn_i}.
+\]
+Thus
+\begin{equation}\label{ref:uncovered-small}
+ C_i^{\mathrm{chg}}
+ \le\left(1+\frac23a_1\right)P_i+\frac{T_i}{q}+E_i^-,
+ \qquad
+ E_i^-=\sum_{p\in (C_i\cap N_i^2)\setminus J}d(p,H).
+\end{equation}
+The sum of $E_i^-$ over these remaining eligible clusters is at most
+$\kappa P$ by Equation~\eqref{ref:second-stop}.  Empty clusters have zero charge and
+require none of the divisions above.
+
+\paragraph{Summing the errors once.}
+The main coefficient for every bad cluster is bounded by $1+2\theta a_1$:
+this follows from $a_1\ge1$ and $\theta>1/e>1/3$.
+The $T_i/q$ terms in Equations~\eqref{ref:second-covered},
+\eqref{ref:uncovered-large}, and~\eqref{ref:uncovered-small} concern
+disjoint subsets of $B^0$.  Their total is therefore at most $\kappa P/q$.
+The radius errors from Equations~\eqref{ref:first-covered} and
+\eqref{ref:second-covered} together are at most
+\[
+ \theta\kappa\left(
+   a_1\sum_{i\in A^1}P_i+a_2\sum_{i\in A^2}x_iP_i
+   +\sum_{i\in A^1}n_i r^0(w_i)
+   +\sum_{i\in A^2}x_in_i r^0(w_i)\right)
+ \le 7\theta\kappa P\le7\kappa P.
+\]
+Here $a_1\le a_2=3/2$, $x_i\le1$, and Equation~\eqref{ref:radius-sum} are used
+globally.  The two negligible base-cost sums contribute at most $2\kappa P$,
+and $2I\le2\kappa P$. Along with the proxy error, these bounds establish
+the bound by the first expression in Equation~\eqref{ref:explicit-bound}.
+
+Finally, Equation~\eqref{ref:parameters} implies
+\[
+ 2\theta a_1+\mu+11\kappa+\frac\kappa q
+ \le \frac2e+\left(3+\frac2e\right)\mu
+                +3\mu^2+12\mu^3
+ \le \frac2e+6\mu.
+\]
+For the last step, $\mu\le1/4$ gives
+$3\mu^2+12\mu^3\le(3/2)\mu$, and $3+2/e+3/2<6$.
+In particular the cumulative sampling and radius errors are
+$O(\kappa+\kappa/q)P=O(\mu^2)P$; the linear error comes from the proxies,
+$a_1-1$, and $\theta-1/e$.
+\end{proof}
+
+\subsection{Extraction, running time, and scope}
+
+\begin{proof}[Proof of Theorem~\ref{ref:recovery}]
+The algorithm retains $S$ as a feasible candidate.  When $m=0$,
+Equation~\eqref{ref:proxy-hypothesis} gives
+$\operatorname{cost}(S)\le(1+\mu)P$, which suffices.
+For $m>0$, first consider the branch with the correct guesses of $P$ and
+$m$.  Lemma~\ref{ref:two-stage} produces a suitable prefix with probability
+at least $\exp(-O_\mu(m))$.  Completion is attempted at every prefix.
+Theorem~\ref{comp:completion} supplies the needed colors and labels with
+probability $\exp(-O(m))$ and always respects the cardinality bound.
+Conditional on these choices, Lemma~\ref{ref:charges} gives
+\[
+ \mathbb E[\operatorname{cost}(\widehat S)]
+ \le(1+2/e+6\mu)P
+ \le(1+2/e+\varepsilon/2)P.
+\]
+By nonnegativity of cost, Markov's inequality therefore gives conditional
+probability at least
+\[
+ 1-\frac{1+2/e+\varepsilon/2}{1+2/e+\varepsilon}
+ =\frac{\varepsilon}{2(1+2/e+\varepsilon)}>0
+\]
+of meeting the stated target.  One full trial consequently succeeds with
+probability $\exp(-O_{\mu,\varepsilon}(m))$.
+
+If $\Delta$ is the largest distance in the scaled input, then the unknown
+integer $P$ belongs to $\{1,\ldots,n\Delta\}$.  Try all these values and
+all $m\le\min\{h,\lfloor L_0\log N\rfloor\}$.
+The sampling menus are finite and have polynomial bit complexity by
+Lemmas~\ref{sam:computable-radius} and~\ref{sam:radius-budget}; their
+single-exponential probability cost has already been accounted for over
+the whole trajectory.  Each completion uses
+$\exp(O(m))\operatorname{poly}(N)$ work for fixed $\theta$, by
+Theorem~\ref{comp:completion}.  Repeating the trials
+$\exp(O_{\mu,\varepsilon}(L_0\log N))\log(1/\zeta)$ times, with the
+constant enlarged if necessary, makes the failure probability at most
+$\zeta$.  All enumerations, repetitions, and prefix completions therefore
+take polynomial time for the fixed parameters.  Take the cheapest feasible
+candidate; no successful guide, stopping state, coloring, or comparison
+solution needs to be identified.
+\end{proof}
+
+The proxy accuracy in Theorem~\ref{ref:recovery} is supplied by the
+parameterized anchoring theorem whenever its hypotheses hold.  Specifically,
+Theorem~\ref{loc:anchoring} gives error $\mu P$ and bad count at most
+$C_\mu P/b$, with the finite constant
+\[
+ C_\mu=10+\frac{600}{\mu}\,2^{\lceil40/\mu\rceil-1}.
+\]
+Thus if $P/b=O(\log N)$, its output satisfies the required logarithmic
+bound, with a constant depending on $\mu$.  Declaring every comparison
+cluster bad also gives the hypothesis when $h=O(\log N)$.
+The low-sensitivity part of the main argument supplies no logarithmic bound
+on this bad count.  Its guarantee therefore remains the fixed improvement
+below $2$ proved there; Theorem~\ref{ref:recovery} sharpens the recovery
+component within the scope of Equation~\eqref{ref:proxy-hypothesis}.

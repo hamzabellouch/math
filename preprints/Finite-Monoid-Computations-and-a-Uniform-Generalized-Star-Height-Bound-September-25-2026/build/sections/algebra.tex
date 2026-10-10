@@ -1,0 +1,215 @@
+\section{Finite computations and split expressions}\label{sec:algebra}
+
+Our first task is to express a finite computation on a sequence of words
+using tests on the two sides of selected cuts. The essential requirement is
+universal soundness: any independently accepted prefix and suffix must describe
+the same deterministic update. We first prove the expression identity that
+uses this requirement, and then give two ways to arrange the updates, by
+affine correction and by predicted products.
+
+Every test reads the original alphabet. Auxiliary finite sets index unions,
+intersections, and state queries; they do not introduce input letters.
+
+\subsection{Words, monoids, and graph tests}
+
+If \(\Sigma=\varnothing\), the only languages are \(0\) and \(1\), and
+Theorem~\ref{thm:main} is immediate. Assume henceforth that \(\Sigma\ne\varnothing\).
+Let \(M\) be a finite monoid and let \(T:\Sigma^*\to M\) be a morphism.
+Positions are integer gaps; the factor on \([a,b)\) has length \(b-a\) and
+monoid value \(T_{a,b}\). Composition is in reading order:
+\[
+                  T_{a,b}T_{b,c}=T_{a,c}.
+\]
+A right action on a vector space is denoted \(v\mapsto vT_{a,b}\).
+The vector space with basis indexed by \(M\) has the faithful action
+\(e_m d=e_{md}\); the image of \(e_{1_M}\) identifies \(d\).
+All vector spaces used below are finite and are over \(\mathbf F_2\).
+
+For a DFA, take \(M\) to be its monoid of state transformations induced by words,
+including the identity. The product of a word determines acceptance. It is
+therefore enough to construct uniformly bounded-height tests for each value of
+\(T\). The theorem will follow by a finite accepting union.
+
+\begin{remark}[A DFA-state representation]\label{rem:dfa-basis}
+One may instead begin with the basis indexed by DFA states and query only
+the image of the initial-state vector to test acceptance. That image need not
+identify the monoid product. The main proof uses the basis indexed by $M$;
+the alternative and its final acceptance query are described at the end
+of Section~\ref{sec:compilation}. In either case interval predictions and
+the later work registers still take values in $M$.
+\end{remark}
+
+A \emph{prefix code} \(E\) is a set of nonempty words, no one a proper prefix of
+another. Every word in \(E^*\) has a unique factorization into members of \(E\):
+compare first factors, one of which would otherwise properly prefix the other,
+and continue inductively. Members of \(E\) will be called \emph{episodes}.
+For \(D\subseteq E\), let each \(e\in D\) have a total update \(G_e:S\to S\) on a
+finite state set. For a sequence \(w=e_1\cdots e_r\), let \(G_w\) be their
+composition in reading order. The empty sequence has the identity update.
+The \emph{graph test} from \(x\) to \(y\) on \(D^*\) is
+\[
+                     \{w\in D^*:G_w(x)=y\}.
+\]
+Totality and determinism refer to the word itself, not to a chosen factorization
+of a test expression or a successful metadata guess.
+
+Intersections stand for
+\(\neg(\neg P+\neg Q)\), and other Boolean operations have analogous expansions.
+They do not increase height. A fixed finite language is a finite union of
+concatenations of letters, with \(1\) for the empty word, so has height zero.
+We use this observation only when the \emph{whole argument} of the test has
+bounded length.
+
+\subsection{The split identity}
+
+\begin{lemma}[Split identity]\label{lem:split}
+Let \(D'\subseteq D\subseteq E\), with the same deterministic updates on the
+common episodes. Suppose languages \(P_x,Q_y\), indexed by \(x,y\in S\), satisfy:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item If \(w\in D^*\) and \(uv\) is a prefix of \(w\), with
+\(u\in P_x\) and \(v\in Q_y\), then \(w\) has a first episode \(e\),
+\(uv=e\), and \(G_e(x)=y\).
+\item For every \(e\in D\setminus D'\) and \(x\in S\), there is a split
+\(e=uv\) with \(u\in P_x\) and \(v\in Q_{G_e(x)}\).
+\end{enumerate}
+Write \(W_{x,y}\) for the exact graph test on \((D')^*\). Then the exact graph
+test on \(D^*\) is
+\begin{equation}\label{eq:split}
+\begin{split}
+D^*\cap\Bigl(
+ W_{x,y}\ \cup\
+ &\bigl(\,\bigcup_a W_{x,a}P_a\,\bigr)
+ \bigl(\,\bigcup_{b,c}Q_bW_{b,c}P_c\,\bigr)^*\\[-2pt]
+ &\hspace{35mm}\cdot
+ \bigl(\,\bigcup_r Q_rW_{r,y}\,\bigr)\Bigr).
+\end{split}
+\end{equation}
+In particular, if \(D,P_x,Q_y\) have heights at most \(1,0,1\), respectively,
+and all \(W_{x,y}\) have height at most \(H\), the new graph tests have height
+at most \(\max\{2,H+1\}\).
+\end{lemma}
+
+\begin{proof}
+Consider a word accepted by the right side of \eqref{eq:split}. Its membership
+in \(D^*\) fixes its actual episode parsing. In a factorization through the
+nontrivial branch, the initial \(W\)-factor is a sequence of \(D'\)-episodes.
+Prefix-code uniqueness makes these actual initial episodes. The adjacent
+\(P,Q\) factors now begin at a true boundary; condition~(i), applied to the
+remaining word in \(D^*\), makes them exactly the next episode and gives its
+indexed update. The next \(W\)-factor consumes actual skipped episodes.
+Inducting through the finite number of starred factors proves the claimed
+whole update. The \(W_{x,y}\) branch handles words without an explicit split.
+
+Conversely, for a genuine episode sequence, split every episode outside \(D'\)
+using~(ii) and collect consecutive skipped episodes into \(W\)-factors.
+The deterministic computation supplies the intervening state indices.
+If every episode is skipped, use \(W_{x,y}\). This also handles \(\epsilon\).
+
+For the height statement, \(D^*\) has height at most two. The starred middle
+factor has height at most \(1+\max\{1,H\}\). All remaining operations and
+factors fit the asserted maximum.
+\end{proof}
+
+Condition~(i) quantifies over \emph{every} pair of independent successful
+witnesses. Equality of guessed parameters is never part of the ambient
+meaning of a split. It must follow from the actual tests, or its failure must
+be harmless for the declared update.
+
+When \(D'=\varnothing\), the bottom graph tests are \(1\) for equal states and
+\(0\) for unequal states. Thus the recursion has height-zero initial tests.
+
+\subsection{Affine corrections and linear recovery}
+
+\begin{lemma}[Affine recovery]\label{lem:affine-recovery}
+Suppose the deterministic update on each episode is
+\(v\mapsto vA_e+b_e\) on a fixed finite vector space. Exact graph tests for
+the composed affine update on all vectors give, by finite Boolean operations,
+the graph tests for the composition of the \(A_e\).
+\end{lemma}
+
+\begin{proof}
+The composite of \(v\mapsto vA+b\) followed by \(v\mapsto vC+d\) is
+\(v\mapsto vAC+bC+d\). Therefore the linear part of the composed update
+\(g_w\) is \(g_w(v)-g_w(0)\), with the desired product of linear parts.
+If \(R_{x,z}\) are its graph tests, then
+\[
+          \bigcup_z\bigl(R_{x,y+z}\cap R_{0,z}\bigr)
+\]
+is exactly the test for linear output \(y\) on input \(x\).
+Both tests concern the same word and hence the same map.
+\end{proof}
+
+An affine map \(f(v)=vA+b\) has the homogeneous linear lift
+\begin{equation}\label{eq:homogeneous}
+            (v,c)\longmapsto(vA+cb,c)
+\end{equation}
+on \(V\oplus\mathbf F_2\). These lifts compose and recover \(f\) on inputs
+\((v,1)\). More generally, any map of a finite set has a unique linear
+extension sending each basis vector to the basis vector of its image.
+Neither device requires invertibility.
+
+\subsection{Prediction trials}
+
+Fix a representation of \(M\) on a finite vector space \(U\), and put
+\(J=|U|^2\). A trial has endpoints and checkpoints
+\[
+                 B=z_0<z_1<\cdots<z_J<z_{J+1}=C.
+\]
+Its block \(j\) is an ordered set of potential cuts strictly between
+\(z_{j-1}\) and \(z_j\). Enumerate all pairs of vectors as
+\((x_j,y_j)\), \(1\le j\le J\). A prediction is a tuple
+\((p_1,\ldots,p_{J+1})\in M^{J+1}\), and \(T_*=p_1\cdots p_{J+1}\).
+Write \(T=T_{B,C}\).
+
+\begin{definition}\label{def:eligibility}
+Block \(j\) is \emph{ideally eligible} if
+\[
+ x_jT_*=y_j,\qquad
+ T_{z_{i-1},z_i}=p_i\ (1\le i<j),\qquad
+ T_{z_j,C}=p_{j+1}\cdots p_{J+1}.
+\]
+A trial is \emph{perfectly predicted} if every interval product is its
+corresponding \(p_i\).
+\end{definition}
+
+\begin{lemma}[Prediction trial]\label{lem:prediction}
+There is a deterministic shift \(\beta\in U\), defined from the actual trial
+word and its prediction, such that every ideally eligible pair satisfies
+\(y_j=x_jT+\beta\). A perfectly predicted trial has an eligible block for
+every possible input vector.
+\end{lemma}
+
+\begin{proof}
+Suppose \(h<j\) are eligible. The prefix conditions for \(j\) determine every
+actual interval through \(z_h\), and the suffix condition for \(h\) determines
+the product from \(z_h\) to \(C\). Hence
+\[
+ T=T_{B,z_h}T_{z_h,C}
+  =(p_1\cdots p_h)(p_{h+1}\cdots p_{J+1})=T_*.
+\]
+This uses multiplication, without cancellation.
+
+If \(T=T_*\), every eligible pair fits \(\beta=0\). If \(T\ne T_*\), at most
+one block is eligible; choose its forced shift \(y_j-x_jT\), or zero if none
+is eligible. These rules define \(\beta\) on every trial.
+For a perfect prediction, the block for \((x,xT)\) is eligible for each \(x\).
+\end{proof}
+
+The conclusion for two eligible blocks is equality of the \emph{whole}
+products \(T=T_*\). It does not assert that the individual factors in
+the prediction tuple are correct. Perfect prediction is the separate,
+stronger condition used to obtain an eligible block for every input.
+
+We replace the action on the trial by \(v\mapsto vT+\beta\), implemented by
+adding \(\beta\) at its end. At a cut in block \(j\), the prefix can verify
+arrival at \(B\) with vector \(x_j\), the predicted transfer, and every preceding
+interval condition. The suffix can verify the product from \(z_j\) to \(C\)
+and continue from vector \(y_j\) at \(C\). If these checks agree on the trial
+data, Lemma~\ref{lem:prediction} proves their transfer without either side
+knowing the entire current trial shift.
+
+Whenever a computation passes through an entire other trial, its shift is
+computed using \emph{ideal} eligibility from Definition~\ref{def:eligibility}.
+Tag failures, decoding failures, and the choice of a particular split never
+affect that shift. This convention will keep all episode updates deterministic.
+

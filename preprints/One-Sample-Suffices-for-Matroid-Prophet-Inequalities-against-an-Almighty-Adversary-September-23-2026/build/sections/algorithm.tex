@@ -1,0 +1,352 @@
+\section{Constructing the fixed-vector rule}\label{sec:algorithm}
+
+We construct the rule of Proposition~\ref{prop:hidden} for a fixed hidden
+weight vector. It uses geometric rounding and chooses with equal
+probability between a single-choice maximum branch and a main branch.
+The maximum branch handles weight concentrated on one label. The main
+branch filters arriving labels against revealed weights and assigns
+eligible arrivals to layers of nested flats constructed from those
+revealed weights. Greedy independent sets from different layers can
+then be combined feasibly.
+
+\subsection{Rounding and a maximum branch}
+
+Fix the constants
+\begin{equation}\label{eq:constants}
+ B=2^{32},\qquad \kappa=2^{100},\qquad t=2^{-140},\qquad
+ \eta=2^{-12},\qquad \gamma=\eta/16=2^{-16}.
+\end{equation}
+Here $B$ separates weight levels, $\kappa$ is the rank charge in the
+density expansions, and $t$ is the common sparsity of the guard and
+eligibility masks. The exit-probability cutoff $\eta$ gives the
+sample-to-rank coefficient $\gamma$. The choices leave room for the
+losses combined in Section~\ref{sec:accounting}.
+For $w_e>0$, round down to $u_e=B^{\lfloor\log_B w_e\rfloor}$, and put
+$u_e=0$ when $w_e=0$. Define $u(Z)=\sum_{e\in Z}u_e$ and
+$W=\OPT_M(u)$. The rule rounds each coordinate when its weight is
+revealed or arrives; the full vector $u$ is used only for analysis. Then
+\begin{equation}\label{eq:rounding}
+ \OPT_M(w)/B\le W\le\OPT_M(w).
+\end{equation}
+Larger rounded weights have higher priority, with ties resolved by the fixed
+label order. Priority greedy on all positive labels produces an independent
+set $I^*$ of weight $W$: its intersection with every initial segment of
+weight levels has full rank there, so summing the differences of successive
+levels proves optimality.
+
+Let $m_*$ be the largest rounded weight of a positive nonloop, or zero if
+there is none. A \emph{maximum rule} reveals a fair independent mask and
+accepts the first unmasked positive nonloop of higher priority than every
+revealed positive nonloop, then accepts nothing further. If there are at
+least two positive nonloops, with probability $1/4$ the highest-priority
+one is unmasked and the second is masked. On this event only the highest
+can exceed the threshold, so it is accepted in every order. With one
+positive nonloop, success has probability $1/2$. Thus in all cases
+\begin{equation}\label{eq:maximum}
+ \Ex\big[\min_\pi u(A_{\mathrm{max}}(R,\pi))\big]\ge m_*/4.
+\end{equation}
+The final fixed-vector rule uses this rule or the main rule constructed
+next, with equal probability. The maximum branch gives the guarantee when
+the largest rounded weight is large enough relative to the rounded optimum;
+the main branch handles the complementary case. Draw all coins, including unused branch
+coins, initially and independently of the weights.
+
+\subsection{Candidates and weight groups}
+
+For the main rule draw mutually independent masks $H,D,C,T$, independently
+across labels, with respective membership probabilities $1/2,1/4,t,t$.
+Their roles are summarized below.
+\begin{center}
+\begin{tabular}{@{}ccl@{}}
+\toprule
+Mask & Probability & Role \\
+\midrule
+$H$ & $1/2$ & Filters candidates by higher-priority span \\
+$D$ & $1/4$ & Lists weight groups and supplies density data \\
+$C$ & $t$ & Supplies guards for the flat paths \\
+$T$ & $t$ & Thins online eligibility independently of the paths \\
+\bottomrule
+\end{tabular}
+\end{center}
+Reveal the fixed-vector weights on $H\cup D\cup C$
+and sacrifice these labels. Under Lemma~\ref{lem:simulation}, these revealed
+weights are the corresponding sample coordinates.
+Membership in $T$ alone reveals no weight and forces no rejection.
+For each label $e$, let $H_{>e}$ be the labels in $H$ with higher priority
+than $e$. Define the candidate set and a comparison independent set by
+\begin{equation}\label{eq:candidates}
+ U=\{e\notin H:u_e>0,\ e\notin\cl(H_{>e})\},
+ \qquad Y=I^*\setminus H.
+\end{equation}
+The full set $U$ is used for analysis; the candidate test itself is
+computable as soon as the weight of $e$ is known.
+
+\begin{lemma}[Candidate mass]\label{lem:filter}
+The set $Y$ is independent, $Y\subseteq U$, and
+\begin{equation}\label{eq:candidate-mass}
+ \Ex_H u(Y)=W/2,\qquad \Ex_H u(U)\le W.
+\end{equation}
+\end{lemma}
+\begin{proof}
+For $e\in I^*$, no higher-priority labels span $e$, so neither do the
+higher-priority labels of $H$. This proves $Y\subseteq U$; its expectation
+follows from the fair mask. Conditional on all higher-priority memberships
+in $H$, the event $e\notin\cl(H_{>e})$ is fixed. Its contribution to $u(U)$
+has the same expected weight as the event that $e$ belongs to $H$ and is
+selected by priority greedy on $H$. Sum over the positive labels.
+The resulting expected greedy weight on $H$ is at most $W$.
+\end{proof}
+
+Conditional on $H$, the \emph{true weight groups}
+\[
+ U_i=\{e\in U:u_e=B^i\},\qquad n_i=|U_i|,\qquad Y_i=Y\cap U_i
+ \quad(i\in\mathbb Z)
+\]
+are fixed. Empty groups may be omitted. A group is \emph{listed} when
+$D\cap U_i\ne\varnothing$. Enumerate the listed groups as $G_1,\ldots,G_m$
+from lower to higher weight, and write $D_h=D\cap G_h$, $C_h=C\cap G_h$,
+and $T_h=T\cap G_h$. The complete $D_h,C_h$ are known before arrivals:
+every label of $D\cup C$ is revealed, and its candidate test uses only $H$
+and its own weight. The algorithm needs neither the complete $G_h$ nor
+the true group sizes $n_i$. All candidates are nonloops.
+
+\subsection{Density expansions}
+
+For a listed group $h$ and a flat $P$, let $Q_h(P)$ be the largest flat
+maximizing
+\begin{equation}\label{eq:density-objective}
+ f_h(Z)=|D_h\cap Z|-\kappa\rk(Z)
+ \qquad\text{over flats }Z\supseteq P.
+\end{equation}
+For a nonflat argument, take its closure first. The objective rewards the
+number of $D_h$ labels spanned and charges $\kappa$ per unit of rank.
+Comparison with a further extension bounds its additional sample count
+by $\kappa$ times its additional rank. A separate telescoping argument in
+Lemma~\ref{lem:generators} bounds the generators used over the entire path.
+
+This is a contracted, sample-restricted form of the cardinality-minus-rank
+maximization associated with principal partitions; see Santiago, Sergeev,
+and Zenklusen~\cite[Section 3.1, Equation (1)]{SSZ25}. We prove the needed
+monotonicity and residual-rank bounds directly.
+
+\begin{lemma}[Density expansion]\label{lem:density}
+The largest maximizer in \eqref{eq:density-objective} exists, the map $Q_h$
+is increasing, and $P\subseteq Q_h(P)$. If $Q=Q_h(P)$, then for every set $Z$,
+\begin{equation}\label{eq:density-residual}
+ |D_h\cap(\cl(Q+Z)\setminus Q)|\le\kappa\rk(Z\mid Q).
+\end{equation}
+\end{lemma}
+\begin{proof}
+The function $f_h$ is supermodular on the lattice of flats: the counting
+term is supermodular under intersection and closed union, and the negative
+rank term is supermodular by \eqref{eq:rank-submodular}. There are finitely
+many flats. The closed union of any two maximizers containing $P$ is again
+a maximizer, so there is a largest one.
+
+For $P\subseteq P'$, put $Q=Q_h(P)$ and $Q'=Q_h(P')$. The flat
+$Q\cap Q'$ is feasible at $P$ and $\cl(Q\cup Q')$ is feasible at $P'$.
+Optimality gives one inequality and supermodularity the reverse:
+\[
+ f_h(Q\cap Q')+f_h(\cl(Q\cup Q'))
+       \le f_h(Q)+f_h(Q')
+       \le f_h(Q\cap Q')+f_h(\cl(Q\cup Q')).
+\]
+Equality in the two optimality comparisons shows that $\cl(Q\cup Q')$
+is also a maximizer at $P'$. Its largest maximizer contains $Q$, as claimed.
+Finally compare $Q$ with the feasible flat $\cl(Q+Z)$ in
+\eqref{eq:density-objective}. The difference of their ranks is
+$\rk(Z\mid Q)$, giving \eqref{eq:density-residual}.
+\end{proof}
+
+\subsection{Nominal paths and guards}
+
+Integer $k$ denotes an \emph{auxiliary time}, unrelated to arrival time.
+Set $F_0(k)=L$ for $k<0$ and $F_0(k)=E$ for $k\ge0$. For each listed group,
+put $a_h=-3h$ and define an enabled expansion
+\[
+ Q_{h,k}(P)=
+ \begin{cases}Q_h(P),&k\ge a_h,\\ P,&k<a_h,\end{cases}
+ \qquad(P\text{ a flat}).
+\]
+In increasing group order, form its \emph{nominal} and \emph{guarded} paths
+\begin{equation}\label{eq:paths}
+ X_h(k)=Q_{h,k}(F_{h-1}(k)),\qquad
+ F_h(k)=\cl\bigl(X_h(k)+(C_h\cap X_h(k+1))\bigr).
+\end{equation}
+Thus a guard uses a label one auxiliary step before it enters the nominal
+path. Each density map uses only $D_h$ and the known matroid, and each
+guard set uses the revealed labels $C_h$. Consequently these flats can
+be computed as subsets of $E$ before arrivals, even though the weights
+of some labels they contain remain unknown.
+
+\begin{lemma}[Path properties]\label{lem:paths}
+The paths increase with $k$ and satisfy
+\begin{equation}\label{eq:path-inclusions}
+ F_{h-1}(k)\subseteq X_h(k)\subseteq F_h(k)\subseteq X_h(k+1).
+\end{equation}
+They equal $E$ for $k\ge0$. Moreover $X_h(k)=L$ for $k<a_h$ and
+$F_h(k)=L$ for $k<a_h-1$. If $e$ is a nonloop, its nominal birth
+\[
+ b_h(e)=\min\{k:e\in X_h(k)\}
+\]
+is either $a_h$, with $e\in Q_h(L)$, or belongs to $[a_h+2,0]$.
+\end{lemma}
+\begin{proof}
+Induct on $h$. The map $Q_{h,k}$ is increasing both in its argument and
+in $k$, since enabling it replaces the identity by an extensive increasing
+map. Thus $X_h$ and then $F_h$ are increasing. The first two inclusions
+in \eqref{eq:path-inclusions} are extensiveness; the last follows because
+both sets adjoined in the definition of $F_h(k)$ lie in the flat $X_h(k+1)$.
+The same recursion gives $E$ at times at least zero.
+
+For $h>1$, $a_{h-1}=a_h+3$ and the inductive lower bound makes
+$F_{h-1}(k)=L$ for $k<a_h+2$; this also holds for $h=1$ directly from
+$F_0$. Before $a_h$ the new map is the identity, proving the asserted
+lower bounds for $X_h$ and $F_h$. At $a_h$ and $a_h+1$, the nominal flat
+is the same flat $Q_h(L)$, so no nonloop is born at $a_h+1$.
+\end{proof}
+
+\subsection{The online decisions}
+
+Choose an independent fair parity $\varepsilon\in\{0,1\}$ and put
+$\widehat F(k)=F_m(k)$. When $m=0$, use $\widehat F=F_0$ and reject all
+arrivals. In general the layer endpoints are the integers
+$b\equiv\varepsilon\pmod2$, with layer $(b-2,b]$ having base
+$\widehat F(b-2)$.
+The rule maintains a set $A_b\subseteq\widehat F(b)$ in each layer,
+independent over its base $\widehat F(b-2)$.
+Since successive layers share an endpoint, all labels selected in an
+earlier layer lie in the base of every later layer. Greedy selection in
+alternating restriction--contraction minors also appears in
+Feldman, Svensson, and Zenklusen~\cite[Section 3]{FSZ15}; here the nested
+flats come from the guarded density paths.
+
+At arrival of a label $e$, perform the following operations.
+\begin{enumerate}
+ \item Reject if $e\in H\cup D\cup C$, if its candidate test fails,
+ or if its rounded weight is not listed.
+ \item For its listed group $h$, compute $b=b_h(e)$. Reject unless
+ \begin{equation}\label{eq:eligibility}
+ e\in T,\qquad b\ge a_h+2,\qquad b\equiv\varepsilon\pmod2,
+ \qquad e\notin\widehat F(b-2).
+ \end{equation}
+ \item Let $A_b$ be the previously accepted labels assigned to this
+ layer. Accept $e$ exactly when
+ $\rk(\{e\}\mid\widehat F(b-2)+A_b)=1$, and then add it to $A_b$.
+\end{enumerate}
+These operations use the revealed data, the arriving label and weight,
+the seed, and the previous decisions. In particular, no full true weight
+group or future arrival is needed.
+By Lemma~\ref{lem:paths}, the three-step activation schedule leaves no
+birth at $a_h+1$. Excluding the baseline birth $a_h$ therefore leaves exactly
+the births for which $b-2\ge a_h$: the density map is already enabled
+at the preceding layer endpoint. Figure~\ref{fig:paths} shows both the
+guard step and the nesting that makes layerwise decisions feasible.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Latex, every node/.style={font=\small},
+ flat/.style={draw=linkblue,rounded corners=2pt,inner sep=7pt}]
+ \node[flat] (prior) {$F_{h-1}(k)$};
+ \node[flat,right=23mm of prior] (nominal) {$X_h(k)$};
+ \node[flat,right=31mm of nominal] (guarded) {$F_h(k)$};
+ \node[above=13mm of guarded] (guard) {$C_h\cap X_h(k+1)$};
+ \draw[->] (prior) -- node[above] {$Q_{h,k}$} (nominal);
+ \draw[->] (nominal) -- node[below] {adjoin and close} (guarded);
+ \draw[->] (guard) -- (guarded);
+ \node[flat,below=27mm of prior] (leftbase) {$\widehat F(b-2)$};
+ \node[flat,below=27mm of nominal] (middlebase) {$\widehat F(b)$};
+ \node[flat,below=27mm of guarded] (rightbase) {$\widehat F(b+2)$};
+ \draw[->] (leftbase) -- node[above] {$\subseteq$}
+     node[below=1mm,align=center] {layer $(b-2,b]$\\accept $A_b$} (middlebase);
+ \draw[->] (middlebase) -- node[above] {$\subseteq$}
+     node[below=1mm,align=center] {layer $(b,b+2]$\\accept $A_{b+2}$} (rightbase);
+\end{tikzpicture}
+\caption{Above: a density expansion followed by guards from the next
+nominal time gives $F_h(k)\subseteq X_h(k+1)$. Below: two consecutive
+layers of the chosen parity on the final path. The set $A_b$ is
+independent over $\widehat F(b-2)$ and lies in $\widehat F(b)$;
+$A_{b+2}$ is independent over this latter base. In the lower panel,
+the horizontal order is auxiliary time, regardless of the actual
+arrival order.}
+\label{fig:paths}
+\end{figure}
+
+\begin{lemma}[Feasibility and measurability]\label{lem:feasibility}
+The main rule maintains an independent accepted set at every arrival
+prefix, for every permutation. It is a measurable rule based only on the
+allowed information.
+\end{lemma}
+\begin{proof}
+Every eligible label at endpoint $b$ lies in
+$X_h(b)\subseteq\widehat F(b)$. The accepted set of its layer is
+independent over $\widehat F(b-2)$. In increasing auxiliary endpoint order,
+all earlier accepted layers lie in that base flat, so extending by the
+current layer preserves independence. This proves independence of the
+union for any interleaving of arrivals, and of every prefix.
+
+All masks are drawn initially and the matroid is known. Each density
+maximization is over finitely many flats. By Lemma~\ref{lem:paths}, it is
+enough to compute a finite interval of integer times for the at most
+$|E|$ listed groups. Positive rounding has countably many measurable
+level sets; each realized vector has finitely many occupied levels.
+All remaining operations are finite rank tests, comparisons, and set
+operations with fixed tie rules. They therefore define measurable
+decisions. Zeros are never passed to a logarithm, and loops fail the
+candidate test.
+\end{proof}
+
+\subsection{A generator budget for the entire path}
+
+The rule is now fully specified. To analyze it, we need a bound on how
+much each density expansion can change the path. Bounding the rank
+increase separately at each time would charge the same sample labels
+repeatedly. The next lemma instead chooses one set of generators for all
+times. It also bounds the independent sampled mass excluded by the
+baseline-birth condition.
+
+\begin{lemma}[A generator budget for the entire path]\label{lem:generators}
+For each listed group $h$ there is a set $J_h\subseteq D_h$ and increasing
+subsets $J_h(k)\subseteq J_h$ such that
+\begin{equation}\label{eq:generator-budget}
+ X_h(k)=\cl(F_{h-1}(k)+J_h(k)),\qquad
+ |J_h|\le |D_h|/\kappa.
+\end{equation}
+In particular $\rk(Q_h(L))\le |D_h|/\kappa$.
+\end{lemma}
+\begin{proof}
+Before $a_h$ no generators are needed. Process the enabled times
+$k=a_h,a_h+1,\ldots,0$ in order. Given the preceding generators, set
+\[
+ P_k=\cl(F_{h-1}(k)+X_h(k-1)).
+\]
+By monotonicity, $P_k\subseteq X_h(k)$. It is feasible in the maximization
+defining $X_h(k)$, whence
+\begin{align*}
+ \kappa\bigl(\rk(X_h(k))-\rk(P_k)\bigr)
+ &\le |D_h\cap X_h(k)|-|D_h\cap P_k|\\
+ &\le |D_h\cap X_h(k)|-|D_h\cap X_h(k-1)|.
+\end{align*}
+The flat $R_k=\cl(F_{h-1}(k)+(D_h\cap X_h(k)))$ is contained in
+$X_h(k)$ and has exactly the same $D_h$ count. If this inclusion were
+proper, $R_k$ would have smaller rank, since a proper subflat has
+smaller rank. It would then improve the objective, contradicting
+optimality. Thus $R_k=X_h(k)$, and the extension over $P_k$ has a
+basis chosen from $D_h\cap X_h(k)$.
+
+Adjoin such a basis to the generators, choosing by the fixed label order.
+Since $F_{h-1}$ increases, the preceding generators together with
+$F_{h-1}(k)$ already generate $P_k$. This proves the first identity
+inductively. The new generators are distinct, and their counts satisfy
+the displayed inequality. Summing it telescopes the $D_h$ counts and
+gives $|J_h|\le |D_h|/\kappa$. Extend the generator sets constantly
+for $k>0$. At $k=a_h$, the lower-group flat is $L$, yielding the last
+assertion.
+\end{proof}
+
+For the analysis, we first work on a group's own nominal path. The next
+section shows that earlier groups' guards protect a constant fraction of
+its independent sampled mass against lower-weight competition. We then
+transfer this sampled count to unsacrificed rank. Later groups' path
+expansions will be paid for by a single rank budget in
+Section~\ref{sec:accounting}.

@@ -1,0 +1,471 @@
+\section{Aligned splits for the residual witnesses}\label{sec:aligned}
+
+The two outer splits leave the task of computing $F_2$ on $D_0^*$.
+Every episode in $D_0$ has one of the five witnesses from
+Lemma~\ref{lem:witness-coverage}. We eliminate them in order. At stage $i$,
+the current computation is a map $g_{i,e}:U_i\to U_i$, with
+$g_{0,e}=F_{2,e}$ and $U_0=V\oplus\mathbf F_2$. We construct a new affine
+update $g_{i+1,e}$ on a larger vector space. Two splits compute this new
+update while removing the current witness; its linear part then recovers
+$g_{i,e}$, by a basis encoding described below. The new update is the
+same for both splits and is defined on every complete episode.
+
+The witnesses serve to decode the cut position. A suffix tests every
+candidate origin, excludes later witnesses there, and requires a unique
+candidate with the current witness. After decoding, the first split uses
+a perfectly predicted trial. On the remaining domain, a second split
+uses a full decision tree to recover a prefix product from one of its
+measurements. The secondary guard must exclude later witnesses on a
+larger set of translates: this will ensure that the actual history has
+no perfectly predicted trial. Proposition~\ref{prop:parameters} supplies
+the finite schedules and ambiguity bounds used here.
+
+\subsection{Stencils, domains, and the induction invariant}
+
+For $i=0,\ldots,4$, place a nonempty finite stencil $\mathcal P_i$ of cut
+offsets from $s$ in its own subbuffer. The buffers occur in the reverse
+order $4,3,2,1,0$, after $s$ and before $t$, and the $i$-th ends at $a_i$.
+Thus $a_{i+1}$ is before the entire stage-$i$ buffer whenever $i<4$.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=0.83cm,y=0.85cm,>=Stealth,font=\small]
+ \draw[->] (0,0)--(13,0);
+ \foreach \x/\label in {0/s,7/t,11/q,12.5/{q+B_{\rm tail}}}
+   {\draw (\x,-.10)--(\x,.10);
+    \node[below=4pt] at (\x,0) {$\label$};}
+ \foreach \x/\i in {0.4/4,1.65/3,2.9/2,4.15/1,5.4/0}
+   {\draw[fill=black!5] (\x,.4) rectangle ++(1,.55);
+    \node at (\x+.5,.675) {$i=\i$};
+    \draw (\x+1,.1)--(\x+1,.35);
+    \node[above,font=\scriptsize] at (\x+1,1.02) {$a_{\i}$};}
+ \draw[decorate,decoration={brace,amplitude=4pt}]
+   (7.3,1.05)--(10.3,1.05);
+ \node[above=7pt,align=center] at (8.8,1.05) {outer trials\\and windows};
+ \draw[fill=black!5] (7.3,.4) rectangle (10.3,.95);
+ \draw[dashed] (10.6,.4)--(11,.4);
+ \node[above,font=\scriptsize,align=center] at (11.4,1.0)
+       {end rule\\and padding};
+\end{tikzpicture}
+\caption{The aligned buffers occur in reverse stage order. For $i<4$, the
+stage-$i$ buffer and the entire suffix beginning at $a_i$ lie after
+$a_{i+1}$. Their data are therefore on the reading side of a suffix
+starting at $a_{i+1}$. The drawing is schematic; the end-marker lag
+and padding are chosen after every bounded inspection range.}\label{fig:reverse-buffers}
+\end{figure}
+
+Write
+\begin{equation}\label{eq:gamma}
+ \Delta_i=\mathcal P_i-\mathcal P_i,\qquad
+ \Gamma_i=\sum_{j<i}(\Delta_j+\Delta_j),\qquad
+ \Gamma_0=\{0\}.
+\end{equation}
+Every $\Delta_i,\Gamma_i$ contains zero, and
+$\Gamma_{i+1}=\Gamma_i+\Delta_i+\Delta_i$.
+For any finite set $\Gamma$, define
+\[
+ A_h^\Gamma(t,q)
+ \quad\Longleftrightarrow\quad
+ \text{there is }\gamma\in\Gamma\text{ with }A_h(t+\gamma,q).
+\]
+The anchor $q$ remains fixed. The entry domain $D_i\subseteq D_0$ has
+the promise
+\begin{equation}\label{eq:entry-promise}
+                 \bigvee_{h\ge i}A_h^{\Gamma_i}(t,q).
+\end{equation}
+For $i=0$, this is Lemma~\ref{lem:witness-coverage}; the two full sets
+defined below will give the induction step. Graph tests at stage $i$
+concern $g_i$ on $D_i^*$, although every $g_{i,e}$ is defined on all
+complete episodes.
+
+The quantitative hypothesis is
+\begin{equation}\label{eq:ambiguity-bound}
+ \#\{(p,p')\in\mathcal P_i^2:p\ne p',\
+                A_i^{\Gamma_i}(t+p-p',q)\}\le C_i.
+\end{equation}
+Every required kind of cut has more than $C_i$ copies in $\mathcal P_i$.
+Also $h_i=\diam\mathcal P_i<w_E$ for $i<4$.
+All witness controls at every candidate and every required translate
+are after the cut and inside the true first episode. A suffix must
+itself contain their full reading intervals to pass.
+
+The reverse order of the buffers has a computational purpose. From
+$a_{i+1}$, the whole stage-$i$ buffer and the suffix starting at $a_i$
+are still unread. This lets a suffix formula for $g_i$ be incorporated
+into a suffix formula for $g_{i+1}$, as shown next.
+
+
+
+\subsection{Total tables and the new affine update}
+
+The suffix beginning at $a_i$ does not know the product $T_{s,a_i}$ of
+the omitted prefix. We therefore keep a table for every possible value
+of that product. For fixed suffix letters and fixed $t,q$, the table is
+a finite formula
+\[
+                 \Phi_i(m):U_i\longrightarrow U_i\qquad(m\in M)
+\]
+with
+\begin{equation}\label{eq:table-property}
+                      \Phi_i(T_{s,a_i})=g_{i,e}.
+\end{equation}
+It is defined for every $m$, including values that no prefix realizes.
+It may use the indicated suffix, bounded marker data, $M$-products,
+and fixed $t,q$. Evaluating this table is a finite calculation on one
+episode; it is not a query to a graph language for a sequence of episodes.
+We prove the existence of these tables inductively below.
+
+To carry this table through another pair of splits, encode a payload
+$v\in U_i$ and a work-register value $m\in M$ as a single basis vector.
+Set
+\[
+                   U_{i+1}=\mathbf F_2^{\,U_i\times M}
+\]
+with basis $[v,m]$. A letter product $d\in M$ acts linearly by
+$[v,m]\rho(d)=[v,md]$. At the end of the stage-$i$ buffer, replace the
+remaining computation by the terminal linear map $H_i$ defined by
+\begin{equation}\label{eq:late-map}
+                    [v,m]H_i=[\Phi_i(m)(v),1_M].
+\end{equation}
+This is a linear extension from the displayed basis assignment; it
+does not require $\Phi_i(m)$ to be linear on $U_i$. The unshifted
+episode computation consists of $\rho(T_{s,a_i})$ followed by $H_i$.
+No letter action follows $H_i$, which already represents the entire
+remaining suffix. In particular,
+\[
+ [v,1_M]\rho(T_{s,a_i})H_i
+   =[\Phi_i(T_{s,a_i})(v),1_M]
+   =[g_{i,e}(v),1_M].
+\]
+Resetting the work register to $1_M$ makes the output suitable as the
+input to the next episode. If $L_e=\rho(T_{s,a_i})H_i$, then for two
+episodes $e,f$,
+\[
+                   [v,1_M]L_eL_f
+                      =[g_{i,f}(g_{i,e}(v)),1_M].
+\]
+Thus products of these linear maps recover the composed $g_i$ update.
+Our new affine update will have precisely $L_e$ as its linear part.
+
+In the first part of the stage-$i$ buffer, take a full decision tree
+with $b$ measurements along each path. A node has its own fixed
+position $u$ and branches on $T_{s,u}\in M$, with a separate subtree
+or leaf for every value. Ancestors precede descendants; all nodes
+can be ordered topologically. The resulting leaf history depends
+only on the letters, not on the input vector.
+
+After all these measurements, place aligned prediction trials with
+fixed endpoints, checkpoints, and blocks, using the representation
+$\rho$. Put
+\[
+              J'=|U_{i+1}|^2,\qquad
+              R=|M|^{J'+1},\qquad b>R.
+\]
+For every ordered list of $R$ distinct leaf histories, allocate a trial
+whose predictions across those histories exhaust $M^{J'+1}$. Give
+arbitrary predictions to its other histories, and include a spare
+trial with arbitrary predictions. Every history has a prediction on
+every trial, including histories that cannot occur on an actual prefix.
+Only predictions depend on history; physical trial intervals do not.
+
+Define $g_{i+1,e}$ by the unshifted computation above, adding the ideal
+shift of Lemma~\ref{lem:prediction} at each stage-$i$ trial end, using
+the actual leaf history. These are its only shifts. Before $a_i$,
+any buffers of other stages contribute only their letter actions
+$\rho$; their shifts and terminal maps are not applied there. The
+shifts are constants determined by the episode, so they do not change
+its linear part. This is why the two splits can compute $g_{i+1}$
+and then recover $g_i$ by Lemma~\ref{lem:affine-recovery} and the
+basis-state calculation above.
+
+\begin{lemma}[Total suffix tables]\label{lem:total-tables}
+The tables $\Phi_i$ exist for $0\le i\le4$.
+Every $g_{i+1,e}$ just defined is deterministic affine, independent of
+split success and domain restrictions. Its linear part $L_{i+1,e}$
+satisfies
+\begin{equation}\label{eq:basis-recovery}
+                 [v,1_M]L_{i+1,e}=[g_{i,e}(v),1_M].
+\end{equation}
+The state spaces, tree sizes, and aligned trial counts depend only on
+the preceding state sizes and $M$, not on the length or complexity of
+a table formula.
+\end{lemma}
+
+\begin{proof}
+For $i=0$, all main boundaries and trials are after $a_0$. Their
+marker decisions and actual interval products are suffix data, and
+both clock graphs depend on fixed $q-t$. Replace each required
+$T_{s,z}$ by $mT_{a_0,z}$. The explicit rules of Section~\ref{sec:outer}
+then compute $F_1$, its homogeneous lift, and $F_2$ for every $m$,
+agreeing with $F_2$ at the actual prefix product. This gives $\Phi_0$.
+
+For $i<4$, put $a=a_{i+1}$ and $b=a_i$. Every stage-$i$ measurement
+and trial lies after $a$. A hypothetical product $m$ assigns
+$mT_{a,u}$ to the measurement at $u$, selecting a leaf $h(m)$ in
+the full tree. Let $C_\nu$ be the stage-$i$ trial ends, and compute
+their ideal shifts $\beta_\nu(h(m))$ from that leaf's predictions
+and the actual interval products. For every $x\in U_{i+1}$, set
+\begin{equation}\label{eq:total-table-formula}
+ \Phi_{i+1}(m)(x)=
+ \left(x\rho(mT_{a,b})+
+       \sum_\nu\beta_\nu(h(m))\rho(T_{C_\nu,b})\right)H_i.
+\end{equation}
+The first term transports the input to $b$; each summand transports
+one trial shift from its insertion point to $b$. Each shift is added
+once to the whole vector, and the terminal map is then applied
+linearly. The result is affine in $x$.
+
+Every basis value encountered by $H_i$ has a defined image because
+$\Phi_i$ is total on $M$. Hence this formula is defined even for
+an infeasible hypothetical $m$ or an arbitrary sum of basis vectors.
+At $m=T_{s,a}$, it is exactly $g_{i+1,e}$. A hypothetical $m$ changes
+the work evolution and selected history; it changes neither the
+actual suffix interval products nor $t,q$. This proves the next
+table property.
+
+For fixed word data, the letter actions and terminal map are linear
+and all inserted shifts are independent of the input. Removing the
+shifts therefore gives the linear part $\rho(T_{s,a_i})H_i$, proving
+\eqref{eq:basis-recovery}. All schedules and basis sets are finite
+functions of the already specified state sizes and $M$; formula
+complexity changes none of them.
+\end{proof}
+
+The update and its total suffix table are now fixed independently of
+successful splits. We next define the primary and secondary full sets:
+they determine where each split must be available, and never redefine
+the update that both splits compute.
+
+\subsection{Copies and full sets}
+
+There are two sorts of stencil kinds.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item A \emph{trial kind} specifies an aligned trial, its block, and a leaf
+history. Its copies lie inside that block.
+\item A \emph{measurement kind} specifies a tree node and an input payload
+\(x\in U_{i+1}\). Its copies lie before that node's measurement and after all
+its ancestor measurements.
+\end{enumerate}
+Every offset is distinct, so recovering an offset recovers all its metadata.
+
+Inside \(D_i\), define the primary full set \(\mathcal F_i\) by
+\begin{equation}\label{eq:primary-full}
+ \text{the true history has a perfect aligned trial},\qquad
+             \neg A_h^{\Gamma_i+\Delta_i}(t,q)\quad(h>i).
+\end{equation}
+Put \(D_i'=D_i\setminus\mathcal F_i\).
+Inside \(D_i'\), define the secondary full set \(\mathcal O_i\) by
+\begin{equation}\label{eq:secondary-full}
+             \neg A_h^{\Gamma_i+\Delta_i+\Delta_i}(t,q)\quad(h>i),
+\end{equation}
+and put \(D_{i+1}=D_i'\setminus\mathcal O_i\).
+Every episode left in \(D_{i+1}\) has a later witness expanded by
+\(\Gamma_{i+1}\), proving the next entry promise.
+At \(i=4\), the secondary condition is empty, so \(D_5=\varnothing\).
+
+Both splits at this stage transmit the \emph{same} \(g_{i+1,e}\) from
+Lemma~\ref{lem:total-tables}. These full sets and residual restrictions do
+not redefine it.
+
+\subsection{An exact suffix decoder}
+
+At a cut \(k=s+p\), the suffix lists all possibilities
+\begin{equation}\label{eq:time-candidates}
+                \tau_{p'}=k+L_0-p',\qquad p'\in\mathcal P_i.
+\end{equation}
+In a primary test, it requires absence of every later
+\(A_h^{\Gamma_i}\) at every candidate. In a secondary test, this guard is
+strengthened to absence of every later \(A_h^{\Gamma_i+\Delta_i}\).
+
+For \(i<4\), do the \(q\)-free last-type checks first and require equality of
+\(\eta\) across all candidates. Apply the exact end rule at one reference
+candidate, as in Lemma~\ref{lem:shared-anchor}, and use its \(q\).
+Then perform the other required later-type checks. Finally require a unique
+\(p'\in\mathcal P_i\) such that \(A_i^{\Gamma_i}(\tau_{p'},q)\).
+
+At \(i=4\), there is no later guard. Use the uniqueness test for
+\(A_4^{\Gamma_4}\), which is \(q\)-free, and only after decoding apply the
+exact end rule at the decoded origin. Both uniqueness tests range over all
+of \(\mathcal P_i\). After decoding, require metadata of the appropriate
+kind. Every bounded control is mandatory; an argument missing any required
+window rejects.
+
+\begin{lemma}[Time decoder]\label{lem:time-decoder}
+Paired with a genuine stencil prefix in the promised domain \(D_i\),
+a successful primary or secondary decoder returns the actual offset and
+consumes exactly the first episode.
+On its respective full set, all later guards pass at every stencil cut,
+and at most \(C_i\) offsets fail uniqueness. Thus every required kind has
+a successfully decoded copy.
+\end{lemma}
+
+\begin{proof}
+For an actual cut \(p\), the candidate \(p'=p\) is the true \(t\);
+the others are \(t+p-p'\).
+
+For \(i<4\), the explicit equality/end guard and \(h_i<w_E\) give the true
+\(q\), independently of any decoded metadata. The true complete episode
+contains every bounded control, and the proposed suffix must contain those
+same controls. Thus even a prematurely or excessively long proposed suffix
+sees the same control values.
+The later guard eliminates every later witness at the true origin.
+Since \(\Gamma_i\subseteq\Gamma_i+\Delta_i\), this holds for either guard.
+The entry promise forces the true current witness to pass. Uniqueness
+therefore selects precisely the actual \(p\), and the shared anchor already
+gives exact consumption.
+
+For \(i=4\), the entry promise itself makes the true candidate pass the
+\(q\)-free test. Internal visibility of all controls prevents any choice of
+proposed length or two-sided extension from hiding it. Uniqueness first
+recovers the true time; applying its end rule then forces exact consumption.
+This argument uses no anchor to prove the uniqueness assertion.
+
+For availability of the primary guard, a candidate differs from \(t\) by
+an element of \(\Delta_i\), and \eqref{eq:primary-full} excludes every
+corresponding later \(\Gamma_i\)-translate.
+For the secondary guard, \eqref{eq:secondary-full} excludes the further
+\(\Delta_i\)-expanded tests at every candidate.
+When \(i<4\), both full conditions include absence of \(A_4(t)\), since all
+expansion sets contain zero. This is stability for \emph{every} shift of
+magnitude at most \(w_E\), so the equality/end guard is available.
+
+The true candidate now passes at each stencil cut. If actual offset \(p\)
+is ambiguous, some \(p'\ne p\) satisfies the condition counted in
+\eqref{eq:ambiguity-bound}. Choosing one such \(p'\) for each ambiguous \(p\)
+injects ambiguous offsets into the counted pairs. At most \(C_i\) offsets
+are lost in the whole stencil, so more than \(C_i\) copies of each kind
+leave a decodable copy of that kind.
+\end{proof}
+
+For the secondary split one further consequence is crucial. On \(D_i'\),
+a successful guard includes absence of every later
+\(A_h^{\Gamma_i+\Delta_i}(t,q)\) at the true candidate.
+If the true history had a perfect trial, the episode would satisfy
+\eqref{eq:primary-full}, contradicting membership in \(D_i'\).
+Thus the true history has no perfect trial. The same conclusion holds on
+the secondary full set by \eqref{eq:secondary-full}.
+The extra expansion is necessary here: membership in \(D_i'\) alone
+allows an episode with a perfect true-history trial whose primary full
+condition fails because of a later witness. Without the strengthened
+guard, the secondary test could discard the actual measurement value.
+
+The decoder has separated time recovery from state recovery. Any accepted
+pair now knows the actual copy and its metadata. On each full set, the
+whole-stencil count guarantees a copy of every required kind. We use
+these facts first for a trial and then for a tree measurement.
+
+\subsection{Primary transmission}
+
+The primary \(P_x\) requires a trial-copy length \(p\). It checks its metadata
+history against the actual measurements, processes from \(x\) to the current
+trial start, and verifies the enumerated arrival vector, predicted transfer,
+and preceding individual interval products of that block.
+The whole tree and all earlier trials are on its side.
+
+The primary \(Q_y\) applies the primary time decoder. Using the decoded
+history, trial and block, it checks the suffix-product condition and computes
+from the enumerated trial-end output through all later stage trials and the
+terminal map, requiring result \(y\). Whole other trial shifts are evaluated
+by ideal eligibility. In particular, the late map is evaluated on its stored
+basis work values; the suffix does not need to learn a separate actual prefix
+product at the cut.
+
+For an accepted pair, Lemma~\ref{lem:time-decoder} identifies exactly the same
+metadata on both sides. The trial conditions give ideal eligibility, and
+Lemma~\ref{lem:prediction} proves \(g_{i+1,e}(x)=y\).
+For a primary full episode, choose a perfect true-history trial and its
+eligible block for the actually arriving vector. There is a decodable copy
+of that history/trial/block kind, giving a split for every input vector.
+
+\subsection{Secondary transmission and bad histories}
+
+\begin{lemma}[Bad histories]\label{lem:bad-histories}
+Fix one episode and the actual product tuples on all its aligned trial
+intervals. Fewer than \(R\) leaf histories have no perfectly predicted trial,
+including infeasible histories. Along the true path, fewer than \(R\) nodes
+have a wrong proposed measurement value whose suffix continuation yields
+such a history.
+\end{lemma}
+
+\begin{proof}
+Let \(\mathcal B\) be the set of \emph{all} leaf histories whose prediction
+differs from the actual tuple on every trial. If \(R\) distinct leaves
+belonged to \(\mathcal B\), their allocated common trial would assign all
+\(R\) possible tuples across those leaves. One assignment equals that trial's
+actual tuple, a contradiction. Thus \(|\mathcal B|<R\).
+
+At a true-path node with measurement \(u\), a wrong proposed value \(d\)
+chooses a different branch. Continue at any later measurement \(u'\) using
+\(dT_{u,u'}\). This selects a well-defined leaf in the off-path subtree,
+whether or not the whole history is feasible.
+Departures at two different nodes of the true path lie in disjoint subtrees,
+so their leaves differ. Selecting one wrong surviving value at each ambiguous
+node injects those nodes into \(\mathcal B\), proving the bound.
+\end{proof}
+
+The secondary \(P_x\) requires a measurement-copy length, verifies that its
+node lies on the true path by checking ancestor measurements, and requires
+payload \(x\).
+
+The secondary \(Q_y\) applies the strengthened time decoder and obtains the
+node, its ancestor-path metadata, and payload. At the node's measurement
+position \(u\), try every \(d\in M\). Follow its branch and every later branch
+using \(dT_{u,u'}\), and retain exactly the values whose resulting history
+has no perfectly predicted trial. Require a unique retained value.
+
+On an accepted pair in \(D_i'\), the true history has no perfect trial by
+the strengthened-guard consequence above. Its actual value \(T_{s,u}\)
+therefore survives, and uniqueness identifies it.
+This datum suffices to compute the full update on every payload, not only on
+a single basis vector. Indeed, if
+\[
+                        x=\sum_{v,m}c_{v,m}[v,m],
+\]
+then before \(u\) there have been no shifts in \(g_{i+1,e}\), and the vector
+there is
+\begin{equation}\label{eq:secondary-payload}
+                x\rho(T_{s,u})
+                   =\sum_{v,m}c_{v,m}[v,mT_{s,u}].
+\end{equation}
+The suffix knows all subsequent letters and trials, and all their ideal
+shifts from the recovered history. It simulates to \(a_i\), applies the
+total terminal map termwise, and requires result \(y\).
+Each affine shift is added once to this entire vector, after the linear
+work action; it is not added separately to each basis summand. The final
+map \(H_i\) is applied once by linearity, and no letter action follows it.
+No inverse in \(M\) is used.
+
+For availability on a secondary full episode, the true history survives.
+Lemma~\ref{lem:bad-histories} and \(b>R\) provide a true-path node at which no
+wrong value survives. For any input payload, a decodable copy of its node
+and payload kind exists. All continuation checks are after that cut, so this
+copy gives an accepted split.
+
+\subsection{The recursive conclusion}
+
+\begin{lemma}[Aligned stage]\label{lem:aligned-stage}
+Assume the entry promise, the table and placement properties, and
+\eqref{eq:ambiguity-bound}, with more than \(C_i\) copies per kind.
+Exact graph tests for \(g_{i+1}\) on \(D_{i+1}^*\) yield graph tests for
+\(g_i\) on \(D_i^*\) by two uses of Lemma~\ref{lem:split} and finite Boolean
+operations. All required hypotheses hold at the next residual stage, and
+\(D_5=\varnothing\).
+\end{lemma}
+
+\begin{proof}
+The secondary split first gives graph tests for \(g_{i+1}\) on \((D_i')^*\).
+The primary split uses these as skips and gives its graph tests on \(D_i^*\).
+Both splits act on \(U_{i+1}\) with the same deterministic affine update
+\(g_{i+1}\). By
+Lemma~\ref{lem:affine-recovery} these determine the product of its episode
+linear parts. Equation~\eqref{eq:basis-recovery} shows that starting from
+\([v,1_M]\), this product ends at \([g_{i,w}(v),1_M]\).
+Thus finite basis-state queries recover the required graph tests for \(g_i\).
+
+The domain promise and empty terminal domain follow from the definitions of
+the full sets, and the next total table follows from
+Lemma~\ref{lem:total-tables}. Starting with identity graph tests on the empty
+\(D_5\) domain, the five stages consequently produce graph tests for
+\(g_0=F_2\) on \(D_0^*\).
+\end{proof}
+

@@ -1,0 +1,160 @@
+\section{Introduction}
+
+For $d\ge1$, put $\zeta_d=\exp(2\pi i/d)$ and let
+\[
+ F_d=(\zeta_d^{jk})_{0\le j,k<d}
+\]
+be the unnormalized discrete Fourier matrix. Its fast computation is a
+basic instance of replacing a dense linear map by a short sequence of
+structured operations. The mixed-radix factorization of Cooley and
+Tukey~\cite{cooleytukey} computes transforms at highly composite lengths
+in $O(n\log n)$ arithmetic operations. Good's coprime-factor construction
+identifies certain one-dimensional transforms with tensor products,
+without intervening twiddle factors~\cite[Sections~11--12]{good1958};
+Cooley, Lewis, and Welch explain its relationship with Thomas's
+construction and the mixed-radix FFT~\cite{cooleyLewisWelch1967}.
+Bluestein's chirp identity reduces an arbitrary Fourier length to
+convolution and, with an ordinary FFT, yields the $O(n\log n)$ arithmetic
+bound at every length~\cite{bluestein}. Rabiner, Schafer, and Rader give
+the weighted-convolution derivation, padding, and operation
+count~\cite[Sections~II--III]{rabinerSchaferRader1969}.
+
+Improvements within that scale and improvements of the scale itself
+are different questions. Alman and Rao use matrix non-rigidity to
+improve the Walsh--Hadamard transform and then the leading constant
+for power-of-two discrete Fourier transforms~\cite[Theorem~1.2 and Section~7]{almanrao}. Their
+Fourier bound has leading term $(15/4)n\log_2 n$ in a count of real
+arithmetic operations, with circuit structure and constants precomputed. Here we
+obtain a power saving in the logarithm at every length, in an exact
+complex-arithmetic model that also counts scalar preparation and
+array organization.
+
+Lower bounds at the $n\log n$ scale depend on the permitted operations.
+Morgenstern's determinant argument applies to the unnormalized Fourier
+transform with bounded coefficients~\cite{morgenstern}. Ailon's entropy
+bound concerns the normalized transform on $n$ coordinates with unitary
+two-coordinate gates~\cite[Theorem~2.1]{ailon}; his later bounds also
+quantify restrictions on intermediate conditioning~\cite{ailonConditioned}.
+Our model permits unrestricted coefficients and exact intermediate
+values. The logarithmic word size below describes integer addresses;
+it does not limit the precision of complex registers.
+
+The main obstacle is to turn a saving for one fixed finite matrix into a
+single algorithm for arbitrary Fourier lengths. A finite saving must survive
+three transitions: using all available coordinates during recursive batching,
+compiling small Fourier matrices without increasing their widths, and
+organizing a product of many coordinate sets with linear array work.
+The complexity of preparing the scalars and constructing the schedules must
+also be counted. The theorem below handles these transitions explicitly.
+
+Two companion results clarify the starting point. The finite tensor saving
+and the nonuniform subsequence theorem in
+\emph{Finite tensor savings and exact Fourier circuits}~\cite{exactfourier}
+have an independent proof through matrix prices and exact finite identities.
+The complex phase network in
+\emph{Integer multiplication below $n\log n$}~\cite[Proposition~8 and
+Section~3.5]{motif} provides a particular two-coordinate kernel with a
+strict saving. We reproduce the network needed here and supply its
+uniform array implementation. The integer-multiplication article's
+arithmetic model and its later tape and precision arguments are separate
+from the model used in this paper.
+
+\subsection{Arithmetic model and main result}
+\label{sec:model}
+
+Our model has complex registers and integer address registers. A complex field operation has unit cost. In the computation on the input vector, only addition, subtraction, and multiplication by prepared, input-independent scalars are used. Every such operation is charged. Division is used in scalar preparation only, with a proof that its denominator is nonzero. Integer operations and random access on $O(\log(n+2))$-bit words also have unit cost; a fixed number of such words may represent an address or integer. All constants implicit in these conventions are independent of $n$.
+
+We supply an explicitly specified Fourier root depending on $n$. Equivalently, a root-of-unity operation returns the specified $\zeta_d$, at unit cost, for a stated order $d$. The theorem below needs only one such root, of polynomial order. Preparing other scalars from it, constructing the schedule, and organizing the arrays are included in the running time. We do not assume that field operations on rational constants can generate roots of arbitrarily large order. There is no bound on complex coefficients or intermediate magnitudes, and no finite-precision or numerical-stability assertion.
+
+Define the absolute constants
+\begin{equation}\label{eq:main-constants}
+ m=10^6,\qquad W_*=2^{71},\qquad
+ \Delta=6871402692000000,\qquad
+ \lambda=m-\frac{\Delta}{W_*},\qquad
+ \theta=\log_m\lambda.
+\end{equation}
+The construction in Section~\ref{sec:network} uses blocks of $m$ binary
+coordinates and $W_*$ arrays. The saving $\Delta$ gives the recurrence
+multiplier $\lambda$ and hence the exponent $\theta$.
+These constants satisfy $1<\lambda<m$ and
+\[
+ \theta=0.99999999999978935615699598\ldots<1.
+\]
+The decimal is included only to indicate the size of the saving; the definition in~\eqref{eq:main-constants} is exact.
+
+\begin{theorem}\label{thm:main}
+There is a single deterministic algorithm which, for every positive integer $n$ and every $x\in\C^n$, computes $F_nx$ exactly. In the model above, including scalar preparation, schedule construction, and index work, its running time is
+\begin{equation}\label{eq:main-bound}
+ O\!\left(n(\log n)^\theta(\log\log n)^{4-\theta}\right)
+\end{equation}
+as $n\to\infty$. It suffices to supply the specified root $\zeta_{D_*}$ for an explicitly computable integer $D_*<1024n^3$.
+\end{theorem}
+
+\begin{corollary}\label{cor:decimal}
+In the same model, the transform is computable at every length in
+\[
+ O\!\left(n(\log n)^{1-10^{-13}}\right)=o(n\log n)
+\]
+time.
+\end{corollary}
+
+A finite initial range is handled by the direct formula for $F_n$. The constants in the algorithm are enormous, so these are asymptotic existence and explicitness results, with no useful crossover estimate. The hypotheses on coefficients and exact roots are part of the result. In particular, the conclusion does not assert a corresponding improvement for stable floating-point FFTs or for bit complexity.
+
+\begin{corollary}[Exact convolution and polynomial multiplication]
+\label{cor:polynomial-multiplication}
+There is a single deterministic algorithm which, for every positive integer
+$n$ and every $a,b\in\C^n$, computes the linear convolution
+\[
+ c_k=\sum_{\substack{0\le r,s<n\\r+s=k}}a_rb_s,
+ \qquad 0\le k\le 2n-2.
+\]
+Equivalently, it multiplies two complex polynomials of degree less than $n$.
+In the exact complex field-operation, specified-root, and address cost model
+above, with general field multiplication permitted for the pointwise products,
+the total running time, including scalar preparation, schedule construction,
+padding, and index work, is
+\[
+ O\!\left(n(\log n)^\theta(\log\log n)^{4-\theta}\right)
+ \qquad(n\to\infty),
+\]
+and hence is eventually $O(n(\log n)^{1-10^{-13}})$.
+This is a bilinear arithmetic algorithm, not an input-linear circuit: its
+pointwise products multiply a value linear in $a$ by a value linear in $b$.
+\end{corollary}
+
+The proof in Section~\ref{sec:convolution-consequence} uses three transforms
+at length $2n-1$, with one specified root reused throughout.
+
+The corollary retains the exact-root and unrestricted-coefficient assumptions.
+It is not a result about integer bit complexity, bounded-coefficient circuits,
+numerical stability, finite fields, or formal power-series algorithms.
+
+\subsection{The construction and its reusable parts}
+
+Two constructions feed a common tensor schedule, which then supplies
+the transform at every length.
+
+\begin{enumerate}
+\item A fixed network gives a fast algorithm for tensor powers of
+\[
+ C=\frac12\begin{pmatrix}1+i&1-i\\1-i&1+i\end{pmatrix}.
+\]
+Its binary labels prescribe changes of frame between scalar gates. The completed network transforms every physical role, including roles used as temporary storage. Padding the number of roles to a power of two makes recursive batching exact. The resulting recurrence gives $C^{\otimes k}$ in $O(2^k(k+1)^\theta)$ time.
+\item Independently, Newton interpolation factors every Fourier matrix $F_r$
+into diagonal factors and a triangular Toeplitz matrix and its transpose.
+We compile these into a word of $O(1+\log^4r)$ layers on \emph{exactly}
+$r$ coordinates. Borrowed coordinates may initially contain arbitrary data and are restored. The compiler chooses chunk sizes by counting the registers required by its own convolution programs; all local compilation and scalar preparation take polynomial time in $r$.
+\item Synchronize these words on many coprime axes. Each simultaneous pair layer decomposes into sectors carrying tensor powers of $C$. A concrete sector-address formula packs all sectors in linear array work. Products of small odd primes, supplemented by one power of two, give suitable working lengths within a factor of two of $2n$. A chirp convolution then gives every requested length.
+\end{enumerate}
+
+The role-preserving tensor recurrence, the measured-fit local compiler, and the linear-time sector traversal are useful independently of the final choice of Fourier lengths. Together they prevent three possible losses: allocating fresh zero workspace at every recursive use, silently treating scalar preparation as free, and spending one operation per tensor axis at every array entry. The sharper logarithmic factor in~\eqref{eq:main-bound} comes from the elementary estimate that the number of odd-prime factors is of order $\log n/\log\log n$. The appendix supplies two further general constructions: finite rational-algebra extraction from polynomial certificates, and bounded-printer uniformization of effectively generated transform circuits.
+
+Figure~\ref{fig:proof-map} records the interfaces between these steps.
+
+\input{figures/proof-map}
+
+Section~\ref{sec:network} develops the fixed network. Section~\ref{sec:local} gives the local Fourier compiler, Section~\ref{sec:synchronization} handles tensor scheduling and addresses, and Section~\ref{sec:all-lengths} proves Theorem~\ref{thm:main} and its convolution consequence. Appendix~\ref{sec:synthesis} gives a complementary effective route from finite algebraic certificates: it makes finite-win certificates uniform by exact rational algebra and supplies a local certificate that proves the search terminates. The general finite-win and generation results of~\cite{exactfourier} give a second source of the same certificate interface. That route is not needed for the exponent in~\eqref{eq:main-bound}.
+
+The finite network is credited at its use to~\cite{motif}, and the exact-width Fourier mechanism is shared with~\cite[Section~3]{exactfourier}. We prove the interfaces used here, including their preparation and indexing bounds. In particular, we do not import the later tape or precision bounds of~\cite{motif}, nor infer uniformity from the circuit-existence conclusion of~\cite{exactfourier}.
+
+\FloatBarrier

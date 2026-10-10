@@ -1,0 +1,21 @@
+# [Termination of generalized-canonical flips on compact Kähler fourfolds](termination-generalized-terminal-flips-compact-kahler-fourfolds.pdf)
+
+**Author:** OpenAI
+
+**Date:** October 6, 2026
+
+## Citation
+
+```bibtex
+@misc{OAI:Termination-of-generalized-canonical-flips-on-compact-Kahler-fourfolds-October-6-2026,
+  author = {{OpenAI}},
+  title = {{Termination of generalized-canonical flips on compact K{\"a}hler fourfolds}},
+  howpublished = {OpenAI Math Release preprint
+                  \href{https://github.com/openai/math/blob/main/preprints/Termination-of-generalized-canonical-flips-on-compact-Kahler-fourfolds-October-6-2026/termination-generalized-terminal-flips-compact-kahler-fourfolds.pdf}{OAI:Termination-of-generalized-canonical-flips-on-compact-Kahler-fourfolds-October-6-2026}},
+  year = {2026}
+}
+```
+
+## Version note
+
+This version clarifies that only independent negativity, codimension-two smoothness, and cycle-comparison results are used from the companion fourfold paper; see the [previous version](../Termination-of-generalized-canonical-flips-on-compact-Kahler-fourfolds-October-5-2026/termination-generalized-terminal-flips-compact-kahler-fourfolds.pdf).

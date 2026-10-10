@@ -1,0 +1,496 @@
+
+\ProvidesFileRCS{pgfcorescopes.code.tex}
+
+
+\newbox\pgfpic
+\newbox\pgf@hbox
+
+\newbox\pgf@layerbox@main
+
+\newcount\pgf@picture@serial@count
+
+
+
+\newif\ifpgfrememberpicturepositiononpage
+
+
+
+
+
+
+
+\def\pgfscope{%
+  \pgfsyssoftpath@setcurrentpath\pgfutil@empty%
+  \pgfsys@beginscope%
+    \pgf@resetpathsizes%
+    \edef\pgfscope@linewidth{\the\pgflinewidth}%
+    \let\pgfscope@stroke@color=\pgf@strokecolor@global%
+    \let\pgfscope@fill@color=\pgf@fillcolor@global%
+    \begingroup}
+\def\endpgfscope{%
+    \endgroup%
+    \global\pgflinewidth=\pgfscope@linewidth%
+    \global\let\pgf@strokecolor@global=\pgfscope@stroke@color%
+    \global\let\pgf@fillcolor@global=\pgfscope@fill@color%
+  \pgfsys@endscope}
+
+
+
+
+
+\def\pgfqbox#1{%
+  \pgfsys@hbox#1%
+}
+
+
+
+\def\pgfqboxsynced#1{%
+  \pgfsys@hboxsynced#1%
+}
+
+
+
+\def\pgftext{\pgfutil@ifnextchar[\pgf@text{\pgf@text[]}}%
+\def\pgf@text[#1]{%
+  \def\pgf@text@options{#1}%
+  \pgf@maketext\pgf@after@text}
+\def\pgf@after@text{%
+  {%
+  \def\pgf@text@hshift{center}%
+  \def\pgf@text@vshift{center}%
+  \expandafter\pgf@text@setkeys\expandafter{\pgf@text@options}%
+  \csname pgf@halign\pgf@text@hshift\endcsname%
+  \csname pgf@valign\pgf@text@vshift\endcsname%
+  \pgfapproximatenonlineartransformation%
+  \pgf@process{\pgfpointtransformed{\pgfqpoint{0pt}{\dp\pgf@hbox}}}%
+  \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+  \pgf@process{\pgfpointtransformed{\pgfqpoint{\wd\pgf@hbox}{\dp\pgf@hbox}}}%
+  \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+  \pgf@process{\pgfpointtransformed{\pgfqpoint{0pt}{\ht\pgf@hbox}}}%
+  \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+  \pgf@process{\pgfpointtransformed{\pgfqpoint{\wd\pgf@hbox}{\ht\pgf@hbox}}}%
+  \pgf@protocolsizes{\pgf@x}{\pgf@y}%
+  \pgfqboxsynced{\pgf@hbox}%
+  }%
+}
+\def\pgf@text@setkeys{\pgfqkeys{/pgf/text}}%
+
+\pgfkeys{/pgf/text/left/.code=\def\pgf@text@hshift{left}}
+\pgfkeys{/pgf/text/center/.code=}
+\pgfkeys{/pgf/text/right/.code=\def\pgf@text@hshift{right}}
+\pgfkeys{/pgf/text/top/.code=\def\pgf@text@vshift{top}}
+\pgfkeys{/pgf/text/bottom/.code=\def\pgf@text@vshift{bottom}}
+\pgfkeys{/pgf/text/base/.code=\def\pgf@text@vshift{base}}
+\pgfkeys{/pgf/text/at/.cd,.code=\pgftransformshift{#1},.value required}
+\pgfkeys{/pgf/text/x/.cd,.code=\pgftransformxshift{#1},.value required}
+\pgfkeys{/pgf/text/y/.cd,.code=\pgftransformyshift{#1},.value required}
+\pgfkeys{/pgf/text/rotate/.cd,.code=\pgftransformrotate{#1},.value required}
+
+\def\pgf@halignleft{}%
+\def\pgf@haligncenter{\pgftransformxshift{+-.5\wd\pgf@hbox}}
+\def\pgf@halignright{\pgftransformxshift{+-\wd\pgf@hbox}}%
+\def\pgf@valignbase{}%
+\def\pgf@valignbottom{\pgftransformyshift{+\dp\pgf@hbox}}%
+\def\pgf@valigncenter{\pgftransformyshift{+.5\dp\pgf@hbox}\pgftransformyshift{+-.5\ht\pgf@hbox}}%
+\def\pgf@valigntop{\pgftransformyshift{+-\ht\pgf@hbox}}%
+
+
+\def\pgf@maketext#1{%
+  \def\pgf@@maketextafter{#1}%
+  \setbox\pgf@hbox=\hbox\bgroup%
+    \pgfinterruptpicture%
+      \bgroup%
+        \aftergroup\pgf@collectresetcolor%
+        \let\next=%
+}
+\def\pgf@collectresetcolor{%
+  \pgfutil@ifnextchar\reset@color%
+  {\reset@color\afterassignment\pgf@collectresetcolor\let\pgf@temp=}%
+  {\pgf@textdone}%
+}
+\def\pgf@textdone{%
+    \endpgfinterruptpicture%
+  \egroup%
+  \pgf@@maketextafter%
+}
+
+\long\def\pgf@makehbox#1{%
+  \setbox\pgf@hbox=\hbox{{%
+    \pgfinterruptpicture%
+      #1%
+    \endpgfinterruptpicture%
+    }}}
+
+
+
+
+\def\pgfresetboundingbox{%
+    \global\pgf@picmaxx=-16000pt\relax%
+    \global\pgf@picminx=16000pt\relax%
+    \global\pgf@picmaxy=-16000pt\relax%
+    \global\pgf@picminy=16000pt\relax%
+}%
+
+\def\pgfpicture{%
+  \begingroup%
+    \pgfpicturetrue%
+    \global\advance\pgf@picture@serial@count by1\relax%
+    \edef\pgfpictureid{pgfid\the\pgf@picture@serial@count}%
+    \let\pgf@nodecallback=\pgfutil@gobble%
+    \pgf@picmaxx=-16000pt\relax%
+    \pgf@picminx=16000pt\relax%
+    \pgf@picmaxy=-16000pt\relax%
+    \pgf@picminy=16000pt\relax%
+    \pgf@relevantforpicturesizetrue%
+    \pgf@resetpathsizes%
+    \pgfutil@ifnextchar\bgroup\pgf@oldpicture\pgf@picture}
+\def\pgf@oldpicture#1#2#3#4{%
+  \pgfmathsetlength\pgf@picminx{#1}%
+  \pgfmathsetlength\pgf@picminy{#2}%
+  \pgfmathsetlength\pgf@picmaxx{#3}%
+  \pgfmathsetlength\pgf@picmaxy{#4}%
+  \pgf@relevantforpicturesizefalse%
+  \pgf@picture}
+
+\def\pgf@picture{%
+  \setbox\pgfpic\hbox to0pt\bgroup%
+    \begingroup%
+    \pgfsys@beginpicture%
+      \pgfsys@beginscope%
+        \begingroup%
+        \pgfsetcolor{.}%
+        \pgfsetlinewidth{0.4pt}%
+        \pgftransformreset%
+        \pgfsyssoftpath@setcurrentpath\pgfutil@empty%
+        \begingroup%
+          \let\pgf@setlengthorig=\setlength%
+          \let\pgf@addtolengthorig=\addtolength%
+          \let\pgf@selectfontorig=\selectfont%
+          \let\setlength=\pgf@setlength%
+          \let\addtolength=\pgf@addtolength%
+          \let\selectfont=\pgf@selectfont%
+          \nullfont\spaceskip0pt\xspaceskip0pt%
+          \tracinglostchars=%
+            \ifnum\tracinglostchars>2 2\else\tracinglostchars\fi
+          \setbox\pgf@layerbox@main\hbox to0pt\bgroup%
+            \begingroup%
+  }
+\def\endpgfpicture{%
+              \ifpgfrememberpicturepositiononpage%
+                \hbox to0pt{\pgfsys@markposition{\pgfpictureid}}%
+              \fi%
+              \ifdim\pgf@picmaxx=-16000pt\relax%
+                \global\pgf@picmaxx=0pt\relax%
+                \global\pgf@picminx=0pt\relax%
+                \global\pgf@picmaxy=0pt\relax%
+                \global\pgf@picminy=0pt\relax%
+              \fi%
+              \pgf@relevantforpicturesizefalse%
+              \pgf@process{\pgf@baseline}%
+              \xdef\pgf@shift@baseline{\the\pgf@y}%
+              \pgf@process{\pgf@trimleft}%
+              \global\advance\pgf@x by-\pgf@picminx
+              \xdef\pgf@trimleft@final{-\the\pgf@x}%
+              \pgf@process{\pgf@trimright}%
+              \global\advance\pgf@x by-\pgf@picmaxx
+              \xdef\pgf@trimright@final{\the\pgf@x}%
+        \pgf@remember@layerlist@globally
+            \endgroup%
+            \hss%
+          \egroup%
+      \pgf@restore@layerlist@from@global
+          \pgf@insertlayers%
+        \endgroup%
+        \pgfsys@discardpath%
+        \endgroup%
+      \pgfsys@endscope%
+    \pgfsys@endpicture%
+    \endgroup%
+    \hss
+  \egroup%
+  \pgfsys@typesetpicturebox\pgfpic%
+  \endgroup%
+}
+
+\def\pgf@remember@layerlist@globally{%
+  \global\let\pgf@layerlist@=\pgf@layerlist
+}%
+\def\pgf@restore@layerlist@from@global{%
+  \let\pgf@layerlist=\pgf@layerlist@
+}%
+\def\pgf@insertlayers{%
+  \box\pgf@layerbox@main%
+}
+
+\def\pgf@selectfont{\pgf@selectfontorig\nullfont}
+
+\def\pgf@setlength#1#2{%
+  \begingroup%
+    \pgfutil@selectfont%
+    \pgf@setlengthorig#1{#2}%
+    \expandafter%
+  \endgroup%
+  \expandafter#1\expandafter=\the#1\relax}
+\def\pgf@addtolength#1#2{%
+  \begingroup%
+    \pgfutil@selectfont%
+    \pgf@addtolengthorig#1{#2}%
+    \expandafter%
+  \endgroup%
+  \expandafter#1\expandafter=\the#1\relax}
+
+
+
+\def\pgfsetbaselinepointlater#1{\def\pgf@baseline{#1}}
+
+
+
+\def\pgfsetbaselinepointnow#1{%
+  \pgf@process{#1}%
+  \edef\pgf@setter@baseline{\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}%
+  \pgfsetbaselinepointlater{\pgf@setter@baseline}%
+}
+
+\def\pgf@default@text{default}%
+
+
+\def\pgfsetbaseline#1{%
+  \def\pgf@temp{#1}%
+  \ifx\pgf@temp\pgf@default@text
+    \pgfsetbaseline{\pgf@picminy}%
+  \else
+    \pgfsetbaselinepointlater{\pgfpoint{0pt}{#1}}%
+  \fi
+}
+\pgfsetbaseline{\pgf@picminy}
+
+\newif\ifpgf@trim@lowlevel
+\pgfkeys{
+  /pgf/trim lowlevel/.is if=pgf@trim@lowlevel,
+  /pgf/trim lowlevel/.default=true,
+}
+
+\def\pgfsettrimleftpointlater#1{\def\pgf@trimleft{#1}}
+\def\pgfsettrimleftpointnow#1{%
+  \pgf@process{#1}%
+  \edef\pgf@setter@baseline{\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}%
+  \pgfsettrimleftpointlater{\pgf@setter@baseline}%
+}
+\def\pgfsettrimleft#1{%
+  \def\pgf@temp{#1}%
+  \ifx\pgf@temp\pgf@default@text
+    \pgfsettrimleft{\pgf@picminx}
+  \else
+    \pgfsettrimleftpointlater{\pgfpoint{#1}{0pt}}%
+  \fi
+}
+\pgfsettrimleft{\pgf@picminx}
+
+\def\pgfsettrimrightpointlater#1{\def\pgf@trimright{#1}}
+\def\pgfsettrimrightpointnow#1{%
+  \pgf@process{#1}%
+  \edef\pgf@setter@baseline{\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}%
+  \pgfsettrimrightpointlater{\pgf@setter@baseline}%
+}
+\def\pgfsettrimright#1{%
+  \def\pgf@temp{#1}%
+  \ifx\pgf@temp\pgf@default@text
+    \pgfsettrimright{\pgf@picmaxx}%
+  \else
+    \pgfsettrimrightpointlater{\pgfpoint{#1}{0pt}}%
+  \fi
+}
+\pgfsettrimright{\pgf@picmaxx}
+
+
+
+\def\pgfinterruptpath
+{%
+  \begingroup%
+  \edef\pgf@interrupt@savex{\the\pgf@path@lastx}%
+  \edef\pgf@interrupt@savey{\the\pgf@path@lasty}%
+  \pgf@getpathsizes\pgf@interrupt@pathsizes%
+  \pgfsyssoftpath@getcurrentpath\pgf@interrupt@path%
+  \pgfsyssoftpath@setcurrentpath\pgfutil@empty%
+  \let\pgf@interrupt@lastmoveto=\pgfsyssoftpath@lastmoveto%
+  \begingroup%
+}
+\def\endpgfinterruptpath
+{%
+  \endgroup%
+  \pgfsyssoftpath@setcurrentpath\pgf@interrupt@path%
+  \pgf@setpathsizes\pgf@interrupt@pathsizes%
+  \global\pgf@path@lastx\pgf@interrupt@savex%
+  \global\pgf@path@lasty\pgf@interrupt@savey%
+  \global\let\pgfsyssoftpath@lastmoveto\pgf@interrupt@lastmoveto%
+  \endgroup%
+}
+
+
+
+
+\def\pgfinterruptboundingbox
+{%
+  \begingroup%
+    \edef\pgf@interrupt@savemaxx{\the\pgf@picmaxx}%
+    \edef\pgf@interrupt@saveminx{\the\pgf@picminx}%
+    \edef\pgf@interrupt@savemaxy{\the\pgf@picmaxy}%
+    \edef\pgf@interrupt@saveminy{\the\pgf@picminy}%
+    \pgf@picmaxx=-16000pt\relax%
+    \pgf@picminx=16000pt\relax%
+    \pgf@picmaxy=-16000pt\relax%
+    \pgf@picminy=16000pt\relax%
+    \pgf@size@hookedfalse%
+    \let\pgf@path@size@hook=\pgfutil@empty%
+}
+\def\endpgfinterruptboundingbox
+{%
+    \global\pgf@picmaxx=\pgf@interrupt@savemaxx%
+    \global\pgf@picmaxy=\pgf@interrupt@savemaxy%
+    \global\pgf@picminx=\pgf@interrupt@saveminx%
+    \global\pgf@picminy=\pgf@interrupt@saveminy%
+  \endgroup%
+}
+
+
+
+
+
+\def\pgfidscope{\pgfsys@begin@idscope}
+\def\endpgfidscope{\pgfsys@end@idscope}
+
+\let\startpgfidscope\pgfidscope
+\let\stoppgfidscope\pgfendidscope
+
+
+
+
+
+\def\pgfuseid#1{%
+  \edef\pgf@temp{#1}%
+  \ifx\pgf@temp\pgfutil@empty%
+  \else%
+    \pgf@lookup@id{#1}%
+    \pgfsys@use@id{\pgf@next@id}%
+    \expandafter\xdef\csname pgf@id@names@#1\endcsname{{\pgf@next@id}{}}%
+  \fi%
+}
+
+\def\pgf@lookup@id#1{%
+  \expandafter\let\expandafter\pgf@id@name\csname pgf@id@names@#1\endcsname%
+  \ifx\pgf@id@name\relax%
+    \let\pgf@prev@id\pgfutil@empty%
+    \let\pgf@next@id\pgfutil@empty%
+  \else%
+    \expandafter\pgf@id@parse\pgf@id@name%
+  \fi%
+  \ifx\pgf@next@id\pgfutil@empty%
+    \pgfsys@new@id\pgf@next@id%
+    \expandafter\xdef\csname pgf@id@names@#1\endcsname{{\pgf@prev@id}{\pgf@next@id}}%
+  \fi%
+}
+\def\pgf@id@parse#1#2{%
+  \def\pgf@prev@id{#1}%
+  \def\pgf@next@id{#2}%
+}
+
+
+
+
+\def\pgfclearid{%
+  \pgfsys@clear@id%
+}
+
+
+
+\def\pgfidrefnextuse#1#2{%
+  \edef\pgf@temp{#2}\ifx\pgf@temp\pgfutil@empty\pgferror{Missing name reference for ``\string#1''}\fi%
+  \pgf@lookup@id{#2}%
+  \let#1\pgf@next@id%
+}
+
+
+
+\def\pgfidrefprevuse#1#2{%
+  \edef\pgf@temp{#2}\ifx\pgf@temp\pgfutil@empty\pgferror{Missing name reference for ``\string#1''}\fi%
+  \pgf@lookup@id{#2}%
+  \let#1\pgf@prev@id%
+}
+
+
+
+\def\pgfusetype#1{%
+  \edef\pgf@temp{#1}%
+  \expandafter\pgfutil@ifnextchar\expandafter.\expandafter\pgf@id@use@type@add\expandafter\pgf@id@use@type@replace\pgf@temp\pgf@stop
+}
+\def\pgf@id@use@type@add.#1\pgf@stop{\pgfsys@append@type{#1}}
+\def\pgf@id@use@type@replace#1\pgf@stop{\pgfsys@use@type{#1}}
+
+
+\def\pgfpushtype{\pgfsys@push@type}
+
+
+
+\def\pgfpoptype{\pgfsys@pop@type}
+
+
+
+
+
+\def\pgfaliasid#1#2{%
+  \expandafter\let\expandafter\pgf@temp\csname pgf@id@names@#2\endcsname%
+  \expandafter\let\csname pgf@id@names@#1\endcsname\pgf@temp%
+}
+\def\pgfgaliasid#1#2{%
+  \expandafter\let\expandafter\pgf@temp\csname pgf@id@names@#2\endcsname%
+  \expandafter\global\expandafter\let\csname pgf@id@names@#1\endcsname\pgf@temp%
+}
+
+
+
+\def\pgfifidreferenced#1#2#3{%
+  \expandafter\let\expandafter\pgf@id@name\csname pgf@id@names@#1\endcsname%
+  \ifx\pgf@id@name\relax%
+    #3%
+  \else
+    \expandafter\pgf@id@parse\pgf@id@name%
+    \ifx\pgf@next@id\pgfutil@empty%
+      #3%
+    \else%
+      #2%
+    \fi%
+  \fi%
+}
+
+
+
+\def\pgfinterruptpicture
+{%
+  \begingroup%
+    \csname tikz@inside@picturefalse\endcsname%
+    \pgfinterruptboundingbox%
+      \pgftransformreset%
+      \pgfinterruptpath%
+        \ifx\pgf@selectfontorig\@undefined%
+        \else%
+          \let\setlength\pgf@setlengthorig%
+          \let\addtolength\pgf@addtolengthorig%
+          \let\selectfont\pgf@selectfontorig%
+        \fi%
+        \pgfutil@selectfont%
+        \pgfpicturefalse%
+        \let\pgf@positionnodelater@macro\relax%
+        \pgf@savelayers%
+}
+\def\endpgfinterruptpicture
+{%
+        \pgf@restorelayers%
+      \endpgfinterruptpath%
+    \endpgfinterruptboundingbox%
+  \endgroup%
+}
+
+\let\pgf@savelayers=\relax
+\let\pgf@restorelayers=\relax
+
+\endinput

@@ -1,0 +1,202 @@
+\section{A deterministic recursion on width and mass}
+\label{sec:algorithm}
+
+We now give the procedure whose output meets the simultaneous
+obligations of Theorem~\ref{thm:labelling}. Every step uses exact
+integers or rationals and label vectors from children. The witnesses
+from the preceding section are proof objects; no execution searches
+for or tests them.
+
+For an integer pivot $k$ and an even width $r$, a \emph{centered
+call} with masses $(a',b')$ means
+$\Label(k-r/2,r,a',b')$, on the box $[k-r/2,k+r/2]$.
+This notation will only be used with integer half-widths.
+
+In each pivot pass, one side's masses remain unchanged. Its translated
+witnesses force labels at all gaps at most $p=q/32$; those labels will
+keep these coordinates fixed while the pivot moves. The later
+width-$D/2$ call has unchanged masses on both sides and makes all gaps
+below $q$ into claims, supplying the labels for reweighting.
+
+\begin{procedure}[$\Label(A,D,a,b)$]
+\label{alg:label}
+Set $u=A+D$ and $P=D/32$. Execute the first applicable base case;
+if neither applies, proceed through Steps~3--6.
+\begin{enumerate}[label=\textbf{\arabic*.},leftmargin=*]
+\item\label{step:mass-base}\textbf{Mass base case.}
+If $a_i b_i>1$ for all $i\in V$, return $+$ where $b_i>1$ and
+return $-$ at the remaining vertices.
+
+\item\label{step:width-base}\textbf{Width base case.}
+If $D<4096$, compute the box solution $z$ by $\Basic$.
+Return $+$ at $i$ if $z_i>A_i+D/2$, and $-$ otherwise.
+
+\item\label{step:down}\textbf{Downward pass.}
+Use $c,M,q,p$ from Equation~\eqref{eq:pivot-parameters} and
+initialize $k=c$. Repeatedly make a centered width-$q$ call with
+masses $(a,\frac43 b)$ and, from its labels, set simultaneously
+\[
+ k_i^{\mathrm{new}}=
+ \begin{cases}
+   \max\{c_i-M,k_i-p\},&\text{if the label at }i\text{ is }-,\\
+   k_i,&\text{if the label at }i\text{ is }+.
+ \end{cases}
+\]
+Replace $k$ by $k^{\mathrm{new}}$. Stop when the update leaves
+$k$ unchanged, denote this last pivot by $k^{\downarrow}$, and
+record
+\[
+                       I_- =\{i:k_i^{\downarrow}<c_i-P\}.
+\]
+
+\item\label{step:up}\textbf{Upward pass.}
+Start from $k=k^{\downarrow}$. Repeatedly make a centered width-$q$
+call with masses $(\frac43 a,b)$ and set simultaneously
+\[
+ k_i^{\mathrm{new}}=
+ \begin{cases}
+   \min\{c_i+M,k_i+p\},&\text{if the label at }i\text{ is }+,\\
+   k_i,&\text{if the label at }i\text{ is }-.
+ \end{cases}
+\]
+Replace $k$ by $k^{\mathrm{new}}$. Stop when it is unchanged,
+write $k^f$ for the final pivot, and record
+\[
+                       I_+=\{i:k_i^f>c_i+P\}.
+\]
+
+\item\label{step:provisional}\textbf{Provisional labels and new masses.}
+Make one centered width-$D/2$ call at $k^f$ with masses $(a,b)$.
+For its returned vector $\lambda^0\in\{+,-\}^V$, define
+\begin{equation}
+ (\bar a_i,\bar b_i)=
+ \begin{cases}
+  (\frac45 a_i,\frac85 b_i),&\lambda_i^0=+,\\[1mm]
+  (\frac85 a_i,\frac45 b_i),&\lambda_i^0=-.
+ \end{cases}
+ \label{eq:reweighting}
+\end{equation}
+
+\item\label{step:continuation}\textbf{Continuation and overrides.}
+Call $\Label(A,D,\bar a,\bar b)$. In that child's output put
+$-$ on $I_-$ and $+$ on $I_+\setminus I_-$, leaving every
+other label unchanged. Return the resulting vector.
+\end{enumerate}
+\end{procedure}
+
+Each pass includes a final child call whose update changes no
+coordinate. Correctness will use that call's guarantee together with
+the stationary update. The two passes run in the stated order;
+within one update every coordinate uses the same returned label vector
+and the same old pivot.
+
+\subsection{Integral nested boxes and bounded passes}
+
+The next facts depend only on the mechanics of the procedure, not on
+the meaning of the returned labels.
+
+\begin{lemma}
+\label{lem:well-formed}
+Every recursive child is a valid input of the form
+Equation~\eqref{eq:recursive-input}, and its box is contained in
+its parent's box. In a nonbase call the pivot satisfies
+\[
+ \begin{aligned}
+ c-M\le k\le c&\qquad\text{during the downward pass},\\
+ c-M\le k\le c+M&\qquad\text{during the upward pass}.
+ \end{aligned}
+\]
+If child calls terminate, each pass makes at most $1024n+1$ calls.
+\end{lemma}
+
+\begin{proof}
+In the recursive case, $D\ge4096$ is dyadic, so all parameters
+in Equation~\eqref{eq:pivot-parameters}, both child half-widths,
+and every pivot coordinate are integral. The child widths $D/128$
+and $D/2$ are positive powers of two. The update caps imply the
+stated pivot bounds. A centered child has width $r\le D/2$,
+and its endpoints satisfy
+\[
+ c-M-r/2\ge A+D/8\ge A,
+ \qquad c+M+r/2\le A+7D/8\le A+D.
+\]
+The continuation has the unchanged parent box. All mass multipliers
+preserve positivity and rationality.
+
+The pivot lies on the grid of spacing $p$ through $c$, since
+$M/p=512$ is integral and both caps belong to that grid. In a
+changing update at least one coordinate moves by at least $p$.
+Each pass is coordinatewise monotone over a range of at most $2M$,
+so a coordinate moves at most $2M/p=1024$ times. At most $1024n$
+updates can change the pivot. One further child call certifies the
+unchanged update at which the pass stops.
+\end{proof}
+
+\subsection{A rank that decreases for every child}
+
+For positive masses define
+\begin{equation}
+ \mu(a,b)=\min_{i\in V}a_i b_i,
+ \qquad \rho=\frac{32}{25},
+ \qquad
+ B(\mu)=
+ \begin{cases}
+  0,&\mu>1,\\
+  1+\lfloor\log_{\rho}(1/\mu)\rfloor,&0<\mu\le1.
+ \end{cases}
+ \label{eq:budget}
+\end{equation}
+The integer $B$ measures how many guaranteed increases of the
+minimum mass product can precede the mass base case. It is used for
+analysis only; the executable procedure does not evaluate logarithms.
+
+\begin{lemma}[Well-founded recursion]
+\label{lem:termination}
+The procedure terminates on every input in
+Equation~\eqref{eq:recursive-input}. Writing $D=2^d$, every
+child of a nonbase call has smaller rank
+\[
+                            R=d+B(\mu(a,b)).
+\]
+The provisional child in Step~5 is the only child that preserves $B$.
+Every other child decreases $B$ by at least one.
+\end{lemma}
+
+\begin{proof}
+If $\mu>1$, the mass base case applies. Otherwise multiplying
+$\mu$ by a factor at least $\rho$ decreases $B$ by at least
+one: either the new value exceeds one, or its logarithm in
+Equation~\eqref{eq:budget} falls by at least one before rounding
+down.
+
+In either pivot pass, each product $a_i b_i$ is multiplied by
+$4/3\ge\rho$. In the continuation, each product is multiplied by
+$(4/5)(8/5)=\rho$, independent of the provisional label. Thus
+these children decrease $B$ and do not increase $d$. The
+provisional child keeps the masses and halves the width, decreasing
+$d$ by one. Every child has strictly smaller nonnegative rank $R$.
+
+Induction on $R$ now proves termination. Base cases require only
+finite arithmetic and, in the width case, the finite iteration of
+Lemma~\ref{lem:accepted-box}. At a nonbase node, every child
+terminates by induction. Lemma~\ref{lem:well-formed} then bounds
+the two passes; the remaining two children and local operations are
+finite as well. This reasoning makes no correctness assumption about
+a label.
+\end{proof}
+
+The distinction between width reduction and budget reduction is shown
+in Figure~\ref{fig:recursion}. It permits induction for correctness
+and a sharper count than a general branching bound: only one child
+can preserve the mass budget, irrespective of the width.
+
+\begin{figure}[htbp]
+ \centering
+ \input{figures/recursion}
+ \caption{Children of a nonbase call. The two passes together produce
+ at most $2(1024n+1)$ narrow children, each decreasing $B$.
+ The provisional child preserves $B$ and halves the width; the
+ continuation preserves the box and decreases $B$. Edges show the
+ recursion tree, not the execution order.}
+ \label{fig:recursion}
+\end{figure}

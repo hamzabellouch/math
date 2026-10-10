@@ -1,0 +1,229 @@
+\section{Introduction}\label{sec:introduction}
+
+Weisfeiler--Leman refinement compares graphs by repeatedly refining colors
+of ordered vertex tuples. For every fixed dimension, this procedure is
+computable in polynomial time. When the dimension is part of the input,
+however, the familiar \(n^{O(k)}\) tuple computation is no longer a
+polynomial-time algorithm. We determine the complexity of deciding its
+answer, both on general graphs and on connected graphs of maximum degree
+three.
+
+We use the \emph{joint-update} convention. Initially a \(k\)-tuple records
+the equalities and adjacencies among its entries. For each possible
+replacement vertex \(z\), form the vector of \(k\) old colors obtained by
+replacing, in turn, each coordinate by that same \(z\). The new color
+records the old color and the multiset of these entire vectors. Color
+names are common to the two graphs. Write \(G\equiv_k H\) if their
+\(k\)-tuple color histograms agree at every round.
+\Cref{def:joint-wl} gives the recursive definition.
+
+The language \(\WL\) consists of the encodings \((G,H,k)\) with
+\(G\equiv_k H\), where \(G,H\) are finite simple uncolored undirected
+graphs represented by explicit adjacency matrices and \(k\ge2\) is
+encoded in binary. Its restricted version \(\SubWL\) additionally
+requires the two graphs to be connected, of the same positive order,
+and of maximum degree at most three. Malformed encodings or failures
+of the specified graph and dimension conditions are excluded.
+
+\begin{theorem}\label{thm:main}
+Both \(\WL\) and \(\SubWL\) are \(\EXPTIME\)-complete under deterministic
+polynomial-time many-one reductions.
+\end{theorem}
+
+The degree condition is an upper bound: the constructed subcubic graphs
+are not required to be regular. The two problems concern equivalence
+of a supplied pair at the supplied dimension, rather than finding the
+least dimension that identifies one graph among all possible mates.
+The companion \citep[Theorem~1.1]{CompanionIdentification}
+proves \(\EXPTIME\)-completeness for deciding whether a supplied
+dimension identifies one graph among all mates, using our uniform
+computation interface together with a separate all-mates reconstruction.
+The dimension may exceed the graph order; the upper bound proves that
+it can be capped before any tuple table is allocated.
+
+\subsection{History and the role of the degree restriction}
+
+The refinement method originates in Weisfeiler and Leman's work on
+graph canonization and its associated algebra \citep{WeisfeilerLeman1968}.
+Cai, F{\"u}rer and Immerman established linear lower bounds on the
+number of variables required for graph identification. Their examples
+include nonisomorphic degree-three graphs with color classes of size at most
+four that remain indistinguishable with linearly many counting variables
+\citep[Theorem~5.2 and Corollary~6.5]{CaiFurerImmerman1992}.
+These are dimension lower bounds, not lower bounds on every algorithm
+deciding the outcome of refinement. The joint-update convention and its
+bijective \((k+1)\)-pair game characterization are recorded explicitly by
+Kiefer and Neuen \citep[Section~2.2 and Theorem~1]{KieferNeuen2019}.
+We include the complete histogram-to-empty-game proof because the
+extra pair and the timing of the announced bijection are essential.
+
+For dimension supplied as input, Seppelt proved coNP-hardness of
+pair equivalence and recorded Berkholz's question of
+\(\EXPTIME\)-completeness
+\citep[Theorem~5 and the preceding question, p.~82:3]{Seppelt2024}.
+Lichter, Ra{\ss}mann and Schweitzer independently obtained coNP-hardness
+for simple uncolored graphs
+\citep[Theorem~19]{LichterRassmannSchweitzer2025}.
+Their work also studies the distinct identification-dimension problem.
+\Cref{thm:main} answers the equivalence question for the joint-update
+convention and, in addition, for the connected subcubic restriction.
+
+The latter restriction is instructive because Luks proved that
+isomorphism of graphs of every fixed maximum degree is decidable in
+polynomial time \citep{Luks1982}. Refinement at a prescribed dimension
+asks a different question: nonisomorphic graphs can still be equivalent.
+Our degree-three result concerns that query, not bounded-degree
+graph-isomorphism hardness.
+
+Grohe, Lichter, Neuen and Schweitzer compress CFI constructions into
+smaller graphs while preserving long refinement sequences
+\citep{cfiCompression2025}. The product-address,
+scalar-image, and corner-potential methods are shared with the companion
+\emph{Unconditional time lower bounds for Weisfeiler--Leman equivalence}
+\citep[Sections~3--4]{CompanionFixedDimension}. That paper fixes the
+dimension and proves a quantitative lower bound for arbitrary
+deterministic deciders. Here the number of binary coordinates grows with
+the source input. We therefore prove the required computation and
+projection statements locally and account for every dependence on that
+number. A fixed-dimension theorem with dimension-dependent constants
+would not supply a uniform polynomial reduction.
+
+\subsection{How the reduction uses the bijective game}
+
+The game formulation on equal-order graphs explains what the reduction
+must preserve.
+With \(k+1\) named pair slots, each occupied slot holds one vertex
+from each graph. Spoiler may discard pairs and request a vacant slot.
+Duplicator must then announce a bijection of the entire vertex sets
+before Spoiler chooses the first vertex of the new pair; its mate is
+fixed by that bijection. Duplicator wins by preserving equality and
+adjacency among all marked pairs through every finite play.
+For the joint update above, a winning strategy from the empty position
+is equivalent to \(G\equiv_k H\)
+(\Cref{lem:wl-game}). The order of these choices is important: the
+construction must support a whole bijection, not only a response to an
+already selected vertex.
+
+The reduction starts from a fixed exponential-time machine and builds
+a pair of polynomial-size graphs. Duplicator will win exactly when the
+machine rejects its input. Choosing a decider for the complement of the
+source language gives a many-one reduction with the required polarity.
+The following three stages explain how an exponential computation can
+be represented and tested by a game on these small graphs.
+
+\paragraph{A computation described by its address rules.}
+Time and tape position are written in binary, using \(r\) coordinates
+in total. We output dimension \(k=r\), so the game has \(r+1\) pair
+slots. The circuit gates have a constant number of types and occur
+at these addresses. A connection schema lists an allowed set of bits
+and an injective map for each coordinate; it represents all connections
+whose source addresses lie in the product of those sets.
+Carry and borrow cases describe successive times and neighboring tape
+positions with polynomially many schemas, without listing the
+exponentially many gates.
+
+We next replace the circuit by nonempty sets of one- or two-bit vectors.
+Each comparison equates the image of a single scalar affine form at
+one endpoint with the image of another form at the other endpoint.
+A private two-coordinate buffer makes a true circuit output force the
+image \(\{0\}\) at the next input, while a false output can retain the
+full image \(\{0,1\}\) and support any nonempty destination image.
+Thus the constraints are consistent exactly when every accepting test
+is false. Different comparisons may use different vectors from the
+same witness set. This individual-image condition, rather than a
+simultaneous vector assignment, is the information the later game
+will recover. \Cref{sec:computation} proves the circuit and buffer
+constructions.
+
+\paragraph{Local affine data with an exact extension property.}
+To compress the addressed comparisons, subdivide each schema into a
+long wire and arrange the \(r\) address coordinates in a cycle.
+A site records a vector on one step of this cycle; a square relates
+the two site vectors on opposite sides of one wire link, together
+with two scalar values on its other sides. These shared values are
+called readouts. Only two consecutive address coordinates occur in
+one site or square, so there are polynomially many such blocks and
+each has a constant-size space of legal valuations.
+
+The two graph versions will encode a homogeneous and an affine version
+of each block equation. An offset translates the homogeneous valuations
+of a block to its affine valuations. Offsets on several blocks must
+agree on every shared readout. We construct nonempty families of compatible lists on every set of at
+most \(r+1\) blocks. Their restrictions are exactly the corresponding
+smaller families. Thus every particular list selected by the construction
+extends when any one further block is added within this size bound
+(\Cref{prop:exact-projection}).
+
+The proof represents offsets using values at the wire types, called
+shifts, together with auxiliary values at the corners. A collection of
+\(r\) blocks that wraps around the coordinate cycle determines a full
+address and constrains a shift through the corresponding witness set.
+The original scalar-image equality supplies the preimage needed for
+extension. On a component that does not wrap, adjusting the corner
+values absorbs a change of shifts while preserving every retained
+readout. \Cref{offset:section} makes these corner potentials precise.
+
+\paragraph{Realizing the blocks and reading the game.}
+Each graph vertex belongs to exactly one block part. An offset defines
+a bijection of that entire part, depending only on the chosen block's
+offset. Compatible offsets give an isomorphism on the corresponding
+union of parts. A block is active when its part contains a marked vertex.
+To announce a global bijection, Duplicator extends the
+current list separately for every inactive block, using exact extension.
+These choices need not agree with each other: after the announcement,
+Spoiler's one selected vertex activates at most one new block.
+
+The converse uses distinguished queries whose responses decode to legal
+block valuations. With \(r\) marked sites around one coordinate cycle,
+sum the returned vectors to obtain a value at the addressed variable.
+The one spare pair moves this ring across the squares of a wire while
+retaining each old value until it has been copied. Summing the square
+equations cancels the intermediate scalar readouts. Collecting all sums
+attained under one winning strategy, and transferring in both directions,
+gives exactly the required scalar-image equalities. Responses at different
+visits need not coincide.
+
+The general realization makes legal valuations into vertices and uses
+private leaves to identify their blocks. The connected subcubic
+realization replaces these high-degree parts by valuation paths,
+prefix trees and equality matchings for shared readouts; triangles and
+private paths identify the vertex sorts. The main additional task is
+recognition: a winning strategy must preserve the encoded readouts
+even at a history with all slots occupied. Hypothetical continuations
+may discard unrelated pairs to test a retained pair, so these tests
+establish invariants of the original history without consuming spare
+pairs during the ring transfer.
+
+\paragraph{Uniform quantitative bounds.}
+For a fixed machine \(M\) running in time \(2^{p(m)}\) on inputs of
+length \(m\), the reduction uses
+\(r=2(p(m)+2)\) address coordinates and outputs dimension \(k=r\).
+The two realizations give the following bounds.
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Realization & Graph order & Adjacency-matrix construction time\\
+\midrule
+General & \(O_M((r+1)^{12})\) & \(O_{M,p}((r+2)^{80})\)\\
+Connected subcubic & \(O_M((r+2)^{16})\) & \(O_{M,p}((r+2)^{160})\)\\
+\bottomrule
+\end{tabular}
+\end{center}
+The subscripts indicate dependence only on the fixed machine and
+polynomial; the exponents are absolute. Although the subcubic result
+already gives qualitative hardness on general graphs, the general
+realization has a smaller output and compiler bound. Both bounds are
+proved in \Cref{prop:uniform-general,prop:uniform-construction}.
+Since the output dimension is polynomial in the source input length,
+the two problems remain \(\EXPTIME\)-complete when it is encoded in
+unary (\Cref{cor:unary-dimension}).
+
+\paragraph{Organization.}
+\Cref{game:section} proves the upper bound and the game characterization.
+\Cref{sec:computation} gives the uniform computation and scalar-image
+reductions, and \Cref{offset:section} proves exact projection for the
+common affine blocks. \Cref{general:section} constructs the general
+realization, and \Cref{reduction:section} isolates its reusable properties
+and proves the game transfer. \Cref{graph:section} supplies a connected
+subcubic realization with those properties. \Cref{uniform:section}
+establishes the uniform compiler bounds and completes both reductions.

@@ -1,0 +1,571 @@
+
+
+
+\let\pgfkeys@orig@case@one=\pgfkeys@case@one
+\let\pgfkeys@orig@@set=\pgfkeys@@set
+\let\pgfkeys@orig@@qset=\pgfkeys@@qset
+\let\pgfkeys@orig@try=\pgfkeys@try
+\let\pgfkeys@orig@unknown=\pgfkeys@unknown
+
+\newif\ifpgfkeysfilteringisactive
+\newif\ifpgfkeysfiltercontinue
+\let\pgfkeys@key@predicate=\pgfkeys@empty
+\let\pgfkeys@filtered@handler=\pgfkeys@empty
+\newtoks\pgfkeys@tmptoks
+
+\def\pgfkeysfiltered{%
+    \expandafter\pgfkeysfiltered@@install\expandafter{\pgfkeysdefaultpath}%
+}
+
+\long\def\pgfkeysfiltered@@install#1#2{%
+    \pgfkeys@install@filter@and@invoke{%
+        \let\pgfkeysdefaultpath\pgfkeys@root%
+        \pgfkeys@parse#2,\pgfkeys@mainstop%
+        \def\pgfkeysdefaultpath{#1}%
+    }%
+}
+
+\long\def\pgfkeysalsofrom#1{%
+    \expandafter\pgfkeysalso\expandafter{#1}%
+}
+
+\long\def\pgfkeysalsofilteredfrom#1{%
+    \expandafter\pgfkeysalsofiltered\expandafter{#1}%
+}
+
+\long\def\pgfkeysalsofiltered#1{%
+    \pgfkeys@install@filter@and@invoke{\pgfkeysalso{#1}}%
+}%
+
+\long\def\pgfqkeysfiltered#1{%
+    \expandafter\pgfqkeysfiltered@@install\expandafter{\pgfkeysdefaultpath}{#1}%
+}
+
+\long\def\pgfqkeysfiltered@@install#1#2#3{%
+    \pgfkeys@install@filter@and@invoke{%
+        \def\pgfkeysdefaultpath{#2/}\pgfkeys@parse#3,\pgfkeys@mainstop\def\pgfkeysdefaultpath{#1}%
+    }%
+}
+
+
+
+\def\pgfkeysactivatefamily#1{%
+    \pgfkeysiffamilydefined
+        {#1}%
+        {\csname pgfk@#1/familyactivetrue\endcsname}%
+        {\pgfkeysvalueof{/errors/family unknown/.@cmd}{#1}\pgfeov}%
+}
+
+\def\pgfkeysdeactivatefamily#1{%
+    \pgfkeysiffamilydefined
+        {#1}%
+        {\csname pgfk@#1/familyactivefalse\endcsname}%
+        {\pgfkeysvalueof{/errors/family unknown/.@cmd}{#1}\pgfeov}%
+}
+
+\def\pgfkeysactivatefamilies#1#2{%
+    \pgfkeyssavekeyfilterstateto\pgfkeys@cur@state
+    \expandafter\pgfkeysactivatefamilies@impl\expandafter{\pgfkeys@cur@state}{#1}{#2}%
+}
+\def\pgfkeysactivatefamilies@impl#1#2#3{%
+    \pgfkeysinstallkeyfilter{/pgf/key filters/false}{}%
+    \let#3=\pgfkeys@empty%
+    \def\pgfkeys@filtered@handler{\pgfkeys@family@activate@handler{#3}}%
+    \pgfkeysalsofiltered{#2}%
+    #1%
+}
+
+\def\pgfkeys@family@activate@handler#1{%
+    \pgfkeysactivatefamily{\pgfkeyscurrentkey}%
+    \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter#1\expandafter\pgfkeysdeactivatefamily\expandafter{\pgfkeyscurrentkey}}%
+    \edef#1{\the\pgfkeys@tmptoks}%
+}
+
+\long\def\pgfkeysiffamilydefined#1#2#3{\ifcsname ifpgfk@#1/familyactive\endcsname#2\else#3\fi}
+
+\def\pgfkeysisfamilyactive#1{%
+    \pgfkeysiffamilydefined{#1}{%
+        \expandafter\let\expandafter\ifpgfkeysfiltercontinue\csname ifpgfk@#1/familyactive\endcsname
+    }{%
+        \pgfkeysvalueof{/errors/family unknown/.@cmd}{#1}\pgfeov%
+        \expandafter\expandafter\expandafter\let\csname ifpgfkeysfiltercontinue\endcsname\csname iffalse\endcsname
+    }%
+}%
+
+\def\pgfkeysgetfamily#1#2{%
+    \pgfkeysifdefined{#1/family}{\pgfkeysgetvalue{#1/family}{#2}\pgfkeyssuccesstrue}{\pgfkeyssuccessfalse}%
+}
+
+\def\pgfkeyssetfamily#1#2{%
+    \pgfkeysiffamilydefined{#2}{%
+        \pgfkeyssetvalue{#1/family}{#2}%
+    }{%
+        \pgfkeysalso{/errors/family unknown={#2}}%
+    }%
+}%
+
+
+\long\def\pgfkeys@cur@is@descendant@of@errors{%
+    \expandafter\pgfkeys@cur@is@descendant@of@errors@impl\pgfkeyscurrentkey/errors\pgf@@eov
+}%
+\long\def\pgfkeys@cur@is@descendant@of@errors@impl#1/errors#2\pgf@@eov{%
+    \def\pgfkeyspred@TMP{#1}%
+    \ifx\pgfkeyspred@TMP\pgfkeys@empty
+        \pgfkeysfiltercontinuetrue
+    \else
+        \pgfkeysfiltercontinuefalse
+    \fi
+}%
+
+\def\pgfkeysinterruptkeyfilter{%
+    \ifpgfkeysfilteringisactive
+        \let\pgfkeys@case@one=\pgfkeys@orig@case@one
+        \let\pgfkeys@try=\pgfkeys@orig@try
+        \let\pgfkeys@unknown=\pgfkeys@orig@unknown
+    \fi
+}
+
+\def\endpgfkeysinterruptkeyfilter{%
+    \ifpgfkeysfilteringisactive
+        \let\pgfkeys@case@one=\pgfkeys@case@one@filtered
+        \let\pgfkeys@try=\pgfkeys@try@filtered
+        \let\pgfkeys@unknown=\pgfkeys@unknown@filtered
+    \fi
+}
+
+\def\pgfkeysactivatefamiliesandfilteroptions#1#2{%
+    \pgfkeysactivatefamilies{#1}{\pgfkeys@family@deactivation}%
+    \pgfkeysfiltered{#2}%
+    \pgfkeys@family@deactivation
+}
+
+\def\pgfqkeysactivatefamiliesandfilteroptions#1#2#3{%
+    \pgfkeysactivatefamilies{#1}{\pgfkeys@family@deactivation}%
+    \pgfqkeysfiltered{#2}{#3}%
+    \pgfkeys@family@deactivation
+}
+
+\def\pgfkeyssplitpath{\pgfkeys@split@path}%
+
+
+\def\pgfkeysactivatesinglefamilyandfilteroptions#1#2{%
+    \pgfkeysactivatefamily{#1}%
+    \pgfkeysfiltered{#2}%
+    \pgfkeysdeactivatefamily{#1}%
+}
+
+\def\pgfqkeysactivatesinglefamilyandfilteroptions#1#2#3{%
+    \pgfkeysactivatefamily{#1}%
+    \pgfqkeysfiltered{#2}{#3}%
+    \pgfkeysdeactivatefamily{#1}%
+}
+
+\def\pgfkeysinstallkeyfilter#1#2{%
+    \pgfkeysifdefined{#1/.@cmd}{%
+        \edef\pgfkeyscurrentkeyfilter{#1}%
+        \def\pgfkeyscurrentkeyfilterargs{#2}%
+        \pgfkeysgetvalue{#1/.@cmd}{\pgfkeys@key@predicate@}%
+        \def\pgfkeys@key@predicate{\pgfkeys@key@predicate@#2\pgfeov}%
+    }{%
+        \pgfkeysvalueof{/errors/no such key filter/.@cmd}{#1}{#2}\pgfeov%
+    }%
+}
+
+\def\pgfkeysinstallkeyfilterhandler#1#2{%
+    \pgfkeysifdefined{#1/.@cmd}{%
+        \edef\pgfkeyscurrentkeyfilterhandler{#1}%
+        \def\pgfkeyscurrentkeyfilterhandlerargs{#2}%
+        \pgfkeysgetvalue{#1/.@cmd}{\pgfkeys@filtered@handler@}%
+        \def\pgfkeys@filtered@handler{\pgfkeys@filtered@handler@#2\pgfeov}%
+    }{%
+        \pgfkeysvalueof{/errors/no such key filter handler/.@cmd}{#1}{#2}\pgfeov%
+    }%
+}
+
+\def\pgfkeyssavekeyfilterstateto#1{%
+    \pgfkeys@tmptoks={\pgfkeysinstallkeyfilter}%
+    \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter\the\expandafter\pgfkeys@tmptoks\expandafter{\pgfkeyscurrentkeyfilter}}%
+    \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter\the\expandafter\pgfkeys@tmptoks\expandafter{\pgfkeyscurrentkeyfilterargs}\pgfkeysinstallkeyfilterhandler}%
+    \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter\the\expandafter\pgfkeys@tmptoks\expandafter{\pgfkeyscurrentkeyfilterhandler}}%
+    \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter\the\expandafter\pgfkeys@tmptoks\expandafter{\pgfkeyscurrentkeyfilterhandlerargs}}%
+    \edef#1{%
+        \the\pgfkeys@tmptoks
+    }%
+}
+
+
+\pgfkeys{%
+    /errors/family unknown/.code=\pgfkeys@error{%
+        Sorry, I do not know family '#1' and can't work with any assoicated family handling. Perhaps you misspelled it?},
+    /errors/no such key filter/.code 2 args=\pgfkeys@error{Sorry, there is no such key filter '#1'.},
+    /errors/no such key filter handler/.code 2 args=\pgfkeys@error{Sorry, there is no such key filter handler '#1'.},
+    /handlers/.is family/.append code={%
+        \edef\pgfkeyspred@TMP{pgfk@\pgfkeyscurrentpath/familyactive}%
+        \expandafter\pgfkeys@non@outer@newif\expandafter{\pgfkeyspred@TMP}%
+        \edef\pgfkeyspred@TMP{\pgfkeyscurrentpath/.belongs to family=\pgfkeyscurrentpath}%
+        \expandafter\pgfkeysalso\expandafter{\pgfkeyspred@TMP}%
+    },%
+    /handlers/.activate family/.code=\pgfkeysactivatefamily{\pgfkeyscurrentpath},
+    /handlers/.deactivate family/.code=\pgfkeysdeactivatefamily{\pgfkeyscurrentpath},
+    /handlers/.belongs to family/.code={\pgfkeyssetfamily{\pgfkeyscurrentpath}{#1}},%
+    /handlers/.lastretry/.code={%
+        \ifpgfkeyssuccess\else
+            \pgfkeys@try
+            \ifpgfkeyssuccess\else
+                \pgfkeys@split@path%
+                \pgfkeys@unknown
+            \fi
+        \fi
+    },
+    /handlers/.install key filter/.code={%
+        \pgfkeysinstallkeyfilter{\pgfkeyscurrentpath}{#1}%
+    },%
+    /handlers/.install key filter handler/.code={%
+        \pgfkeysinstallkeyfilterhandler{\pgfkeyscurrentpath}{#1}%
+    },%
+    /pgf/key filter handlers/append filtered to/.code={%
+        \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter\pgfkeyscurrentkeyRAW\expandafter=\expandafter{\pgfkeyscurrentvalue}}%
+        \ifx#1\pgfkeys@empty
+        \else
+            \pgfkeys@tmptoks=\expandafter\expandafter\expandafter{\expandafter#1\expandafter,\the\pgfkeys@tmptoks}%
+        \fi
+        \edef#1{\the\pgfkeys@tmptoks}%
+    },%
+    /pgf/key filter handlers/ignore/.code={},
+    /pgf/key filter handlers/ignore/.install key filter handler,
+    /pgf/key filter handlers/log/.code={%
+        \pgf@typeout{LOG: the option '\pgfkeyscurrentkey' (was originally '\pgfkeyscurrentkeyRAW') (case \pgfkeyscasenumber) has not been processed due to pgfkeysfiltered.}%
+    },
+    /pgf/key filters/active families/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuetrue
+        \else
+            \if\pgfkeyscasenumber3%
+                \pgfkeysgetfamily\pgfkeyscurrentpath\pgfkeyspred@TMP
+            \else
+                \pgfkeysgetfamily\pgfkeyscurrentkey\pgfkeyspred@TMP
+            \fi
+            \ifpgfkeyssuccess
+                \pgfkeysisfamilyactive{\pgfkeyspred@TMP}%
+            \else%
+                \pgfkeysfiltercontinuefalse
+            \fi
+        \fi
+    },%
+    /pgf/key filters/active families or no family/.code 2 args={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysevalkeyfilterwith{#2}%
+        \else
+            \if\pgfkeyscasenumber3%
+                \pgfkeysgetfamily\pgfkeyscurrentpath\pgfkeyspred@TMP
+            \else
+                \pgfkeysgetfamily\pgfkeyscurrentkey\pgfkeyspred@TMP
+            \fi
+            \ifpgfkeyssuccess
+                \pgfkeysisfamilyactive{\pgfkeyspred@TMP}%
+            \else%
+                \pgfkeysevalkeyfilterwith{#1}%
+            \fi
+        \fi
+    },
+    /pgf/key filters/active families or no family DEBUG/.code 2 args={%
+        \if\pgfkeyscasenumber0%
+            \pgf@typeout{[pgfkeyshasactivefamilyornofamily(\pgfkeyscurrentkey, \pgfkeyscasenumber) invoking unknown handler '#2']}%
+            \pgfkeysevalkeyfilterwith{#2}%
+        \else
+            \if\pgfkeyscasenumber3%
+                \pgfkeysgetfamily\pgfkeyscurrentpath\pgfkeyspred@TMP
+            \else
+                \pgfkeysgetfamily\pgfkeyscurrentkey\pgfkeyspred@TMP
+            \fi
+            \ifpgfkeyssuccess
+                \pgfkeysisfamilyactive{\pgfkeyspred@TMP}%
+                \ifpgfkeysfiltercontinue
+                    \pgf@typeout{[pgfkeyshasactivefamilyornofamily(\pgfkeyscurrentkey, \pgfkeyscasenumber) family is ACTIVE]}%
+                \else
+                    \pgf@typeout{[pgfkeyshasactivefamilyornofamily(\pgfkeyscurrentkey, \pgfkeyscasenumber) family is NOT active.]}%
+                \fi
+            \else%
+                \pgf@typeout{[pgfkeyshasactivefamilyornofamily(\pgfkeyscurrentkey, \pgfkeyscasenumber) invoking has-no-family-handler '#1']}%
+                \pgfkeysevalkeyfilterwith{#1}%
+            \fi
+        \fi
+    },
+    /pgf/key filters/active families and known/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuefalse
+        \else
+            \if\pgfkeyscasenumber3%
+                \pgfkeysgetfamily\pgfkeyscurrentpath\pgfkeyspred@TMP
+            \else
+                \pgfkeysgetfamily\pgfkeyscurrentkey\pgfkeyspred@TMP
+            \fi
+            \ifpgfkeyssuccess
+                \pgfkeysisfamilyactive{\pgfkeyspred@TMP}%
+            \else%
+                \pgfkeysfiltercontinuefalse
+            \fi
+        \fi
+    },
+    /pgf/key filters/active families or descendants of/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuefalse
+        \else
+            \if\pgfkeyscasenumber3%
+                \pgfkeysgetfamily\pgfkeyscurrentpath\pgfkeyspred@TMP
+            \else
+                \pgfkeysgetfamily\pgfkeyscurrentkey\pgfkeyspred@TMP
+            \fi
+            \ifpgfkeyssuccess
+                \pgfkeysisfamilyactive{\pgfkeyspred@TMP}%
+            \else%
+                \def\pgfkeysisdescendantof@impl##1#1##2\pgf@@eov{%
+                    \def\pgfkeyspred@TMP{##1}%
+                    \ifx\pgfkeyspred@TMP\pgfkeys@empty
+                        \pgfkeysfiltercontinuetrue
+                    \else
+                        \pgfkeysfiltercontinuefalse
+                    \fi
+                }%
+                \expandafter\pgfkeysisdescendantof@impl\pgfkeyscurrentkey#1\pgf@@eov
+            \fi
+        \fi
+    },
+    /pgf/key filters/is descendant of/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuetrue
+        \else
+            \def\pgfkeysisdescendantof@impl##1#1##2\pgf@@eov{%
+                \def\pgfkeyspred@TMP{##1}%
+                \ifx\pgfkeyspred@TMP\pgfkeys@empty
+                    \pgfkeysfiltercontinuetrue
+                \else
+                    \pgfkeysfiltercontinuefalse
+                \fi
+            }%
+            \expandafter\pgfkeysisdescendantof@impl\pgfkeyscurrentkey#1\pgf@@eov
+        \fi
+    },%
+    /pgf/key filters/equals/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuetrue
+        \else
+            \def\pgfkeyspred@TMP{#1}%
+            \ifx\pgfkeyscurrentkey\pgfkeyspred@TMP
+                \pgfkeysfiltercontinuetrue
+            \else
+                \pgfkeysfiltercontinuefalse
+            \fi
+        \fi
+    },%
+    /pgf/key filters/not/.code={%
+        \pgfkeysevalkeyfilterwith{#1}%
+        \ifpgfkeysfiltercontinue
+            \pgfkeysfiltercontinuefalse
+        \else
+            \pgfkeysfiltercontinuetrue
+        \fi
+    },%
+    /pgf/key filters/and/.code 2 args={%
+        \pgfkeysevalkeyfilterwith{#1}%
+        \ifpgfkeysfiltercontinue
+            \pgfkeysevalkeyfilterwith{#2}%
+        \fi
+    },%
+    /pgf/key filters/or/.code 2 args={%
+        \pgfkeysevalkeyfilterwith{#1}%
+        \ifpgfkeysfiltercontinue
+        \else
+            \pgfkeysevalkeyfilterwith{#2}%
+        \fi
+    },%
+    /pgf/key filters/true/.code={\pgfkeysfiltercontinuetrue},%
+    /pgf/key filters/true/.install key filter,
+    /pgf/key filters/false/.code={%
+        \pgfkeysfiltercontinuefalse
+    },%
+    /pgf/key filters/defined/.code={%
+        \if\pgfkeyscasenumber0%
+            \pgfkeysfiltercontinuefalse
+        \else
+            \pgfkeysfiltercontinuetrue
+        \fi
+    },
+}%
+
+
+
+\def\pgfkeys@case@one@filtered{%
+    \pgfkeys@cur@is@descendant@of@errors
+    \ifpgfkeysfiltercontinue
+        \pgfkeys@orig@case@one
+    \else
+        \pgfkeysfiltercontinuetrue
+        \pgfkeysifdefined{\pgfkeyscurrentkey/.@cmd}{%
+            \def\pgfkeyscasenumber{1}%
+            \pgfkeys@key@predicate%
+            \ifpgfkeysfiltercontinue
+                \pgfkeysgetvalue{\pgfkeyscurrentkey/.@cmd}{\pgfkeys@code}%
+                \expandafter\pgfkeys@code\pgfkeyscurrentvalue\pgfeov
+            \else
+                \pgfkeys@filtered@handler%
+            \fi
+        }{%
+            \pgfkeysifdefined{\pgfkeyscurrentkey}{%
+                \def\pgfkeyscasenumber{2}%
+                \pgfkeys@key@predicate%
+                \ifpgfkeysfiltercontinue
+                    \pgfkeys@case@two@extern
+                \else
+                    \pgfkeys@filtered@handler%
+                \fi
+            }{%
+                \pgfkeys@split@path
+                \pgfkeysifdefined{/handlers/\pgfkeyscurrentname/.@cmd}{%
+                    \pgfkeys@ifexecutehandler{%
+                        \def\pgfkeyscasenumber{3}%
+                        \pgfkeys@key@predicate%
+                        \ifpgfkeysfiltercontinue
+                            \pgfkeysgetvalue{/handlers/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
+                            \expandafter\pgfkeys@code\pgfkeyscurrentvalue\pgfeov
+                        \else
+                            \pgfkeys@filtered@handler%
+                        \fi
+                    }{%
+                        \pgfkeys@unknown
+                    }%
+                }{%
+                    \pgfkeys@unknown
+                }%
+            }%
+        }%
+    \fi
+}%
+
+\def\pgfkeys@unknown@filtered{%
+    \def\pgfkeyscasenumber{0}%
+    \pgfkeys@key@predicate%
+    \ifpgfkeysfiltercontinue
+        \pgfkeys@orig@unknown
+    \else
+        \pgfkeys@filtered@handler%
+    \fi
+}
+
+\def\pgfkeys@try@filtered{%
+    \ifpgfkeysfiltercontinue
+        \pgfkeys@orig@try
+    \else
+        \pgfkeysfiltercontinuetrue
+        \edef\pgfkeyscurrentkey{\pgfkeyscurrentpath}%
+        \ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text%
+            \pgfkeysifdefined{\pgfkeyscurrentpath/.@def}%
+            {\pgfkeysgetvalue{\pgfkeyscurrentpath/.@def}{\pgfkeyscurrentvalue}}
+            {}%
+        \fi%
+        \pgfkeysifdefined{\pgfkeyscurrentpath/.@cmd}%
+        {%
+            \def\pgfkeyscasenumber{1}%
+            \pgfkeys@key@predicate%
+            \ifpgfkeysfiltercontinue
+                \pgfkeysgetvalue{\pgfkeyscurrentkey/.@cmd}{\pgfkeys@code}%
+                \expandafter\pgfkeys@code\pgfkeyscurrentvalue\pgfeov%
+            \else
+                \pgfkeys@filtered@handler%
+            \fi
+            \pgfkeyssuccesstrue%
+        }%
+        {%
+            \pgfkeysifdefined{\pgfkeyscurrentpath}%
+            {%
+                \def\pgfkeyscasenumber{2}%
+                \pgfkeys@key@predicate%
+                \ifpgfkeysfiltercontinue
+                    \ifx\pgfkeyscurrentvalue\pgfkeysnovalue@text%
+                        \pgfkeysvalueof{\pgfkeyscurrentpath}%
+                    \else%
+                        \pgfkeyslet{\pgfkeyscurrentpath}\pgfkeyscurrentvalue%
+                    \fi%
+                \else
+                    \pgfkeys@filtered@handler%
+                \fi
+                \pgfkeyssuccesstrue%
+            }%
+            {%
+                \pgfkeys@split@path%
+                \pgfkeysifdefined{/handlers/\pgfkeyscurrentname/.@cmd}{%
+                    \pgfkeys@ifexecutehandler{%
+                        \def\pgfkeyscasenumber{3}%
+                        \pgfkeys@key@predicate%
+                        \ifpgfkeysfiltercontinue
+                            \pgfkeysgetvalue{/handlers/\pgfkeyscurrentname/.@cmd}{\pgfkeys@code}%
+                            \expandafter\pgfkeys@code\pgfkeyscurrentvalue\pgfeov
+                        \else
+                            \pgfkeys@filtered@handler%
+                        \fi
+                        \pgfkeyssuccesstrue%
+                    }{%
+                        \pgfkeyssuccessfalse
+                    }%
+                }{%
+                    \pgfkeyssuccessfalse
+                }%
+            }%
+        }%
+    \fi
+}
+
+
+\long\def\pgfkeys@install@filter@and@invoke#1{%
+    \ifpgfkeysfilteringisactive
+        \pgfkeys@error{Sorry, nested calls to key filtering routines are not allowed. (reason: It is not possible to properly restore the previous filtering state after returning from the nested call)}%
+    \fi
+    \pgfkeysfilteringisactivetrue
+    \let\pgfkeys@case@one=\pgfkeys@case@one@filtered
+    \let\pgfkeys@try=\pgfkeys@try@filtered
+    \let\pgfkeys@unknown=\pgfkeys@unknown@filtered
+    #1%
+    \let\pgfkeys@case@one=\pgfkeys@orig@case@one
+    \let\pgfkeys@try=\pgfkeys@orig@try
+    \let\pgfkeys@unknown=\pgfkeys@orig@unknown
+    \pgfkeysfilteringisactivefalse
+}
+
+
+
+
+\long\def\pgfkeysevalkeyfilterwith#1{%
+    \pgfkeys@eval@key@filter@subroutine@unpack#1=\pgfkeysnovalue=\pgfkeys@stop
+}%
+\long\def\pgfkeys@eval@key@filter@subroutine@unpack#1=#2=#3\pgfkeys@stop{%
+    \pgfkeys@spdef\pgfkeyspred@TMP{#1}%
+    \edef\pgfkeyspred@TMP{\pgfkeyspred@TMP}%
+    \pgfkeys@spdef\pgfkeyspred@TMPB{#2}%
+    \ifx\pgfkeyspred@TMPB\pgfkeysnovalue@text%
+        \pgfkeysifdefined{\pgfkeyspred@TMP/.@def}%
+        {\pgfkeysgetvalue{\pgfkeyspred@TMP/.@def}{\pgfkeyspred@TMPB}}
+        {}%
+    \fi%
+    \ifx\pgfkeyspred@TMPB\pgfkeysvaluerequired%
+        \pgfkeysvalueof{/errors/value required/.@cmd}\pgfkeyspred@TMP\pgfkeyspred@TMPB\pgfeov%
+    \else%
+        \pgfkeysifdefined{\pgfkeyspred@TMP/.@cmd}{%
+            \pgfkeysgetvalue{\pgfkeyspred@TMP/.@cmd}{\pgfkeys@code}%
+            \expandafter\pgfkeys@code\pgfkeyspred@TMPB\pgfeov
+        }{%
+            \pgfkeysvalueof{/errors/no such key filter/.@cmd}\pgfkeyspred@TMP\pgfkeyspred@TMPB\pgfeov%
+        }%
+    \fi%
+}
+
+
+\def\pgfkeys@non@outer@newif@#1#2{%
+    \expandafter\edef\csname #2true\endcsname{\noexpand\let\noexpand#1=\noexpand\iftrue}%
+    \expandafter\edef\csname #2false\endcsname{\noexpand\let\noexpand#1=\noexpand\iffalse}%
+    \csname #2false\endcsname
+}%
+
+\def\pgfkeys@non@outer@newif#1{%
+    \expandafter\pgfkeys@non@outer@newif@\csname if#1\endcsname{#1}%
+}
+\endinput

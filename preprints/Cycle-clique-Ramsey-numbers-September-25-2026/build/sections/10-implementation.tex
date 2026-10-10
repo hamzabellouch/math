@@ -1,0 +1,137 @@
+\section{Exact implementations and accompanying data}
+\label{app:implementation}
+
+The finite proof uses integer arithmetic, finite sets, and exhaustive
+search. The accompanying project contains two complete Python programs,
+both using only the standard library. This appendix relates their
+operations to the mathematical rules. The first program is reproduced
+below in full; the second and the complete deduction traces are supplied
+as separate files in the project.
+
+\subsection{The compact implementation}
+
+The function \texttt{forests} implements the recursion in
+Lemma~\ref{finite:coverage}. Its nested function continues to extend a
+tuple even when that tuple is not itself selected, so no valid longer
+tuple is lost. An empty tuple consumes one clique vertex, which ensures
+termination even at zero amount. The function \texttt{data} implements
+Lemma~\ref{finite:labels}: its adjacency lists contain required edges,
+and its endpoint lists give $T(x)$.
+
+For a pair $x<y$, \texttt{forbidden} considers all subsets of old paths
+not meeting $x$ or $y$ internally, and every permitted endpoint choice.
+It tests endpoint degrees and increasing-edge reachability, which is
+equivalent to connectivity by Lemma~\ref{finite:labels}. Its interval
+endpoints are precisely those of~\eqref{finite:extension-interval}.
+The functions \texttt{empty} and \texttt{initial} create separate sets
+for the matrix entries, copy each initial constraint to its symmetric
+position, and leave the diagonal empty.
+
+The function \texttt{exact} adds every instance of the required-path
+rule. For each starting vertex, its state is a pair $(U,x)$ consisting
+of the visited vertex set, encoded by a bitmask, and the last vertex.
+Initially $U$ contains just the start. Each transition adds a required
+neighbour outside $U$. Induction on the number of transitions proves
+that the states at step $\ell$ are exactly the visited-set and endpoint
+pairs of simple paths of length $\ell$ from the start. Two paths with
+the same state have the same allowed continuations, so merging them
+loses no deduction. The function records $k-\ell$ at every resulting
+endpoint, as required by Lemma~\ref{finite:required-path-rule}.
+The starting vertex cannot be revisited, and reversing a path proves
+symmetry. When the required graph has one extra vertex, the initial
+copy of the old matrix fills only the old rows and columns; the new
+entries begin empty.
+
+The function \texttt{pack} computes
+Lemma~\ref{finite:ball-bounds}, omits only the dominated radii described
+in the main text, and uses~\eqref{finite:compatibility} as adjacency
+between options. Its recursive function \texttt{find} is the
+inclusion-and-exclusion search proved in Section~\ref{finite:packing-subsection}.
+The order of the options affects the running time but not the result.
+The special assignment \texttt{req[0]=\{0\}} handles two singleton
+options; every other compatibility test uses a positive interval.
+
+The function \texttt{bad} tests a required-edge conflict or a packing
+contradiction. The function \texttt{attach} makes a fresh copy of all
+required adjacency lists and adds either an edge or one vertex with
+two incident edges. Finally, \texttt{check} performs the procedure of
+Proposition~\ref{finite:procedure-soundness}. All trials in a round use
+the old matrix; the list of new consequences is added only after the
+trials finish. The outer loops are exactly~\eqref{finite:domain}.
+
+\subsection{A separate implementation}
+
+The file \texttt{verification/code/independent\_checker.py} imports no part of the
+compact implementation. It generates the same patterns by first
+partitioning $t$ into component orders, then taking positive
+compositions of the amounts on each component, identifying reversal,
+and choosing multisets of components of equal order. This enumerates
+the same complete invariant proved in Lemma~\ref{finite:coverage}.
+
+Old paths and their endpoint extensions are explicit vertex lists.
+Candidate extensions are checked for intersection, and their endpoint
+graph is tested by an undirected connectivity algorithm with degree
+counts. For each positive outside parameter, the program tests the
+optimality and cycle-closure inequalities directly. Forbidden parameters
+are stored as integer flags on unordered endpoint pairs. Required
+simple paths use sets of visited vertices, with the same state induction
+as above, rather than integer bitmasks.
+
+The packing search retains all radii and branches by base vertex: it
+chooses one compatible radius at that base, or omits the base. Every
+compatible family has one of these choices. An upper bound obtained
+by summing the largest remaining weight at each base safely prunes
+branches. The returned witness is checked for distinct bases, pairwise
+compatibility, and total weight greater than $k$.
+These different representations and search choices give a separate
+implementation of the proved rules. Both complete runs give every row
+of Table~\ref{finite:results}.
+
+\subsection{Deduction traces and reproduction}
+
+The file \texttt{verification/data/}\allowbreak\texttt{certificates.jsonl} contains one record for each
+of the $3099$ parameter-pattern instances. Each record gives its
+parameters, pattern, initial forbidden flags, every successful added
+prohibition grouped by simultaneous round, and a final contradiction
+witness. A packing witness records triples
+\[
+ (\text{base vertex},\ \text{radius},\ \text{independence bound}).
+\]
+Radius $-1$ denotes the singleton option, while radius $0$ denotes the
+outside-neighbour set. A flag's bit in position $d$
+records the prohibition of an outside path with $d$ internal vertices.
+In particular, $d=0$ records a forbidden edge, not a singleton option.
+All final witnesses in the supplied run are packing contradictions.
+
+These records are deduction traces. Their initial constraints and
+required-path consequences are recomputed by the full program; the
+records are not offered as proof objects for an additional independent
+minimal validator. The independent computational check is the separate
+implementation just described, together with the proved meaning of
+each inference. The trace makes its successful deductions available
+for inspection and exact comparison.
+
+From the project directory, the command
+\begin{lstlisting}
+python3 verification/code/verify.py --output /tmp/cycle-clique-check
+\end{lstlisting}
+runs both complete programs in separate processes and retains their
+full output, errors, runtime information, implementation hashes and
+generated data. The wrapper checks the complete range $5\le k\le17$,
+all $42$ parameter pairs, exactly $3099$ distinct pattern instances,
+zero unresolved cases, every printed row, and equality of the generated
+trace with the supplied file. Only integer and finite-set operations
+enter the mathematical decisions; wall-clock times are recorded solely
+as execution metadata.
+
+Use an ordinary Python~3 interpreter without optimization flags.
+The independent program also accepts restricted ranges for diagnostic
+runs, but their completion is not the full finite check. The wrapper
+above always runs and checks the complete domain. Building the paper
+and rerunning the calculations require no service, private repository,
+or additional mathematical input; the project README gives the build
+command and software requirements.
+
+\subsection{The complete compact program}
+
+\lstinputlisting[language=Python,basicstyle=\ttfamily\scriptsize]{../verification/code/original_checker.py}

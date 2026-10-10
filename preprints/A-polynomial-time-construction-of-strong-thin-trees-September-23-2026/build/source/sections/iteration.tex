@@ -1,0 +1,150 @@
+\section{Packing-preserving sparsification and the final tree}
+\label{sec:iteration}
+
+
+\begin{lemma}[One sparsification step]
+\label{lem:ta-sparsification}
+For all sufficiently large integers $r$, from an explicit graph $H$
+containing $r$ disjoint spanning trees one can construct a subgraph
+$H'=(V(H),A)$ and an integer $r'$ such that
+\begin{align}
+ &r/4\le r'\le r/2,\qquad H'\text{ contains }r'\text{ disjoint spanning trees},
+          \label{eq:ta-packing-halving}\\
+ &|\delta_{H'}(S)|\le a_r|\delta_H(S)|\quad\text{for every cut},
+       \qquad a_r=\tfrac12+3C_s r^{-1/8},
+          \label{eq:ta-cut-halving}\\
+ &\frac{a_r}{r'/r}\le1+C_1r^{-1/16}
+          \label{eq:ta-ratio-loss}
+\end{align}
+for an absolute $C_1$. The construction is deterministic and takes
+polynomial bit time, with the certificate in \Cref{lem:ta-signing}.
+\end{lemma}
+
+\begin{proof}
+Use \Cref{prop:ta-extraction} and discard excess trees to obtain a union
+$B$ of $q$ trees with $(1-Ar^{-1/16})r\le q\le r$.
+Increase the cutoff so $q\ge r/2$, and apply
+\Cref{lem:ta-frame,lem:ta-signing}. Put $\epsilon_r=C_s r^{-1/8}$.
+The two principal blocks of \Cref{eq:ta-half-frame} give
+\begin{equation}
+ L_A\preceq\tfrac12L_B+\epsilon_rX
+      \preceq\tfrac12L_H+\epsilon_rX,
+       \qquad \sum_{e\in A}z_ez_e^T\succeq(\tfrac12-\epsilon_r)I.
+ \label{eq:ta-two-blocks}
+\end{equation}
+A centered cut indicator $x$ has $xx^T\in\mathcal N$.
+By \Cref{eq:ta-K}, $x^TXx\le3x^TL_Hx$; evaluating the first inequality
+on $x$ proves \Cref{eq:ta-cut-halving}.
+
+For packing, fix a partition into $d$ parts. Let $W$ be the span of all
+$z_e$ with endpoints in a common part, and let $\Pi$ be the orthogonal
+projection onto $W^\perp$. Rank preservation from \Cref{lem:ta-frame}
+gives $\dim W\le\sum_{P\in\mathcal P}(|P|-1)=n-d$, hence
+$\rank\Pi\ge d-1$. Taking the trace after projection in the second
+inequality of \Cref{eq:ta-two-blocks}, and then using
+\Cref{eq:ta-frame}, gives
+\[
+ (\tfrac12-\epsilon_r)(d-1)
+       \le\sum_{e\in E_A(\mathcal P)}\|\Pi z_e\|^2
+       \le |E_A(\mathcal P)|\frac{1+4/r}{q}.
+\]
+The integer packing criterion thus supplies at least
+\begin{equation}
+                     \left\lfloor
+                       \frac{q(1/2-\epsilon_r)}{1+4/r}
+                     \right\rfloor
+ \label{eq:ta-projected-packing}
+\end{equation}
+spanning trees in $H'$.
+Compute its maximum packing number, capped at $\lfloor r/2\rfloor$,
+by binary search with the constructive graphic-matroid union algorithm,
+and denote the result by $r'$. The lower bound in
+\Cref{eq:ta-projected-packing} is already at most $\lfloor r/2\rfloor$,
+so capping does not reduce that guarantee. Consequently
+\[
+ \frac{r'}r\ge\frac12(1-C_2r^{-1/16})
+\]
+for an absolute $C_2$, absorbing the floor loss $1/r$, the extraction
+loss, and $\epsilon_r$. Taking a sufficiently large absolute cutoff
+gives \Cref{eq:ta-packing-halving}. Dividing
+$a_r=\tfrac12(1+6\epsilon_r)$ by this lower bound and enlarging the
+absolute constant proves \Cref{eq:ta-ratio-loss}.
+\end{proof}
+
+\begin{proof}[Proof of \Cref{thm:tt-algorithm} for explicit graphs]
+First suppose $n\ge2$. Put
+$r_{\mathrm{init}}=\max\{1,\lfloor k/2\rfloor\}$.
+For a partition into $d\ge2$ parts, summing the $k$-edge-connectivity
+bounds on its parts gives $|E_G(\mathcal P)|\ge kd/2$.
+Thus \Cref{eq:ta-integer-packing} supplies
+$\lfloor k/2\rfloor$ trees, and connectedness supplies one when $k=1$.
+Construct this initial packing. Notice that
+$r_{\mathrm{init}}\ge k/3$.
+
+Starting with $H_0=G$ and $r_0=r_{\mathrm{init}}$, apply
+\Cref{lem:ta-sparsification} whenever the current parameter is at least
+the fixed absolute cutoff $R_0$. Write $H_i,r_i$ for the resulting
+sequence.
+At termination $1\le r_J<R_0$, and every $H_i$ remains connected.
+Return any spanning tree of $H_J$.
+
+The ratio estimate gives, for every cut,
+\begin{align*}
+ |\delta_{H_J}(S)|
+ &\le |\delta_G(S)|\prod_{i<J}a_{r_i}\\
+ &\le |\delta_G(S)|\,\frac{r_J}{r_{\mathrm{init}}}
+                           \prod_{i<J}(1+C_1r_i^{-1/16}).
+\end{align*}
+Since $r_{i+1}\le r_i/2$, reading the parameters backwards bounds
+\[
+ \sum_{i<J}r_i^{-1/16}
+       \le R_0^{-1/16}\sum_{j\ge0}2^{-j/16}.
+\]
+Thus the product is bounded by one absolute constant, independently of
+the initial packing number. With $r_J<R_0$ and
+$r_{\mathrm{init}}\ge k/3$, the displayed estimate implies
+\Cref{eq:ta-thin} for a universal $C$. The same calculation covers
+$J=0$, with empty product one: in that case
+$r_{\mathrm{init}}<R_0$ and any spanning tree suffices.
+
+There are at most $J_{\max}=1+\lceil\log_2(m+1)\rceil$ iterations.
+Every iteration consists of deterministic polynomial-time routines,
+including the rational signing algorithm of \Cref{thm:rational-signing}.
+The arithmetic and precision bounds proved above ensure that all
+intermediate encodings and the total work remain polynomial in the
+explicit input length.
+When $n=1$, return the empty tree before any packing or matrix call.
+\end{proof}
+
+\paragraph{Binary multiplicities.}
+It remains to reduce a succinct multigraph to an explicit one without
+work polynomial in the numerical value of $k$. For $n\ge2$, let
+$c_{uv}$ be the binary multiplicity of the unordered pair $uv$ and set
+\begin{equation}
+ c'_{uv}=\min\{c_{uv},k\},\qquad
+ a_{uv}=\left\lfloor\frac{2n^2c'_{uv}}k\right\rfloor.
+ \label{eq:ta-binary-reduction}
+\end{equation}
+Every nontrivial cut still has $c'$-capacity at least $k$: either one
+crossing pair already contributes $k$, or no crossing multiplicity was
+changed. Rounding loses less than one per crossing pair, of which
+there are at most $n^2/4$. Consequently the explicit graph $\widetilde G$
+with multiplicities $a_{uv}$ satisfies
+\begin{equation}
+ |\delta_{\widetilde G}(S)|\ge2n^2-n^2/4\ge n^2,
+ \qquad
+ |\delta_{\widetilde G}(S)|\le\frac{2n^2}k|\delta_G(S)|.
+ \label{eq:ta-binary-cuts}
+\end{equation}
+Each $a_{uv}\le2n^2$ and there are fewer than $n^2/2$ pairs, so
+$|E(\widetilde G)|<n^4$.
+Apply the explicit algorithm with connectivity bound $n^2$.
+Its output tree is $C/n^2$-thin in $\widetilde G$, and hence
+$2C/k$-thin in the original graph by \Cref{eq:ta-binary-cuts}.
+Although temporary scaling can make $a_{uv}>c_{uv}$, a tree uses at
+most one edge of any parallel pair. Every selected pair has
+$c_{uv}>0$, so its tree edge maps to a genuine original edge.
+All arithmetic in \Cref{eq:ta-binary-reduction} is polynomial in
+$\log k$, the multiplicity encoding lengths, and $n$; the main routine
+uses the new parameter $n^2$. Enlarging the universal constant by two
+completes \Cref{thm:tt-algorithm} in the binary model.

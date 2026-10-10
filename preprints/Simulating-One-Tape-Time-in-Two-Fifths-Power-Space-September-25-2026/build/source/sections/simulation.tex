@@ -1,0 +1,411 @@
+\section{Block visits and epoch transcripts}
+\label{sec:simulation}
+
+Fix a public input \(x\) and cap \(T\ge2\) for which the access
+condition in Section~\ref{sec:introduction} holds. All parameters below
+are computed uniformly from \(T\). Let \(\rho\) be the fixed number of
+read-only heads, and let \(\ell_\Sigma\ge1\) be a fixed number of bits
+per writable-tape symbol. Use a fixed-width raw encoding of the
+finite-control state, terminal flags, elapsed time, and all head
+displacements. Its exact length can be chosen as
+\[
+ c=c_0+(\rho+2)\lceil\log_2(2T+3)\rceil=O(\log(T+2)),
+\]
+where \(c_0\) is a fixed constant for the state and flags. Unused field
+encodings will be handled below. A halt at the cap is recorded as a
+halt; otherwise reaching the cap is recorded as a timeout. After
+either event, stationary dummy visits preserve the outcome.
+
+\subsection{A visit accesses one block}
+
+For an integer width \(b\ge1\) polynomially bounded in \(T\), and offset
+\(a\in\{0,\ldots,b-1\}\), physical block \(v\in\mathbb Z\) is
+\([a+vb,a+(v+1)b-1]\).
+A visit runs until the writable head leaves its block, the machine
+halts, or the cap is reached. The departure step belongs to the old
+block: it writes before moving, and does not read the destination
+cell until the next visit.
+
+Put the writable origin at zero and write \(I_T=[-T,T]\cap\mathbb Z\).
+The physical blocks meeting \(I_T\) have indices
+\[
+ v_-=\left\lfloor\frac{-T-a}{b}\right\rfloor,\qquad
+ v_+=\left\lfloor\frac{T-a}{b}\right\rfloor.
+\]
+Relabel these intervals in increasing order as \(C_1,\ldots,C_N\), where
+\begin{equation}\label{eq:block-count}
+ N=v_+-v_-+1\le 2+\frac{2T}{b}.
+\end{equation}
+Signed division and translation between the two indexings use
+\(O(\log(T+2))\) bits. The complete intervals \(C_i\) may extend
+outside \(I_T\). Choose a fixed valid filler symbol \(s_{\mathrm{fill}}\)
+with a canonical \(\ell_\Sigma\)-bit code. For a tape configuration
+\(\Gamma\), its represented block \(\operatorname{rep}_{T,i}(\Gamma)\)
+has the code of \(\Gamma(q)\) at \(q\in C_i\cap I_T\), and the filler
+code at \(q\in C_i\setminus I_T\). This representation depends on the
+trial cap; the underlying initial symbols remain cap-independent.
+
+\begin{lemma}
+\label{lem:visits}
+Some offset has at most \(T/b\) block crossings in the capped
+computation. For that offset at most
+\(R=\lceil1+T/b\rceil\) visits reach the halt or timeout.
+For every offset there are total maps on raw Boolean words
+\[
+ \operatorname{sel}_a:\bits^c\longrightarrow\{1,\ldots,N\},
+ \qquad
+ \operatorname{Visit}_a:
+ \bits^c\times\bits^{b\ell_\Sigma}
+ \longrightarrow \bits^c\times\bits^{b\ell_\Sigma}.
+\]
+On input \((z,B)\), \(B\) is interpreted as block
+\(\operatorname{sel}_a(z)\). A visit changes only that block, agrees
+with the capped computation on
+represented actual data, and is computable in
+\(O((b+1)\polylog T)\) work bits on explicit arguments.
+\end{lemma}
+
+\begin{proof}
+Every unit head move crosses a boundary for exactly one offset;
+a stationary move crosses none. The sum of crossing counts over all
+\(b\) offsets is at most \(T\), proving the averaging claim.
+The number of genuine visits is at most one plus the crossing count.
+
+Fix a canonical encoding for each controller record. Accept a raw
+controller only if its fields encode such a record, its elapsed time
+satisfies \(0\le\tau\le T\), and every head displacement \(q_h\)
+satisfies \(|q_h|\le\tau\). These checks preserve every actual
+controller. On an accepted controller, \(\operatorname{sel}_a\)
+uses the writable displacement and signed floor division to select
+its label in \(\{1,\ldots,N\}\). On every rejected string it selects
+the block containing the origin. Thus selection is total on raw
+\(c\)-bit strings.
+
+For a rejected controller, \(\operatorname{Visit}_a\) returns a fixed
+canonically encoded terminal dummy controller with elapsed time and
+all displacements zero,
+selecting that designated block, and returns the raw block unchanged.
+For an accepted terminal
+controller it returns both arguments unchanged. In all other cases it
+simulates the visit, recording halt before timeout if both occur at
+the cap, and emits the outgoing controller in its fixed raw encoding.
+At elapsed time \(T\) it executes no transition. The block is a buffer
+of raw \(\ell_\Sigma\)-bit entries. Decode an entry only when the
+simulated writable head accesses that cell, with a fixed symbol for
+every invalid code; encode only the symbols written by simulated
+transitions. All unvisited entries remain unchanged. These rules give
+a fixed raw output even on malformed block arguments. The selected
+interval \(C_i\) maps the writable position \(q\) to buffer entry
+\(q-\min C_i\); the visit stops after a move leaves that interval.
+
+The same space and access bounds hold for every accepted speculative
+invocation. If a head begins at displacement \(q_0\) at elapsed time
+\(\tau\), then after \(s\le T-\tau\) locally simulated steps,
+\begin{equation}\label{eq:local-confinement}
+ |q_s|\le |q_0|+s\le\tau+s\le T.
+\end{equation}
+A transition occurs only before the remaining budget is exhausted.
+Consequently every simulated writable read and write stays in \(I_T\),
+and every read-only query has \(|q_h|\le T\). The latter is answered by
+\(\mathsf{Sym}(x,h,T,q_h)\); the full controller supplies every
+read-only displacement. Rejected and terminal cases make no such
+queries. In particular, no simulated transition in a local invocation
+accesses a writable cell outside \(I_T\), so it preserves the exterior
+filler. If \(h_{\mathrm{w}}\) is the writable symbol tag, the initial
+represented block is generated by calling
+\(\mathsf{Sym}(x,h_{\mathrm{w}},T,q)\) for its coordinates in \(I_T\)
+and emitting the filler elsewhere. No larger-radius access condition
+is used.
+
+Induction on the simulated steps now shows that, from represented
+actual data, the controller and all in-range symbols agree with the
+capped computation, while the filler remains fixed. The buffer,
+controller, and counters use \(O((b+1)\polylog T)\) bits, including
+symbol access, and the remaining time budget bounds every local run.
+This proves totality, agreement, and the claimed workspace.
+\end{proof}
+
+We try all offsets. After the allotted visits, an offset with neither
+terminal flag is discarded. Every offset simulates the actual capped
+trajectory, so any completed offset gives the same outcome.
+At least one completes by Lemma~\ref{lem:visits}.
+No transcript of all block addresses is stored.
+
+\begin{lemma}[Local replay]\label{lem:local-replay}
+Fix an integer \(0\le m\le b\). For a raw controller list
+\(Z=(z_0,\ldots,z_m)\) and a raw block \(B\in\bits^{b\ell_\Sigma}\),
+define
+\[
+ \operatorname{Replay}_i(Z,B)=(B^{\mathrm{out}},p_i)
+\]
+by the following bounded scan. Initialize a buffer to \(B\) and
+\(p_i=1\). For \(t=1,\ldots,m\), if
+\(\operatorname{sel}_a(z_{t-1})=i\), apply
+\(\operatorname{Visit}_a\) to \(z_{t-1}\) and the buffer, retain its
+new buffer, and conjoin to \(p_i\) the bitwise equality of its raw
+\(c\)-bit output with \(z_t\). Continue the scan after a failed check.
+Visits with a different selector leave this buffer and flag unchanged.
+The buffer and flag are total Boolean functions of \(Z,B\), using
+\(O((b+(m+1)c+1)\polylog T)\) local workspace and no word-evaluation
+calls.
+
+From any fixed raw \(z_0\) and raw blocks \(B_1,\ldots,B_N\), define a
+reference evolution that applies the same total visit serially to its
+selected block and leaves the other blocks unchanged. This global
+\(N\)-block evolution specifies semantics only; the simulator never
+stores or evaluates the tuple. For a proposed list with this \(z_0\),
+all replay flags equal one if and only if the list is the unique raw
+controller list of the reference evolution. When they equal one, each
+returned buffer is the corresponding reference block after \(m\) visits.
+\end{lemma}
+
+\begin{proof}
+The scan has a fixed number of visits, and every local visit is total
+by Lemma~\ref{lem:visits}. It keeps one buffer, the explicit list and
+short counters, giving the stated local bound. If the list is the
+reference list, each replay applies exactly its block's reference
+updates, so all checks pass and the buffers agree.
+
+Conversely, suppose all flags equal one. Induct on \(t\), maintaining
+that the proposed controllers through \(z_{t-1}\) and every replay
+buffer after scanning the first \(t-1\) visits agree with the reference
+evolution. This holds initially. The next incoming raw controller
+therefore selects the same unique block \(i\). Its replay buffer is
+the reference buffer, so the deterministic total visit produces the
+reference outgoing raw controller and block. Its bitwise check forces
+the proposed \(z_t\) to be that controller. Other buffers do not
+change. This proves the induction and the claim for arbitrary raw
+initial data.
+\end{proof}
+
+\subsection{Histories and checkpoints}
+\label{sec:histories}
+
+Set
+\[
+ k=\lceil T^{1/5}\rceil,\qquad b=k^2,\qquad
+ E=\left\lceil\frac{\lceil1+T/b\rceil}{b}\right\rceil.
+\]
+For a fixed offset, take the first \(Eb\) visits, continuing with
+stationary visits only after halt or timeout. There are
+\(E=O(1+T/b^2)\) epochs, indexed by \(0\le e<E\), each consisting
+of \(b\) visits, divided into
+\(k\) rounds of \(k\) visits. An insufficient offset may still have
+a nonterminal last controller.
+
+Use the concrete common width
+\begin{equation}\label{eq:word-width}
+ d=\max\{1,b\ell_\Sigma,(b+1)c\}
+   =O((b+1)\log(T+2))
+\end{equation}
+for the following Boolean words. Each type uses the indicated prefix
+and pads the remaining bits with zero; on arbitrary words its parser
+ignores those remaining bits.
+\begin{itemize}
+\item \(A_{e,i}\) is the padded represented block
+\(\operatorname{rep}_{T,i}(\Gamma_e)\), where \(\Gamma_e\) is the actual
+tape after the first \(eb\) visits of this offset.
+\item \(H_{e,j}\), for \(0\le j\le k\), contains the epoch's incoming
+raw controller and every outgoing raw controller of its first \(jk\)
+visits.
+\end{itemize}
+The initial \(A_{0,i}\) and \(H_{0,0}\) are generated base words.
+For \(e>0\), \(H_{e,0}\) copies the final raw controller slice of
+\(H_{e-1,k}\) and adds the prescribed padding. For \(0\le e<E-1\),
+parse \(H_{e,k}\) as its \(b+1\) raw slices and apply
+\(\operatorname{Replay}_i\) to that list and the block prefix of
+\(A_{e,i}\). Define \(A_{e+1,i}\) to be its buffer projection, padded
+to width \(d\). Lemmas~\ref{lem:visits} and~\ref{lem:local-replay} prove
+this checkpoint identity on semantic inputs. On malformed inputs the same projection
+is still total, because the replay continues after failed checks.
+These extraction and checkpoint rules have fan-in one and two,
+respectively, and use \(O(d\polylog T)\) local workspace.
+The target word is the final history \(H_{E-1,k}\).
+
+\begin{lemma}
+\label{lem:factored-history}
+For \(0\le j<k\), each round update \(H_{e,j}\mapsto H_{e,j+1}\)
+is a factored rule
+of Lemma~\ref{lem:weighted-evaluation}, with distinguished child
+\(H_{e,j}\), other children \(A_{e,1},\ldots,A_{e,N}\), and guess
+length \(g=kc\le d\).
+\end{lemma}
+
+\begin{proof}
+Write \(H=H_{e,j}\) and \(A_i=A_{e,i}\).
+Parse the raw slices already in \(H\) as
+\(z_0,\ldots,z_{jk}\), with the epoch-start controller appearing once
+as \(z_0\). Write a candidate \(Y\in\bits^{kc}\) as \(k\) raw slices
+\(y_1,\ldots,y_k\), and set \(z_{jk+s}=y_s\) for \(1\le s\le k\).
+The resulting list
+\[
+ Z_Y(H)=(z_0,\ldots,z_{(j+1)k})
+\]
+specifies the entire epoch prefix through the new round. Define
+\(G_Y(H)\) to copy this list into the padded history format, and
+\(P_{Y,i}(H,A_i)\) to be the flag projection of
+\(\operatorname{Replay}_i\) on \(Z_Y(H)\) and the block prefix of
+\(A_i\). Thus replay starts at the epoch boundary, where \(A_i\) is
+defined, and includes the preceding \(jk\) visits.
+
+Fixed slicing, padding, and the total replay define total Boolean
+functions even on malformed \(H,A_i,Y\). Since \((j+1)k\le b\),
+Lemma~\ref{lem:local-replay} gives \(O(d\polylog T)\) local workspace,
+including public-symbol access, and no word-evaluation calls.
+At the semantic \(H,A_1,\ldots,A_N\), the fixed prefix agrees with
+the reference evolution of the epoch, which agrees with the actual
+capped computation by Lemma~\ref{lem:visits}. Lemma~\ref{lem:local-replay}
+therefore says that all predicates pass for exactly one raw suffix
+\(Y\), namely the actual next \(k\) outgoing controllers. Its padded
+output is \(H_{e,j+1}\). Coordinatewise in characteristic two at
+these arguments,
+\[
+ \overline{H_{e,j+1}}
+ =\sum_{Y\in\bits^{kc}}\overline{G_Y(H)}
+       \prod_{i=1}^N P_{Y,i}(H,A_i).
+\]
+The extra coordinate is one because exactly one passing indicator
+is one.
+
+An inconsistent fixed prefix may have no passing suffix; the evaluator
+requires this identity only at semantic arguments. Its full homogeneous
+lookup extensions are used for every predicate, including one that is
+inactive at a particular Boolean history. This is the factored rule
+of Lemma~\ref{lem:weighted-evaluation}.
+\end{proof}
+
+\subsection{The weighted dependency path}
+\label{sec:path}
+
+The word definitions are acyclic. Within an epoch put the start-array
+words first, then \(H_{e,0},H_{e,1},\ldots,H_{e,k}\); all words of
+epoch \(e-1\) precede those of epoch \(e\).
+There are exactly \(E(N+k+1)\) word identifiers. Each consists of a
+type and the indices \(e,i\) or \(e,j\), all of \(O(\log(T+2))\) bits.
+The parent type and indices specify every child by binary arithmetic:
+a checkpoint \(A_{e,i}\) has children \(A_{e-1,i},H_{e-1,k}\), an
+extraction \(H_{e,0}\) has child \(H_{e-1,k}\), and a round word
+\(H_{e,j}\), \(j\ge1\), has distinguished child \(H_{e,j-1}\) and
+indexed children \(A_{e,1},\ldots,A_{e,N}\). Base words have no children.
+This navigation uses \(\polylog T\) space without storing the graph.
+
+The history-to-history edge has weight \(1\) in
+Lemma~\ref{lem:weighted-evaluation}. A history-to-array edge has weight
+\(g+1=kc+1\). Edges of the ordinary checkpoint and extraction rules
+have weight \(1\). Figure~\ref{fig:epoch-path} displays the relevant
+dependency structure.
+
+\begin{figure}[htbp]
+\centering
+\input{figures/epoch-path}
+\caption{Representative dependencies for \(e\ge1\) and
+\(1\le j\le k\). A path may follow preceding histories before entering
+\(A_{e,i}\); the omitted extraction edge
+\(H_{e,0}\to H_{e-1,k}\) is another route to the preceding epoch.
+The weight \(kc+1\) charges the round guess retained in a suspended
+frame. Every child of that array word belongs to the preceding epoch,
+so the same path cannot retain another round guess in epoch \(e\).
+All weights bound suspended storage up to a common polylogarithmic factor.}
+\label{fig:epoch-path}
+\end{figure}
+
+\begin{lemma}
+\label{lem:epoch-weight}
+Every dependency path from the final history has weight
+\[
+ O(E(k+kc+1))=O(Ek\log(T+2)).
+\]
+\end{lemma}
+
+\begin{proof}
+In epoch \(e\), a path takes at most \(k\) preceding-history edges.
+It may then use the extraction edge from \(H_{e,0}\), or enter a
+start-array word \(A_{e,i}\) and pay \(kc+1\).
+For \(e>0\), that array word has children only \(A_{e-1,i}\) and
+\(H_{e-1,k}\); for \(e=0\), it is a base word.
+Thus a path has at most one expensive edge and a constant number of
+ordinary edges in each epoch. Paths entering an epoch at an array
+word satisfy the same bound. Summing over the epochs proves the
+claim. Sequential repetitions and reverse calls follow the same
+dependencies and do not increase the maximum active path weight.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Apply Lemma~\ref{lem:weighted-evaluation} to the base, checkpoint,
+extraction and factored history words.
+The concrete width in \eqref{eq:word-width} covers each block and
+history, and \(g=kc\le d\) because \(b=k^2\ge k\). The word count
+\(E(N+k+1)\) is polynomial in \(T\) by \eqref{eq:block-count} and the
+chosen parameters. Ordinary fan-in is at most two, so the evaluator
+uses three vector registers. For this offset one may compute and supply
+the degree bound
+\[
+ \Delta=(N+1)d
+ =O((T+b+1)\log(T+2))=T^{O(1)},
+\]
+which covers the ordinary degree \(d\) and every history degree.
+The candidate count \(2^{kc}\) and the Boolean lookup enumerations
+affect time, not this degree or the number of word identifiers.
+Base coordinates are fixed controller bits or use the accessor or
+filler. Extraction and appending copy fixed slices, and each replay
+uses one block and at most \(b+1\) controller slices. The local
+Boolean kernels therefore use
+\(O(d\polylog T)\) local space and make no word-evaluation calls.
+The preceding navigation description supplies the required uniformity.
+\mbox{Lemmas~\ref{lem:factored-history} and~\ref{lem:epoch-weight}} verify
+the remaining hypotheses. Starting with a zero target yields
+the final history, hence its final controller, in space
+\[
+ \softO(d+Ek)=
+ \softO\!\left(b+(1+T/b^2)k\right)
+ =\softO(T^{2/5}).
+\]
+The register pool, reusable local workspace and suspended stack are
+all counted. In particular, the current unsuspended guess is included
+in the word-sized local term, and no array of checkpoints is materialized.
+Trying the offsets reuses this storage, and a completed offset
+exists. Reading its finite-control state and halt/timeout flags gives
+the required capped outcome.
+
+For the unknown-running-time clause, the access condition holds for
+\((x,T)\) at every \(T\ge2\), so it applies separately to all trials
+with caps \(2,4,8,\ldots\). Continue after a timeout and return only on
+an actual halt. If the machine halts in \(t\) steps, the first sufficient
+cap is at most \(2\max(t,2)\). Each trial restarts from the same
+cap-independent initial symbols, using its own represented blocks, and
+discards its workspace before the next. This gives the asserted bound.
+\end{proof}
+
+\begin{remark}
+\label{rem:output}
+A specified bit of a sequential write-only output can also be
+computed: keep its index, an output counter and the monitored bit in
+the controller. For indices in the capped output range this costs
+\(O(\log(T+2))\) bits. Enlarge \(c\) by these fields and use the same
+width formula \eqref{eq:word-width}; the estimates are unchanged.
+This does not require storing the output stream or change which
+writable block a visit accesses.
+\end{remark}
+
+\subsection{What varying the three scales achieves}
+\label{sec:balance}
+
+Let the block width be \(B\), epoch length in visits be \(L\), and
+round length be \(q\). Ignoring rounding and logarithms, a block
+contributes \(B\) bits and the complete epoch transcript contributes
+\(L\) bits to the materialized word size \(B+L\). There are
+\(T/(BL)\) epochs and \(L/q\) rounds per epoch. The preceding-history
+edges therefore contribute \(T/(Bq)\) to the weighted stack, while
+one suspended \(q\)-controller guess per epoch contributes
+\(Tq/(BL)\). Thus the stack estimate is
+\[
+ \frac{T}{BL}\left(\frac Lq+q\right)
+ =\frac{T}{Bq}+\frac{Tq}{BL}.
+\]
+At \(q\simeq\sqrt L\), this becomes \(2T/(B\sqrt L)\).
+If both \(B,L\le S\), it is at least \(2T/S^{3/2}\).
+Balancing this displayed estimate with storage \(S\) therefore gives
+the two-fifths exponent. Boundary and ceiling terms are nonnegative
+and do not improve this balance. This calculation concerns this
+estimate only: it rules out neither improved accounting nor another
+transcript or simulation method.

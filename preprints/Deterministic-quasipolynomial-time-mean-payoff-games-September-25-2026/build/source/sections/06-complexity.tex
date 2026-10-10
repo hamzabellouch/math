@@ -1,0 +1,171 @@
+\section{Counting calls and bit operations}
+\label{sec:complexity}
+
+Correctness now gives the complete winning set. To finish the theorem,
+we must bound the work in terms of binary input length rather than the
+numerical width of the box. There are two relevant depths: the width
+can be halved polynomially many times in $L$, but the mass budget can
+decrease only logarithmically many times in $n$. Because only one
+child preserves that budget, these depths give a quasipolynomial call
+count. We then bound the exact arithmetic within each call.
+
+\subsection{The recursion tree}
+
+For the initial data of Equation~\eqref{eq:main-call}, write
+\begin{equation}
+ d_0=\log_2 D_0,\qquad B_0=B(1/n^2),\qquad
+ H=d_0+B_0,\qquad s=2048n+3.
+ \label{eq:initial-resources}
+\end{equation}
+The minimum initial mass product is $1/n^2$. Every path in the call
+tree has at most $H$ edges by the rank decrease of
+Lemma~\ref{lem:termination}. At most $B_0$ of its edges can
+decrease $B$, even if an individual edge decreases it by more than
+one. At any node there is at most one child preserving $B$,
+namely the provisional child. There are at most $2(1024n+1)$ loop
+children and one continuation, so at most $s$ children decrease $B$.
+
+\begin{lemma}[Number of calls]
+\label{lem:node-count}
+The complete main computation makes at most
+\begin{equation}
+ \sum_{\ell=0}^{H}\sum_{j=0}^{\min(\ell,B_0)}
+       \binom{\ell}{j}s^j
+ \ \le\ (H+1)(B_0+1)(1+Hs)^{B_0}
+ \label{eq:node-bound}
+\end{equation}
+calls, including the initial call.
+\end{lemma}
+
+\begin{proof}
+Consider a node at depth $\ell$ whose path uses $j$ budget-decreasing
+edges. Their positions can be chosen in $\binom{\ell}{j}$ ways.
+Order each node's budget-decreasing children by execution order.
+At each chosen position there are at most $s$ choices of that ordinal; at each
+other position there is at most one. This specifies at most
+$\binom{\ell}{j}s^j$ possible nodes. Sum over all depths
+$0\le\ell\le H$ and $0\le j\le\min(\ell,B_0)$.
+For the second inequality, each summand is at most
+$(Hs)^j\le(1+Hs)^{B_0}$ and there are at most
+$(H+1)(B_0+1)$ summands.
+\end{proof}
+
+This count uses the same recursion principle as the reduced-precision
+analysis of Parys~\cite[Section~5]{Parys2019}, further developed in
+\cite{LehtinenParysScheweWojtczak2022}: one child retains the bounded
+parameter while all others improve it. Here the two parameters are
+the logarithm of an integer width and the budget derived from rational
+mass products.
+
+The explicit encoding bounds both $n$ and $m=|E|$ polynomially in
+$L+1$, and each original weight has $O(L+1)$ bits. The perturbation
+and Equation~\eqref{eq:initial-width} imply
+\[
+ \log_2(W+1)=O(L+\log(n+1)),\qquad
+ d_0=O(L+\log(n+1)).
+\]
+Since $\rho=32/25$ is a fixed constant greater than one,
+\[
+ B_0=1+\lfloor\log_{\rho}(n^2)\rfloor
+                          =O(1+\log(n+1)).
+\]
+Thus $H$ and $s$ are polynomial in $L+1$, and
+$B_0=O(\log(L+2))$. Taking logarithms in the call bound gives
+\begin{equation}
+ \begin{split}
+ \log_2\bigl(\text{number of calls}\bigr)
+ &\le \log_2(H+1)+\log_2(B_0+1)
+                         +B_0\log_2(1+Hs)\\
+ &=O((\log_2(L+2))^2).
+ \end{split}
+ \label{eq:quasipoly-calls}
+\end{equation}
+This includes $n=1$, for which $B_0=1$.
+
+\subsection{Exact representations}
+
+The nested-box property keeps every endpoint and pivot of the main
+computation inside $[0,D_0]^V$. Each such coordinate and each width
+therefore uses $O(d_0+1)$ bits. In a basic iteration, an intermediate
+edge expression is a coordinate plus a transformed weight. It may be
+negative, but its signed binary length is
+$O(d_0+\log(W+1)+1)$, polynomial in $L+1$.
+
+Represent a mass by a positive numerator and a positive denominator;
+reducing fractions is unnecessary. Starting from $1/n$, a mass is
+multiplied along any path only by numbers in
+\[
+                           \{1,4/3,4/5,8/5\}.
+\]
+Only budget-decreasing edges change the masses, and a path contains
+at most $B_0$ such edges. Thus each numerator and denominator has
+$O(B_0+\log(n+1))$ bits. Children receive their own copies of the
+input masses. In particular, completing one sibling does not multiply
+the parent masses before another sibling starts. Testing $a_i b_i>1$
+uses integer cross-multiplication, and testing $b_i>1$ or applying a
+constant multiplier also uses numbers of polynomial length. All mass
+arithmetic is exact.
+
+The proof quantities $B$ and $\mu$, and the peaks, gaps, supports,
+and witness vectors, need not be stored or computed. The algorithm
+uses neither a logarithm evaluation for its rank nor an oracle for
+the existence of a witness. The procedure evaluates $F$ only inside
+$\Basic$, by explicit max/min scans of the edge list.
+
+\subsection{Local cost and uniform implementation}
+
+Each call has polynomial nonrecursive work. The mass and width tests
+are finite scans with the arithmetic just bounded. If the width base
+case applies, $D<4096$, and the imported iteration bound gives
+\[
+                            1+nD\le1+4095n
+\]
+evaluations, including the final stability test. Every evaluation
+scans the $m$ explicit edges, adds their transformed weights, takes
+the relevant extrema, and clips at $n$ endpoints. It acts on integers
+of polynomial length. The midpoint comparison is implemented as
+$2z_i>2A_i+D$, which also handles $D=1$.
+
+In a nonbase call, the constants defining the pivot are obtained by
+exact divisions by powers of two. Each pass has $O(n+1)$ iterations
+apart from its children's work. A scan of the $n$ coordinates performs
+one simultaneous update and tests whether it changed anything.
+Preparing child inputs and receiving their labels, forming $I_-$
+and $I_+$, reweighting, and applying the final overrides likewise
+use polynomially many operations on polynomial-length integers.
+Schoolbook arithmetic suffices throughout.
+
+A depth-first implementation runs children sequentially and retains
+one record per active call. The record holds the parent masses,
+endpoints, pivot, labels, and current loop position. There are at most
+$H+1$ active records, each of polynomial size. Stack management is
+therefore included in the same polynomial local bound. Preprocessing
+the transformed weights, finding the least power of two in
+Equation~\eqref{eq:initial-width}, and creating masses $1/n$ take
+polynomial time. Reading the input and producing the $n$ final labels
+also do so.
+
+Multiply this polynomial per-call cost by the call count bounded in
+Equation~\eqref{eq:quasipoly-calls}, and include preprocessing and
+output. For an absolute constant $C>0$, the complete bound is
+\begin{equation}
+                            2^{C(\log_2(L+2))^2}.
+ \label{eq:final-bit-bound}
+\end{equation}
+The constants in the procedure are fixed independently of the game,
+and every arithmetic and control operation has been specified. This
+gives a uniform deterministic bit algorithm.
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Compute Equation~\eqref{eq:main-call}, run $\Label$, and output
+the positively labelled vertices. Theorem~\ref{thm:labelling}
+guarantees the labels required by every witness. In the initial box,
+the box solution is a witness of both types, and the argument after
+Equation~\eqref{eq:main-call} identifies all its required labels
+with the bands of Proposition~\ref{prop:game-reduction}. The
+positive band is exactly the zero-threshold winning set, including
+against every history-dependent opponent. Equation~\eqref{eq:final-bit-bound}
+bounds the entire computation. Signed binary weights, self-loops,
+and separately listed parallel edges are all covered by the
+construction and accounting above.
+\end{proof}

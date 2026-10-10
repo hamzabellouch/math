@@ -1,0 +1,116 @@
+\subsection{Output bounds and termination}
+\label{alg:termination-subsection}
+
+Before discussing accuracy, we prove that every execution is finite and
+that all recursive inputs and outputs have their stated types. These
+facts must survive failed comparisons: a failed tape may change the
+answers, but it must not invalidate the program or its resource bounds.
+Recall that $d(R)$ is the least nonnegative integer satisfying
+$(9/10)^{d(R)}R<1$.
+
+\begin{proposition}\label{prop:termination}
+For every permitted $\Solve$ input, the execution and all its subroutine
+executions terminate on every random tape. The outputs of $\Solve$
+and $\Ask$ are integer vectors in their respective input boxes.
+The outputs of $\Orient$ and $\OrientPlus$ have the stated choice
+and list types, and each listed set has input measure at most $1/2$.
+Moreover:
+\begin{enumerate}[label=(\roman*)]
+\item Tightening makes at most $8ns$ updates and $16ns+2$ calls to
+$\Ask$.
+\item A chain of main $\Solve$ continuations contains at most
+\begin{equation}\label{eq:main-chain-length}
+ K=8s(g+1)+1
+\end{equation}
+solver invocations.
+\item One $\Orient$ trial visits at most $g+1$ orientation invocations
+and returns at most $2g+2$ sets. Consequently $\OrientPlus$ returns
+at most $J(2g+2)$ sets, counting repetitions.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+We induct on the solver rank and establish the output assertions at the
+same time as termination. At rank zero, $R<1$, and the endpoint rule
+returns immediately in the given box. Fix a positive rank and assume
+these properties for every smaller-rank solver input.
+
+An ordinary budget change multiplies $R$ by $4/5$. Reweighting a set
+with $\mu(H)\le1/2$ multiplies it by
+$(3/5)(1+\mu(H))\le9/10$. For either change,
+\[
+ (9/10)^{d(R)-1}R_{\mathrm{child}}
+ \le(9/10)^{d(R)}R<1,
+\]
+so the child has smaller rank. Such $\Ask$ calls terminate by the
+induction hypothesis. Their medians remain integer vectors in their
+input boxes, irrespective of comparison accuracy.
+
+\paragraph{Orientation at the current rank.}
+The only solver calls within orientation are through budget-reduced
+$\Ask$. At width $B\le128s$, $\Basic$ terminates by
+Lemma~\ref{lem:box-solution}; the returned set is either $P$ of
+measure at most $1/2$ or the complement of a set of measure greater
+than $1/2$. At larger width, both
+$D=\floor{B/(32s)}$ and $E_0=\floor{B/8}$ are positive. Each reduced
+call uses a legitimate centered box with reference width
+$2D\le B/(16s)$. Its result lies between $q_j-D$ and $q_j+D$.
+The integer floor of their average lies between these same integer
+endpoints. Since $q_j\in[a,b]$, subsequent clipping keeps the next
+center in $[a,b]$ and cannot increase its distance from $q_j$. Therefore
+\begin{equation}\label{alg:center-step-bound}
+ |(q_{j+1})_i-(q_j)_i|\le D\qquad(i\in V).
+\end{equation}
+This proves that all $s$ loop steps terminate with valid centers.
+
+The early returns again use complements of sets with measure greater
+than $1/2$. When both tests fail, the appended $P,N$ each have measure
+at most $1/2$. The child box has positive width $2E_0\le B/4$ and
+unchanged support parameters, hence unchanged $\mu$. A separate
+induction on this decreasing positive integer width proves orientation
+termination and the measure assertion. After $r$ child edges its width
+is at most $B_*/4^r$. Since $g>\log_2 B_*$, there are at most $g$
+edges, or $g+1$ invocations. The final one returns one set and each
+ancestor adds two, giving $1+2g\le2g+2$ entries. Repeating this finite
+trial $J$ times gives a well-defined majority because $J$ is odd, and
+concatenation proves the list bound for $\OrientPlus$.
+
+\paragraph{Tightening at the current rank.}
+The solver's small-width branch is already covered by basic iteration.
+Otherwise $B>128s$, and
+\begin{equation}\label{alg:delta-bound}
+ \delta=\floor{B/(4s)}\ge\frac{B}{8s}>0,
+ \qquad0<C=B-\delta<B.
+\end{equation}
+Every tightening output is inside the current box. A lower update only
+raises $a$, an upper update only lowers $b$, and both preserve $a\le b$.
+At least one coordinate moves by $\delta$. The integer quantity
+$\sum_i(b_i-a_i)$ starts at most $nB$ and decreases by at least
+$\delta$ at each update. There are at most $nB/\delta\le8ns$ updates.
+A pass contains at most two $\Ask$ calls and either restarts after an
+update or is the final pass. This gives $2(8ns+1)=16ns+2$ calls.
+
+\paragraph{The main continuation and its returned vector.}
+Orientation now terminates by the argument just given. All of its sets
+have the required measure on every tape, so every reweighted call has
+smaller rank and terminates. The sole main successor has a valid subbox
+and reference width $C$. Along a chain of such successors,
+\[
+ B_{r+1}\le B_r\left(1-\frac1{8s}\right),\qquad
+ B_r\le B_*\exp\left(-\frac r{8s}\right).
+\]
+After $8s(g+1)$ edges this last bound would be below one, because
+$g+1>\ln B_*$. In fact a chain stops already at width at most $128s$.
+Thus it has at most $K$ invocations. This reasoning uses the reference
+width, so it remains valid when a cap leaves the actual box unchanged.
+
+Work backwards along this finite chain. All reweighted outputs lie in
+the node's final tightening box, and the main output lies in its
+specified subbox. Their coordinatewise maximum or minimum is still in
+the tightening box, itself contained in the node's input box. Backward
+induction therefore proves the solver output assertion and termination
+at the current rank. No correctness event has been used at any stage.
+Since orientation is invoked only after the test $R<1$ fails, all uses
+of positive rank above apply to the actual calls. This completes the
+rank induction.
+\end{proof}

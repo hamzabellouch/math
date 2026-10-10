@@ -1,0 +1,714 @@
+\section{A bit-test system with mixing parity queries}\label{sec:bit-tests}
+
+Here clauses have three literal positions, with repetitions permitted.
+Repeat literals to pad a nonempty shorter clause; replace an empty clause
+by two opposing unit clauses on a fresh variable and then pad them.
+A formula with no clauses can be replaced by a single tautological clause.
+These operations preserve satisfiability and take linear time.
+
+We first construct the finite tests from which the reduction will use
+predicates. A test law consists of a distribution of question lists and,
+for each sampled list together with its public sampling data, an
+acceptance predicate on the answers. Repeated questions are allowed and
+count toward the arity.
+
+\begin{theorem}\label{thm:bit-test-system}
+For every fixed $\lambda>0$ there are constants $\eta>0$, $B<\infty$,
+and a fixed finite list of bounded-arity test laws with the following
+properties. From a Boolean $3$CNF formula one can construct, in
+polynomial time, a finite uniform space $\cS$ of bit positions and these
+test laws on $\cS$.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Every individual question marginal is at most $B$ times uniform
+measure on $\cS$. All samplers are polynomially enumerable finite
+weighted lists with rational probabilities; every positive seed
+probability is at least inverse-polynomial in the input size.
+\item If the formula is satisfiable, there is an assignment
+$y:\cS\to\F_2$ accepted by every test in every support.
+\item If the formula is unsatisfiable, every assignment fails one of
+the test laws with probability greater than $\eta$.
+\item There is also an exchangeable law of
+$(s_1,s_2,s_3,s_4)\in\cS^4$, with uniform marginals, such that the
+conditional expectation operator of any coordinate given any other has
+norm at most $\lambda$ on mean-zero $L^2(\cS)$. The assignment in
+\textup{(ii)} satisfies
+\[
+ y_{s_1}+y_{s_2}+y_{s_3}+y_{s_4}=0
+ \qquad\text{in }\F_2
+\]
+throughout the support of this law.
+\end{enumerate}
+All constants, including the degrees of the polynomial size and time
+bounds, depend only on $\lambda$. Two independent copies of the law in
+\textup{(iv)}, paired coordinatewise, have the same pair-operator bound
+on $\cS^2$ and give the corresponding parity identity for the expressions
+$y_i+y_j$.
+\end{theorem}
+
+\subsection{The matrix walk and the masked parity law}
+
+Pad the variable set to addresses in $\{0,1\}^d$, with $d\geq1$ and
+$d=O(\log(\text{input size}+1))$. Dummy addresses impose no clauses.
+Choose the fixed square field $\F=\F_q$ of characteristic two and
+the pencil $u_1,\ldots,u_m\in\F^d$ from Lemma~\ref{lem:pencil}.
+The field will be sufficiently large and the pencil parameter
+$\lambda_0$ sufficiently small. Set
+\[
+ G_0=\Span_{\F}\{u_j u_j^{\mathsf T}:1\leq j\leq m\},
+ \qquad G=\operatorname{Mat}_{b\times b}(G_0).
+\]
+We regard $G$ as a space of $(bd)\times(bd)$ matrices with $d\times d$
+blocks. We may take $b=101$; the allocation of its blocks is described
+below. Since the pencil contains the standard basis, $G_0$ contains
+every diagonal matrix. Also $\dim_{\F}G\leq b^2m=O(d)$.
+
+Let $\mathsf D$ be the law
+\begin{equation}\label{eq:rank-one-direction}
+ h=(c\otimes u_j)(e\otimes u_j)^{\mathsf T},
+ \qquad c,e\ \text{uniform in }\F^b,\quad j\ \text{uniform in }[m],
+\end{equation}
+with the three choices independent. This law is invariant under
+multiplication by a nonzero scalar, and under simultaneous permutations
+of block rows and block columns. It may have an atom at zero.
+Write
+$\mathsf T f(A)=\E_{h\sim\mathsf D}f(A+h)$, and give $G$ uniform measure
+$\mu$.
+
+The internal-edge estimate below is the usual centered-indicator
+spectral calculation; see Alon and Chung \cite[Lemma~2.3]{AlonChung1988}.
+We prove the eigenvalue bound for this particular matrix walk directly.
+
+\begin{lemma}\label{lem:matrix-walk}
+On mean-zero $L^2(G)$, the operator $\mathsf T$ has norm at most
+$\lambda_1=\lambda_0+q^{-1}$. In particular, for every nonempty
+$D\subseteq G$,
+\begin{equation}\label{eq:internal-edge-bound}
+ \frac{\ip{\ind_D}{\mathsf T\ind_D}}{\mu(D)}
+ \leq \mu(D)+\lambda_1.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Fix a nonzero $\F_2$-linear functional $\ell:\F\to\F_2$.
+Every additive character of $G$ is
+$A\mapsto(-1)^{\ell(L(A))}$ for an $\F$-linear functional $L:G\to\F$.
+Indeed the pairing $(a,x)\mapsto\ell(ax)$ is nondegenerate: for $a\ne0$,
+choose $x$ with $\ell(ax)=1$. Choosing a basis of $G$ and counting then
+gives all its additive characters.
+
+For such an $L$, evaluation on Equation~\ref{eq:rank-one-direction}
+gives $L(h)=c^{\mathsf T}M_j e$, where every entry of $M_j$ is a
+homogeneous quadratic form in $u_j$. If $L\ne0$, some entry is nonzero
+on the list: the directions span $G$, as is seen by taking $c,e$ to be
+coordinate vectors. That entry vanishes on at most $\lambda_0 m$
+indices. For $M_j\ne0$, averaging the character first over $c$ gives
+zero unless $M_j e=0$, so its full average is
+$q^{-\rank M_j}\leq q^{-1}$. The remaining indices contribute at most
+one. Orthogonality of additive characters diagonalizes $\mathsf T$ and
+proves the norm bound. Applying it to
+$\ind_D-\mu(D)$ proves Equation~\ref{eq:internal-edge-bound}.
+\end{proof}
+
+Our field oracle will be a function $P:G\to\F$. Its binary encoding has
+positions
+\[
+ \cS=G\times\F^*,\qquad
+ y_{(A,\sigma)}=\ell(\sigma P(A)).
+\]
+The vector of all $q-1$ masks determines $P(A)$ uniquely by the same
+nondegenerate pairing. Any field query below is implemented by querying
+all these masks and rejecting unless they are the encoding of a field
+element.
+
+Choose a uniformly ordered tuple of four distinct times
+$t_1,t_2,t_3,t_4\in\F$, an independent uniform $A\in G$, an independent
+$h\sim\mathsf D$, and an independent uniform $\sigma\in\F^*$. Put
+\begin{equation}\label{eq:four-masked-positions}
+ s_i=(A+t_i h,\sigma\alpha_i),\qquad
+ \alpha_i=\left(\prod_{j\ne i}(t_i-t_j)\right)^{-1}.
+\end{equation}
+This law is exchangeable and each marginal is uniform. If the restriction
+of $P$ to every sampled line is a polynomial of degree at most two,
+Lagrange interpolation gives
+$\sum_i\alpha_iP(A+t_i h)=0$; applying $\ell(\sigma\,\cdot)$ gives the
+required binary parity identity.
+
+\begin{lemma}\label{lem:masked-pair-mixing}
+Every pair-operator of Equation~\ref{eq:four-masked-positions} has
+mean-zero norm at most
+\[
+ \max\{\lambda_1,\,2/(q-3)\}.
+\]
+\end{lemma}
+
+\begin{proof}
+By exchangeability it suffices to consider the first two times,
+denoted $a,b$, and write the other two as $c,d$. For every fixed
+$(a,b,c,d,h)$ and every $(x,m)\in G\times\F^*$,
+\[
+ \Prob[(A+ah,\sigma\alpha_a)=(x,m)\mid a,b,c,d,h]
+ =\frac1{|G|(q-1)}.
+\]
+Conditioning on the complete first bit position therefore preserves
+the joint time and direction law. The second position is
+\[
+ \bigl(x+(b-a)h,\ m\alpha_b/\alpha_a\bigr).
+\]
+For every time tuple, $(b-a)h$ has law $\mathsf D$. Consequently its
+law is independent of the mask multiplier, and the pair operator is
+the tensor product of $\mathsf T$ and the averaged mask permutation.
+
+For fixed distinct $a,b,c$, let $k=(b-c)/(a-c)$. Direct cancellation,
+using characteristic two, gives
+\[
+ \frac{\alpha_a}{\alpha_b}
+ =k\frac{b-d}{a-d}.
+\]
+The fractional-linear map on the right sends the excluded projective
+arguments $a,b,c,\infty$ to $\infty,0,k^2,k$, respectively. It is
+one-to-one on the projective line. Thus, for allowed $d$, this ratio is
+uniform on $\F^*\setminus\{k,k^2\}$. Here $k\notin\{0,1\}$, so the two
+omitted values are distinct. The inverse ratio likewise omits exactly
+two nonzero values.
+
+On mean-zero functions of the uniform mask, the sum of all $q-1$
+multiplicative permutations is zero. The average with two permutations
+removed therefore has norm at most $2/(q-3)$, since every permutation is
+an $L^2$ isometry. Averaging over $a,b,c$ preserves this bound. The
+orthogonal subspaces of functions spatially centered at each mask and
+of mask-only mean-zero functions are invariant under the tensor
+operator. The former has norm at most $\lambda_1$, and the latter has
+the bound just proved. These subspaces exhaust the orthogonal
+complement of the constants.
+\end{proof}
+
+Choose the field and pencil so that
+\begin{equation}\label{eq:fixed-field-smallness}
+ \lambda_1<10^{-6},\qquad
+ \max\{\lambda_1,2/(q-3)\}\leq\lambda,\qquad
+ \frac6{q-1}\leq\frac1{16}.
+\end{equation}
+These are fixed choices. On two independent copies of the bit space,
+the pair operator is the tensor square. Decomposing each factor into
+constants and mean-zero functions shows that its nonconstant norm is
+at most the same bound. This proves the final assertion of
+Theorem~\ref{thm:bit-test-system} once the promised line-polynomial
+assignment is constructed.
+
+\subsection{Boolean tables and polynomial slack}
+
+Evaluation codes formed from spans of matrix minors were studied by
+Beelen, Ghorpade, and H\o holdt as affine Grassmann codes
+\cite{BeelenGhorpadeHoholdt2010}. Here we use principal minors to extend
+Boolean tables, and products of two minors to retain quadratic restrictions
+on the chosen rank-one lines.
+
+Let $T$ be the principal matrix on the first three blocks, and put
+$n=3d$. For $I\subseteq[n]$, define
+$p_I(T)=\det T_{I,I}$, including $p_\varnothing=1$.
+On a Boolean diagonal $T=\diag(z)$ these are the monomials
+$\prod_{i\in I}z_i$. Every table on $\{0,1\}^n$ has a unique expansion
+in these monomials: at the indicator of a set $J$, its value is
+$\sum_{I\subseteq J}a_I$, which determines the coefficients successively
+by increasing $|J|$. We extend a Boolean table to matrices by replacing
+its monomials by the corresponding principal minors.
+
+For each $a=(a_1,a_2,a_3)\in\{0,1\}^3$, let $E_a(T)$ be the public
+extension of the following table on triples of addresses. It equals
+one if the input contains a clause on that ordered triple whose
+falsifying answer pattern is $a$, and zero otherwise. Multiple clauses
+and repeated variables cause no change to this definition.
+
+There is one assignment field $X$, required to depend only on the first
+diagonal block. For $i=1,2,3$, let $\pi_i$ simultaneously swap block
+one with block $i$ in rows and columns, with $\pi_1$ the identity, and
+write $X_i(A)=X(\pi_i A)$. For each $a$ define
+$M_{a,i}=X_i$ when $a_i=1$ and $M_{a,i}=1-X_i$ when $a_i=0$.
+Introduce gate fields $Y_a,Z_a$. On Boolean diagonal $T$ we want
+\begin{equation}\label{eq:clause-identities}
+ X^2-X=0,\qquad
+ Y_a-E_aM_{a,1}=0,\qquad
+ Z_a-M_{a,2}M_{a,3}=0,\qquad Y_aZ_a=0.
+\end{equation}
+There are $25$ identities. In a satisfying assignment, extend the
+assignment table to $X$ using the first block. Extend the Boolean
+tables $E_aM_{a,1}$ and $M_{a,2}M_{a,3}$ to $Y_a,Z_a$ using $T$.
+Every left side of Equation~\ref{eq:clause-identities} is then a linear
+combination of products $p_Ip_J$, and vanishes on all Boolean diagonals.
+For the last identity, simultaneous nonzero values would exhibit the
+forbidden pattern of a clause.
+
+We need to enforce these identities at uniform matrix arguments.
+The following explicit reduction supplies their slack.
+
+\begin{lemma}\label{lem:minor-product-slack}
+A linear combination of products $p_I(T)p_J(T)$ that vanishes on all
+Boolean diagonal matrices is a sum of terms of the form
+\begin{equation}\label{eq:slack-coefficient-patterns}
+ cMN\,T_{ij},\qquad
+ cMN\,T_{ij}(T_{ii}-1),\qquad
+ cMN\,(T_{ii}^2-T_{ii}),
+\end{equation}
+where $i\ne j$ in the first two forms, $c\in\F$, and $M,N$ are
+arbitrary square minors of $T$, possibly empty.
+\end{lemma}
+
+\begin{proof}
+For $i\in K$, write the row-$i$ expansion
+\[
+ p_K=T_{ii}p_{K\setminus\{i\}}+
+       \sum_{j\ne i}T_{ij}C^K_{ij},
+\]
+where $C^K_{ij}$ is the signed cofactor when $j\in K$, and zero
+otherwise. Every nonzero cofactor is a scalar sign times an arbitrary
+minor. We retain minus signs in the identities below although the
+field has characteristic two.
+
+If $i\in J\setminus I$, expansion of $p_J$ and $p_{I\cup\{i\}}$
+along row $i$ cancels the diagonal terms and gives
+\begin{align}
+ p_Ip_J-p_{I\cup\{i\}}p_{J\setminus\{i\}}
+ =\sum_{j\ne i}T_{ij}
+ \bigl(p_I C^J_{ij}
+       -C^{I\cup\{i\}}_{ij}p_{J\setminus\{i\}}\bigr).
+ \label{eq:minor-move}
+\end{align}
+If $i\in I\cap J$, first expand $p_J-p_{J\setminus\{i\}}$ and then
+expand the $p_I$ multiplying $T_{ii}-1$. This gives
+\begin{align}
+ p_Ip_J-p_Ip_{J\setminus\{i\}}
+ ={}&(T_{ii}^2-T_{ii})
+       p_{I\setminus\{i\}}p_{J\setminus\{i\}}\notag\\
+ &+\sum_{j\ne i}T_{ij}p_I C^J_{ij}
+ +\sum_{j\ne i}T_{ij}(T_{ii}-1)
+       C^I_{ij}p_{J\setminus\{i\}}.
+ \label{eq:minor-delete}
+\end{align}
+Each residual term has a form in
+Equation~\ref{eq:slack-coefficient-patterns}.
+
+Starting from $(I,J)$, choose an element of the second set and apply
+Equation~\ref{eq:minor-move} or Equation~\ref{eq:minor-delete}.
+The new second set loses that element, and the union of the sets is
+unchanged. After exactly $|J|$ steps, the remaining product is
+$p_{I\cup J}$. Telescoping therefore reduces every original product to
+this canonical principal minor plus permitted residuals.
+
+Applying the reduction to the given linear combination leaves
+$\sum_U b_U p_U$ plus permitted residuals. All residuals vanish on
+Boolean diagonals. At the indicator diagonal of a set $S$ we obtain
+$\sum_{U\subseteq S}b_U=0$. Induction on $|S|$, beginning with the
+empty set, gives $b_S=0$ for every $S$. Thus all canonical terms
+cancel.
+\end{proof}
+
+Reserve two disjoint tag banks, each consisting of three new blocks.
+Let $b_r(i)$ be the copy of address index $i$ in bank $r\in\{1,2\}$.
+For an arbitrary minor $M(T)=\det T_{R,C}$, define
+\[
+ \mathsf E^{(r)}_{ij}M(A)
+ =\det A_{(R,b_r(i)),(C,b_r(j))},
+\]
+where the new row and column are appended to their respective lists.
+For the empty minor this is just the appended entry. If $V$ is
+supported in the principal bank $r$, the extended submatrix contains
+exactly one entry of that bank, its appended corner. Its corner
+cofactor is $M$. Consequently, with
+$\Delta_VL(A)=L(A+V)-L(A)$,
+\begin{equation}\label{eq:tag-extraction}
+ \Delta_V(\mathsf E^{(r)}_{ij}M)
+ =V_{b_r(i),b_r(j)}M.
+\end{equation}
+
+For each of the $25$ identity differences, group the residual terms
+from Lemma~\ref{lem:minor-product-slack} by the three forms in
+Equation~\ref{eq:slack-coefficient-patterns}. Construct three fields
+$L_1,L_2,L_3$ as follows, summing with the same coefficients as the
+residuals:
+\[
+ \begin{array}{c|c}
+ \text{residual term}&\text{term placed in the field}\\ \hline
+ cT_{ij}MN&c(\mathsf E^{(1)}_{ij}M)N\quad\text{in }L_1\\
+ cT_{ij}(T_{ii}-1)MN&
+ c(\mathsf E^{(1)}_{ij}M)(\mathsf E^{(2)}_{ii}N)
+       \quad\text{in }L_2\\
+ c(T_{ii}^2-T_{ii})MN&
+ c(\mathsf E^{(1)}_{ii}M)N\quad\text{in }L_3.
+ \end{array}
+\]
+Let $v(T)$ copy the off-diagonal part of $T$ into bank one,
+$w(T)$ copy $\diag(T)-I$ into bank two, and $u(T)$ copy
+$\diag(T)^2-\diag(T)$ into bank one. Here $\diag(T)$ means the
+diagonal matrix retaining the diagonal entries of $T$. These shifts
+belong to $G$: copying a full block preserves membership in $G_0$, and
+removing or replacing diagonal entries is allowed because every
+diagonal matrix belongs to $G_0$.
+All these shifts leave $T$ unchanged. Equation~\ref{eq:tag-extraction}
+therefore proves the identity
+\begin{equation}\label{eq:identity-with-slack}
+ F(A)=\Delta_{v(T)}L_1(A)
+       +\Delta_{v(T)}\Delta_{w(T)}L_2(A)
+       +\Delta_{u(T)}L_3(A)
+\end{equation}
+for the honest difference $F$. In addition, $L_1,L_3$ are affine
+under all translations in bank one, and $L_2$ is separately affine
+under translations in each bank. Indeed its first extended factor
+depends affinely on bank one and not on bank two, and its second
+factor has the reverse properties. Cross entries between a tag bank
+and the address indices do not change under principal-bank
+translations.
+
+\subsection{One oracle, a fixed list of tests, and completeness}
+
+The one assignment field, sixteen gate fields, and seventy-five slack
+fields are $92$ fields altogether. Give each its own selector index,
+using one index in each of $92$ fresh blocks. Together with the three
+address and six tag blocks, this uses $101$ blocks.
+Every honest field constructed above is a linear combination of
+products of two arbitrary minors using address and tag indices only.
+For a field $F$ with selector index $s_F$, replace the first minor in
+each of its terms $cMN$ by the minor with appended row and column
+$s_F$. Sum all such packed terms over the $92$ fields to obtain $P$.
+If $v_F$ is the unit diagonal matrix at $s_F$, the corner-cofactor
+calculation gives
+\begin{equation}\label{eq:selector-isolation}
+ \Delta_{v_F}P=F.
+\end{equation}
+Terms belonging to another field omit $s_F$ completely, so they make
+no contribution to this difference. The shift $v_F$ belongs to $G$.
+
+Every minor of $A+th$, with $h$ as in
+Equation~\ref{eq:rank-one-direction}, is affine in $t$. To see this,
+expand the determinant by multilinearity in columns. Terms using two
+perturbed columns vanish because those columns are proportional.
+Thus each packed product has line degree at most two, as does $P$.
+
+For an arbitrary oracle $P$, use Equation~\ref{eq:selector-isolation}
+as the \emph{definition} of all proof fields. The ordinary laws are:
+\begin{enumerate}
+\item The line law samples uniform $A$ and $h\sim\mathsf D$, queries
+$P(A+th)$ for all $t\in\F$, and checks degree at most two.
+\item Each of the $25$ laws checks
+Equation~\ref{eq:identity-with-slack} at uniform $A$, with its own
+three designated slack fields and the corresponding difference from
+Equation~\ref{eq:clause-identities}.
+\item The assignment invariance law samples a uniform translation
+$v\in G$ whose first diagonal block is zero, and checks
+$X(A+v)=X(A)$ at uniform $A$.
+\item For each slack field and each bank in which it is required to
+be affine, let $B_r$ be the subspace of $G$ supported in that
+principal bank. Test
+\begin{equation}\label{eq:bank-tests}
+ \Delta_w\Delta_vL(A)=0
+ \quad(v,w\text{ independent uniform in }B_r),
+ \qquad
+ \Delta_{av}L(A)=a\Delta_vL(A)
+ \quad(v\text{ uniform in }B_r)
+\end{equation}
+at uniform $A$, with a separate law for each fixed scalar $a\in\F$.
+\end{enumerate}
+Every displayed field value is evaluated through its selector
+difference and all masks. Queries are made even when a coefficient
+vanishes, keeping each law's list length fixed.
+
+All master-oracle query points have uniform marginals on $G$.
+Translations and block swaps are bijections. The maps
+$A\mapsto A+v(T(A))$, and the analogous tag shears, are bijections
+because they leave their source $T$ fixed; subtraction of the same
+shift is their inverse. Their compositions with selectors have the
+same property. Bank-test parameters are independent of the uniform
+base. A fixed mask at a uniform base is at most $q-1$ times uniform
+on $\cS$, so we may use $B=q-1$.
+
+The honest construction above satisfies every law identically and
+has line degree at most two. It therefore proves perfect completeness,
+including the auxiliary parity identity. The witness-dependent fields
+are used only to prove completeness; all public test laws are specified
+without knowing a satisfying assignment.
+
+\subsection{Deterministic correction of almost quadratic lines}
+
+The remaining issue is constant soundness. It is not enough for the
+identities to hold at most matrices, since the Boolean diagonals may
+be sparse. We first obtain exact line identities by correcting a small
+set. This is a local-to-global correction problem in the self-testing
+framework of Blum, Luby, and Rubinfeld \cite{BlumLubyRubinfeld1993}.
+The modal interpolation and transverse-grid consistency argument in the
+point-filling step has precedents in polynomial self-testing
+\cite{GemmellEtAl1991,RubinfeldSudan1996}. The next lemma proves the
+required correction statement for our restricted distribution of
+directions, with one common high-mass set of good directions.
+
+\begin{lemma}\label{lem:quadratic-correction}
+Put $\gamma=10^{-3}$. Suppose the line law of a function $P:G\to\F$
+fails with probability at most $\delta^2$, where $\delta>0$ satisfies
+\begin{align}
+ 2\delta+\lambda_1&<\gamma/2,\notag\\
+ 1-4\gamma-4\delta-2/(q-1)&>\delta+\lambda_1,\label{eq:correction-smallness}\\
+ 27\gamma+5\delta&<1.\notag
+\end{align}
+There is a scalar-invariant set $H$ of directions of
+$\mathsf D$-mass at least $1-\delta$, and a function $P'$ differing
+from $P$ on at most $2\delta$ of $G$, such that
+$t\mapsto P'(A+th)$ has degree at most two for every $A$ and $h\in H$.
+\end{lemma}
+
+\begin{proof}
+Let $H$ consist of directions whose fraction of failing bases is at
+most $\delta$. Mark initially those points whose fraction of failing
+directions is greater than $\delta$, obtaining $D_0$ with
+$\mu(D_0)\leq\delta$. Markov's inequality also gives
+$\mathsf D(H)\geq1-\delta$. Both notions of line failure are unchanged
+by multiplying a direction by a nonzero scalar.
+
+Enlarge $D_0$ by adding an outside point $x$ whenever
+$\Prob_h[x+h\in D]\geq\gamma$. If $D_0$ has $k\geq1$ points, the
+first set of size $2k$, if reached, has internal directed edge mass
+at least $k\gamma/|G|$: every added source point contributed that
+amount at its addition and those edges remain internal. Dividing by
+its density gives at least $\gamma/2$, contrary to
+Equation~\ref{eq:internal-edge-bound} and
+$2\delta+\lambda_1<\gamma/2$. If $k=0$, no point can be added.
+Thus the final $D$ has density at most $2\delta$, and every point
+outside it has entry probability less than $\gamma$ into $D$.
+Call these outside points clean.
+
+Fix $h\in H$ and four distinct times $t_i$. Let $J$ be the set of
+bases whose four positions are clean but for which
+$\sum_i\alpha_iP(A+t_i h)\ne0$, using the interpolation coefficients
+of Equation~\ref{eq:four-masked-positions}. Then $\mu(J)\leq\delta$,
+because every such base has a failing $h$-line. For $A\in J$, put
+$z_i=A+t_i h$. Sample an independent $k\sim\mathsf D$ and a uniform
+$a\in\F^*$. Since $z_i\notin D_0$, all four functions
+$s\mapsto P(z_i+sk)$ are quadratic except on an event of probability
+at most $4\delta$. On that event's complement their relation
+discrepancy is a degree-two polynomial in $s$, nonzero at zero, and
+so is zero at at most two choices of $a\in\F^*$.
+Separately, each $z_i+ak$ is missing with probability at most
+$\gamma$, since $ak$ has exactly law $\mathsf D$. We do not condition
+these cleanliness bounds on line goodness. A union bound gives
+\[
+ \Prob_{k,a}[A+ak\in J]\geq
+ 1-4\delta-4\gamma-\frac2{q-1}.
+\]
+The step $ak$ has law $\mathsf D$, including at zero, so a nonempty
+$J$ would contradict Equation~\ref{eq:internal-edge-bound} and
+Equation~\ref{eq:correction-smallness}. All four-position relations
+whose positions are clean are therefore exact.
+
+We now fill the missing points one at a time. Maintain that every
+assigned point has entry probability at most $\gamma$ into the
+current missing set and that every $H$-direction four-position
+relation on assigned points is exact. If the missing set is
+nonempty, Equation~\ref{eq:internal-edge-bound} supplies a point $x$
+inside it whose entry probability is at most $\gamma$. Removing $x$
+can only decrease all entry probabilities.
+
+Fix three distinct nonzero times $a_1,a_2,a_3$ and interpolation
+coefficients $\ell_1,\ell_2,\ell_3$ for evaluation at zero. A direction
+$k$ predicts $\sum_i\ell_iP'(x+a_i k)$ if its three positions are
+already assigned, and gives an arbitrary fixed default otherwise.
+For independent $h,k$, require the six axis points
+$x+a_i h,x+a_j k$ and the nine grid points
+$x+a_i h+a_j k$ to be assigned. The six axis failures cost at most
+$6\gamma$. After an assigned first-axis point is exposed, the
+independent second direction reaches the missing set with probability
+at most $\gamma$; the nine additional failures cost at most
+$9\gamma$. No independence among these fifteen events is asserted.
+Requiring $h,k\in H$ costs at most $2\delta$.
+On the resulting event, interpolation of the grid first by rows and
+then by columns shows that the two predictions agree, because all
+the relations used involve already assigned points.
+
+Let $\pi_x$ be the full prediction distribution, defaults included.
+Its collision probability is at least $1-15\gamma-2\delta$ and is
+at most its largest atom. Choose one modal value $m_x$ once and
+assign it to $x$. A random prediction equals $m_x$ and uses an
+already assigned triple except with probability at most
+$18\gamma+2\delta$. At any old assigned center, the analogous
+prediction reproduces its value with an old assigned triple except
+with probability at most $3\gamma+\delta$.
+
+Consider any fixed relation newly enabled by assigning $x$. A zero
+direction gives an automatic constant-line identity. Otherwise its
+four positions are distinct and only one is $x$. For a fresh
+transverse direction $k$, simultaneous correct interpolation from
+old assigned triples at its four centers fails with probability at
+most
+\[
+ (18\gamma+2\delta)+3(3\gamma+\delta)=27\gamma+5\delta<1.
+\]
+There is therefore such a $k$. Each of the three translated copies
+of the relation lies entirely in the old assigned set and is zero.
+Interpolating those three identities back recovers the old values
+and the already selected $m_x$, so the original relation is zero.
+Repeated grid positions cause no problem: they denote the same
+assigned value. A grid position equal to the still-missing center
+was already excluded by the old-assignment event.
+
+The modal value is fixed before the relation is considered. Different
+transverse directions may establish different deterministic
+relations for that same value; no union bound over relations or
+peeling steps is used. This proves the induction. At its completion
+all four-position relations hold in every direction in $H$.
+Interpolation at three distinct parameters and then at each fourth
+parameter proves the asserted line degree. Only the original enlarged
+set, of density at most $2\delta$, was changed.
+\end{proof}
+
+\subsection{Support gaps and exact bank affinity}
+
+\begin{lemma}\label{lem:line-support-gap}
+Suppose a scalar-invariant set of directions has
+$\mathsf D$-mass at least $1-\rho$, and $F:G\to\F$ has degree at most
+$D<q-1$ on every line in those directions. Then either $F=0$
+identically or
+\[
+ \mu(\supp F)\geq 1-\rho-\frac{D}{q-1}-\lambda_1.
+\]
+\end{lemma}
+
+\begin{proof}
+From a point $x$ of the support, sample $h\sim\mathsf D$ and an
+independent uniform $a\in\F^*$. On a good direction, the nonzero
+line polynomial has at most $D$ roots among those scalars. Thus
+$x+ah$ is in the support with probability at least
+$1-\rho-D/(q-1)$. The law of $ah$ is the original direction law.
+Average over support points and apply
+Equation~\ref{eq:internal-edge-bound}.
+\end{proof}
+
+Suppose now that every ordinary binary test law fails with probability
+at most $\eta$. Decode the full mask vector to $P(A)$ wherever it is
+valid, and choose $P(A)$ arbitrarily otherwise. Acceptance of a binary
+test certifies both valid encodings at all its queried points and its
+field relation. Thus every decoded field law also fails with
+probability at most $\eta$.
+
+Let $Q$ be a fixed upper bound on the number of master-field queries
+in a law, counting repetitions; for example $Q=q+32$ suffices for
+the displayed list. Put $\delta=\sqrt\eta$ and apply
+Lemma~\ref{lem:quadratic-correction}. Replacing $P$ by $P'$ increases
+any field-law failure probability by at most $2Q\delta$, because
+each master query is uniform. Write
+\begin{equation}\label{eq:corrected-test-error}
+ \tau=\eta+2Q\delta.
+\end{equation}
+Intersect the pullbacks of $H$ under the three block permutations
+$\pi_1,\pi_2,\pi_3$. Their common scalar-invariant direction set has
+missing mass at most $K_{\rm sw}\delta$, with $K_{\rm sw}=3$.
+Every fixed translate of every corrected proof field, and of every
+$X_i$, has line degree at most two on this common set.
+Lemma~\ref{lem:line-support-gap}, with the conservative degree bound
+six, gives the support lower bound
+\begin{equation}\label{eq:kappa-support}
+ \kappa=1-K_{\rm sw}\delta-\frac6{q-1}-\lambda_1
+\end{equation}
+for any nonzero discrepancy to which that degree bound applies.
+
+First consider a fixed parameter in the assignment invariance test.
+Its discrepancy has degree at most two. If it is not identically
+zero, it fails on at least a $\kappa$ fraction of bases. Hence at
+least a $1-\tau/\kappa$ fraction of the tested translations preserve
+$X$ identically. Those translations form an additive subgroup.
+A subgroup of a finite additive group with density greater than
+one half is the whole group, since otherwise one of its disjoint
+cosets has the same size. Thus the assignment invariance is exact
+provided $\tau/\kappa<1/2$.
+
+For a bank $B_r$ and slack field $L$, fix $v$ and let
+\[
+ W_v=\{w\in B_r:
+       \Delta_vL(A+w)=\Delta_vL(A)\text{ for every }A\}.
+\]
+This is the translation stabilizer of the function $\Delta_vL$,
+hence a subgroup. Each fixed $(v,w)$ discrepancy has line degree
+at most two. The fraction of pairs for which it is not identically
+zero is at most $\tau/\kappa$. If $\tau/\kappa<1/16$, Markov's
+inequality leaves more than three quarters of $v$ for which more
+than three quarters of $w$ are valid. For these $v$, $W_v=B_r$.
+The set
+\[
+ V=\{v\in B_r:\Delta_vL\text{ is invariant under all }B_r
+                    \text{ translations}\}
+\]
+is also a subgroup. Indeed, for $u,v\in V$, the difference cocycle
+gives
+\[
+ \Delta_{u+v}L(A)
+ =\Delta_uL(A+v)+\Delta_vL(A)
+ =\Delta_uL(A)+\Delta_vL(A),
+\]
+and $\Delta_{-v}L(A)=-\Delta_vL(A-v)=-\Delta_vL(A)$.
+Thus $V=B_r$, and the map $v\mapsto\Delta_vL(A)$ is additive for
+every $A$.
+
+For each fixed scalar $a$, the map
+$v\mapsto(\Delta_{av}L(A)-a\Delta_vL(A))_{A\in G}$ is now additive.
+Its kernel has density at least $1-\tau/\kappa>1/2$ by that scalar's
+test and the support gap, and so equals $B_r$. This proves exact
+$\F$-affinity in each required bank. There are only $q$ scalar laws,
+with $q$ fixed. The argument has exactified whole translation laws
+before introducing a basis of any bank.
+
+We may now expand the shifts in
+Equation~\ref{eq:identity-with-slack}. For bases $(e_i)$ and $(f_j)$
+of the two banks, exact separate affinity gives
+\begin{equation}\label{eq:exact-bilinear-shift}
+ \Delta_{v(T)}\Delta_{w(T)}L(A)
+ =\sum_{i,j}v_i(T)w_j(T)\Delta_{e_i}\Delta_{f_j}L(A).
+\end{equation}
+Each coefficient function on the right is a fixed combination of
+translates of a selector difference of $P'$, so has line degree at
+most two. The coordinates of $v(T)$ and $w(T)$ have degree at most
+one on an $A$-line. The corresponding coordinates of $u(T)$ have
+degree at most two. The one-bank expansions have the same form
+with one fixed difference. Thus every slack term has line degree
+at most four. The main field products have degree at most four,
+and every public principal minor has degree at most one.
+The number of coefficients in Equation~\ref{eq:exact-bilinear-shift}
+does not affect the degree of their sum; every coefficient identity
+is already exact.
+
+Every full identity discrepancy therefore has degree at most four
+on the common good directions and fails on at most a $\tau$ fraction
+of bases. If $\tau<\kappa$, the support gap forces it to vanish
+identically. On Boolean diagonal $T$, the shifts $v(T)$ and $u(T)$
+are zero. Both single differences and the mixed difference with
+$v(T)=0$ therefore vanish, regardless of $w(T)$, and
+Equation~\ref{eq:clause-identities} holds exactly.
+Every triple of Boolean addresses is available because $G_0$
+contains all diagonal matrices. Exact invariance makes $X$ a
+well-defined function of its first block alone. The Booleanity
+identity assigns a bit to each Boolean address, and the gate
+identities exclude every falsifying clause pattern: if all three
+assigned bits matched a forbidden pattern, then $E_a=M_{a,1}
+=M_{a,2}=M_{a,3}=1$, forcing $Y_a=Z_a=1$ and contradicting
+$Y_aZ_a=0$. This is a satisfying assignment to the input formula.
+
+All required smallness conditions follow from a single fixed choice.
+With Equation~\ref{eq:fixed-field-smallness} in force, put
+\[
+ d_0=\min\left\{\frac{\gamma}{16},
+          \frac1{16K_{\rm sw}},\frac1{128(1+2Q)}\right\},
+ \qquad 0<\eta\leq d_0^2.
+\]
+Then Equation~\ref{eq:correction-smallness} holds,
+$\kappa\geq1-1/16-1/16-\lambda_1>1/2$, and
+$\tau\leq(1+2Q)\sqrt\eta\leq1/128$.
+In particular $\tau/\kappa<1/16$ and $\tau<\kappa$.
+No bound contains $d$ or $|G|$. An unsatisfiable formula must
+therefore have a law failing with probability greater than this
+$\eta$.
+
+Finally, the space $G$ has size $q^{O(d)}=2^{O(d)}$, and all
+test samplers enumerate fixed products of this space, fixed finite
+fields, and the $O(d)$-length pencil. Public table interpolation
+uses at most $2^{3d}$ addresses and elementary linear algebra.
+Every arithmetic operation has polynomial bit complexity; seed
+probabilities are rational products of the reciprocals of these
+polynomial-size spaces. Query arity, number of laws, and all mask
+counts are constants. The pencil construction itself takes
+$2^{O(d)}$ time by Lemma~\ref{lem:pencil}.
+These observations prove the size and sampler assertions and
+complete the proof of Theorem~\ref{thm:bit-test-system}.

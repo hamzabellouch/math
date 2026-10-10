@@ -1,0 +1,642 @@
+\section{Two successful levels and upper decoding}\label{sec:upper}
+
+We show that appreciable test acceptance produces two local bilinear-form
+decoders.  Their outputs agree on the projected lower space with a probability
+depending only on the upper row count.  The left output is always a normalized
+product form whose restriction to its displayed lower rows has rank at most
+one.  Keeping this probability independent of the lower row count will allow
+us to choose that count afterward.
+
+Fix a legal labeling of the partition vertices, extended to unused legal keys
+as in Section~\ref{sec:construction}.  All responses below are evaluations
+restored from this fixed labeling.  For a candidate test at level $p$, write
+$\mathrm{Acc}_p$ for its acceptance event.  Sample the directions for all candidate
+tests independently, using the same left query and sampled path.
+
+\subsection{Selecting two levels and a quotient table}
+
+Suppose that the labeling accepts with probability at least $\eps$, where
+$0<\eps<1$, and choose $d\eps\ge4$.  If
+$N=\sum_{p=1}^d\one_{\mathrm{Acc}_p}$, then
+\[
+ \E[N(N-1)]\ge (\E N)^2-\E N
+       \ge d^2\eps^2-d\eps.
+\]
+Consequently some $i<j$ satisfies
+\begin{equation}\label{eq:upper-pair}
+ \Prob(\mathrm{Acc}_i\cap \mathrm{Acc}_j)
+ \ge \frac{d^2\eps^2-d\eps}{d(d-1)}
+ \ge \frac{3\eps^2}{4}.
+\end{equation}
+No independence between the acceptance events is used here.  Pass to the
+modified experiment at level $i$ from Section~\ref{sec:sampling}: each child
+of $D_i$ is independently projected with probability $\beta_i=n_i^{-2/3}$,
+and all calls stopped at $D_i$, its own matrix, and its descendant matrices
+are independent uniform draws in their new spaces.  Write $\Prob_i$ for
+this law, with all functions also pulled back to the original tuple $E$.
+By Lemmas~\ref{lem:cut-tv} and~\ref{lem:sparse-tv}, we can require the
+comparison error in \eqref{eq:upper-pair} to be at most $\eps^2/4$.
+Thus, throughout this section,
+\begin{equation}\label{eq:upper-c}
+ \Prob_i(\mathrm{Acc}_i\cap \mathrm{Acc}_j)\ge c,\qquad c=\eps^2/2.
+\end{equation}
+All eventual parameter choices will satisfy the stated bounds for every
+possible pair $i<j$.
+
+The comparison at the upper cut forgets which level-$i$ descendant lies on
+the path.  We therefore build one response table using the displayed rows
+at every level-$i$ descendant of $D_j$.
+Put $H=H_{D_j}(E)$, $K=K_j=\F^{\ell}$, $\ell=\ell_j$, and
+$M=M_{D_j}$.  The data
+\[
+ P=(E,\text{path through }D_j,(M_D)_{D\ne D_j})
+\]
+contain actual functions on the original domains.  The record $P$ does
+not include an explicit tag for the selected level-$i$ descendant of $D_j$,
+and does not append the projection mask or the questions in $O$.
+The retained arrays may carry statistical information about these latent
+choices; the law comparisons already apply to the entire retained record.
+Let $\mathcal D_i(D_j)$ be the set of \emph{all} level-$i$ descendants of
+$D_j$.  Write $s_{C,t}\in H_C(E)$ for row $t$ of $M_C$, where
+$C\in\mathcal D_i(D_j)$ and $1\le t\le\ell_i$.  Define
+\begin{equation}\label{eq:upper-B}
+ B=B(P)=\Span\bigl(\{1\}\cup
+       \{s_{C,t}s_{C,u}:C\in\mathcal D_i(D_j),\ 1\le t,u\le\ell_i\}\bigr)
+       \subseteq H.
+\end{equation}
+The inclusion follows from $H_C^2\subseteq H_{D_j}$.  Fix, by deterministic
+linear algebra on $P$, a linear section $s:H/B\longrightarrow H$ of the
+quotient map $\pi:H\longrightarrow H/B$.  Apply both maps row by row.
+
+For $\bar M\in K\otimes(H/B)$, query the left table with upper matrix
+$s(\bar M)$ and all other matrices specified by $P$.  Retain the response
+\begin{equation}\label{eq:upper-representative}
+ f_P(\bar M)=\bigl(u,(y_C)_{C\in\mathcal D_i(D_j)}\bigr),
+ \qquad u\in K,\quad y_C\in K_i.
+\end{equation}
+Thus the response contains the upper evaluation and the evaluations at every
+level-$i$ descendant, without a tag marking the selected descendant.  This
+finite range can be large; none of our inverse bounds depends on its size.
+
+To recover the response at the original matrix $M$, put $\bar M=\pi(M)$ and write
+$\Delta=M-s(\bar M)\in K\otimes B$.  Addition of $\Delta$ to the upper
+rows is an invertible triangular transformation of the combined evaluation
+tuple, since each row of $\Delta$ is a constant plus a sum of products of
+unchanged lower rows.  Lemma~\ref{lem:folding} therefore shows that all
+$y_C$ are unchanged and that the upper response changes from $u$ to
+$u+\Delta b_y$, where $b_y$ evaluates the generators of $B$ according to
+$1\mapsto1$ and $s_{C,t}s_{C,u}\mapsto (y_C)_t(y_C)_u$.
+This rule is a well-defined linear functional: one legal assignment realizes
+the \emph{entire} representative response, and its evaluation respects every
+pointwise linear relation among the generators in \eqref{eq:upper-B}.
+
+Define a usefulness mark by
+\begin{equation}\label{eq:upper-mark}
+ U(P,\bar M)=\one\{\Prob_i(\mathrm{Acc}_i\mid P,\bar M)\ge\kappa\},
+ \qquad \kappa=c/2,
+\end{equation}
+setting it to zero off the support of the conditioning data.  The conditional
+probability averages over the selected lower path, its omitted direction,
+the $B$-component of $M$, and any other unexposed randomness.  Define the
+partial table $\widetilde f_P$ to equal $f_P$ where $U=1$, and to be
+undefined ($\bot$) elsewhere.  We fix these marks once using $\Prob_i$ and use exactly the same
+partial tables under all subsequent laws.
+
+\begin{lemma}[Defined equality from a two-response fiber]
+\label{lem:useful-equality}
+Under \eqref{eq:upper-c}, resampling the level-$j$ bucket indexed by its
+omitted direction gives two matrices $M,M'$ such that
+\[
+ \Prob_i\bigl(\widetilde f_P(\bar M)
+      =\widetilde f_P(\bar M')\ne\bot\bigr)\ge c^2/8.
+\]
+If the cut comparison for this enlarged experiment has total-variation
+error at most $c^2/16$, then under the unrestricted level-$j$ cut law the
+same frozen partial tables have average defined equality at least
+$\theta=c^2/16$ on the ordinary uniform rank-one walk on $K\otimes(H/B)$.
+\end{lemma}
+
+\begin{proof}
+The part of $\mathrm{Acc}_i\cap \mathrm{Acc}_j$ on which $U=0$ has probability at most $\kappa$,
+by conditioning on $(P,\bar M)$.  Hence
+$\Prob_i(\mathrm{Acc}_j\cap\{U=1\})\ge c/2$.
+
+For the resampling, first fix the domains and projection choices, the path
+through $D_i$, all matrices other than $M$, the omitted direction
+$a\in K\setminus\{0\}$ for the level-$j$ test, and every bucket $h_v$ of
+$M=\sum_{v\ne0}v\otimes h_v$ except $h_a$.  Denote this full background by
+$\mathcal B$.  Fresh calls make $h_a$ and its resampled copy conditionally
+independent with the same law.  The right level-$j$ query is constant as a
+function of this bucket, because $M\bmod\langle a\rangle$ is constant.
+Every successful left response therefore has the same lower outputs and
+the same upper output modulo $\langle a\rangle$.
+
+This assertion also holds for the representative upper output.  Indeed,
+if $M'-M=a\otimes h$, linearity of the section gives
+\[
+ [M'-s(\bar M')]-[M-s(\bar M)]
+        =a\otimes(h-s(\pi h)).
+\]
+Successful samples have the same $b_y$, so the corresponding folding
+correction changes by a multiple of $a$.  Thus at fixed $\mathcal B$ the
+useful successful samples have at most two possible values of
+\eqref{eq:upper-representative}.  If their probabilities are $p_1,p_2$
+(allowing one to be zero), two independent bucket draws yield equal defined
+responses with probability at least
+\[
+ p_1^2+p_2^2\ge (p_1+p_2)^2/2.
+\]
+Averaging and applying Cauchy--Schwarz again proves the first bound.
+
+The event just obtained is a function of $P,M,M'$ and the fixed partial
+tables.  It records neither the selected descendant below $D_j$ nor the
+projection metadata.  Apply the modified-$i$ to unrestricted-$j$ comparison
+from Lemmas~\ref{lem:cut-tv} and~\ref{lem:sparse-tv}, including the additional
+bucket call.  Own buckets at $D_j$, pending calls used in its ancestors,
+and descendant matrices are separate independent families in the reference
+experiment.  Consequently $M$ is uniform independently of $P$: independent
+uniform buckets map surjectively to $K\otimes H$.  Given all old buckets,
+$h=h_a+h_a'$ is uniform in $H$ and independent of those buckets.  Hence
+$M'=M+a\otimes h$ is precisely the uniform rank-one walk, and its image in
+$H/B$ is the same walk on the quotient.  The claimed loss gives
+$c^2/8-c^2/16=\theta$.
+\end{proof}
+
+\subsection{From row advice to a predictable upper response}
+
+Write $\Prob_j^0$ for the unrestricted cut law in the last assertion of
+Lemma~\ref{lem:useful-equality}, with independent auxiliary choices appended
+as needed.  Put $\eta=\theta/2$.  If the average conditional equality given $P$
+is at least $\theta=2\eta$, the set of $P$ for which it is at least
+$\eta$ has probability at least $(\theta-\eta)/(1-\eta)\ge\eta$.  Use the constants
+$0<\alpha\le1$, $r\ge1$ in Lemma~\ref{lem:many-fibers} at equality threshold
+$\eta$, obtained from Theorem~\ref{thm:inverse} at threshold $\eta/2$.
+Assume that $\ell$ meets their largeness requirement.
+
+Sample $A\in\Hom(K,\F^r)$ uniformly and independently.  For any
+$(P,A,C)$, where $C\in\F^r\otimes(H/B)$, call the advice \emph{good} if
+the row fiber $A\bar M=C$ has a nonempty slice obtained by specifying at
+most $r$ columns on which one defined value of $\widetilde f_P$ has density
+at least $\alpha$ in uniform slice measure.  For each good advice choose,
+using fixed deterministic orders, column functionals
+$q_1,\ldots,q_k\in(H/B)^*$, values $v_1,\ldots,v_k\in K$, and a response
+\[
+ t_*=(u,(y_C)_{C\in\mathcal D_i(D_j)}),\qquad k\le r,
+\]
+witnessing this condition.  These choices depend only on the advice; they
+are not selected using the actual position within the column slice.
+The probability of good advice $(P,A,A\bar M)$ under $\Prob_j^0$ is at least
+\begin{equation}\label{eq:upper-g}
+ g=\frac{\eta^2}{4}\,2^{-r\ell}.
+\end{equation}
+Indeed, the set of qualifying $P$ has mass at least $\eta$, and for each
+such $P$ Lemma~\ref{lem:many-fibers} gives good-advice probability at least
+$(\eta/4)2^{-r\ell}$.  Row maps of deficient rank are allowed throughout.
+
+Pull the chosen $q_a$ back to $H^*$ and put
+$Z=\Span\{q_1,\ldots,q_k\}\subseteq\Ann(B)$.  The chosen response occurs
+on a nonempty set of legal representative queries, so the preceding
+joint-legality argument defines its functional $b_y\in B^*$.
+Define $z_0\in H^*$ by
+\begin{equation}\label{eq:upper-z0}
+ z_0(b+s(\bar h))=b_y(b)
+       \quad(b\in B,\ \bar h\in H/B).
+\end{equation}
+This uses the direct-sum decomposition $H=B\oplus s(H/B)$.  At every match
+to the selected response the restored upper output equals
+\begin{equation}\label{eq:upper-restored}
+ Mz_0+u.
+\end{equation}
+Every $z\in z_0+Z$ satisfies
+\begin{equation}\label{eq:upper-valid}
+ z(1)=1,\qquad
+ \bigl(z(s_{C,t}s_{C,u})\bigr)_{t,u}
+       =y_Cy_C^{\mathsf t}\quad(C\in\mathcal D_i(D_j)).
+\end{equation}
+Thus the whole coset is normalized and has tested rank at most one at
+each of these descendants.  Dependent generators in $B$ cause no ambiguity;
+legality, rather than a choice of their representation, defined $b_y$.
+
+Define two events on $(P,A,M)$:
+\begin{align*}
+ J&=\{\text{advice is good and }Mq_a=v_a\text{ for }1\le a\le k\},\\
+ I&=J\cap\{\widetilde f_P(\bar M)=t_*\}.
+\end{align*}
+Both events belong to $\sigma(P,A,\bar M)$, since every $q_a$ annihilates
+$B$ and the witness uses only $(P,A,A\bar M)$.  In particular, $I$ asks
+for a representative-table match; it does not ask for a restored right
+answer to equal \eqref{eq:upper-restored}.
+For uniform $M$ in a fixed nonempty row fiber, imposing $k$ columns costs
+at most $k\ell\le r\ell$ binary equations.  Therefore, with
+\begin{equation}\label{eq:upper-q0}
+ h_0=2^{-r\ell},\qquad q_0=gh_0,
+\end{equation}
+the reference law satisfies
+\begin{equation}\label{eq:upper-IJ}
+ \Prob_j^0(J)\ge q_0,\qquad
+ \Prob_j^0(I)\ge\alpha\Prob_j^0(J).
+\end{equation}
+The entire definition of goodness and the chosen witnesses is now fixed.
+When evaluating $I,J$ under another law we use these same predicates.
+
+\begin{lemma}[Predicting the upper response]
+\label{lem:positive-difference}
+Let $R_j^{(i)}\in K$ be the restored upper response of the level-$i$ right
+table in the modified experiment.  Suppose the total-variation comparison
+between $\Prob_i$ and $\Prob_j^0$, for the observations defining $I,J$, is
+at most $v\le\alpha q_0/16$.  Then, with
+\[
+ \rho=\kappa\alpha/4,\qquad b=\kappa\alpha q_0/4,
+\]
+one has
+\begin{equation}\label{eq:upper-difference}
+ \Prob_i\bigl(J,\ R_j^{(i)}=Mz_0+u\bigr)-\rho\Prob_i(J)\ge b>0.
+\end{equation}
+All quantities $g,h_0,q_0,\rho,b$ depend only on $c,\alpha,r,\ell$.
+\end{lemma}
+
+\begin{proof}
+On $I$ the mark $U$ is one.  Independence of $A$ and the measurability
+just proved imply
+\[
+ \Prob_i(I\cap \mathrm{Acc}_i)
+ =\E_i\bigl[\one_I\Prob_i(\mathrm{Acc}_i\mid P,\bar M,A)\bigr]
+ \ge\kappa\Prob_i(I).
+\]
+Acceptance at level $i$ preserves the entire upper evaluation.  Thus on
+$I\cap \mathrm{Acc}_i$ the right response is $Mz_0+u$.  Exact sharing of canonical
+keys permits evaluating this right response directly on $O$.
+Writing $h=\Prob_j^0(J)\ge q_0$, unconditional total variation and
+\eqref{eq:upper-IJ} give
+\[
+ \Prob_i(I)\ge\alpha h-v,\qquad \Prob_i(J)\le h+v.
+\]
+The left side of \eqref{eq:upper-difference} is consequently at least
+\[
+ (\kappa\alpha-\rho)h-(\kappa+\rho)v
+ \ge\frac{3\kappa\alpha}{4}q_0
+      -\kappa(1+\alpha/4)\frac{\alpha q_0}{16}
+ \ge b.
+\]
+This proves an unconditional inequality.  We will disintegrate it below,
+without reusing the usefulness estimate after a finer conditioning.
+\end{proof}
+
+The affine witness now predicts the upper response with positive probability,
+and every functional in its coset is normalized and passes the lower rank
+test.  To obtain two local decoders, we need a bounded collection of candidate
+functionals, computed from the right input, that contains the restriction of
+some functional in this coset to the projected space.  The same collection
+must work for every compatible left witness.
+
+\subsection{The local inputs and the original hidden law}\label{sec:right-hidden-law}
+
+Here and below the experiment is $\Prob_i$.  Write
+$H'=H_{D_j}(O)$, $H_i=H_{D_i}(E)$, $H_i'=H_{D_i}(O)$, and
+$S=M_{D_i}$.  Pullback identifies the primed spaces with subspaces of the
+unprimed ones, preserving products.  Put $W=\ker A$ and split the upper
+matrix into
+\begin{equation}\label{eq:upper-hidden}
+ M=M_{\rm known}+X,\qquad
+ M_{\rm known}=\sum_{v\in K\setminus W}v\otimes h_v,\qquad
+ X=\sum_{v\in W\setminus\{0\}}v\otimes h_v\in W\otimes H'.
+\end{equation}
+The known sum is determined without any bucket whose index lies in $W$.
+In particular $AM=AM_{\rm known}$.
+
+We specify the two inputs exactly.  Tree locations are retained in these
+analytical inputs, even though the original partition keys omit unnecessary
+sampling metadata.  The left information is
+\begin{equation}\label{eq:upper-left-input}
+ \mathcal L=\sigma\bigl(E,\text{path through }D_i,A,
+       (M_D)_{D\ne D_j},(h_v)_{v\in K\setminus W}\bigr),
+\end{equation}
+where every function is represented on its original $E$-domain.  These
+data supply $S$ in full, without supplying $a_i$, $O$, or the
+projection choices as additional fields.  The right information is
+\begin{equation}\label{eq:upper-right-input}
+ \mathcal R=\sigma\bigl(O,\text{path through }D_i,A,a_i,
+       (M_D)_{D\ne D_j,D_i},S\bmod\langle a_i\rangle,
+       (h_v)_{v\in K\setminus W}\bigr),
+\end{equation}
+with functions represented on their $O$-domains.  The right is supplied
+only the displayed quotient of $S$, with no additional missing-component
+ingredients.  Neither side is supplied $X$.  The left can compute $P$ and $A\bar M$ from
+\eqref{eq:upper-left-input}, so it can compute the good-advice predicate
+and its chosen witness without knowing $M$.
+Figure~\ref{fig:tree-cut} summarizes these information restrictions.
+
+\input{figures/tree-cut}
+
+For clarity, the independence underlying these inputs is exact, not an
+approximation.  Conditional on $O$, the projection choices, and the path
+through $D_i$, give each actual node matrix its own random tape.  Give each
+scalar bucket in a matrix a fresh recursive call tree, with independent
+ordinary-child uniforms and independent factor calls at every product.
+All calls that reach $D_i$ terminate in separate uniform draws in
+$H_i'$.  In particular, even a call used for an ancestor of $D_j$ and a
+bucket of $M$ that both visit $D_j$ use disjoint random tapes.
+The product factorization of these tapes implies
+\begin{equation}\label{eq:upper-factorization}
+ (h_v)_{v\in W\setminus\{0\}}\mathrel{\perp\!\!\!\perp}
+ \bigl((h_v)_{v\notin W},(M_D)_{D\ne D_j}\bigr)
+ \quad\text{given the domains, path, and }A.
+\end{equation}
+The same statement remains true if the original questions $E$ and the
+projection maps are additionally given: they determine the embeddings of
+the spaces but do not change the intrinsic $O$-space sampler.  This also
+explains why analytical disclosure of the full $S$ is harmless for this
+factorization, although $S$ is not part of the right input.
+
+Let $\mu_{\mathcal R}$ be the distribution on $W\otimes H'$ obtained by
+sampling the hidden buckets in \eqref{eq:upper-hidden} with this original
+modified-$i$ sampler.  It is a function of the right input alone.  Indeed,
+the right knows $O$, the path down to the terminating cut, all spaces and
+all sampler parameters.  Independent recursive calls above that cut can
+be enumerated on those spaces without knowing $E$, any projection map,
+or the missing part of $S$.  Formula~\eqref{eq:upper-factorization} shows
+that $\mu_{\mathcal R}$ is also the actual conditional hidden law after
+revealing all of the data in both inputs, including full $S$.
+
+For each fixed right input, define
+\begin{equation}\label{eq:upper-G}
+ G_{\mathcal R}:W\otimes H'\longrightarrow K
+\end{equation}
+by assembling the level-$i$ right query with upper matrix
+$M_{\rm known}+X$, consulting its fixed partition label, and restoring
+the upper component.  This is a well-defined local function: the lower
+matrix in this query is precisely $S\bmod\langle a_i\rangle$.
+The original labeling has already been extended to unused legal keys, so
+this definition is total for every $X$ in the ambient space.
+
+Assume that every product count meets the absolute balance minimum of
+Lemma~\ref{lem:bias}, and that
+\begin{equation}\label{eq:upper-R}
+ (7/8)^{R_j}\le\lambda.
+\end{equation}
+Every nonzero character of $W\otimes H'$ then has bias at most $\lambda$
+under $\mu_{\mathcal R}$.  To check this directly, identify a character
+with a nonzero linear map $\Phi:W\longrightarrow(H')^*$.  Some nonzero
+$v\in W$ has $\Phi(v)\ne0$, so its expectation on the corresponding
+bucket has absolute value at most $\lambda$ by Lemma~\ref{lem:bias}.
+Independence factors the expectation over all hidden buckets, and all
+remaining factors have absolute value at most one.  This argument makes
+no claim about small bias after a slice, a successful match, or any later
+conditioning.
+
+\subsection{A bounded list for an arbitrary small-bias law}
+
+We record the Fourier calculation separately.  It uses characters under
+their actual sampling law rather than treating small bias as total-variation
+closeness to uniform measure.  The short-list principle is related to
+Goldreich--Levin heavy-character decoding~\cite{GoldreichLevin1989}.
+We prove the needed statement for the present nonuniform, own-question law;
+no efficient decoding algorithm is required.  If $V=W\otimes H'$, write
+\[
+ \chi_\Phi(X)=(-1)^{\langle\Phi,X\rangle},\qquad
+ \Phi\in V^*=\Hom(W,(H')^*).
+\]
+For $\sigma\in K^*$ and a fixed function $G:V\longrightarrow K$, put
+$g_\sigma(X)=(-1)^{\sigma(G(X))}$.
+
+\begin{lemma}[One heavy list for all affine-slice witnesses]
+\label{lem:heavy-list}
+Let $K=\F^\ell$, let $W\subseteq K$ have codimension at most $r$, and
+let $H'$ be a finite vector space.  Let $\mu$ be a probability law on
+$V=W\otimes H'$ with $|\E_\mu\chi_\Phi|\le\lambda$ for every nonzero
+$\Phi\in V^*$.  Fix $G:V\longrightarrow K$, $0<\rho\le1$, and set
+\[
+ h_0=2^{-r\ell},\qquad \tau=\rho h_0/4.
+\]
+Suppose
+\begin{equation}\label{eq:upper-Fourier-conditions}
+ 2^{-(\ell-r)}<\rho/8,
+ \qquad 0\le\lambda\le\min\{h_0/2,\tau^2/2\}.
+\end{equation}
+For each $\sigma\in K^*$ define the list
+\begin{equation}\label{eq:upper-heavy-definition}
+ \mathcal H_\sigma
+ =\{\Phi\in V^*:|\E_\mu[g_\sigma\chi_\Phi]|\ge\tau\}.
+\end{equation}
+Each list has size at most $2/\tau^2$.  Moreover, let
+$Q\subseteq(H')^*$ have dimension at most $r$, let
+$t_Q\in\Hom(Q,W)$ specify the nonempty affine slice
+$\mathcal C=\{X:X|_Q=t_Q\}$, and let
+$z'\in(H')^*$ and $k_0\in K$.  If
+\begin{equation}\label{eq:upper-slice-equality}
+ \Prob_\mu(G(X)=Xz'+k_0\mid X\in\mathcal C)\ge\rho,
+\end{equation}
+then some $\sigma$ with $\sigma|_W\ne0$ has a list element in
+\begin{equation}\label{eq:upper-heavy-coset}
+ (\sigma|_W)\otimes z'+W^*\otimes Q.
+\end{equation}
+The lists in \eqref{eq:upper-heavy-definition} depend on $\mu,G,W,H'$ and
+$\tau$, and not on the witness $Q,t_Q,z',k_0$.
+\end{lemma}
+
+\begin{proof}
+Put $w=\dim W$ and $q=\dim Q$.  The map
+$V\longrightarrow\Hom(Q,W)$ given by $X\mapsto X|_Q$ is surjective:
+choose a basis of $Q$, extend it to a basis of $(H')^*$, and extend any
+specified linear map to all of $(H')^*$.  Thus the linear equations for
+$\mathcal C$ have rank $wq\le\ell r$.  Their dual space is
+$L=W^*\otimes Q\subseteq V^*$.  Choose any $X_0\in\mathcal C$.  The
+exact character identity for the affine slice is
+\begin{equation}\label{eq:upper-slice-expansion}
+ \one_{\mathcal C}(X)
+   =\frac1{|L|}\sum_{\Psi\in L}\chi_\Psi(X_0)\chi_\Psi(X).
+\end{equation}
+Indeed, the sum is one when $X-X_0$ annihilates $L$, and zero otherwise.
+Consequently
+\begin{equation}\label{eq:upper-slice-mass}
+ \mu(\mathcal C)\ge2^{-wq}-\lambda\ge h_0-\lambda\ge h_0/2>0.
+\end{equation}
+This proves the needed slice mass using unconditional bias.
+
+Expand the equality in \eqref{eq:upper-slice-equality} over $K^*$:
+\[
+ \Prob_\mu(G(X)=Xz'+k_0\mid\mathcal C)
+ =2^{-\ell}\sum_{\sigma\in K^*}(-1)^{\sigma(k_0)}
+    \E_\mu[g_\sigma(X)\chi_{(\sigma|_W)\otimes z'}(X)
+                    \mid\mathcal C].
+\]
+The fraction of $\sigma$ annihilating $W$ is $2^{-w}$, which is at most
+$2^{-(\ell-r)}<\rho/8$.  Each term has absolute value at most one, so
+some remaining $\sigma$ has
+\[
+ \left|\E_\mu[g_\sigma\chi_{(\sigma|_W)\otimes z'}\mid\mathcal C]\right|
+ \ge\rho/2.
+\]
+Multiply by \eqref{eq:upper-slice-mass} and then insert
+\eqref{eq:upper-slice-expansion}.  The coefficients in that expansion
+have total absolute value one.  It follows that for some $\Psi\in L$,
+\[
+ \left|\E_\mu[g_\sigma
+       \chi_{(\sigma|_W)\otimes z'+\Psi}]\right|
+ \ge(\rho/2)(h_0/2)=\tau.
+\]
+This gives \eqref{eq:upper-heavy-coset}.  Notice that the unknown target
+offset contributes only a sign in the equality expansion.
+
+It remains to bound the lists under the possibly nonuniform law $\mu$.
+Take $m$ distinct elements $\Phi_1,\ldots,\Phi_m$ of one list and choose
+signs $\epsilon_a\in\{-1,1\}$ aligning their correlations with
+$g_\sigma$.  Cauchy--Schwarz gives
+\begin{align*}
+ m^2\tau^2
+ &\le\left(\E_\mu\left[g_\sigma
+               \sum_{a=1}^m\epsilon_a\chi_{\Phi_a}\right]\right)^2\\
+ &\le\E_\mu\left[\left(\sum_{a=1}^m
+                   \epsilon_a\chi_{\Phi_a}\right)^2\right]
+ \le m+m(m-1)\lambda\le m+m^2\lambda.
+\end{align*}
+For distinct indices the product character is nonzero, which justifies
+the off-diagonal bound even after sign alignment.  If $m>0$, the hypothesis
+$\lambda\le\tau^2/2$ yields $m\le2/\tau^2$; the empty case is immediate.
+Only the selected characters were summed, so no ambient-dimension factor
+appears.  All correlations defining the lists are unconditional under the
+same law $\mu$.
+\end{proof}
+
+\subsection{Constructing the two decoders}
+
+\begin{proposition}[Upper decoding with a lower rank test]
+\label{prop:upper}
+Suppose a legal labeling has acceptance at least $\eps$, $d\eps\ge4$,
+and the cut comparisons have the errors required in
+\eqref{eq:upper-c}, Lemma~\ref{lem:useful-equality}, and
+Lemma~\ref{lem:positive-difference}.  Choose upper inverse constants
+$\alpha,r$ and $\ell=\ell_j$ as above, and assume
+\eqref{eq:upper-Fourier-conditions} and \eqref{eq:upper-R}, with the
+absolute balance minimum at every level.  For the pair $i<j$ supplied by
+\eqref{eq:upper-pair}, there are randomized strategies, measurable on
+\eqref{eq:upper-left-input} and \eqref{eq:upper-right-input} respectively,
+returning bilinear forms $F_L$ on $H_i$ and $F_R$ on $H_i'$ such that
+\begin{equation}\label{eq:upper-gamma}
+ \Prob_i\bigl(F_R=F_L|_{H_i'\times H_i'}\bigr)\ge
+ \gamma_j:=b\,2^{-\ell}\frac{\tau^2}{2}\,2^{-r}>0.
+\end{equation}
+Every left output has the form
+\[
+ F_L(x,y)=z(xy),\quad z\in(H_i^2)^*,\quad z(1)=1,
+ \qquad \rank\bigl(F_L(S_t,S_u)\bigr)_{t,u}\le1.
+\]
+The constant $\gamma_j$ depends only on $c,\alpha,r,\ell_j$; it is
+independent of the lower row count $\ell_i$, the branching numbers, the
+source alphabet and instance size, and the bias accuracies chosen for
+lower levels.  The left strategy never receives $a_i$, and the right
+strategy uses $S$ only through its quotient by $\langle a_i\rangle$.
+\end{proposition}
+
+\begin{proof}
+On good advice the left samples $z$ uniformly from $z_0+Z$, using fresh
+private randomness, and returns $F_L(x,y)=z(xy)$ for $x,y\in H_i$.
+The products belong to $H$ because $D_i$ is a proper descendant of $D_j$.
+Equation~\eqref{eq:upper-valid} proves normalization and the rank bound
+on $S$.  On bad advice it evaluates at a fixed legal assignment on the
+original subtree, obtaining the same two validity properties.  These rules
+also define valid defaults on any other well-typed left input: use the
+stated construction whenever its witness is valid, and point evaluation
+otherwise.  The rule involves no omitted direction.
+
+For the right decoder, use $\mu=\mu_{\mathcal R}$ and
+$G=G_{\mathcal R}$ from \eqref{eq:upper-G}, and compute all lists
+\eqref{eq:upper-heavy-definition}.  Choose $\sigma\in K^*$ uniformly.
+If $\sigma|_W\ne0$ and its list is nonempty, choose an element $\Phi$
+uniformly from that list.  Choose $h_\sigma\in W$ deterministically from
+$(A,\sigma)$ with $\sigma(h_\sigma)=1$, for example the first such vector
+in a fixed order, and put $z_R=\Phi(h_\sigma)\in(H')^*$.  Return
+\begin{equation}\label{eq:upper-right-form}
+ F_R(x,y)=z_R(xy),\qquad x,y\in H_i'.
+\end{equation}
+The inclusion $(H_i')^2\subseteq H'$ makes this a bilinear form.  In the
+remaining cases return the zero bilinear form.  These defaults make the
+algorithm total; normalization is required only of the left output.
+No chosen witness from the left enters the right rule.
+
+We now prove agreement for these particular algorithms.  For this analysis
+only, expose $E,O$, all projection maps, the path through $D_i$, $A,a_i$,
+all nonhidden upper buckets, and all other matrices including full $S$.
+Call the resulting data $\mathcal D$.  Do not expose $X$, any hidden
+bucket ingredients, the slice event $J$, the representative-match event
+$I$, a successful test, or either decoder's final random choices.
+This exposure determines $P$, $M_{\rm known}$ and $A\bar M$, since
+$AX=0$.  Hence it determines goodness, $Z,z_0,u$ and the column witness.
+By \eqref{eq:upper-factorization}, the conditional distribution of $X$
+given $\mathcal D$ remains exactly $\mu_{\mathcal R}$, with the bias
+bound already proved.
+
+On good data let $Q=Z|_{H'}\subseteq(H')^*$ and $z'=z_0|_{H'}$.
+The event $J$ either is impossible, or is an affine slice
+\[
+ \mathcal C_{\mathcal D}=
+ \{X\in W\otimes H':X(q_a|_{H'})=v_a-M_{\rm known}q_a
+                         \text{ for every }a\}.
+\]
+In the latter case these equations define a well-defined linear
+specification on $Q$, of dimension at most $r$.  This also handles a
+collapse of some columns on restriction to $H'$.  The target in
+\eqref{eq:upper-difference} is $Xz'+k_0$, where
+$k_0=M_{\rm known}z_0+u$ is fixed by $\mathcal D$.
+
+Set $p_{\mathcal D}=\mu_{\mathcal R}(\mathcal C_{\mathcal D})$ on good
+compatible data, and zero otherwise.  When $p_{\mathcal D}>0$, let
+\[
+ q_{\mathcal D}=
+ \Prob_i\bigl(G_{\mathcal R}(X)=Xz'+k_0
+                         \mid\mathcal D,\ X\in\mathcal C_{\mathcal D}\bigr),
+\]
+and set $q_{\mathcal D}=0$ otherwise.  Disintegrating the already proved
+unconditional inequality \eqref{eq:upper-difference} gives
+\begin{equation}\label{eq:upper-favorable-mass}
+ \E_i[p_{\mathcal D}(q_{\mathcal D}-\rho)]\ge b.
+\end{equation}
+Its integrand is nonpositive unless the data are good and compatible,
+$p_{\mathcal D}>0$, and $q_{\mathcal D}\ge\rho$.  The integrand is at
+most one everywhere.  The set of data with those properties consequently
+has probability at least $b$.  This is the sole use of the finer exposure:
+we have not asserted that usefulness persists upon conditioning on it.
+
+Fix any such favorable $\mathcal D$.  Lemma~\ref{lem:heavy-list} supplies
+at least one nonannihilating $\sigma$ and one
+\[
+ \Phi\in\mathcal H_\sigma\cap
+       \bigl((\sigma|_W)\otimes z'+W^*\otimes Q\bigr).
+\]
+The right chooses such a pair with probability at least
+$2^{-\ell}\tau^2/2$.  Every such choice, with the already fixed
+$h_\sigma$, has
+\[
+ z_R=\Phi(h_\sigma)\in z'+Q.
+\]
+The restriction map $Z\longrightarrow Q$ is surjective.  Uniform measure
+on $z_0+Z$ therefore pushes to uniform measure on $z'+Q$, so the fresh
+left choice has restriction equal to this particular $z_R$ with probability
+$2^{-\dim Q}\ge2^{-r}$.  It is independent of the right's final choices
+conditional on $\mathcal D$.  Equality of these functionals on $H'$
+implies agreement of their product forms on $H_i'\times H_i'$.
+Averaging over the favorable data proves \eqref{eq:upper-gamma}.
+
+For a fixed right input, the law $\mu_{\mathcal R}$, function
+$G_{\mathcal R}$, lists $\mathcal H_\sigma$, and contraction vectors
+$h_\sigma$ are identical for all compatible left inputs and witnesses.
+Different favorable exposures may certify different elements of these same
+lists.  The preceding hit probability holds separately for each exposure,
+so averaging introduces no factor for the number of witnesses.
+
+Finally, $\eta,\alpha,r$ were fixed from $c$, while $g,q_0,b,\rho,\tau$
+were fixed from these constants and $\ell_j$.  Conditions
+\eqref{eq:upper-Fourier-conditions} require only an upper row-count
+lower bound and an upper bias tolerance.  Condition~\eqref{eq:upper-R}
+is met by choosing $R_j$ large enough; below $j$ it uses only the common
+absolute balance minimum.  The inverse statement applies to $H/B$ even
+in small dimension by Lemma~\ref{lem:padding}.  Thus none of these choices
+depends on the later lower row count or source and branching dimensions.
+\end{proof}
+
+The algorithms in Proposition~\ref{prop:upper} are now fixed local rules.
+In particular, the right rule always computes its heavy lists from the
+original law $\mu_{\mathcal R}$ just defined.  A later conditioning may
+change the physical law of the hidden buckets; it does not change that
+algorithm.  The subsequent rank and repetition arguments use these same
+rules with their prescribed inputs.

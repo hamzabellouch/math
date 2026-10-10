@@ -1,0 +1,294 @@
+\section{Exact observations and finite memory}\label{h:introduction}
+
+An exact linear equation carries arbitrarily fine information. Indeed,
+\(d\) independent Gaussian equations determine an unknown vector in
+\(\R^d\) almost surely if all the equations can be retained. A learner
+that reads the equations once and remembers only a finite state faces
+a different problem. Increasing the required accuracy can force it to
+read more equations even when every equation is noiseless.
+
+\begin{definition}[Finite-state Gaussian regression]\label{h:model}
+Fix integers \(d\ge2\), \(M\ge0\), and \(T\ge0\). A data-independent
+shared seed may choose the learner's rules; the descriptions of its
+transitions and output below are conditional on that seed. A signal
+\(s\in S^{d-1}\) is chosen before sampling. At sample index
+\(t\in\{1,\ldots,T\}\), the observation is
+\[
+ x_t\sim N(0,I_d),\qquad y_t=\ip{x_t}{s},
+\]
+where the rows \(x_1,\ldots,x_T\) are independent. A learner reads the
+pairs once, in order. After each number of samples its persistent state
+belongs to a prescribed set of at most \(2^M\) elements. The initial
+state and shared seed are jointly independent of the signal and all
+rows, but may depend on each other. Conditional on the seed and state,
+a transition may use the entire current pair and fresh
+randomness, with unrestricted computation, but only the next finite
+state is retained.
+
+The learner may stop, including before the first sample, but must stop
+by the prescribed deterministic finite horizon \(T\). At a stopping index its unit
+output \(\widehat s\in S^{d-1}\) is generated from the terminal state,
+the stopping index, and fresh randomness only. In particular, a
+discarded observation cannot be read again by the output rule.
+The transitions and stopping rules may depend on \(d\), the requested
+accuracy \(\epsilon\), and the index, but not on \(s\).
+
+The experiment must be jointly measurable in the signal, the complete
+pre-generated rows, the shared seed, the initial state, and all fresh
+transition and output randomness. Conditional on the seed, each fixed
+state/index transition and stopping probability must be Borel in
+\((x,y)\), or measurable in the completion of
+\(\lambda_1(dx,dy)=\gamma_1(dx)\,dy\), where \(\gamma_1\) is standard
+Gaussian probability on \(\R^d\). Fresh randomness supplies no
+information about the signal or samples beyond the permitted rule
+arguments. Accuracy means
+\[
+ \arccos\ip{\widehat s}{s}\le\epsilon.
+\]
+\end{definition}
+
+The state bound measures bits, not real registers. The rules can be
+nonuniform in the dimension and sample index, and randomization is
+allowed both in choosing the rules and during the run. The model fixes
+the rows in advance through their independent Gaussian law: it does
+not allow a learner to choose a row or revisit an earlier one.
+
+Write \(\sigma_d\) for uniform probability on \(S^{d-1}\). Our main
+statement assumes success only after averaging over this prior.
+
+\begin{theorem}[Memory and precision]\label{h:main}
+For every fixed finite \(A>0\), there are constants \(c_A>0\) and
+\(d_A\) such that the following holds. Let \(d\ge d_A\), let
+\(0\le M\le Ad^2\) be an integer, and let \(0<\epsilon\le1/10\).
+For any learner in Definition~\ref{h:model}, draw
+\(S\sim\sigma_d\) independently of the rows and the learner's
+data-independent randomness. If
+\[
+ \Prob\{\arccos\ip{\widehat s}{S}\le\epsilon\}\ge\frac23,
+\]
+then its prescribed horizon satisfies
+\[
+ T\ge c_A\,d\log(1/\epsilon).
+\]
+\end{theorem}
+
+Here and throughout the paper logarithms are natural unless a base is
+shown. The constants in Theorem~\ref{h:main} may depend on the fixed
+number \(A\). The statement makes no uniform claim when \(A=A(d)\)
+tends to infinity. No relation between \(\epsilon\) and \(M\) is
+assumed.
+
+\begin{corollary}[Subquadratic memory]\label{h:subquadratic}
+Let \(M(d)\ge0\) be integer-valued with \(M(d)=o(d^2)\), and let
+\(0<\epsilon(d)\le1/10\) be any accuracy sequence. A family of learners
+in Definition~\ref{h:model} with uniform-sphere average success at
+least \(2/3\) satisfies
+\[
+ T(d)\ge c\,d\log(1/\epsilon(d))
+\]
+for all sufficiently large \(d\), where \(c>0\) is absolute. The
+dimension threshold may depend on the memory sequence.
+\end{corollary}
+
+\begin{corollary}[A guarantee for every signal]\label{h:worst-signal}
+The conclusions of Theorem~\ref{h:main} and
+Corollary~\ref{h:subquadratic} also hold when their average-success
+assumption is replaced by
+\[
+ \Prob\{\arccos\ip{\widehat s}{s}\le\epsilon\}\ge\frac23
+ \qquad\text{for every }s\in S^{d-1},
+\]
+where this probability is over the rows and the learner's randomness.
+\end{corollary}
+
+The every-signal consequence follows by averaging the same learner
+over \(\sigma_d\); it does not say that every individual signal is hard
+for every learner. We prove Theorem~\ref{h:main} and both corollaries
+after completing the backward argument in Section~\ref{h:end:section}.
+
+\paragraph{The original experiment and measurable versions.}
+All success probabilities refer to the original jointly measurable
+experiment. Joint independence of the initial state and seed from the
+signal and rows permits conditioning on the seed without changing the
+prior or supplying information through initialization.
+Section~\ref{h:stream:section} replaces completed-measurable rules
+by Borel versions separately for almost every seed, preserving the
+corresponding prior success probabilities. Their average is taken
+in the original experiment; no jointly measurable choice of all these
+versions is assumed.
+
+\subsection{The precision problem and its predecessors}
+
+Memory constraints in statistical learning were studied before this
+precision question. Shamir's finite-message framework included
+bounded-memory online processing as a special case
+\cite[Section~2, Definition~1]{Shamir2014}. In its general form a
+protocol may retain an entire transcript, so its per-message budget is
+not a bound on total persistent memory. Steinhardt and Duchi proved
+memory-dependent minimax risk bounds for sparse noisy regression
+\cite[Section~1.1, Equation~(2)]{SteinhardtDuchi2015}. Their hard
+family uses positive noise and a different covariate distribution.
+These works established that information retained from earlier samples
+can be a statistical resource in its own right.
+
+Steinhardt, Valiant, and Wager connected memory, communication, and
+statistical queries, and formulated a quadratic-memory versus
+exponential-sample question for parity learning
+\cite[Section~1.1, Conjecture~1]{SVW2016}. Raz proved the qualitative
+separation for parity \cite[Theorem~1 and Remark~1.1]{Raz2016} and
+developed a spectral method for a wider class of learning problems
+\cite{Raz2017}. The qualifier \emph{qualitative} matters: Raz's
+theorem and the published conjecture have different numerical
+memory coefficients. These discrete results explain the usefulness of
+finite-width computation models, but they do not supply an estimate
+for exact real-valued observations.
+
+Among the sources discussed here, the closest continuous-regression
+comparison is due to Sharan, Sidford, and Valiant
+\cite{SSV2019}. Their Theorem~1 uses independent \(N(0,I_d)\)
+covariates, a fixed unit target, and independent uniform additive noise
+of half-width \(2^{-d/5}\). With at most \(d^2/4\) bits and Euclidean
+accuracy \(\epsilon=d^{-r}\), it gives an
+\(\Omega(d\log r)\) sample lower bound for \(r\) from a sufficiently
+large absolute constant up to order \(d/\log d\), in the range stated
+there. Their proof experiment draws the target uniformly on the sphere
+and averages over it and the samples \cite[Section~2]{SSV2019}.
+Their nonuniform finite-width layered program is a predecessor of the
+model above; the measurable randomized rules and bounded stopping used
+here are handled directly in Section~\ref{h:stream:section}.
+
+The observation law is the important difference. A lower bound with
+additive noise does not by itself bound the more informative exact
+experiment. Theorem~\ref{h:main} treats the exact-observation precision
+question for isotropic Gaussian rows. Section~1.1 of \cite{SSV2019}
+asks whether the first-order sample dependence on precision is optimal
+under bounded memory. This is distinct from its separate
+condition-number conjecture for ill-conditioned Gaussian laws and
+constant Euclidean accuracy in \cite[Section~1.1]{SSV2019}.
+
+Dagan, Kur, and Shamir obtained related quadratic-space obstructions
+for two other linear-prediction tasks \cite{DKS2019}. Their published
+Theorem~3 asks for a unit approximate null vector of independent
+Gaussian rows. Their Theorem~10 asks for small empirical residual on
+a finite random-order system built from jointly conditioned sphere
+rows and one fixed equation. These are different targets and
+observation laws from the fixed-signal stream considered here.
+
+\paragraph{A consequence for the noisy experiment.}
+Theorem~\ref{h:main} implies an
+\(\Omega_A(d r\log d)\) sample lower bound in the noisy Gaussian
+experiment of Sharan, Sidford, and Valiant \cite{SSV2019}, for every
+fixed finite \(A>0\), memory \(M\le Ad^2\), and Euclidean accuracy
+\(e=d^{-r}\) in their fine-accuracy range described above,
+for sufficiently large \(d\). Here success is at least \(2/3\)
+averaged over the uniform-sphere target, and learners retain the state,
+deterministic-horizon, randomness, and joint and per-seed measurability
+conventions of Definition~\ref{h:model}, with a terminal estimate
+\(V\in\R^d\) depending only on the terminal state, stopping index,
+and fresh randomness. An exact-observation learner generates the
+prescribed independent uniform noise inside each current-pair
+transition and simulates the noisy learner with the same states and
+horizon. For completed rules, the noisy pair law has a density with
+respect to \(\lambda_1\), so the Borel-version and seed-conditioning
+argument of Section~\ref{h:stream:section} applies before this
+simulation. On \(\|V-S\|\le e\le1/20\), normalizing \(V\) gives
+angular error at most \(\arcsin e\le2e\); assign any unit output when
+\(V=0\). Theorem~\ref{h:main} at accuracy \(2e\) therefore gives
+\(T\ge c_A d\log(1/(2e))=\Omega_A(d r\log d)\).
+
+\subsection{Why the precision scale is natural}
+
+With real registers, the classical Kaczmarz projection step
+\cite{Kaczmarz1937}, in the form stated by Strohmer and Vershynin
+\cite[Algorithm~1]{SV2009}, gives a simple benchmark. Starting with
+\(z_0=0\), use
+\begin{equation}\label{h:kaczmarz}
+ z_t=z_{t-1}+
+ \frac{y_t-\ip{x_t}{z_{t-1}}}{\norm{x_t}^2}\,x_t
+ \qquad(x_t\ne0),
+\end{equation}
+and set \(z_t=z_{t-1}\) on the Gaussian-null event \(x_t=0\).
+For \(u_t=x_t/\|x_t\|\), the error is multiplied by
+\(I-u_tu_t^{\mathsf T}\). The direction \(u_t\) is fresh and uniform
+on the sphere, so \(\E(u_tu_t^{\mathsf T})=I_d/d\). Conditional on
+the previous error,
+\[
+ \E\!\left(\norm{z_t-s}^2\mid z_{t-1}\right)
+  =(1-1/d)\norm{z_{t-1}-s}^2.
+\]
+Induction gives
+\begin{equation}\label{h:kaczmarz-contraction}
+ \E\norm{z_t-s}^2=(1-1/d)^t.
+\end{equation}
+This calculation explains the scale \(d\log(1/\epsilon)\) for fresh
+isotropic observations. Strohmer and Vershynin's theorem concerns
+norm-weighted sampling from a fixed finite matrix; the equality above
+is the separate symmetry calculation for this stream. The displayed
+update stores real scalars and supplies no finite-bit upper bound.
+
+\subsection{A backward proof under the original prior}
+
+Conditioning the uniform prior on one raw exact observation almost
+surely confines the signal to a hyperplane section of the sphere. That
+conditional law is singular relative to the original spherical
+measure. We instead keep the original prior fixed and study the
+probability of future success from a prescribed state.
+
+Start the learner at a chosen state and index, whether or not the state
+was reached in an actual run. Let \(h(s)\) be its success probability
+with signal \(s\), using fresh future samples. For a closed Euclidean
+ball \(B(z,r)\), our invariant is
+\begin{equation}\label{h:intro:invariant}
+ \int_{B(z,r)}h\,d\sigma_d\le(Rr)^{(d-1)/2}
+ \qquad(z\in S^{d-1},\ r>0).
+\end{equation}
+The number \(R\) bounds the concentration of successful signals; it
+is not a radius supporting a posterior. A terminal output rule has
+\(R=\epsilon\). Moving backward across a block of order \(d\)
+observations multiplies \(R\) by at most a constant for fixed
+\(M/d^2\). Constant average success requires \(R\) bounded below, so
+reaching it from \(\epsilon\) takes order \(\log(1/\epsilon)\) blocks.
+
+The bound at every radius makes this iteration close. Restrict
+\(h\,d\sigma_d\) to a ball \(B(z,r)\), without conditioning on reaching
+a state or dividing by the restricted mass. This finite measure has
+an ambient ball bound \(H t^\beta\), with \(\beta=(d-1)/2\) and
+\(H\) controlled by \(R^\beta\). The general projection estimate in
+Section~\ref{h:projection} gives the joint law of a Gaussian matrix
+and its exact labels an \(L^q\) density whose norm is bounded by
+\[
+ e^{Cd}H r^{\beta-m(1-1/q)}
+\]
+for a block of \(m\le q\) rows, where \(q\) is proportional to \(d\).
+The density loses a radius power. The volume of the common projected
+ellipsoid is at most \(e^{Cd}r^m\), and its power \(1-1/q\) restores
+exactly that loss in H\"older's inequality.
+
+The geometric step controls inverse distances to affine spans, hence
+an inverse Gram determinant. Local growth and inverse-distance
+averaging belong to the classical projection methods represented by
+Mattila \cite[Lemma~5.1 and Theorem~5.4]{Mattila1975}; the
+independent-copy expansion and successive orthogonalization have a
+closer regression predecessor in
+\cite[Section~7, Lemma~12]{SSV2019}. We derive the exact multirow
+density and its quantitative bounds here. Its finite-measure
+formulation does not require a density relative to spherical area.
+
+Section~\ref{h:blocks} combines the projection and volume bounds
+with a second application of H\"older on the \(N\) possible
+destinations. Selection costs \(N^{1/q}\), so taking the
+\((d-1)/2\)-th root in \eqref{h:intro:invariant} gives the memory
+contribution \(\exp(O(\log N/d^2))\).
+Section~\ref{h:stream:section} constructs fresh continuation
+functions, counts only stopping indices within one block, and passes
+from Borel rules to the full randomized model. Reflection across the
+span of the observed rows gives the independent constant-accuracy
+endpoint in Section~\ref{h:end:section}, completing the theorem.
+
+The general projection estimate also applies to a lower-dimensional
+cube prior on the sphere. That application has its own distributional
+precision bound; the conclusion throughout the stated accuracy range
+uses an every-signal guarantee and the separate uniform-sphere
+endpoint. The appendices give distinct exact-label interfaces,
+compare coefficient normalizations through one backward bound,
+and retain a sharper full-data residual estimate.

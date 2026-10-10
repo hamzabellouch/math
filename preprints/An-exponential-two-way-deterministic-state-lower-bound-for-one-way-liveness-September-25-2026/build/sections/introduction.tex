@@ -1,0 +1,193 @@
+\section{Introduction}
+
+Two-way deterministic automata recognize the same languages as one-way
+finite automata, as established by Rabin and Scott and by
+Shepherdson~\cite{RabinScott1959,Shepherdson1959}. Allowing the head to
+return to a symbol can nevertheless change the amount of finite control
+needed to recognize a language. How much finite control is needed to
+replace nondeterministic choices by deterministic head motion?
+Sakoda and Sipser posed the state cost of converting one-way and two-way
+nondeterministic finite automata to two-way deterministic automata in
+1978~\cite{SakodaSipser1978}.
+The question concerns succinctness: the simulator may revisit the input,
+but must store all information other than the head position in its finite
+state. A polynomial simulation would make nondeterminism inexpensive in
+this measure even when the source machine itself moves in both directions.
+
+The witness used here is Sakoda and Sipser's complete family $B_h$,
+now called \emph{one-way liveness}: each letter specifies a binary
+relation on an $h$-element set, and a word is live when the product of
+its letters is nonempty.
+Their Theorem~2.3 establishes this family's completeness for
+one-way-nondeterministic to two-way-deterministic state
+conversion~\cite{SakodaSipser1978}. Our proof below gives the small
+source automaton and the context-separation property directly, with
+the conventions and exact state counts used here.
+
+Earlier exponential lower bounds restrict the motion of the deterministic
+target. Sipser proved an exponential separation for sweeping automata,
+whose head changes direction only at an endmarker~\cite{Sipser1980}.
+Kapoutsis extended this phenomenon to deterministic machines constrained
+to make sublinearly many reversals as a function of input
+length~\cite{Kapoutsis2013}. An unrestricted
+target can instead reverse at an interior cell and make arbitrarily many
+reversals as the input length grows.
+
+Quadratic lower bounds against unrestricted two-way deterministic targets
+already occur in Chrobak's work on unary
+languages~\cite{Chrobak1986Unary,Chrobak2003Errata}. For the promise restriction of
+one-way liveness to words of exactly three relation letters, Kapoutsis
+proved the optimal order $\Theta(h^2/\log h)$~\cite{Kapoutsis2018ShortLiveness};
+the alphabet there is still the full relation alphabet. Adeogun and
+Kapoutsis~\cite{AdeogunKapoutsis2026} prove a quadratic lower bound for
+unrestricted deterministic two-way automata against one-way liveness.
+We prove an exponential bound for that unrestricted target model.
+The source automata use no left moves, whereas the lower bound permits
+stay moves, partial transition rules, and nonaccepting infinite
+computations in the target.
+
+The main representation difficulty is to account for repeated visits to
+a cell while assigning each input symbol a fixed object independent of
+its neighbors. We use the Brauer diagram monoid, whose matchings
+underlie Brauer's algebras~\cite{Brauer1937,Auinger2012}:
+its elements are perfect matchings on two equally sized sets of ports,
+and multiplication glues the adjoining sets and contracts paths.
+Determinism makes the configurations reaching a designated accepting
+sink form a tree. A tour of that tree gives the required matching
+representation, with separate leaves for unused transition candidates
+ensuring that each cell's wiring depends only on its own symbol.
+The algebraic part then proves an exponential lower bound on the number
+of ports whenever matching products retain all the information in
+arbitrary relation products. All diagram and relation-monoid facts
+needed for this argument are proved below.
+
+\subsection{Model and statement}
+
+An automaton has a finite state set and one read-only head on a finite word
+over an alphabet $\Sigma$, bracketed by two distinct endmarkers outside
+$\Sigma$. Its head starts at the left endmarker in a designated initial
+state. A transition changes the state and moves the head left, right, or
+not at all; the head cannot cross an endmarker. A transition depends only
+on the current state and scanned symbol. Deterministic transition rules
+may be partial. A nondeterministic rule permits several successors.
+There are no additional heads, writable cells, work tapes, advice, or
+randomness. All states, including initial and accepting states, are counted.
+
+Acceptance means that a finite computation reaches an accepting state;
+a nonaccepting infinite computation rejects. We initially count an
+accepting initial configuration as success. If success instead requires
+a positive transition into an accepting state, the normalization in
+Section~\ref{sec:machines} uses one additional initial copy. The main
+bound below includes this extra state and holds with either convention.
+
+For a finite set $H$, let $\R{H}$ be the monoid of all binary relations
+on $H$. Products are in path order from left to right:
+\[
+ (x,z)\in AB
+ \quad\Longleftrightarrow\quad
+ \text{there exists }y\in H\text{ with }(x,y)\in A,\ (y,z)\in B.
+\]
+Write $\Id{F}=\{(x,x):x\in F\}$ for $F\subseteq H$; the identity is
+$\Id{H}$ and the zero is the empty relation $0$. For $H=[h]$ define
+\begin{equation}
+\label{eq:liveness-language}
+ \OWL_h=\{R_1\cdots R_\ell\in(\R{[h]})^*:
+                  R_1\cdots R_\ell\ne0\}.
+\end{equation}
+The product of the empty word is $\Id{[h]}$, so $\eps\in\OWL_h$.
+
+\begin{theorem}
+\label{thm:main}
+For every integer $h\ge2$, the language $\OWL_h$ is recognized by a
+nondeterministic automaton with $h+3$ states using no left moves. Every
+equivalent deterministic two-way automaton with $s$ states satisfies
+\begin{equation}
+\label{eq:main-bound}
+ 4(s+2)^2\ge 2^{\lfloor(h-2)/31\rfloor}.
+\end{equation}
+If an initially accepting configuration counts as acceptance, $s+2$ in
+\eqref{eq:main-bound} may be replaced by $s+1$.
+\end{theorem}
+
+\begin{corollary}
+\label{cor:no-polynomial}
+There are no absolute constants $C,c>0$ such that every $n$-state two-way
+nondeterministic automaton over every finite alphabet has an equivalent
+two-way deterministic automaton with at most $Cn^c$ states.
+\end{corollary}
+
+\begin{proof}
+Put $n=h+3$ in Theorem~\ref{thm:main}. Every deterministic equivalent
+for this family has at least
+\[
+ 2^{\frac12\lfloor(n-5)/31\rfloor-1}-2
+\]
+states. This bound exceeds $Cn^c$ for every fixed $C,c$ when $n$ is large
+enough. For each $h$ the alphabet has $2^{h^2}$ symbols and is finite.
+Since the constants in the proposed simulation must be independent of
+the alphabet, the family is within its scope.
+\end{proof}
+
+\subsection{Proof architecture}
+
+Write $\D{k}$ for the matching monoid of degree $k$. The proof compares
+two bounds on $k$. Theorem~\ref{thm:machine-diagrams} represents each
+$s$-state deterministic machine by symbol diagrams in $\D{k}$, with
+$k\le4(s+2)^2$. For a machine recognizing $\OWL_h$,
+Lemma~\ref{lem:syntactic-quotient} gives a unital surjection from the
+submonoid generated by its ordinary-symbol diagrams onto $\R{[h]}$.
+Concretely, the map sends each word diagram to its relation product,
+preserves multiplication and the empty product, and reaches every
+relation on $[h]$. These three properties, including the full image,
+are the algebraic input to the lower bound.
+Corollary~\ref{cor:divisor-degree} then forces
+$k\ge2^{\lfloor(h-2)/31\rfloor}$. These three statements give the deterministic
+lower bound in Theorem~\ref{thm:main}.
+
+We prove the algebraic bound first. The \emph{rank} of a matching diagram
+counts its pairs joining opposite sides. A diagram $e$ is
+\emph{idempotent} if $e^2=e$; its \emph{corner} consists of the diagrams
+$z$ with $ez=ze=z$, with identity $e$. Section~\ref{sec:matching} reduces
+the corner of an idempotent of rank $r$ to degree $r$, preserving rank
+and controlling the indices at which the diagram differs from the
+identity. An idempotent of rank $r$ in $\D{k}$ differs
+from the identity on at most $2(k-r)$ indices. The support control is
+uniform: a family supported in one set remains supported in a single
+set of no greater size after reduction. Section~\ref{sec:rank} uses
+$32$ conjugates of one idempotent to make $256$ successive relation
+additions. A common support set bounds their total rank loss, while
+each addition yields a further corner representing all relations on
+$h-31$ points. Comparing these bounds doubles the required rank loss
+every $31$ points.
+
+Section~\ref{sec:machines} obtains local symbol diagrams by converting
+acceptance to reachability of a designated sink. Its undirected component
+is a tree, whose doubled tour supplies the matching test. This traversal
+has precedents in Sipser's halting method and in the reversible
+simulation of Lange, McKenzie, and
+Tapp~\cite{SipserHalting1980,LangeMcKenzieTapp2000}. Candidate
+transition slots completed by separate leaves make the construction
+independent of neighboring symbols. Finally,
+Section~\ref{sec:separation} obtains the quotient by using
+singleton-identity context letters to test each pair in a relation
+product. No input-length or running-time bound is imposed.
+
+\subsection{Related results}
+
+Adeogun and Kapoutsis also analyze limitations of their earlier
+lower-bound construction~\cite{AdeogunKapoutsisLimitation2026}. They
+prove a quadratic ceiling for its sequences of connectivity properties
+and state a general-property extension whose proof is deferred.
+The amplification here uses a fixed chain of $256$ additions. Its
+exponential bound comes from the inductive lower bound on each rank
+loss in a smaller full relation corner, together with one common
+support budget for all additions.
+
+The companion paper~\cite[Theorem~1.1]{CompanionComplementation2026}
+proves that a nondeterministic two-way automaton for the complement of
+$\OWL_h$ requires at least
+$\frac12 2^{\lfloor(h-2)/127\rfloor}-1$ states. The present proof
+establishes the deterministic bound directly using matching diagrams.
+Both results concern state succinctness over
+growing alphabets; neither yields a uniform logarithmic-space
+separation or a bound measured by transition-table size.

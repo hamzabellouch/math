@@ -1,0 +1,252 @@
+\section{Isolation, distinct sums, and prime collisions}
+\label{sec:setup}
+
+We first reduce detection to finding an isolated exact sum.  We then give
+an exact preliminary search that succeeds when a random half of the
+coordinates has sufficiently few distinct subset sums.  The complementary
+case supplies the combinatorial information needed later to recover
+modular aliases.  Finally, we record a random-prime collision bound
+for the nonzero integer discrepancies arising in alias extraction.
+
+All logarithms are to base~$2$, except for $\ln$.  Write
+$[n]=\{1,\ldots,n\}$, and for weights $v_1,\ldots,v_n$ write
+$v(I)=\sum_{i\in I}v_i$ for $I\subseteq[n]$.  Empty sums are zero.
+All constants and decimal parameters in the proof are fixed, independently
+of the input.
+
+\subsection{Isolating one exact target}
+
+The following application of the Isolation Lemma of
+Mulmuley, Vazirani, and Vazirani~\cite{MVV1987} allows a complex-valued
+checksum to detect a solution without an anti-concentration argument.
+Choose a power of two $N_0$ with $12n\le N_0<24n$, and draw independent
+uniform integers $u_i\in\{1,\ldots,N_0\}$.  Define
+\begin{equation}
+\label{eq:transformed}
+ C=1+nN_0,\qquad c_i=Ca_i+u_i,\qquad
+ t_s=Ct+s\quad(0\le s\le nN_0).
+\end{equation}
+The transformed weights and targets have $O(b+\log n)$ bits, and there
+are $nN_0+1=O(n^2)$ targets.
+
+\begin{lemma}[Isolation]
+\label{lem:isolation}
+For every choice of the tie weights, there is a subset $I\subseteq[n]$
+with $a(I)=t$ if and only if there are $s\in\{0,\ldots,nN_0\}$ and
+$I\subseteq[n]$ with $c(I)=t_s$.  If the original instance has a
+solution, then with probability at least $11/12$ at least one transformed
+target $t_s$ has exactly one representing subset.
+\end{lemma}
+
+\begin{proof}
+The identity $c(I)=t_s$ gives
+$C(a(I)-t)=s-u(I)$.  Since $s,u(I)\in[0,nN_0]$ and $C>nN_0$, this
+forces $a(I)=t$ and $u(I)=s$.  Conversely, every original solution
+represents the transformed target indexed by $s=u(I)$.
+
+Let $\mathcal F=\{I\subseteq[n]:a(I)=t\}$, and suppose
+$\mathcal F\ne\varnothing$.  Fix an index $i$ and all tie weights other
+than $u_i$.  The minimum tie weight among members of $\mathcal F$
+containing $i$ has the form $A_i+u_i$, while the minimum among members
+not containing $i$ is a constant $B_i$.  A missing family can be assigned
+minimum $+\infty$.  If both families are nonempty, their two minima
+coincide for at most one value of $u_i$.  Consequently, the probability
+that they coincide is at most $1/N_0$.
+
+If $u$ has two distinct minimum-weight members of $\mathcal F$, they
+differ at some index $i$, and the two minima just described coincide
+there.  A union bound shows that the minimum is unique with probability
+at least $1-n/N_0\ge11/12$.  Its tie weight $s$ then indexes an exact
+bin containing just this subset, by the first part of the proof.
+\end{proof}
+
+\subsection{Deficiency and the preliminary search}
+
+For the rest of this section, fix the transformed weights $c_i$.
+For $V\subseteq[n]$ define its subset-sum support and its deficiency by
+\begin{equation}
+\label{eq:deficiency}
+ \Sigma(V)=\{c(I):I\subseteq V\},\qquad
+ d(V)=|V|-\log|\Sigma(V)|.
+\end{equation}
+Thus $d(V)$ is the exponent saved by storing distinct subset sums
+instead of all $2^{|V|}$ subsets: $|\Sigma(V)|=2^{|V|-d(V)}$.
+Large deficiency means that many subsets have the same sum.
+These definitions make sense for arbitrary integer weights, not only
+the positive transformed weights.
+
+\begin{lemma}[Properties of deficiency]
+\label{lem:deficiency}
+For arbitrary fixed integer weights, $d(\varnothing)=0$ and $d(V)\ge0$.
+For $i\notin V$,
+\[
+ 0\le d(V\cup\{i\})-d(V)\le1.
+\]
+For disjoint $U,V\subseteq[n]$,
+\[
+ d(U\cup V)\ge d(U)+d(V).
+\]
+If $V,V'$ have equal size and differ by exchanging one index, then
+$|d(V)-d(V')|\le1$.
+\end{lemma}
+
+\begin{proof}
+There are at most $2^{|V|}$ subset sums, and the empty sum always
+belongs to the support.  Adding $i$ replaces $\Sigma(V)$ by
+$\Sigma(V)\cup(c_i+\Sigma(V))$, whose cardinality lies between
+$|\Sigma(V)|$ and $2|\Sigma(V)|$.  This proves the increment bounds.
+For disjoint $U,V$,
+$\Sigma(U\cup V)=\Sigma(U)+\Sigma(V)$ has cardinality at most
+$|\Sigma(U)|\,|\Sigma(V)|$, giving superadditivity.  Finally, in an
+exchange write $V=U\cup\{i\}$ and $V'=U\cup\{j\}$.  Both
+deficiencies lie in $[d(U),d(U)+1]$.
+\end{proof}
+
+\begin{lemma}[Random restrictions]
+\label{lem:half-variance}
+Let $V_q$ be a uniformly random $q$-element subset of $[n]$, for
+$0\le q\le n$.  Then
+\[
+ \operatorname{Var}d(V_q)\le q.
+\]
+Moreover, $\mathbb E d(V_q)$ is nondecreasing in $q$.
+\end{lemma}
+
+\begin{proof}
+Expose an ordered sample $X_1,\ldots,X_q$ without replacement, and let
+\[
+ M_r=\mathbb E\bigl[d(\{X_1,\ldots,X_q\})
+                   \mid X_1,\ldots,X_r\bigr]
+ \quad(0\le r\le q).
+\]
+Fix a possible prefix of length $r-1$ and compare two possible choices
+$i,j$ for $X_r$.  Couple the remaining ordered samples by interchanging
+$i$ and $j$.  The resulting final sets either coincide, if the remainder
+contains the other index, or differ by the exchange $i\leftrightarrow j$.
+By Lemma~\ref{lem:deficiency}, their deficiencies differ by at most~$1$.
+Thus the possible conditional values of $M_r$, given the prefix of
+length $r-1$, lie in an interval of length at most~$1$.  Since $M_{r-1}$
+is their mean, $|M_r-M_{r-1}|\le1$.  The martingale differences are
+orthogonal in $L^2$, so
+\[
+ \operatorname{Var}d(V_q)
+ =\sum_{r=1}^q\mathbb E(M_r-M_{r-1})^2\le q.
+\]
+The case $q=0$ is immediate.  To compare expectations for consecutive
+sizes, use the first $q$ and first $q+1$ entries of one uniform random
+permutation, and apply the monotonicity in Lemma~\ref{lem:deficiency}.
+\end{proof}
+
+We now use distinct sums in the meet-in-the-middle algorithm of
+Horowitz and Sahni~\cite{HorowitzSahni1974}.  Related distinctions between
+small subset-sum supports and the complementary regime appear in earlier
+Subset Sum algorithms~\cite{AKKN2016,NederlofWegrzycki2021}.
+The procedure can stop without deciding the instance; that outcome
+means only that the later algorithm must be run.
+
+\begin{proposition}[Capped preliminary search]
+\label{prop:preliminary}
+Given fixed transformed weights and targets from
+\eqref{eq:transformed}, there is a randomized procedure that either
+returns the correct decision for the original instance or returns
+\textup{CONTINUE}.  On every execution its running time is at most
+\[
+ 2^{0.489985n}\operatorname{poly}(n+b+2).
+\]
+If $V$ is uniform among the $\lfloor n/2\rfloor$-element subsets and
+$\mathbb E d(V)>0.01004n$, then the probability of \textup{CONTINUE}
+is $O(1/n)$, uniformly in the fixed weights.
+\end{proposition}
+
+\begin{proof}
+Choose a uniform $\lfloor n/2\rfloor$-element set $V$, returning
+\textup{CONTINUE} if the capped sampler described below fails.
+Construct the two sorted lists of distinct subset sums on
+$V,[n]\setminus V$, one side at a time.  Starting with $\{0\}$, insert an
+index $i$ by merging the current list with its translate by $c_i$ and
+removing duplicate values.  Cap every list at
+\[
+ B_n=2^{\lceil0.489985n\rceil}.
+\]
+If a merge produces more than $B_n$ distinct entries, stop immediately
+and return \textup{CONTINUE}.  Otherwise, for every $s$ check the two
+final sorted lists for a pair summing to $t_s$.  A linear scan suffices
+for each target.  Return \textup{YES} exactly when such a pair exists.
+Lemma~\ref{lem:isolation} proves correctness whenever this search
+finishes.  Each merge takes $O(B_n)$ list operations before completion
+or interruption, and there are only polynomially many merges and
+target scans.  The bit lengths noted after \eqref{eq:transformed}
+give the stated running time.  Intermediate support sizes never exceed
+the final support size, so a side completes whenever its final support
+has at most $B_n$ entries.
+
+To sample $V$, choose its elements successively without replacement.
+When $k$ indices remain, use the low $\lceil\log k\rceil$ bits of a
+fresh random word to propose an index, rejecting values at least $k$.
+Allow at most $n^2$ proposals per choice and return \textup{CONTINUE}
+if all are rejected.  The sampler uses at most $n^3$ proposals and its
+total failure probability is at most $n2^{-n^2}$.  Conditional on no
+failure, $V$ is uniform because the success probability of each choice
+depends only on $k$, not on the selected index.
+
+Suppose now that $\mathbb E d(V)>0.01004n$.  Both side sizes have
+expected deficiency greater than $0.01004n$, by
+Lemma~\ref{lem:half-variance}; each side has variance at most $n$.
+Chebyshev's inequality therefore gives, for either side $U$,
+\[
+ \Pr\{d(U)<0.010025n\}
+ \le \frac{n}{(0.000015n)^2}=O(1/n).
+\]
+When neither exceptional event occurs,
+\[
+ \log|\Sigma(U)|=|U|-d(U)
+ \le 0.489975n+\tfrac12
+ \le 0.489985n
+\]
+for all sufficiently large $n$.  Both lists then fit under the cap,
+and the procedure decides the instance.  A union bound, including the
+sampler-failure probability $n2^{-n^2}$, proves the assertion.
+\end{proof}
+
+The expectation in Proposition~\ref{prop:preliminary} is used only in
+the analysis; the algorithm does not evaluate it.  For each fixed
+choice of the tie weights, either the preliminary search decides with
+probability $1-O(1/n)$, or
+\begin{equation}
+\label{eq:low-deficiency}
+ \mathbb E_{\substack{V\subseteq[n]\text{ uniform}\\
+                      |V|=\lfloor n/2\rfloor}}d(V)
+ \le0.01004n.
+\end{equation}
+The alias-recovery argument will use this latter inequality.
+A \textup{CONTINUE} outcome is not a certificate that it holds.
+
+\subsection{A collision bound for random primes}
+
+Reduction modulo a random prime makes any fixed false integer equality
+unlikely.  The following elementary bound is the only number-theoretic
+estimate needed for that purpose.
+
+\begin{lemma}[Random-prime collisions]
+\label{lem:prime-collision}
+There are absolute constants $K$ and $L_*$ such that the following
+holds.  For an integer $L\ge L_*$, let $p$ be uniform among the primes
+in $[2^L,2^{L+1})$.  If $D$ is a nonzero integer with $|D|<2^B$, where
+$B\ge1$, then
+\[
+ \Pr\{D\equiv0\pmod p\}\le KBL\,2^{-L}.
+\]
+The same bound applies to the collision of two fixed unequal integers
+whose difference has absolute value less than $2^B$.
+\end{lemma}
+
+\begin{proof}
+The prime number theorem gives at least $c_0 2^L/L$ primes in the
+specified interval for an absolute $c_0>0$ and all sufficiently large
+$L$.  An explicit bound of this form is also given by
+Rosser and Schoenfeld~\cite[Corollary~3]{RosserSchoenfeld1962}.
+The nonzero integer $D$ has fewer than $B$ distinct prime divisors,
+since their product is at most $|D|$ and each is at least~$2$.
+Dividing this count by the number of available primes proves the
+claim.  For two unequal integers, apply it to their difference.
+\end{proof}

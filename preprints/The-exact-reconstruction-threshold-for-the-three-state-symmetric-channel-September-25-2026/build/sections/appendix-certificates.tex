@@ -1,0 +1,176 @@
+\section{Exact verification programs}\label{app:certificates}
+The three programs below are part of the proof. They use integer or
+rational arithmetic for every certification decision. In the C++ programs,
+floating-point conversion is used only for diagnostic output.
+The mathematical meaning and arithmetic guarantees of the programs are
+proved in Sections~\ref{sec:local}--\ref{sec:weighted},
+Section~\ref{grid:section}, and
+Appendices~\ref{int:appendix} and~\ref{grid:implementation}, and in
+the pair derivation below.
+
+\subsection*{Reproduction protocol}
+The accompanying directory \texttt{verification/} contains
+\texttt{pair.py}, \texttt{interval.cpp}, and \texttt{grid.cpp},
+exactly the sources printed below. Run Python with SymPy installed
+and with assertions enabled. Compile the C++ sources with a compiler
+supporting signed \texttt{\_\_int128} and a plain \texttt{int} type of
+at least 32 bits, also with assertions enabled.
+For example, from the paper directory:
+\begin{lstlisting}[numbers=none]
+python verification/pair.py
+g++ -std=c++17 -O3 -UNDEBUG verification/interval.cpp -o interval
+g++ -std=c++17 -O3 -UNDEBUG verification/grid.cpp -o grid
+for j in 0 1 2; do ./interval "$j"; done
+for j in -1 $(seq 0 26); do ./grid "$j"; done
+\end{lstlisting}
+Do not use Python's \texttt{-O} option, and do not define \texttt{NDEBUG}.
+Only the displayed argument ranges are part of the protocol.
+The bundled runner \nolinkurl{verification/reproduce.py} verifies the source
+hashes, runs this suite, checks the expected outputs, and saves the
+commands, software versions, exit statuses, and logs in its designated
+output directory. Its usage is documented in the accompanying README.
+
+Successful execution of the pair program produces no output.
+The interval runs finish with visited-box counts
+$414080$, $756096$, and $1004426$, respectively.
+The grid run with argument $-1$ stops at iteration $162$.
+The other grid stopping iterations are recorded in
+Section~\ref{grid:section}.
+The certificate sources were replayed with Python~3.12.13,
+SymPy~1.14.0, and GCC~13.3.0 on x86\_64 Linux; all 32 mathematical
+executions and five environment/compiler checks passed. Separately, the
+three interval cases were replayed with \texttt{-O2 -UNDEBUG},
+\texttt{-fsanitize=undefined}, and
+\texttt{-fno-sanitize-recover=undefined}. All three exited successfully,
+with the same progress logs and no sanitizer diagnostics. This supplemental
+check is distinct from the ordinary runner protocol and supplies the
+execution check on the visit counter discussed in
+Appendix~\ref{int:appendix}.
+
+The SHA-256 digests of the three source files, in the above order, are
+\begin{quote}\small\ttfamily
+\nolinkurl{ab775c3a63fb1d2713bfe058af2dece4ceda99627c17ce18f51f817b69410bba}\\
+\nolinkurl{76d1443b1194597ee77749e8030c825f2b9aae46b5c172d9eccf0745078c28e3}\\
+\nolinkurl{03c92321efedd0db53b1e91372918dfcd68d459db0223cb160c39df3bd645283}
+\end{quote}
+These digests identify the exact files; the correctness arguments are
+provided in the text, and the successful runs establish the finite
+assertions required there.
+
+\subsection{Pair coefficient certificate}\label{cert:pair}
+We prove the $a=1/2$ case of Lemma~\ref{loc:pair} for strictly
+positive input vectors, using its notation for the input invariants and
+pair excesses.  The main-text proof then extends these bounds to every
+$0\le a\le1/2$ and to the closed simplex.
+Parametrize sorted unnormalized vectors by
+\[
+ p=(6s+3t+2,3t+2,2),\qquad
+ q=(6u+3v+2,3v+2,2),\qquad s,t,u,v\ge0.
+\]
+This covers every strictly positive sorted vector up to scale: for
+$h_0\ge h_1\ge h_2>0$, take
+$s=(h_0-h_1)/(3h_2)$ and $t=2(h_1-h_2)/(3h_2)$ to obtain
+$p=2h/h_2$.  Put $P=\sum_i p_i$, $Q=\sum_i q_i$, and
+$e_i=Q-q_i$, with $E=\sum_i e_i=2Q$.  Then
+$e_i/E=(1-q_i/Q)/2$, as required for the coloring edge.
+For an unnormalized vector $r$ of total $R$, put
+\[
+ N_x(r)=\frac{3\sum_i r_i^2-R^2}{2},\qquad
+ N_y(r)=\frac{27\prod_i r_i-R^3+3R N_x(r)}2.
+\]
+The identities for the posterior invariants give
+$N_x(r)=R^2x(r/R)$ and $N_y(r)=R^3y(r/R)$.
+These are the two numerators returned by \texttt{xy} in the source.
+
+For each of the two choices
+$\widetilde e=(e_0,e_1,e_2)$ and $\widetilde e=(e_0,e_2,e_1)$,
+let
+\[
+ r_i^{(j)}=p_i\widetilde e_{i+j},\qquad
+ T_j=\sum_i r_i^{(j)},\qquad j=0,1,2,
+\]
+with indices modulo three.  The likelihood normalizer is
+$3T_j/(PE)$; multiplying by the cyclic probability $1/3$ gives weight
+$T_j/(PE)$.  Since $\sum_jT_j=PE$, these are probability weights.
+The two choices, each followed by the three rotations, enumerate all
+six relative permutations.  Repeated representatives at a stabilizer
+remain valid uniform group averages.
+
+For each reflection class separately, clear the positive denominator
+\begin{equation}\label{loc:denominator}
+ D=PE(T_0T_1T_2)^3P^4E^4.
+\end{equation}
+The three expressions \texttt{out[0]}, \texttt{out[1]}, and
+\texttt{out[2]} divided by $D$ are exactly
+\[
+ \sum_{j=0}^2\frac{N_x(r^{(j)})}{PE T_j},\qquad
+ \sum_{j=0}^2\frac{N_y(r^{(j)})}{PE T_j^2},\qquad
+ \sum_{j=0}^2\frac{N_x(r^{(j)})^2}{PE T_j^3},
+\]
+namely the tilted output means of $x,y,x^2$ within that class.
+For every call in the source,
+\[
+ \frac{\texttt{mon}(i,j,k,l)}D=X^i y_0^j z^kB_0^l.
+\]
+The powers $4-2i-3j$ and $4-2k-3l$ in these calls are nonnegative,
+so the cleared objects are polynomials.  Hence \texttt{dx},
+\texttt{de}, and \texttt{dn} are $D$ times the class-specific excesses.
+
+The correction \texttt{im}, after division by $D$, is
+\begin{equation}\label{loc:reflection}
+ I=\frac{27\,\operatorname{odd}(p)\operatorname{odd}(\widetilde e)}
+              {64P^3E^3},\qquad
+ \operatorname{odd}(p)=4(p_1-p_2)(p_0-p_1)(p_0-p_2).
+\end{equation}
+Indeed this follows immediately by dividing
+$27\operatorname{odd}(p)\operatorname{odd}(\widetilde e)
+ [PE(T_0T_1T_2)^3]PE/64$ by~\eqref{loc:denominator}.
+Swapping the last two edge coordinates negates $I$.
+Although $D$ itself depends on the reflection class, the normalized
+correction in~\eqref{loc:reflection} has exactly the indicated sign
+change.
+
+To see explicitly what is certified, temporarily write $d_x,d_e,d_n$
+for the excesses within one reflection class.  The seven polynomials
+checked in that class are the following expressions multiplied by $D$:
+\begin{align*}
+ &13Xz-2d_n,\\
+ &11Xz-d_e,\\
+ &250d_e+79Xz,\\
+ &-20Xz-40W+40y_0B_0+51S-20(d_x-2I),\\
+ &6Xz-6W+y_0B_0+S-(d_e+I),\\
+ &2(d_e+I)-12Xz+12W-2y_0B_0+19S,\\
+ &-4Xz+44W-14y_0B_0+52S_A+111S_B
+       -\{5(d_n+10I)-4(d_e+I)\}.
+\end{align*}
+The last line, divided by two, bounds
+$Cd_n-2d_e+23I$.  All arithmetic in this certificate consists of
+integer polynomial addition and convolution, and exact scalar division,
+in $\mathbb Z[s,t,u,v]$.  Each of the fourteen polynomials has total
+degree $28$ and all its coefficients are nonnegative.  For either
+reflection the numbers of nonzero coefficients in the displayed order
+are
+\[
+ 13672,\ 13672,\ 13674,\ 13625,\ 13625,\ 13625,\ 13625.
+\]
+The supplied executable certificate checks every coefficient by the
+assertion \texttt{min(f.coeffs())>=0}; absent monomials have coefficient
+zero.  Its unchanged-source execution, with Python assertions enabled,
+terminates successfully.  Thus these are exact polynomial
+nonnegativity statements on the entire nonnegative quadrant, rather
+than evaluations on a set of test points.
+
+Divide each class's seven inequalities by its own positive $D$ and
+then average the two normalized classes.  All right-hand invariant
+terms are unchanged by reflection, and the $I$ terms cancel by
+\eqref{loc:reflection}.  This gives precisely
+\eqref{loc:coarsepair}--\eqref{loc:kpair} for $a=1/2$.
+
+The complete polynomial calculation is the following source.
+\lstinputlisting[language=Python]{../verification/pair.py}
+
+\subsection{Interval positivity certificate}\label{cert:interval}
+\lstinputlisting[language=C++]{../verification/interval.cpp}
+
+\subsection{Finite experiment certificate}\label{cert:grid}
+\lstinputlisting[language=C++]{../verification/grid.cpp}

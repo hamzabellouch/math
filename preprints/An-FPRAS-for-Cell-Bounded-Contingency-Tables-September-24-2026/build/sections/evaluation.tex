@@ -1,0 +1,482 @@
+\section{A bounded approximation procedure for the weights}
+\label{sec:evaluation}
+
+The free large coordinates in \eqref{eq:hj} cannot be enumerated in
+polynomial time.  We instead partition their ranges into polynomially
+many intervals per coordinate and sample the resulting product grid.
+Scaled free coordinates, softened constraints, and grid walks appear
+in the dense-table methods of Dyer, Kannan, and Mount~\cite{DKM1997};
+Morris~\cite{Morris2002} further developed the associated geometric
+rounding approach. The weighted bin construction below includes its
+geometric estimate, population correction, and finite-bit
+implementation in full.
+
+\begin{samepage}
+\begin{proposition}[Weight evaluation]
+\label{prop:weight-oracle}
+Fix a box-valid small-count profile $(x,y)$ with total $p$, an integer
+$0\le j\le H$, and rational parameters
+$0<\xi_{\mathrm{in}},\theta<1/4$.  There is a randomized procedure
+returning a positive rational $\widehat h$ such that
+\[
+ \mathbb P\left[
+  (1-\xi_{\mathrm{in}})h_j(x,y)\le\widehat h
+       \le(1+\xi_{\mathrm{in}})h_j(x,y)
+ \right]\ge1-\theta.
+\]
+On every execution its bit cost is bounded by a fixed polynomial in
+$L,\epsilon^{-1},\xi_{\mathrm{in}}^{-1},\theta^{-1}$ and the encoding
+lengths of the parameters.  If
+$M_f=\prod_{s\ \mathrm{free}}(b_s+1)$, every returned value satisfies
+\begin{equation}
+ \frac{M_f2^{-j}}{16}\le\widehat h\le8M_f.
+ \label{eq:oracle-unconditional-range}
+\end{equation}
+In particular, positivity and the representation-length bound do not
+depend on the statistical success event.
+\end{proposition}
+\end{samepage}
+
+\subsection{Bins and a comparable continuous density}
+
+Throughout the construction, fix $(x,y)$.  Let $e$ be the number of free
+cells.  We first describe the positive-dimensional case; the case $e=0$
+is addressed below.  On $[0,B]^e$, write $D(v)$ for the penalty of the
+free values $z_s=(b_s+1)v_s/B$.  Lemma~\ref{lem:forest} gives
+\begin{equation}
+ 0\le D(v)\le H,
+ \qquad
+ |D(v)-D(w)|\le\frac{2Ad^2}{B}\|v-w\|_\infty
+                   =\frac18\|v-w\|_\infty.
+ \label{eq:scaled-penalty-bounds}
+\end{equation}
+The function $D$ is convex.
+
+Let $\mathcal V=\{0,\ldots,B-1\}^e$ be the bin indices.  Assign an
+integer free vector $z$ to the bin whose coordinates are
+$\lfloor Bz_s/(b_s+1)\rfloor$.  Denote the resulting Cartesian product
+of integer intervals by $I_v$.  In a coordinate with $N=b_s+1$, the
+interval for bin index $v_s$ is
+\[
+ \left\{\left\lceil\frac{Nv_s}{B}\right\rceil,
+ \ldots,
+ \left\lceil\frac{N(v_s+1)}{B}\right\rceil-1\right\}.
+\]
+Its cardinality differs from $N/B$ by at most one.  Since a free cell
+is large, $N\ge W=100dB$, so every interval is nonempty.  Define
+\[
+ \alpha_v=\frac{B^e|I_v|}{M_f}.
+\]
+Each coordinate contributes a factor in
+$[1-1/(100d),1+1/(100d)]$.  There are at most $d$ coordinates, and hence
+\begin{equation}
+ \frac12\le\alpha_v\le2.
+ \label{eq:bin-populations}
+\end{equation}
+The intervals and $\alpha_v$ are computed by integer arithmetic.
+
+For an integer $0\le a\le j$, put
+\[
+ V_a(v)=2^{-\lfloor aD(v)/H\rfloor},
+ \qquad
+ \varrho_a(w)=2^{-aD(w)/H}\quad(w\in[0,B]^e).
+\]
+The density $\varrho_a$ is positive and log-concave.  Its base-two
+logarithm has sup-norm Lipschitz constant at most $1/8$, and therefore
+also at most one.  Combining this weaker bound with the floor gives,
+on the unit bin with lower corner $v$,
+\begin{equation}
+ \frac{V_a(v)}4\le\varrho_a(w)\le2V_a(v).
+ \label{eq:bin-density-comparison}
+\end{equation}
+The same inequalities hold at boundary points by continuity.
+
+\subsection{The estimator and its population correction}
+
+For $0\le a\le j$, define the bin partition function and law
+\[
+ S_a=\sum_{v\in\mathcal V}V_a(v),\qquad
+ \pi_a(v)=\frac{V_a(v)}{S_a}.
+\]
+The dyadic weights $V_a$ will permit exact finite-bit Metropolis
+acceptance. Their normalizing constants can be estimated through
+adjacent ratios. For $0\le a<j$, the observable
+\[
+ R_a(v)=\frac{V_{a+1}(v)}{V_a(v)}
+\]
+has expectation $S_{a+1}/S_a$ under $\pi_a$.  Its values are $1/2$ or
+one: $0\le D/H\le1$ makes the increment of the floor exponent zero
+or one.
+
+For the final correction, draw $v$ from $\pi_j$, then a uniform integer
+point $z\in I_v$, and let $s$ be its cube coordinates
+$s_u=Bz_u/(b_u+1)$.  Use
+\begin{equation}
+ T(v,z)=\alpha_v\frac{2^{-jD(s)/H}}{V_j(v)}.
+ \label{eq:oracle-correction}
+\end{equation}
+Equations~\eqref{eq:bin-populations} and
+\eqref{eq:bin-density-comparison} show $1/8\le T\le4$.
+The factor $\alpha_v$ corrects for the number of integer points in
+the selected bin. The correction therefore has exact expectation
+\[
+ \mathbb E T
+ =\frac{1}{S_j}\sum_v\frac{\alpha_v}{|I_v|}
+                         \sum_{z\in I_v}2^{-jD(s)/H}
+ =\frac{B^eh_j(x,y)}{M_fS_j}.
+\]
+As $S_0=B^e$, the identity
+\begin{equation}
+ M_f\left(\prod_{a=0}^{j-1}\mathbb E_{\pi_a}R_a\right)
+       \mathbb E T=h_j(x,y)
+ \label{eq:oracle-telescope}
+\end{equation}
+specifies the estimator.  We approximate each expectation by an average
+of independent fresh samples and multiply the $j+1$ averages by $M_f$.
+
+\subsection{Interpolation and conductance}
+
+It remains to sample the bin laws $\pi_a$ with controlled error and
+bounded work. We use a local Metropolis walk. The continuous density
+$\varrho_a$ supplies the cut expansion estimate that bounds its mixing
+time; it is not itself sampled. We first establish the finite-box form
+of the Pr\'ekopa--Leindler interpolation
+inequality~\cite{Leindler1972,Prekopa1973} used in the geometric
+argument. All integrals in the following lemma are with
+respect to Lebesgue measure.
+
+\begin{lemma}[Integral interpolation]
+\label{lem:integral-interpolation}
+Let $S_0,S_1,S_2$ be finite unions of bounded open axis-aligned boxes
+contained in a common compact box.  Let $0<t<1$ and suppose
+$(1-t)S_1+tS_2\subseteq S_0$.  Let $f_0,f_1,f_2$ be positive continuous
+functions on the ambient compact box such that
+\[
+ f_0((1-t)x+ty)\ge f_1(x)^{1-t}f_2(y)^t
+ \qquad(x\in S_1,\ y\in S_2).
+\]
+Then
+\[
+ \int_{S_0}f_0\ge
+ \left(\int_{S_1}f_1\right)^{1-t}
+ \left(\int_{S_2}f_2\right)^t.
+\]
+\end{lemma}
+
+\begin{proof}
+In dimension one, write $A_i=\int_{S_i}f_i$ for $i=1,2$; zero source
+mass makes the conclusion immediate.  Let $x(u),y(u)$ be the increasing
+quantiles of the two normalized source densities, $0<u<1$.  Away from
+finitely many subdivision parameters they are continuously
+differentiable, with
+\[
+ x'(u)=\frac{A_1}{f_1(x(u))},
+ \qquad y'(u)=\frac{A_2}{f_2(y(u))}.
+\]
+The map $z(u)=(1-t)x(u)+ty(u)$ is increasing.  Its smooth pieces have
+disjoint images contained in $S_0$; jumps merely omit nonnegative
+contributions to the target integral.  Change of variables on these
+pieces, followed by the weighted arithmetic--geometric mean inequality,
+gives
+\begin{align*}
+ \int_{S_0}f_0
+ &\ge\int_0^1 f_0(z(u))
+ \left((1-t)\frac{A_1}{f_1(x(u))}
+             +t\frac{A_2}{f_2(y(u))}\right)\,du\\
+ &\ge\int_0^1 A_1^{1-t}A_2^t\,du
+  =A_1^{1-t}A_2^t.
+\end{align*}
+This argument also permits nonnegative piecewise-continuous densities
+with finitely many zero intervals, provided each nonzero piece is
+bounded above and bounded away from zero.
+
+For the induction on dimension, fix first coordinates $x_1,y_1$ of
+the two sources and put $z_1=(1-t)x_1+ty_1$.  The corresponding slices
+satisfy the same set inclusion and interpolation hypothesis in one
+lower dimension.  The induction hypothesis therefore gives the
+one-dimensional interpolation inequality for the three marginal
+integrals over slices.  Subdivide the first-coordinate axis at the
+finitely many box endpoints.  On each resulting interval every slice
+domain is constant; positivity and continuity on the ambient compact
+box make each nonzero marginal continuous, bounded, and bounded away
+from zero there.  Thus the one-dimensional argument just proved applies
+to the marginals.  Iterated integration proves the claim.
+\end{proof}
+
+On $\mathcal V$, use the Metropolis chain with weights $V_a$.  Each
+signed coordinate direction is proposed with probability
+$2^{-\lceil\log_2(4d)\rceil}$.  Hold for unused proposal outcomes or
+for proposals outside $\mathcal V$, and accept a valid proposal with
+probability $\min\{1,V_a(w)/V_a(v)\}$.  The chain is reversible for
+$\pi_a$ and is lazy, since the total probability
+of directional proposals is at most $1/2$.
+
+\begin{lemma}[Bin conductance]
+\label{lem:bin-conductance}
+For $e\ge1$, every nontrivial cut of this chain has stationary flow
+divided by its smaller stationary side mass at least
+\[
+ \kappa=\frac{1}{10^4d^2B}.
+\]
+\end{lemma}
+
+\begin{proof}
+Write $\mu$ for unnormalized integration against $\varrho_a$ on
+$D_0=(0,B)^e$.  For a fixed cut, let $S$ be the union of the open unit
+bins on the side of smaller continuous mass.  Grid hyperplanes have
+zero mass, so $\mu(S)\le\mu(D_0)/2$.  Set
+\[
+ t=\frac{1}{4dB},\qquad r=tB=\frac{1}{4d},
+ \qquad M=(1-t)S+tD_0.
+\]
+The set $M$ is a finite union of open boxes and contains $S$.
+Lemma~\ref{lem:integral-interpolation}, applied with all three
+functions equal to $\varrho_a$, gives
+\begin{equation}
+ \mu(M\setminus S)\ge(2^t-1)\mu(S)\ge\frac t2\mu(S).
+ \label{eq:bin-expansion}
+\end{equation}
+
+We cover the added mass by neighborhoods of cut faces.  Consider a
+point $z\in M\setminus S$ off the grid hyperplanes, and choose
+$x\in S$, $y\in D_0$ with $z=(1-t)x+ty$.  The segment from $x$ to $z$
+has sup-norm length less than $r$.  At some grid-crossing event its
+entering and exiting bins have different cut membership.  If several
+coordinates cross simultaneously, flip those coordinates one at a time
+between the entering and exiting bins.  All intermediate bins are
+incident to the crossing point and lie in the cube.  At least one
+consecutive pair belongs to opposite sides of the cut.  Its closed
+common face contains the crossing point, so $z$ is within sup distance
+$r$ of an actual axis-adjacent cut face.
+
+This proves containment, up to the null set of grid hyperplanes, in the
+union of the radius-$r$ neighborhoods of the cut faces.  It does not
+charge a multiplicity for the number of incident bins.  Disconnectedness
+of $S$ causes no change in the argument.  The segment stays in the open
+ambient cube, and intersecting a face neighborhood with that cube only
+reduces its volume.
+
+Each face neighborhood has volume at most
+\[
+ 2r(1+2r)^{e-1}
+ =\frac{1}{2d}\left(1+\frac{1}{2d}\right)^{e-1}\le1.
+\]
+Every point in it is within sup distance $1+r$ of either adjacent
+lower corner.  The logarithmic Lipschitz bound and
+$\varrho_a(v)\le V_a(v)$ therefore bound its density by
+$2^{1+r}V_a(v)\le4V_a(v)$ for each of the two adjacent corners
+separately.  Thus, if $F$ is the sum of
+$\min\{V_a(v),V_a(w)\}$ over cut edges, the covering gives
+$\mu(M\setminus S)\le4F$.
+
+Let $m$ be the smaller of the two unnormalized discrete side masses.
+By \eqref{eq:bin-density-comparison},
+\[
+ \mu(S)\ge\frac14\sum_{v:\,v+(0,1)^e\subset S}V_a(v)\ge\frac m4.
+\]
+This remains true if the smaller continuous side is the larger discrete
+side.  Combining with \eqref{eq:bin-expansion} yields $F\ge tm/32$.
+The directional proposal probability is at least $1/(8d)$, so the
+normalized conductance is at least
+\[
+ \frac{t}{256d}=\frac{1}{1024d^2B}\ge\kappa.
+\]
+\end{proof}
+
+For completeness, this cut bound supplies a quantitative mixing time
+without an additional sampling theorem.  For a finite reversible kernel
+$P$ with stationary law $\pi$, write
+\[
+ \mathcal E_P(g)=\frac12\sum_{v,w}\pi(v)P(v,w)(g(v)-g(w))^2.
+\]
+For nonnegative $g$ supported on stationary mass at most $1/2$,
+integration over superlevel sets of $g^2$ gives
+\[
+ \kappa\mathbb E_\pi g^2
+ \le\sum_{\{v,w\}}\pi(v)P(v,w)|g(v)^2-g(w)^2|
+ \le\bigl(2\mathcal E_P(g)\mathbb E_\pi g^2\bigr)^{1/2}.
+\]
+Here the sum is over unordered distinct pairs, and the last inequality
+uses Cauchy--Schwarz and
+$(g(v)+g(w))^2\le2g(v)^2+2g(w)^2$.
+Apply the resulting inequality to the positive and negative parts about
+a median of an arbitrary function.  Their energies sum to at most its
+energy, and their squared norms sum to at least its variance.  Hence
+the inverse spectral gap is at most
+\[
+ K_{\mathrm{bin}}=\frac{2}{\kappa^2}
+                  =2(10^4d^2B)^2.
+\]
+Laziness puts the spectrum in $[0,1]$: $2P-I$ is a reversible stochastic
+contraction.  Since $2^{-H}\le V_a\le1$,
+$\pi_{a,\min}^{-1}\le2^HB^e$.  Spectral contraction of the centered
+density of an initial point, followed by Cauchy--Schwarz, therefore
+gives the following convenient loose bound after $\ell$ steps:
+\begin{equation}
+ \|P_a^\ell(v,\cdot)-\pi_a\|_{\mathrm{TV}}
+ \le 2^{H+dB}\exp(-\ell/K_{\mathrm{bin}}).
+ \label{eq:bin-mixing}
+\end{equation}
+
+\subsection{Sample counts and error allocations}
+
+We now implement the estimator in \eqref{eq:oracle-telescope}.
+Each occurrence of a bin sample uses a fresh walk; each offset sample
+uses fresh bits conditional on its bin.
+
+Set
+\begin{equation}
+ \sigma=\frac{\xi_{\mathrm{in}}}{50(H+1)},\qquad
+ N_{\mathrm{in}}=
+ \left\lceil\frac{10^6(H+1)}{\theta\sigma^2}\right\rceil,
+ \qquad Q_{\mathrm{in}}=(d+1)(H+1)N_{\mathrm{in}}.
+ \label{eq:inner-parameters}
+\end{equation}
+Use $N_{\mathrm{in}}$ samples for every average.  Each exact observable
+has variance divided by squared mean at most $1024$.  Chebyshev's
+inequality and a union bound over at most $H+1$ averages imply that
+all ideal averages have relative error at most $\sigma$, except with
+probability at most
+\[
+ \frac{1024(H+1)}{N_{\mathrm{in}}\sigma^2}<\frac\theta4.
+\]
+
+Each bin sample is obtained by an independent walk, started at a fixed
+bin, of length
+\begin{equation}
+ \ell_{\mathrm{in}}=
+ \left\lceil K_{\mathrm{bin}}
+  \left(H+dB+\frac{16Q_{\mathrm{in}}}{\theta}+2\right)\right\rceil.
+ \label{eq:inner-walk-length}
+\end{equation}
+Equation~\eqref{eq:bin-mixing} bounds its total-variation error by
+$\theta/(8Q_{\mathrm{in}})$.  This deliberately conservative length
+is polynomial in the allowed inverse failure parameter.
+
+\begin{lemma}[Finite-bit uniform integer draw]
+\label{lem:dyadic-integer-draw}
+For a positive integer $M$ and $0<\zeta<1$, choose the smallest
+nonnegative integer $k$ with $M2^{-k}\le\zeta$.  If $Y$ is uniform on
+$\{0,\ldots,2^k-1\}$, then
+$\lfloor MY/2^k\rfloor$ has total-variation distance at most $\zeta$
+from the uniform law on $\{0,\ldots,M-1\}$.  The draw uses exactly
+$k$ fair bits and bounded integer arithmetic.
+\end{lemma}
+
+\begin{proof}
+Each output has either $\lfloor2^k/M\rfloor$ or
+$\lceil2^k/M\rceil$ preimages.  Summing its deviation from probability
+$1/M$ gives a total-variation bound at most $M2^{-k}$.  Computing the
+displayed integer quotient needs no rejection step.
+\end{proof}
+
+Apply Lemma~\ref{lem:dyadic-integer-draw} separately to every scalar
+offset interval, with $\zeta=\theta/(8Q_{\mathrm{in}})$, and translate
+by its lower endpoint.  There are at most $Q_{\mathrm{in}}$ bin draws
+and scalar offset draws together.  Couple each bin draw to a stationary
+one, and, conditional on a matching bin, couple the offsets to exact
+uniform offsets in that bin.  On a bin mismatch retain the correct
+conditional offset marginals on both sides; its failure is already
+charged.  Use independent fresh randomness for different samples.
+The resulting ideal pairs $(v,z)$ are independent across samples with
+joint law $\pi_j(v)\operatorname{Unif}(I_v)$, although bin and offset
+within a pair need not be independent.  The probability of any draw
+discrepancy is at most $\theta/8$, in particular less than $\theta/4$.
+
+\subsection{Correction arithmetic and a bound on every execution}
+
+The floors defining $V_a$ are evaluated by exact rational arithmetic.
+All these weights are dyadic.  Bin proposals can be made with
+$\lceil\log_2(4d)\rceil$ bits, with unused outcomes interpreted as
+holds.  Each Metropolis acceptance is an exact dyadic trial with at
+most $H$ additional bits.  Thus the walk length
+\eqref{eq:inner-walk-length} is also a deterministic bound on the
+number of transitions; no random-time rejection procedure is used.
+
+Only the power of two in \eqref{eq:oracle-correction} needs numerical
+approximation.  Its exponent is the rational number
+\[
+ \beta=\left\lfloor\frac{jD(v)}H\right\rfloor
+                          -\frac{jD(s)}H\in[-2,2].
+\]
+Indeed the floor loses less than one and the exponent changes by at
+most one inside a bin.  Choose a power-of-two integer $s'$ with
+$32/\sigma\le s'\le64/\sigma$, and round $\beta$ to its nearest
+grid point $h/s'$.  Since $-2$ and $2$ are grid points, $|h|\le2s'$,
+and $|\beta-h/s'|\le\sigma/64$.  If $T_0=2^\beta$, then
+\[
+ \left|\frac{2^{h/s'}}{T_0}-1\right|
+ \le e^{\sigma/64}-1\le\frac\sigma{32},
+ \qquad T_0\ge\frac14.
+\]
+Here $\sigma<1/200$.  Bisect the interval $[0,8]$, comparing the
+$s'$-th power of a rational midpoint with $2^h$, for a fixed number of
+iterations sufficient to make the absolute error at most $\sigma/64$.
+The returned rational $R$ then satisfies
+\[
+ \left|\frac R{T_0}-1\right|
+ \le\frac\sigma{32}+\frac\sigma{16}<\sigma,
+ \qquad R\ge\frac14-\frac\sigma{64}>0.
+\]
+Here the rounded exponent $h/s'$ still belongs to $[-2,2]$, so its
+exact power is at least $1/4$ before the bisection error is applied.
+Negative $h$ causes no difficulty: $2^h$ is an exact dyadic rational
+with $O(|h|)$ bits.  For example, a depth of
+$\lceil\log_2(512/\sigma)\rceil$ and the final interval midpoint
+suffice.  The bisection depth is $O(\log(1/\sigma))$, and
+the exact powers being compared have
+$O(s'\log(1/\sigma))$ bits.  Since $s'=O(\sigma^{-1})$, all these
+operations have polynomial bit cost.  Multiply $R$ by the exact
+$\alpha_v$ to approximate the correction with deterministic pointwise
+relative error at most $\sigma$.
+
+On the coupled event in which every ideal empirical mean is accurate,
+there are $j+1$ empirical multiplicative errors of at most $\sigma$
+and one further such error from rounding the correction.  The bound
+$|\log(1\pm\sigma)|\le2\sigma$ gives total absolute logarithmic error
+at most
+\[
+ 2\sigma(j+2)\le4\sigma(H+1)=\frac{2\xi_{\mathrm{in}}}{25}.
+\]
+For $0<\xi_{\mathrm{in}}<1/4$, this implies the relative interval
+$[1-\xi_{\mathrm{in}},1+\xi_{\mathrm{in}}]$ in
+Proposition~\ref{prop:weight-oracle}.  The exceptional probability is
+less than $\theta/2$, and hence at most $\theta$.
+
+These statistical estimates are not needed for termination or output
+size.  On every execution, the ratio averages lie in $[1/2,1]$.
+The exact correction lies in $[1/8,4]$, and its computed value lies in
+$[(1-\sigma)/8,4(1+\sigma)]\subset[1/16,8]$.  Its average has the same
+bounds.  This proves \eqref{eq:oracle-unconditional-range} on every
+path, including paths where all empirical means are inaccurate.
+
+To check bit complexity, every loop is bounded by
+\eqref{eq:inner-parameters} and \eqref{eq:inner-walk-length}.
+The parameters $A,B,W,H$ are polynomial in $L$ and $\epsilon^{-1}$,
+and these loop bounds are fixed polynomials in those parameters,
+$\xi_{\mathrm{in}}^{-1}$, and $\theta^{-1}$.  Bin indices have
+$O(\log B)$ bits, and rational cube coordinates used in the correction
+have $O(L+\log B)$ bits.  Integer offsets have the binary lengths of the
+input capacities; a scalar offset of interval length $M$ needs only
+$O(\log M+\log(Q_{\mathrm{in}}/\theta))$ bits in
+Lemma~\ref{lem:dyadic-integer-draw}.  The tree values are affine sums
+of input margins and the current coordinates.  Divisions by tree
+capacities in $D$ produce rational denominators whose total binary
+length is polynomial, since only polynomially many input integers
+occur.  The quantities $M_f$, $B^e$, $|I_v|$, and $\alpha_v$ likewise
+have polynomial-length representations.  Finally, sums and products
+of polynomially many rationals of polynomial length have polynomial
+length even without cancellation.  This includes all empirical means
+and the product forming $\widehat h$.  Thus no numerical large
+capacity enters a loop bound.
+
+If $e=0$, take $\mathcal V$ to consist of the empty vector and use the
+empty-product conventions $M_f=B^e=\alpha_v=1$.  There is no offset
+draw and no bin walk.  The same ratios and correction telescope to the
+single summand $2^{-jD/H}$; the deterministic rounding and all stated
+bounds remain valid.  If $j=0$, there are no ratio averages and
+$V_0=1$.  The unrounded correction is $\alpha_v$, whose expectation
+under uniform bins is exactly one.  Its numerical approximation has
+the already allocated pointwise tolerance, so the procedure estimates
+$h_0=M_f$ within the claimed error.  These observations complete the
+proof of Proposition~\ref{prop:weight-oracle}.

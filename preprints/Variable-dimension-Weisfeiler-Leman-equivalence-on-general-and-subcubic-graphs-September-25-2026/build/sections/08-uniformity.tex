@@ -1,0 +1,320 @@
+\section{Uniform compilation and completeness}\label{uniform:section}
+
+The algebraic witnesses are existential and are never supplied to the
+graph compiler. We now enumerate only the product schemas, local blocks,
+constant-size valuations, and graph vertices. The two realizations have
+different output costs, so we retain their quantitative statements
+separately. All operations are counted on deterministic multitape
+Turing machines with sequential list access.
+
+For the instance compiled from a fixed machine $M$ and polynomial $p$
+as in \Cref{prop:computation}, on a word of length $m$, put
+$r=2(p(m)+2)$ and $b_*=r+2$. Since $p(m)\ge m+2$, we have $m\le r$.
+The common size calculation starts with $O_M(b_*^2)$ real types and
+comparison schemas. Subdivision
+multiplies this count by $O(r)$, and choosing a row for each local
+block multiplies it by another $O(r)$. Thus there are $O_M(b_*^4)$
+blocks, each with an absolute constant number of valuations.
+The realizations then have the following growth:
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & General realization & Subcubic realization\\
+\midrule
+Intermediate vertices & $O_M(b_*^4)$ base vertices
+ & $O_M(b_*^8)$ auxiliary vertices\\
+Block or sort encoding & $O_M(b_*^{12})$ vertices with leaves
+ & $O_M(b_*^{16})$ vertices with color paths\\
+Output matrix entries & $O_M(b_*^{24})$ & $O_M(b_*^{32})$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The subcubic construction has $O_M(b_*^8)$ channels, with constantly
+many auxiliary vertices per channel, and $O_M(b_*^8)$ sorts.
+Replacing each auxiliary vertex by a gadget whose paths have length
+at most the sort count gives the final $O_M(b_*^{16})$ order.
+The proofs below justify these counts
+and then account for the bit cost of producing the explicit matrices.
+The constants may depend on the fixed $M,p$; the exponents in the
+graph-size and compiler-time bounds are absolute.
+
+\subsection{The smaller general compiler}
+
+\begin{proposition}[Uniform general-graph compiler]\label{prop:uniform-general}
+Fix the machine $M$ and polynomial $p$ used in
+Proposition~\ref{prop:computation}. For a word $w$ of length $m$, put
+$r=2(p(m)+2)$. The constructions of
+\Cref{prop:computation,prop:consistency,prop:general-realization}
+produce two equally large simple uncolored
+graphs of order $O_M((r+1)^{12})$. Their explicit adjacency matrices and the
+binary parameter $k=r$ can be produced by a deterministic multitape Turing
+machine in time $O_{M,p}((r+2)^{80})$.
+\end{proposition}
+\begin{proof}
+Since $p(m)\ge m+2$, we have $m\le r$. The number of original consistency
+types and schemas is therefore $O_M((r+1)^2)$, and every vector dimension is
+at most two. Each schema has $r$ constant-size binary coordinate entries.
+Subdividing each wire with $4(r+1)$ internal types gives
+$O_M((r+1)^3)$ types and links. Even copying an entire $r$-coordinate table
+onto every link requires only $O_M((r+1)^4)$ entries.
+
+For each type or link and each row there are at most four blocks: one chooses
+two binary labels, or two label matches each determined by a binary label.
+A site has at most four legal valuations. A square has two vector readouts
+of dimensions at most two and two scalar readouts, hence at most $2^6$
+valuations, a deliberately loose bound. Thus both the number $J$ of blocks
+and the common number $N$ of base vertices are $O_M((r+1)^4)$; moreover
+$J\le N$ because every block has a legal valuation in each version.
+There are at most $J(N+1)$ leaves at any base vertex, giving total order
+\begin{equation}\label{eq:graph-order-bound}
+ N+NJ(N+1)\le N+N^2(N+1)=O_M((r+1)^{12}).
+\end{equation}
+The two output matrices have $O_M((r+1)^{24})$ entries in total.
+There is at least one scalar real type, which alone supplies four sites per
+row and two valuations per site. The graph order is at least $8r$, so the
+output parameter is below the order.
+
+Here is an explicit polynomial-time implementation. All lists are stored
+sequentially, so no unit-cost random access is assumed.
+\begin{enumerate}[label=\arabic*.,leftmargin=*]
+\item Count $m$, evaluate the fixed polynomial $p$, and set $d,r,K$.
+Enumerate the fixed machine alphabet, carry and borrow cases, initial
+positions, and final-time tests. Fill each product table coordinate by
+coordinate. Only the $\max\{1,m\}$ exceptional initial positions and the
+$d+1$ possible blank suffix domains are generated. Apply the buffer and
+dummy construction and enumerate wire and link identifiers.
+\item Enumerate the constant number of local label choices for each
+type-row or link-row pair. Record the named readouts of each block and
+enumerate all of its local valuations. Test its affine or homogeneous
+equation directly. Count $N$ and enumerate leaves by an owner identifier and
+a local index. This produces vertex lists in both graph versions.
+\item Enumerate ordered pairs of vertices and stream the corresponding
+matrix bits. For base vertices, compare the constant number of named
+readouts and their values, and check that the blocks differ. For a pair
+involving a leaf, test owner incidence. Leaf--leaf pairs are nonadjacent.
+The diagonal is zero. Finally write $r$ in binary.
+\end{enumerate}
+
+For a concrete bit-cost allowance, these descriptions use
+$O_{M,p}((r+2)^{12})$ records, each of at most
+$O_{M,p}((r+2)^2)$ bits; this includes full coordinate tables, identifiers,
+valuation lists and counters. Allow the larger total work-space length
+\[
+ D=O_{M,p}((r+2)^{16}).
+\]
+The stated loops need at most $O_{M,p}((r+2)^{24})$ record-generation trials
+and matrix entries. Each uses at most $O_{M,p}((r+2)^2)$ elementary lookups,
+copies, comparisons or arithmetic operations; constructing a coordinate
+table can scan all $r$ entries. A sequential list lookup or an elementary
+binary arithmetic operation on at most $D$ bits costs $O(D^2)$ time by
+ordinary scanning and schoolbook algorithms. The total allowance is thus
+$O_{M,p}((r+2)^{24+2+32})$, which is within the asserted exponent~80.
+
+Polynomial evaluation also fits this budget even if $p$ has signed
+coefficients and cancellations. If $p(x)=\sum_{i=0}^q c_i x^i$ and
+$A_p=1+\sum_i|c_i|$, every Horner intermediate at $m\ge0$ has absolute value
+at most $A_p(m+1)^q$. Its bit length is $O_p(\log(r+2))$, and the number
+$q$ of arithmetic stages is fixed. The case $m=0$ has $p(0)\ge2$ and causes
+no exception. Reading the input and writing the $O(\log r)$-bit dimension
+are included. At no stage is the list of $2^r$ full addresses, the
+$2^d$ computation times, a consistency witness, or an offset family
+enumerated.
+\end{proof}
+
+
+\subsection{The connected subcubic compiler}
+
+\begin{proposition}[Uniform construction]
+\label{prop:uniform-construction}
+Fix a machine \(M\) and polynomial \(p\) satisfying
+\Cref{prop:computation}, and apply the buffer construction
+of \Cref{prop:consistency}.  On an input
+word of length $m$, put
+\[
+ r=2(p(m)+2),\qquad K=r+1,\qquad b_*=r+2.
+\]
+The two graphs $X^0,X^1$ and the binary dimension $k=r$ can be produced
+deterministically in time $O_{M,p}(b_*^{160})$.  Each output graph has
+$O_M(b_*^{16})$ vertices.  They have the same positive order and are
+connected, simple, uncolored, undirected graphs of maximum degree at most
+three, regardless of whether the scalar-image instance is consistent.
+\end{proposition}
+
+\begin{proof}
+We give explicit polynomial bounds and a construction that uses only the
+compressed descriptions.  Since $p(m)\geq m+2$, we have $r\geq 8$ and
+$m\leq b_*$.  The computation construction produces
+$O_M((r+1)^2+m)=O_M(b_*^2)$ real types and comparison schemas.  Their
+value dimensions are at most two.  A schema is described by its endpoint
+identifiers, its two constant-size affine forms, and $r$ constant-size
+coordinate domains and maps.
+
+Each comparison wire has $4K$ private internal types and $4K+1$ links.
+Thus the subdivided layout has $O_M(b_*^3)$ types and links.  At a fixed
+row and type there are at most four choices of a site's pair of labels;
+at a fixed row and link there are at most four choices of a square's two
+coordinate matches.  Multiplying by $r$ rows gives
+\begin{equation}
+\label{uniform:block-bound}
+ \abs{\cB}=O_M(b_*^4).
+\end{equation}
+A block has at most four readout names.  The total number of proper
+channels, indexed by ordered pairs of distinct blocks and a shared name,
+is therefore at most $4\abs{\cB}^2$.  Including channel zero at every
+block, the total number of channels is $O_M(b_*^8)$.
+
+Every legal valuation uses at most six bits by
+\Cref{lem:block-fibers}.  Hence a channel has at most $2^6$ spine
+vertices, at most seven prefix levels, and at most $2^6$ vertices on any
+one of those levels.  These are absolute constants, independent of $r$.
+There are also only constantly many vertex sorts per channel and one
+anchor and anchor sort per block.  Consequently,
+\begin{equation}
+\label{uniform:auxiliary-bound}
+ \abs{V(Y^\eps)}=O_M(b_*^8),\qquad
+ s=O_M(b_*^8),
+\end{equation}
+where $s$ is the number of positive integer sort colors.
+
+A colored vertex of color $c$ is replaced by three triangle vertices,
+three connectors, and three private paths with $c$ new vertices each.
+The replacement therefore has exactly $6+3c$ vertices.  Since
+$1\leq c\leq s$, \eqref{uniform:auxiliary-bound} gives
+\begin{equation}
+\label{uniform:graph-bound}
+ \abs{V(X^\eps)}
+ \leq (6+3s)\abs{V(Y^\eps)}=O_M(b_*^{16}).
+\end{equation}
+The two explicit output matrices have $O_M(b_*^{32})$ entries, and the
+output dimension $r$ has $O(\log b_*)$ binary bits.
+
+All structural promises follow from \Cref{prop:subcubic-realization}.
+In particular, equal order does not require a compatible global offset:
+each individual block has a nonempty affine valuation space, and any of
+its legal offsets supplies a bijection between its two block parts.
+Their separate cardinalities agree and can be added over the partition.
+There is at least one site block and a legal valuation in each version,
+so the common graph order is positive.  Degree-one and degree-two vertices
+are permitted because the required bound is at most three.
+
+For completeness, the construction can be implemented with the following
+finite lists and loops.
+\begin{enumerate}
+\item Evaluate the fixed polynomial $p$ and generate the circuit's schema
+      domains and coordinate maps by the carry, borrow, and initialization
+      cases of \Cref{prop:computation}.  Expand each connection into
+      its comparison schemas, subdivide each comparison wire, and
+      enumerate the type, link, and block lists.  A coordinate scan has
+      length $r$; none of these steps ranges over the full set of
+      addresses.
+\item Compare the at most four names of each ordered pair of blocks to
+      enumerate channels and their opposite-channel identifiers.  For
+      every channel, enumerate bit strings of length at most six to list
+      its legal valuations and occurring prefixes.  A prefix occurs if
+      one of the constantly many full strings extending it satisfies the
+      local equation.  Enumerate the sorts to assign their positive
+      color numbers.  Fix all ordering choices by the same nested
+      enumeration rules in the two versions.
+\item Form the auxiliary vertex and edge lists from the defining rules.
+      For example, enumerate unordered pairs of auxiliary vertices and
+      test those rules.  Assign a vertex's incident ports in generated
+      edge order; the list has length at most three.  Generate the
+      triangle, connector, and private-path vertices using the sort
+      numbers as path-length counters.
+\item Enumerate pairs of output vertices and write their adjacency bits.
+      A vertex record contains its original auxiliary vertex, its
+      triangle/connector/path kind, its port, and, for a path vertex,
+      its distance from the connector.  With the old edge and port lists,
+      the replacement rules decide adjacency from such records.
+\end{enumerate}
+All local valuation tests have constant dimension.  The witness sets and
+the families $\cH_U$ are used only in the correctness proof and are never
+constructed by this algorithm.
+
+Here is a deliberately loose bit-time accounting on a deterministic
+multitape machine.  Individual records, coordinate tables, and counters
+can be padded to $O_{M,p}(b_*^2)$ bits.  Identifiers and counters need only
+$O_{M,p}(\log b_*)$ bits, and individual schema tables use $O(r)$ entries;
+even a time or position address has only $d=r/2$ bits.  There are at most
+$O_{M,p}(b_*^{32})$ records if the output matrix bits are included, so
+$O_{M,p}(b_*^{40})$ bits suffice for lists and working storage, including
+scratch space.  The fixed polynomial $p$ is evaluated on polynomially
+bounded integers by ordinary integer arithmetic.
+
+The ordered block-pair loop has $O_M(b_*^8)$ iterations, the auxiliary
+vertex-pair loop has $O_M(b_*^{16})$, and the output pair loop has
+$O_M(b_*^{32})$.  The other enumeration loops have no larger count.
+The work of each iteration can be expressed using
+$O_{M,p}(b_*^2)$ basic record operations: identifier lookup or update,
+copying, comparison, and elementary integer arithmetic.  In particular,
+edge information can be stored as endpoint and port records, without
+copying whole adjacency rows into vertex records.  The total number of
+these operations is bounded by $O_{M,p}(b_*^{40})$.
+
+Implement an identifier lookup by a sequential scan of the stored lists;
+all basic record operations can conservatively be bounded by the square
+of the allowed tape length, using sequential scans and schoolbook
+arithmetic.  Thus the preceding bounds give time at most
+$O_{M,p}(b_*^{120})$, which is within the stated
+$O_{M,p}(b_*^{160})$ allowance.  No constant or threshold in this
+implementation depends on a separately fixed value of the growing
+dimension.  Finally, $b_*$ is polynomial in $m$ for the fixed polynomial
+$p$, so this is deterministic polynomial time in the source input length.
+\end{proof}
+
+
+\subsection{The two completeness reductions}
+
+\begin{proof}[Proof of \Cref{thm:main}]
+Membership for both languages is \Cref{prop:membership}, including
+invalid encodings and dimensions larger than the graph order.
+
+For hardness, fix any binary language \(L_0\in\EXPTIME\).
+Choose a normalized deterministic decider \(M\) for its complement
+and a fixed polynomial \(p\) as in \Cref{prop:computation-images}.
+On \(w\) of length \(m\), generate the product circuit and its
+scalar-image instance at \(r=2(p(m)+2)\ge8\). For \(\WL\), use
+the general realization; for \(\SubWL\), use the connected subcubic
+realization. Output the two explicit adjacency matrices and \(k=r\)
+in binary. The compiler bounds are, respectively,
+\(O_{M,p}((r+2)^{80})\) and \(O_{M,p}((r+2)^{160})\).
+Since \(p\) is fixed, both are polynomial in \(m\); their polynomial
+degrees may depend on the source language, as permitted for a
+many-one reduction.
+
+All required graph promises hold on every input, whether accepted
+or rejected by \(M\). The two realization propositions verify the
+hypotheses of \Cref{prop:game-reduction}. Together with the computation
+reduction, this gives, for either output pair \(W^0,W^1\),
+\[
+\begin{aligned}
+ w\in L_0
+ &\Longleftrightarrow M\text{ does not accept }w\\
+ &\Longleftrightarrow \text{the circuit has no true terminal test}\\
+ &\Longleftrightarrow \text{the scalar-image instance is consistent}\\
+ &\Longleftrightarrow W^0\equiv_r W^1.
+\end{aligned}
+\]
+Thus each construction is a deterministic polynomial-time many-one
+reduction with the required polarity. Because \(L_0\) was arbitrary,
+both target languages are \(\EXPTIME\)-hard. No dimension-dependent
+threshold or fixed-dimension lower bound supplies a step of these
+uniform reductions.
+\end{proof}
+
+
+\begin{corollary}[Unary dimension]\label{cor:unary-dimension}
+If the supplied dimension is encoded in unary instead of binary,
+both \(\WL\) and \(\SubWL\) remain \(\EXPTIME\)-complete under
+deterministic polynomial-time many-one reductions.
+\end{corollary}
+
+\begin{proof}
+For membership, convert the unary dimension to binary and apply
+\Cref{prop:membership}; the conversion is polynomial in the input length.
+For hardness, the reductions just proved output
+\(k=r=2(p(m)+2)\), which is polynomial in the source input length \(m\).
+Writing this dimension in unary therefore preserves their polynomial
+running time. The output graphs and the equivalence condition are
+unchanged.
+\end{proof}

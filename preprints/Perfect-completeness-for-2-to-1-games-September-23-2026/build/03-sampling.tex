@@ -1,0 +1,553 @@
+\section{Changing the sampling law without revealing the path}
+\label{sec:sampling}
+
+The decoding argument will use uniform matrices at two different levels.
+Here we prove the distributional comparisons that permit those changes.
+There are two distinct conclusions: a total-variation comparison of the
+\emph{displayed functions}, and a posterior bound for a child selected after
+inspecting those functions.  Neither conclusion permits disclosure of the
+hidden path or of the projection mask.  All statements below hold conditional
+on the complete original question tuple $E$; consequently they also hold after
+averaging over $E$, uniformly in the size of the source instance.
+We first replace the recursive draws at a cut by uniform draws, then compare
+that law with one in which a sparse set of children is projected.  Each
+comparison retains only the observation specified in its lemma.
+
+For probability measures on a finite set, use
+\[
+ \TV(P,Q)=\frac12\sum_x|P(x)-Q(x)|,
+ \qquad
+ \chi^2(Q\Vert P)=\E_P[(dQ/dP-1)^2]
+\]
+when $Q\ll P$.  Cauchy--Schwarz gives
+$\TV(P,Q)\le\tfrac12\sqrt{\chi^2(Q\Vert P)}$.
+An observation formed by a deterministic map cannot increase total variation:
+its discrepancy on an event is the discrepancy on that event's inverse image.
+The same assertion holds on adjoining independent randomness and applying a
+randomized map, by conditioning on that randomness.  These elementary facts
+will let us retain complete assembled queries without treating their
+components as independent.
+
+\subsection{Stopping the ancestor generators}
+
+A scalar call means one invocation of the law $\nu_D$ defined in
+Section~\ref{sec:construction}, with its own fresh random choices.  Write
+$b_p=2^{\ell_p}-1$ and $c_p=2R_p$.  For a fixed path prefix ending at a node
+$D_p$ of level $p$, a call at a higher path node branches into exactly $c_h$
+independent calls at its path child when it crosses level $h$.  Its ordinary
+child contributions are uniform functions supported outside that child and
+require no calls farther down the distinguished path.
+
+\begin{lemma}[Stopped-call representation]\label{lem:stopped-calls}
+Fix $E$ and the path from the root through $D_p$, including $D_p$ but no
+choice of its child.  The original sampling can be generated as follows.
+First generate an exterior record $\Xi_p$ consisting of the random choices
+outside $D_p$'s subtree, with every recursive call reaching $D_p$ left
+unevaluated.  Then generate the pending scalar calls at $D_p$, its own
+buckets, and the arrays strictly below $D_p$.  Every displayed array is a
+deterministic function of this record and these remaining values.
+
+The pending ancestor calls together with the own buckets number at most
+\begin{equation}\label{eq:stopped-count}
+ T_p=\sum_{k=p}^d b_k\prod_{h=p+1}^k c_h.
+\end{equation}
+An empty product is one.  If $e_k$ additional fresh scalar draws are requested
+at each level $k\ge p$, a sufficient bound is
+\begin{equation}\label{eq:stopped-extra-count}
+ T_p(e)=\sum_{k=p}^d(b_k+e_k)\prod_{h=p+1}^k c_h.
+\end{equation}
+In particular, replacing one level-$k$ bucket uses one extra draw and adds
+$\prod_{h=p+1}^k c_h$ calls at the cut.  The count is independent of $n_p$ and
+of all higher branching numbers.
+
+Conditional on the full path, distinct stopped calls have independent
+randomness.  Pending ancestor calls are independent of the tapes of the
+actual arrays at or below the cut; own buckets are independent of the tapes
+of actual descendant arrays.  Calls for the own buckets and calls pending
+from ancestors are distinct even
+when they sample the same function space.  The exterior record can be exposed
+before sampling the continuation of the path.  Already assembled ancestor
+arrays are deterministic outputs of the construction and are not independent
+exterior information.
+\end{lemma}
+
+\begin{proof}
+Expand each of the $b_k$ scalar buckets used for the actual matrix at $D_k$,
+for every $k\ge p$.  A call at level $h>p$ is a sum of ordinary-child uniform
+functions and $R_h$ products of two fresh calls at the path child.  Stop each
+of those factors the first time it reaches $D_p$.  Thus a bucket originating
+at level $k$ produces exactly $\prod_{h=p+1}^k c_h$ stopped calls.  Adding over
+$k$ proves \eqref{eq:stopped-count}; expanding additional calls proves
+\eqref{eq:stopped-extra-count}.  Ordinary children at every step are disjoint
+from $D_p$'s subtree, so their contributions can be generated before any path
+choice below $D_p$.
+
+Give each recursive invocation a separate random tape, indexed by its
+originating matrix, bucket and sequence of factor indices.  These indices
+are distinct even if two invocations visit the same node.  The sampler's
+fresh-call convention says precisely that these tapes and the tapes of
+actual descendant matrices are independent, conditional on the shared path.
+All unevaluated expressions are finite expressions involving sums and
+pointwise products.  Filling their stopped leaves therefore reconstructs
+every ancestor array deterministically.  The expression may involve many
+exterior functions when higher branching is large, but its number of stopped
+leaves is still \eqref{eq:stopped-count}.  This proves all the assertions.
+\end{proof}
+
+We will also use an equivalent representation after uniformizing the cut.
+Instead of generating $M_{D_p}$ from $b_p$ uniform buckets, generate its
+$\ell_p$ rows as separate uniform draws.  The relevant number of calls is then
+\begin{equation}\label{eq:direct-cut-count}
+ \widehat T_p=\ell_p+
+     \sum_{k=p+1}^d b_k\prod_{h=p+1}^k c_h.
+\end{equation}
+We reserve $\widehat T_p$ for the displayed original call family.  If a
+comparison adds $e$ independent uniform rows, where $e$ is fixed, its
+enlarged count is $\widehat T_p+e$.  For instance, forming a uniform matrix
+together with one rank-one step from it requires its rows and one additional
+independent scalar draw, giving the count $\widehat T_p+1$.
+These rows have separate tapes from the ancestor calls.  If visibility of
+upper buckets will later be chosen by a row map $A$, predetermine calls for
+\emph{all} buckets before choosing which are visible.  Selecting or discarding
+calls afterward adds no dependence to the count.
+
+\subsection{Finite child blocks and a hidden special child}
+
+Fix a level-$p$ cut $D=D_p$ and an integer $t_{\mathrm{cut}}$ bounding all scalar draws
+retained at that cut.  For a child $C$ of $D$, put $V_C=H_C(E)^2$ and define
+the following finite product space:
+\begin{equation}\label{eq:raw-child-block}
+ \mathcal X_C=V_C^{t_{\mathrm{cut}}}\times
+  \prod_{\substack{T\subseteq C\\T\text{ nonleaf}}}
+       (K_{\operatorname{level}(T)}\otimes H_T(E)).
+\end{equation}
+Here $T\subseteq C$ means that $T$ is $C$ or a descendant of $C$.
+A block $X_C$ records a separate child contribution to each of the $t_{\mathrm{cut}}$ cut
+draws and the actual arrays throughout this child's subtree.  The factors
+used internally to generate a special contribution are not included in
+$X_C$.  Each recorded contribution is just a function in $V_C$.
+
+Let $P_C$ be uniform on $\mathcal X_C$.  To construct independent uniform cut
+draws, sample these blocks independently and, for each draw, add its child
+contributions.  This uses a latent product of spaces even though the actual
+spaces $V_C$ share the constant functions.  Indeed the map
+\[
+ \prod_{C\text{ child of }D}V_C\longrightarrow H_D(E),
+ \qquad (u_C)_C\longmapsto\sum_Cu_C
+\]
+is a surjective linear map.  Every fiber is a coset of its kernel, so the
+image of uniform measure is uniform.  Separate copies give independent
+uniform cut draws, independently of all descendant arrays.  No direct-sum
+decomposition, or recovery of the summands from their sum, is asserted.
+
+There is a uniform finite density bound for any law on $\mathcal X_C$.
+For clarity, if the source's legal assignment domains have size at most $a$,
+put $N_0=1$ and $N_k=\prod_{h=1}^k n_h$.  Every space on a level-$k$ subtree
+has dimension at most $a^{N_k}$.  Thus, for children at level $p-1$,
+\begin{equation}\label{eq:block-dimension-bound}
+ \dim\mathcal X_C\le
+ D_p(t_{\mathrm{cut}}):=a^{N_{p-1}}\left(t_{\mathrm{cut}}+
+  \sum_{k=1}^{p-1}\ell_k\prod_{h=k+1}^{p-1}n_h\right).
+\end{equation}
+In particular we may use $L_p(t_{\mathrm{cut}})=2^{D_p(t_{\mathrm{cut}})}$.  Every probability law $Q_C$ on
+$\mathcal X_C$ has density $q_C=dQ_C/dP_C\le L_p(t_{\mathrm{cut}})$, since each $P_C$ atom has
+mass $2^{-\dim\mathcal X_C}$.  This bound uses the source alphabet, the fixed row
+and repetition counts through $t_{\mathrm{cut}}$, and branching below $p$.  It uses neither
+$n_p$, higher branching, source question identities, nor the source instance
+size.  Any larger fixed common bound will also be denoted by $L_p$.
+
+\begin{lemma}[One hidden child]\label{lem:cut-tv}
+In the original experiment, expose $E$, the path through $D_p$, and the
+exterior record of Lemma~\ref{lem:stopped-calls}.  Forget the entire
+continuation of the path below $D_p$.  Retain any fixed family of stopped
+scalar values, the own buckets at $D_p$, and all actual arrays below $D_p$.
+Let $\mathsf U_p$ be the \emph{unrestricted experiment}: replace the retained
+cut scalar values by independent uniform draws in $H_{D_p}(E)$, and replace
+all descendant arrays by independent uniform arrays in their respective
+spaces, retaining the same exterior record and reconstruction expressions.
+Then
+\begin{equation}\label{eq:cut-tv-bound}
+ \TV(\mathsf A_p,\mathsf U_p)\le
+ \varepsilon_p^{\mathrm{cut}}:=\frac{L_p}{2\sqrt{n_p}}
+\end{equation}
+for the retained values and for every deterministic observation of them.
+Here $\mathsf A_p$ denotes the corresponding retained original law, and
+$L_p$ can be chosen using \eqref{eq:block-dimension-bound} with the count in
+\eqref{eq:stopped-extra-count}.
+
+One may also append a fixed number of independent uniform cut rows, or a
+fixed number of fresh bucket replacements, with the appropriate increased
+count.  The bound includes the reconstructed ancestor arrays and candidate
+edge tests at levels at least $p$, with independent quotient directions.
+It does not include a tag identifying the next path child, any later path
+indices, or the internal factor tapes generating a special child block.
+\end{lemma}
+
+\begin{proof}
+Condition on $E$, the prefix and the exterior record.  Let $J$ be the next
+path child, uniform among $n=n_p$ children.  Given $J=C$, every block other
+than $X_C$ has law $P_{C'}$: all its scalar contributions are ordinary-child
+uniforms, and all its subtree matrices are off the path and uniform.  They
+are independent of one another and of $X_C$.  Within $X_C$, the scalar
+contributions are sums of $R_p$ products from fresh factor calls, and its
+subtree arrays use the continued path.  Average over that continuation to
+obtain a law $Q_C$ on \eqref{eq:raw-child-block}.  Correlations among the
+coordinates of this one block cause no difficulty.  Its density $q_C$ is
+bounded by $L_p$.
+
+Relative to $P=\prod_CP_C$, the original raw-block law has density
+\[
+ Z=\frac1n\sum_Cq_C(X_C).
+\]
+Under $P$ these summands are independent and have expectation one.  Therefore
+\[
+ \E_P[(Z-1)^2]
+   =\frac1{n^2}\sum_C\E_{P_C}[(q_C-1)^2]
+   \le\frac{L_p^2}{n}.
+\]
+The total-variation bound follows by Cauchy--Schwarz.  Summing the child
+contributions and reconstructing all pending expressions is the same
+deterministic map in both laws, so it preserves the bound.  It remains valid
+conditional on every exterior record and hence on averaging that record.
+Fresh bucket replacements merely enlarge the finite family of scalar calls;
+independent uniform cut rows add uniform coordinates to every block.  Both
+are covered by the same argument.  A revealed value of $J$ would replace the
+average density by $q_J$ and would lose the factor $n^{-1/2}$, which explains
+the required information restriction.
+\end{proof}
+
+In $\mathsf U_p$, the own buckets are separate from the pending ancestor
+calls and the descendant matrices.  The matrix
+$M=\sum_{v\in K_p\setminus\{0\}}v h_v$ is uniform: the linear map from its
+uniform buckets onto $K_p\otimes H_{D_p}(E)$ is surjective, since the standard
+basis vectors occur among the indices.  Replacing $h_a$ by an independent
+uniform $h_a^*$, for an independent nonzero $a\in K_p$, gives
+\begin{equation}\label{eq:unrestricted-step}
+ M^*=M+a h,\qquad h=h_a+h_a^*.
+\end{equation}
+Conditional even on all old buckets, $h$ is uniform and independent of the
+old data.  Thus this is exactly the uniform rank-one step, and $M$ is
+independent of the other displayed arrays and the pending ancestor calls.
+This conclusion would not follow by reusing a bucket as an ancestor call.
+
+\subsection{Sparse projection and its posterior}
+
+The next comparison is a form of sub-code covering: a sparse restriction
+leaves the lifted query law nearly unchanged.  This method appears in
+Khot and Safra~\cite[Section~3.4]{KhotSafra2013}, with advice-conditioned
+thinning estimates in Dinur, Khot, Kindler, Minzer and Safra
+\cite[Lemma~5.5, full version]{DinurKhotKindlerMinzerSafra2018} and
+Fei, Minzer and Wang~\cite[Propositions~4.7--4.8 and~5.5]{FeiMinzerWang2026}.
+Here the independent units are entire child subtrees, whose records include
+all stopped-call contributions and displayed descendant arrays.  We prove
+the comparison and posterior estimate for these finite blocks.
+
+At a level-$i$ cut $D_i$, independently mark each child with probability
+$\beta_i=n_i^{-2/3}$; take $n_i>1$ to be a cube.  At every leaf in a marked
+child, sample a source projection conditional on its left question, and
+replace that question by its right question.  Leave all other questions
+unchanged, and call the resulting tuple $O$.  Pullback along these
+projections identifies $H_T(O)$ with a subspace of $H_T(E)$ and preserves
+pointwise multiplication.  Define $\mathsf M_i$, the \emph{modified
+experiment}, by stopping all ancestor calls at $D_i$ and making their values
+independent uniform draws in $H_{D_i}(O)$.  Also sample $M_{D_i}$ and all its
+descendant matrices independently uniformly in the corresponding projected
+spaces.  Reconstruct all ancestors by the original stopped expressions.
+Path choices below $i$ are unused.  Independent extra cut rows and bucket
+replacements are treated in the same way.  The original unmodified law will
+be denoted by $\mathsf A$.
+
+\begin{lemma}[Sparse projection comparison]\label{lem:sparse-tv}
+Fix $E$, the path through $D_i$ and an exterior record generated without the
+projections.  Compare $\mathsf M_i$ and $\mathsf U_i$ as laws of lifted
+functions on $E$, forgetting the marks, the projection choices, and the
+projected-question tuple $O$.  All raw child summands and descendant arrays
+may be retained.  For a bound $L_i$ from
+\eqref{eq:block-dimension-bound},
+\begin{equation}\label{eq:sparse-tv-bound}
+ \TV(\mathsf M_i,\mathsf U_i)
+ \le \varepsilon_i^{\mathrm{spr}}
+ :=\frac12\sqrt{(1+\beta_i^2L_i^2)^{n_i}-1}.
+\end{equation}
+The bound holds for any fixed number of independent extra cut rows and fresh
+higher-level bucket draws, with their enlarged call count.  In particular it
+holds for observations containing the assembled ancestor arrays and both
+candidate tests at levels $i<j$.
+
+Consequently the modified experiment and the original experiment have
+observation distance at most
+$\varepsilon_i^{\mathrm{spr}}+\varepsilon_i^{\mathrm{cut}}$
+when the path below $i$ is forgotten.  For the further comparison at a level
+$j>i$, require the observation to be a common deterministic function of the
+exterior record $\Xi_j$, the retained scalar values at $D_j$ (including its
+own buckets and any extra cut draws), all displayed arrays strictly below
+$D_j$, and independent auxiliary choices.  Here $E$ and the path through
+$D_j$ are fixed.  Such an observation may include reconstructed ancestors
+and descendant arrays with their tree locations, but it cannot use the
+hidden continuation of the path or the internal decompositions of the
+retained scalar values.  In particular, a selected lower-level test is
+permitted only if it is determined by these data without using the hidden
+path.  The distance from the corresponding unrestricted-$j$ observation is
+then at most
+\begin{equation}\label{eq:two-cut-triangle}
+ \varepsilon_i^{\mathrm{spr}}+
+ \varepsilon_i^{\mathrm{cut}}+\varepsilon_j^{\mathrm{cut}}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For a child $C$ of $D_i$, let $P_C$ be uniform on the unprojected block
+\eqref{eq:raw-child-block}.  Conditional on marking $C$, average over all its
+projection choices and lift the independent projected uniform contributions
+and arrays to $E$; call the resulting law $Q_C$.  It is a law on the same
+finite set, so $q_C=dQ_C/dP_C\le L_i$.  Different children use independent
+marks, projections and tapes.  Thus their lifted blocks have product law
+\[
+ \prod_C\bigl((1-\beta_i)P_C+\beta_iQ_C\bigr),
+\]
+whose density with respect to $\prod_CP_C$ is
+$\prod_C(1+\beta_i(q_C-1))$.  Squaring and using independence yields the
+exact identity
+\[
+ 1+\chi^2\!\left(
+   \prod_C((1-\beta_i)P_C+\beta_iQ_C)
+      \,\middle\Vert\,\prod_CP_C\right)
+  =\prod_C\bigl(1+\beta_i^2\chi^2(Q_C\Vert P_C)\bigr)
+  \le(1+\beta_i^2L_i^2)^{n_i}.
+\]
+This proves \eqref{eq:sparse-tv-bound}.  Uniform cut rows are obtained by the
+same addition map in both laws.  A uniform matrix can be represented either
+by independent rows or by independent uniform buckets, as proved above;
+choose the latter representation when retaining a bucket replacement.
+Additional calls simply add coordinates to each finite block.
+
+All higher arrays, and their quotients in a candidate test, are functions of
+the blocks, exterior record and independent test directions.  Data processing
+therefore proves their bounds, without conditioning on their realized values.
+The comparison with $\mathsf A$ is the triangle through $\mathsf U_i$ and
+Lemma~\ref{lem:cut-tv}.  For \eqref{eq:two-cut-triangle}, take the common
+observation just specified.  First average the preceding
+$i$-cut comparison over the prefix between levels $j$ and $i$, and then apply
+Lemma~\ref{lem:cut-tv} at $j$ to the original law.  A pending scalar value at
+$j$ is an output of the $i$-cut reconstruction and is a retained cut draw in
+the $j$-cut comparison, so it can be included throughout.  The internal
+factor choices within its subtree cannot be included in the latter
+comparison.  This establishes precisely the stated triangle.
+\end{proof}
+
+\paragraph{Common observations in the three comparisons.}\label{sec:law-guide}
+The laws just defined serve different purposes, and each comparison forgets
+different information:
+\begin{description}[style=nextline,leftmargin=1.5em,font=\normalfont\bfseries]
+\item[Original to unrestricted at one cut.]
+Lemma~\ref{lem:cut-tv} replaces the cut draws and descendant arrays by
+uniforms after forgetting the path below that cut.  The observation may
+include the ancestors reconstructed from those draws.
+\item[Modified to unrestricted at the lower cut.]
+Lemma~\ref{lem:sparse-tv} compares lifted functions on $E$ after forgetting
+$O$, the projection choices, and the marks.  Raw child contributions and
+all displayed descendant arrays may be retained.
+\item[Modified lower cut to unrestricted upper cut.]
+For $j>i$, Equation~\eqref{eq:two-cut-triangle} applies to a common function
+of the upper-cut record specified in Lemma~\ref{lem:sparse-tv}.  That record
+retains pending scalar values there, but not their internal decompositions,
+and all displayed descendant arrays.  The observation cannot select among
+those arrays using the hidden path.
+\end{description}
+
+The sparse product calculation also gives a posterior bound for a child
+selected after seeing the lifted matrices.  This is stronger than a bound
+for a child fixed in advance, and will allow the lower decoder to choose a
+witness from its observed data.
+
+\begin{lemma}[Posterior bound for adaptive witnesses]\label{lem:posterior}
+In $\mathsf M_i$, condition on $E$, the path through $D_i$ and a permissible
+exterior record.  Let $X=(X_C)_C$ consist of all lifted raw child blocks,
+including any fixed number of independent uniform cut rows.  Let
+$\mathcal G$ be the sigma-algebra generated by these data and additional
+independent random choices, such as a test direction or fixed full strategy
+tapes.  It contains neither projected-question metadata nor projection marks.
+For every child $C$, almost surely,
+\begin{equation}\label{eq:posterior-bound}
+ \Prob(C\text{ marked}\mid\mathcal G)
+  \le q_i:=\frac{\beta_i L_i}{1-\beta_i}.
+\end{equation}
+If a set $\mathcal C(X)$ of at most $m$ children is selected measurably from
+these data, then
+\begin{equation}\label{eq:adaptive-child-bound}
+ \Prob(\mathcal C(X)\text{ contains a marked child})\le m q_i.
+\end{equation}
+Both assertions remain valid for a coarsening of this information.
+
+In particular, let $F_0,F_1$ be bilinear forms on $H_{D_i}(E)$ determined by
+these lifted data.  Then
+\begin{equation}\label{eq:adaptive-bilinear-error}
+ \Prob\bigl(F_0\ne F_1,\ 
+   F_0|_{H_{D_i}(O)\times H_{D_i}(O)}
+       =F_1|_{H_{D_i}(O)\times H_{D_i}(O)}\bigr)
+ \le 2q_i,
+\end{equation}
+where the restrictions in this display mean restriction of both arguments
+to $H_{D_i}(O)$.
+No part of the statement conditions on strategy success, a right output,
+a slice event, or a witness-matching event.
+\end{lemma}
+
+\begin{proof}
+Conditional on the fixed exterior data, child independence and Bayes's
+formula give, simultaneously at every lifted block tuple with positive
+probability,
+\[
+ \Prob(C\text{ marked}\mid X)
+ =\frac{\beta_iq_C(X_C)}{1-\beta_i+\beta_iq_C(X_C)}
+ \le\frac{\beta_iL_i}{1-\beta_i}.
+\]
+Independent extra choices do not change this conditional formula.  For an
+adaptively selected set, condition on $\mathcal G$ first and use
+\[
+ \E\left[\sum_{C\in\mathcal C(X)}
+             \one_{\{C\text{ marked}\}}\ \middle|\ \mathcal G\right]
+ \le |\mathcal C(X)|q_i\le m q_i.
+\]
+Taking expectations and a union bound proves
+\eqref{eq:adaptive-child-bound}; the tower property proves the coarsened
+versions.  There is no factor for the total number of available children.
+
+For the bilinear consequence, write $\Delta=F_0-F_1$.  Since
+$H_{D_i}(E)=\sum_C H_C(E)^2$, if $\Delta\ne0$, then there are children
+$C_1,C_2$ and functions $x\in H_{C_1}(E)^2$, $y\in H_{C_2}(E)^2$ with
+$\Delta(x,y)=1$.  Indeed decompose a pair on which $\Delta$ is nonzero into
+such sums and expand bilinearly; at least one summand is nonzero.  Fix orders
+on the finite spaces and choose the first such witness from the lifted data.
+The children may coincide.  If neither is marked, their spaces are unchanged
+and lie in $H_{D_i}(O)$, so the two restricted forms cannot be equal.  The
+bad event in \eqref{eq:adaptive-bilinear-error} is therefore contained in the
+event that one of at most two adaptively selected children is marked.
+Apply \eqref{eq:adaptive-child-bound} with $m=2$.
+\end{proof}
+
+The distinction from success conditioning is substantive: after the
+unconditional bad-event probability is bounded, it may be subtracted from
+any success probability.  The posterior estimate itself need not hold within
+that success event.  Exposing a direction $a_i$ to the analyst does not
+provide it to the left strategy.  Likewise, adding assembled ancestor values to the
+lifted blocks changes no information, because they are functions of those
+blocks and $\Xi_i$; treating those values as independently sampled exterior
+data would not justify the product law used above.
+
+\subsection{Bias that is independent of dimension}
+
+Total variation above is obtained by increasing branching.  The upper
+Fourier argument instead requires a small-bias bound before any slice
+conditioning, obtained by increasing the product counts.  We use the
+character-wise notion of small bias of Naor and Naor~\cite{NaorNaor1993};
+the required sampler estimate is proved below.  For a law $\mu$
+on a finite binary vector space $V$, call it \emph{quarter-balanced} if every
+nonzero $f\in V^*$ satisfies
+$\Prob_{x\sim\mu}(f(x)=b)\ge1/4$ for both $b\in\F$.
+
+\begin{lemma}[Scalar bias and independent hidden buckets]\label{lem:bias}
+There is an absolute integer $R_{\min}$ such that the following holds if
+$R_p\ge R_{\min}$ at every nonleaf level.  Fix the domains and the full path
+in the original sampler, or fix $E,O$, all projection choices, and the path
+through a modified cut in $\mathsf M_i$.  Every scalar law is quarter-balanced.
+For each nonzero $f\in H_{D_p}^*$ at an original path node, or
+$f\in H_{D_p}(O)^*$ at a node strictly above the modified cut,
+\begin{equation}\label{eq:scalar-bias}
+ \left|\E_{h\sim\nu_{D_p}}(-1)^{f(h)}\right|
+       \le (7/8)^{R_p}.
+\end{equation}
+At leaves, and at or below the uniformized cut, uniform scalar draws have
+zero bias on nonzero functionals.
+
+More generally, fix $j>i$, a linear map $A:K_j\to\F^r$, and $W=\ker A$.
+In the modified experiment let $h_v$, $v\ne0$, be the separate level-$j$
+buckets and set
+\[
+ X=\sum_{v\in W\setminus\{0\}}v h_v
+     \in W\otimes H_{D_j}(O).
+\]
+Conditional on the domain and path data just specified, all other actual
+matrices, and all buckets with $Av\ne0$, every nonzero character of $X$ has
+bias at most $(7/8)^{R_j}$.  This remains so on revealing original questions
+and any other independent sampling tapes.  Its law is determined by $O$,
+the path through the cut, $A$, and the fixed sampling parameters; it does
+not require the original questions or the missing part of a lower matrix.
+Revealing a full lower matrix here is an analytical exposure; the right
+decoder still receives only its prescribed quotient.  These conclusions
+are not asserted after conditioning on a column slice, on successful
+decoding, or on cleanliness.
+\end{lemma}
+
+\begin{proof}
+First suppose $g,h$ are independent draws from quarter-balanced laws on a
+binary space $V$, and $B:V\times V\to\F$ is a nonzero bilinear form.  The
+linear map $g\mapsto B(g,\cdot)$ has proper kernel.  Some nonzero linear
+functional on $V$ vanishes on that kernel; quarter balance therefore implies
+\[
+ \Prob(B(g,\cdot)\ne0)\ge1/4.
+\]
+For each such $g$, quarter balance of the independent $h$ implies
+$\Prob(B(g,h)=b\mid g)\ge1/4$ for each bit $b$.  Hence each bit of $B(g,h)$
+has probability at least $1/16$, and
+$|\E(-1)^{B(g,h)}|\le7/8$.
+
+Now apply induction from the leaves, or upward from the modified uniform
+cut.  Let $f$ be nonzero on the space at a path node $D_p$.  If its
+restriction to the square space of some ordinary child is nonzero, the
+corresponding uniform summand makes $f(h)$ an exactly uniform bit.  Otherwise
+$f$ vanishes on every ordinary child's square space.  Since these spaces
+together with the special child's square space span $H_{D_p}$, its
+restriction to the latter is nonzero.  The bilinear form
+\[
+ B(g,h)=f(gh)
+\]
+on that child's row space is then nonzero, since pointwise products span its
+square space.  The induction hypothesis makes the two independent factor
+laws quarter-balanced.  Each product thus has sign expectation of absolute
+value at most $7/8$, and the $R_p$ independent products give
+\eqref{eq:scalar-bias}.  Choose $R_{\min}$ so that
+$(7/8)^{R_{\min}}\le1/2$.  Then the resulting scalar law is again
+quarter-balanced, closing the induction.  Uniform cut and leaf laws provide
+the initial step.  The argument uses only whether linear or bilinear maps
+are nonzero, and no dimension enters its bound.
+
+For the hidden sum, identify a character with a functional
+$\Phi\in(W\otimes H_{D_j}(O))^*$.  If $\Phi\ne0$, then for some nonzero
+$v\in W$ the functional $h\mapsto\Phi(v\otimes h)$ is nonzero; simple
+tensors span the tensor product.  Conditional on the stated information,
+every hidden bucket retains its own fresh tape, independently of the other
+hidden buckets.  This follows directly from the call indexing in
+Lemma~\ref{lem:stopped-calls}; higher matrices use distinct calls even where
+they visit the same spaces.  Consequently
+\[
+ \E(-1)^{\Phi(X)}=
+ \prod_{v\in W\setminus\{0\}}
+    \E(-1)^{\Phi(v\otimes h_v)}.
+\]
+One factor has absolute value at most $(7/8)^{R_j}$ and the others at most
+one.  If $W=0$ there are no nonzero characters and the assertion is vacuous.
+Every hidden bucket is generated on the projected domain $O$ by fresh
+recursion ending with uniform draws at the cut.  That recipe uses neither
+$E$ nor the values of other actual matrices, proving the asserted law and
+its invariance under the permissible additional exposure.
+\end{proof}
+
+The order of accuracy choices follows from this proof.  At descendants one
+needs only the absolute quarter-balance guarantee, obtained by the common
+$R_{\min}$.  Once an upper level $j$ requires a tolerance $\lambda_j>0$, it
+suffices to choose $R_j$ with $(7/8)^{R_j}\le\lambda_j$.  No requested upper
+accuracy imposes a finer accuracy at a lower level.  After all row counts,
+product counts and the source alphabet are fixed, choose branching upward.
+At cut $p$, $L_p$ is already fixed by lower branching, and
+\[
+ \varepsilon_p^{\mathrm{cut}}\longrightarrow0,
+ \qquad
+ \varepsilon_p^{\mathrm{spr}}\longrightarrow0,
+ \qquad
+ \frac{2n_p^{-2/3}L_p}{1-n_p^{-2/3}}\longrightarrow0.
+\]
+For the middle limit, use
+$(1+n_p^{-4/3}L_p^2)^{n_p}\le\exp(L_p^2n_p^{-1/3})$.
+Enlarging higher branching changes only the exterior record and the
+reconstruction map, so all three bounds already secured at $p$ persist.

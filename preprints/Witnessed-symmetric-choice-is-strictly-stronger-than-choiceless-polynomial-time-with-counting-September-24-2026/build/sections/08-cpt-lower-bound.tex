@@ -1,0 +1,501 @@
+\section{Full CPT cannot distinguish the grid pairs}
+\label{eval:section}
+\label{sec:cpt-lower-bound}
+
+We now apply the support and counting results to an arbitrary sentence of
+full \(\CPT\), with cardinality and unrestricted finite set rank.  The
+remaining task is to describe its actual evaluation by a counting formula
+of fixed variable width.  The formula may depend on the common input size;
+its width will depend only on the sentence.  This is sufficient because
+the supported HF domains agree on \emph{all} formulas of that width.
+
+We use the bounded set-term semantics recalled in the preliminaries,
+as specified in \cite[Section~2]{ls2023}.
+For an iteration with bound \(p\), write
+\(P(n)=\lfloor p(n)\rfloor\).  Its unbounded sequence starts at
+\(a_0=\emptyset\) and applies the bounded semantics of its step term.
+It returns the first stationary value \(a_j=a_{j+1}\) if
+\(j\le P(n)\) and all states through index \(j\) satisfy
+\(|\TC(a_i)|\le P(n)\); otherwise it returns \(\emptyset\).
+Here and below the bounds are nonnegative at the input sizes considered.
+After a stationary value all later states are the same, so this stopping
+rule is equivalent to requiring the size bound throughout the sequence.
+In particular, testing stationarity at index \(P(n)\) requires computing
+the candidate \(a_{P(n)+1}\).
+
+\subsection{An invariant family containing the entire evaluation}
+
+For an HF object \(x\), put
+\[
+ \langle x\rangle=\{x\}\cup\TC(x).
+\]
+For an atom \(x\), this means \(\langle x\rangle=\{x\}\): atoms have no
+members.  A finite family is membership-transitive if it contains all
+members of each of its objects.
+
+Fix a CPT sentence \(\psi\), including its polynomial annotation.
+An \emph{activation} is a syntax occurrence together with the values
+assigned to its free variables when that occurrence is evaluated.
+Use the following deterministic evaluation prescription.  Evaluate all
+arguments of a function and both children of every Boolean connective.
+For a comprehension, evaluate its condition on every member of the
+evaluated range, and its body on every member for which the condition is
+true.  For an iteration, test successive candidates until stationarity,
+the first excessive transitive size, or the iteration cutoff is
+detected.  Include the candidate needed for the final stationarity test.
+These conventions specify a family of activations without choosing an
+order on any set.
+
+Let \(\mathcal T_\psi(A)\) be the membership closure of all arguments and
+term values occurring in these activations, together with all input atoms
+and \(\emptyset\).  A rejected candidate and all objects constructed while
+evaluating it are included.  Formula truth values need not be represented
+by HF objects.
+
+\begin{lemma}[Polynomial invariant evaluation family]
+\label{eval:trace}
+For every fixed CPT sentence \(\psi\), there is an integer \(q\ge1\)
+such that, on every sufficiently large finite input \(A\) of size \(n\),
+\[
+ |\mathcal T_\psi(A)|\le n^q.
+\]
+The family \(\mathcal T_\psi(A)\) is membership-transitive and invariant
+under \(\Aut(A)\).  It includes the first excessive candidate of each
+activated iteration and, when needed, its candidate at index \(P(n)+1\).
+\end{lemma}
+
+\begin{proof}
+We first prove a polynomial bound for an arbitrary fixed subexpression
+evaluated on arguments of polynomial hereditary size.  More precisely,
+if the sum of the sizes of the families \(\langle a\rangle\) for its
+arguments is at most \(R\), syntax induction bounds both its number of
+recursive activations and the total number of hereditary objects in
+these activations by a polynomial in \(n+R+2\).  The polynomial may depend
+on the subexpression and on the annotation.
+
+Variables and constants satisfy this assertion directly.  Pair and Union
+add or collect only polynomially many existing objects.  Unique returns
+a member or \(\emptyset\).  Card returns the finite ordinal equal to the
+number of members of its argument, or zero on an atom.  An ordinal \(k\)
+and all its recursive members comprise \(k+1\) objects, so this operation
+also satisfies the assertion.  Composition uses the child bounds a fixed
+number of times.
+
+For a comprehension, the induction hypothesis bounds the hereditary size
+of its range by a polynomial in \(n+R+2\), hence bounds its number of
+members.  Each condition is evaluated on the parameters and one such
+member.  Each required body evaluation has arguments of the same
+polynomial hereditary bound.  Applying the child estimates at this
+enlarged bound and multiplying by the number of range members gives a
+polynomial total.  Taking the set of body values adds one object and
+does not increase this estimate beyond another polynomial.
+
+For an iteration, every state supplied to the next step has passed the
+guard and has hereditary size at most \(P(n)+1\).  The parameters retain
+their original bound \(R\).  By the induction hypothesis, a step on these
+arguments uses polynomially many hereditary objects.  There are at most
+\(P(n)+1\) step evaluations before the stopping rule applies.  This
+includes the first candidate violating the size guard: it is the output
+of a child evaluation on the preceding, bounded state, so it still has
+a polynomial hereditary bound, possibly larger than \(p(n)\).
+It also includes the last candidate needed to compare
+\(a_{P(n)+1}\) with \(a_{P(n)}\).  The empty default adds only a constant.
+This argument applies to a nested iteration by the same syntax
+induction; it does not assume that the step is iteration-free.
+Boolean and atomic formula evaluations only combine these bounds.
+At the sentence, \(R=0\), and a fixed integer exponent \(q\) absorbs the
+resulting polynomial for all sufficiently large \(n\).
+
+Every operation commutes with automorphisms of the input.  The full
+comprehension range is used, the truth condition is invariant under the
+corresponding action on parameters, and the iteration stopping tests use
+only equality and cardinality.  Thus an automorphism sends every
+activation to an activation at the same syntax occurrence and sends its
+value to the corresponding value.  Starting with the empty assignment
+makes the whole family invariant.  Closing it under membership preserves
+invariance and gives membership transitivity by definition.
+\end{proof}
+
+\subsection{Exact descriptions at actual arguments}
+
+The next lemma separates two requirements.  We need correctness at the
+argument tuples actually used during evaluation.  At each such tuple,
+however, uniqueness of the output must hold over the entire HF domain
+under consideration. An extra proposed output could otherwise create a
+false continuation of an iteration and prevent its empty-set default.
+
+\begin{lemma}[Bounded-width description of a CPT evaluation]
+\label{eval:description}
+Fix a CPT sentence \(\psi\).  There are an integer \(m\ge1\) and, for
+each sufficiently large input size \(n\), a \(C^m\) sentence
+\(\widehat\psi_n\) with the following property.
+
+Let \(A\) be an \(n\)-element input and let \(D\subseteq\HF(A)\) be
+membership-transitive, contain all atoms and all pure HF sets, and contain
+\(\mathcal T_\psi(A)\).  Interpret membership and the atom predicate on
+\(D\), and interpret each input relation as false if an argument is a
+set.  Then
+\[
+ D\models\widehat\psi_n
+       \quad\Longleftrightarrow\quad
+ \psi\text{ evaluates to true on }A.
+\]
+The formula \(\widehat\psi_n\) depends only on \(\psi\) and \(n\), not on
+\(A\) or \(D\).  Its length and counting constants may depend on \(n\);
+\(m\) does not.
+\end{lemma}
+
+\begin{proof}
+Choose a common integer \(J=J(n)\ge1\), depending only on the polynomial
+bounds in the proof of Lemma~\ref{eval:trace}, which bounds the hereditary
+size of every argument and value in the evaluation.  In particular it
+bounds all cardinalities passed to Card and all descending membership
+depths of tested candidates.  Increasing \(J\) to an integer polynomial
+bound is harmless.
+
+For each term occurrence \(t\), with free argument tuple \(\bar x\),
+we construct a relational formula \(G_t(\bar x,v)\).
+For each formula occurrence \(\theta\), we construct a truth formula
+\(F_\theta(\bar x)\).  Write \(\operatorname{val}_A(t,\bar a)\) for the
+bounded semantic value of \(t\) at \(\bar a\).
+Our simultaneous induction assertion is
+\begin{equation}\label{eval:graph-invariant}
+ \begin{split}
+ D\models G_t(\bar a,v)
+   &\quad\Longleftrightarrow\quad
+       v=\operatorname{val}_A(t,\bar a)
+       \qquad\text{for every }v\in D,\\
+ D\models F_\theta(\bar a)
+   &\quad\Longleftrightarrow\quad
+       \theta\text{ is true at }\bar a,
+ \end{split}
+\end{equation}
+whenever the displayed argument tuple is an activation of the indicated
+occurrence.  Every genuine term value belongs to \(D\) by the trace
+assumption.  No assertion is made about an argument tuple which never
+occurs.
+
+Write \(\operatorname{At}(v)\) for the atom predicate and define the
+typed empty-set predicate
+\[
+ E(v):=\neg\operatorname{At}(v)\ \land\
+                    \forall z\,\neg(z\in v).
+\]
+It has exactly the empty set as its solution in \(D\).  Indeed a nonempty
+set in \(D\) has a member in \(D\) by membership transitivity, while the
+non-atom conjunct excludes urelements.
+
+\paragraph{Ordinals and the elementary operations.}
+There are two-variable formulas \(O_k(v)\) defining the pure von Neumann
+ordinal \(k\), for every fixed nonnegative integer \(k\):
+\[
+ O_0(v):=E(v),\qquad
+ O_k(v):=\neg\operatorname{At}(v)\ \land\
+       \forall z\left(z\in v\ \longleftrightarrow\
+                         \bigvee_{0\le j<k}O_j(z)\right)\quad(k>0).
+\]
+All pure ordinals belong to \(D\).  Induction on \(k\), membership
+transitivity and extensionality show that \(O_k\) has exactly the
+claimed solution.  The two names alternate in the recursion:
+inside \(O_j(z)\), the old name \(v\) can be bound, since that child
+formula has only \(z\) free.
+
+Variable graphs are equalities with their corresponding arguments.
+The graphs for \(\emptyset\) and \(\Atoms\) are respectively \(E(v)\) and
+\[
+ \neg\operatorname{At}(v)\ \land\
+          \forall z\,(z\in v\longleftrightarrow\operatorname{At}(z)).
+\]
+For evaluated arguments \(a,b\), the graphs of Pair and Union are
+\[
+ \begin{split}
+ &\neg\operatorname{At}(v)\ \land\
+               \forall z\,(z\in v\longleftrightarrow(z=a\lor z=b)),\\
+ &\neg\operatorname{At}(v)\ \land\
+               \forall z\,(z\in v\longleftrightarrow
+                            \exists w\,(w\in a\land z\in w)).
+ \end{split}
+\]
+Put
+\[
+ \operatorname{Sing}(a,w):=
+       \neg\operatorname{At}(a)\ \land\
+                         \forall z\,(z\in a\longleftrightarrow z=w).
+\]
+The graph of Unique is
+\[
+ \operatorname{Sing}(a,v)\ \lor\
+             \bigl(\neg\exists w\,\operatorname{Sing}(a,w)\land E(v)\bigr).
+\]
+These are graphs of the operations, not assertions that their outputs
+are atoms or that their inputs are sets.  They give the specified
+defaults on atoms as well.
+
+The graph of Card on the actual argument \(a\) is
+\[
+ \bigl(\operatorname{At}(a)\land E(v)\bigr)\ \lor\
+ \left(\neg\operatorname{At}(a)\land
+   \bigvee_{k=0}^{J}
+      \left((\exists^{=k}z\,z\in a)\land O_k(v)\right)\right).
+\]
+Every member of \(a\) belongs to \(D\), so the quantifier counts its
+actual members.  Its actual cardinality is at most \(J\), and therefore
+one and only one disjunct yields an output.
+
+For a composite term, existentially bind the outputs of its child terms
+and apply the appropriate operation graph.  By the induction hypothesis,
+these intermediate outputs are forced to be their genuine values among
+all elements of \(D\).  Membership transitivity then makes each displayed
+extensional graph exact among all possible proposed outputs.  The graph
+for an input relation applied to terms is obtained in the same way;
+for equality use equality of their outputs.  Translate Boolean
+connectives by the corresponding Boolean connectives.
+
+\paragraph{Comprehension.}
+Suppose
+\[
+ t(\bar x)=\{u(\bar x,y):y\in r(\bar x),\ \theta(\bar x,y)\}.
+\]
+Its graph is
+\[
+ \begin{split}
+ G_t(\bar x,v):={}&
+ \exists w\biggl(
+ G_r(\bar x,w)\land\neg\operatorname{At}(v)\land\\[-2mm]
+ &\hspace{7mm}
+ \forall z\left[
+ z\in v\ \longleftrightarrow\
+ \exists y\bigl(y\in w\land F_\theta(\bar x,y)
+                       \land G_u(\bar x,y,z)\bigr)
+ \right]\biggr).
+ \end{split}
+\]
+At an actual parameter tuple, \(w\) must be the actual range.  Each of its
+members activates the condition.  When the condition is true, that
+member also activates the body, whose graph has exactly its correct
+output by induction.  When the condition is false, the conjunction is
+false without any correctness requirement on the body graph at that
+unused argument tuple.  This proves that the right-hand side of the
+membership biconditional defines exactly the actual collected values.
+An alternative output set with an extra member is also excluded:
+that member lies in \(D\) and is tested by the universal quantifier.
+The non-atom condition excludes an atom as a spurious empty output.
+
+\paragraph{The transitive-size guard.}
+For positive integers \(\ell\), define strict downward path formulas
+\[
+ \begin{split}
+ R_1(r,z)&:=(z\in r),\\
+ R_{\ell+1}(r,z)&:=
+       \exists w\,(w\in r\land R_\ell(w,z)).
+ \end{split}
+\]
+Three variable names suffice for all \(\ell\): the endpoints and one
+intermediate name, with the former root name recycled inside the child
+formula.  Set
+\[
+ R_{\le J+1}(r,z):=\bigvee_{\ell=1}^{J+1}R_\ell(r,z).
+\]
+For every actual value \(a\) under consideration, its solutions in \(D\)
+are exactly \(\TC(a)\).  All descendants belong to \(D\), and the chosen
+depth bound reaches every descendant.  The paths have positive length;
+they do not count the root merely by a path of length zero.  Exact
+counting counts endpoints, not paths, even if a descendant is reached
+in several ways.
+
+For an iteration bound \(p\), the formula
+\[
+ \operatorname{Ok}_{p,n}(r):=
+       \bigvee_{k=0}^{P(n)}
+               \exists^{=k}z\,R_{\le J+1}(r,z)
+\]
+therefore says exactly \(|\TC(r)|\le P(n)\) on every actual candidate.
+It also handles atoms and \(\emptyset\), whose strict transitive closures
+are empty.  Its behavior on unrelated objects of greater depth is not
+needed.
+
+\paragraph{Iteration and the empty default.}
+Consider a term \(t=s[y]^*\), with free parameters \(\bar x\), and let
+\(S(\bar x,w,v)\) be the already constructed graph for its step term.
+At the present input size abbreviate \(P=P(n)\) and
+\(\operatorname{Ok}=\operatorname{Ok}_{p,n}\).  Define finite formulas
+\[
+ \begin{split}
+ I_0(\bar x,v)&:=E(v)\land\operatorname{Ok}(v),\\
+ I_{j+1}(\bar x,v)&:=
+       \operatorname{Ok}(v)\land
+       \exists w\,(I_j(\bar x,w)\land S(\bar x,w,v)),
+                  \qquad 0\le j<P.
+ \end{split}
+\]
+Let
+\[
+ \begin{split}
+ F(\bar x,v)&:=
+       \bigvee_{j=0}^{P}
+                   \bigl(I_j(\bar x,v)\land S(\bar x,v,v)\bigr),\\
+ G_t(\bar x,v)&:=
+       F(\bar x,v)\ \lor\
+        \bigl(E(v)\land\neg\exists w\,F(\bar x,w)\bigr).
+ \end{split}
+\]
+For \(P=0\) the disjunction has its \(j=0\) term: a single step still
+tests whether the initial empty state is stationary.
+
+We verify this graph for an actual parameter tuple \(\bar a\).
+Induction on \(j\) shows that before stopping, \(I_j(\bar a,v)\)
+has exactly the genuine state \(a_j\) as its solution if all states
+through that index pass the size guard.  At an admitted state, the step
+activation is actual.  Its graph has exactly its actual candidate as
+output over the whole of \(D\), by the syntax induction hypothesis.
+This candidate is in \(D\), including when it is the first excessive
+one.  The exact guard either admits that candidate or makes
+\(I_{j+1}\) have no solution.  In the latter case all subsequent \(I\)'s
+have no solution, so no unrelated state can enter later.
+
+If an allowed stationary state is reached early, all subsequent \(I_j\)
+repeat that same state.  The step graph is still exact there because this
+argument tuple was already an actual activation.  If no earlier stop
+occurs, the test \(S(\bar a,a_P,a_P)\) uses the actual final candidate
+\(a_{P+1}\), which was included in the evaluation family.  It succeeds
+exactly when stationarity is reached at index \(P\).
+Thus \(F\) is empty when the bounded iteration fails, and otherwise its
+only output is the genuine stationary value.  The final displayed
+formula returns precisely that value or the typed empty default.
+This proves the term part of~\eqref{eval:graph-invariant}.
+In particular, a fixed point at some argument tuple that was never
+activated cannot supply an extra output: every successful disjunct
+first requires a state reached from \(I_0\).
+
+\paragraph{One fixed supply of variable names.}
+All formulas above are finite at fixed \(n\).  It remains to show that
+their variable width is bounded independently of \(n\).
+For each syntax occurrence, reserve its finitely many argument names,
+an output name when it is a term, and finitely many names for the
+intermediate outputs and local quantifiers in its displayed construction.
+Child formulas receive their indicated free interface and a separate
+working supply, renamed to avoid capture.  Since the syntax tree is
+fixed, the sum of these finite reservations depends only on \(\psi\).
+
+The only repetitions whose depths grow with \(n\) are the ordinal,
+membership-path and iteration expansions.  The first two use the
+recycled interfaces already described.  In the iteration recursion,
+retain \(\bar x\) and two state names.  When \(I_j(\bar x,w)\) is inserted
+in the formula for \(I_{j+1}(\bar x,v)\), its internal quantifier may bind
+the name \(v\): the later state is not free in that child.  This binder
+has scope only inside \(I_j\), so it does not capture \(v\) in the
+sibling formula \(S(\bar x,w,v)\).  The step graph uses a separate fixed
+working supply.  Repeating the recursion therefore does not keep a
+tuple of all previous states.  Identified slots such as
+\(S(\bar x,v,v)\) can, if needed, use a fresh local alias constrained
+equal to \(v\).
+
+This argument applies at every syntax level, including inside step
+terms that themselves contain iterations.  Nesting depth adds only a
+fixed number of reservations.  Let \(m\) bound their total number.
+Taking the translated truth formula at the top sentence gives
+\(\widehat\psi_n\), and~\eqref{eval:graph-invariant} at the empty
+assignment proves the claim.
+\end{proof}
+
+The descriptions are a tool for comparing two evaluations.  They need
+not be computable by the CPT sentence, have polynomial length, or
+describe evaluation on every assignment in \(D\).  Their relevant
+properties are the fixed width and the exactness asserted in
+Lemma~\ref{eval:description}.  Neither property puts a bound on the
+finite ranks occurring in \(D\).
+
+\subsection{Applying support and transfer}
+
+Recall the two grid structures \(A_{b^0}\) and \(A_{b^1}\), of common
+size \(N=N_L=\Theta(L^3)\). The group \(H\) acts on each original input,
+while its central subgroup \(K\) also preserves the analytical expansion
+of Section~\ref{sec:base-counting}. We now combine these two actions:
+the first places all actual evaluation values in a supported domain,
+and the second lets us compare those domains by counting logic.
+
+\begin{theorem}[Eventual equality for every CPT sentence]
+\label{eval:pair-equivalence}
+For every sentence \(\psi\) of full CPT with counting over \(\tau\),
+there is \(L_\psi\) such that for every \(L\ge L_\psi\),
+\[
+ A_{b^0}\models\psi
+       \quad\Longleftrightarrow\quad A_{b^1}\models\psi .
+\]
+\end{theorem}
+
+\begin{proof}
+Fix \(\psi\) first.  Choose the integer \(q\) from
+Lemma~\ref{eval:trace} and the width \(m\) from
+Lemma~\ref{eval:description}.  For each \(L\), put
+\[
+ s=\left\lceil2L(q\log_3N+1)^2\right\rceil+1,
+ \qquad M=\lfloor L^{7/4}\rfloor.
+\]
+For \(i\in\{0,1\}\), let \(D_{L,i}^{(s)}\) consist of the objects of
+\(\HF(A_{b^i})\) such that the object and each recursive member have
+a \(K\)-support of length at most \(s\).
+Give this domain membership, the atom predicate, and the original input
+relations, false whenever any argument is not an atom.
+
+The family \(\mathcal T_\psi(A_{b^i})\) is \(H\)-invariant,
+membership-transitive and of size at most \(N^q\), for large \(L\).
+Corollary~\ref{sup:hereditary} therefore gives
+\[
+          \mathcal T_\psi(A_{b^i})\subseteq D_{L,i}^{(s)}.
+\]
+The domain is membership-transitive and contains all atoms and pure HF
+sets: an atom supports itself, and a pure set is fixed by every atom
+permutation.  Thus it satisfies all the domain requirements of
+Lemma~\ref{eval:description}.
+
+For the fixed \(q,m\), Corollary~\ref{base:width} supplies all the
+quantitative hypotheses of Theorem~\ref{hf:transfer} on sufficiently
+large grids: the two analytical expansions are \(C^M\)-equivalent,
+equal \(C^M\) types of tuples of length at most \(\max\{2,m\}s\)
+determine \(K\)-orbits, and \(\max\{4,m+1\}s\le M\).
+These are nonempty finite structures in the same binary vocabulary,
+and \(K\) acts by automorphisms of both expansions.
+
+The supported domains computed from the expansions have the same
+underlying sets \(D_{L,i}^{(s)}\), since supports depend on the atom action
+of \(K\), which did not change.  The theorem gives \(C^m\) equivalence
+with the additional analytical relations; forgetting those relations
+gives
+\[
+                 D_{L,0}^{(s)}\equiv_{C^m}D_{L,1}^{(s)}.
+\]
+The larger group \(H\) was used only on the original input and its
+evaluation family.  No assertion that \(H\) preserves the analytical
+expansion is needed.
+
+Both inputs have size \(N\), so the same formula
+\(\widehat\psi_N\), with the same numerical cutoffs and ordinal
+predicates, describes their evaluations.
+Lemma~\ref{eval:description} and the displayed \(C^m\) equivalence
+therefore give equal truth values for \(\psi\) on the two inputs.
+All inequalities hold eventually in \(L\) after fixing \(\psi,q,m\),
+which proves the quantified assertion.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Let \(\Phi\) be the single sentence constructed in
+Section~\ref{sec:sentence}, over the eight-relation vocabulary \(\tau\)
+and with its fixed polynomial annotation. It has one syntactic WSC
+occurrence, and Proposition~\ref{sen:all-input} gives a Boolean value
+on every finite \(\tau\)-structure. Let \(Q\) be its true-model class.
+By Theorem~\ref{grid:separation}, for every \(L\ge2\),
+\[
+              A_{b^0}\in Q,\qquad A_{b^1}\notin Q.
+\]
+If a CPT sentence \(\psi\) defined \(Q\), it would have opposite truth
+values on every such pair.  This contradicts
+Theorem~\ref{eval:pair-equivalence} for large \(L\).
+Finally, the non-strict inclusion follows from the inclusion of CPT
+syntax in CPT+WSC. Thus
+\[
+       \operatorname{Def}_{\CPT}(\tau)
+         \ \subsetneq\
+       \operatorname{Def}_{\CPT+\WSC}(\tau).
+\]
+\end{proof}

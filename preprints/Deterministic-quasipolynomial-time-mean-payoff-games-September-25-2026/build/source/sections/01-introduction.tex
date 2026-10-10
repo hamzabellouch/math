@@ -1,0 +1,251 @@
+\section{Introduction}
+\label{sec:introduction}
+
+In a mean-payoff game, two players choose edges of a finite graph and
+compete over the long-run average weight of the resulting infinite
+walk. The objective is numerical, but the question of who can enforce
+a nonnegative average is a finite decision problem. A central
+algorithmic issue is the representation of the weights: a procedure
+polynomial in their absolute values may take exponential time in the
+length of the input. We give a deterministic algorithm whose running
+time is quasipolynomial in that binary length and which determines
+all winning starting vertices together.
+
+\subsection{The problem and the main theorem}
+
+Let $G=(V,E)$ be a finite directed graph with
+$V=\{1,\ldots,n\}$ and $n\ge1$. Each vertex has at least one
+outgoing edge and belongs to exactly one of
+$V_{\mathrm{Max}}$ and $V_{\mathrm{Min}}$. The edge weights
+$w:E\to\Z$ are arbitrary signed binary integers. Self-loops and
+parallel edges are allowed; parallel edges are separate entries of
+the explicit edge list. At a vertex its owner chooses the next edge.
+Both players' strategies may depend on the entire finite history.
+For an infinite play $\pi=(e_0,e_1,\ldots)$, write
+\[
+ \MP_w(\pi)=\liminf_{T\to\infty}\frac1T
+                         \sum_{t=0}^{T-1}w(e_t).
+\]
+We count the complete input length $L$ in a fixed conventional binary
+encoding of the graph, endpoints, ownership, and weights. For a start
+$v$ and strategies $\sigma,\tau$, denote their induced play by
+$\pi_{v,\sigma,\tau}$.
+
+\begin{theorem}\label{thm:main}
+A uniform deterministic algorithm returns exactly the set
+\[
+ U=\bigl\{v\in V:\exists\text{ Max strategy }\sigma\ 
+       \forall\text{ Min strategies }\tau,
+       \ \MP_w(\pi_{v,\sigma,\tau})\ge0\bigr\}
+\]
+for every game specified above. For an absolute constant $C>0$, the
+complete computation uses at most
+\[
+                      2^{C(\log_2(L+2))^2}
+\]
+bit operations in a standard model polynomially equivalent to a
+uniform deterministic Turing machine. The bound includes
+preprocessing, exact arithmetic, recursion, and output of the entire
+set $U$.
+\end{theorem}
+
+A positional strategy chooses its outgoing edge using only the current
+vertex. Section~\ref{sec:full-solution} derives the exact rational
+value at every starting vertex and globally optimal positional
+strategies for both players, within the same quasipolynomial bit bound.
+Section~\ref{sec:energy-credits} decides whether a prescribed initial
+credit can keep every finite accumulated weight nonnegative in a
+one-resource energy game, and computes minimum winning credits. Section~\ref{sec:tropical}
+applies classical reductions to tropical feasibility and fixed-corank
+tropical-rank tests. A polynomial bound for the complete binary input
+would be a further improvement.
+
+\subsection{Earlier algorithms and binary weights}
+
+Ehrenfeucht and Mycielski proved the existence of positional optimal
+strategies for mean-payoff games~\cite{EhrenfeuchtMycielski1979}.
+Positional determinacy places the threshold problem in
+$\mathrm{NP}\cap\mathrm{coNP}$. Zwick and Paterson developed
+pseudopolynomial algorithms and complexity reductions
+\cite{ZwickPaterson1996}. Such bounds
+can be polynomial in the number of vertices and the largest absolute
+weight while remaining exponential in the binary encoding length.
+This distinction is central to Theorem~\ref{thm:main}.
+
+The energy formulation asks whether a finite initial credit can keep
+all finite accumulated weights nonnegative. Brim, Chaloupka, Doyen,
+Gentilini, and Raskin developed bounded integer progress measures and
+monotone lifting, with an $O(|E|nW_0)$ threshold and winning-region
+bound when $W_0$ bounds the absolute weights
+\cite[Theorem~8]{BrimEtAl2011}.
+Dorfman, Kaplan, and Zwick developed a deterministic exponential-time
+approach based on accelerated potential updates and scaling; Austin
+and Dell'Erba corrected its update procedure
+\cite{DorfmanKaplanZwick2019,AustinDellErba2023}. Kozachinskiy
+gives a polyhedral interpretation and a weight-independent
+$n^{O(1)}2^{n/2}$ arithmetic bound for energy winners
+\cite{Kozachinskiy2021}.
+
+Strategy-improvement algorithms provide another important comparison.
+Bj\"orklund and Vorobyov proved an expected
+$2^{O(\sqrt{n\log n})}$ arithmetic bound for the threshold partition
+on graphs without parallel edges
+\cite[Theorem~7.1]{BjorklundVorobyov2007}, following work with
+Sandberg~\cite{BjorklundSandbergVorobyov2004}.
+Recent analyses concern Random-Action-Removal~\cite{Zwick2026} and
+Switch-All and Random-Edge for energy games
+\cite{DorfmanKaplanZwick2026}. Iteration counts and arithmetic bounds
+must be distinguished from bit bounds: strategy evaluation and the
+sizes of intermediate numbers contribute to the latter.
+
+Parity games use an extremal priority occurring infinitely often to
+determine the winner. They reduce in polynomial time to mean-payoff
+threshold games using weights of exponential magnitude but polynomial
+binary length~\cite[Section~3]{Jurdzinski1998}. Calude, Jain,
+Khoussainov, Li, and Stephan gave
+a quasipolynomial algorithm for parity games
+\cite{CaludeJainKhoussainovLiStephan2022}. The reduction goes from
+parity to mean payoff, so this result does not by itself give a
+quasipolynomial algorithm for arbitrary binary-weight mean-payoff games.
+Daviaud, Jurdzi\'nski, and Lazi\'c combined succinct parity progress
+measures with energy bounds in a pseudo-quasipolynomial algorithm for
+mean-payoff parity games~\cite{DaviaudJurdzinskiLazic2018}; that
+bound still contains a numerical weight parameter. Smoothed polynomial
+results for independent Gaussian perturbations of payoffs on ergodic
+game graphs concern a different input model~\cite{LoffSkomra2024}.
+
+\subsection{How the proof works}
+
+An integer potential assigns a number to each vertex. First replace
+$w(e)$ by $\widehat w(e)=(n+1)w(e)+1$, which makes every simple
+cycle sum nonzero while separating negative original sums from
+nonnegative ones. For $z\in\Z^V$, let $F_i(z)$ be the maximum
+of $\widehat w(e)+z_j$ over edges $e:i\to j$ at a Max vertex,
+and the minimum at a Min vertex. For integer vectors $A\le u$,
+the box $[A,u]$ consists of all integer vectors between them,
+coordinatewise. In this box,
+a subsolution is a vector $x\in[A,u]$ satisfying $x_i\le F_i(x)$
+wherever $x_i>A_i$; a supersolution is a vector $y\in[A,u]$
+satisfying $y_i\ge F_i(y)$ wherever $y_i<u_i$.
+Clipping a vector to the box means replacing coordinate $z_i$ by
+$\min\{u_i,\max\{A_i,z_i\}\}$. The comparison theorem in
+\emph{Randomized quasipolynomial-time mean-payoff games}, our
+companion article, gives a unique fixed point $h$ of $z\mapsto\min\{u,\max\{A,F(z)\}\}$,
+and the inequalities $x\le h\le y$ for every such pair. These
+finite-box facts and their basic iteration procedure are the only
+results imported from the companion in the proof of
+Theorem~\ref{thm:main}
+\cite[Definition~2.2 and Lemmas~2.3--2.4]{OpenAI2026Randomized}.
+Section~\ref{sec:boxes} states that interface in full.
+
+The same section places each coordinate of $h$ near one of the
+two boundaries of a sufficiently wide box $[0,D]^V$. The upper band
+is winning for Max and the lower band for Min. Iterating the clipped
+operator from the bottom can require a number of steps proportional
+to the numerical width $D$. We instead ask which boundary labels are
+forced, without computing $h$.
+
+For a box $[A,A+D]$, give the vertices positive rational masses
+$a_i$ and $b_i$. For a vertex set $S$, its masses are
+$a(S)=\sum_{i\in S}a_i$ and $b(S)=\sum_{i\in S}b_i$. A Max witness is a subsolution whose support
+$\{i:x_i>A_i\}$ has $a$-mass at most one; it requires a positive
+label at coordinates near the upper boundary. A Min witness is the
+dual supersolution with support $\{i:y_i<A_i+D\}$ of $b$-mass
+at most one; it requires a negative label near the lower boundary.
+The task is to meet every requirement of every witness at once. With
+initial masses $1/n$, the box solution qualifies on both sides, so
+these requirements determine every vertex's winner.
+
+To solve that task recursively, we move an integer pivot vector $k$
+near the middle of the box. For a Max witness, a common translation
+aligns the largest deviation $x_i-k_i$ with the top of a narrower
+box centered at $k$. Clipping at the bottom leaves only coordinates
+whose deviations are close to that largest value. A dual operation
+handles Min witnesses. Section~\ref{sec:translations} proves that
+these operations preserve the required inequalities and restrict
+supports to subsets of the original supports.
+
+The algorithm in Section~\ref{sec:algorithm} first moves $k$
+downward, then upward. Narrow recursive calls choose which
+coordinates move. Each pass protects the extremal deviation of all
+witnesses of one type. When a pass stops, any still-needed witness
+of the other type must have a set of coordinates close to an extremum
+with $a$-mass greater than $3/4$ for a Max witness or $b$-mass
+greater than $3/4$ for a Min witness. Otherwise the last recursive call would have
+forced another movement. This use of the final, stationary call is
+the key deterministic certificate.
+
+One call on a half-width box labels those large-mass sets. Its labels
+need not settle the original boundary requirements. They instead
+specify new masses: coordinates labelled in a witness's favor become
+lighter, and the others heavier. Section~\ref{sec:correctness}
+shows that every unsettled witness still has support mass at most
+one. Meanwhile, every product $a_i b_i$ increases by a fixed factor.
+Once every product exceeds one, each coordinate is excluded from
+at least one type of witness support, and the labels can be chosen
+directly. Starting with masses $1/n$, only $O(\log(n+1))$ such
+product increases can therefore occur along a branch. The final call
+on the original box uses the reweighted masses to settle the remaining
+requirements. Every child except the half-width call increases the
+products; that exceptional child instead reduces the width.
+Section~\ref{sec:complexity} counts the possible positions of the
+product increases along a branch and bounds the exact arithmetic in
+each call, giving the stated bit complexity.
+
+\subsection{Potential methods and recursive precision}
+
+Gurvich, Karzanov, and Khachiyan developed potential transformations
+in their algorithm for cyclic games
+\cite{GurvichKarzanovKhachiyan1988,KarzanovLebedev1993}: adding
+differences of endpoint potentials to edge weights preserves cycle
+sums while changing the local inequalities. Paired potentials appear
+in the work of Lifshits and Pavlov~\cite{LifshitsPavlov2007}.
+Cadilhac, Casares, and Ohlmann give a general framework for accelerated
+value iteration~\cite{CadilhacCasaresOhlmann2025}. These methods and
+the progress-measure approach described above provide the setting
+for our finite-box inequalities.
+
+The closest recursive ancestry is Parys's reduced-precision parity
+algorithm~\cite[Algorithm~2, Section~5, and Lemma~6.1]{Parys2019}
+and its development by Lehtinen, Parys, Schewe, and Wojtczak
+\cite{LehtinenParysScheweWojtczak2022}. Their guarantees protect
+all dominions---sets within which one player can keep play and win---
+within specified size bounds, and their recursion
+separates one child retaining full precision from children of reduced
+precision. We likewise use simultaneous obligations for small objects,
+but smallness here means rational mass of a potential's support.
+Translation near an extremal deviation, the stationary-pivot
+certificates, and reweighting establish the needed progress for that
+notion of smallness.
+
+Ohlmann's symmetric mean-payoff recursion supplies closely related
+potential-based context~\cite{Ohlmann2026}; its subexponential time
+analysis is left open in the cited version. Jurdzi\'nski, Morvan,
+Ohlmann, and Thejaswini use two simultaneous labellings for symmetric
+acceleration of parity algorithms
+\cite{JurdzinskiMorvanOhlmannThejaswini2020}; a related development
+by Thejaswini, Ohlmann, and Jurdzi\'nski retains both decompositions
+to accelerate symmetric recursion~\cite{ThejaswiniOhlmannJurdzinski2022}.
+Arnold, Niwi\'nski, and Parys study recursive interval restriction in a
+quasipolynomial black-box algorithm for nested fixed-point evaluation
+\cite{ArnoldNiwinskiParys2021}. Their bound is expressed in
+Boolean-lattice dimension and fixed-point nesting depth. The integer
+box here has chains of length $nD+1$, so that result does not directly
+give the dependence on $\log D$ established by our translation and
+mass arguments.
+
+Fijalkow, Gawrychowski, and Ohlmann studied mean-payoff value iteration
+using universal graphs and lower bounds for those representations
+\cite{FijalkowGawrychowskiOhlmann2020}. Those lower bounds constrain
+universal-graph representations. The present recursion constructs and
+reweights boxes for the given instance without using such a representation.
+
+The companion algorithm~\cite{OpenAI2026Randomized} returns potential
+vectors with probabilistic comparison guarantees stated separately
+for each fixed admissible vector. Here the recursive guarantee is
+simultaneous over all qualifying witnesses and concerns their boundary
+labels. The two algorithms share the finite-box theory stated in
+Section~\ref{sec:boxes}; the companion's randomized proof is
+independent of the deterministic recursion. Section~\ref{sec:full-solution}
+also explains how its winning-set interface yields randomized exact
+values and positional strategies.

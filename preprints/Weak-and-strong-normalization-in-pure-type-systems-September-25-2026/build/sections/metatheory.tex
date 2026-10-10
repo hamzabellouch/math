@@ -1,0 +1,531 @@
+
+\section{Structural properties}\label{pts:metatheory}
+
+The following facts let us use finite open contexts and chosen typing
+derivations without assuming uniqueness of sorts or product rules.
+These are standard properties of pure type systems; compare
+\cite[Chapter~2]{Poll1994}. We give the proofs needed here, especially the
+steps concerning annotations and nonfunctional specifications.
+
+\begin{lemma}[Validity and scope]\label{pts:validity}
+If $\Gamma\vdash M:A$, then $\Gamma$ is valid, and
+$\mathrm{FV}(M)\cup\mathrm{FV}(A)\subseteq\operatorname{dom}(\Gamma)$.
+For each declaration of $\Gamma$, its sorting judgment in the preceding
+prefix occurs as a subderivation of the given derivation.
+\end{lemma}
+
+\begin{proof}
+Induct on the derivation. An axiom has empty context. The variable and
+weakening rules supply the sorting judgment for their last declaration;
+the induction hypothesis supplies the earlier ones. Every other rule
+has a premise with unchanged context, so its induction hypothesis
+supplies validity and the required subderivations. Scope follows in the
+same induction. For application, use
+\[
+ \mathrm{FV}(B[x:=N])\subseteq
+       (\mathrm{FV}(B)\setminus\{x\})\cup\mathrm{FV}(N).
+\]
+The binder cases remove their fresh bound variable from the free
+variables of the body.
+\end{proof}
+
+\begin{lemma}[Thinning by insertion]\label{pts:thinning}
+Suppose $\Gamma\vdash M:A$, and suppose that $\Delta$ is a valid context
+containing the declarations of $\Gamma$ unchanged and in their original
+order. Then $\Delta\vdash M:A$.
+\end{lemma}
+
+\begin{proof}
+Induct on the size of the given derivation. For an axiom, weaken through
+the declarations of $\Delta$. For a variable or weakening rule, split
+$\Delta$ just after the last declaration of the source context.
+Transport the rule's premises to the part before that declaration by
+induction, reapply the rule, and then weaken through the remaining
+suffix. The necessary sorting judgments for that suffix are supplied
+by validity of $\Delta$.
+
+At a binder, first rename its bound variable fresh for $\Delta$.
+Its domain sorting is a premise of product formation or a smaller
+subderivation supplied by Lemma~\ref{pts:validity}. Induction transports
+this sorting to $\Delta$, making the extended target context valid.
+Induction therefore also transports the body or codomain premise to
+that extension. Reapply the original rule. Application and conversion
+transport their unchanged-context premises and reapply their rule.
+\end{proof}
+
+\begin{lemma}[Typed substitution]\label{pts:substitution}
+Let $\Gamma=(x_1:A_1,\ldots,x_n:A_n)$ and let $\Delta$ be valid.
+Suppose a simultaneous substitution $\sigma$ satisfies
+\[
+ \Delta\vdash\sigma(x_i):A_i[\sigma|_{\{x_1,\ldots,x_{i-1}\}}]
+ \qquad(1\leq i\leq n).
+\]
+Then $\Gamma\vdash M:A$ implies $\Delta\vdash M\sigma:A\sigma$.
+In particular, if
+\[
+ \Gamma,x:D,\Theta\vdash M:A,
+ \qquad \Gamma\vdash N:D,
+\]
+then
+\[
+ \Gamma,\Theta[x:=N]\vdash M[x:=N]:A[x:=N].
+\]
+\end{lemma}
+
+\begin{proof}
+Raw substitution preserves beta conversion. Indeed, a substituted root
+contraction is a contraction after renaming bound variables fresh;
+the required equality is the composition law for capture-avoiding
+substitutions. Compatibility extends this to every reduction position,
+and hence to conversion chains.
+
+For the simultaneous assertion, induct on the source derivation.
+Thin axioms to $\Delta$. At a variable use its assigned judgment, and
+at weakening discard the assignment for the last declaration. Under a
+binder $x:D$, choose $y$ fresh for $\Delta$ and the images of $\sigma$.
+Transport the domain sorting by induction, extend the target context
+to $\Delta,y:D\sigma$, and extend the substitution by $x\mapsto y$.
+The earlier assignments thin to this context; the new assignment is
+the variable rule. Apply induction to the binder premise and reapply
+product formation or abstraction with the original axiom or rule
+choices. Application uses substitution composition. Conversion uses
+the transported sorting of its target and preservation of raw
+conversion.
+
+For single substitution with a dependent suffix, construct the target
+context one declaration at a time. Start with the identity assignments
+on $\Gamma$ and the image $x\mapsto N$. Transport the first suffix
+declaration's sort judgment by the simultaneous assertion, append that
+declaration, thin the old assignments, and assign its new variable to
+itself. Repeat through $\Theta$, then transport the desired judgment.
+This also proves validity of the substituted target context.
+\end{proof}
+
+\begin{lemma}[Conversion of a declaration]\label{pts:context-conversion}
+Suppose $\Gamma\vdash D:s$, $\Gamma\vdash D':s'$, and $D=_\beta D'$.
+Replacing $x:D$ by $x:D'$ in any valid context
+$\Gamma,x:D,\Theta$ preserves validity and every derivable judgment,
+with the subject, expected type, and later declarations unchanged.
+The converse replacement has the same property.
+\end{lemma}
+
+\begin{proof}
+In $\Gamma,x:D'$ the variable rule gives $x:D'$. Thin the old sorting
+of $D$ to this context and convert to obtain $x:D$. Thus the identity
+on the old variables is a typed substitution from $\Gamma,x:D$ to
+$\Gamma,x:D'$. As in the suffix construction in
+Lemma~\ref{pts:substitution}, transport each later sorting judgment,
+append the same declaration, and extend the identity substitution.
+Finally transport the desired judgment. Interchanging $D,D'$ proves
+the reverse assertion. Nothing requires $s=s'$.
+\end{proof}
+
+\Needspace{4\baselineskip}
+\begin{lemma}[Generation]\label{pts:generation}
+For derivable judgments in an arbitrary pure type system:
+\begin{enumerate}
+\item If $\Gamma\vdash x:T$, then $x:D$ occurs in $\Gamma$ and
+      $T=_\beta D$.
+\item If $\Gamma\vdash s:T$, then $(s,u)\in\mathcal A$ and
+      $T=_\beta u$ for some sort $u$.
+\item If $\Gamma\vdash\Pi x:D.E:T$, then for some
+      $(a,b,c)\in\mathcal R$,
+      \[
+       \Gamma\vdash D:a,\qquad
+       \Gamma,x:D\vdash E:b,\qquad T=_\beta c.
+      \]
+\item If $\Gamma\vdash\lambda x:D.M:T$, then for some $E,c$,
+      \[
+       \Gamma,x:D\vdash M:E,\qquad
+       \Gamma\vdash\Pi x:D.E:c,\qquad
+       T=_\beta\Pi x:D.E.
+      \]
+\item If $\Gamma\vdash MN:T$, then for some $D,E,x$,
+      \[
+       \Gamma\vdash M:\Pi x:D.E,\qquad
+       \Gamma\vdash N:D,\qquad T=_\beta E[x:=N].
+      \]
+\end{enumerate}
+Every immediate syntactic child of a typable expression is typable
+in the corresponding context, with a binder declaration added for a
+body or codomain.
+\end{lemma}
+
+\begin{proof}
+Induct on the derivation, stripping any final conversion and weakening
+steps. Conversion composes the asserted conversion of expected types.
+For weakening, thin all extracted premises back to the original
+context, including under a fresh binder. When neither rule is last,
+the outer syntax identifies its introducing rule and supplies the
+displayed premises. The child assertion follows from these premises;
+for a lambda's annotation use validity of the body context.
+\end{proof}
+
+\begin{lemma}[Correctness of types]\label{pts:correctness}
+If $\Gamma\vdash M:A$, then either $A$ is a literal sort or
+$\Gamma\vdash A:s$ for some sort $s$. Moreover, every type assigned
+to an application is sorted, including an assigned type that is itself
+a literal sort. Consequently every nonliteral legal expression is
+typable.
+\end{lemma}
+
+\begin{proof}
+Induct on the derivation. The axiom and product conclusions have literal
+sorts as expected types. Variable, weakening, abstraction, and conversion
+use their sorting premises, thinning where necessary. In the application
+case, induction on the function premise sorts its product type, since
+that type is not a literal sort. Product generation then gives a sorting
+of the codomain under the binder. Substitution sorts the instantiated
+result type. This also proves the stronger application assertion at
+a direct application rule; final weakening preserves it by thinning,
+and final conversion explicitly sorts the new expected type. Every
+legal expression that occurs as an expected type is therefore either
+typable or a literal sort.
+\end{proof}
+
+\subsection{Conversion and preservation of typing}
+\label{pts:reduction-metatheory}
+
+The next lemma concerns raw expressions. Thus it applies before any
+normalization assumption, regardless of which products a specification
+can form.
+
+\begin{lemma}[Confluence and product compatibility]\label{pts:confluence}
+Full beta reduction on raw expressions is confluent. Therefore distinct
+sorts are not convertible, no product is convertible to a sort, and
+\[
+ \Pi x:D.E=_\beta\Pi x:D'.E'
+ \quad\Longrightarrow\quad
+ D=_\beta D'\ \hbox{ and }\ E=_\beta E',
+\]
+after consistently renaming the bound variables.
+\end{lemma}
+
+\begin{proof}
+Define parallel contraction $\Rightarrow$ by reflexive variable and
+sort clauses, homomorphic clauses for all expression constructors, and
+the additional clause
+\[
+ \frac{D\Rightarrow D'\qquad M\Rightarrow M'\qquad N\Rightarrow N'}
+      {(\lambda x:D.M)N\Rightarrow M'[x:=N']}.
+\]
+In particular the homomorphic binder clauses reduce both children.
+Induction on a parallel derivation proves parallel substitution:
+if $M\Rightarrow M'$ and $N\Rightarrow N'$, then
+$M[x:=N]\Rightarrow M'[x:=N']$. For its contracting case, rename
+the contracted binder fresh and use composition of substitutions;
+the other cases reapply the corresponding homomorphic clause.
+
+Define $M^*$, its complete development, recursively by developing every
+child, with
+\[
+ ((\lambda x:D.P)Q)^*=P^*[x:=Q^*]
+\]
+at an application whose original function is a lambda. At any other
+application use $(PQ)^*=P^*Q^*$. We claim that
+$M\Rightarrow N$ implies $N\Rightarrow M^*$. Prove this by induction
+on the parallel derivation. At an original root redex, either the
+first parallel step was homomorphic, in which case contract the root
+in the second step, or it contracted the root, in which case parallel
+substitution applies. At an original nonredex application, use the
+homomorphic clause in the second step, even if its function has become
+a lambda. The remaining cases follow by the corresponding
+homomorphic clauses and induction. Thus any two parallel reducts of
+$M$ parallel-reduce to $M^*$, proving the diamond property.
+
+Every ordinary step is parallel. Conversely, every parallel step is
+a finite sequence of ordinary steps: first reduce the children and
+then perform its root contraction, if any. Hence the reflexive-transitive
+closures of the two relations coincide, and beta reduction is confluent.
+Convertible expressions consequently have a common reduct. Reducing
+a product never removes its outer constructor, whereas a sort is
+irreducible. Comparing the common reducts gives all the asserted
+compatibility and separation properties.
+\end{proof}
+
+\begin{lemma}[Subject reduction]\label{pts:subject-reduction}
+If $\Gamma\vdash M:A$ and $M\to_\beta^*M'$, then
+$\Gamma\vdash M':A$, with the exact original expected type.
+\end{lemma}
+
+\begin{proof}
+It suffices to consider one step. Induct on the typing derivation.
+There are no steps from sorts or variables. At a final weakening or
+conversion, apply induction to its subject premise and reapply the
+same rule.
+
+At product formation, a step in the domain preserves its original sort
+by induction. Lemma~\ref{pts:context-conversion} transports the codomain
+sorting to the changed binder context, and the same product rule
+re-forms the result. A codomain step is handled by induction on its
+typing premise.
+
+At abstraction, a step in the body is immediate by induction. For an
+annotation step $D\to_\beta D'$, the supporting judgment
+$\Gamma\vdash\Pi x:D.E:c$ is a strictly smaller premise derivation.
+Apply induction to its corresponding domain step to get
+$\Gamma\vdash\Pi x:D'.E:c$. Product generation sorts $D'$;
+context conversion then transports the body judgment to
+$\Gamma,x:D'$. Abstraction gives the changed lambda its new product
+type. Convert back to the old product type, which is sorted by the
+original supporting premise.
+
+At application, a step in the function preserves its product type by
+induction. A step $N\to_\beta N'$ in the argument gives the new
+result type $E[x:=N']$; convert this to $E[x:=N]$, whose sorting was
+proved in Lemma~\ref{pts:correctness}.
+
+It remains to treat a root contraction
+$(\lambda x:D_0.P)N\to_\beta P[x:=N]$. Suppose the application
+premises assign the function type $\Pi x:D.E$ and the argument
+type $D$. Generation of the function judgment gives some $E_0,c$
+such that
+\[
+ \Gamma,x:D_0\vdash P:E_0,
+ \qquad\Gamma\vdash\Pi x:D_0.E_0:c,
+ \qquad\Pi x:D_0.E_0=_\beta\Pi x:D.E.
+\]
+Product compatibility gives $D_0=_\beta D$ and $E_0=_\beta E$.
+Generation of the supporting product sorts $D_0$, so convert
+$N:D$ to $N:D_0$. Substitution yields
+$\Gamma\vdash P[x:=N]:E_0[x:=N]$.
+Convert to the old application type $E[x:=N]$, which is sorted by
+Lemma~\ref{pts:correctness}. This completes every reduction position,
+including positions inside annotations.
+\end{proof}
+
+\subsection{Neutral expressions and normal forms}
+\label{pts:neutrals}
+
+An expression $xN_1\cdots N_k$, with $k\geq0$, is called
+\emph{neutral}. Its arguments need not be normal. This restricted
+class has unique types even when the specification does not.
+
+\begin{lemma}[Uniqueness for neutral expressions]\label{pts:neutral-uniqueness}
+If $H$ is neutral and $\Gamma\vdash H:A$ and $\Gamma\vdash H:B$,
+then $A=_\beta B$. If $\Gamma\vdash H:s$ for a literal sort $s$,
+then $s$ itself is sorted in $\Gamma$. Every normal typable application
+is neutral.
+\end{lemma}
+
+\begin{proof}
+Induct on the length of the neutral spine. At a variable, generation
+identifies both types with its declaration type up to conversion.
+For $HN$, generation of its two typings gives function product types
+$\Pi x:D.E$ and $\Pi x:D'.E'$. Induction makes these convertible.
+Product compatibility gives $E=_\beta E'$, so substitution makes
+their instantiated codomains convertible. These codomains are
+convertible to the original two result types by generation.
+
+If a variable has type $s$, its declaration type $D$ is sorted by
+validity and thinning, and $D=_\beta s$ by generation. Confluence
+and irreducibility of $s$ give $D\to_\beta^*s$. Subject reduction
+therefore sorts $s$. For a nonempty neutral spine, the stronger
+application assertion in Lemma~\ref{pts:correctness} sorts its
+expected type directly.
+
+Finally, the head of a normal application cannot be a lambda, since
+that would give a redex. It cannot be a sort or product: generation
+makes any type of either head convertible to a sort, whereas the
+first application requires a product type. Product/sort separation
+excludes this. The only remaining head is a variable.
+\end{proof}
+
+\begin{remark}\label{pts:nonfunctionality}
+General uniqueness of types is false under our hypotheses. For example,
+if $(r,a)$ and $(r,b)$ are axioms with distinct $a,b$, then $r$ has
+the two nonconvertible types $a,b$. Lemma~\ref{pts:neutral-uniqueness}
+does not apply to the sort $r$. No later use of uniqueness concerns
+an arbitrary expression.
+\end{remark}
+
+\begin{lemma}[Normalizing judgments]\label{pts:normalizing-judgments}
+Assume that every legal expression is weakly normalizing. Write
+$M^\#$ for its normal form, uniquely determined up to alpha equivalence.
+If $\Gamma\vdash M:A$, then
+\[
+                \Gamma\vdash M^\#:A
+                \qquad\text{and}\qquad
+                \Gamma\vdash M^\#:A^\#.
+\]
+The second judgment is also available with $M$ in place of $M^\#$.
+If $\Gamma\vdash A:s$, then $\Gamma\vdash A^\#:s$.
+A sorted normal expression is either a sort, a neutral expression,
+or a product.
+\end{lemma}
+
+\begin{proof}
+Weak normalization supplies normal forms; confluence gives uniqueness.
+Subject reduction proves the first judgment and the assertion about
+sorting. Correctness of types says that $A$ is sorted or is a literal
+sort. In the first case subject reduction sorts $A^\#$, allowing
+conversion of the expected type. In the second case $A^\#=A$, so
+there is nothing to convert if that sort is unsorted. Finally a
+normal application is neutral by Lemma~\ref{pts:neutral-uniqueness},
+and a lambda cannot have a sort type by generation and product/sort
+separation.
+\end{proof}
+
+\subsection{Finite specifications and a common context}
+\label{pts:finite-and-context}
+
+For the main implication it is enough to work with a finite
+specification. We will then place all finite contexts inside one
+countable context, while each judgment continues to use only a finite
+prefix.
+
+\begin{lemma}[Finite restriction]\label{pts:finite-restriction}
+Let $\mathcal P=(\mathcal S,\mathcal A,\mathcal R)$ be a pure type
+system.  An expression is called \emph{legal} if it occurs as the subject
+or the expected type of a derivable judgment.  If every legal expression
+of $\mathcal P$ is weakly normalizing for full $\beta$-reduction, but some
+legal expression is not strongly normalizing, then there are finite sets
+\[
+  \mathcal S_0\subseteq\mathcal S,\qquad
+  \mathcal A_0\subseteq\mathcal A\cap\mathcal S_0^2,\qquad
+  \mathcal R_0\subseteq\mathcal R\cap\mathcal S_0^3
+\]
+such that the restricted system
+$\mathcal P_0=(\mathcal S_0,\mathcal A_0,\mathcal R_0)$ has the same two
+properties.
+\end{lemma}
+
+\begin{proof}
+First recall how legality relates to typability.  If $E$ is a subject,
+it is typable by definition.  If $E$ is an expected type, correctness of
+types says that either $E$ is a literal sort or $\Gamma\vdash E:s$ for
+some context $\Gamma$ and sort $s$.  Thus every nonliteral legal
+expression is typable.  Also, context validity says that each declaration
+type is sorted in its preceding context, so declaration types introduce
+no further kind of untypable expression.  Literal sorts have no
+$\beta$-redexes.
+
+Choose a legal expression $E$ that is not strongly normalizing.  It is
+not a literal sort, so fix a finite derivation of a judgment
+$\Gamma\vdash E:B$.  For every use of conversion in this derivation,
+choose a finite raw $\beta$-conversion chain witnessing its side
+condition.  Let $\mathcal S_0$ contain all sorts occurring in the
+derivation and these chains.  Let $\mathcal A_0$ and $\mathcal R_0$
+contain the axiom pairs and formation triples used in the derivation,
+enlarging $\mathcal S_0$ to contain their entries if necessary.  These
+sets are finite, and the same derivation and conversion chains establish
+$\Gamma\vdash E:B$ in $\mathcal P_0$.
+
+A full $\beta$-step introduces no new sort symbol: substitution can only
+copy symbols already present in the redex, and contextual reduction has
+the same property, including reduction in annotations.  Consequently
+the infinite reduction from $E$ witnessing failure of strong
+normalization is also a reduction in the raw syntax over
+$\mathcal S_0$.
+
+Conversely, every judgment derivable in $\mathcal P_0$ is derivable in
+$\mathcal P$.  If $F$ is legal in $\mathcal P_0$, the weak-normalization
+hypothesis therefore supplies a finite reduction $F\to_\beta^*N$ in
+$\mathcal P$ with $N$ normal.  No term in this reduction contains a sort
+outside $\mathcal S_0$.  The reduction is thus available in
+$\mathcal P_0$, and normality is unchanged, since it is the absence of a
+syntactic $\beta$-redex.  This proves weak normalization of every legal
+expression of $\mathcal P_0$, while $E$ remains a legal expression that
+is not strongly normalizing.
+\end{proof}
+
+\begin{lemma}[A saturated context]\label{pts:saturated-context}
+Suppose that the sort set $\mathcal S$ is at most countable, and that
+the variable set is countably infinite.  There is a possibly empty
+countable sequence of declarations $\Omega$ with the following
+properties.  A judgment over $\Omega$ means a judgment derivable over
+some finite initial segment of $\Omega$.
+\begin{enumerate}
+\item Every finite initial segment of $\Omega$ is valid.  An infinite
+set of variable names is disjoint from all its declared names.
+\item If $P$ is a finite initial segment of $\Omega$ and
+$P\vdash D:s$, then $\Omega$ contains infinitely many declarations
+$y:D$ after $P$, with distinct declared names.
+\item Every finite valid context embeds, by an injective renaming of
+its declared variables, as a subsequence of a finite initial segment
+of $\Omega$.  If $\Gamma\vdash M:A$, such an embedding $\rho$ gives
+$P\vdash M\rho:A\rho$ for a finite initial segment $P$ containing the
+embedded context.
+\item If $P\vdash D:s$ for a finite initial segment $P$, and $F$ is any
+finite set of variable names, there is a larger finite initial segment
+$Q$ ending in a declaration $y:D$, where
+$y\notin F\cup\operatorname{dom}(P)$, and $Q\vdash y:D$.
+\end{enumerate}
+Moreover, finitely many judgments over $\Omega$ hold over a common
+finite initial segment.  Injective renaming in the third clause
+preserves and reflects weak and strong normalization.
+\end{lemma}
+
+\begin{proof}
+Partition the variable names into disjoint infinite sets $V_0$ and
+$V_1$.  Only names in $V_0$ will be declared in $\Omega$; names in
+$V_1$ remain available for bound variables.  Because $\mathcal S$ and
+the variable set are countable, the set of finite raw expressions is
+countable.  We work up to $\alpha$-equivalence, or equivalently choose
+representatives when enumerating expressions.
+
+Choose a sequence of pairs $(p,D)$, with $p$ a nonnegative integer and
+$D$ a raw expression, in which every pair occurs infinitely often.
+Construct finite contexts $\Delta_n$ starting with the empty context.
+At stage $n$, consider the scheduled pair $(p,D)$.  If $\Delta_n$ has
+at least $p$ declarations and its initial segment of length $p$ derives
+$D:s$ for some sort $s$, append a declaration $y:D$, choosing
+$y\in V_0\setminus\operatorname{dom}(\Delta_n)$.  Otherwise leave
+$\Delta_n$ unchanged.  This is a set-theoretic construction and does
+not require a decision procedure for typing.  In the append case,
+scope gives $\mathrm{FV}(D)\subseteq
+\operatorname{dom}(\Delta_n)$, and thinning gives
+$\Delta_n\vdash D:s$.  Thus the new declaration is fresh and the
+extended context is valid.  Induction proves validity at every stage.
+
+Let $\Omega$ be the sequence obtained by retaining all declarations
+appended in this construction.  Every finite initial segment appears
+at some stage and is valid.  No name from $V_1$ is declared.  If
+$P\vdash D:s$ and $P$ has length $p$, then, once $P$ has been
+constructed, every later occurrence of the pair $(p,D)$ appends a new
+declaration of type $D$.  There are infinitely many such occurrences.
+This proves the first two clauses, including the case where no
+declaration is ever possible and $\Omega$ is empty.
+
+For the embedding clause, write a finite valid context as
+\[
+  \Gamma=(x_1:D_1,\ldots,x_m:D_m).
+\]
+Induct on its prefixes.  Suppose an injective renaming $\rho_i$ embeds
+the first $i$ declarations, in their original order, into a finite
+initial segment $P_i$ of $\Omega$.  Validity supplies
+\[
+  x_1:D_1,\ldots,x_i:D_i\vdash D_{i+1}:s
+\]
+for some sort $s$.  Renaming and then thinning yield
+$P_i\vdash D_{i+1}\rho_i:s$.  By the second clause, a later
+declaration has the form $y:D_{i+1}\rho_i$, with $y$ fresh for the
+already chosen names.  Set $\rho_{i+1}(x_{i+1})=y$ and take an initial
+segment through this declaration.  This retains all previously
+embedded declarations unchanged and in order.  The induction begins
+with the empty context and proves the desired embedding.
+
+Renaming a derivation gives
+$\Gamma\rho\vdash M\rho:A\rho$.  The chosen initial segment is a
+valid extension by insertion of $\Gamma\rho$, so thinning gives the
+asserted judgment over that initial segment.  All substitutions and
+renamings here are capture-avoiding; the reserved names permit bound
+variables to be renamed away from the declarations whenever needed.
+
+For the fourth clause, only finitely many of the infinitely many
+declarations of type $D$ after $P$ can have their declared names in
+$F$.  Choose any other one and let $Q$ be the initial segment ending
+there.  Thinning the judgment for $D$ to the prefix immediately before
+that declaration, followed by the variable rule, gives $Q\vdash y:D$.
+In particular, when finitely many substitution images have their free
+variables in $P$, this $y$ is fresh for all those images.
+
+Finally, take the longest among finitely many initial segments
+witnessing judgments over $\Omega$ and thin all the judgments to it.
+An injective renaming of the finitely many variables of a context can
+be extended to a bijective renaming of the whole variable set.  Such
+a renaming commutes with full $\beta$-reduction and its inverse does
+too.  It therefore preserves and reflects normal forms, finite
+normalizing reductions, and infinite reductions.  This proves the
+last assertions.
+\end{proof}

@@ -1,0 +1,279 @@
+\section{Projection insertion and pruning}\label{sec:pruning}
+
+The tail-transport lemma assumes regularity of two trajectories.  We first
+use it on successively longer suffixes to show that inserting a product
+projection preserves regularity.  Two consequences for product starting
+states will then allow us to construct regular trajectories by deleting
+reflections with small projection probability. Gate deletion by a
+telescoping estimate also appears in the Pauli-spectrum approach of
+\citet[Lemma~23 and Claim~24]{NadimpalliParhamVasconcelosYuen2024},
+where width controls a Frobenius-norm error. Here deletion depends on
+projection probability in the actual pruned-prefix state; the retained
+layer must then satisfy the regularity condition for every fixed
+exponent triple.
+
+\begin{proposition}[Projection insertion]\label{prop:projection-insertion}
+Let $W=U_t\cdots U_1$ have a bounded number of layers, and suppose the
+trajectory
+\[
+ \psi_j=U_j\cdots U_1\psi_0,\qquad 0\le j\le t,
+\]
+is regular, with $\norm{\psi_0}\le1$.  For any product test $B$ at the
+output, set
+\[
+ \chi_t=P_B\psi_t,\qquad
+ \chi_j=U_{j+1}^{\dagger}\cdots U_t^{\dagger}\chi_t
+ \quad(0\le j<t).
+\]
+Then the trajectory $(\chi_j)_{j=0}^t$ is regular for $W$.
+\end{proposition}
+
+\begin{proof}
+All the vectors $\chi_j$ have norm at most one.  We prove their regularity
+at the layers in decreasing order of the layer index.  Suppose regularity
+has already been established at every layer strictly after layer $j$.
+There is nothing to prove if $U_j$ is a layer of one-qubit unitaries.
+Otherwise, fix $0\le b<1$ and choose, at each member of the circuit
+sequence, a set $S$ of at most $m^b$ reflections in this layer.  Let
+$H_A=H_S$ be their joint count and put
+\[
+ V=U_t\cdots U_{j+1}.
+\]
+This is the suffix \emph{strictly after} layer $j$, and
+$\chi_j=V^{\dagger}P_BV\psi_j$.  The trajectory of $\psi_j$ on $V$ is
+regular by hypothesis; that of $\chi_j$ on $V$ is regular by the
+induction hypothesis.  Regularity of the original trajectory at layer
+$j$ also gives, for every fixed $b<h<1$ and $0<p<h$,
+\[
+ \norm{\one_{H_A\ge m^h}\psi_j}\le \exp(-m^p)
+ \quad\text{eventually}.
+\]
+Lemma~\ref{lem:tail-transport} therefore gives the same estimate for
+$\chi_j$.  The count $H_S$ commutes with every reflection of layer $j$,
+so this estimate holds on $\chi_{j-1}$ as well.
+
+The chosen sets $S$ may vary with the circuit sequence.  For each fixed
+triple $(b,h,p)$, Lemma~\ref{lem:uniformization} consequently makes the
+estimate eventual and uniform over all eligible $S$.  This proves
+regularity at layer $j$ and completes the induction.  Its first step
+uses the empty suffix, whose regularity hypotheses are vacuous.
+\end{proof}
+
+\begin{corollary}[Tail at a product input]\label{cor:product-tail}
+Suppose $\psi_0$ is a normalized product state and its trajectory under
+$W$ is regular.  Let $P_0=|\psi_0\rangle\langle\psi_0|$ be the full
+product projection and $H_0$ its count.  For any product test $B$ at the
+output and every fixed $0<p<h<1$,
+\begin{equation}\label{eq:product-tail}
+ \norm{\one_{H_0\ge m^h}W^{\dagger}P_BW\psi_0}
+ \le \exp(-m^p)
+ \quad\text{eventually}.
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+The original trajectory is regular by assumption and the projected
+trajectory is regular by Proposition~\ref{prop:projection-insertion}.
+Since $H_0\psi_0=0$, the input-tail hypothesis of
+Lemma~\ref{lem:tail-transport} holds with $b=0$.  Applying that lemma to
+$V=W$ proves the claim.
+\end{proof}
+
+\begin{corollary}[Overlap and output tail]\label{cor:overlap-tail}
+Under the hypotheses of Corollary~\ref{cor:product-tail}, write
+$\psi_t=W\psi_0$.  For any product test $B$ at the output and every
+fixed $0<p<h<1$,
+\begin{equation}\label{eq:overlap-tail}
+ \norm{P_B\psi_t}^{2}
+ \norm{\one_{H_B\ge m^h}\psi_t}
+ \le \exp(-m^p)
+ \quad\text{eventually}.
+\end{equation}
+For each fixed $(h,p)$, both this estimate and
+\eqref{eq:product-tail} hold eventually uniformly over the output test
+$B$.
+\end{corollary}
+
+\begin{proof}
+Put $\chi_t=P_B\psi_t$ and $q_B=\norm{P_B\psi_t}^2$.  Apply
+Lemma~\ref{lem:tail-transport} to the reverse circuit $V=W^{\dagger}$,
+starting at $\chi_t$, with initial count $H_B$ and final projection
+$P_0$.  The starting vector has zero $H_B$ count.  Its trajectory is
+regular by Proposition~\ref{prop:projection-insertion} and reversal.
+The projected-and-returned vector is exactly
+\begin{align*}
+ W P_0 W^{\dagger}\chi_t
+ &=\psi_t\,\ip{\psi_0}{W^{\dagger}P_BW\psi_0}\\
+ &=q_B\psi_t.
+\end{align*}
+Its reverse trajectory is the original trajectory multiplied by
+$q_B\in[0,1]$, hence is regular too.  The lemma, with $b=0$, now gives
+\eqref{eq:overlap-tail}.  In particular, the multiplier is the
+\emph{probability} $q_B$, not its square root: no projected vector has
+been normalized.
+
+For uniformity, fix $(h,p)$ and suppose that either estimate fails for
+some test at arbitrarily large indices.  Choose a violating test at
+those indices and any test at the others.  The resulting single
+sequence of tests contradicts the estimate just proved.  Thus tests
+may be selected using the exact circuit and its output state.  The
+threshold may depend on the fixed exponents; no threshold uniform over
+all real exponent pairs is asserted.
+\end{proof}
+
+\newpage
+\begin{lemma}[A retained layer is regular]\label{lem:retained-layer}
+Let $W$ have a regular trajectory from a normalized product state, and
+write $\psi=W\psi_0$.  Consider a proposed next layer of disjoint
+reflections $I-2P_g$.  Retain precisely the gates satisfying
+\begin{equation}\label{eq:retention-rule}
+ q_g:=\norm{P_g\psi}^{2}\ge m^{-6}.
+\end{equation}
+The retained layer is regular on $\psi$, and hence after its action on
+$\psi$ as well.
+\end{lemma}
+
+\begin{proof}
+The mean bound and Markov's inequality put substantial mass on
+low-weight product-basis outcomes. Counting these outcomes yields
+one of sufficiently large probability; recentering the test there
+changes every count by at most the outcome's weight, so
+Corollary~\ref{cor:overlap-tail} supplies the required tail estimate.
+
+We first bound the mean count of each retained gate.  Fix $\epsilon>0$
+and choose fixed exponents $0<p_0<h_0<\min\{\epsilon,1\}$.  Applied to
+the test of a retained gate, \eqref{eq:overlap-tail} gives
+\[
+ \norm{\one_{H_g\ge m^{h_0}}\psi}
+ \le m^6\exp(-m^{p_0}).
+\]
+Since $0\le H_g\le mI$ and $\norm{\psi}=1$, spectral decomposition
+therefore gives
+\begin{equation}\label{eq:retained-mean}
+ \ip{\psi}{H_g\psi}
+ \le m^{h_0}+m^{13}\exp(-2m^{p_0})
+ \le m^{\epsilon}
+ \quad\text{eventually}.
+\end{equation}
+Corollary~\ref{cor:overlap-tail} makes this bound uniform over the
+retained gates.
+
+Now fix a regularity triple $0\le b<h<1$, $0<p<h$, and choose
+$\epsilon>0$ so that $b+2\epsilon<h$.  For any set $S$ of at most
+$m^b$ retained gates, disjointness of the supports gives
+\[
+ H_S=\sum_{g\in S}H_g,
+ \qquad
+ \ip{\psi}{H_S\psi}\le m^{b+\epsilon}.
+\]
+The empty set has zero tail, so we may suppose $S$ is nonempty.
+Consider the distribution obtained by measuring the tested sites in
+the product basis consisting of each specified state and its
+orthogonal complement.  Label the outcomes by
+binary strings, with $0$ for the specified state.  The Hamming weight
+of the resulting string is the measured value of $H_S$.  With
+\[
+ R=2m^{b+\epsilon},\qquad \beta=b+2\epsilon,
+\]
+Markov's inequality puts at least half the probability on strings of
+weight at most $R$.  If $M\le m$ sites are tested, the number $N_R$ of
+such strings satisfies, eventually,
+\begin{align*}
+ N_R\le\sum_{j=0}^{\lfloor R\rfloor}\binom mj
+ &\le (\lfloor R\rfloor+1)m^{\lfloor R\rfloor},\\
+ \log(2N_R)&=O(m^{b+\epsilon}\log m)=o(m^{\beta}).
+\end{align*}
+Consequently one such outcome $z$ has probability
+\begin{equation}\label{eq:pruning-atom}
+ \rho\ge\frac{1}{2N_R}\ge\exp(-m^{\beta})
+ \quad\text{eventually}.
+\end{equation}
+Only linearity of the mean, Markov's inequality, and counting have
+been used; the outcomes need not be independent.
+
+Let $B$ specify the local states of $z$ on the tested sites and leave
+all other sites unconstrained.  Then $\rho=\norm{P_B\psi}^2$.
+The operators $H_B$ and $H_S$ are diagonal in the same product basis.
+At a site where $z$ is $0$ their count terms agree; at a site where
+$z$ is $1$ they differ by an operator of norm one.  Thus their
+eigenvalues on every common basis vector differ by at most
+$|z|\le R$.  Choose fixed exponents
+\[
+ \max\{p,\beta\}<p'<h'<h.
+\]
+Because $b+\epsilon<h'<h$, eventually
+$m^h-R\ge m^{h'}$.  The common basis then gives the spectral inclusion
+\[
+ \one_{H_S\ge m^h}\le\one_{H_B\ge m^{h'}}.
+\]
+Apply \eqref{eq:overlap-tail} to $B$ with exponents $(h',p')$, and
+divide by its probability from \eqref{eq:pruning-atom}:
+\begin{align*}
+ \norm{\one_{H_S\ge m^h}\psi}
+ &\le\norm{\one_{H_B\ge m^{h'}}\psi}\\
+ &\le\rho^{-1}\exp(-m^{p'})\\
+ &\le\exp(m^{\beta}-m^{p'})
+ \le\exp(-m^p)
+ \quad\text{eventually}.
+\end{align*}
+The last inequality uses both $p'>\beta$ and $p'>p$.
+
+For each fixed target triple, the preceding bounds are uniform over
+$S$ and its selected outcome $z$.  Indeed the endpoint estimate is
+uniform over all product tests, including those selected from the
+current state.  Equivalently, a sequence of violating choices would
+contradict Corollary~\ref{cor:overlap-tail} on that subsequence.  Only
+finitely many auxiliary exponent choices were made for this triple.
+All uses of the corollary concern the already regular prefix $W$;
+the proposed next layer is not among its hypotheses.  We have proved
+regularity before the retained layer, and commutation of $H_S$ with
+that layer gives the same property afterward.
+\end{proof}
+
+\begin{proposition}[Pruning from a product state]\label{prop:pruning}
+For any sequence of circuits $U=U_t\cdots U_1$ on $m$ qubits, with a
+bounded number $t$ of analytic layers, and any normalized product
+starting states $\psi_0$, the following construction produces a
+circuit $W$ with a regular trajectory from $\psi_0$.  Leave all
+one-qubit layers unchanged.  At a reflection layer, use the exact
+state reached by the pruned prefix and retain exactly the gates in
+\eqref{eq:retention-rule}.  The output vectors satisfy
+\begin{equation}\label{eq:pruning-error}
+ \norm{U\psi_0-W\psi_0}\le 2t m^{-2}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The empty prefix is regular.  Appending a one-qubit layer adds no
+regularity condition, and Lemma~\ref{lem:retained-layer} applies at
+each reflection layer.  Induction therefore gives regularity of the
+whole pruned trajectory.  The retention rule itself has no exponent
+choices: the auxiliary exponents above are used only to verify its
+regularity for each fixed triple.
+
+For the error estimate, denote the retained version of layer $U_j$ by
+$\widetilde U_j$ and the exact pruned-prefix state before it by
+$\psi_{j-1}$.  Each deleted reflection $F_g=I-2P_g$ satisfies
+\[
+ \norm{(F_g-I)\psi_{j-1}}
+ =2\norm{P_g\psi_{j-1}}<2m^{-3}.
+\]
+Every other gate in that layer commutes with $P_g$, and is unitary.
+Hence this norm is unchanged if any other gates of the layer have
+already acted.  Telescoping over the deleted gates, of which there
+are at most $m$ because their nonempty supports are disjoint, yields
+\[
+ \norm{(U_j-\widetilde U_j)\psi_{j-1}}\le2m^{-2}.
+\]
+This bound is zero for a one-qubit layer.  If $\phi_j$ and $\psi_j$
+are the original and pruned states after layer $j$, respectively,
+then exactly
+\[
+ \phi_j-\psi_j
+ =U_j(\phi_{j-1}-\psi_{j-1})
+   +(U_j-\widetilde U_j)\psi_{j-1}.
+\]
+Unitarity and the triangle inequality give
+$\norm{\phi_j-\psi_j}\le\norm{\phi_{j-1}-\psi_{j-1}}+2m^{-2}$.
+Starting with $\phi_0=\psi_0$ proves \eqref{eq:pruning-error}.
+\end{proof}

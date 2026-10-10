@@ -1,0 +1,193 @@
+\section{The labelled tournament and nested predicates}
+\label{sec:construction}
+
+We construct the recursive predicates and the blocks that will witness their
+block sensitivity at zero. The sensitivity estimates require control at
+every input, so we also define the ordinary and joint profiles passed from
+one level to the next.
+
+Fix integers \(d\ge1\) and \(M\ge3\), and put
+\[
+ L=d+2,\qquad k=2M^2+1,\qquad r=\lceil\sqrt M\rceil,
+ \qquad t=16.
+\]
+We will choose \(M\) as a function of \(d\) in
+Section~\ref{sec:separation}.
+A tournament is an orientation of every pair of distinct vertices:
+exactly one of \(i\to j\) and \(j\to i\) holds.
+Use a tournament on \([k]\) in which every vertex has outdegree \(M^2\).
+For example, place the vertices cyclically and direct an edge from
+each vertex to the next \(M^2\) vertices.
+
+The tournament rows and selected blocking coordinates adapt the architecture
+of Meiburg~\cite[Sections~3.1 and~5.2--5.5]{Meiburg2026}.
+The specific label property needed for the ordinary-sensitivity argument is
+the following elementary consequence of independent random labels.
+
+\begin{lemma}\label{lem:labelling}
+The edges can be labelled by numbers \(a(i,j)\in[r]\) so that there is
+no set \(I\subseteq[k]\) of size \(t\) admitting choices
+\(m_j\in[r]\), \(j\in I\), with
+\[
+ a(i,j)=m_j \qquad\text{for every edge }i\to j\text{ within }I.
+\]
+\end{lemma}
+\begin{proof}
+Choose all edge labels independently and uniformly from \([r]\).
+For fixed \(I\) and fixed choices \((m_j)_{j\in I}\), the probability
+of all the stated equalities is \(r^{-\binom t2}\).
+There are at most \(k^t r^t\) choices to consider, so the probability
+of any violation is at most
+\[
+ k^{16}r^{-104}\le (3M^2)^{16}(\sqrt M)^{-104}
+ =3^{16}M^{-20}<1.
+\]
+Here \(k\le3M^2\), \(r\ge\sqrt M\), and \(M\ge3\).
+Thus a labelling with the required property exists.
+\end{proof}
+
+Fix such a labelling for the remainder of the construction.
+For \(0\le\ell\le d\), set
+\[
+ H_\ell=d+1-\ell,\qquad N_\ell=LM(kr)^\ell.
+\]
+We construct predicates \(P_{\ell,q}:\{0,1\}^{N_\ell}\to\{0,1\}\),
+\(1\le q\le H_\ell\), that are nested in the sense that
+\[
+ P_{\ell,1}(x)\ge P_{\ell,2}(x)\ge\cdots
+ \ge P_{\ell,H_\ell}(x)\quad\text{for every }x.
+\]
+Throughout, nesting concerns the predicate index, not the input bits.
+
+\subsection{Initial predicates}
+Partition \([LM]\) into \(M\) blocks \(E_1,\ldots,E_M\), each of
+size \(L\). Let \(z_j\) be the string that is one precisely on \(E_j\).
+Write \(\operatorname{dist}(x,z)\) for Hamming distance and set
+\[
+ D(x)=\min_{j\in[M]}\operatorname{dist}(x,z_j),\qquad
+ P_{0,q}(x)=\mathbf1\{D(x)\le H_0-q\}.
+\]
+These predicates are nested. Their radii are the integers from \(d\)
+down to zero, while distinct centres have distance \(2L=2d+4\).
+
+\subsection{Recursive clauses}
+Suppose \(1\le\ell\le d\). Partition the input into \(kr\) disjoint
+children \(x_{j,c}\in\{0,1\}^{N_{\ell-1}}\), arranged in \(k\) rows
+\(j\in[k]\), each with \(r\) positions \(c\in[r]\).
+For this level put \(H=H_\ell\) and \(Q=H+1=H_{\ell-1}\).
+For \(q\in[H]\), let clause \(i\) at index \(q\) assert
+\begin{equation}\label{eq:predicate-definition}
+ \begin{aligned}
+ P_{\ell-1,Q}(x_{i,c})&=1 &&\text{for all }c\in[r],\\
+ P_{\ell-1,Q-q}(x_{j,a(i,j)})&=0 &&\text{for all }i\to j.
+ \end{aligned}
+\end{equation}
+Call the first line its \emph{target conditions} and the second line
+its \emph{gate conditions}. Figure~\ref{fig:clause} depicts the target row
+and one outgoing gate. Define \(P_{\ell,q}(x)=1\) if at least
+one clause is satisfied, and zero otherwise. All indices are valid:
+\(1\le Q-q\le H<Q\).
+Within a single clause, all \(r+M^2\) conditions use distinct children.
+Indeed, targets use row \(i\), each gate uses another row, and there
+is only one edge from \(i\) to any given row. Consequently a change
+of one raw input bit can affect at most one condition of that clause.
+The same bit can affect several clauses, which will cause no problem
+when taking upper bounds by unions of sets of bits.
+
+By induction, increasing \(q\) makes each gate condition stronger:
+the index \(Q-q\) decreases, and requiring a larger nested predicate
+to be zero is more restrictive. Targets do not change. Thus each
+clause, and hence each \(P_{\ell,q}\), is nested as asserted.
+This recursion defines total Boolean functions on exactly
+\(N_\ell=krN_{\ell-1}\) bits.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Latex, every node/.style={font=\small},
+  condition/.style={draw,rounded corners=2pt,inner sep=8pt,align=center}]
+ \node[condition] (target) at (0,0)
+   {Row \(i\): all \(r\) children\\[2pt]
+    \(P_{\ell-1,Q}(x_{i,c})=1\)};
+ \node[condition] (gate) at (6,0)
+   {Row \(j\): child \(a(i,j)\)\\[2pt]
+    \(P_{\ell-1,Q-q}(x_{j,a(i,j)})=0\)};
+ \draw[->] (target) -- node[above]{\(i\to j\)} (gate);
+ \node[below=5pt of target,align=center] {One target condition\\per child in row \(i\)};
+ \node[below=5pt of gate,align=center] {One gate condition\\per outgoing neighbour \(j\)};
+\end{tikzpicture}
+\caption{One recursive clause. The edge label selects a single child in
+each outgoing neighbour's row. Raising \(q\) strengthens the gates;
+all targets use the strongest child predicate \(Q\).}
+\label{fig:clause}
+\end{figure}
+
+\subsection{Sensitivity profiles and the initial bounds}
+For \(b\in\{0,1\}\), define
+\[
+ S_{\ell,b}=\max_{\substack{1\le q\le H_\ell,\ x\in\{0,1\}^{N_\ell}\\
+                           P_{\ell,q}(x)=b}}
+ \bigl|\{a\in[N_\ell]:P_{\ell,q}(x^a)=1-b\}\bigr|.
+\]
+We also keep track of simultaneous changes of two distinct predicates:
+\[
+ J_{\ell,b}=\max_{\substack{1\le q<q'\le H_\ell,\ x\in\{0,1\}^{N_\ell}\\
+                         P_{\ell,q}(x)=P_{\ell,q'}(x)=b}}
+ \bigl|\{a\in[N_\ell]:P_{\ell,q}(x^a)=P_{\ell,q'}(x^a)=1-b\}\bigr|.
+\]
+A maximum over no cases is defined to be zero; in particular
+\(J_{d,0}=J_{d,1}=0\), since \(H_d=1\).
+The two predicates in the definition of \(J_{\ell,b}\) are evaluated
+on the same input and changed by the same raw input bit.
+
+\begin{lemma}\label{lem:base}
+The initial sensitivity profiles satisfy
+\begin{equation}\label{eq:base-profile}
+ S_{0,0}\le L,\qquad S_{0,1}\le LM,\qquad
+ J_{0,0}=J_{0,1}=0.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Fix a predicate of radius \(R=H_0-q\in\{0,\ldots,d\}\) and an
+input \(x\) at which it is zero. If flipping one bit makes it one,
+some centre must be at distance exactly \(R+1\) from \(x\).
+There is at most one centre within distance \(d+1\) of \(x\):
+two such centres would have distance at most \(2d+2<2L\).
+Thus every successful bit flip must move towards the same centre,
+giving at most \(R+1\le d+1\le L\) possibilities.
+The bound on \(S_{0,1}\) is simply the number \(LM\) of input bits.
+
+For adjacent inputs \(x,y\), the triangle inequality gives
+\(D(x)\le D(y)+1\), and the reverse inequality follows by symmetry.
+Hence \(|D(x)-D(y)|\le1\). To change both predicates with distinct
+integer radii from zero to one, or both from one to zero, would require
+\(D\) to change by at least two. Both joint sensitivities are therefore
+zero.
+\end{proof}
+
+\subsection{Disjoint blocks at zero}
+\begin{lemma}\label{lem:blocks}
+At every level \(0\le\ell\le d\), all predicates are zero at the
+all-zero input. There are \(Mk^\ell\) pairwise disjoint nonempty blocks
+of coordinates, each of size \(Lr^\ell\), such that flipping any one
+block at zero makes every predicate at that level equal to one.
+\end{lemma}
+\begin{proof}
+At level zero, \(D(0)=L>d\), and the blocks \(E_j\) have the stated
+property because \(0^{E_j}=z_j\).
+Suppose the claim holds at level \(\ell-1\). At the all-zero input,
+every target predicate is zero, so every clause fails at level \(\ell\).
+
+Enumerate the preceding-level block family as
+\(B_1,\ldots,B_{Mk^{\ell-1}}\).
+For each row \(i\) and each family index \(h\), take the union of the
+copies of \(B_h\) in all \(r\) children of row \(i\).
+Flipping this union makes the strongest predicate in each of those
+children equal to one, so all targets for clause \(i\) hold.
+All gate children of clause \(i\) lie in other rows and remain zero,
+so its gates hold for every \(q\).
+Thus every \(P_{\ell,q}\) is one after the flip.
+Within a row these unions are disjoint because the preceding-level
+blocks are disjoint in every child; unions from different rows are
+also disjoint. There are \(k\cdot Mk^{\ell-1}=Mk^\ell\) of them,
+each of size \(r\cdot Lr^{\ell-1}=Lr^\ell\), as required.
+\end{proof}

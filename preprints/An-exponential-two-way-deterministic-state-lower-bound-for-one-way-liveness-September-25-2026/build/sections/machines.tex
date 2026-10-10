@@ -1,0 +1,335 @@
+\section{Local matching representation of deterministic machines}
+\label{sec:machines}
+
+Fix a finite alphabet $\Sigma$.  We use one read-only head on an input
+$\vdash w\dashv$, where $w\in\Sigma^*$ and the two endmarkers are
+distinct symbols outside $\Sigma$.  A deterministic machine has a finite
+state set $Q$, an initial state $q_0$, a set $A\subseteq Q$ of accepting states,
+and a partial transition function
+\[
+ \delta:Q\times(\Sigma\cup\{\vdash,\dashv\})
+       \rightharpoonup Q\times\{-1,0,1\}.
+\]
+The three moves are left, stay, and right.  A transition at an endmarker
+never moves beyond that endmarker.  The initial configuration is
+$(0,q_0)$, with cell~$0$ carrying $\vdash$.  In this section a computation
+accepts when an accepting state occurs at any time, including time~$0$.
+A missing transition halts the computation; an infinite computation
+without an accepting state rejects.  All states, including initial and
+accepting states, count toward $s=|Q|$.
+
+\begin{theorem}[Local matching representation]
+\label{thm:machine-diagrams}
+For every $s$-state deterministic machine in this model, there is a map
+\[
+ \eta:\Sigma\cup\{\vdash,\dashv\}\longrightarrow\D{k},
+ \qquad k=4(s+1)^2,
+\]
+with the following property.  Designate ports $1,2$ on each of the two
+sides as test ports.  For every word $w=a_1\cdots a_\ell$, the machine
+accepts $w$ if and only if the diagram
+\[
+ \eta(\vdash)\eta(a_1)\cdots\eta(a_\ell)\eta(\dashv)
+\]
+pairs a left test port with a right test port.  Each symbol diagram is
+independent of the input length, the symbol's position, and its
+neighboring symbols.
+
+If acceptance instead requires entry into an accepting state after a
+positive number of transitions, the same conclusion holds with
+$k=4(s+2)^2$.
+\end{theorem}
+
+The diagrams will encode a tour of an undirected graph.  Determinism is
+used to ensure that the component of one designated vertex is a tree;
+no condition is imposed on the other components.
+Configuration-tree traversal also underlies Sipser's halting
+method~\cite{SipserHalting1980} and the reversible simulation of Lange,
+McKenzie, and Tapp~\cite[Section~3.1]{LangeMcKenzieTapp2000}.
+We prove the traversal facts needed here and then realize them by
+matching diagrams. The candidate-slot construction below supplies
+the further requirement that each diagram depend only on the symbol
+at its own cell, with the stated quadratic degree.
+
+\subsection{A sink and its tree}
+
+\begin{lemma}[Sink component]
+\label{lem:sink-tree}
+Let $V$ be finite, let $\sigma:V\rightharpoonup V$ be a partial function,
+and let $t\in V$ have no successor.  Make an undirected multigraph on
+$V$ with one edge for each defined successor $v\mapsto\sigma(v)$,
+retaining self-loops and distinct edges with the same endpoints.
+Then a vertex lies in the connected component of $t$ if and only if
+some finite sequence of successor steps takes it to $t$.  This
+component is a tree.
+\end{lemma}
+
+\begin{proof}
+Let $B$ be the set of vertices reaching $t$, allowing a sequence of
+length zero.  For every successor edge $u\mapsto v$, one has
+$u\in B$ if and only if $v\in B$.  One implication prepends that
+edge to a path to $t$; the other removes the first step of the unique
+successor path from $u$ to $t$.  This removal is legitimate because
+$u\ne t$.  Thus membership in $B$ is constant along undirected edges.
+Since $t\in B$, its entire component lies in $B$.  Conversely, a
+successor path is an undirected path, so every element of $B$ belongs
+to that component.
+
+If the component has $v$ vertices, each of its vertices other than
+$t$ has exactly one outgoing edge, and $t$ has none.  All these edges
+stay in the component, and every edge in the component is counted
+once at its source.  Hence the connected multigraph has $v-1$ edges
+and is a tree.  In particular, it has neither self-loops nor parallel
+edges.
+\end{proof}
+
+To apply the lemma, add one new state $f$ to the machine and put
+$N=s+1$.  This is an auxiliary successor rule for a reachability
+test, not a change in the language to be recognized.  For every
+$b\in\Sigma\cup\{\vdash,\dashv\}$, define
+\[
+ \widehat\delta(q,b)=
+ \begin{cases}
+  (f,0),&q\in A,\\
+  \delta(q,b),&q\in Q\setminus A,\\
+  (f,1),&q=f,\ b\ne\dashv,\\
+  \text{undefined},&q=f,\ b=\dashv.
+ \end{cases}
+\]
+The first case applies even when the old transition was undefined.
+Only the rows at old nonaccepting states retain their old partial
+rules, including undefined entries.
+
+For a fixed input of length $\ell$, let
+\[
+ c_0=(0,q_0),\qquad t=(\ell+1,f).
+\]
+The original machine accepts precisely when the modified successor
+rule reaches $t$ from $c_0$.  Indeed, the computations agree until
+the first accepting state, which now leads into $f$ and then to $t$.
+Conversely, the first entry into $f$ must come from an old accepting
+state.  This also covers acceptance initially or on an endmarker.
+Let $G$ be the undirected successor multigraph on all configurations
+$(i,q)$, where $0\le i\le\ell+1$ and $q\in Q\cup\{f\}$.
+Lemma~\ref{lem:sink-tree} shows that the component of $t$ is a tree,
+and that $c_0$ belongs to it exactly on accepted inputs.  Nonaccepting
+cycles in other components require no further modification.
+
+\subsection{Tours determined by cyclic orders}
+
+An incidence of an edge at a vertex records its endpoint there.
+A loop has two incidences at its vertex.  Choose a cyclic order of
+the incidences at every vertex of positive degree.  Regard each edge
+as having two directed traversals.  Upon arriving at a vertex along
+one incidence, depart along the next incidence in its cyclic order.
+At a vertex of degree one this means returning along the same edge.
+
+\begin{lemma}[Tree tour]
+\label{lem:tree-tour}
+For a finite tree with at least one edge, this rule has a single
+cycle on its directed edge traversals, for every choice of cyclic
+orders.  If the two joins at two distinct leaves are opened, the
+resulting two paths each connect a tip at one leaf to a tip at the
+other.
+\end{lemma}
+
+\begin{proof}
+The rule is a permutation of the directed traversals: a departure
+has exactly one preceding arrival, determined by the preceding
+incidence in the cyclic order.  A tree consisting of one edge gives
+a cycle of its two traversals.
+
+For the induction step, remove a leaf $z$ with neighbor $v$ from
+a tree with more than one edge.  Restrict the cyclic order at $v$
+by removing the incidence of $vz$.  The smaller tree has one tour
+cycle by induction.  Inserting $vz$ back into that order replaces
+one transition
+\[
+ (u,v)\longmapsto(v,w)
+\]
+of the smaller tour by
+\[
+ (u,v)\longmapsto(v,z)\longmapsto(z,v)\longmapsto(v,w).
+\]
+Here $u=w$ is allowed.  No other transition changes.  Thus two new
+traversals are inserted into the existing cycle, proving the first
+assertion.
+
+Realize the tour as a circular wire, using one lane for each
+directed traversal and a join for each arrival-to-departure step.
+The joins at two different leaves are two different points on this
+circle.  Opening both cuts the circle into two paths, each running
+between the two cuts.  Each path consequently has one tip at each
+of the two leaves.
+\end{proof}
+
+\subsection{Cell diagrams and their composition}
+
+\begin{proof}[Proof of Theorem~\ref{thm:machine-diagrams}]
+Use the modified successor rule with its $N=s+1$ states, numbered
+by $[N]$.  We first augment its undirected graph by leaves so that
+each cell's portion of the graph can be determined from that cell's
+symbol alone.
+
+\paragraph{Candidate edges at an internal boundary.}
+At every boundary between two neighboring cells, reserve one slot
+for each triple
+\[
+ (d,p,q)\in\{\leftarrow,\rightarrow\}\times[N]\times[N].
+\]
+The direction $d$ specifies which cell is the prospective source
+and which is the prospective target.  The slot represents a
+candidate transition from state $p$ in the source cell to state
+$q$ in the target cell.  It carries two lane ports, labeled by the
+absolute directions of travel $\rightarrow$ and $\leftarrow$.
+These labels, together with $(d,p,q)$, give a fixed enumeration of
+the
+\[
+ k=2\cdot N^2\cdot 2=4N^2
+\]
+ports on either side of a cell.  Equal labels are identified when
+neighboring cell diagrams are multiplied.
+
+For each slot put an undirected edge across the boundary.  At its
+target end, always attach it to the target cell's state vertex
+$q$.  At its source end, attach it to state vertex $p$ if the
+modified transition from $p$ on the source cell's symbol is exactly
+the transition specified by the slot.  Otherwise attach that end
+to a new degree-one vertex in the source cell.  Use a different new
+vertex for each unused slot.
+
+Every actual crossing successor edge is represented once, in its
+own slot.  Each other slot contributes a single leaf edge attached
+to a state vertex.  Keep every actual stay edge inside its cell,
+with two distinct incidences when it is a loop.  The resulting
+graph is therefore $G$ with additional leaves and leaf edges.
+It has the same connectivity between state vertices as $G$, and
+the component of $t$ is still a tree.
+
+The target-end attachment makes the construction local: a target
+cell does not need to know whether its neighbor uses a slot.
+Every possible incoming slot is attached to its indicated state
+there.  Only the source cell decides between its state vertex and
+a fresh leaf, using its own scanned symbol and successor rule.
+Figure~\ref{fig:candidate-slot} isolates this choice for one slot.
+\input{figures/candidate-slot}
+
+\paragraph{The two outward boundaries.}
+An ordinary cell has a neighbor on each side.  The left-marker
+cell has only its right neighbor, and the right-marker cell only
+its left neighbor.  Use candidate slots exactly on these inward
+boundaries.  On the outward side of the left marker, instead
+attach a test edge from $c_0$ to a new outer leaf $z_L$.  On the
+outward side of the right marker attach a test edge from $t$ to
+another new outer leaf $z_R$.
+
+Each test edge has two lanes whose outer tips occupy ports $1,2$
+of the corresponding outward side; the same indices serve as ordinary
+candidate-lane ports on internal sides.  These tips will remain
+unjoined at the outer leaf.  Pair the other outward ports as
+$(3,4),(5,6),\ldots,(k-1,k)$, independently of all graph edges.
+This uses all remaining ports because $k$ is even.  Denote the
+graph including the two test leaves by $\widehat G$.  Its component
+containing $t$ is a tree, and its two test leaves are connected if
+and only if the machine accepts.
+
+\paragraph{Lanes and local joins.}
+Place two travel lanes on every edge of $\widehat G$, one in each
+direction of traversal.  Each incidence consequently has an
+incoming tip and an outgoing tip.  For an edge with incidences
+$i$ and $j$, its lanes connect the outgoing tip at $i$ to the
+incoming tip at $j$, and the outgoing tip at $j$ to the incoming
+tip at $i$.  This prescription applies also to a loop, whose
+incidences are different even though their vertices coincide.
+
+For a crossing edge, each half-lane ends at the corresponding
+boundary port.  Absolute travel directions determine the following
+local correspondence:
+\[
+\begin{array}{c|cc}
+ \text{side of the cell}&\rightarrow\text{ lane}&\leftarrow\text{ lane}\\
+ \hline
+ \text{left}&\text{incoming tip}&\text{outgoing tip}\\
+ \text{right}&\text{outgoing tip}&\text{incoming tip}
+\end{array}
+\]
+Thus equal-index gluing connects an outgoing half-lane in one
+cell to an incoming half-lane in its neighbor, as required.
+
+At every vertex other than $z_L,z_R$, choose a cyclic order of
+its incidences and join the incoming tip at each incidence to the
+outgoing tip at the next incidence.  A leaf reflects one lane into
+the other; a vertex of degree zero requires no joins.  Choose these
+orders separately for each symbol type and then use the same orders
+at every occurrence of that symbol.  This is possible because all
+incidences are local: incoming crossing slots are always present,
+outgoing attachments depend only on the scanned symbol, and stay
+edges are internal.  Marker incidences, including their test edges,
+are likewise fixed by marker type.  Incidences can, for example,
+be ordered by their slot labels and their roles in internal edges.
+
+\paragraph{Contracting one cell.}
+Inside a cell, every lane tip is incident with one lane and one
+local join.  The only exposed ends are its boundary ports, each
+used exactly once, including the separately paired outward ports.
+Hence the finite wiring inside the cell has degree two at internal
+points and degree one at its ports.  Every component containing a
+port is a path ending at exactly one other port.  Discard components
+without ports and pair the two endpoints of each remaining path.
+The result is a perfect matching on the cell's $2k$ ports, hence
+an element of $\D{k}$.  Let $\eta(a)$ be this matching for symbol
+$a$.
+
+All preceding choices for one cell depend only on $a$, which proves
+the asserted symbol locality.  Gluing cells with equal port indices
+reconstructs their full wiring.  Contracting paths first within
+cells or only after gluing yields the same pairing of outside
+ports, by the definition of diagram multiplication.  Consequently
+the whole-input diagram in the theorem is precisely the pairing
+obtained from the wires of $\widehat G$, with the two test-leaf
+joins omitted and the unused outward ports separately paired.
+Figure~\ref{fig:tour-test-ports} shows the test-port part of this
+contraction in the accepted case.
+\input{figures/tour-test-ports}
+
+\paragraph{Reading acceptance.}
+If a wire pairs a left test port to a right test port, it travels
+only along edges and joins within one component of $\widehat G$.
+The separately paired outward ports are disconnected from these
+wires.  Thus $z_L$ and $z_R$ lie in the same component, and the
+machine accepts.
+
+Conversely, on an accepted input both test leaves lie in the tree
+component containing $t$.  Temporarily add their degree-one
+reflection joins.  Lemma~\ref{lem:tree-tour} gives a single circular
+wire containing both joins.  Removing them again gives two paths,
+each from a left test port to a right test port.  This proves the
+acceptance criterion.  Other components, including components with
+cycles, cannot affect these paths.
+
+When $w=\eps$, the input still has two distinct adjacent marker
+cells.  Their inward sides glue by exactly the same slot scheme,
+and both outward test edges are present.  In the connected case the
+tree has at least these two edges, so the nonempty-tree hypothesis
+of Lemma~\ref{lem:tree-tour} holds.  Thus the argument also gives the
+criterion for $\eta(\vdash)\eta(\dashv)$.
+
+Finally, under the positive-transition acceptance convention, first
+perform the following operation on the original machine, before the
+sink normalization above.  Add a new nonaccepting initial state $q_0'$
+with partial row $\delta'(q_0',b)=\delta(q_0,b)$ for every scanned
+symbol $b$, using the original partial transition function.
+Keep all old states and accepting
+states, and leave every transition destination in the old state
+set.  Starting at $q_0'$ simulates exactly the original computation
+from its first transition onward, so acceptance with the time-zero
+convention for this $(s+1)$-state machine is the desired
+positive-transition acceptance of the original.  Apply the
+construction already proved to obtain degree $4(s+2)^2$.
+\end{proof}
+
+Extend $\eta$ to body words by multiplication, with
+$\eta(\eps)=\id$.  If $\eta(u)=\eta(v)$, then for every
+$x,y\in\Sigma^*$ the whole-input diagrams of $xuy$ and $xvy$
+coincide.  The theorem therefore makes $u$ and $v$
+indistinguishable in all input contexts, including empty contexts.

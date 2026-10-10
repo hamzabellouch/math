@@ -1,0 +1,215 @@
+\section{Finite optimization and exact sampling}
+\label{sec:numerics}
+
+The optimization step is a finite implementation of the conditional-gradient
+method of Frank and Wolfe~\cite{FrankWolfe1956}. We use the fixed-step
+form analyzed by Jaggi~\cite[Algorithm~2 and Theorem~1]{Jaggi2013}, applied
+to a smoothed entropy objective. Our linearization has a fixed error floor,
+whose effect is included in the recurrence below. The rational arithmetic
+and exact sampling are also part of the running-time analysis.
+
+The online rule in Section~\ref{sec:bands} asks for a mixture of band
+actions whose mean vector is close to an entropy maximizer.  Its finite
+implementation separates recursive evaluation from numerical work.
+First gather the earlier-index child values, once for each distinct
+coordinate and history index occurring in the band.  The procedure below
+then reuses this table while scoring the listed actions and constructing
+a rational mixture.  It returns one exactly sampled action; only the
+evaluation of that action requests current-index child values.  Thus the
+mean vector is used to analyze the draw, whereas the returned refinement
+value uses the cost of the single sampled action.
+
+Fix an unskipped band $\mathcal C=\mathcal C_{b,r}$, and write
+$d=d_{\mathcal C}$ for its number of coordinates.  Its vertices
+$\rho(\alpha)$ are probability vectors, with child-block masses
+$h_i/h_\Sigma$.  Let $v\in\mathbb Q^d$ be the coefficient vector
+\[
+ v=\eta\left(\sum_{j<t}u_j+\widehat g_t\right).
+\]
+Thus the desired vector $\rho_t$ maximizes
+\[
+ \mathcal F(\rho)=\mathcal H(\rho)+\langle v,\rho\rangle
+ \quad\text{over}\quad
+ \mathcal Q=\operatorname{conv}\{\rho(\alpha):\alpha\in\mathcal C\}.
+\]
+Every coordinate occurs in a listed vertex.  Also $h_i\ge b/M>0$, so all
+the prescribed block masses are positive, even on an execution with an
+inaccurate seed.
+
+\begin{lemma}[A finite entropy optimizer]
+\label{lem:finite-optimizer}
+Let $\mathcal Q$ be the convex hull of a nonempty finite list of rational
+probability vectors in $\mathbb R^d$, and suppose that every coordinate
+is positive in at least one listed vector.  Given a rational vector $v$
+and an integer $H\ge4$, put $G_0=H+d+2$.  A rational algorithm constructs
+a mixture of the listed vectors whose mean $\rho$ satisfies
+\[
+ \norm{\rho-\rho_t}_1\le H^{-3},
+\]
+where $\rho_t$ is the unique maximizer of
+$\mathcal H(\rho)+\langle v,\rho\rangle$ on $\mathcal Q$.
+The number of bit operations and the stored mixture size are polynomial
+in $G_0$, the list size, and the maximum numerator or denominator bit
+length of an input rational.
+The mixture can be sampled exactly using fair random bits, with expected
+cost polynomial in the same quantities and with a fixed space bound.
+\end{lemma}
+
+\begin{proof}
+There is a feasible vector positive in every coordinate, obtained by
+averaging the list.  The maximizer is positive as well: at a zero
+coordinate, moving a small distance towards that average produces a
+positive entropy contribution of order $s\ln(1/s)$, which dominates
+the terms of order $s$ from the other coordinates and the linear
+objective.  Strict concavity gives uniqueness.
+
+Set $\sigma=G_0^{-50}$ and smooth the objective by replacing
+$-x\ln x$ with $-(x+\sigma)\ln(x+\sigma)$ in each coordinate.  Denote
+the result by $\mathcal F_\sigma$.  Integrating the derivative of
+$x\ln x$, including at zero, gives
+\begin{equation}
+ \sup_{\rho\in\mathcal Q}
+ \abs{\mathcal F_\sigma(\rho)-\mathcal F(\rho)}
+ \le 4d\sqrt\sigma.
+ \label{eq:entropy-smoothing}
+\end{equation}
+The gradient of $\mathcal F_\sigma$ has Euclidean Lipschitz constant
+at most $1/\sigma$.  The diameter of $\mathcal Q$ is at most $2$.
+
+Start at a listed vertex.  At step $j\ge0$, approximate every coordinate
+of the gradient to absolute error at most $e_0=G_0^{-20}$.  Enumerate
+the list and choose a vertex $v_j$ maximizing its scalar product with
+this approximate gradient, resolving ties by a fixed order.  Update
+\[
+ \rho^{(j+1)}=(1-\xi_j)\rho^{(j)}+\xi_j v_j,
+ \qquad \xi_j=\frac{2}{j+2}.
+\]
+Here $v_j$ denotes a selected vertex, whereas $v$ without a subscript
+is the fixed linear coefficient vector.  The difference between two
+probability vectors has $\ell_1$ norm at most $2$.  Consequently the
+chosen vertex loses at most $2e_0$ in the true linearization, even
+relative to a feasible mixture.  If $D_j$ is the gap from the maximum
+of $\mathcal F_\sigma$, concavity and the gradient bound give
+\begin{equation}
+ D_{j+1}\le(1-\xi_j)D_j+2e_0\xi_j+
+                  \frac{2\xi_j^2}{\sigma}.
+ \label{eq:finite-optimizer-recursion}
+\end{equation}
+Since $\xi_0=1$, this estimate first gives
+$D_1\le2e_0+2/\sigma$, independently of the size of the linear
+coefficient vector.  Induction then gives
+\[
+ D_j\le2e_0+\frac{8}{\sigma(j+1)}\qquad(j\ge1).
+\]
+Run $K_{\mathrm{opt}}=G_0^{80}$ steps.  By
+\eqref{eq:entropy-smoothing}, the resulting true objective gap is at
+most
+\[
+ 2G_0^{-20}+8G_0^{-30}+8dG_0^{-25}
+ \le12G_0^{-20}.
+\]
+
+The Hessian of negative entropy is
+$\operatorname{diag}(1/\rho_k)$, which dominates the identity on the
+probability simplex.  The first-order inequality at the positive
+maximizer, followed by this Hessian bound, therefore shows that its
+objective gap at any feasible $\rho$ is at least
+$\frac12\norm{\rho-\rho_t}_2^2$.  The statement at coordinates equal
+to zero follows by continuity.  Hence
+\[
+ \norm{\rho-\rho_t}_1
+ \le\sqrt d\,\norm{\rho-\rho_t}_2
+ \le\sqrt{24d}\,G_0^{-10}\le H^{-3}.
+\]
+
+We next give an exact representation of every iterate.  After $K\ge1$
+steps, the weight of the vertex selected at step $j$, where $0\le j<K$,
+is
+\begin{equation}
+ \frac{2}{j+2}\prod_{k=j+1}^{K-1}\frac{k}{k+2}
+ =\frac{2(j+1)}{K(K+1)}.
+ \label{eq:optimizer-mixture-weights}
+\end{equation}
+The initial vertex has zero remaining weight because $\xi_0=1$.
+Store the sequence of selected vertices, allowing repetitions.  The
+displayed weights sum to one and give the iterate exactly.  A common
+denominator for the input vertices, multiplied by $K(K+1)$, is also a
+common denominator for its coordinates.  One may obtain the input
+denominator by multiplying all input denominators, whose total bit
+length is at most the input size.  Therefore the iterates can be
+maintained by rational arithmetic of polynomial bit cost, without
+accumulating the denominators of successive numerical approximations.
+
+It remains to calculate the approximate gradients using finite
+rational operations.
+For $r=x+\sigma\in[\sigma,1+\sigma]$, put
+$b_0=(r-1)/(r+1)$.  Then $\abs{b_0}\le1-\sigma$, and
+\[
+ \ln r=2\sum_{k\ge0}\frac{b_0^{2k+1}}{2k+1}.
+\]
+Truncation after $K_{\log}=G_0^{60}$ terms has absolute error at most
+\[
+ \frac{2\abs{b_0}^{2K_{\log}+1}}
+      {(2K_{\log}+1)(1-b_0^2)}
+ \le
+ \frac{2e^{-2K_{\log}\sigma}}
+      {(2K_{\log}+1)\sigma}
+ <G_0^{-20}.
+\]
+All terms are rational.  The linear part of the gradient and its
+constant entropy derivative term are computed exactly.  Thus these
+finite sums provide the required gradient precision; choosing a
+vertex requires only rational comparisons.
+
+Computing each rational logarithm sum by direct integer arithmetic
+also has polynomial bit cost: the lengths
+of the powers of a rational and of the products of the odd integer
+denominators are polynomial in $K_{\log}$ and the input bit length.
+These logarithmic approximations only select vertices; they are not
+returned as recursive table values.
+
+The same representation gives an exact sampler.  Put
+$K=K_{\mathrm{opt}}$ and sample a uniform integer
+$R\in\{1,\ldots,K(K+1)/2\}$ by drawing uniformly from a range whose
+size is the least power of two at least $K(K+1)/2$, and rejecting
+out-of-range values.  Each trial
+succeeds with probability greater than $1/2$.  Choose the smallest
+$j$ with $(j+1)(j+2)/2\ge R$, by integer binary search, and return
+$v_j$.  Equation~\eqref{eq:optimizer-mixture-weights} proves exactness,
+including when the same vertex was selected more than once.  The
+integer has $O(\log K)$ bits.  Rejection reuses a fixed buffer, and
+its expected bit cost is polynomial.  This completes the construction.
+\end{proof}
+
+\begin{corollary}[Local cost of the online rule]
+\label{cor:online-local-cost}
+For a band in the edit-distance algorithm, the numerical mixture in
+Section~\ref{sec:bands} can be constructed and sampled with local
+expected bit cost $2^{o(H)}$, using only already gathered child values
+of earlier indices.  The storage used by this calculation is
+$2^{o(H)}$ words.
+\end{corollary}
+
+\begin{proof}
+At a wide-action endpoint there are $O(P+1)$ possible grid positions.
+Thus the full wide list has at most $(C(P+1))^{2M}$ members, for an
+absolute constant $C$, and the band is a sublist.  Also
+$d\le M(21P)^2$, so $G_0=H^{O(p_*+1)}$.
+For these vertices, use the common denominator $Mh_\Sigma$:
+every $Mh_i$ is an integer because the dyadic scales satisfy
+$h_i\ge b/M$ and $b\ge1$.  The guard $h_\Sigma\le64Fb$
+bounds this denominator's bit length by $O(H)$, without multiplying
+denominators across the action list.
+Lemma~\ref{lem:finite-optimizer} gives a polynomial number of bit
+operations in these quantities and in the bit length of each input
+rational.  The size bounds proved in Section~\ref{sec:work} make the last
+quantity $H^{O(p_*+1)}$ too.  The total is therefore at most
+\[
+ 2^{O(M(p_*+1)\ell)}H^{O(p_*+1)}=2^{o(H)},
+\]
+because $M\le H^{1/20}$, $\ell=\Theta(\log H)$, and
+$p_*+1=O((\log\ell)^{1/4}+1)$.
+The same bounds apply to storage, with a reused rejection buffer.
+Every list score and every numerical iteration uses the stored child
+inputs, rather than a new recursive calculation for each action.
+\end{proof}

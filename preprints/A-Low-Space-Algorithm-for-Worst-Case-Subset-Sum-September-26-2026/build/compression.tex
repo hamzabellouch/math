@@ -1,0 +1,268 @@
+\section{Compressing repeated sums}
+\label{sec:compression}
+
+The first trial applies when random blocks have many repeated subset
+sums. It retains only the distinct weights of seven disjoint blocks,
+uses those small lists to generate four larger groups, and joins the
+groups one residue class at a time. Because the domains are disjoint,
+we can forget which subset produced a retained weight. A hard
+capacity bounds memory; success requires only the residue class of
+one fixed solution to fit.
+
+This trial uses the classical stored-list and generated-stream
+viewpoint of Schroeppel and Shamir~\cite{SS81}. Its modular
+regeneration and overflow rule also belong to the dissection approach:
+Dinur, Dunkelman, Keller, and Shamir~\cite{DDKS12} developed the
+earlier framework under randomness assumptions, and Austrin, Kaski,
+Koivisto, and M\"a\"att\"a~\cite{AKKM13} adapted dissection to
+worst-case Subset Sum. The trial and its bounds here are proved
+directly, including the dependence on the input bit length.
+
+\subsection{Seven compacted blocks and four groups}
+
+Take the first $7s$ indices of a uniform random permutation and divide
+them into seven consecutive blocks $K_1,\ldots,K_7$ of size $s$.
+For each $i$, enumerate and sort all its subset sums, then compact
+repeated weights into a list $D_i$ of distinct actual weights.
+Continue only if every list has at most $2^a$ entries, where
+\begin{equation}
+\label{comp:block-cap}
+ a=\lfloor s-.0075n\rfloor.
+\end{equation}
+This preliminary enumeration stores at most $2^s$ weights at a time.
+The seven retained lists are stored separately.
+
+Of the remaining indices, give
+\[
+ r_R=\lfloor .05n\rfloor
+ \quad\text{to the right and}\quad
+ r_L=n-7s-r_R
+ \quad\text{to the left}.
+\]
+Choose these domains in their permutation order. Split the right raw
+domain into $V_{R1},V_{R2}$ of sizes $r_{R1},r_{R2}$ differing by
+at most one, and call the left raw domain $V_L$.
+All these sizes are nonnegative on sufficiently large main-branch
+inputs.
+
+For a domain $V$, write $\mathcal S(V)$ for its full list of indexed
+subset-sum occurrences, retaining repetitions. For two lists $A,D$
+write $A\oplus D$ for the list with one occurrence of weight $x+y$
+for each pair $(x,y)\in A\times D$. Table~\ref{tab:compression}
+specifies the four generated groups by their two stored lists.
+A group stream enumerates the pair sums of the two lists in its row.
+The eight stored lists use separate subdomains, and the four group
+domains partition the input indices.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+Group & Index domain & First stored list & Second stored list\\
+\midrule
+$\mathcal L_1$ & $K_5\cup K_6$ & $D_5$ & $D_6$\\
+$\mathcal L_2$ & $K_7\cup V_L$ & $D_7$ & $\mathcal S(V_L)$\\
+$\mathcal R_1$ & $K_1\cup K_2\cup V_{R1}$ & $D_1$
+ & $D_2\oplus\mathcal S(V_{R1})$\\
+$\mathcal R_2$ & $K_3\cup K_4\cup V_{R2}$ & $D_3$
+ & $D_4\oplus\mathcal S(V_{R2})$\\
+\bottomrule
+\end{tabular}
+\caption{The seven compacted block lists generate four groups. Each
+row is streamed from its two stored lists. The raw and product lists
+retain occurrences, while each $D_i$ retains only distinct weights.
+No two rows share an input index.}
+\label{tab:compression}
+\end{table}
+
+Sample $q$ uniformly from $\mathcal P_\ell$ with
+$\ell=\lfloor .249n\rfloor$. For each integer
+$z\in\{0,\ldots,q-1\}$, proceed as follows.
+\begin{enumerate}
+\item Generate $\mathcal L_1$ by its direct key modulo $q$ and
+$\mathcal L_2$ by its complementary key $z-\text{weight}$
+modulo $q$. Join equal keys using Lemma~\ref{lem:streams}, with
+$p=1$ and $P=q$. Insert each resulting actual total weight into
+a weight-only dictionary of capacity $C$.
+\item If this dictionary overflows, discard it and move to the next
+$z$. Otherwise retain its completed list of distinct weights.
+An empty completed dictionary may also be skipped.
+\item Generate and join $\mathcal R_1,\mathcal R_2$ in the same
+way, with target residue $t-z\pmod q$. For every resulting actual
+right weight $y$, search for $t-y$ in the left dictionary. A hit
+returns YES. Otherwise free the dictionary and continue the residue
+loop.
+\end{enumerate}
+A sampling failure also fails the trial. The bounded samplers and
+operation counter are those of Section~\ref{sec:implementation}.
+
+Every retained block weight has a subset witness in its block. The
+four group domains are disjoint, so any choices witnessing an exact
+left--right weight match combine into an indexed subset of weight
+$t$. Thus the trial has one-sided correctness. It need not retain
+witnesses or output them: its required output is the decision YES.
+
+\subsection{Work, space, and success}
+
+Let $\mu$ be the mean of $\defect(V)$ when $V$ is uniform among
+the size-$s$ domains of the given input. The algorithm never computes
+this mean. It runs this trial and the representation trial in the same
+round; the following hypothesis identifies the case in which this
+first trial supplies success.
+
+\begin{lemma}[Compressed-block trial]
+\label{lem:compressed}
+For sufficiently large main-branch inputs, the compressed-block trial
+uses at most $u^{15}2^{n/2}$ word operations on every random outcome,
+including bounded sampling, and uses
+$O(u(C+1)+B+2^s+2^{.14n})$ writable words. Every returned YES is
+correct. If the input is a YES instance and
+\begin{equation}
+\label{alg:high-deficiency}
+ \mu\ge .00765n,
+\end{equation}
+its success probability is bounded below by an absolute positive
+constant.
+\end{lemma}
+
+\begin{proof}
+First bound the stored and generated lists deterministically, assuming
+the seven size tests pass. To retain the effects of floors, put
+\[
+ \delta=.12n-s\in[0,4),\qquad
+ \epsilon=.05n-r_R\in[0,1).
+\]
+Then $r_L=.11n+7\delta+\epsilon$ and
+$a\le.1125n-\delta$. Each stored product list on the right
+has at most
+\[
+ 2^{a+\lceil r_R/2\rceil}\le 2^{.1375n+1/2}
+\]
+occurrences. The left raw list has at most $2^{.11n+29}$
+occurrences, and each $D_i$ has at most $2^{.1125n}$ entries.
+Hence every stored sublist in Table~\ref{tab:compression} has size
+at most $2^{.14n}$ for sufficiently large $n$.
+
+Let $N_{L1},N_{L2},N_{R1},N_{R2}$ denote the lengths of the four
+group streams, counting occurrences. Their direct product bounds are
+\[
+\begin{aligned}
+ N_{L1}&\le2^{2a}\le2^{.225n},&
+ N_{L2}&\le2^{a+r_L}\le2^{.2225n+25},\\
+ N_{Ri}&\le2^{2a+r_{Ri}}\le2^{.25n+1/2}
+ &&(i=1,2).
+\end{aligned}
+\]
+More importantly, the products that count complete combinations obey
+\begin{align}
+ N_{R1}N_{R2}
+ &\le2^{4a+r_R}
+ \le2^{.5n-4\delta-\epsilon}\le2^{n/2},
+ \label{comp:right-product}\\
+ N_{L1}N_{L2}
+ &\le2^{3a+r_L}
+ \le2^{.4475n+4\delta+\epsilon}
+ <2^{.4475n+17}.
+ \label{comp:left-product}
+\end{align}
+These count all combinations, not just distinct resulting weights.
+
+Each complete left combination has exactly one total residue modulo
+$q$, and each right combination has exactly one complementary
+residue $t-\text{weight}$. Across the whole residue loop, the
+number of potential Cartesian matches is consequently at most
+$N_{L1}N_{L2}+N_{R1}N_{R2}$. Overflow may stop a join partway, but
+Lemma~\ref{lem:streams} still charges it to this same potential
+count. Repeated weights therefore cause neither an uncounted replay
+cost nor a loss of a combination.
+
+Here is a concrete operation accounting. Generating an item, including
+its weight, uses at most $O(n^2)$ operations; comparison sorting and
+heap operations use $O(n)$ per item or advance; trie operations use
+$O(u)$ per key. The stream states for a group have $O(2^{.14n})$
+words and are therefore $O(B)$ for large $n$. Thus the match-dependent
+term in~\eqref{eq:tie-cost} has $O(n)$ overhead per potential match;
+its buffer and stream-length terms are charged separately below.
+We may even initialize $O(u(C+1))$ trie space afresh at each residue.
+If $A$ is the total number of stored sublist entries and
+$N=N_{L1}+N_{L2}+N_{R1}+N_{R2}$, all nonsampling work is bounded by
+\begin{equation}
+\label{comp:operation-ledger}
+ O\left(u^3\left[
+  2^s+A+q\bigl(N+B+u(C+1)+1\bigr)
+  +N_{L1}N_{L2}+N_{R1}N_{R2}\right]\right).
+\end{equation}
+The $2^s$ term pays the seven initial enumerations and compactions,
+the terms multiplied by $q$ pay regeneration and initialization, and
+the final two terms pay every potential match and dictionary action.
+The bound also covers a failed size test.
+
+Since $q<2^{.249n}$, the largest regenerated-stream exponent is
+$.249+.25=.499$. The buffer and dictionary initialization exponents
+are $.439$ and $.448$, respectively. Equations
+\eqref{comp:right-product}--\eqref{comp:left-product} bound the
+remaining products, so~\eqref{comp:operation-ledger} is
+$O(u^4 2^{n/2})$. A permutation uses at most $O(n^4)$ bounded
+range attempts and elementary operations, and the one prime search
+costs at most $\poly(n)2^{.129n}$ with the fixed elementary
+trial-division implementation of Lemma~\ref{lem:samplers}.
+In particular it is $O(n^4 2^{.129n})$. These smaller terms leave
+the total below $u^{15}2^{n/2}$ for sufficiently large $n$.
+This deterministic bound is below the trial cap; it does not assume
+any favorable bucket sizes or random events.
+
+For space, the initial enumerations use $O(2^s)$ words, the stored
+sublists and stream states use $O(2^{.14n})$, tie replay uses $O(B)$,
+and the one retained dictionary uses $O(u(C+1))$. Sorting needs only
+linear auxiliary arrays. The permutation and loop state are absorbed
+by these bounds. In particular, overflow enforces the space bound on
+every outcome.
+
+It remains to show that one solution bucket fits in the high-mean
+case. Each random $K_i$ is marginally a uniform size-$s$ domain;
+the seven blocks need not be independent. Lemma~\ref{lem:deficiency},
+Chebyshev's inequality, and a union bound give
+\[
+ \Pr\bigl[\defect(K_i)\ge .00755n
+             \text{ for all }i\bigr]=1-O(1/n)
+\]
+under~\eqref{alg:high-deficiency}. These inequalities imply
+$N(K_i)\le2^{s-.00755n}\le2^a$ for sufficiently large $n$,
+so all tests pass, including their floors.
+
+Fix an original solution before sampling the partition. Conditional
+on any passing partition, let $x$ be its left weight. There are fewer
+than $2^{.4475n+17}$ distinct left weights in all. For each different
+one $x'$, Lemma~\ref{lem:prime} and
+$\ell=\lfloor .249n\rfloor$ give
+\[
+ \Pr[x'\equiv x\pmod q]
+ \le 8u^2 2^{-\ell}\le u^3 2^{-.249n}
+\]
+for large $n$. By linearity of expectation, the number $Y$ of
+other distinct weights in $x$'s residue class satisfies
+\[
+ \mathbb E Y\le u^3 2^{.1985n+17}.
+\]
+Because $C\ge2^{.199n-1}$ and $\log u\le n/10^9$,
+\[
+ \frac{\mathbb E Y}{C}
+ \le 2^{(3/10^9-.0005)n+18}=o(1).
+\]
+Markov's inequality implies $Y+1\le C$ with probability tending
+to one. The complete dictionary in that residue then retains $x$,
+and the right solution weight produces a hit. Earlier residues can
+only produce an earlier correct YES or be skipped.
+
+This proves success with probability $1-o(1)$ in the ideal experiment.
+The permutation and prime draws have negligible total bounded-sampler
+coupling loss by Lemma~\ref{lem:samplers}; the deterministic work
+estimate prevents the operation counter from aborting a completed
+trial for sufficiently large $n$. Thus an absolute positive success
+probability remains for the implemented trial.
+\end{proof}
+
+Compression has now handled the case in which random blocks have few
+distinct sums. When $\mu<.00765n$, the next trial instead uses the
+many distinct sums to preserve a representation of a fixed solution
+through several modular filters.

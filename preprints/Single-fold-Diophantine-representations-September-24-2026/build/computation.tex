@@ -1,0 +1,371 @@
+\section{One witness for a halting computation}\label{sec:computation}
+
+Propositions~\ref{prop:power} and~\ref{prop:subset} provide single-fold
+definitions of powers and binary containment. We now use these relations to
+encode an entire computation by finitely many natural numbers. Determinism
+will determine the computation, and a clock will determine the size of the
+blocks used to encode it. Both features are needed: a fixed computation
+admits many encodings if its block size is left free.
+The method of recording register computations in a large power-of-two
+base comes from Jones and Matiyasevich's bit-masking construction
+\cite{jm1984}; see especially the exposition in
+\cite[Section~4]{jm1991}. Determining the base from the input and
+computation time already appears in Chaitin's account
+\cite[Sections~2.3 and~2.6]{chaitin1987}. Here a clock and a dyadic
+interval determine the base. We verify both the decoding of every
+solution and the uniqueness of its complete auxiliary tuple.
+
+\subsection{The machine model}
+
+A counter machine has a finite set of states, a distinguished initial state
+$q_*$, a distinguished halt state $h$, and finitely many counters with values
+in $\NN$. Every state other than $h$ has exactly one instruction of one of
+the following forms:
+\begin{itemize}
+\item $\operatorname{INC}(j)$: increase counter $j$ by one and go to a
+specified state;
+\item $\operatorname{TESTDEC}(j)$: if counter $j$ is zero, leave it zero and
+go to a specified state; otherwise decrease it by one and go to a second
+specified state.
+\end{itemize}
+The other counters remain unchanged. The halt state has no instruction.
+Thus every configuration outside $h$ has exactly one successor. Time counts
+individual instructions, including those used to implement a subroutine.
+This is the classical counter instruction set of
+Minsky~\cite[Theorem~Ia]{minsky1961}; register-machine formulations were
+also developed by Shepherdson and Sturgis
+\cite[Section~10, Result~10.3]{shepherdson1963}. We include the simulation needed
+for the direct tuple inputs used here, so no encoded-input convention is
+imported into the lemma.
+
+\begin{lemma}\label{lem:counter-universality}
+Let $n\geq 1$ and let $S\subseteq\NN^n$ be recursively enumerable. There
+is a counter machine that, when its first $n$ counters are initialized to
+$a_1,\ldots,a_n$ and its remaining counters to zero, reaches its halt state
+if and only if $\mathbf a\in S$.
+\end{lemma}
+
+\begin{proof}
+Choose a deterministic Turing machine that accepts precisely the unary
+input words
+$1^{a_1}\#\cdots1^{a_n}\#$ with $\mathbf a\in S$. Any rejecting terminal
+behavior can be replaced by an infinite loop, so only acceptance halts.
+We describe a simulation using the two instruction types above.
+
+Store the tape strictly to the left and strictly to the right of the
+current cell as two stacks; store the current symbol in the finite
+control. Give the finitely many tape symbols distinct digits
+$1,\ldots,q$, including a digit for the blank symbol, and put $D=q+1$.
+A stack with successive symbols $e_0,e_1,\ldots,e_{m-1}$, starting at its
+top, is stored as $\sum_{i<m}e_iD^i$. The empty stack is zero.
+Allocate distinct counters for the two stacks, the input coordinates,
+a scratch counter, and a counter that is always zero.
+
+To push digit $e$ onto a stack of value $v$, compute $Dv+e$.
+Repeatedly decrement the stack counter and, after each successful
+decrement, increment the initially zero scratch counter exactly $D$
+times. Transfer the scratch counter back by repeated decrements of it
+and increments of the stack counter; then perform $e$ increments.
+The scratch counter is again zero. All repetitions of a fixed length
+are implemented by finitely many states.
+
+To pop a nonempty stack, repeatedly decrement its counter, keeping the
+number of successful decrements modulo $D$ in the finite control, and
+increment the scratch counter after every $D$ successful decrements.
+When the stack counter reaches zero, the scratch counter contains the
+quotient by $D$ and the control contains the remainder. Transfer that
+quotient back to the stack counter. Its original least significant
+digit is nonzero, so the remainder gives the symbol popped. An empty
+stack returns a blank and stays empty. Again the scratch counter ends
+at zero. Moving the tape head pushes the written current symbol onto
+one stack and pops the other. Storing additional blank symbols causes
+no difficulty, since each finite computation uses finite stacks.
+
+Initialize the right stack by pushing the input word in reverse: for
+$i=n,n-1,\ldots,1$, push $\#$ and then push a $1$ for each successful
+decrement of input counter $i$. Pop once to obtain the initial current
+symbol; the left stack is empty. A zero test on the counter that is
+always zero implements an unconditional jump. Every subroutine uses
+finitely many states; duplicating these states supplies its finitely
+many required return destinations. This gives a deterministic counter
+machine with a sole halt state reached exactly on acceptance.
+\end{proof}
+
+Fix such a machine for the remainder of the construction. Write $r$ for
+its number of counters and $s$ for its number of states. Its initial
+counter values are $d_1,\ldots,d_r$, where each $d_j$ is an input
+coordinate or zero. In the proof below it is harmless to allow any fixed
+list of such initial values. Put
+\begin{equation}\label{eq:machine-C}
+ C=1+s+\sum_{j=1}^r d_j.
+\end{equation}
+The symbol $C$ denotes this expression, not an additional choice.
+At time $t$ in any run, counter $j$ has value at most $d_j+t<C+t$,
+since an instruction increases a counter by at most one. A clock with
+value $C+t$ will therefore give a common bound for the counter values.
+
+Regard an increment instruction as one directed arc, labeled $+j$.
+Regard a test-decrement instruction as two directed arcs, labeled
+$0j$ and $-j$. Each arc retains its specified destination. Let
+$\mathcal A$ be this finite set of arcs, and let
+$\mathcal A_j^+$ and $\mathcal A_j^-$ denote those labeled $+j$ and
+$-j$, respectively. The halt state has no outgoing arc, and
+$|\mathcal A|\leq 2s$.
+
+\subsection{A finite system for the run}
+
+\begin{proposition}\label{prop:machine-compiler}
+Fix $n\ge1$ and a deterministic counter machine with finitely many states
+and counters, instructions $\operatorname{INC}$ and $\operatorname{TESTDEC}$,
+and one halt state. Initialize each counter by a fixed choice of an input
+coordinate $a_i$ or zero. There is a finite system of integer polynomial
+equations in $a\in\NN^n$ and natural auxiliary variables such that, for
+every input $a$, the complete auxiliary tuple has exactly one solution
+when the initialized machine halts, and no solution when it does not halt.
+\end{proposition}
+
+We first give the system using the single-fold relations $\Pow$ and
+$\bits$. Every occurrence is a separate call with fresh auxiliary
+variables, as in Section~\ref{sec:conventions}. Inequalities use the unique
+slacks from that section. All sets indexing the displayed constraints
+are fixed finite sets of states, arcs, or counters.
+
+Introduce natural variables $w,B,b,k,H,J,M$ and require
+\begin{align}
+ &\Pow(2,w,B),\qquad B=4b,\qquad B>2C,\qquad k>0,
+       \qquad\Pow(B,k,H),\label{eq:machine-base}\\
+ &BJ=H,\qquad (B-1)M=H-1.\label{eq:machine-geometric}
+\end{align}
+These equations force
+\begin{equation}\label{eq:machine-JM}
+ B=2^w,\qquad J=B^{k-1},\qquad M=\sum_{t=0}^{k-1}B^t.
+\end{equation}
+The intended run has $k$ configurations, at times $0,\ldots,k-1$.
+In its base-$B$ encodings, each time occupies one block of $w$ binary
+digits. The number $M$ has a single $1$ in the lowest position of each
+block.
+Multiplication by $B$ shifts each block from time $t$ to time $t+1$.
+The transition equations below use this shift to place a selected arc's
+destination and its counter update in the next configuration.
+
+For every state $q$, introduce $I_q$ and impose
+\begin{equation}\label{eq:machine-state-partition}
+ I_q\bits M,\qquad \sum_q I_q=M.
+\end{equation}
+The intended meaning is that the base-$B$ digit of $I_q$ at time $t$
+is one exactly when the machine is in state $q$. For every test state
+$q$, introduce $Z_q,N_q,V_q$ and impose
+\begin{equation}\label{eq:machine-test-partition}
+ Z_q\bits I_q,\qquad N_q\bits I_q,\qquad
+ Z_q+N_q=I_q,\qquad Z_q+V_q=M.
+\end{equation}
+Here $Z_q$ records zero branches, $N_q$ records decrement branches, and
+$V_q$ records the complement of the zero-branch times.
+Define the arc expression $E_a$ to be $I_q$ for an increment arc from
+$q$, and $Z_q$ or $N_q$ for the corresponding arc from a test state $q$.
+These are expressions in existing variables. For every state impose
+\begin{equation}\label{eq:machine-state-transition}
+ I_q=\mathbf 1_{q=q_*}
+       +B\sum_{\substack{a\in\mathcal A\\\operatorname{dest}(a)=q}}E_a.
+\end{equation}
+The coefficient $\mathbf 1_{q=q_*}$ is the fixed integer zero or one.
+
+Counter digits will use only the lowest $w-1$ bits of each block,
+so their values lie between zero and $B/2-1=2b-1$.
+Reserving the top bit will let the decoding proof exclude signed
+carries in the counter updates, which include subtraction.
+For each counter $j=1,\ldots,r$, introduce $R_j,\rho_j,\eta_j$ and impose
+\begin{align}
+ &R_j\bits (2b-1)M,\qquad R_j=\rho_jJ+\eta_j,
+       \qquad\eta_j<J,\label{eq:machine-counter-bound}\\
+ &R_j=d_j+B\left(R_j-\rho_jJ+
+       \sum_{a\in\mathcal A_j^+}E_a-
+       \sum_{a\in\mathcal A_j^-}E_a\right).
+       \label{eq:machine-counter-transition}
+\end{align}
+For every test state $q$ operating on counter $j$, additionally require
+\begin{equation}\label{eq:machine-zero-test}
+ R_j\bits (B-1)V_q.
+\end{equation}
+The intended base-$B$ digits of $R_j$ are the successive values of the
+counter. The quotient $\rho_j$ is its final value. Removing $\rho_jJ$
+before multiplying by $B$ makes the recurrence stop at the final time.
+The mask $(B-1)V_q$ has a zero block at each time selected by $Z_q$
+and has all $w$ binary digits equal to one in every other time block.
+Thus the containment condition forces the tested counter to vanish at
+the selected times.
+
+Finally introduce $R_0,\rho_0,\eta_0$ for a clock and impose
+\begin{align}
+ &R_0\bits(2b-1)M,\qquad R_0=\rho_0J+\eta_0,
+       \qquad\eta_0<J,\label{eq:machine-clock-bound}\\
+ &R_0=C+B(R_0-\rho_0J+M-J),\label{eq:machine-clock-update}\\
+ &b\leq\rho_0,\qquad 2\rho_0<B.\label{eq:machine-clock-scale}
+\end{align}
+Its intended value at time $t$ is $C+t$. The last two inequalities put
+its final value in $[B/4,B/2)$; this leaves room for all counter digits
+and will select exactly one power-of-two base. We now prove that every
+solution has these intended meanings, and that every halting run supplies
+a solution.
+
+\begin{proof}[Proof of Proposition~\ref{prop:machine-compiler}]
+\emph{States and the final halt.}
+Take any solution. Since $B>2C$ and $C\geq 1+s$, we have $B>2s$;
+also $B=4b\geq 4$. By \eqref{eq:machine-JM}, binary containment in $M$
+means that every base-$B$ digit of $I_q$ is zero or one, with no
+nonzero digits outside times $0,\ldots,k-1$. The sum in
+\eqref{eq:machine-state-partition} has at most $s<B$ in each digit,
+so it has no carries. Thus exactly one state is present at each time.
+Similarly, \eqref{eq:machine-test-partition} partitions the times of
+each test state into its two branches. Consequently a nonhalt state
+has exactly one selected outgoing arc, and the halt state has none.
+
+The digit sums on the right of
+\eqref{eq:machine-state-transition} are at most
+$|\mathcal A|<B$. Hence those equations also have no carries. They
+give state $q_*$ at time zero, and at every later time they give the
+destination of the selected arc at the preceding time. The halt mask
+has an exact form. Each nonhalt state occurrence selects one arc, so
+$\sum_{a\in\mathcal A}E_a=M-I_h$. Summing the state equations gives
+\[
+ M=1+B(M-I_h),\qquad
+ BI_h=1+(B-1)M=H=BJ.
+\]
+Thus $I_h=J$: the halt state occurs precisely at time $k-1$.
+There is exactly one selected arc at each time $t<k-1$, and none
+at the final time. This also excludes earlier halts and padded records.
+
+\emph{Counter values and zero tests.}
+Since $B=2^w=4b$, the integer
+$(2b-1)M=(B/2-1)M$ allows exactly the lowest $w-1$ bits of each
+block. Thus we can write uniquely
+\begin{equation}\label{eq:machine-counter-digits}
+ R_j=\sum_{t=0}^{k-1}r_{j,t}B^t,
+ \qquad 0\leq r_{j,t}\leq B/2-1.
+\end{equation}
+Division by $J=B^{k-1}$ gives $\rho_j=r_{j,k-1}$ and determines
+$\eta_j$ uniquely. Let $a_{j,t}$ and $f_{j,t}$ indicate whether the
+selected arc at time $t$ increments or decrements counter $j$.
+They belong to $\{0,1\}$, never both equal one, and are both zero
+at the final time.
+
+Expand \eqref{eq:machine-counter-transition} using these digits.
+The coefficient of $B^0$ in the resulting signed sum is
+$r_{j,0}-d_j$. For $1\leq t<k$ it is
+\begin{equation}\label{eq:machine-signed-coefficient}
+ r_{j,t}-r_{j,t-1}-a_{j,t-1}+f_{j,t-1}.
+\end{equation}
+There are no higher coefficients: the final digit of $R_j$ was
+removed, and no final arc was selected. The constant coefficient has
+absolute value less than $B$, because $d_j<C<B/2$; every coefficient
+in \eqref{eq:machine-signed-coefficient} has absolute value at most
+$B/2<B$. An integer sum $\sum_{t=0}^{k-1}c_tB^t=0$ with
+$|c_t|<B$ has every $c_t=0$: reduce modulo $B$, use that the only
+multiple of $B$ in $(-B,B)$ is zero, divide by $B$, and repeat.
+It follows that
+\begin{equation}\label{eq:machine-actual-update}
+ r_{j,0}=d_j,\qquad
+ r_{j,t+1}=r_{j,t}+a_{j,t}-f_{j,t}\quad(0\leq t<k-1).
+\end{equation}
+This argument rules out borrowing as well as carrying.
+
+Since $Z_q$ selects some of the ones of $M$, the equation
+$V_q=M-Z_q$ gives base-$B$ digit zero at its zero-branch times and
+one at all other times. Thus $(B-1)V_q$ allows every bit in a block
+except at those zero-branch times, where it allows none.
+Condition~\eqref{eq:machine-zero-test} forces the tested counter
+to be zero whenever the zero branch is selected. On a decrement
+branch, \eqref{eq:machine-actual-update} and nonnegativity of the
+next digit force the tested counter to be positive. Hence every
+test and every update is a valid machine instruction.
+
+\emph{The clock and the block size.}
+Apply the same coefficient argument to the clock. In
+\eqref{eq:machine-clock-update}, the expression $M-J$ has digit
+one exactly at times $t<k-1$. Its digit recurrence is therefore
+$r_{0,0}=C$ and $r_{0,t+1}=r_{0,t}+1$. In particular,
+\begin{equation}\label{eq:machine-clock-value}
+ \rho_0=C+k-1.
+\end{equation}
+The state and counter arguments show that the encoded configurations
+form the actual deterministic run from the specified initialization,
+and that it first reaches $h$ at time $k-1$. If the machine does not
+halt, no solution exists. If it halts after $T$ instructions, then
+$k=T+1$ is forced. Conditions~\eqref{eq:machine-clock-scale} become
+\begin{equation}\label{eq:machine-unique-scale}
+ 2(C+T)<B\leq4(C+T).
+\end{equation}
+For every positive integer $L$, the interval $(2L,4L]$ contains
+exactly one power of two: take the smallest power strictly greater
+than $2L$, whose predecessor is at most $2L$. Its successor exceeds
+$4L$. Thus \eqref{eq:machine-unique-scale} determines $B$ uniquely,
+including when an endpoint is a power of two.
+
+\emph{Existence from a halting run.}
+Suppose the initialized machine halts after $T$ instructions. Set
+$k=T+1$ and choose the unique power of two $B$ in
+\eqref{eq:machine-unique-scale}. Since $C\geq2$, we have $B>4$,
+so $B$ is divisible by four. Set $b=B/4$, choose the unique exponent
+$w$ with $B=2^w$, set $H=B^k$, and use
+\eqref{eq:machine-JM} to define $J,M$.
+At time $t\leq T$ each counter has value at most $d_j+t$, because
+one instruction increases a counter by at most one. Hence its value
+is at most $\sum_jd_j+T<C+T<B/2$. The clock values $C+t$ also
+are less than $B/2$. Form $R_j$ and $R_0$ from these digits, and
+form the state and branch masks from the actual run.
+
+All state equations follow from the transitions. The zero-test
+constraints follow from the zero branches. Summing the actual
+counter updates gives \eqref{eq:machine-counter-transition},
+with the final digit removed before shifting; summing the clock
+updates gives \eqref{eq:machine-clock-update}. The remaining
+inequalities follow from \eqref{eq:machine-unique-scale}.
+Every power and binary-containment call is true on these arguments
+and therefore has its required unique auxiliary tuple.
+This also handles $T=0$: then $q_*=h$, $k=1$, $J=M=1$,
+all arc masks vanish, and every update sum is empty.
+
+\emph{Uniqueness of the complete tuple.}
+In any solution, the deterministic run fixes $T$, every state,
+every selected branch, and every counter value. It therefore fixes
+$k$; the clock inequalities then fix $B$, and hence $w,b,H,J,M$.
+The run fixes all $I_q,Z_q,N_q,R_j,R_0$, while
+$V_q=M-Z_q$ fixes every $V_q$. Division by the positive $J$
+fixes every $\rho_j,\eta_j$, including the clock pair.
+These are all the displayed variables. Each introduced argument
+variable is equal to an already determined polynomial expression;
+every inequality slack is determined by its endpoints. Finally,
+Propositions~\ref{prop:power} and~\ref{prop:subset} determine
+all auxiliary variables in every expanded call. Their internal
+case selectors and inactive variables are included in that
+guarantee. Thus uniqueness holds for the complete tuple, not only
+for the numbers recording the run.
+\end{proof}
+
+\subsection{The resulting polynomial}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Given the recursively enumerable set $S\subseteq\NN^n$, choose the
+machine of Lemma~\ref{lem:counter-universality} and apply
+Proposition~\ref{prop:machine-compiler}. Expand each call to a
+single-fold relation into its finite polynomial system, using fresh
+auxiliary variables, and expand all inequalities and disjoint cases
+according to Section~\ref{sec:conventions}.
+The number of equations and variables is finite: the machine is
+fixed, its state and counter sets are finite, and each relation call
+has a fixed finite definition. The time parameter $k$ is one natural
+variable; the digit expansions used in the proof introduce no
+additional variables indexed by its value.
+
+Write the resulting integer polynomial equations as
+$F_1(\mathbf a,\mathbf z)=\cdots=F_N(\mathbf a,\mathbf z)=0$,
+where $\mathbf z$ includes every auxiliary coordinate, and set
+\[
+ P(\mathbf a,\mathbf z)=\sum_{i=1}^N F_i(\mathbf a,\mathbf z)^2.
+\]
+On natural tuples, $P=0$ is equivalent to the simultaneous
+vanishing of all $F_i$. This operation introduces no variables and
+preserves the solution set exactly. By the compiler proposition,
+that set has one element when $\mathbf a\in S$ and is empty
+otherwise, as asserted.
+\end{proof}

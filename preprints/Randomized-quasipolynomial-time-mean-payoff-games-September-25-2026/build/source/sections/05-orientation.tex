@@ -1,0 +1,698 @@
+\section{The orientation guarantee}
+\label{sec:orientation}
+
+The solver uses an orientation to choose which boundary to truncate.
+Choice \(Z\) lowers the upper bound and can exclude a subsolution;
+choice \(Y\) raises the lower bound and can exclude a supersolution.
+The alternative below applies when a fixed comparison has sufficiently
+heavy support near the affected boundary: with high probability, the
+procedure either chooses the other direction or returns a set on which
+that support is concentrated enough for reweighting.
+Section~\ref{sec:solving} shows that tightening ensures this hypothesis
+whenever truncation threatens the comparison.
+
+Fix an integer rank \(r\geq1\). Throughout this section, assume
+Equation~\eqref{eq:comparison-guarantees} for every \(\Solve\) input of
+rank less than \(r\), and consider \(\Orient\) inputs of rank \(r\).
+The support parameters remain unchanged in an orientation's recursive
+call, so that call retains rank \(r\). We prove its guarantee by
+induction on the reference width. Calls from the center loop to
+\(\Ask\), on the other hand, reduce rank and may use the assumed
+comparison guarantees. As in Equation~\eqref{eq:global-parameters}, write
+\[
+  \varepsilon=2^{-J}.
+\]
+This error parameter is used only in the proof.
+
+For a box \([a,b]\) with reference width \(B\), define the extreme
+cores of a subsolution \(y\) and a supersolution \(z\) by
+\begin{equation}
+\label{eq:orientation-cores}
+  I_y=\{i:y_i\geq a_i+B-hB\},
+  \qquad
+  I_z=\{i:z_i\leq b_i-B+hB\}.
+\end{equation}
+The inequalities \(B>0\) and \(h<1\) imply
+\(I_y\subseteq S_y\) and \(I_z\subseteq S_z\).
+
+\begin{proposition}[Orientation]
+\label{prop:orientation}
+Assume the lower-rank comparison guarantees stated at the beginning of
+this section. On a fixed permitted input
+\((a,b;B,\alpha,\beta,k,m)\) of rank \(r\), let
+\((\chi,\mathcal H)\) be the output of \(\Orient\).
+For every fixed admissible subsolution \(y\) of \([a,b]\) whose core
+in Equation~\eqref{eq:orientation-cores} satisfies
+\(\alpha(I_y)>\eta k\),
+\begin{equation}
+\label{ori:positive-alternative}
+  \Pr\left(
+     \chi=Y
+     \ \text{or}\
+     \exists H\in\mathcal H:
+          \alpha(S_y\cap H)>\eta k
+  \right)\geq 1-\frac1{16}.
+\end{equation}
+Separately, for every fixed admissible supersolution \(z\) of
+\([a,b]\) with \(\beta(I_z)>\eta m\),
+\begin{equation}
+\label{ori:negative-alternative}
+  \Pr\left(
+     \chi=Z
+     \ \text{or}\
+     \exists H\in\mathcal H:
+          \beta(S_z\cap H)>\eta m
+  \right)\geq 1-\frac1{16}.
+\end{equation}
+On every tape, every set in \(\mathcal H\) has \(\mu\)-measure at
+most \(1/2\). Each probability statement remains valid conditional
+on a pre-call history that fixes its input and qualifying comparison,
+when the call uses fresh random bits.
+\end{proposition}
+
+The two assertions are separate pointwise guarantees: they do not
+require one event that works for all comparisons. Every returned set
+\(H\) has \(\mu\)-measure at most \(1/2\), so a heavy support
+intersection is exactly what Lemma~\ref{lem:reweighting} needs to
+preserve the comparison while decreasing rank. We first prove the
+proposition for one orientation trial, then amplify its alternative
+for \(\OrientPlus\).
+
+The proof follows the deviation of a fixed comparison from the centers
+produced by the procedure. Reliable lower-rank comparisons make this
+deviation nonincreasing. Whenever the projected support meets the
+reduced budget, both tests qualify and force a definite decrease.
+Many such times move the entire extreme core into a recorded
+displacement set. If few times qualify, a fresh sampled center usually
+has a heavy projected support; we will place that support in the
+extreme core of the smaller recursive box. The next lemmas establish
+these two routes before the width-induction proof.
+
+\subsection{Whole-vector amplification}
+
+\begin{lemma}[Amplified comparisons]
+\label{lem:ask-amplification}
+Let \(\Ask\) have an input of rank less than \(r\), and let \(p\) be
+its returned vector. For each fixed admissible subsolution \(y\) of its
+input box, and separately for each fixed admissible supersolution \(z\),
+\[
+  \Pr(p\not\geq y)\leq\varepsilon,
+  \qquad
+  \Pr(p\not\leq z)\leq\varepsilon.
+\]
+Both conclusions also hold conditional on any pre-call history that
+determines the input and the indicated admissible comparison, provided
+the call uses fresh randomness.
+\end{lemma}
+
+\begin{proof}
+Fix the input and \(y\). Count a trial as successful only when its
+entire output dominates \(y\). If a strict majority of the \(J\)
+trials succeeds, then at each coordinate a strict majority of the
+entries is at least the corresponding coordinate of \(y\). The
+coordinatewise median therefore dominates \(y\).
+Consequently its failure requires at least
+\(t=(J+1)/2\) unsuccessful trials. The lower-rank hypothesis and
+independence bound the probability that any specified \(t\) trials
+all fail by \(16^{-t}\). Taking a union bound over at most \(2^J\)
+choices of such trials gives
+\[
+  \Pr(p\not\geq y)
+  \leq 2^J16^{-t}
+  \leq 2^J16^{-J/2}
+  =2^{-J}.
+\]
+For a fixed \(z\), count a trial as successful when its entire output
+is at most \(z\). A strict majority of these trials places the median
+below \(z\) in every coordinate, and the same count proves its bound.
+
+To apply either argument conditionally, first fix the history preceding
+the call. It specifies a deterministic input and a deterministic
+comparison. Whenever that comparison is admissible for the specified
+input, the fresh independent trial bits give exactly the experiment
+just analyzed. Averaging these conditional bounds gives the
+unconditional assertion. The proof uses whole-vector trial events;
+it requires neither independence among coordinates nor an event valid
+simultaneously for different comparison vectors.
+\end{proof}
+
+\subsection{Geometry of the centers and projections}
+
+The loop tests comparisons in boxes of radius \(D\); a recursive
+orientation call uses the larger radius \(E_0\). Both projections
+must be admissible, and the support tested at radius \(D\) must lie
+in the extreme core of the radius-\(E_0\) box. The next estimates
+supply these facts: the deviations are large enough for both projections, and the
+boundary layer of the larger box is at least \(2D\) wide. Only a
+nonempty core is needed here, and the estimates hold on every tape.
+
+\begin{lemma}[Center estimates]
+\label{ori:center-estimates}
+Let \(B>128s\), and let \(q_0,\ldots,q_s\) be the centers in
+Step~\ref{alg:orient-loop} of \(\Orient\). Put
+\[
+  D=\left\lfloor\frac{B}{32s}\right\rfloor,
+  \qquad
+  E_0=\left\lfloor\frac B8\right\rfloor.
+\]
+Then \(q_j\in[a,b]\) and
+\(\lvert q_{j+1,i}-q_{j,i}\rvert\leq D\) for every applicable
+\(i,j\), on every random tape. Moreover,
+\begin{equation}
+\label{ori:radius-estimates}
+  D\geq\frac{B}{64s}>0,
+  \qquad
+  sD\leq E_0,
+  \qquad
+  2D\leq h(2E_0).
+\end{equation}
+For a subsolution \(y\) with \(I_y\ne\varnothing\), set
+\(d_j=\max_i(y_i-q_{j,i})\). Then
+\begin{align}
+  d_j&\geq B/2-hB-sD-1\geq 2E_0
+       &&(0\leq j\leq s), \label{ori:positive-deviation}\\
+  d_0-(y_i-q_{0,i})&\leq hB+1
+       &&(i\in I_y). \label{ori:positive-deficit}
+\end{align}
+For a supersolution \(z\) with \(I_z\ne\varnothing\), set
+\(e_j=\max_i(q_{j,i}-z_i)\). Then
+\begin{align}
+  e_j&\geq B/2-hB-sD-1\geq 2E_0
+       &&(0\leq j\leq s), \label{ori:negative-deviation}\\
+  e_0-(q_{0,i}-z_i)&\leq hB+1
+       &&(i\in I_z). \label{ori:negative-deficit}
+\end{align}
+The coordinate widths may be unequal and may be zero.
+\end{lemma}
+
+\begin{proof}
+The output-type assertion of Proposition~\ref{prop:termination} puts
+both answers at time \(j\), and therefore their floored average,
+in \([q_j-D,q_j+D]\). Since \(q_j\in[a,b]\), clipping that average
+to \([a,b]\) cannot move a coordinate farther from \(q_j\).
+Starting with \(q_0\in[a,b]\), induction proves containment and
+the step bound without any comparison-success assumption.
+
+For the radius estimates, \(B/(32s)>4\), so its floor is at least
+half its value. Also,
+\[
+  sD\leq \frac{B}{32}
+       \leq \frac B8-1
+       \leq E_0.
+\]
+Here \(B>128s\) and the global bound \(s\geq16\) justify the
+middle inequality. Dividing the resulting inequality \(sD\leq E_0\)
+by \(s\) gives the last inequality in
+Equation~\eqref{ori:radius-estimates}.
+
+To compare a core coordinate with the initial center, write
+\(\ell_i=b_i-a_i\). Then \(0\leq\ell_i\leq B\) and
+\[
+  q_{0,i}=a_i+\left\lfloor\frac{\ell_i}{2}\right\rfloor.
+\]
+On the subsolution side, \(y_i\leq b_i\) implies
+\[
+  d_0\leq\max_i\left\lceil\frac{\ell_i}{2}\right\rceil
+      \leq\left\lceil\frac B2\right\rceil.
+\]
+A coordinate of the high core, however, satisfies
+\[
+  y_i-q_{0,i}
+  \geq B-hB-\left\lfloor\frac{\ell_i}{2}\right\rfloor
+  \geq \frac B2-hB.
+\]
+The difference between these two bounds is at most \(hB+1/2\),
+which proves Equation~\eqref{ori:positive-deficit}. During the loop
+each coordinate moves by at most \(sD\) in total. Keeping any one
+high-core coordinate in the maximum defining \(d_j\) therefore gives
+\(d_j\geq B/2-hB-sD\), and in particular the first inequality of
+Equation~\eqref{ori:positive-deviation}.
+
+For the supersolution, \(z_i\geq a_i\) instead gives
+\[
+  e_0\leq\max_i\left\lfloor\frac{\ell_i}{2}\right\rfloor
+      \leq\left\lfloor\frac B2\right\rfloor.
+\]
+At a coordinate in the low core,
+\[
+  q_{0,i}-z_i
+  \geq B-hB-\left\lceil\frac{\ell_i}{2}\right\rceil
+  \geq \frac B2-hB-\frac12.
+\]
+This proves the initial-deficit bound
+\eqref{ori:negative-deficit}. Subtracting the possible movement
+\(sD\) proves the first inequality in
+Equation~\eqref{ori:negative-deviation}.
+
+It remains to place both deviations above the child-box width. Using
+\(sD\leq B/32\) and \(2E_0\leq B/4\), we obtain
+\[
+  \left(\frac B2-hB-sD-1\right)-2E_0
+  \geq B\left(\frac7{32}-\frac1s\right)-1
+  >0.
+\]
+The final inequality follows from \(s\geq16\) and \(B>128s\).
+It completes both deviation estimates.
+\end{proof}
+
+These estimates let us use the centered projections from
+Lemma~\ref{lem:center-projections} at both radii needed by the
+algorithm: \(D\) in the loop and \(E_0\) in the recursive call.
+Whenever the corresponding core is nonempty, denote these projections by
+\begin{equation}
+\label{ori:projected-comparisons}
+  y^{j,A}=\max(y-d_j+A,q_j-A),
+  \qquad
+  z^{j,A}=\min(z+e_j-A,q_j+A).
+\end{equation}
+For \(A\in\{D,E_0\}\), they are comparisons in
+\([q_j-A,q_j+A]\), with exact supports
+\begin{equation}
+\label{ori:projected-supports}
+  S_{y^{j,A}}=\{i:y_i-q_{j,i}>d_j-2A\}\subseteq S_y,
+  \qquad
+  S_{z^{j,A}}=\{i:q_{j,i}-z_i>e_j-2A\}\subseteq S_z.
+\end{equation}
+Thus each projection keeps the parent's admissibility under unchanged
+support weights and budget. The argument uses \(q_j\in[a,b]\) and
+the deviation lower bounds; it does not require the centered child
+box to be contained in \([a,b]\).
+
+\subsection{Reduced budgets force a decrease in deviation}
+
+Consider one of these fixed admissible comparisons. At each time its
+projection qualifies for the \(\Ask\) call that retains its own
+budget. Sometimes it also qualifies for the call that reduces that
+budget. We call those times \emph{light}, referring to the weight of
+the projected support. For \(y\), the condition is
+\begin{equation}
+\label{ori:bad-positive}
+  \alpha\bigl(\{i:y_i-q_{j,i}>d_j-2D\}\bigr)\leq\eta k.
+\end{equation}
+For \(z\), it is
+\begin{equation}
+\label{ori:bad-negative}
+  \beta\bigl(\{i:q_{j,i}-z_i>e_j-2D\}\bigr)\leq\eta m.
+\end{equation}
+These conditions are defined separately for the two comparisons.
+Each is determined by the history before the two calls at time \(j\).
+We next show why a light time forces progress for its fixed comparison.
+
+\begin{lemma}[Deviation drops]
+\label{ori:deviation-drops}
+For each fixed admissible subsolution \(y\) with nonempty high core,
+with probability at least \(1-2s\varepsilon\) every loop step satisfies
+\[
+  d_{j+1}\leq d_j,
+  \qquad
+  d_{j+1}\leq d_j-D\quad\hbox{at every light time for \(y\)}.
+\]
+Separately, for each fixed admissible supersolution \(z\) with nonempty
+low core, with probability at least \(1-2s\varepsilon\) every step satisfies
+\[
+  e_{j+1}\leq e_j,
+  \qquad
+  e_{j+1}\leq e_j-D\quad\hbox{at every light time for \(z\)}.
+\]
+\end{lemma}
+
+\begin{proof}
+We first work with \(y\) and condition on the history before time
+\(j\). The projection \(y^{j,D}\) is now fixed and is admissible
+for the second call, which retains the subsolution budget \(k\) and
+reduces \(m\). This call has rank less than \(r\), so
+Lemma~\ref{lem:ask-amplification} gives, with conditional error at
+most \(\varepsilon\),
+\[
+  r_2\geq y^{j,D}\geq y-d_j+D.
+\]
+The first answer satisfies, without a correctness assumption,
+\[
+  r_1\geq q_j-D\geq y-d_j-D.
+\]
+Averaging gives the integer lower bound \(y-d_j\), which is preserved
+by flooring. Since \(b\geq y\geq y-d_j\), upper clipping preserves
+it as well; lower clipping can only help. Thus the next center obeys
+\(q_{j+1}\geq y-d_j\), equivalently \(d_{j+1}\leq d_j\).
+
+At a light time, the exact support formula
+\eqref{ori:projected-supports} and the qualification
+\eqref{ori:bad-positive} also make \(y^{j,D}\) admissible for the
+first call, whose budget is \(\eta k\). Allowing one more conditional
+error of at most \(\varepsilon\), both answers are at least
+\(y-d_j+D\). Their floored average retains this integer lower bound.
+Furthermore, \(d_j\geq2E_0\geq2D\), so
+\(y-d_j+D\leq y\leq b\); clipping also retains it. This yields
+\(q_{j+1}\geq y-d_j+D\), or \(d_{j+1}\leq d_j-D\).
+
+For the separate supersolution argument, condition on the same kind
+of pre-step history. The first call retains the full supersolution
+budget, so its comparison with \(z^{j,D}\) gives, except with
+conditional probability \(\varepsilon\),
+\[
+  r_1\leq z^{j,D}\leq z+e_j-D.
+\]
+The second answer always satisfies
+\[
+  r_2\leq q_j+D\leq z+e_j+D.
+\]
+Their average is at most \(z+e_j\), and flooring preserves an upper
+bound. Lower clipping preserves it because
+\(a\leq z\leq z+e_j\); upper clipping can only help. We obtain
+\(q_{j+1}\leq z+e_j\) and therefore \(e_{j+1}\leq e_j\).
+
+At a light time for \(z\), Equation~\eqref{ori:bad-negative} lets
+us request the comparison with \(z^{j,D}\) from the second call too.
+With one additional conditional error of at most \(\varepsilon\),
+both answers are at most \(z+e_j-D\). Flooring respects this bound,
+and \(e_j\geq2D\) gives \(z+e_j-D\geq z\geq a\), so lower
+clipping respects it. Hence \(e_{j+1}\leq e_j-D\).
+
+For either chosen side, at most two amplified comparisons are requested
+per step. The comparison vector and any reduced-budget qualification
+are determined before the appropriate fresh call. Applying the
+conditional assertion of Lemma~\ref{lem:ask-amplification} and summing
+over the \(s\) steps bounds the chance of any required failure by
+\(2s\varepsilon\).
+\end{proof}
+
+The decrease in maximum deviation translates into displacement of every
+coordinate in the extreme core, because the initial deficits on that
+core are bounded. Recall the algorithm's two displacement sets:
+\[
+  P=\{i:q_{s,i}-q_{0,i}>2hB\},
+  \qquad
+  N=\{i:q_{s,i}-q_{0,i}<-2hB\}.
+\]
+
+\begin{lemma}[Core displacement]
+\label{ori:core-displacement}
+On the subsolution event of Lemma~\ref{ori:deviation-drops},
+\(I_y\cap N=\varnothing\); if there are more than \(256\) light
+times for \(y\), then \(I_y\subseteq P\).
+On the separate supersolution event,
+\(I_z\cap P=\varnothing\); more than \(256\) light times for \(z\)
+imply \(I_z\subseteq N\).
+\end{lemma}
+
+\begin{proof}
+For \(i\in I_y\), compare the definition of \(d_s\) with the
+initial-deficit estimate \eqref{ori:positive-deficit}:
+\begin{align*}
+  q_{s,i}-q_{0,i}
+  &\geq y_i-d_s-q_{0,i}\\
+  &=(d_0-d_s)-\bigl(d_0-(y_i-q_{0,i})\bigr)\\
+  &\geq(d_0-d_s)-(hB+1).
+\end{align*}
+On the stipulated event, \(d_0-d_s\geq0\). Since \(hB=B/s>128\),
+the last expression is greater than \(-2hB\), excluding \(N\).
+More than \(256\) light times means at least \(257\) drops, and gives
+\[
+  d_0-d_s\geq257D\geq\frac{257}{64}hB.
+\]
+Substituting this stronger bound yields
+\[
+  q_{s,i}-q_{0,i}-2hB
+  \geq \left(\frac{257}{64}-3\right)hB-1
+  =\frac{65}{64}hB-1
+  >0.
+\]
+The strict inequality is exactly what is needed for \(i\in P\).
+
+For \(i\in I_z\), use \eqref{ori:negative-deficit} to get
+\begin{align*}
+  q_{s,i}-q_{0,i}
+  &\leq z_i+e_s-q_{0,i}\\
+  &=\bigl(e_0-(q_{0,i}-z_i)\bigr)-(e_0-e_s)\\
+  &\leq(hB+1)-(e_0-e_s).
+\end{align*}
+Nonincrease of \(e_j\) makes this strictly less than \(2hB\),
+excluding \(P\). With at least \(257\) light times,
+\(e_0-e_s\geq257D\), so the same arithmetic gives
+\[
+  q_{s,i}-q_{0,i}+2hB
+  \leq 1-\frac{65}{64}hB<0.
+\]
+Thus \(i\in N\), as asserted.
+\end{proof}
+
+\subsection{Proof of the orientation alternative}
+
+The displacement lemma handles every early return. When the procedure
+recurses, it also handles many light times by placing the heavy core
+in an appended set. In the remaining case, fresh sampling usually
+selects a projection whose support is heavy enough to invoke the
+same alternative at the smaller width.
+
+\begin{proof}[Proof of Proposition~\ref{prop:orientation}]
+We prove a quantitative version of each pointwise statement by width
+induction. Define the error allowance per nonterminal level by
+\[
+  \gamma=\frac{256}{s}+2s\varepsilon,
+\]
+and define the number of such levels recursively by
+\[
+  \lambda(B)=
+  \begin{cases}
+    0,&B\leq128s,\\
+    1+\lambda\bigl(2\lfloor B/8\rfloor\bigr),&B>128s.
+  \end{cases}
+\]
+A recursive width is at most \(B/4\), so \(\lambda(B)\leq g+1\).
+We will bound the failure probability for each fixed qualifying
+comparison by \(\lambda(B)\gamma\).
+
+\paragraph{Exact orientation at small width.}
+When \(B\leq128s\), the procedure computes the box solution \(p\)
+and uses
+\[
+  P=\{i:p_i\geq a_i+B/2\}.
+\]
+Lemma~\ref{lem:box-comparison} gives \(y\leq p\leq z\). For a high-core
+coordinate,
+\(p_i\geq y_i\geq a_i+(1-h)B>a_i+B/2\); hence \(I_y\subseteq P\).
+For a low-core coordinate, the reference-width bound gives
+\[
+  p_i\leq z_i\leq b_i-B+hB\leq a_i+hB<a_i+B/2,
+\]
+so \(I_z\subseteq V\setminus P\).
+If \(\mu(P)>1/2\), the returned choice \(Y\) protects the
+subsolution, and the returned set \(V\setminus P\) contains the low
+core. Otherwise the choice \(Z\) protects the supersolution, and
+the returned set \(P\) contains the high core. Core containment in
+support transfers the assumed strict weight bound to the indicated
+exceptional set. In either branch that set has measure at most
+\(1/2\). Both alternatives therefore hold with zero error.
+
+\paragraph{A fixed subsolution: returns explained by motion.}
+Now take \(B>128s\) and fix \(y\) with \(\alpha(I_y)>\eta k\).
+The core is nonempty. Charge an error of at most \(2s\varepsilon\)
+for the event that the deviation conclusions fail, and first work on
+the complementary event from Lemma~\ref{ori:deviation-drops}.
+Lemma~\ref{ori:core-displacement} is then available for this \(y\).
+
+If \(\mu(P)>1/2\), the procedure returns \(Y\), proving the
+alternative directly. If it returns instead at the second test,
+\(\mu(N)>1/2\), it supplies \(V\setminus N\). Since
+\(I_y\cap N=\varnothing\),
+\[
+  \alpha(S_y\cap(V\setminus N))
+  \geq\alpha(I_y)>\eta k.
+\]
+This exceptional set proves the alternative in the second early-return
+case as well.
+
+Suppose neither test returns. Both \(P\) and \(N\) have measure
+at most \(1/2\) and will be appended to the child's list.
+If there are more than \(256\) light times for \(y\), the displacement
+lemma gives \(I_y\subseteq P\). Thus
+\(\alpha(S_y\cap P)>\eta k\), and the appended set already proves
+the parent assertion, whatever happens in the recursive call.
+
+\paragraph{A fixed subsolution: transfer at the chosen iterate.}
+It remains to handle a completed loop with at most \(256\) light
+times. Fix its entire history. The index \(j\) is chosen only now,
+using fresh bits, so its conditional distribution is uniform on
+\(\{0,\ldots,s-1\}\). Its probability of being light is at most
+\(256/s\). This remains true on the histories where all required
+loop comparisons succeeded, since that event is determined before
+sampling.
+
+For a sampled index that is not light, write
+\[
+  T_y=\{i:y_i-q_{j,i}>d_j-2D\},
+  \qquad
+  B'=2E_0,
+  \qquad
+  a'=q_j-E_0,\quad b'=q_j+E_0.
+\]
+Then \(\alpha(T_y)>\eta k\). In the child box use the comparison
+\[
+  y'=y^{j,E_0}=\max(y-d_j+E_0,q_j-E_0).
+\]
+The projection formula \eqref{ori:projected-supports} makes \(y'\)
+admissible and gives \(S_{y'}\subseteq S_y\). For \(i\in T_y\),
+\begin{align*}
+  y'_i
+  &\geq y_i-d_j+E_0\\
+  &>q_{j,i}+E_0-2D\\
+  &\geq q_{j,i}+E_0-hB'
+   =a'_i+B'-hB'.
+\end{align*}
+The last inequality uses \(2D\leq hB'\) from
+Equation~\eqref{ori:radius-estimates}. It places all of \(T_y\)
+in the child's high core, so \(\alpha(I_{y'})>\eta k\).
+In particular, the strict inequality in the preceding line is
+compatible with the inclusive threshold defining that core.
+
+The completed loop and the sampled index together determine the child
+input and \(y'\). Fix this information before drawing the child's
+fresh bits. The width induction applies conditionally, with failure
+probability at most \(\lambda(B')\gamma\).
+On success the child either returns \(Y\), which the parent copies,
+or supplies a set \(H\) satisfying
+\[
+  \alpha(S_{y'}\cap H)>\eta k.
+\]
+The parent retains \(H\). Since \(S_{y'}\subseteq S_y\) and the
+support weights and budgets have not changed,
+\(\alpha(S_y\cap H)>\eta k\) follows with the same strict threshold.
+
+The motion argument has already settled all successful-loop histories
+with more than \(256\) light times. On the remaining successful-loop
+histories, the conditional sampling error is at most \(256/s\), and
+the conditional child error is at most \(\lambda(B')\gamma\).
+Averaging these conditional bounds and adding the loop error gives
+a total failure probability for the fixed \(y\) of at most
+\[
+  2s\varepsilon+\frac{256}{s}+\lambda(B')\gamma
+  =\lambda(B)\gamma.
+\]
+
+\paragraph{A fixed supersolution: returns explained by motion.}
+Fix now \(z\) with \(\beta(I_z)>\eta m\), for a separate analysis.
+Its core is nonempty. Outside an error event of probability at most
+\(2s\varepsilon\), the corresponding deviation and displacement
+conclusions hold; in particular \(I_z\cap P=\varnothing\).
+A first-test return of \(Y\) supplies \(V\setminus P\), which
+contains \(I_z\) and therefore satisfies
+\(\beta(S_z\cap(V\setminus P))>\eta m\).
+A second-test return chooses \(Z\) and directly proves the alternative.
+
+If neither return occurs, both displacement sets have measure at most
+\(1/2\). More than \(256\) light times now give \(I_z\subseteq N\).
+The appended set \(N\) then satisfies
+\(\beta(S_z\cap N)>\eta m\), independently of the child's outcome.
+
+\paragraph{A fixed supersolution: transfer at the chosen iterate.}
+With at most \(256\) light times, condition on the completed loop as
+before. The fresh uniform index is light with probability at most
+\(256/s\). For an index that is not light, put
+\[
+  T_z=\{i:q_{j,i}-z_i>e_j-2D\},
+  \qquad
+  z'=z^{j,E_0}=\min(z+e_j-E_0,q_j+E_0).
+\]
+Here \(\beta(T_z)>\eta m\). The projection \(z'\) is an admissible
+supersolution in \([a',b']=[q_j-E_0,q_j+E_0]\), with reference width
+\(B'=2E_0\), and \(S_{z'}\subseteq S_z\). For \(i\in T_z\),
+\begin{align*}
+  z'_i
+  &\leq z_i+e_j-E_0\\
+  &<q_{j,i}-E_0+2D\\
+  &\leq q_{j,i}-E_0+hB'
+   =b'_i-B'+hB'.
+\end{align*}
+Thus \(T_z\) lies in the child's low core, giving
+\(\beta(I_{z'})>\eta m\). Once the loop history and \(j\) have
+been fixed, this is a qualified comparison determined before the
+recursive randomness. The induction hypothesis therefore applies.
+A successful child returns \(Z\), copied by the parent, or a retained
+set \(H\) with \(\beta(S_{z'}\cap H)>\eta m\). Support containment
+then gives \(\beta(S_z\cap H)>\eta m\). Adding the loop, sampling,
+and child errors proves the same bound \(\lambda(B)\gamma\) for
+this fixed supersolution.
+
+\paragraph{Measures, total error, and conditioning.}
+The measure assertion holds independently of either comparison event.
+Every early return uses a set of measure at most \(1/2\), or the
+complement of a set of measure greater than \(1/2\). A recursive
+return appends only \(P,N\) of measure at most \(1/2\).
+Its child retains \(\alpha,\beta,k,m\), and hence the same measure
+\(\mu\); the measure bounds for its sets transfer unchanged.
+This proves the assertion by width induction, also in agreement with
+Proposition~\ref{prop:termination}.
+
+The accumulated error is bounded by
+\[
+  \lambda(B)\gamma
+  \leq(g+1)\left(\frac{256}{s}+2s\,2^{-J}\right)
+  \leq\frac1{512}+J\,2^{-J}
+  <\frac1{16}.
+\]
+Indeed, \(s\geq2^{17}(g+1)\) controls the sampling term, while
+\(2s(g+1)\leq s^2\leq J\) controls the loop term. Finally,
+\(J\geq16\) gives \(J2^{-J}\leq16\,2^{-16}=1/4096\).
+This closes both width inductions.
+
+At each probabilistic step we fixed the relevant input and one
+qualified comparison before exposing fresh bits. The same sequence
+of arguments therefore applies after fixing any history before the
+initial call that determines its input and qualifying comparison.
+This proves the conditional assertions as well.
+\end{proof}
+
+\subsection{Amplifying the orientation alternative}
+
+A trial can succeed either through its choice or through its list.
+The majority operation applies to the choices, while concatenation
+preserves the possible certificates from every trial. The following
+argument uses precisely this output rule, including the lists of
+minority trials.
+
+\begin{lemma}[Amplified orientation]
+\label{lem:orient-plus}
+Under the lower-rank assumption of this section, the output of
+\(\OrientPlus\) satisfies Equation~\eqref{ori:positive-alternative}
+for each fixed qualifying subsolution and, separately,
+Equation~\eqref{ori:negative-alternative} for each fixed qualifying
+supersolution, with failure probability at most \(\varepsilon\)
+in each case. The same bounds hold conditional on a history that
+fixes the input and comparison before the call's fresh randomness.
+On every tape its list has length at most \(J(2g+2)\), and each listed
+set has measure at most \(1/2\).
+\end{lemma}
+
+\begin{proof}
+Fix an input and a qualifying \(y\). Failure of the amplified
+alternative means that the majority choice is \(Z\) and that no
+set anywhere in the concatenated list has
+\(\alpha(S_y\cap H)>\eta k\).
+Every trial voting \(Z\) consequently failed its own alternative:
+it neither chose \(Y\) nor returned a qualifying set. There are at
+least \((J+1)/2\) such trials. By
+Proposition~\ref{prop:orientation}, each trial has failure probability
+at most \(1/16\). Independence and the same subset count used for
+median amplification give
+\[
+  \Pr(\text{amplified failure for }y)
+  \leq 2^J(1/16)^{J/2}
+  =\varepsilon.
+\]
+For a fixed qualifying \(z\), failure instead means a majority
+choice \(Y\) and no set with heavy intersection with \(S_z\).
+Every \(Y\)-voting trial then failed the supersolution alternative.
+There are again at least \((J+1)/2\) such trials, giving the same
+probability bound.
+
+Because all lists are retained, including those of minority trials,
+the absence of a qualifying set from the amplified list implies its
+absence from every trial's list. Each retained entry has measure at
+most \(1/2\) by Proposition~\ref{prop:orientation}. There are at
+most \(2g+2\) entries per trial by
+Proposition~\ref{prop:termination}, so concatenating the \(J\) lists
+has the asserted length even when entries repeat.
+Lastly, fixing a pre-call history fixes the trial inputs and the
+chosen comparison. The trial bits remain fresh and independent,
+so the same amplification proof gives the conditional bound.
+\end{proof}

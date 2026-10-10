@@ -1,0 +1,420 @@
+\section{Effective synthesis and uniform compilation}
+\label{syn:section}
+\label{sec:synthesis}
+
+This appendix gives a general route from a finite tensor saving to a
+uniform Fourier algorithm.  Its purpose is to separate two questions:
+how to obtain usable coefficients from an existence theorem over $\C$,
+and how to use effective small circuits when their compilation time has
+no useful bound.  The explicit network in the main argument gives the
+stronger quantitative conclusion without this search.
+We first replace a complex certificate by identities in a fixed
+finite-dimensional rational algebra.  Matrix representations of that
+algebra then give ordinary scalar circuits without choosing a complex
+embedding.  We print those circuits together with their scalar
+preparation programs, and finally limit the printer's running time to
+select a sufficiently small compiled radix for each input length.
+
+The certificate used below consists of two finite words for the same
+invertible nonmonomial matrix $A\in\GL_q(\C)$, with integers
+$q,b\ge2$. The first word acts on exactly
+$q^b$ coordinates as $A^{\otimes b}$ and uses
+\begin{equation}\label{syn:win}
+ g<bq^{b-1}
+\end{equation}
+forward calls to $A$, interspersed with invertible monomials. A call
+acts on an ordered $q$-tuple and fixes every other coordinate. The
+second word acts on $q$ coordinates as $U=I_q+E_{12}$, where $E_{12}$
+is a matrix unit, using a positive number of forward calls to that same
+$A$ and invertible monomials.
+
+The companion paper~\cite[Theorem~8.3 and Lemma~2.2]{exactfourier}
+obtains such a pair from a general finite-win theorem and positive
+generation by an invertible nonmonomial matrix. The following lemma
+supplies the particular certificate needed here directly from our
+network. Thus the search-termination proof is also available locally.
+The extraction and printer constructions that follow use only the two
+word identities, so they retain their general certificate interface.
+
+\begin{lemma}[A local certificate for the symbolic search]
+\label{syn:local-certificate}
+For the invertible nonmonomial matrix $C$ in \eqref{net:C}, there are
+integers $b\ge2$ and $g\ge0$ and a word on exactly $2^b$ coordinates
+which implements $C^{\otimes b}$ using $g<b2^{b-1}$ forward calls to
+$C$ and invertible monomials. On two coordinates, $I_2+E_{12}$ has a
+word with exactly three forward calls to the same $C$ and invertible
+diagonal factors.
+\end{lemma}
+
+\begin{proof}
+Use Proposition~\ref{net:finite-interface} and the padding
+\eqref{net:padding} on $W_*=2^{71}$ arrays of length $2^{mf}$.
+The $S=W_*m-\Delta$ directional steps require exactly
+$Sf2^{mf-1}$ forward $C$-calls when their tensor factors are
+applied separately: one step has $2^{(m-1)f}$ fibers, each requiring
+$f2^{f-1}$ calls. Inverse steps add only translations.
+Each scalar row of \eqref{net:schedule} is a composition of elementary
+shears between existing, distinct roles; its source coordinates are
+unchanged within that row. The coefficients are nonzero rational
+numbers. Equation~\eqref{loc:nonzero-shear} therefore bounds the
+pointwise work by $H2^{mf}$ forward calls for a fixed integer $H$
+independent of $f$. All remaining operations are invertible monomials.
+Every role carries arbitrary data, so this word uses exactly
+$W_*2^{mf}$ coordinates and acts as
+$I_{W_*}\otimes C^{\otimes mf}$. Address permutations here are
+monomial factors on these coordinates; no implementation buffer is
+added to the word's width.
+
+Identify the role index with 71 binary axes and apply $C$ along
+each of them. This costs $71W_*2^{mf-1}$ calls and gives
+$C^{\otimes b}$ with $b=mf+71$. Its actual number $g$ of forward calls
+therefore satisfies
+\[
+ g\le (Sf+71W_*+2H)2^{mf-1}
+   =b2^{b-1}-(\Delta f-2H)2^{mf-1}<b2^{b-1}
+\]
+for any integer $f>2H/\Delta$.
+Finally, $\det C=i$ and both scalar coefficients in \eqref{net:C} are
+nonzero, so $C$ is invertible and nonmonomial.
+Equation~\eqref{loc:nonzero-shear} with $t=1$ supplies the claimed
+three-call word for $I_2+E_{12}$. Any embedded call on an ordered pair
+is a permutation conjugate of $C\oplus I_{2^b-2}$; the permutations
+can be absorbed into adjacent monomial factors.
+\end{proof}
+
+\subsection{Obtaining finite rational algebra data}
+
+The extraction uses the triangular monic substitution from the standard
+proof of Noether normalization~\cite[Tags 051M, 051N, and 00OX]{stacksNormalization}
+and the determinant form of Nakayama's lemma~\cite{stacksNakayama}.
+We give the rational algorithm and its termination proof in full.
+
+\begin{lemma}[Effective finite algebra extraction]\label{syn:extraction}
+Given finitely many polynomials $f_i$ in $a$ variables over $\Q$, a
+deterministic rational algorithm either certifies that $(f_i)$ is the
+unit ideal or produces a nonzero finite-dimensional commutative unital
+$\Q$-algebra $E$, with a rational multiplication table, and elements
+$\xi_1,\ldots,\xi_a\in E$ satisfying every $f_i(\xi)=0$.
+In particular, a complex solution guarantees the second outcome.
+Required units can be imposed by adding inverse-witness equations.
+\end{lemma}
+
+\begin{proof}
+Keep a finite generating list for the ideal $I=(f_i)$ and an integer $m$,
+initially $m=a$.  Retain polynomial-combination witnesses for derived
+members of $I$; rational elimination and the monic reductions below
+can track these witnesses.
+After invertible polynomial changes of coordinates, maintain, for
+each $j>m$, a known member of $I$ of the form
+\[
+ x_j^{d_j}+\sum_{e<d_j}c_{je}(x_1,\ldots,x_{j-1})x_j^e,
+ \qquad d_j\ge1.
+\]
+Thus $S=\Q[x_1,\ldots,x_a]/I$ is finite as a module over
+$R=\Q[x_1,\ldots,x_m]$.
+
+First compute the fiber $S/(x_1,\ldots,x_m)S$.  This is effective:
+set $x_1=\cdots=x_m=0$ and let $B$ be the quotient by only the
+displayed monic relations.  As a tower of monic extensions, $B$ has
+a rational basis consisting of the monomials whose $x_j$-exponents
+are less than $d_j$ for $j>m$.  Successive monic reduction gives its
+multiplication table.  If $\bar f_i$ are the images in $B$ of the
+generators of $I$, form the rational span of all $b\bar f_i$ with
+$b$ in this basis.  Since the basis spans $B$, this is exactly the
+ideal $\sum_i B\bar f_i$.  Its quotient is the required fiber, so
+rational linear algebra computes the fiber and its table.  A nonzero
+fiber is the requested answer, after undoing the coordinate changes.
+If $m=0$ and the fiber is zero, then $S=0$, so $I$ is the unit ideal.
+
+Suppose the fiber is zero and $m>0$.  We claim $I\cap R\ne0$.
+Otherwise $R\hookrightarrow S$.  Localize at
+$\mathfrak m=(x_1,\ldots,x_m)$ in $R$.  The resulting finite
+$R_{\mathfrak m}$-module $S_{\mathfrak m}$ is nonzero, since it still
+contains $R_{\mathfrak m}$.  The zero fiber would give
+$S_{\mathfrak m}=\mathfrak mS_{\mathfrak m}$.  For a finite generating
+column $v$ this means $v=Mv$ with all entries of $M$ in the maximal
+ideal.  Multiplication by the adjugate of $I-M$ gives
+$\det(I-M)v=0$; its determinant is a unit, a contradiction.
+
+Find a nonzero member $h\in I\cap R$ by enumerating increasing degree
+cutoffs for monomial multiples of the generators of $I$.  At each
+cutoff, rational linear algebra tests whether their span has a
+nonzero element involving only the first $m$ variables.  This search
+terminates by the claim and the definition of an ideal.  A nonzero
+constant certifies $I=(1)$.  Otherwise let $d=\deg h\ge1$ and substitute
+\[
+ x_i=y_i+y_m^{(d+1)^i}\quad(1\le i<m),\qquad x_m=y_m,
+\]
+leaving later variables unchanged.  This change is invertible.
+The weights $1,(d+1),\ldots,(d+1)^{m-1}$ distinguish all monomials of
+total degree at most $d$ by base-$(d+1)$ expansion.  Consequently the
+highest power of $y_m$ in the transformed $h$ has a nonzero rational
+leading coefficient: it comes from a unique monomial, taking the
+pure-power term in every substituted factor.  Divide by that
+coefficient to obtain a monic relation in $y_m$.  Earlier triangular
+relations remain monic in their respective later variables.  Rename
+the variables and decrease $m$ by one.  At most $a$ such decreases
+occur, proving termination.  Every step uses finite rational
+arithmetic.  Finally, the equation $uv=1$ forces $u$ to be a unit in
+every output algebra, including one with zero divisors.
+\end{proof}
+
+Enumerate integer tuples $(q,b,g,h)$ with $q,b\ge2$, $g\ge0$, $h\ge1$ and
+\eqref{syn:win}.  For each tuple form polynomial equations for
+\begin{equation}\label{syn:certificate}
+ A^{\otimes b}=M_0YM_1Y\cdots YM_g,
+ \qquad U=N_0AN_1A\cdots AN_h,
+ \qquad Y=A\oplus I_{q^b-q}.
+\end{equation}
+All embedded placements are absorbed into adjacent monomials.
+Include a matrix inverse witness for $A$.  In a monomial slot write
+a variable permutation factor $P$ and a variable diagonal factor;
+impose $p_{ij}^2=p_{ij}$ and row and column sums equal to $1$ on $P$,
+and give every diagonal entry an inverse witness.  These are finite
+polynomial systems over $\Q$.  Apply Lemma~\ref{syn:extraction} in a
+fixed enumeration order until one succeeds.  Lemma~\ref{syn:local-certificate} gives a complex solution for a tuple
+with $q=2$ and $h=3$, so success is guaranteed.
+
+The entries $p_{ij}$ in the resulting $E$ may be nonscalar idempotents.
+Resolve them one at a time.  For a current idempotent $p\ne0$, replace
+$E$ by the nonzero algebra $pE$ with unit $p$ and project every stored
+element by $z\mapsto pz$; if $p=0$, do nothing.  This is a unital
+homomorphism onto the new algebra and makes the current idempotent
+equal to its unit.  Previously resolved values remain $0$ or $1$.
+After finitely many rational table operations all permutation entries
+are $0$ or $1$, and their row and column sums give actual permutations.
+All identities, inverse witnesses, and diagonal units survive.
+Choose a rational basis of the final nonzero algebra beginning with
+$1_E$.  We have thus computed fixed, fully specified data
+\eqref{syn:certificate} over $E$.
+
+\begin{remark}[Faithful scalar simulation]\label{syn:simulation}
+If $d=\dim_{\Q}E$, then $E\otimes_{\Q}\C$ is the vector space $\C^d$
+with the computed multiplication table.  The embedding
+$z\mapsto z1_E$ is injective.  Addition is coordinatewise and
+multiplication by any prepared algebra element is a $d\times d$
+complex matrix, so each linear algebra operation costs $O(d^2)$
+ordinary scalar operations.  When a circuit acts as $F_r$ times the
+algebra identity, embed its inputs as multiples of $1_E$ and read the
+first coordinate of each output.  This is a faithful, constant-factor
+simulation; choosing a complex embedding or extracting algebraic
+roots is unnecessary.  Here $d$ is fixed before the input length is
+known.
+\end{remark}
+
+\subsection{A printer for increasingly efficient radices}
+
+We record why the fixed identities suffice for an effective circuit
+printer.  The tensor amplification of \cite[Lemma~2.3]{exactfourier}
+also works over $E$: its proof uses only the identities and linear
+operations.  Explicitly, put $Q=q^b$, $j=\lfloor k/b\rfloor$ and
+tensor the first word in \eqref{syn:certificate} across $j$ groups.
+Every call slot decomposes, after reindexing, as
+\[
+ (A\oplus I_{Q-q})^{\otimes j}
+ \cong\bigoplus_{r=0}^j
+ (A^{\otimes r})^{\oplus\binom jr(Q-q)^{j-r}}.
+\]
+Recurse on these smaller tensor orders and use direct calls on the
+fewer than $b$ remaining axes.  Monomial scalings and copies cost
+linear size at each level.  Let $f(k)$ be the size of this recursive
+construction divided by $q^k$.  The total width of the sectors with
+$r$ active factors, divided by $Q^j$, is
+\[
+ \frac{\binom jr(Q-q)^{j-r}q^r}{Q^j}
+ =\binom jr(q/Q)^r(1-q/Q)^{j-r}.
+\]
+Thus the normalized cost satisfies
+\[
+ f(k)\le C_0+g\,\mathbb E f(K),\qquad
+ K\sim\operatorname{Bin}(\lfloor k/b\rfloor,q/Q).
+\]
+The distribution weights sectors by their dimensions.  Since
+$gq/(bQ)<1$, choose $0<\alpha<1$ with
+$g(q/(bQ))^\alpha<1$.  Concavity and induction, using
+$\mathbb E(K+1)^\alpha\le(1+kq/(bQ))^\alpha$, give
+\begin{equation}\label{syn:amplification}
+ f(k)=O((k+1)^\alpha).
+\end{equation}
+The strict inequality absorbs $C_0$ for large $k$; enlarge the
+inductive constant for the finite initial range.  Neither $\alpha$
+nor that constant is needed by the printer.
+
+For successive $t\ge1$, let $r_1<\cdots<r_t$ be the first $t$ primes
+greater than $2q$, and put
+\[
+ m_t=\prod_{i=1}^t r_i,\qquad
+ \ell_t=m_t\,2^{\lceil\log_2(16r_t)\rceil},\qquad
+ R_t=\Q[z]/(\Phi_{\ell_t}(z)).
+\]
+Cyclotomic polynomials and arithmetic in this finite algebra are
+effective: compute $\Phi_s$ recursively from
+$z^s-1=\prod_{d\mid s}\Phi_d(z)$, and use polynomial division and
+the Euclidean algorithm.  A polynomial is a unit modulo $\Phi_s$
+exactly when their gcd is $1$.  The distinct roots of $\Phi_s$ are
+the primitive $s$th roots, so identities in $R_t$ can be checked at
+all primitive specializations.  Roots of orders dividing $\ell_t$
+are compatible powers of $z$.
+Carry out the next constructions over $E\otimes_{\Q}R_t$, with the
+Fourier coefficients in the central factor $R_t$.  The two certificate
+identities and their inverse witnesses persist under extension of
+scalars; in particular, every certified unit remains a unit.
+
+Use the exact-width Fourier layer construction of Lemma~\ref{loc:fourier}
+on each width $r_i$.  It gives $O(1+\log^4 r_t)$ monomial or disjoint
+shear layers.  Its rational formulas hold in $R_t$: all denominators
+are nonzero at every primitive specialization, and the convolution
+root orders divide the indicated power of two.  In particular the
+Newton denominators $\prod_{a=1}^j(1-u^a)$ have $j<r_i$ for a
+primitive $r_i$th root $u$.  The measured workspace test is a test on
+the integer circuit description and is unchanged by this scalar
+extension.
+
+To substitute the second word of \eqref{syn:certificate}, split any
+shear coefficient $c\in R_t$ into two units $d+(c-d)$, where $d$ is
+a positive integer chosen by testing $d=1,2,\ldots$ until $c-d$ is a
+unit.  This terminates: only finitely many complex values of $c$ at
+the primitive roots can be positive integers.  A shear with a unit
+coefficient $v$ is obtained by conjugating $U$ by
+$\diag(v,1,\ldots,1)$, so it has the fixed word pattern from
+\eqref{syn:certificate}.  The resulting word restores the arbitrary values of
+its $q-2$ spectator coordinates.  Partition the disjoint pairs of an
+axis into at most $q$ batches of at most $\lfloor r_i/q\rfloor$ pairs;
+this is possible because $r_i>2q$ gives
+$q\lfloor r_i/q\rfloor\ge\lfloor r_i/2\rfloor$.
+Each batch fits disjoint $q$-tuples inside the same $r_i$ coordinates.
+Its spectators may belong to other pairs, since they are restored
+before the next batch.
+
+Synchronize these fixed word patterns across axes, with identities
+in idle positions.  Their product is the tensor of the local products
+by the tensor multiplication identity.  Each monomial slot has linear
+size.  Every other slot is a direct sum of $A^{\otimes k}$ with
+$k\le t$ and total width $m_t$, so \eqref{syn:amplification} bounds
+its size by $O(m_t(t+1)^\alpha)$.  Chinese remainder reindexing gives
+$F_{m_t}$ from the tensor of the local Fourier transforms.
+Now specialize $R_t$ by $z\mapsto\zeta_{\ell_t}$, obtaining a circuit
+over $E\otimes_{\Q}\C$ whose output matrix is $F_{m_t}$ times the
+algebra identity.  Expand only the fixed algebra $E$ by
+Remark~\ref{syn:simulation}.  Its dimension contributes a constant
+factor, whereas $R_t$ has supplied polynomial expressions for the
+complex coefficients.  The resulting complex linear circuit has size
+\begin{equation}\label{syn:radix-size}
+ s_t=O\bigl(m_t(t+1)^\alpha(1+\log^4(t+2))\bigr)
+     =o(m_t\log m_t).
+\end{equation}
+Here $r_t=O_q((t+1)^2)$, by the elementary prime estimate in
+Lemma~\ref{lem:prime-lengths}, and $\log m_t\ge t\log2$.  The printer computes all
+tensor coefficients and all wiring explicitly.  It may take any
+finite amount of bit computation to do so.  Each coefficient is a
+polynomial with rational coefficients evaluated at
+$\zeta_{\ell_t}$; symbolic inverses have already been reduced in
+$R_t$.  For each polynomial coefficient, print a finite Horner evaluation list,
+with its rational literals written explicitly; sharing previously computed
+values is optional.  Thus the printed record contains a complete circuit
+and a fully expanded scalar preparation program, with no unspecified
+complex constants or hidden loops.
+
+\subsection{From a slow printer to a fast uniform algorithm}
+
+\begin{theorem}[Bounded-printer uniformization]\label{syn:printer}
+Suppose a fixed bit machine prints a sequence of complete records
+$(m_t,C_t)$ with strictly increasing $m_t\to\infty$, where $C_t$
+computes $F_{m_t}$ by $s_t=o(m_t\log m_t)$ scalar linear gates.
+Each record must explicitly list the gates, output indices, and a
+scalar preparation program with every instruction explicitly listed
+and executed once in order.  Its instructions use rational literals, field
+operations with valid nonzero divisors, and canonical Fourier roots
+$\zeta_a=\exp(2\pi i/a)$ of positive integer orders
+whose orders are written literally in binary.  Then there is one
+deterministic algorithm computing every $F_n$ in $o(n\log n)$ time,
+including preparation and indexing in the model of this paper.
+A single specified root of order less than $8n^3$ suffices.
+\end{theorem}
+
+\begin{proof}
+The printing budget will control both the circuit description and all
+literal scalar data, without requiring a bound on when a record appears.
+Normalize the printer to output at most one bit per machine step.
+For $n\ge2$, run it from the beginning for
+$B=\lfloor\log_2 n\rfloor$ bit steps.  Select the last completed
+record with $2\le m_t\le\sqrt B$; if there is none, use the ordinary radix
+$m=2$ circuit.  Every fixed record eventually finishes and satisfies
+the width bound, so the selected stream index tends to infinity.
+In particular $m\to\infty$ and $s/(m\log m)\to0$.
+
+The total visible description has at most $B$ bits.  Decode the
+selected explicit lists to addressable arrays and evaluate its
+preparation program once.  Construct rational literals by their
+binary expansions and perform each listed operation in the stated
+arithmetic model.  This costs $B^{O(1)}$, including parsing and bit
+simulation.  The gate list then executes on each new input in
+$O(m+s)$ time, including entry and output copies.  There is no
+expansion of a succinct circuit during its invocation.
+
+Put $X=2n-1$, let $m^H$ be the largest power of $m$ not exceeding
+$X$, and set
+\[
+ p=\lceil X/m^H\rceil,\qquad P=m^Hp.
+\]
+Then $1\le p\le m$, $X\le P<2X<4n$, and
+$H\le\log(2n)/\log m$.  The mixed-radix Fourier recursion uses $H$
+copies of radix $m$ and one radix $p$, the latter computed directly.
+For clarity, at a split $ab$ use input index $bj_a+j_b$ and output
+index $k_a+ak_b$.  The identity
+\[
+ (bj_a+j_b)(k_a+ak_b)
+ \equiv bj_ak_a+aj_bk_b+j_bk_a\pmod {ab}
+\]
+gives the two smaller Fourier transforms and their intervening
+twiddle.  At each level, copying subarrays into the required order,
+tabulating or reading twiddles, and enumerating the two indices cost
+linear work.  Reuse the decoded radix circuit each time.  Tabulate
+powers of $\zeta_P$ in $O(P)$ operations; every recursive width
+divides $P$.  Thus one transform, or its inverse by frequency
+reversal and scaling, costs
+\begin{equation}\label{syn:uniform-cost}
+ O\bigl(P[1+p+H(1+s/m)]\bigr)+B^{O(1)}.
+\end{equation}
+All indices and products of indices have polynomial bounds in $n$,
+so a constant number of $O(\log(n+2))$-bit words suffices per access.
+
+Finally reduce $F_n$ to convolution of length $P$.  With
+$\eta=\zeta_{2n}$, store $\eta^{j^2}x_j$ for $0\le j<n$ and pad
+with zeros.  The fixed kernel stores $\eta^{-h^2}$ at the residues
+of $-(n-1)\le h\le n-1$; these residues are distinct since
+$P\ge2n-1$.  Multiply convolution output $k$ by $\eta^{k^2}$.
+The identity $k^2+j^2-(k-j)^2=2kj$ gives exactly $F_nx$.
+Computing the fixed kernel's transform, the variable transform and
+the inverse uses only a constant number of transforms bounded by
+\eqref{syn:uniform-cost}, plus linear preparation and scaling work.
+The chirp scalars come from an $O(n)$-size table of powers of $\eta$,
+indexed by the squared exponents modulo $2n$.
+
+For the root accounting, let $R$ be the product of the root orders
+listed in the selected preparation program, or $1$ if there are
+none.  Their total binary length is at most $B$, whence
+$R\le2^B\le n$.  The single root
+$\zeta_D$, where $D=2nPR<8n^3$, supplies every listed root and the
+two outer roots by integer powering.  There are at most $B$ such
+requests, and powering and forming their exponents cost $B^{O(1)}$.
+This includes obtaining the required powers of the supplied root in the
+preparation bound.
+
+Since $p=O(1+\sqrt{\log n})$, dividing the arithmetic term of
+\eqref{syn:uniform-cost} by $n\log n$ gives
+\[
+ O\left(\frac{1+p}{\log n}
+       +\frac1{\log m}+\frac{s}{m\log m}\right)=o(1).
+\]
+The polynomial logarithmic preparation term is also $o(n\log n)$.
+Length $1$ is the identity.  This proves the claim, with all choices
+independent of the input values.
+\end{proof}
+
+Applying Theorem~\ref{syn:printer} to the printer above yields a
+uniform all-length $o(n\log n)$ algorithm directly from the finite
+certificate interface.  The symbolic search, finite algebra, and stored
+circuits are implementation devices; the only supplied complex
+primitive is the explicitly specified Fourier root.  This conclusion
+complements the explicit quantitative construction of the main text.

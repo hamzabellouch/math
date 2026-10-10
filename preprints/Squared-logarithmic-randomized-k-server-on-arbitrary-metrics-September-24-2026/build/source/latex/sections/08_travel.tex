@@ -1,0 +1,517 @@
+\section{Travel of parked mass}\label{sec:travel}
+
+The allocation theorem controls movement between tree vertices.  A second
+cost arises when a vertex retains its key but that key acquires a new
+anchor in the metric.  We pay this cost using the comparator mass in the
+key, normalized by a slowly updated estimate of its size.  The estimate
+is essential: keeping its coefficient fixed during filtering allows us
+to use conditional expectation without paying the absolute variation of
+a posterior.
+
+Throughout this section the tree, label pools, and maps are those of
+Section~\ref{sec:partitions}, and the allocations are supplied by
+Theorem~\ref{thm:allocation}.  A state at time $t$ means the state after
+all updates for that request.  Write $\mu_t$ for the true-metric posterior
+counting measure at this state.  All multiplicative constants below are
+absolute.  Additive constants may depend on the fixed finite metric,
+$k$, the scales, and the fixed label pools, but not on the input law or
+its horizon.
+
+\subsection{Parking and valid representatives}
+
+For every tree vertex, including the root and leaves, define its parked
+mass by
+\begin{equation}\label{eq:park-definition}
+ p_{t,v}^{\circ}=q_{t,v}-\sum_{i\text{ child of }v}q_{t,i}.
+\end{equation}
+The empty sum at a leaf is zero.  Allocation feasibility makes these
+numbers nonnegative.  Telescoping within a subtree gives
+\begin{equation}\label{eq:park-subtree-total}
+ \sum_{w\text{ descendant of }v}p_{t,w}^{\circ}=q_{t,v},
+ \qquad \sum_v p_{t,v}^{\circ}=k,
+\end{equation}
+where a vertex counts as its own descendant.
+
+\begin{lemma}[Parked variation and witnesses]\label{lem:park-variation}
+At every step,
+\begin{equation}\label{eq:park-variation}
+ \sum_v r_{|v|}\lvert\Delta p_v^{\circ}\rvert
+ \le \left(1+\frac1\tau\right)
+       \sum_{v\ne\mathrm{root}}r_{|v|-1}\lvert\Delta q_v\rvert.
+\end{equation}
+If $q_{t,v}>0$, there is a point of $Y$ whose current key string has
+prefix $v$.  Such a point is called a validity witness for $v$.  If
+$|v|=j\ge1$, every validity witness is within $20r_j$ of the anchor of
+the last key of $v$.
+\end{lemma}
+
+\begin{proof}
+Taking differences in \eqref{eq:park-definition} and using the triangle
+inequality gives
+\begin{align*}
+ \sum_v r_{|v|}\lvert\Delta p_v^{\circ}\rvert
+ &\le \sum_v r_{|v|}\lvert\Delta q_v\rvert
+     +\sum_v r_{|v|}\sum_{i\text{ child of }v}
+                                  \lvert\Delta q_i\rvert\\
+ &=\frac1\tau\sum_{v\ne\mathrm{root}}
+                 r_{|v|-1}\lvert\Delta q_v\rvert
+   +\sum_{i\ne\mathrm{root}}r_{|i|-1}\lvert\Delta q_i\rvert.
+\end{align*}
+The root term in the first sum vanishes because its allocation is always
+$k$.  This proves \eqref{eq:park-variation}, including the root's parked
+mass.  The bound $q_{t,v}\le C_0m_{t,v}$ implies $m_{t,v}>0$ whenever
+$q_{t,v}>0$.  Since $Y$ is finite, some point mapped below $v$ then has
+positive posterior counting mass.  It is a witness.  The anchor-distance
+assertion is part of Lemma~\ref{lem:fixed-alphabet}: a level key is a
+heavy ball of radius at most $20r_j$, a smaller roster ball, or a
+singleton.
+\end{proof}
+
+Represent a park at a nonroot vertex by its last key's anchor.  Represent
+the root by one fixed point of $Y$.  A balanced integer rounding of
+$p_{t,v}^{\circ}$ can be positive only if $p_{t,v}^{\circ}>0$, since the
+floor and ceiling of zero are both zero.  Thus the same witness statement
+will apply to occupied integer parks in Section~\ref{sec:rounding}.
+
+Let $\Lambda_j^H$ be the fixed pool of heavy-label slots at level $j$.
+For $\lambda\in\Lambda_j^H$, let $C_{t,j,\lambda}\subseteq Y$ be the
+points currently assigned that level key, and let $a_{t,j,\lambda}$ be
+its anchor.  An absent label has empty region and an arbitrary fixed
+placeholder anchor.  Heavy precedence and disjointness mean that, when
+present, $C_{t,j,\lambda}$ is the entire heavy ball carrying the label.
+Set
+\begin{equation}\label{eq:label-park-size}
+ \begin{aligned}
+ b_{t,j,\lambda}
+   &=\sum_{\substack{|v|=j\\\text{last key of }v=\lambda}}
+                                              p_{t,v}^{\circ},\\
+ M_{t,j,\lambda}
+   &=\sum_{\substack{|v|=j\\\text{last key of }v=\lambda}}m_{t,v}
+     =\mu_t(C_{t,j,\lambda}).
+ \end{aligned}
+\end{equation}
+These definitions use the fixed slots even when they are absent, in
+which case both quantities are zero.  In particular,
+\begin{equation}\label{eq:label-park-domination}
+ 0\le b_{t,j,\lambda}\le C_0 M_{t,j,\lambda},\qquad
+ \sum_{j,\lambda\in\Lambda_j^H}r_j\lvert\Delta b_{j,\lambda}\rvert
+ \le\sum_v r_{|v|}\lvert\Delta p_v^{\circ}\rvert.
+\end{equation}
+The second inequality follows by grouping fixed vertex coordinates,
+then using the triangle inequality.  It also holds across label
+disappearance and reuse.
+
+Let $E_{t,j,\lambda}$ be the event that the label is present at both
+successive states and its anchor changes.  By
+Lemma~\ref{lem:fixed-alphabet}, this is an explicit reuse of a heavy
+label at an intersecting new heavy ball.  In particular,
+\begin{equation}\label{eq:retained-anchor-distance}
+ \one_{E_{t,j,\lambda}}
+ d(a_{t-1,j,\lambda},a_{t,j,\lambda})
+ \le 40r_j\one_{E_{t,j,\lambda}}.
+\end{equation}
+The quantity to be bounded is
+\begin{equation}\label{eq:anchor-travel-definition}
+ T_{\rm anchor}
+   =\E\sum_{t,j,\lambda\in\Lambda_j^H}
+                  r_j b_{t,j,\lambda}\one_{E_{t,j,\lambda}}.
+\end{equation}
+
+\begin{proposition}[Retained-anchor travel]\label{prop:anchor-travel}
+There is an absolute constant $C$ and a finite constant $D_{\rm anchor}$,
+independent of the input law and horizon, such that
+\begin{equation}\label{eq:anchor-travel-bound}
+ T_{\rm anchor}\le C\bigl(V+\ell P+\ell Q\bigr)+D_{\rm anchor}.
+\end{equation}
+Consequently the expected cost of moving the new parked masses with
+their retained anchors is at most $40T_{\rm anchor}$.  No multiplicative
+constant in this statement depends on the number of levels or on $k$.
+\end{proposition}
+
+The proof uses a size tracker and a pointwise estimate for its old
+coefficients.  We establish both before analyzing the travel potential.
+
+\subsection{An affine size tracker}
+
+Put $\rho=6/5$.  For each fixed heavy-label slot maintain a reference
+$\widehat m_{t,j,\lambda}\in[1,k+1]$ for
+$s_{t,j,\lambda}=1+M_{t,j,\lambda}$.  Initially set the reference equal
+to $s_{0,j,\lambda}$.  At each subsequent step, after computing the new
+membership and posterior size, keep the old reference if
+\begin{equation}\label{eq:key-size-comparison}
+ \rho^{-1}\widehat m_{t-1,j,\lambda}
+       \le s_{t,j,\lambda}
+       \le\rho\widehat m_{t-1,j,\lambda};
+\end{equation}
+otherwise refresh it to $s_{t,j,\lambda}$.  Thus every completed state
+satisfies the same comparison with its current reference.  The tracker
+continues to run while a slot is absent; recycling a slot does not
+restart it.
+
+\begin{lemma}[Size-refresh budget]\label{lem:key-size-refresh}
+If $R_{t,j,\lambda}$ denotes a refresh, then
+\begin{equation}\label{eq:key-size-refresh-budget}
+ \E\sum_{t,j,\lambda\in\Lambda_j^H}
+ r_j\bigl(\widehat m_{t-1,j,\lambda}
+            +\widehat m_{t,j,\lambda}\bigr)\one_{R_{t,j,\lambda}}
+ \le C\ell P+D_{\rm size},
+\end{equation}
+where $C$ is absolute and $D_{\rm size}$ depends only on the fixed
+metric, scales, $k$, and label pools.
+\end{lemma}
+
+\begin{proof}
+The payment is a tangent gap, equivalently the Bregman divergence
+for the convex function $s\log s$ \cite{Bregman67}.
+For $u,s\in[1,k+1]$, the tangent at $u$ to $f(s)=-s\log s$ is
+\begin{equation}\label{eq:entropy-tangent}
+ T_u(s)=f(u)+f'(u)(s-u)=u-(1+\log u)s.
+\end{equation}
+It is affine in $s$, with slope of absolute value at most $\ell$.  A
+refresh $u\to s$ releases
+\begin{equation}\label{eq:entropy-refresh-credit}
+ T_u(s)-T_s(s)=s\log(s/u)-s+u
+       \ge\frac{(s-u)^2}{2\max(s,u)}.
+\end{equation}
+For completeness, if $s\ge u$ the left side equals
+$\int_u^s(s-z)z^{-1}\,dz$, and if $s\le u$ it equals
+$\int_s^u(z-s)z^{-1}\,dz$.  Bounding the denominator by
+$\max(s,u)$ gives the inequality.  At failure of
+\eqref{eq:key-size-comparison},
+$|s-u|\ge(1-\rho^{-1})\max(s,u)$, so
+\begin{equation}\label{eq:entropy-relative-credit}
+ T_u(s)-T_s(s)\ge\frac{(1-\rho^{-1})^2}{4}(s+u)
+                         =\frac{s+u}{144}.
+\end{equation}
+
+We check the input budget for the weighted sum of these tangents.  Let
+$N_{t,j,\lambda}^{\rm key}$ be the actual number of hidden members whose
+level-$j$ key at time $t$ is $\lambda$.  Filtering replaces
+$\E[N_{t-1,j,\lambda}^{\rm key}\mid\mathcal F_{t-1}]$ by
+$\E[N_{t-1,j,\lambda}^{\rm key}\mid\mathcal F_t]$, using the old map
+and old reference.  Its signed contribution has conditional expectation
+zero.  Drift then replaces this old hidden count by the new count,
+with both conditioned on $\mathcal F_t$.
+
+If a member's two mapped leaves first differ at level $j_0$, the
+radius sum of its possible level-key disagreements is at most
+\begin{equation}\label{eq:key-disagreement-sum}
+ \sum_{j\ge j_0}r_j
+       \le\frac{r_{j_0-1}}{\tau-1}
+       =\frac{d_T(\text{old leaf},\text{new leaf})}{\tau-1}.
+\end{equation}
+At one level a member changes at most two heavy-slot indicators, one
+for the departing key and one for the arriving key.  Applying this
+pathwise to the coupled hidden trajectory and then taking conditional
+expectations gives
+\begin{equation}\label{eq:key-count-drift}
+ \E\sum_{t,j,\lambda\in\Lambda_j^H}r_j
+ \left|M_{t,j,\lambda}
+       -\E[N_{t-1,j,\lambda}^{\rm key}\mid\mathcal F_t]\right|
+ \le\frac{2}{\tau-1}P\le2P.
+\end{equation}
+Thus the tangents' expected total signed input increase is at most
+$2\ell P$.
+
+The tangents need not be nonnegative.  Their endpoint values nevertheless
+have a uniform bound:
+\[
+ |T_u(s)|\le(k+1)(1+\ell)
+       \qquad(1\le u,s\le k+1).
+\]
+Write $L_H=\sum_j r_j|\Lambda_j^H|$, a finite quantity fixed before
+the input law or horizon is chosen.  The absolute value of the summed
+tangent potential is at most $(k+1)(1+\ell)L_H$ at both endpoints.
+Telescoping its signed changes over every step, and using
+\eqref{eq:entropy-relative-credit}, proves
+\eqref{eq:key-size-refresh-budget}, for example with
+$C=288$ and
+$D_{\rm size}=288(k+1)(1+\ell)L_H$.  Filtering is included on all steps
+before the decision to refresh; it is not restricted to the adaptively
+chosen refresh events.
+\end{proof}
+
+\subsection{A pointwise bound on old parked coefficients}
+
+At a completed state, \eqref{eq:label-park-domination} and the size
+comparison give the individual bound
+\begin{equation}\label{eq:individual-park-coefficient}
+ \frac{b_{j,\lambda}}{\widehat m_{j,\lambda}}
+ \le\rho C_0\frac{M_{j,\lambda}}{1+M_{j,\lambda}}
+ \le\rho C_0.
+\end{equation}
+Summing this bound over all levels would introduce the height of the
+tree.  The useful additional constraint is that parks at different depths
+draw on the same subtree allocations.  All finer parks near a point can
+therefore be charged to comparator mass in a slightly larger ball at a
+coarser scale.  Meanwhile a heavy ball whose anchor is near that point
+contains a smaller ball and bounds the normalization from below.
+Comparing these two ball masses will give a logarithmic coefficient sum.
+
+\begin{lemma}[Pointwise parked coefficients]\label{lem:park-coefficients}
+Fix any completed fractional state and any $y\in Y$.  At each level
+whose heavy-center set has a center within $7r_j$ of $y$, let
+$\lambda_j$ be its label.  Such a center is unique.  Then
+\begin{equation}\label{eq:pointwise-park-coefficients}
+ \sum_{\substack{j:\ d(y,a_{j,\lambda_j})\le7r_j}}
+                \frac{b_{j,\lambda_j}}{\widehat m_{j,\lambda_j}}
+ \le C\ell,
+\end{equation}
+with an absolute $C$, independent of the state and the number of levels.
+\end{lemma}
+
+\begin{proof}
+Call the levels in the sum selected, and abbreviate their numerator to
+$b_j$.  Distinct heavy centers at one level are separated by more than
+$100r_j$, proving uniqueness.  Their radii are at least $16r_j$;
+therefore the selected heavy ball contains $B(y,r_j)$.  Heavy precedence
+and the size comparison imply
+\begin{equation}\label{eq:park-denominator-lower}
+ \widehat m_{j,\lambda_j}
+       \ge\rho^{-1}\bigl(1+\mu(B(y,r_j))\bigr).
+\end{equation}
+Here $\mu$ is the posterior counting measure of the fixed state.
+
+We also have, for every level $j$, the cumulative capacity estimate
+\begin{equation}\label{eq:cumulative-park-mass}
+ \sum_{\substack{i\ge j\\i\text{ selected}}}b_i
+                      \le C_0\mu(B(y,67r_j)).
+\end{equation}
+To prove it, consider each positive park counted on the left.  At its
+depth $i$, a validity witness lies within $20r_i$ of its anchor, hence
+within $27r_i$ of $y$.  Group all these parks by their depth-$j$
+ancestor $v$.  Their sum in each group is at most $q_v$ by
+\eqref{eq:park-subtree-total}.  The group has at least one witness $z$
+within $27r_i\le27r_j$ of $y$.  Every point with prefix $v$ shares its
+level-$j$ cell with $z$, and that cell has diameter at most $40r_j$.
+All such points therefore belong to $B(y,67r_j)$.  Regions of distinct
+depth-$j$ prefixes are disjoint, so their posterior counts sum to at
+most $\mu(B(y,67r_j))$.  Summing $q_v\le C_0m_v$ proves
+\eqref{eq:cumulative-park-mass}.
+
+For an explicit scale summation put, at every level,
+\[
+ A_j=1+\mu(B(y,67r_j)),\qquad B_j=1+\mu(B(y,r_j)).
+\]
+Both are between $1$ and $k+1$.  Extend $B_j=k+1$ for $j\le0$.
+Since $\tau\ge2$, the fixed offset $p=7$ satisfies $\tau^p\ge67$,
+and hence $A_j\le B_{j-p}$.  It follows that
+\begin{equation}\label{eq:park-log-telescope}
+ \sum_{j=1}^J\log(A_j/B_j)
+ \le\sum_{j=1}^J\bigl(\log B_{j-p}-\log B_j\bigr)
+ \le p\log(k+1).
+\end{equation}
+The final inequality cancels the common middle terms; at most $p$
+uncancelled positive terms remain, each at most $\log(k+1)$, and the
+remaining terms are nonpositive.  This includes $J<p$.
+
+There are at most $p\log(k+1)/\log2$ levels with $A_j>2B_j$.
+Their contribution is $O(\ell)$ by
+\eqref{eq:individual-park-coefficient}.  Partition the remaining
+selected levels into groups
+\[
+ G_a=\{j:\ j\text{ selected},\ A_j\le2B_j,
+                         \ 2^a\le A_j<2^{a+1}\},
+ \qquad 0\le a\le\lfloor\log_2(k+1)\rfloor.
+\]
+For a nonempty group let $j_a$ be its smallest, hence coarsest, index.
+By \eqref{eq:park-denominator-lower}, every denominator in this group
+is at least $2^{a-1}/\rho$.  By
+\eqref{eq:cumulative-park-mass},
+\[
+ \sum_{j\in G_a}b_j
+  \le C_0\mu(B(y,67r_{j_a}))
+  =C_0(A_{j_a}-1)\le C_0 2^{a+1}.
+\]
+Its total coefficient is consequently at most $4\rho C_0$.  There are
+at most $1+\log_2(k+1)$ groups, proving
+\eqref{eq:pointwise-park-coefficients}.  All these statements hold for
+each individual state and point, with no averaging and no conditioning
+on a future request.
+\end{proof}
+
+\subsection{Paying retained-anchor motion}
+
+\begin{proof}[Proof of Proposition~\ref{prop:anchor-travel}]
+Use the clipped ramp
+\[
+ \kappa(u)=
+ \begin{cases}
+  0,&u\le4,\\
+  (u-4)/3,&4<u<7,\\
+  1,&u\ge7.
+ \end{cases}
+\]
+For a completed state define
+\begin{equation}\label{eq:anchor-potential}
+ \Phi_t=\sum_{j,\lambda\in\Lambda_j^H}
+    r_j\frac{b_{t,j,\lambda}}{\widehat m_{t,j,\lambda}}
+    \int_{C_{t,j,\lambda}}
+           \kappa\!\left(\frac{d(a_{t,j,\lambda},z)}{r_j}\right)
+                                                   \,d\mu_t(z).
+\end{equation}
+This is the posterior expectation of the sum of the same terms over
+the hidden members assigned to each key.  The ramp measures mass away
+from the anchor.  When a heavy label is reused at a new request, the
+concentrated mass is far from its old anchor and close to its new one,
+so the anchor change decreases the potential.  Dividing by the held
+key size makes this decrease comparable to $r_jb_{t,j,\lambda}$,
+the travel charge, rather than to its product with comparator mass.
+
+The potential is nonnegative.  Moreover,
+at a completed state the normalized integral is at most $\rho$, so
+\begin{equation}\label{eq:anchor-potential-endpoints}
+ 0\le\Phi_t\le\rho\sum_{j,\lambda\in\Lambda_j^H}r_jb_{t,j,\lambda}
+                         \le\rho k r_0.
+\end{equation}
+The last inequality follows from \eqref{eq:park-subtree-total}, since
+each park occurs at just one depth and $r_j\le r_0$.
+
+We now decompose the change of \eqref{eq:anchor-potential} in a specified
+order.  This is an accounting order: the current partition and allocation
+are already available from the fractional history.  Old parameters are
+held until their indicated substep.
+
+\paragraph{Filtering with old membership and all old parameters.}
+In the hidden-member expression for $\Phi_{t-1}$ retain the old locations,
+old key map, old anchors, old parks, and old references.  Replace
+conditioning on $\mathcal F_{t-1}$ by conditioning on $\mathcal F_t$.
+The coefficients and the old map are $\mathcal F_{t-1}$-measurable.
+Thus the tower property makes this signed potential change have
+conditional expectation zero.  We perform this comparison on every
+step, before any refresh or anchor event is selected.
+
+\paragraph{Drift to new membership and new locations.}
+Use the coupled hidden trajectory, now conditioned on $\mathcal F_t$,
+but continue to hold all anchors, parks, and size references at their
+old values.  For a member whose level key changes, its total possible
+positive change among heavy slots is at most $C r_j$, by
+\eqref{eq:individual-park-coefficient} and $0\le\kappa\le1$.
+Summing \eqref{eq:key-disagreement-sum} over members and steps pays
+these terms by $CP$ in expectation.  This includes changes to heavy
+membership caused by partition edits, regardless of physical movement.
+
+For unchanged membership in a heavy key, the same old anchor appears
+in both ramp terms.  If the old location is $y$ and the new one is $z$,
+then
+\begin{equation}\label{eq:anchor-unchanged-key-drift}
+ r_j\frac{b^{\rm old}_{j,\lambda}}{\widehat m^{\rm old}_{j,\lambda}}
+ \left[\kappa\!\left(\frac{d(a^{\rm old}_{j,\lambda},z)}{r_j}\right)
+       -\kappa\!\left(\frac{d(a^{\rm old}_{j,\lambda},y)}{r_j}\right)
+ \right]_+
+ \le\frac{d(y,z)}3
+       \frac{b^{\rm old}_{j,\lambda}}{\widehat m^{\rm old}_{j,\lambda}}
+       \one_{\{d(a^{\rm old}_{j,\lambda},y)<7r_j\}}.
+\end{equation}
+Indeed $\kappa$ is $1/3$-Lipschitz and cannot increase from a point where
+it already equals one.  Lemma~\ref{lem:park-coefficients} bounds the
+sum of the coefficients on the right by $C\ell$, for every old point
+$y$ and the old fractional state.  This pointwise bound remains valid
+when that $y$ is sampled in the coupling conditional on the new history;
+we require no independence between the old mover and the new request.
+Only the designated comparator mover changes physical position on this
+step.  Summing \eqref{eq:anchor-unchanged-key-drift} therefore costs at
+most $C\ell e_x$ conditionally, and at most $C\ell Q$ in total
+expectation.  The entire drift budget is $C(P+\ell Q)$.
+
+\paragraph{Refreshing the size references.}
+At this point each integral uses the new key membership and new
+posterior locations, but still the old anchor.  For one label write
+this integral as $I$, its new size as $M$, and $s=1+M$.  Always
+$0\le I\le M$.  At a refresh from $u=\widehat m^{\rm old}$ to $s$ the
+change is
+\[
+ r_j b^{\rm old}I\left(\frac1s-\frac1u\right).
+\]
+If $s\ge u$ this is nonpositive.  If $s<u$, its positive part is at
+most $r_jb^{\rm old}I/s\le r_jb^{\rm old}$.  The old completed state
+gives $b^{\rm old}\le\rho C_0 u$ by
+\eqref{eq:individual-park-coefficient}.  Hence all positive refresh
+jumps are at most a constant times the charge in
+\eqref{eq:key-size-refresh-budget}.  This argument does not assume that
+the new integral is controlled by the old denominator.
+
+\paragraph{Updating the parked amounts.}
+The new size references now satisfy
+$\widehat m^{\rm new}\ge(1+M)/\rho$, whether refreshed or retained.
+Consequently $I/\widehat m^{\rm new}\le\rho$.  Replacing $b^{\rm old}$
+by $b^{\rm new}$ changes the potential by at most
+$\rho r_j|\Delta b|$ in absolute value.  Equations
+\eqref{eq:label-park-domination} and \eqref{eq:park-variation} give
+the expected total budget
+\begin{equation}\label{eq:anchor-park-update-budget}
+ \rho\E\sum_{t,j,\lambda\in\Lambda_j^H}r_j|\Delta b_{j,\lambda}|
+                      \le\rho(1+\tau^{-1})V.
+\end{equation}
+
+\paragraph{Updating anchors and collecting the travel payment.}
+An absent final key has zero integral and zero new parked mass, so
+choosing its placeholder anchor costs nothing.  A newly present key
+had $b^{\rm old}=0$: the fresh-label rule ensures that it was absent
+from the preceding map.  Its anchor initialization can increase the
+potential by at most
+\[
+ \rho r_j b^{\rm new}=\rho r_j|\Delta b|,
+\]
+which is another copy of the variation budget
+\eqref{eq:anchor-park-update-budget}.  A retained key with unchanged
+anchor contributes zero.
+
+It remains to consider a retained moving heavy label at an update for
+the request $x$, at radius $r=r_j$.  Its new anchor is $x$, its old
+anchor $a$ satisfies $d(a,x)>8r$, and its new key region is the entire
+new heavy ball $C$.  Put
+\[
+ H=\mu_t(B(x,\gamma_H r)).
+\]
+The served comparator contains $x$, so $H\ge1$.  The new heavy ball
+contains this inner ball and is contained in $B(x,D_Hr)$.  The heavy
+condition \eqref{eq:heavy-condition} therefore gives
+\begin{equation}\label{eq:anchor-heavy-mass-comparison}
+ H\le M^{\rm new}_{j,\lambda}=\mu_t(C)\le(1+\delta_H)H,
+ \qquad
+ \widehat m^{\rm new}_{j,\lambda}
+       \le\rho(1+M^{\rm new}_{j,\lambda})
+       \le\rho(2+\delta_H)H.
+\end{equation}
+The last inequality is exactly where the inner mass $H\ge1$ is needed;
+it accounts for the added one in the normalization.
+
+On $B(x,\gamma_Hr)$ the old ramp is one because
+$d(a,z)>(8-\gamma_H)r>7r$, and the new ramp is zero because
+$d(x,z)\le\gamma_Hr<4r$.  Outside this inner ball but inside $C$, the
+ramp can increase by at most one, and that region has mass at most
+$\delta_H H$.  Hence changing $a$ to $x$ changes the unnormalized
+integral by at most $-(1-\delta_H)H$.  With the new park and new
+reference already in place, \eqref{eq:anchor-heavy-mass-comparison}
+shows that the potential decreases by at least
+\begin{equation}\label{eq:retained-anchor-drop}
+ \frac{1-\delta_H}{\rho(2+\delta_H)}\,r b^{\rm new}_{j,\lambda}
+                         \ge\frac14 r b^{\rm new}_{j,\lambda}.
+\end{equation}
+Here we used the absolute choices $\gamma_H<1/100$ and
+$\delta_H<1/100$.  Thus this payment is uniform even when the retained
+park remains at exactly the same tree vertex.
+
+Combining the five substeps, summing signed changes over all times, and
+taking expectations yields
+\[
+ \frac14 T_{\rm anchor}
+ \le \E\Phi_0-\E\Phi_T
+       +C(P+\ell Q)+C\ell P+C D_{\rm size}+CV.
+\]
+The filtering contributions have vanished by conditional expectation;
+the size-refresh estimate pays their later adaptively selected
+consequences.  Use \eqref{eq:anchor-potential-endpoints} and $\ell\ge1$
+to obtain \eqref{eq:anchor-travel-bound}, with an additive constant
+bounded by $C(D_{\rm size}+kr_0)$.  Finally,
+\eqref{eq:retained-anchor-distance} proves the asserted bound for actual
+anchor displacement.
+
+The only scale summations used were the geometric sum
+\eqref{eq:key-disagreement-sum} and the fixed-offset and dyadic sums in
+Lemma~\ref{lem:park-coefficients}.  Their constants are independent of
+the height.  The finite label pools enter only the endpoint constant
+$D_{\rm size}$, and their persistent tracker states ensure that no
+initialization allowance is charged again when a label is recycled.
+\end{proof}

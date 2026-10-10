@@ -1,0 +1,410 @@
+\section{Local search and anchored comparison clusters}
+\label{loc:section}
+
+We first prove the two local statements used by both branches of the
+algorithm.  The geometric arguments apply to any finite metric.  The bounded
+integral distance assumption is needed only for the polynomial running time
+of exact local descent.
+Exchanges of bounded size are standard in local-search analysis
+\cite[Sections~3.3--3.4]{Arya2004}.  Our weighted comparison adapts the
+nearest-facility routing proof of Gupta and Tangwongsan
+\cite{GuptaTangwongsan2008} while protecting the specified proxies.
+The anchoring argument adapts the disjoint-region and incoming-client
+analysis of \cite{CohenAddadSchwiegelshohn2017} and
+\cite[Section~4.1.1]{CGLSS2026}.  We prove the particular scale
+hypothesis and error bound needed here, for a comparison solution that
+need not be optimal.
+
+\subsection{Local optimality and weighted exchanges}
+
+Fix an integer $r$ with $1\le r\le |F|$.  A set $S\subseteq F$ of size $r$
+is a \emph{width-$5$ local optimum} if no exchange removing at most five
+facilities and adding at most five facilities produces a set of size $r$
+with strictly smaller cost.  We also use exchanges whose resulting set is
+nonempty and has fewer than $r$ facilities: any such set can be padded to
+size $r$ by restoring removed facilities, without increasing its cost or
+the width of the exchange.
+
+\begin{lemma}[Exact local descent]
+\label{loc:descent}
+Suppose all distances are integers at most $B$, where $B$ is bounded by a
+fixed polynomial in $N=n+|F|$.  From any nonempty initial set of $r$
+facilities, a width-$5$ local optimum of size $r$ can be found in polynomial
+time, with no increase in cost.
+\end{lemma}
+
+\begin{proof}
+Enumerate all sets of at most five facilities to remove and all sets of at
+most five facilities to add, checking those exchanges that leave exactly
+$r$ facilities.  There are $O(N^{10})$ pairs, and each resulting cost can
+be evaluated in polynomial time.  Perform any strict improvement and
+repeat.  Every cost is an integer between zero and $nB$, so at most $nB$
+strict improvements are performed.
+
+For completeness, consider an exchange with removal set $R\subseteq S$,
+addition set $A\subseteq F$, $|R|,|A|\le5$, and nonempty result
+$T=(S\setminus R)\cup A$ of size at most $r$.  All facilities in $S\setminus T$
+belong to $R$, and
+$|S\setminus T|\ge r-|T|$.  Restoring any $r-|T|$ of them gives a set of
+size $r$, still differing from $S$ by at most five removals and five
+additions, with cost at most $\operatorname{cost}(T)$.  Thus the final local
+optimum also rules out every improving exchange of this form.
+\end{proof}
+
+Let $O\subseteq F$ be a comparison set of size $h$, where
+$1\le h\le |S|$, and put $P=\operatorname{cost}(O)>0$.  Fix nearest-facility
+assignments to both $O$ and $S$, using arbitrary fixed rules for ties.
+For $i\in O$, write $C_i$ for its assigned client set and define
+\[
+ n_i=|C_i|,\qquad
+ d_p^*=d(p,O),\qquad s_p=d(p,S),\qquad
+ P_i=\sum_{p\in C_i}d_p^*.
+\]
+Write $s(p)\in S$ for the assigned local facility, so
+$d(p,s(p))=s_p$.  Empty sets $C_i$ are permitted.  Given a partition
+$O=O_g\mathbin{\dot\cup}O_b$, define
+\[
+ P_g=\sum_{i\in O_g}P_i,\quad P_b=\sum_{i\in O_b}P_i,\quad
+ S_g=\sum_{i\in O_g}\sum_{p\in C_i}s_p,\quad
+ S_b=\sum_{i\in O_b}\sum_{p\in C_i}s_p.
+\]
+For each good center $i\in O_g$, suppose a proxy $\phi_i\in S$ has been
+specified, with these proxies pairwise distinct.  Set
+\[
+ D_g=\sum_{i\in O_g}\sum_{p\in C_i}d(p,\phi_i).
+\]
+
+\begin{lemma}[Weighted swap bound]
+\label{loc:swap}
+Under the preceding hypotheses, if $S$ is a width-$5$ local optimum and
+$u=6/5$, then
+\begin{equation}
+ S_b+uS_g\le (1+2u)P_b+uD_g.
+ \label{loc:strong-swap}
+\end{equation}
+Consequently,
+\begin{equation}
+ \operatorname{cost}(S)\le uD_g+(1+2u)P_b.
+ \label{loc:swap-bound}
+\end{equation}
+In particular, for any comparison set $O$ of size at most $|S|$,
+$\operatorname{cost}(S)\le(17/5)P\le5P$.
+\end{lemma}
+
+\begin{proof}
+Protect the proxy set $\Phi=\{\phi_i:i\in O_g\}$, meaning that no exchange
+below removes any member of $\Phi$.  Write $g=|O_g|$, $m=|O_b|$, and
+$q=|S\setminus\Phi|$.  Distinctness of the proxies and $h\le|S|$ imply
+\[
+ q=|S|-g\ge h-g=m.
+\]
+If $m=0$, every client can use its proxy, so $S_g\le D_g$ and both
+inequalities follow.  Assume henceforth that $m>0$; in particular an
+unprotected facility exists.
+
+For every $i\in O_b$, choose a nearest facility $\nu(i)\in S$ to $i$.
+Retain this choice for the routing argument.  Separately define an image
+$\psi(i)\in S\setminus\Phi$: if $\nu(i)$ is unprotected, take
+$\psi(i)=\nu(i)$; if $\nu(i)$ is protected, take any unprotected facility
+as $\psi(i)$.  Thus the image used to organize exchanges need not be the
+nearest facility used for routing.
+
+Let $a$ be the number of nonempty image classes of $\psi$.  A class of
+size $t$ receives its image facility together with $t-1$ auxiliary
+unprotected facilities that are not images of any bad center.  These sets
+of facilities can be chosen disjointly across classes: the total number
+of auxiliary facilities needed is $m-a$, whereas the number available is
+$q-a\ge m-a$.  Facilities in these allocated sets will be called slots.
+
+We give a nonnegative weighting of feasible exchanges.  For an image
+class $I\subseteq O_b$ of size $t\le5$, make the single exchange of weight
+one that removes its $t$ slots and adds every center in $I$.  For a class
+of size $t>5$, for each $i\in I$ and each of the $t-1$ auxiliary slots,
+make the exchange that removes that slot and adds $i$, with weight
+$1/(t-1)$.  These are exchanges of width at most five.  Their results are
+nonempty and have size at most $|S|$, even when an added facility already
+belongs to $S$: they are interpreted as actual set unions, and
+Lemma~\ref{loc:descent}'s padding observation applies.  Local optimality
+therefore gives a nonnegative cost change for every one of them.
+
+Every bad center is added in exchanges of total weight exactly one.  A
+slot allocated to a class of size at most five has removal weight one.
+In a class of size $t>5$, the image slot is never removed and each
+auxiliary slot has removal weight
+\[
+ \frac{t}{t-1}\le\frac65=u.
+\]
+Unallocated facilities are never removed.  Thus every facility in $S$
+has total removal weight at most $u$.
+
+We also need a preservation property.  In every exchange that does not
+add a particular bad center $i$, its remembered nearest facility
+$\nu(i)$ survives.  If $\nu(i)$ is protected, this is part of the
+construction.  Otherwise $\nu(i)=\psi(i)$ is the image slot of $i$'s
+class.  A small-class exchange that removes this slot adds all centers
+of the class, including $i$; a large-class exchange never removes it.
+Other classes have disjoint slots.  This proves the property, including
+when $O\cap S\ne\varnothing$.
+
+Consider a client $p\in C_i$ with $i\in O_b$.  In every exchange that
+adds $i$, route $p$ to $i$, at cost change $d_p^*-s_p$.  In any other
+exchange retain its old assignment if possible.  If its old facility
+is removed, use the preserved facility $\nu(i)$, for which
+\begin{align*}
+ d(p,\nu(i))
+ &\le d_p^*+d(i,\nu(i))\\
+ &\le d_p^*+d(i,s(p))
+ \le 2d_p^*+s_p.
+\end{align*}
+The weighted sum of these upper bounds for $p$ is therefore at most
+\[
+ d_p^*-s_p+2u d_p^*.
+\]
+Here the first term uses total addition weight one.  For the other
+exchanges we upper-bound their removal weight by the full removal
+weight of $s(p)$, which is at most $u$; the extra charge $2d_p^*$ is
+nonnegative.  Removing and immediately adding back the same facility
+only reduces the need for this extra charge.
+
+For a client $p\in C_i$ with $i\in O_g$, keep the old assignment unless
+its serving facility is removed, in which case use the protected
+proxy $\phi_i$.  Nearest assignment in $S$ gives
+$d(p,\phi_i)-s_p\ge0$, so its weighted cost change is at most
+$u(d(p,\phi_i)-s_p)$.
+
+Each described routing is feasible for its exchange.  Summing the
+upper bounds on cost change, and using nonnegativity of every actual
+cost change, yields
+\[
+ 0\le P_b-S_b+2uP_b+u(D_g-S_g).
+\]
+This is \eqref{loc:strong-swap}.  Since $u\ge1$, it implies
+\eqref{loc:swap-bound}.  Declaring every center bad gives the final
+assertion.
+\end{proof}
+
+\subsection{Anchoring at any fixed accuracy}
+
+For $h\ge2$ define the separation of a comparison center by
+\[
+ \operatorname{sep}_i
+ =\min_{j\in O\setminus\{i\}}d(i,j),
+ \qquad \ell=|S|-h\ge0.
+\]
+In a metric, $\operatorname{sep}_i>0$.  The next theorem is existential:
+the algorithm will not need to find its partition or proxies.
+
+\begin{theorem}[Anchoring]
+\label{loc:anchoring}
+Let $S$ be a width-$5$ local optimum, and let $O$ be a comparison set
+with $2\le h=|O|\le|S|$ and $P=\operatorname{cost}(O)>0$.  Suppose $b>0$
+satisfies
+\begin{equation}
+ b\left(\ell+
+   \bigl|\{i\in O:n_i\operatorname{sep}_i<b\}\bigr|\right)
+ \le10P.
+ \label{loc:scale-condition}
+\end{equation}
+For every fixed $\mu\in(0,1]$, there is a partition
+$O=O_g\mathbin{\dot\cup}O_b$ and distinct proxies $\phi_i\in S$ for
+$i\in O_g$ such that, with $m=|O_b|$,
+\begin{equation}
+ \sum_{i\in O_g}\sum_{p\in C_i}d(p,\phi_i)
+ \le P_g+\mu P,
+ \qquad m\le C_\mu\frac{P}{b},
+ \label{loc:anchoring-conclusion}
+\end{equation}
+where the finite constant
+\begin{equation}
+ J_\mu=\left\lceil\frac{40}{\mu}\right\rceil,
+ \qquad
+ C_\mu=10+\frac{600}{\mu}\,2^{J_\mu-1}
+ \label{loc:anchoring-constant}
+\end{equation}
+depends only on $\mu$.
+\end{theorem}
+
+\begin{proof}
+Set
+\[
+ V_i=\sum_{p\in C_i}(s_p+d_p^*),\qquad
+ q_0=\bigl|\{i\in O:n_i\operatorname{sep}_i<b\}\bigr|.
+\]
+The all-bad case of Lemma~\ref{loc:swap} gives
+\begin{equation}
+ \sum_{i\in O}V_i=\operatorname{cost}(S)+P\le6P.
+ \label{loc:V-bound}
+\end{equation}
+Call a center \emph{short} if $n_i\operatorname{sep}_i<b$.  In particular,
+every empty comparison cluster is short.
+
+\paragraph{Selecting a threshold.}
+Let $t_a=(\mu/100)2^{-a}$ for $0\le a<J_\mu$.  At threshold $t_a$, declare
+$i$ good precisely when it is not short and $V_i\le t_ab$, and let
+$m_a$ be the resulting number of bad centers.  For a fixed nonshort
+center $i$, the geometric tail of those values $t_ab$ that are strictly
+less than $V_i$ has sum at most $2V_i$.  Consequently,
+\begin{align}
+ \sum_{a=0}^{J_\mu-1}t_ab(m_a+\ell)
+ &\le 2(\mu/100)b(q_0+\ell)+2\sum_{i\in O}V_i\notag\\
+ &\le (12+\mu/5)P.
+ \label{loc:threshold-average}
+\end{align}
+The first term accounts for short centers and surplus facilities at
+every threshold; the second accounts for all other bad centers.
+Since $J_\mu\ge40/\mu$ and $\mu\le1$, the average of the left-hand
+summands is at most
+\[
+ \frac{\mu}{40}(12+\mu/5)P
+ \le\frac{61}{200}\mu P<\frac{\mu P}{2}.
+\]
+Choose a threshold $t=t_a$ attaining at most this average, and use its
+good/bad partition.  Thus
+\begin{equation}
+ tb(m+\ell)\le\frac{\mu P}{2},
+ \qquad 0<t\le\frac{\mu}{100}\le\frac1{100}.
+ \label{loc:selected-threshold}
+\end{equation}
+Every nonshort bad center has $V_i>tb$.  By
+\eqref{loc:scale-condition} and \eqref{loc:V-bound},
+\[
+ m\le q_0+\frac{\sum_iV_i}{tb}
+ \le\left(10+\frac6t\right)\frac Pb
+ \le C_\mu\frac Pb.
+\]
+This proves the count bound.
+
+\paragraph{Proxy geometry and the number of crowded balls.}
+For each good $i$, choose a nearest facility $\phi_i\in S$ to $i$, and
+write $r_i=d(i,\phi_i)$.  Such a center has $n_i>0$.  For every
+$p\in C_i$, nearest choice and the triangle inequality give
+$r_i\le d(i,s(p))\le d_p^*+s_p$.  Hence
+\begin{equation}
+ n_ir_i\le V_i\le tb,
+ \qquad r_i\le t\operatorname{sep}_i.
+ \label{loc:proxy-distance}
+\end{equation}
+Consider the open balls in the ambient metric
+\[
+ B_i=\{x:d(i,x)<\operatorname{sep}_i/4\},\qquad i\in O_g.
+\]
+They contain their respective proxies.  They are pairwise disjoint:
+for distinct $i,j\in O$, both separations are at most $d(i,j)$, so
+the sum of the ball radii is at most $d(i,j)/2$; membership in both
+balls would contradict the triangle inequality.  In particular the
+proxies are distinct.
+
+There are $h-m$ good balls and $|S|=h+\ell$ local facilities.  Every good
+ball contains at least one local facility.  Because the balls are
+disjoint, the number of them containing at least two local facilities
+is at most
+\[
+ |S|-(h-m)=m+\ell.
+\]
+Call these balls crowded.  All other good balls contain exactly their
+one proxy as a local facility.
+
+\paragraph{Charging the assignment excess.}
+We upper-bound the sum of $d(p,\phi_i)-d_p^*$ over all good clusters
+using three contributions.  Individual excesses may be negative;
+only their total upper bound is needed.
+
+First, for a good center with a crowded ball, the triangle inequality
+and \eqref{loc:proxy-distance} give
+\[
+ \sum_{p\in C_i}\bigl(d(p,\phi_i)-d_p^*\bigr)
+ \le n_ir_i\le tb.
+\]
+The total contribution from crowded balls is therefore at most
+$tb(m+\ell)$.
+
+Second, suppose $B_i$ contains exactly one local facility and
+$p\in C_i$ is assigned in $S$ to a facility other than $\phi_i$.
+That facility lies outside $B_i$, including possibly on its boundary,
+and therefore
+\[
+ d_p^*+s_p\ge d(i,s(p))\ge\operatorname{sep}_i/4.
+\]
+The excess of this client is at most
+\[
+ d(p,\phi_i)-d_p^*\le r_i
+ \le4t(d_p^*+s_p).
+\]
+Summing over these clients gives a total at most $4t\sum_iV_i$.
+
+Third, consider the remaining clients of the singleton balls, namely
+those assigned to their own proxy.  For such a good center $i$, put
+\[
+ A_i=\{p\in C_i:s(p)=\phi_i\},\qquad
+ I_i=\{p\in D\setminus C_i:s(p)=\phi_i\}.
+\]
+We claim that
+\begin{equation}
+ \sum_{p\in A_i}(s_p-d_p^*)\le r_i|I_i|.
+ \label{loc:incoming-swap}
+\end{equation}
+If $i=\phi_i$, the left side is zero.  Otherwise $i\notin S$, since a
+nearest facility to a facility already in $S$ is that facility itself.
+Exchange $\phi_i$ for $i$.  Send all clients previously assigned to
+$\phi_i$ to $i$ and keep all other assignments.  Clients in $A_i$ have
+change $d_p^*-s_p$; each incoming client in $I_i$ has change at most
+$r_i$.  Local optimality implies
+$0\le\sum_{p\in A_i}(d_p^*-s_p)+r_i|I_i|$, proving
+\eqref{loc:incoming-swap}.  This also explains why overlap between
+$O$ and $S$ creates no exception to the argument.
+
+For $p\in I_i$, let $j\ne i$ be its assigned comparison center.
+The path from $i$ to $j$ through $\phi_i$ and $p$ gives
+\[
+ d_p^*+s_p\ge d(i,j)-r_i
+ \ge(1-t)\operatorname{sep}_i.
+\]
+Together with \eqref{loc:proxy-distance}, this bounds its incoming
+charge by
+\[
+ r_i\le\frac{t}{1-t}(d_p^*+s_p).
+\]
+The proxies are distinct and the local assignment is fixed.  Thus a
+client is incoming at at most one charged proxy, and summing
+\eqref{loc:incoming-swap} gives a total at most
+$\frac{t}{1-t}\sum_iV_i$ for the third contribution.
+
+Combining the three contributions proves
+\begin{align*}
+ D_g-P_g
+ &\le tb(m+\ell)+\left(4t+\frac{t}{1-t}\right)\sum_iV_i\\
+ &\le\frac{\mu P}{2}
+       +\left(24t+\frac{6t}{1-t}\right)P.
+\end{align*}
+Since $t\le1/100<1/2$, the last parenthesis is at most
+$36t\le(9/25)\mu<\mu/2$.  This proves $D_g\le P_g+\mu P$ and finishes
+the proof.  Empty comparison clusters were counted among the bad
+centers throughout and never required division by $n_i$.
+\end{proof}
+
+For the main approximation theorem we henceforth use the specialization
+$\mu=1/100$ and the absolute constant
+\begin{equation}
+ C_0:=C_{1/100}=10+60000\cdot2^{3999}.
+ \label{loc:main-count-constant}
+\end{equation}
+Thus $C_0$ is fixed before any choice of the later algorithm parameters
+$v$ and $L$.  Theorem~\ref{loc:anchoring} gives
+$D_g\le P_g+0.01P$ and $m\le C_0P/b$ with this one choice.  The same
+proof supplies smaller fixed proxy error in the refined recovery
+theorem by choosing a different fixed $\mu$.
+
+Two consequences will be useful.  If $|S|=h$, the number of facilities
+of $S$ outside the distinct proxy set is exactly $m$, including when
+some bad comparison clusters are empty.  Also, if the main
+specialization satisfies $P_b\le P/10$, then
+Lemma~\ref{loc:swap} gives
+\begin{equation}
+ \operatorname{cost}(S)
+ \le\frac65(P-P_b+0.01P)+\frac{17}{5}P_b
+ \le1.432P<1.6P.
+ \label{loc:small-bad-cost}
+\end{equation}
+Finally, when all centers are declared bad, the proxy condition is
+vacuous and $m=h$; that use of Lemma~\ref{loc:swap} needs no separation
+assumption and applies also to $h=1$.

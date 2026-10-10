@@ -1,0 +1,581 @@
+\section{A finite-bit signing interface}
+\label{app:signing}
+
+We record a conservative quantitative form of the rank-one signing
+method of Ezeunala and Jiang~\cite{EzeunalaJiang2026}.  The constants
+below suffice for the exact padding argument.  We include their
+accounting and the finite-precision implementation to make the input
+interface explicit.
+
+\begin{theorem}[Rational rank-one signing]
+\label{thm:rational-signing}
+Given rational Hermitian matrices $H_1,\ldots,H_N$ of rank at most one,
+a deterministic algorithm returns signs $\sigma_i\in\{-1,1\}$ such that
+\[
+ \left\|\sum_i\sigma_iH_i\right\|
+ \le40\left\|\sum_iH_i^2\right\|^{1/2}.
+\]
+Its running time is polynomial in the total binary encoding length.
+Consequently, for rational columns $v_i$ with $\sum_i v_iv_i^*=I$,
+the same algorithm gives discrepancy at most
+$40\sqrt{\max_i\|v_i\|^2}$.
+\end{theorem}
+
+The last assertion follows from
+$(v_iv_i^*)^2=\|v_i\|^2v_iv_i^*$ and positivity.  Forming the outer
+products has polynomial bit cost.  We prove the matrix assertion next.
+
+\subsection{The potential and its quantitative estimates}
+
+In dimension zero, any signs suffice.  Otherwise discard zero matrices;
+if none remain, any signs again suffice.  A nonzero
+rank-one Hermitian matrix has one nonzero eigenvalue, equal to its
+trace.  With $D=\sum_i|\operatorname{Tr}H_i|$, put
+\[
+ A_i=D^{-1}\operatorname{sign}(\operatorname{Tr}H_i)H_i,
+ \qquad \nu_0=\left\|\sum_iA_i^2\right\|.
+\]
+These are rational positive semidefinite matrices and
+$\sum_i\operatorname{Tr}A_i=1$.  Matrix Cauchy--Schwarz gives
+$1/(Nd^2)\le\nu_0\le1$, where $d$ is the matrix order.  Rational
+positive-semidefiniteness tests and bisection compute rational parameters
+\[
+ \nu_0\le\nu\le\min\{1,1.001\nu_0\},\qquad
+ \varepsilon=\nu/d,\qquad
+ \frac{\sqrt\nu}{200N}\le\lambda\le\frac{\sqrt\nu}{100N}.
+\]
+Set $c=384$, $K=100$, and $\sigma=\lambda^2/\nu$.  Thus
+$\varepsilon\ge1/(Nd^3)$ and
+$1/(40000N^2)\le\sigma\le1/(10000N^2)$.
+
+For $x\in[-1,1]^N$, let
+\[
+ S(x)=\sum_i x_iA_i,\quad
+ \psi_i=(1-x_i^2)^{1/3},\quad
+ \eta_x(Z)=c\sum_i\psi_iA_iZA_i.
+\]
+Define $R(x)$ as the minimum of
+$t+\varepsilon\operatorname{Tr}(X+Y)$ over $X,Y\succ0$ subject to
+\begin{equation}
+ X^{-1}+S(x)+\eta_x(Y)\preceq tI,
+ \qquad Y^{-1}-S(x)+\eta_x(X)\preceq tI,
+ \label{eq:sign-potential}
+\end{equation}
+and put $\Psi(x)=R(x)+\lambda\sum_i\psi_i$.
+
+The variational argument of Ezeunala and Jiang
+\cite[Section~4.1]{EzeunalaJiang2026} uses only $c>0$ and gives
+\begin{equation}
+ \|S(x)\|\le R(x)\le\|S(x)\|+2\sqrt{(c+2)\nu},
+ \qquad \Psi(0)\le(2\sqrt{386}+0.01)\sqrt\nu.
+ \label{eq:sign-potential-bound}
+\end{equation}
+For clarity, its quantitative ingredients are as follows.  The minimizer
+is unique; with its positive definite dual multipliers $P,Q$ it satisfies
+\begin{gather}
+ (2K)^{-1}I\preceq X,Y\preceq(K/\varepsilon)I,
+ \quad P,Q\preceq I,\quad \operatorname{Tr}(P+Q)=1,\nonumber\\
+ P=X\eta_x(Q)X+\varepsilon X^2,
+ \qquad Q=Y\eta_x(P)Y+\varepsilon Y^2,
+ \label{eq:sign-dual}
+\end{gather}
+and both inequalities in \eqref{eq:sign-potential} are tight.  Indeed,
+the scalar choice $X=Y=aI$ proves the upper bound in
+\eqref{eq:sign-potential-bound}; its value is below $42<K$.
+On the sublevel set of objective at most $K$, the constraints bound the
+inverse matrices and the trace penalty bounds $X,Y$.  Compactness gives
+attainment.  Stationarity gives \eqref{eq:sign-dual}; positive dual
+multipliers imply tightness.  Strict convexity of
+$\operatorname{Tr}(PX^{-1})+\operatorname{Tr}(QY^{-1})$ gives uniqueness.
+
+On pairs of Hermitian matrices define
+\[
+ \mathcal L(U,V)=
+ (X^{-1}UX^{-1}-\eta_x(V),\,
+  Y^{-1}VY^{-1}-\eta_x(U)).
+\]
+The positive-map argument of
+\cite[Claim~4.1]{EzeunalaJiang2026} yields the following bound, with
+the Frobenius norm specified explicitly:
+\begin{equation}
+ \|\mathcal L^{-1}\|\le\varepsilon^{-1},\qquad
+ \mathcal L(P,Q)=\varepsilon(I,I).
+ \label{eq:sign-L}
+\end{equation}
+All operator norms on spaces of matrix pairs here are induced by the
+Frobenius norm. To verify the norm bound, write
+$\mathcal L=\mathcal C(I-\mathcal T)$, where
+\[
+ \mathcal C(U,V)=(X^{-1}UX^{-1},Y^{-1}VY^{-1}),\qquad
+ \mathcal T(U,V)=(X\eta_x(V)X,Y\eta_x(U)Y).
+\]
+Both $\mathcal T$ and $\mathcal C^{-1}$ preserve positive semidefinite
+matrix pairs. The dual identities give
+\[
+ \mathcal T(P,Q)=(P,Q)-\varepsilon(X^2,Y^2).
+\]
+Since all four matrices are positive definite, there is a
+$\delta>0$ such that the right side is at most $(1-\delta)(P,Q)$
+in componentwise Loewner order. Thus $\mathcal T$ is a strict
+contraction in the norm
+\[
+ \|(U,V)\|_{P,Q}
+ =\inf\{s\ge0:-s(P,Q)\preceq(U,V)\preceq s(P,Q)\}.
+\]
+The convergent series
+$\mathcal L^{-1}=\sum_{j\ge0}\mathcal T^j\mathcal C^{-1}$ is positive.
+Its value on $(I,I)$ is $(P,Q)/\varepsilon\preceq(I,I)/\varepsilon$.
+Consequently its induced norm for
+$\|(U,V)\|_{\max}=\max\{\|U\|_{\op},\|V\|_{\op}\}$ is at most
+$\varepsilon^{-1}$. Finally, $\mathcal L$ and its inverse are
+self-adjoint for the Frobenius pairing. The Frobenius operator norm
+of $\mathcal L^{-1}$ therefore equals its spectral radius, which is
+bounded by every induced norm. This proves \eqref{eq:sign-L}.
+
+The Hessian $\mathcal H$ of the Lagrangian in $(X,Y)$
+satisfies
+\begin{equation}
+ \frac{2\varepsilon^2}{K}I\preceq\mathcal H,
+ \qquad \|\mathcal H\|\le16K^3.
+ \label{eq:sign-H}
+\end{equation}
+The lower bound follows by substituting $P\succeq\varepsilon X^2$ in
+$2\operatorname{Tr}(PX^{-1}UX^{-1}UX^{-1})$ and using
+$X^{-1}\succeq(\varepsilon/K)I$; the other block is identical.
+The upper bound uses three inverse factors of norm at most $2K$ in
+each of the two terms of a Hessian block.
+
+\subsection{A quantified direction of decrease}
+
+A coordinate is active when $|x_i|<1$; let $n$ be their number.
+In the following differential calculations, vectors and derivatives
+are restricted to these coordinates, with the other coordinates fixed
+on the current open face.
+Write $A_i=u_iu_i^*$ in this analysis and set
+\[
+ a_i=u_i^*Xu_i,\quad b_i=u_i^*Yu_i,\quad
+ p_i=u_i^*Pu_i,\quad q_i=u_i^*Qu_i.
+\]
+The factors $u_i$ need not be rational: the algorithm below uses only
+the rational matrices $A_i$.  If $c\psi_i b_i\ge1-x_i$, moving $x_i$
+to $1$ preserves feasibility in \eqref{eq:sign-potential} with the
+same $(t,X,Y)$ and decreases $\Psi$ by at least $\lambda\psi_i$.
+The symmetric condition $c\psi_i a_i\ge1+x_i$ permits the move to $-1$.
+We may therefore assume
+\begin{equation}
+ c\psi_i a_i<1+x_i,\qquad c\psi_i b_i<1-x_i
+ \quad\text{for all active }i.
+ \label{eq:sign-light}
+\end{equation}
+
+Put $\alpha_i=1+c\psi_i'b_i$, $\beta_i=1-c\psi_i'a_i$, and
+\[
+ T_i^2=\alpha_i\beta_i/\psi_i,\quad
+ \ell_i=\alpha_i/T_i,\quad m_i=\beta_i/T_i,\qquad
+ \widetilde a_i=\ell_i a_i,\quad \widetilde b_i=m_i b_i,\quad
+ z_i=\ell_i p_i,\quad w_i=m_i q_i.
+\]
+For $k_i=-\psi_i''$, elementary substitution in
+\eqref{eq:sign-light} gives
+\begin{equation}
+ \frac{k_i}{\alpha_i\beta_i}\ge\frac13,
+ \quad\frac{k_i}{T_i^2}\ge\frac13,
+ \quad T_i^{-2}\le\frac32,
+ \quad\frac{|\psi_i'|}{\psi_i k_i}\le1,
+ \quad\widetilde a_i\widetilde b_i\le c^{-2},
+ \quad\widetilde a_i^2,\widetilde b_i^2\le3c^{-2}.
+ \label{eq:sign-scalar}
+\end{equation}
+Here is a direct check.  By symmetry take $x_i\ge0$ and put
+$r=1-x_i^2$.  Then
+$2/3\le\alpha_i\beta_i\le2/r$ and
+$k_i=(2/3)r^{-5/3}(1+x_i^2/3)$.
+Also $\widetilde a_i\widetilde b_i=\psi_i a_i b_i
+\le r^{2/3}/c^2$.  For
+$u=c\psi_i a_i/(1+x_i)$ and $v=c\psi_i b_i/(1-x_i)$ in $(0,1)$,
+\[
+ c^2\widetilde a_i^2
+ =r^{2/3}u^2\frac{1+x_i-2x_iv/3}{1-x_i+2x_iu/3},\qquad
+ c^2\widetilde b_i^2
+ =r^{2/3}v^2\frac{1-x_i+2x_iu/3}{1+x_i-2x_iv/3}.
+\]
+Maximizing the first in $u$ and minimizing $v$, and maximizing the
+second in $u,v$, bounds them by $3$ and $1$.
+For negative $x_i$ the roles interchange.  These formulas also prove
+the remaining assertions of \eqref{eq:sign-scalar}.
+
+We quantify the covariance construction in
+\cite[Lemma~4.5]{EzeunalaJiang2026}.  Define the real symmetric,
+entrywise nonnegative positive semidefinite matrices
+\[
+ \mathsf A_{ij}=c\ell_i\ell_j|u_i^*Xu_j|^2,
+ \qquad \mathsf B_{ij}=cm_im_j|u_i^*Yu_j|^2,
+\]
+and $D_F=\operatorname{diag}(\widetilde a_i z_i)$,
+$D_G=\operatorname{diag}(\widetilde b_i w_i)$.
+The dual identities give $\mathsf A w\le z$ and
+$\mathsf Bz\le w$ coordinatewise.  Moreover,
+\[
+ \|D_G^{1/2}\mathsf A D_F^{-1/2}\|_F^2\le n/c,
+ \qquad
+ \|D_F^{1/2}\mathsf B D_G^{-1/2}\|_F^2\le n/c.
+\]
+For example, $\mathsf A_{ij}^2\le
+c\widetilde a_i\widetilde a_j\mathsf A_{ij}$ and
+$\widetilde a_i\widetilde b_i\le c^{-2}$ bound the first sum by
+$c^{-1}\sum_j(\mathsf A w)_j/z_j$.
+
+Restrict $D_F^{1/2}F$ and $D_G^{1/2}G$ to right singular directions
+with singular value at most $1/2$ for these two maps.  Each restriction
+has codimension at most $4n/c$.  Impose also
+$(I-\mathsf A)F+(I-\mathsf B)G=0$.  The resulting subspace
+$\mathcal G\subseteq\mathbb R^{2n}$ has dimension at least $n-8n/c$.
+The covariance theorem of Bansal and Garg~\cite[Theorem~6]{BansalGarg2017},
+in the form stated by Bansal~\cite[Theorem~2.5]{Bansal2024} and recalled
+in \cite[Lemma~2.1]{EzeunalaJiang2026}, supplies a
+positive semidefinite $\Gamma$ with
+\[
+ \operatorname{range}\Gamma\subseteq\mathcal G,\quad
+ \Gamma\preceq4\operatorname{diag}\Gamma,\quad
+ \Gamma_{jj}\le1,\quad
+ \operatorname{Tr}\Gamma\ge(1/2-8/c)n=23n/48.
+\]
+Take a centered finitely supported $(F,G)$ with covariance $\Gamma$
+and set $H=F-\mathsf BG=\mathsf AF-G$, $h_i=H_i/T_i$, and
+$\omega_i=\mathbb E H_i^2$.
+The two singular-value restrictions give
+\[
+ \|F\|_{D_F}^2+\|G\|_{D_G}^2
+ \le4\sum_i(\widetilde a_i z_i+\widetilde b_i w_i)H_i^2.
+\]
+The response matrices are
+$\dot X=X(\sum_i\ell_iF_iA_i)X$ and
+$\dot Y=Y(\sum_i m_iG_iA_i)Y$.
+The diagonal of their inversion-energy quadratic form
+\[
+ E_h=\operatorname{Tr}(PX^{-1}\dot X X^{-1}\dot X X^{-1})
+     +\operatorname{Tr}(QY^{-1}\dot Y Y^{-1}\dot Y Y^{-1})
+\]
+is $(D_F,D_G)$.  Hence
+\begin{equation}
+ \mathbb E E_h\le16\sum_i
+          (\widetilde a_i z_i+\widetilde b_i w_i)\omega_i.
+ \label{eq:sign-energy}
+\end{equation}
+
+We expand the first and second variation calculation of
+\cite[Lemma~4.3 and its proof]{EzeunalaJiang2026} to obtain
+\[
+ \partial_iR=T_i(z_i-w_i),\qquad
+ h^T\nabla^2Rh\le3E_h-\frac c2\sum_i k_i h_i^2(b_ip_i+a_iq_i).
+\]
+The first identity is the envelope formula
+$\partial_iR=\alpha_i p_i-\beta_i q_i$.
+For the second, keep $t$ fixed and replace $x$ by $x+\tau h$.
+Invertibility of $\mathcal L$ and the implicit function theorem
+give a local curve $(X(\tau),Y(\tau))$ satisfying both tight
+constraints. Its first derivatives are the response matrices above:
+the identities $H=F-\mathsf BG=\mathsf AF-G$ verify the linearized
+constraints. This curve stays positive definite for small $\tau$,
+and its objective bounds $R(x+\tau h)$ from above with equality at
+$\tau=0$. Differentiating twice and pairing with $P,Q$, using
+$\mathcal L(P,Q)=\varepsilon(I,I)$, therefore gives
+\begin{align*}
+ h^T\nabla^2Rh
+ &\le2E_h-c\sum_i k_i h_i^2(b_ip_i+a_iq_i)\\
+ &\quad+2c\sum_i\psi_i'h_i
+       \bigl(q_i u_i^*\dot X u_i+p_i u_i^*\dot Y u_i\bigr).
+\end{align*}
+Write $E_X,E_Y$ for the two summands of $E_h$. Since
+$P\succeq X\eta_x(Q)X$,
+\[
+ E_X\ge\operatorname{Tr}(\eta_x(Q)\dot X X^{-1}\dot X)
+     =c\sum_i\psi_iq_i u_i^*\dot X X^{-1}\dot X u_i.
+\]
+The inequality
+$|u_i^*\dot X u_i|^2\le a_i u_i^*\dot X X^{-1}\dot X u_i$
+and weighted Cauchy--Schwarz bound the $X$ mixed sum by
+\[
+ \left|c\sum_i\psi_i'h_iq_i u_i^*\dot X u_i\right|
+ \le\sqrt{E_X B_X},\qquad
+ B_X=c\sum_i(\psi_i')^2\psi_i^{-1}h_i^2a_iq_i.
+\]
+The corresponding $Y$ bound uses
+$B_Y=c\sum_i(\psi_i')^2\psi_i^{-1}h_i^2b_ip_i$.
+Thus the full mixed term is at most $2\sqrt{E_hB_h}$, where
+$B_h=B_X+B_Y$. Finally,
+$(\psi_i')^2/(\psi_i k_i)\le1/2$ gives
+$B_h\le(c/2)\sum_i k_i h_i^2(b_ip_i+a_iq_i)$, and
+$2\sqrt{E_hB_h}\le E_h+B_h$ proves the asserted Hessian bound.
+
+Let $\Sigma=\mathbb E hh^T$ and choose
+$\mu_i=-24T_i^{-1}(\widetilde a_i-\widetilde b_i)\omega_i$.
+Using \eqref{eq:sign-scalar} and \eqref{eq:sign-energy}, the operator
+$\mathcal Df=\nabla f\cdot\mu+\tfrac12\operatorname{Tr}(\nabla^2f\Sigma)$
+satisfies
+\begin{align*}
+ \mathcal DR
+ &\le(24-c/12)\sum_i
+       (\widetilde a_i w_i+\widetilde b_i z_i)\omega_i\le0,\\
+ \mathcal D\Bigl(\sum_i\psi_i\Bigr)
+ &\le-\left(\frac12-\frac{48}{c}\right)
+                  \sum_i\frac{k_i\omega_i}{T_i^2}
+ \le-\frac18\sum_i\omega_i.
+\end{align*}
+The first line uses cancellation of
+$24\sum_i(\widetilde a_i z_i+\widetilde b_i w_i)\omega_i$ by the drift.
+For the second, the identity $T_i(\widetilde a_i+\widetilde b_i)=a_i+b_i$
+and \eqref{eq:sign-light} give
+$|\psi_i'\mu_i|\le(48/c)k_i\omega_i/T_i^2$.
+
+All movement bounds are polynomial and uniform in the state.
+Indeed \eqref{eq:sign-dual} gives
+\[
+ \mathsf Aw\le(1-s_0)z,\quad
+ \mathsf Bz\le(1-s_0)w,\quad
+ s_0=\varepsilon/(4K^2),\quad
+ \|\mathsf A\|,\|\mathsf B\|\le3N.
+\]
+The spectral radius of $\mathsf A\mathsf B$ is at most $(1-s_0)^2$.
+Using its positive semidefinite conjugate yields
+\[
+ \|(I-\mathsf A\mathsf B)^{-1}\|,
+ \|(I-\mathsf B\mathsf A)^{-1}\|
+ \le J:=1+36K^2N^2/\varepsilon.
+\]
+Solving the two response equations gives
+$\|F\|^2+\|G\|^2\le E_0\|H\|^2$, where
+$E_0=2J^2(1+3N)^2$.  Consequently, with
+\[
+ C_1=\max\{1,48E_0/23,4(1+9N^2)\},\qquad C_0=8C_1,
+\]
+we have $\sum_i\omega_i\ge n/C_1$, $\omega_i\le C_1$ and
+\begin{equation}
+ \|\mu\|_\infty\le C_0,\quad
+ \operatorname{Tr}\Sigma\le C_0n,\quad
+ \mathcal D\Psi\le-\lambda n/C_0.
+ \label{eq:sign-progress}
+\end{equation}
+This proves a quantitative descent alternative for $c=384$.
+The covariance and drift are used only to prove that a direction of
+decrease exists.  The algorithm below computes neither of them nor
+the possibly irrational spectral subspaces used in their construction.
+
+Here is the deterministic alternative that the algorithm will use.
+Suppose at least one coordinate is active, every active coordinate is
+farther than $\sigma$ from its endpoints, and put
+$a=\lambda/(8C_0^2)$. Either an endpoint test above
+succeeds, giving a decrease of at least $\lambda\sigma$, or
+\begin{equation}
+ \|\nabla\Psi(x)\|_\infty\ge a
+ \quad\text{or}\quad
+ \lambda_{\min}(\nabla^2\Psi(x))\le-8a.
+ \label{eq:sign-deterministic-alternative}
+\end{equation}
+The endpoint estimate uses $\psi_i\ge\sigma$. If all endpoint tests
+fail, \eqref{eq:sign-light} holds and the preceding calculation
+applies. If also $\|\nabla\Psi\|_\infty<a$, then
+$\nabla\Psi\cdot\mu\ge-aC_0n$, whereas
+$\mathcal D\Psi\le-\lambda n/C_0=-8aC_0n$. Hence
+\[
+ \tfrac12\operatorname{Tr}(\nabla^2\Psi\,\Sigma)
+       \le-7aC_0n.
+\]
+Together with $\operatorname{Tr}\Sigma\le C_0n$, this gives a
+Hessian eigenvalue at most $-14a$, and therefore the asserted
+$-8a$ bound. The remaining task is to find one of these decreases
+using rational value queries.
+
+\subsection{Uniform derivatives and a rational value oracle}
+
+We next make the descent computable.  On any open face, let
+$z=(t,X,Y,P,Q)$ and write its tight constraints and stationarity
+equations as $F(x,z)=0$.  The source's smoothness proof
+\cite[Section~4.1]{EzeunalaJiang2026} applies to our parameters.
+Here we record a uniform quantitative bound.
+Write $B=\mathcal L^{-1}$ and $E=(I,I)$.  An inhomogeneous
+linearized system has the form
+\[
+ \mathcal Lu+hE=f,\qquad
+ \mathcal Lp-\mathcal Hu=g,\qquad \langle E,p\rangle=r.
+\]
+Eliminating $u,p$ determines $h$ with denominator
+$\langle BE,\mathcal HBE\rangle$.
+By \eqref{eq:sign-L}, $BE=(P,Q)/\varepsilon$; thus
+\[
+ \|BE\|_F\le\varepsilon^{-1},\qquad
+ \langle BE,\mathcal HBE\rangle
+ \ge\frac{2\varepsilon^2}{K}\|BE\|_F^2
+ \ge\frac1{Kd}.
+\]
+The last inequality uses
+$\|P\|_F^2+\|Q\|_F^2\ge1/(2d)$.
+The upper bound uses $\operatorname{Tr}(P+Q)=1$ and positivity.
+Back substitution in the three equations and
+\eqref{eq:sign-L}--\eqref{eq:sign-H} bound the complete Jacobian
+inverse by a constant times $(d+1)(1+\varepsilon^{-1})^4$.
+
+When every active coordinate is at least $\sigma/2$ from its endpoints,
+the first three derivatives of $\psi_i$ are bounded by
+$100(2/\sigma)^3$.  All derivatives of $F$ through order three are
+therefore bounded by a computable polynomial in
+$N,d,\varepsilon^{-1},\sigma^{-1}$.
+Three implicit differentiations give a uniform polynomial bound $M\ge1$
+for both $\|\nabla^2\Psi\|$ and $\|\nabla^3\Psi\|$ on these strips.
+There is no dependence on the number of faces.  For an explicit
+choice, let
+\begin{gather*}
+ A=10^{18}(d+1)(1+\varepsilon^{-1})^4,\\
+ D_*=10^{20}(N+1)^3(d+1)^3
+             (1+\varepsilon^{-1})^3(1+\sigma^{-1})^3,\\
+ Z_1=AD_*,\quad Z_2=AD_*(1+Z_1)^2,\quad
+ Z_3=AD_*\bigl((1+Z_1)^3+3(1+Z_1)Z_2\bigr),\\
+ M=\left\lceil1+(1+2d\varepsilon)(Z_2+Z_3)
+                         +800\lambda N\sigma^{-3}\right\rceil.
+\end{gather*}
+The product rule, the inverse bound $2K$, and Frobenius product
+inequalities verify these deliberately loose bounds.
+
+A value of $\Psi$ to additive accuracy $\eta>0$ is computable in
+polynomial time in the input length and $\log\eta^{-1}$.
+Approximate every $\psi_i$ by a nonnegative rational in $[0,1]$ to
+error $\delta$.  This changes the optimal value by at most
+$(cKd+\lambda N)\delta$: in either direction, increase $t$ by
+$cKd\delta$ to absorb the perturbation of the matrix constraints.
+Indeed, $\sum_iA_i^2\preceq\nu I$ and
+$\|Y\|\le K/\varepsilon$ bound the change in $\eta_x(Y)$ by
+$c\delta\nu\|Y\|\le c\delta\nu K/\varepsilon=cKd\delta$;
+the other block is identical.
+The resulting rational program is a semidefinite program by the
+Schur-complement formula.  Impose the rational bounds
+\[
+ I/400\preceq X,Y\preceq(200/\varepsilon)I,
+ \qquad 0\le t\le100.
+\]
+The scalar upper bound and sublevel estimates hold for every coefficient
+vector in $[0,1]^N$, so these boxes contain the minimizers both before
+and after approximation. The preceding comparison of unboxed optimal
+values therefore applies to the boxed programs as well.
+The point $X=Y=I/20$, $t=50$ has
+constraint slack at least $50-20-2-384/20=8.8$ and lies strictly
+inside the bounds.  It supplies an inverse-polynomial interior
+radius: each Schur block dominates
+$\left(\begin{smallmatrix}28.8I&I\\I&0.05I\end{smallmatrix}\right)
+\succeq I/100$, since subtracting $I/100$ leaves the scalar
+determinant $28.79\cdot0.04-1=0.1516>0$.
+In upper-triangular real and imaginary coordinates, a ball of radius
+$10^{-6}$ preserves this margin and all the boxes: a matrix-pair
+perturbation changes either Schur block by at most
+$|\Delta t|+384\|\Delta Y\|_F+\|\Delta X\|_F$ or its symmetric
+counterpart.  An outer radius $400(d+1)/\varepsilon$ suffices.
+Rational weak optimization~\cite{GLS1988} therefore evaluates the
+rational program to error $\eta/2$ in polynomial work.  Choosing
+$\delta\le\eta/[2(cKd+\lambda N)]$ gives the claimed oracle.
+Rational bisection computes the cube roots.  This value oracle also
+works on lower-dimensional faces and at vertices.
+
+\subsection{Rational descent and termination}
+
+At the start of an iteration, move every active coordinate at distance
+$z\le\sigma$ from its nearest endpoint to that endpoint.  This never
+increases the exact potential, since
+\[
+ \Delta\Psi\le z\sqrt\nu-\lambda[z(2-z)]^{1/3}
+             \le z\sqrt\nu-\lambda\sqrt z\le0.
+\]
+There are at most $N$ such permanent freezes.  Every remaining active
+coordinate is more than $\sigma$ from either endpoint. If none remain,
+return the resulting vertex; all derivative and direction computations
+below are performed only when $n\ge1$.
+
+With $a=\lambda/(8C_0^2)$ as above, choose positive powers of two $s,h$, each within
+a factor two below its indicated bound, with
+\[
+ s\le\min\{\sigma/4,a/(4M),1/4\},\qquad
+ h\le\min\{\sigma/8,1,a/(64MN)\},\qquad
+ \Delta=as^2.
+\]
+Central first differences, central diagonal second differences, and
+four-corner mixed second differences of the value oracle, each query
+to error at most $ah^2/(128N)$, give rational approximations
+$\widehat g,\widehat H$ to $\nabla\Psi,\nabla^2\Psi$ satisfying
+\[
+ \|\widehat g-\nabla\Psi\|_\infty<a/8,
+ \qquad\|\widehat H-\nabla^2\Psi\|<a/16.
+\]
+Taylor's theorem and the third-derivative bound prove these estimates;
+all stencil points stay in the $\sigma/2$ strips.
+
+Consider all $2n$ single-coordinate endpoint moves and the coordinate
+move $x-s\operatorname{sign}(\widehat g_i)e_i$, where
+$|\widehat g_i|$ is maximal.  Test the rational matrix
+$\widehat H+7aI$ for positive semidefiniteness by exact elimination.
+If it fails, elimination supplies a nonzero rational vector of
+negative quadratic form.  Set $\beta=a/(4096M)$ and
+$\tau=a/(1024M)$ and normalize that vector, using a rational upper
+approximation to its norm, to obtain $w$ with
+$1-\beta\le\|w\|\le1$.  Its Rayleigh quotient for
+$\widehat H$ is strictly below $-7a$.
+Choose $\rho$ as the largest dyadic power at most
+$sa/(4096MN)$; it divides the dyadic $s$.
+Round $s(1-\tau)w$ to $\rho\mathbb Z^n$ to obtain $q$.
+The rounding error is at most $\sqrt n\rho/2\le s\tau/8$, so
+$\|q\|\le s$ and $\|q-sw\|\le9s\tau/8$.
+The negative-direction certificate and the Hessian error bound give
+\[
+ w^T\nabla^2\Psi\,w<-\frac{111}{16}a(1-\beta)^2,
+ \qquad
+ |q^T\nabla^2\Psi\,q-s^2w^T\nabla^2\Psi\,w|
+ \le\frac9{4096}as^2.
+\]
+In particular,
+\[
+ q^T\nabla^2\Psi\,q\le-6as^2.
+\]
+Include both $x+q$ and $x-q$.  If the positive-semidefiniteness test
+passes, omit these two candidates.  Whenever
+$\lambda_{\min}(\nabla^2\Psi)\le-8a$, the test necessarily fails,
+so a curvature candidate is available when it is needed.
+The two displacements are exact negatives, so
+their linear Taylor terms cancel.
+
+By \eqref{eq:sign-deterministic-alternative}, one candidate decreases
+the true potential by at least $2\Delta$.
+An available endpoint move gives a decrease at least
+$\lambda\sigma\ge2\Delta$. In the remaining case, if
+$\|\nabla\Psi\|_\infty\ge a$, the selected coordinate has the
+correct sign and derivative magnitude at least $3a/4$, giving decrease
+at least $(3/4)as-Ms^2/2\ge(5/8)as\ge(5/2)\Delta$.
+Otherwise \eqref{eq:sign-deterministic-alternative} gives
+$\lambda_{\min}(\nabla^2\Psi)\le-8a$; averaging the two curvature
+candidates gives decrease at least
+$3as^2-Ms^3/6>2\Delta$.
+Evaluate all final candidates to error $\Delta/4$ and choose the
+smallest reported value.  Selection loses at most $\Delta/2$ against
+the best true candidate.  Every accepted step thus decreases the
+exact potential by at least $3\Delta/2$.
+
+Starting from $x=0$, every live coordinate stays on the fixed mesh
+$\rho\mathbb Z$; frozen coordinates equal $\pm1$.  All coordinates,
+parameters, and query points have polynomial encoding length.
+There are at most $\Psi(0)/\Delta$ main iterations, each with
+polynomially many rational semidefinite value queries and one exact
+rational positive-semidefiniteness test. The normalized lower bounds
+on $\nu$, $\varepsilon$, $\lambda$, and $\sigma$ imply that $C_0$ and
+$M$ are bounded by fixed polynomials in $N+d$. In turn, $a$ and the
+chosen $s,h$ are bounded below by fixed inverse polynomials, as is
+$\Delta=as^2$. Since $\Psi(0)<40$, the iteration count is polynomial
+as well. Together with the encoding and oracle bounds, this proves
+deterministic polynomial bit complexity on every execution.
+
+At the final vertex $x^f$, the coordinate term vanishes and
+\eqref{eq:sign-potential-bound} gives
+\[
+ \left\|\sum_i x_i^f A_i\right\|
+ \le(2\sqrt{386}+0.01)\sqrt\nu
+ \le(2\sqrt{386}+0.01)\sqrt{1.001\nu_0}
+ <40\sqrt{\nu_0}.
+\]
+Undoing the rational normalization and folding the signs of the
+original traces into $x_i^f$ proves
+Theorem~\ref{thm:rational-signing}.

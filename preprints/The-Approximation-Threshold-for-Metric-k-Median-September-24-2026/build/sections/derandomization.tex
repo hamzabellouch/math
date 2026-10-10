@@ -1,0 +1,585 @@
+\section{Deterministic implementation and completion}
+\label{sec:derandomization}
+
+The preceding constructions yield an additive approximation in expectation.
+We now replace their random choices by finite distributions of polynomial
+support, and then choose the least expensive feasible outcome. Throughout
+this section the desired approximation loss is fixed. In particular, the
+grid denominator, the number of physical rounds, and all parameters chosen
+in Theorems~\ref{thm:preparation} and~\ref{thm:grid-rounding} are constants
+independent of the input size. All input distances are rational, and
+running time includes their encoding lengths.
+
+\subsection{Compression of finite distributions}
+
+A distribution list is a finite list of states, each equipped with a
+nonnegative rational weight, whose weights sum to one. The state records
+the data needed to continue a construction; a feature vector records the
+statistics whose expectations must be retained.
+
+The next lemma is the constructive finite-dimensional Carath\'eodory
+argument for preserving an expectation. Its connection with moment
+matching is classical~\cite{BayerTeichmann2005}; we include the exact
+elimination and its bit bound because both are needed by the algorithm.
+
+\begin{lemma}[Affine support reduction]
+\label{lem:affine-support}
+Let a distribution list have states \(s_1,\ldots,s_M\), weights
+\(\lambda_1,\ldots,\lambda_M\), and feature vectors
+\(v(s_i)\in\mathbb Q^d\). There is an exact algorithm that replaces the
+weights by nonnegative rational weights supported on at most \(d+1\) of
+the same states, preserving
+\[
+  \sum_{i=1}^M\lambda_i v(s_i).
+\]
+Its running time and output encoding length are polynomial in the
+encoding length of the given list and feature vectors.
+\end{lemma}
+
+\begin{proof}
+Discard zero-weight entries. If more than \(d+1\) remain, choose a
+nonzero integral affine dependence \(z\) satisfying
+\[
+ \sum_i z_i=0,
+ \qquad
+ \sum_i z_i v(s_i)=0.
+\]
+Since its coefficients sum to zero, there are both positive and negative
+coefficients. Set
+\[
+ t=\min_{i:z_i>0}\frac{\lambda_i}{z_i},
+ \qquad
+ \lambda'_i=\lambda_i-tz_i.
+\]
+The new weights are nonnegative, have the same sum and feature
+expectations, and include at least one additional zero. Repeating gives
+the support bound.
+
+For completeness, the rational arithmetic has polynomial complexity.
+An affine dependence can be found using at most \(d+2\) columns of the
+matrix with columns \((1,v(s_i))\). Clearing denominators and using
+minors gives an integral dependence of polynomial bit length. If
+\(\lambda_i=b_i/D\) for a common denominator \(D\), and \(j\) attains
+the minimum defining \(t\), then
+\begin{equation}
+ \lambda'_i=
+ \frac{b_i z_j-b_jz_i}{Dz_j}.
+ \label{eq:compression-denominator}
+\end{equation}
+Thus one elimination adds at most the bit length of \(|z_j|\) to a
+common denominator. There are at most \(M\) eliminations, and the
+feature vectors do not change. The resulting bit lengths and the exact
+linear-algebra computations are polynomially bounded.
+\end{proof}
+
+Support reduction preserves every property satisfied by each state in
+the list, whether or not that property appears among the features. It
+does not preserve the entire joint distribution or arbitrary future
+adaptive behavior. We therefore specify the retained features at each
+use and verify the required estimates for the resulting process.
+
+\subsection{A distribution list for the preparation stage}
+
+Let \(M_\star\) denote the number of stars in the preparation
+construction, and write \(X_e\) for the current count of star \(e\).
+Each count remains within its original floor and ceiling. A weighted
+pair update within a strict sign preserves the weighted sum and has
+conditional mean equal to the current count vector. For every pair of
+distinct coordinates \(e,f\), it also satisfies
+\begin{equation}
+ \E[X'_e\mid X]=X_e,
+ \qquad
+ \E[X'_eX'_f\mid X]\le X_eX_f.
+ \label{eq:star-local-moments}
+\end{equation}
+Indeed, unless both coordinates are the selected pair, the product is
+affine in the update parameter. If they are the selected pair, their
+increments have opposite signs and the product is concave. A
+one-coordinate rounding with the correct mean preserves every distinct
+pair-product expectation.
+
+These assertions hold for every admissible state and every permissible
+choice of the next pair. Thus the next pair may be selected adaptively,
+for example as the first two fractional coordinates in a fixed order.
+After branching one update at every state, apply
+Lemma~\ref{lem:affine-support} with the features
+\[
+   X_e \quad\text{and}\quad X_eX_f \qquad(e<f).
+\]
+Induction using~\eqref{eq:star-local-moments} preserves the initial
+first moments and the upper bounds on distinct pair moments. Full
+independence between the positive, negative, and zero-coefficient
+classes is unnecessary for these conclusions.
+
+The weighted sums and floor/ceiling restrictions are properties of each
+retained state. Each productive pair update makes at least one
+fractional count integral, and integral counts are never updated again.
+There are therefore only \(O(M_\star)\) updates, with identity updates
+padding states that finish earlier. Ordinary one-coordinate rounding
+also handles the zero coefficients and the final positive-side
+fraction. We leave the final negative-side fraction unrounded until
+these operations are complete. Each compressed list has
+\(O(M_\star^2)\) entries.
+
+\paragraph{The final negative-side fraction.}
+Condition on a state of this last list. There is at most one fractional
+count, say \(X_e=m+\xi\), where \(0<\xi<1\). The identity of \(e\)
+may depend on the state. Perform the special rounding of the
+preparation construction: use a nominal coin of mean \(\xi\), open the
+outside supplier according to \(m+1\) if its flag is one, and activate
+the extra deficit on a subset of \(D_e\) with marginal \(\xi\) at
+every target.
+
+There is a polynomial-support law for this subset. If
+\(d_e=|D_e|\), choose a size
+\[
+ L\in\{\lfloor\xi d_e\rfloor,\lceil\xi d_e\rceil\},
+ \qquad \E L=\xi d_e,
+\]
+then choose a uniformly random cyclic interval of length \(L\) in a
+fixed cyclic order of the targets. Each target has inclusion
+probability \(\E L/d_e=\xi\), and the support has size at most
+\(2d_e\). Including the nominal coin changes this bound by only a
+constant factor.
+
+For a fixed target, the special star's activation count has conditional
+mean \(X_e\); its nominal count has the same conditional mean. Every
+other star count is integral in the conditioned state. Consequently,
+for any two distinct stars activating this target, the conditional
+expectation of their activation product is the product of their
+current counts. This argument applies separately in every state, so
+it remains valid when the identity of the final fractional star varies.
+After averaging, the activation counts retain the nonpositive
+pair-covariance bounds. Each individual activation count remains
+between the original adjacent integers, giving its variance bound as
+well. No pairwise independence between different targets of this last
+star is required: the deficit estimates are made for one target at a
+time, and the clipping bound sums expectations over targets.
+
+\paragraph{Conditional rounding inside bundles.}
+For each resulting outer state, clip the deficits and rescale the
+bundle masses exactly as in Theorem~\ref{thm:preparation}. Keep this
+outer state fixed while constructing a new list for all the
+within-bundle rounds. Successive pair updates and compression of all
+first and distinct-pair moments of the opening vector preserve its
+marginals and nonpositive covariances conditional on this outer
+state. Updates in different bundles preserve cross-bundle product
+expectations; thus their entire Cartesian product need not be
+enumerated.
+
+In particular, if \(\eta_i\) is the rounded opening minus its
+conditional mean in the fixed outer state, then the noise on a
+client's old assignment obeys
+\[
+ \Var\left(
+   \sum_{i\in F_j\cap\bigcup_sP_s}\eta_i
+   \,\middle|\,\text{outer state}
+ \right)
+ \le
+ g\sum_s\sum_{i\in F_j\cap P_s}\frac{p'_s}{p_s}y_i
+ \le g/p_0\le 2g.
+\]
+Here \(p'_s\le1\) and \(p_s\ge p_0\ge1/2\). This is the conditional
+noise estimate used in the preparation proof. Maintaining a separate
+inner list for every outer state retains this estimate despite
+the varying rescalings.
+
+All remaining preparation estimates use the retained first and second
+moments, or properties holding in every state. In particular, supplier
+availability and the raw opening-count bound hold in each state;
+the clipping estimate and the probability of exceeding its count
+allowance follow from the same deficit moments. The preparation list
+therefore satisfies the same unconditioned cost and budget-success
+bounds as the randomized construction. Discarding budget failures
+and selecting a remaining grid solution of minimum total nearest-unit
+assignment cost gives the corresponding deterministic bound on the
+sum over clients. This single choice need not simultaneously attain
+each client's individual expectation bound.
+
+\subsection{A distribution list for each physical round}
+
+Fix a physical state and a round. For each target copy, first construct
+a small list of source sets of cardinality \(\Delta\) with the
+prescribed edge marginals. Use ordinary fixed-sum pair rounding:
+after each pair update, branch each current state to its at most two
+endpoints and immediately compress the resulting list while preserving
+first moments. Thus no full tree of a target's pair updates is ever
+enumerated, and every intermediate list has polynomial support.
+All sets in this list
+contain the target's own group and respect the edges whose prescribed
+marginal is zero or one.
+
+Combine the target lists by successive independent products. After
+each product, compress while retaining every edge first moment and
+every product of two edge indicators belonging to distinct targets.
+On adjoining a new target independently, its edge products with earlier
+targets have the required expectations; compression then preserves
+them. Induction gives a graph list with all the first and cross-target
+second moments of the independent-target graph construction. Its
+feature dimension and support size are polynomial in the number of
+active copies.
+
+The ideal generator in~\eqref{eq:rnd-ideal-generator} is linear in
+edge indicators except for the terms \(\delta_hY_h\). Expanding these
+terms gives products of edges from a common source to distinct targets,
+and diagonal terms reducible to first moments. The retained statistics
+therefore suffice for its graph average. The heavy-source rule and
+forced openings depend on more than these moments, but this introduces
+no extra averaging requirement: the batch drift
+bound~\eqref{eq:rnd-batch-drift} holds conditional on every realized
+graph, with that graph's own forced openings and chunks. Only after
+that bound is applied do we average the ideal generator, obtaining
+\eqref{eq:rnd-average-drift} for the compressed graph distribution.
+
+\paragraph{Proposal and trigger lists.}
+For every graph, include both round types, each with probability
+\(1/2\). Within either type, construct the proposal or trigger
+indicators by successive independent Bernoulli products, compressing
+after each product while retaining all squarefree monomials of degree
+at most four. These moments coincide exactly with those of the
+independent reference law. There are polynomially many such
+monomials. In the balanced type the variables being compressed are
+the proposals, before conflict filtering.
+
+To see why filtering requires no higher moments, write \(Q_h\) for a
+balanced proposal and \(I_h\) for its acceptance. If \(C_h\) is the
+set of sources conflicting with \(h\), then, in every outcome,
+\[
+ Q_h-\sum_{t\in C_h}Q_hQ_t\le I_h\le Q_h,
+ \qquad
+ I_hI_t\le Q_hQ_t\quad(h\ne t).
+\]
+A balanced source has \(|E_h|=\Delta\), and each target has
+\(\Delta\) possible sources, so \(|C_h|\le\Delta(\Delta-1)\).
+Preservation of first and second proposal moments gives
+\begin{equation}
+ p_*-\Delta(\Delta-1)p_*^2\le\E I_h\le p_*,
+ \qquad
+ \E[I_hI_t]\le p_*^2\quad(h\ne t).
+ \label{eq:list-conflict-moments}
+\end{equation}
+These are the marginal and pair bounds needed for the isolated-action
+and simultaneous-action estimates. Accepted out-sets remain disjoint
+in every outcome.
+
+For an unbalanced round, the count statistic from
+Equation~\eqref{eq:rnd-count-statistic}, conditional on the graph,
+has the form
+\[
+ Z_*=
+ \sum_e c_e I_e+\sum_{e<f}c_{ef}I_eI_f
+\]
+with fixed rational coefficients. It has degree at most two in the
+trigger indicators, and its square has degree at most four after using
+\(I_e^2=I_e\). The compressed law therefore has exactly the same
+\(\E Z_*\), \(\E Z_*^2\), and \(\Var Z_*\) as the independent
+reference law. The variance estimate proved for independent
+indicators transfers to this law, and hence so does the Chebyshev
+count-failure bound. An independent-coordinate variance inequality
+is applied to the reference law before this transfer.
+
+The terminal alive-mass estimate likewise uses only the marginal and
+pair bounds for the \(\Delta\) possible incoming triggers at each
+surviving target. It follows by the same union lower bound as in the
+randomized analysis. Thus all probabilistic estimates in
+Theorem~\ref{thm:grid-rounding} remain valid for these lists.
+
+\paragraph{Retaining adaptive histories.}
+Expand these graph and proposal lists at every reached physical
+history, and retain all resulting physical outcomes over the
+\(T\) rounds. The history tree is not compressed. The alive sets
+used in the analysis can be defined along this tree, but need not be
+computed by the algorithm. Even when two histories reach the same
+physical state with different analysis-only alive sets, the
+next-round estimates apply to either history, since they hold for
+every admissible alive set conditional on the current physical state
+and graph.
+
+The number of active copies is polynomial: there are at most
+\(\Delta\) at each facility, and resetting regenerates copies at an
+existing facility. The number of chunk actions is also polynomial,
+since the total number of source--target incidences is
+\(\Delta\) times the number of target copies. Each history has only
+polynomially many children. Since \(T\) is an input-independent
+constant, the complete history tree has polynomial size. At each
+leaf perform the final deterministic completion, discard outcomes
+exceeding the additive budget, and select one of minimum total
+connection cost.
+
+\subsection{Rational implementation and bit complexity}
+
+We give the encoding details because support size alone does not imply
+a polynomial-time algorithm. Fix rational values of all algorithmic
+parameters. In each of the finitely many rounds, fix in advance a
+rational taper value \(\widehat P\) satisfying its stipulated
+accuracy. The analytic functions of elapsed time, the potential, and
+the analysis-only alive-set decisions need not be evaluated by
+the algorithm.
+
+An optimal basic LP solution has polynomial encoding length. Splitting
+facilities to make assignments use whole pieces introduces only
+polynomially many pieces. Piece masses, bundle masses, and
+intersection masses are sums and differences of the LP coordinates.
+The extra star weights multiply a deficit by the fixed rational
+\(\gamma\), and conversion to grid counts multiplies by the integer
+\(\Delta\). Hence the initial star counts have a common denominator
+\(D_0\) of polynomial bit length.
+
+For weighted pair rounding, write \(a_e=|u_e|\). If a pair update
+makes \(X_e\) integral and leaves \(X_f\) fractional, preservation
+of its weighted sum gives
+\[
+ a_fX'_f=a_fX_f+a_eX_e-a_eX'_e.
+\]
+Throughout these updates, therefore, every weighted count lies in
+\(D_0^{-1}\mathbb Z\). Recovering \(X_f\) only divides by the
+polynomially bounded integer \(a_f\). Counts remain in their original
+integer bounds, so their numerators and their endpoint probabilities
+have polynomial bit length as well. Final single-coordinate rounding
+makes the coordinate integral; zero-coefficient counts retain their
+initial values until rounded directly. Clipping and rescaling give
+fresh rational inputs of polynomial bit length for the within-bundle
+rounds, where the same argument applies with unit coefficients.
+
+The taper radii can also be computed exactly. On an interval where
+\(m\) source copies have saturated marginal one and \(r\) source
+copies have marginal strictly between zero and one, the radius
+equation is
+\[
+ m+\frac{r}{\widehat P}
+ -\frac{\sum_{h\text{ partial}}d(i,h)}{\widehat P N_i}
+ =\Delta.
+\]
+When \(r>0\), an interior solution is
+\begin{equation}
+ N_i=
+ \frac{\sum_{h\text{ partial}}d(i,h)}
+      {r+\widehat P(m-\Delta)}.
+ \label{eq:rational-taper-radius}
+\end{equation}
+The breakpoints are the rational numbers \(d(i,h)\) and
+\(d(i,h)/(1-\widehat P)\). Sorting these values and checking the
+successive intervals finds the smallest solution, including a
+breakpoint solution. If \(r=0\), the equation is constant on the
+interval, and the first point of a solution interval is a breakpoint.
+The separately prescribed case of sufficient
+co-located mass uses \(N_i=0\). All radii, marginals, and resulting
+branch probabilities have polynomial bit length. The physical states
+and their feature values are determined without reference to the
+list weights.
+
+It remains to control the list weights across repeated branching and
+compression. Suppose a feature vector has \(d\) coordinates of bit
+length at most \(L\). In the affine-dependence computation, clearing
+denominators in each row of the matrix on at most \(d+2\) columns
+produces integer entries of bit length \(O(dL)\). A nonzero kernel
+vector can be chosen using minors, with bit length
+\(O(d^2L+d\log(d+1))\) by the determinant bound. These bounds are
+independent of the current list weights.
+
+By~\eqref{eq:compression-denominator}, an elimination multiplies a
+common weight denominator by just one coefficient of such a
+dependence. An exact branch with probability denominator \(q\)
+multiplies a common denominator by at most \(q\). Branching a whole
+list adds the bit lengths of only polynomially many such
+denominators, and taking a product of lists adds their denominator
+bit lengths. There are polynomially many list operations, including
+the entire constant-depth physical history tree. Their common
+denominators and numerators consequently retain polynomial bit
+lengths. Exact linear algebra, comparisons, and cost evaluations
+therefore give a deterministic algorithm whose bit complexity is
+polynomial in the input encoding length for every fixed choice of
+accuracy parameters.
+
+\subsection{Loss allocation and the approximation theorem}
+
+We first record explicitly how conditioning and deterministic
+selection are combined. For a nonnegative cost \(C\) and an event
+\(G\) with \(\Prob(G)\ge1-r\),
+\begin{equation}
+ \E[C\mid G]
+ \le\frac{\E C}{1-r}.
+ \label{eq:conditioning-cost}
+\end{equation}
+Thus a finite distribution list contains a successful outcome whose
+cost is no more than the right-hand side. No independence between
+cost and budget success is required.
+
+\begin{theorem}[Deterministic additive approximation]
+\label{thm:pseudo}
+For every fixed \(\varepsilon>0\), there is an
+instance-independent integer \(c\ge0\) and a deterministic
+polynomial-time algorithm for metric \(k\)-median that opens at
+most \(k+c\) facilities and has total connection cost at most
+\[
+ \left(1+\frac2e+\varepsilon\right)\operatorname{LP},
+\]
+where \(\operatorname{LP}\) is the optimum value of the assignment
+relaxation. In particular, its cost is at most the same factor times
+\(\OPT_k\).
+\end{theorem}
+
+\begin{proof}
+Put \(\alpha_\star=1+2/e\), and choose a fixed positive rational
+number
+\[
+ t\le\min\{1/8,\varepsilon/10\}.
+\]
+Choose the parameters in the constructions underlying
+Theorems~\ref{thm:preparation} and~\ref{thm:grid-rounding} with
+unconditioned cost factors at most \(1+t\) and
+\(\alpha_\star+t\), respectively, and with their respective
+budget-failure probabilities at most \(t\). The proofs of those
+theorems allow the cost and failure tolerances to be made
+arbitrarily small; their stated expectation guarantees absorb this
+same conditioning loss. Here we keep the loss visible.
+
+All parameter choices can be made in a consistent order. After the
+preparation parameters other than the grid are fixed, take an even
+integer \(\Delta\) sufficiently large, set \(g=1/\Delta\), and
+take a rational horizon of order
+\(1+\log(\Delta/t)\). The requirements that the terminal error
+be small and that \(\Lambda g\) be small are compatible because
+\(\log\Delta/\Delta\to0\). Then choose the taper tolerance,
+the selection bias, and the time step successively small. The
+number of rounds is now fixed. Finally choose the heavy-source
+parameter sufficiently small that the sum of the conditional
+count-failure probabilities over all rounds is at most \(t\).
+The resulting additive opening allowances are constants depending
+only on these parameter choices.
+
+Let \(L=\operatorname{LP}\). Apply the preparation list to an
+optimal LP solution. Its total nearest-unit cost has expectation at
+most \((1+t)L\), and its budget event has probability at least
+\(1-t\). Select the least expensive successful grid solution.
+By~\eqref{eq:conditioning-cost}, its total nearest-unit cost
+\(L_{\rm grid}\) satisfies
+\[
+ L_{\rm grid}\le\frac{1+t}{1-t}L.
+\]
+Apply the physical-rounding list to this fixed grid solution. The
+summed cost bound is at most \((\alpha_\star+t)L_{\rm grid}\)
+before discarding count failures, and the budget succeeds with
+probability at least \(1-t\). Selecting the least expensive
+successful integral output therefore gives cost at most
+\[
+ \frac{(1+t)(\alpha_\star+t)}{(1-t)^2}L.
+\]
+Since \(\alpha_\star<2\) and \(t\le1/8\),
+\begin{align*}
+ \frac{(1+t)(\alpha_\star+t)}{(1-t)^2}-\alpha_\star
+ &=
+ \frac{(3\alpha_\star+1)t+(1-\alpha_\star)t^2}
+      {(1-t)^2}\\
+ &\le\frac{7t}{(1-t)^2}
+ <10t
+ \le\varepsilon.
+\end{align*}
+The two additive allowances sum to an instance-independent
+constant, which may be rounded up to an integer \(c\).
+
+Both minimum-cost selections are computable on polynomial-size
+lists, with polynomial bit complexity as proved above. They use
+total costs; the deterministic grid solution is not required to
+attain every client's individual expectation bound. If \(L=0\),
+the nonnegative cost has expectation zero in the preparation list
+and then in the physical-rounding list, so the same argument gives
+zero cost without division by \(L\).
+
+Every opened copy lies at an original candidate facility. Merge
+copies introduced by the construction back to their original
+facility. This preserves connection distances and cannot increase
+the number of opened facilities. Finally,
+\(\operatorname{LP}\le\OPT_k\), proving the last assertion.
+\end{proof}
+
+\subsection{Applying the reduction on rational inputs}
+\label{sec:reduction-implementation}
+
+Before applying Theorem~\ref{thm:li-svensson}, we record its interface
+with the deterministic algorithm just proved. Every call of that reduction
+uses the same clients and distances with a restricted candidate set
+\(F'\subseteq F\); our pseudo-algorithm uses no additional input promise
+or prescribed-open facilities. Its internal forced openings are decisions
+of that call, not constraints passed from another call. Copies are merged
+back to original candidates before returning its output. If
+\(0<|F'|<k\), opening every candidate gives the optimum for that restricted
+instance. If \(F'=\varnothing\) and clients remain, discard the branch.
+The distinguished branch retaining a padded optimal \(k\)-set has
+neither exception. When the additive allowance is zero, the
+pseudo-algorithm already satisfies the required budget.
+
+The zero-optimum case can be recognized before the reduction. Every
+client location must be an available candidate location, and there can
+be at most \(k\) distinct client locations. Equivalently, every
+zero-distance class containing a client must contain a candidate, and
+there are at most \(k\) such client classes. These conditions are necessary
+and sufficient in the original metric; when they hold, open those
+locations. Thus the positive-optimum analysis of the reduction does not
+require division by zero. Co-located pieces occur only inside our
+pseudo-algorithm and do not change this original-metric test.
+
+We also make explicit a rational implementation of the deletion threshold
+in the proof of Li--Svensson's reduction~\cite[Section~2, Algorithm~2]{LiSvensson2016}.
+That proof analyzes a threshold determined by the unknown optimum.
+Its numerical value need not be computed. Suppose a call returns a set
+\(T\) with \(k<|T|\le k+c\). For every set \(T'\subseteq T\) obtainable
+by at most \(c\) deletions with \(|T'|>k\), and every \(i\in T'\), compute
+\[
+ \Delta(T',i)=\cost(T'\setminus\{i\})-\cost(T').
+\]
+These numbers are nonnegative rationals of polynomial bit length.
+There are \(n^{O(c)}\) such numbers. Run the reduction's deletion phase
+for each distinct number as threshold, and for zero, with a fixed order
+for choosing deletions; follow each run by its prescribed enumerative
+completion and retain the cheapest feasible result.
+
+To justify this replacement, let \(B^*\ge0\) be the threshold used in
+the reduction's analysis. Choose the largest enumerated value at most
+\(B^*\), including equality, or zero if there is none. Every test of the form
+\(\Delta(T',i)\le B^*\) has the same answer at this representative
+threshold. Induction through the at most \(c\) deletions therefore
+reproduces the ideal deletion history, including its fixed tie choices.
+Its output is present among the enumerated outputs. The approximation
+analysis still uses \(B^*\); the algorithm uses only exact rational
+comparisons. This adds \(n^{O(c)}\) overhead to the stated reduction.
+All candidate enumeration, distance comparisons and cost evaluations
+likewise use polynomial-bit rational arithmetic.
+
+Finally, the approximation parameter supplied to the reduction can be a
+fixed rational upper bound on our ratio, with its excess charged to the
+allowed accuracy. The auxiliary positive constants in its proof may then
+be chosen rational as well. These observations preserve both determinism
+and polynomial binary-input time; they require no oracle for the optimum.
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Fix \(\varepsilon>0\). Apply Theorem~\ref{thm:pseudo} with
+loss \(\varepsilon/4\), obtaining a deterministic
+\(c\)-additive approximation, where \(c\) depends only on this fixed
+loss. Choose a fixed rational number \(\alpha\) with
+\[
+ 1+2/e+\varepsilon/4<\alpha<1+2/e+\varepsilon/2.
+\]
+The pseudo-algorithm is a \(c\)-additive \(\alpha\)-approximation.
+The additive-to-ordinary reduction of Theorem~\ref{thm:li-svensson},
+with a fixed positive rational loss at most \(\varepsilon/2\) and the
+implementation in Section~\ref{sec:reduction-implementation},
+gives a deterministic polynomial-time
+algorithm opening at most \(k\) original facilities and having
+cost at most
+\[
+ \left(1+\frac2e+\varepsilon\right)\OPT_k.
+\]
+Copies can be merged back to their original facilities as above.
+If exactly \(k\) facilities are required, add unused facilities
+from \(F\), which is possible because \(k\le|F|\) and can only
+decrease the cost.
+
+\end{proof}
+
+Combining Theorem~\ref{thm:main} with the hardness bound recalled in
+Section~\ref{sec:introduction} proves Corollary~\ref{cor:threshold}:
+under \(P\ne NP\), the infimum of deterministic polynomial-time
+approximation factors in the specified candidate-facility model is
+\(1+2/e\). The upper bound holds for every fixed positive loss and
+does not require attainment of the endpoint.

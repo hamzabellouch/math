@@ -1,0 +1,267 @@
+\section{Bit complexity}
+\label{sec:complexity}
+
+We now bound the complete cost of the game algorithm. Its prescribed
+root input is \([0,B_*]\), with unit support weights and budgets
+\(k=m=n\). The comparison theorem allowed arbitrary positive rational
+parameters; the bit estimates here concern the parameters reachable
+from this root. All estimates hold on every random tape, including
+tapes on which comparisons fail.
+
+\begin{theorem}\label{thm:bit-complexity}
+The algorithm has a uniform implementation in a standard bit-operation
+model such that, for every input of bit length \(L\) and every random
+tape, the running time is at most
+\[
+              2^{C(\log_2(L+2))^2}
+\]
+for an absolute constant \(C>0\). The bound includes preprocessing,
+every recursive execution, intermediate arithmetic, and random-bit
+generation.
+\end{theorem}
+
+\begin{proof}
+There are two parts to the cost bound. We first count the solver
+invocations by contracting each chain of main continuations. We then
+show that the work attached to one invocation has polynomial bit
+cost, including the arithmetic in boxes that extend beyond their
+parents.
+
+Write \(x=L+2\). Explicit encoding of the graph, ownership, and edge
+list gives \(n=O(x)\) and \(|E|=O(x)\), and every input weight uses
+at most \(L\) bits. The transformation \(t(e)=(n+1)w(e)+1\) and
+the definitions of \(W,B_*\) consequently imply
+\begin{equation}\label{cost:parameter-sizes}
+ \log_2(B_*+1)=O(x),\quad
+ g=O(x),\quad s=O(x),\quad J=O(x^{12}).
+\end{equation}
+For the bound on \(s\), its choice as the least sufficiently large
+power of two gives \(s<2^{18}(g+1)\). These estimates use the binary
+length of the weights, even when their magnitudes are exponential
+in that length.
+
+\paragraph{Counting the calls made at one rank.}
+The initial parameter is \(R=n^3\). No descendant increases it, so
+the largest rank on an ancestry is
+\begin{equation}\label{cost:initial-rank}
+ D_*=d(n^3)
+     =1+\floor{\log_{10/9}(n^3)}
+     =O(\log(n+1))=O(\log x).
+\end{equation}
+In particular, the strict rank convention gives \(D_*=1\) when
+\(n=1\).
+
+Consider one node on a main \(\Solve\) chain. Expose the calls to
+\(\Solve\) inside its amplification and orientation routines, but
+leave smaller-rank solver calls unexpanded. The resulting counts are
+as follows.
+
+\begin{itemize}
+\item The tightening loop makes at most \(16ns+2\) calls to
+\(\Ask\), each consisting of \(J\) solver invocations. Its
+contribution is at most \((16ns+2)J\).
+\item The \(\OrientPlus\) call performs \(J\) orientation trials.
+Each trial has at most \(g+1\) levels, with at most \(2s\)
+\(\Ask\) calls per level and \(J\) solver invocations per such
+call. This contributes at most \(2s(g+1)J^2\).
+\item The concatenated exceptional list has at most \(J(2g+2)\)
+entries. Every entry triggers an amplified reweighted call of
+\(J\) solver invocations, contributing at most \((2g+2)J^2\).
+\end{itemize}
+
+Proposition~\ref{prop:termination} makes all three counts unconditional.
+Their sum is
+\begin{equation}\label{cost:branching}
+ A_0=(16ns+2)J+\bigl[2s(g+1)+2g+2\bigr]J^2.
+\end{equation}
+Both quadratic amplification terms are needed: orientation trials
+contain amplified comparisons, and every entry returned by the
+amplified orientation has its own amplified reweighted call. Entries
+from minority trials and duplicate sets are all counted. Besides
+these smaller-rank calls, a nonterminal solver invocation makes
+exactly one unamplified main continuation, as shown in
+Figure~\ref{fig:solver-recursion}.
+
+\input{figures/solver-recursion}
+
+Let \(N_d\) bound the total number of solver invocations generated
+by one invocation of rank at most \(d\), including that invocation,
+for the fixed graph and global parameters. A rank-zero invocation
+returns directly. For positive rank, contract the main chain of at
+most \(K\) invocations from Equation~\eqref{eq:main-chain-length}.
+At each node of this chain there are at most \(A_0\) immediately
+smaller-rank solver descendants. It follows that
+\begin{equation}\label{cost:call-recurrence}
+ N_0=1,\qquad N_d\le K+KA_0N_{d-1}\quad(d\ge1).
+\end{equation}
+There is only one main successor at each node, and its call is not
+amplified. This is the reason one chain can be contracted. The
+separation of one full-precision continuation from reduced-precision
+calls also appears in Parys's parity-game recursion
+\cite[Algorithm~2 and Section~5]{Parys2019}; here
+Equation~\eqref{cost:branching} supplies the count for our particular
+routines.
+
+Equation~\eqref{cost:parameter-sizes} gives
+\[
+       K=O(x^2),\qquad A_0=O(x^{26}),\qquad KA_0=O(x^{28}).
+\]
+With \(A=KA_0\), induction in
+Equation~\eqref{cost:call-recurrence} yields
+\(N_d\le(K+1)(A+1)^d\). Since
+\(D_*=O(\log x)\), we obtain
+\begin{equation}\label{cost:call-count}
+                N_{D_*}=2^{O((\log_2 x)^2)}.
+\end{equation}
+Every step of this count used a deterministic bound on every tape.
+We must still bound the bit cost of the work done between these
+solver calls.
+
+\paragraph{Controlling integer magnitudes along an ancestry.}
+The number of calls alone does not bound coordinate sizes, because
+centered boxes can extend outside their parents. Consider any path
+of ancestry in the full subroutine tree. Every child box is contained
+in its parent except possibly a centered box
+\[
+        [q-A,q+A],\qquad A\in\{D,E_0\},
+\]
+formed by \(\Orient\). On every tape, its center \(q\) belongs to
+the parent box, its radius satisfies \(A\le B/8\), and its reference
+width is \(2A\le B/4\). All other transitions preserve or decrease
+the reference width.
+
+List the radii of just these centered transitions as
+\(A_1,A_2,\ldots\). The first is at most \(B_*/8\). After a
+transition of radius \(A_r\), the width is \(2A_r\) and cannot
+increase before the next such transition. Therefore
+\(A_{r+1}\le(2A_r)/8=A_r/4\). The possible outward displacement
+of either endpoint is bounded by the convergent sum
+\[
+        \sum_{r\ge1}A_r
+           \le\frac{B_*}{8}\sum_{r\ge0}4^{-r}
+           =\frac{B_*}{6}.
+\]
+Starting from \([0,B_*]\), this proves that every actual endpoint,
+center, and returned coordinate lies in
+\begin{equation}\label{cost:endpoint-bound}
+                       [-B_*/6,\,7B_*/6].
+\end{equation}
+These are real bounds on integer values; no rounding of the displayed
+endpoints is intended.
+
+The temporary sums used for midpoints, differences, scalar shifts,
+and caps also have magnitude \(O(B_*)\). The operator \(F\) never
+changes, and \(|t(e)|\le W\le B_*\), so each intermediate value
+\(t(e)+p_j\) has the same order of magnitude. All such integers
+therefore have \(O(\log_2(B_*+1))=O(x)\) bits. This includes
+computations in centered boxes outside the original box, independently
+of all comparison outcomes.
+
+\paragraph{Representing the rational parameters exactly.}
+Weights and budgets change only on a parameter-reducing edge into a
+solver call. There are at most \(D_*\) such edges on any ancestry.
+Starting from unit weights, every reachable coordinate weight is
+\[
+       \alpha_i=2^{-u_i^\alpha},\qquad \beta_i=2^{-u_i^\beta},
+       \qquad u_i^\alpha,u_i^\beta\in\mathbb Z_{\ge0},\quad
+       u_i^\alpha+u_i^\beta\le D_*.
+\]
+Starting from \(k=m=n\), the budgets have the forms
+\begin{equation}\label{cost:budget-forms}
+ k=n\frac{4^{u_k}3^{v_k}}{5^{u_k+v_k}},\qquad
+ m=n\frac{4^{u_m}3^{v_m}}{5^{u_m+v_m}},\qquad
+ u_k+v_k+u_m+v_m\le D_*,
+\end{equation}
+with nonnegative integer exponents. Hence each numerator and
+denominator of a budget or weight has \(O(\log(n+1))\) bits.
+One may store reduced fractions with binary integer numerators and
+denominators, or store the exponents in these explicit forms.
+
+Support sums admit a common power-of-two denominator of exponent at
+most \(D_*\). The reciprocal-product sums used by \(R\) and
+\(\mu\) are even simpler: for \(S\subseteq V\),
+\[
+       \sum_{i\in S}\frac1{\alpha_i\beta_i}
+           =\sum_{i\in S}2^{u_i^\alpha+u_i^\beta}
+           \le n2^{D_*}.
+\]
+Their bit lengths are \(O(\log(n+1))\). Exact integer arithmetic
+thus computes these sums and tests \(R<1\) or \(\mu(S)>1/2\).
+The support-budget tests and the height-threshold tests are likewise
+exact after multiplication by positive denominators. Alternatively,
+normalizing fractions with the Euclidean algorithm after each
+operation gives polynomial bit cost without retaining a special
+common-denominator representation.
+
+The global integers \(g,s\) are computable by binary lengths and
+integer comparisons with powers of two. Neither the rank nor the
+real logarithms appearing in this proof must be evaluated by the
+algorithm. The number \(2^{-J}\) is also solely an error bound;
+no rational of that value is constructed.
+
+\paragraph{Bounding the local work, including terminal iterations.}
+The bit sizes are now controlled. For the small-width branch,
+\(\Basic\) is used only when \(B\le128s\), and
+Lemma~\ref{lem:box-solution} bounds it by
+\[
+                         1+128ns
+\]
+operator evaluations. Each evaluation scans the explicit edge list,
+adding and comparing \(O(x)\)-bit integers, then clips the result.
+This iteration count is independent of endpoint offsets and numerical
+weight magnitudes. The other terminal branch, \(R<1\), uses no
+iteration. Thus neither branch entails work proportional to \(W\)
+or \(B_*\).
+
+For a concrete representation, store a subset of \(V\) as an
+\(n\)-bit incidence vector. Compute a coordinatewise median by
+sorting the \(J\) entries in each coordinate and selecting entry
+\((J+1)/2\). Majority votes, list concatenation, clipping, floored
+averages, and coordinate extrema take polynomially many operations
+on the bounded-size values above.
+
+The work attached to one main-chain node includes at most
+\(J(g+1)\) orientation invocations and polynomially many local
+vector-loop steps. Terminal \(\Basic\) calls in these orientation
+invocations contribute at most
+\(J(g+1)(1+128ns)\) operator evaluations; they are not additional
+solver invocations in \(N_d\). Keeping every center iterate and
+every exceptional-list entry still uses polynomial local data and
+work. Consequently the local work attached to one node, leaving its
+solver calls unexpanded, is bounded by a polynomial \(P(L)\) of
+absolute degree.
+
+\paragraph{Generating bits and implementing the recursion.}
+The only random primitive selects an iterate index. Because \(s\)
+is a power of two, exactly \(\log_2s\) fair bits select a uniform
+index from \(\{0,\ldots,s-1\}\), without a rejection loop. The
+\(J\) trials in either amplification are run sequentially, taking
+fresh bits from one tape. By Proposition~\ref{prop:termination},
+each preceding subroutine terminates on every tape. Under fair
+randomness the unread tail after this finite stopping time supplies
+independent fresh bits, as required by the correctness proof. On a
+fixed arbitrary tape the same execution respects every deterministic
+call bound used above. Each orientation invocation reads at most
+\(\log_2s\) bits of its own, already covered by its polynomial
+local cost.
+
+All routines are finite binary computations: \(\Ask\) performs its
+\(J\) solver calls, and \(\OrientPlus\) performs its \(J\)
+orientation calls. The final winning set requires \(n\) comparisons
+with \(B_*/2\). Enlarge \(P\) to include this output step and the
+preprocessing. For the total bit cost \(T_d\), contracting the main
+chain as before gives
+\begin{equation}\label{cost:bit-recurrence}
+ T_0\le P(L),\qquad
+ T_d\le KP(L)+KA_0T_{d-1}\quad(d\ge1).
+\end{equation}
+The estimates used in Equation~\eqref{cost:call-count} now yield
+\(T_{D_*}=2^{O((\log_2(L+2))^2)}\).
+
+A uniform machine can perform every instruction on binary strings.
+Polynomial simulation overhead for data access or recursion in a
+chosen standard model changes only the absolute constant in the
+exponent. Arithmetic, storage manipulation, preprocessing, random
+bits, and all recursive simulations are thereby included, on every
+tape, in the asserted bound.
+\end{proof}

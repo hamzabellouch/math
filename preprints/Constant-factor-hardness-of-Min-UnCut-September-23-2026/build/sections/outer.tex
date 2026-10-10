@@ -1,0 +1,405 @@
+\section{An outer game with affine hints}
+\label{sec:outer}
+
+This Section constructs the outer game and proves the two properties
+used in Section~\ref{sec:composition}: soundness with shared affine hints,
+and approximate joint uniformity of pulled-back affine functions.
+
+Smooth equation--variable sampling and Fourier decoding have antecedents
+in Khot and Safra~\cite[Sections~3.2--3.4 and~5.2]{KS13}.
+Khot, Minzer and Safra~\cite[Sections~3.3--3.4]{KMS17} use shared linear
+information and zero-advice coordinates; Dinur et al.~\cite[Section~5.2,
+Lemma~5.4]{DKKMS2025} give a related shared-subspace formulation.
+We prove both properties for the exact questions and hints defined below.
+
+Let $\mathcal E=(E^{(1)},\ldots,E^{(M_0)})$ be the nonempty uniform
+equation list supplied by Theorem~\ref{thm:max3lin}. An equation question
+$E$ consists of its ordered three variable names $v(E,1),v(E,2),v(E,3)$
+and its right-hand side $\tau_E\in\F_2$. Thus it asks that
+\[
+ x_{v(E,1)}+x_{v(E,2)}+x_{v(E,3)}=\tau_E.
+\]
+The list may have repeated equations, and variable names may repeat within
+an equation. Sampling is uniform over list entries, but equal equation
+questions have identical encodings: an index distinguishing equal list
+entries is not part of a player's question.
+
+\subsection{Questions, fresh slots, and canonical functions}
+
+For an equation $E$, put
+\[
+ A(E)=\{a\in\F_2^3:
+        a_1+a_2+a_3=\tau_E,\quad
+        a_p=a_{p'}\text{ whenever }v(E,p)=v(E,p')\}.
+\]
+This is a nonempty affine space of dimension at most two. Indeed, after
+identifying repeated variable names, there are $k\le3$ free bit slots and
+one nonzero linear equation: at least one multiplicity is odd because the
+sum of the multiplicities is three. The equation therefore has rank one,
+and $\dim A(E)=k-1$.
+
+Fix integers $t\ge t_0\ge1$. An \emph{outer sample} $e$ is drawn as follows.
+First draw $t$ independent uniform list entries, with resulting equation
+questions $E_1,\ldots,E_t$, and let
+\[
+ U=(E_1,\ldots,E_t),\qquad A_U=\prod_{j=1}^t A(E_j).
+\]
+Next draw a uniform $t_0$-element subset $H\subseteq[t]$. For each $j\in H$,
+independently draw $p_j\in[3]$ uniformly. The second question is the ordered,
+tagged tuple $V=(V_1,\ldots,V_t)$, where
+\[
+ V_j=\begin{cases}
+       (\mathrm{variable},v(E_j,p_j)),&j\in H,\\
+       (\mathrm{equation},E_j),&j\notin H.
+     \end{cases}
+\]
+In particular, a variable question contains its variable name and the
+coordinate $j$ in the ordered tuple, but neither its position $p_j$ nor
+its originating equation. Set
+\[
+ A_V=\prod_{j=1}^t A_{V,j},\qquad
+ A_{V,j}=\begin{cases}\F_2,&j\in H,\\\F_2^3,&j\notin H.\end{cases}
+\]
+Every displayed slot in this product is unrestricted. Even when the same
+variable name occurs more than once, no equalities between these slots are
+imposed. Likewise, the slots belonging to distinct coordinates of $A_U$
+are separate; its only equalities between repeated names are those inside
+a single factor $A(E_j)$. These fresh slots are essential both to independent
+repetition and to the distribution of affine forms below.
+
+Define the affine map $\pi_e:A_U\to A_V$ coordinatewise by
+\begin{equation}\label{eq:outer-projection}
+ (\pi_e(a))_j=\begin{cases}(a_j)_{p_j},&j\in H,\\a_j,&j\notin H.\end{cases}
+\end{equation}
+The verifier accepts labels $a\in A_U$ and $b\in A_V$ precisely when
+$\pi_e(a)=b$. The map need not be onto: the unrestricted full triples on
+the second side need not satisfy their equations. Pullback is the linear
+map
+\[
+ \pi_e^*:D(A_V)\longrightarrow D(A_U),\qquad L\longmapsto L\circ\pi_e,
+\]
+and preserves the constant-one function.
+
+We specify exactly what a question and an affine hint reveal. Every actual
+$U$ or $V$ is the tuple just defined, without extra information identifying
+its occurrence in $e$. Put its alphabet in lexicographic order as a subset
+of its displayed bit slots. A function on that alphabet is represented by
+its complete truth table in this order. In particular, a hint in $D(A_U)$
+or $D(A_V)$ is the function itself, with this canonical encoding. It is not
+accompanied by a formula, its original coefficients on another alphabet,
+or an encoding of the map through which it was pulled back. Equal functions
+on the same actual question have equal encodings. The same convention will
+apply to Boolean queries in the bit proofs. Thus a response function at a
+given question cannot distinguish different descriptions of the same query.
+
+For an integer $q\ge0$, the \emph{game with $q$ affine hints} additionally
+draws independent uniform functions $L_1,\ldots,L_q\in D(A_V)$. The first
+player receives
+\[
+ (U,\pi_e^*L_1,\ldots,\pi_e^*L_q)
+\]
+and the second receives $(V,L_1,\ldots,L_q)$. The acceptance condition is
+still $\pi_e(a)=b$. Giving independent shared or private randomness to these
+players does not change the upper bounds on its value.
+
+\subsection{Soundness despite the affine hints}
+
+Consider first the ordinary equation-versus-variable game: draw a uniform
+list entry $E$, choose a uniform position $p\in[3]$, give $E$ to the first
+player and only $v(E,p)$ to the second, and ask for $a\in A(E)$ and a bit
+$b$. Accept when $a_p=b$. Equivalently the first answer alphabet can be
+$\F_2^3$ with invalid answers rejected, so the answer sizes are at most
+eight and two.
+
+\begin{lemma}\label{lem:base-equation-game}
+If no assignment satisfies more than $3/4$ of the equation list, the
+ordinary equation-versus-variable game has value at most $11/12$.
+Consequently its ordinary $r$-fold repetition has value at most $c^r$, for
+the effective universal constant $c<1$ of
+Theorem~\ref{thm:parallel-repetition}, for every $r\ge0$.
+\end{lemma}
+\begin{proof}
+Fix a deterministic second strategy. Its bit for each variable name defines
+a global assignment. On at least $1/4$ of the sampled equations this
+assignment violates the equation. Every valid first answer to one of these
+equations disagrees with this assignment in at least one of the three
+positions, so a uniform position detects disagreement with probability at
+least $1/3$. An invalid answer is rejected in every position. The overall
+failure probability is therefore at least $1/12$. Repeated variable names
+do not affect the argument: equality at all three positions would still
+give precisely the violated assignment on that equation. The repeated
+bound follows from Theorem~\ref{thm:parallel-repetition}; its hypotheses
+depend only on this value bound and the two answer sizes.
+\end{proof}
+
+\begin{lemma}[Hint soundness]\label{lem:hint-soundness}
+Suppose no assignment satisfies more than $3/4$ of the equation list. For
+every $q\ge0$ and $t\ge t_0\ge1$, the value of the game with $q$ affine
+hints is at most
+\begin{equation}\label{eq:hint-bound}
+ \bigl(1-2^{-q}(1-c)\bigr)^{t_0}.
+\end{equation}
+The bound also applies to strategies using arbitrary independent shared
+or private randomness. In particular, for fixed $q$ and any prescribed
+rational $s>0$, an effective choice of $t_0$ makes the bound strictly less
+than $s$, simultaneously for every $t\ge t_0$, every equation-list size,
+and every completeness parameter in Theorem~\ref{thm:max3lin}.
+\end{lemma}
+\begin{proof}
+Use the unrestricted slots of $A_V$ to generate the hints. Let $z_j$ denote
+the one-bit coordinate when $j\in H$, and let $z_{jp}$, $p\in[3]$, denote
+the three coordinates when $j\notin H$. A uniform affine form has the
+unique expression
+\begin{equation}\label{eq:hint-coefficients}
+ L_\ell(z)=\kappa_\ell+
+       \sum_{j\in H}\beta_{\ell j}z_j+
+       \sum_{j\notin H}\sum_{p=1}^3\beta_{\ell jp}z_{jp}.
+\end{equation}
+All coefficients and constants in these expressions, for $1\le\ell\le q$,
+are independent uniform bits. They can be sampled after $H$ and before
+any equation or position, because the abstract slots in this expression
+depend only on $H$. Thus their distribution is independent of all sampled
+equations and positions.
+
+Define the active coordinates by
+\[
+ A=\{j\in H:\beta_{\ell j}=0\text{ for every }1\le\ell\le q\}.
+\]
+For each $j\in H$ its vector of $q$ coefficients is uniform in $\F_2^q$,
+independently across $j$. Consequently
+\begin{equation}\label{eq:active-binomial}
+ |A|\sim\operatorname{Bin}(t_0,2^{-q}).
+\end{equation}
+Conditional on $H$, the active set and the coefficient bits are independent
+of the equation and position samples. The equations are also independent
+of $H$. When $q=0$, all hidden coordinates are active and
+\eqref{eq:active-binomial} means $|A|=t_0$ deterministically.
+
+For the analysis give both players the following additional information:
+$H$, every coefficient and constant in \eqref{eq:hint-coefficients}, and
+all equation samples and all chosen positions outside $A$. Denote this
+background by $W$. It determines $A$ without inspecting its equation or
+position samples. Conditional on any possible $W$, the pairs
+\[
+ (E_j,p_j),\qquad j\in A,
+\]
+are still independent samples of a uniform equation-list entry and an
+independent uniform position in $[3]$. This follows directly from the
+product sampling distribution: once $H$ and the coefficients are fixed,
+$A$ is fixed, and conditioning on samples in its complement does not
+change the samples in $A$.
+
+We now show that, for fixed $W$, ordinary repeated-game questions in the
+active coordinates simulate each player's original information exactly.
+List $A$ in increasing order, so that its $|A|$ coordinates can be identified
+with an ordinary repetition.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item The first player receives the active equation questions $(E_j)_{j\in A}$.
+Together with $W$, these reconstruct all of $U$ and hence $A_U$.
+For every hint the active summands in \eqref{eq:hint-coefficients} are
+identically zero. On any $a\in A_U$, therefore,
+\[
+ (\pi_e^*L_\ell)(a)=\kappa_\ell+
+    \sum_{j\in H\setminus A}\beta_{\ell j}(a_j)_{p_j}+
+    \sum_{j\notin H}\sum_{p=1}^3\beta_{\ell jp}(a_j)_p.
+\]
+Every position appearing on the right is in the background. Thus the first
+player can compute the canonical truth table of each pulled-back hint,
+without receiving any active $p_j$ or active variable question from the
+second side. Although the domain $A_U$ depends on active equations, these
+are exactly the first player's own repeated-game questions.
+\item The second player receives only the active variable names
+$(v(E_j,p_j))_{j\in A}$. Together with $W$ and the tags specified by $H$,
+these reconstruct $V$ and $A_V$. Formula~\eqref{eq:hint-coefficients}, whose
+active coefficients vanish, computes every direct hint on this alphabet.
+Thus the second player can compute its canonical truth table without
+receiving an active equation or the chosen position within one.
+\end{enumerate}
+These reconstructions also explain why the representation of a hint
+matters. No metadata attached to a zero summand is present in the actual
+message. Restricting the zero function to an affine domain cannot create
+an offset or convey a hidden position. All nonzero contributions and their
+possible affine offsets are determined by the background and the receiving
+player's own question.
+
+Apply the original response functions to the reconstructed information,
+and restrict their answers to the active coordinates. This defines a
+strategy for the ordinary $|A|$-fold repeated game, with $W$ fixed as a
+parameter. Acceptance of the full outer sample implies acceptance in
+every active coordinate, since \eqref{eq:outer-projection} imposes exactly
+the ordinary equation-versus-variable comparison there. By
+Lemma~\ref{lem:base-equation-game}, its conditional probability is at most
+$c^{|A|}$; for $A=\varnothing$ this is the trivial bound one.
+
+This reasoning includes coincidences between variable names or equation
+questions in different coordinates, and coincidences with the exposed
+background. Independent samples may coincide without ceasing to have a
+product distribution. Once $W$ is fixed, the simulated strategies may use
+all information about such coincidences obtainable from their respective
+questions, just as arbitrary strategies for ordinary repetition may do.
+No equality between fresh answer slots, nor any further information about
+an active question on the opposite side, has been supplied.
+
+Average over $W$ and use \eqref{eq:active-binomial}. The binomial generating
+function gives
+\[
+ \Prob[\text{outer acceptance}]
+ \le\E c^{|A|}
+ =\sum_{r=0}^{t_0}\binom{t_0}{r}(2^{-q}c)^r
+                       (1-2^{-q})^{t_0-r}
+ =\bigl(1-2^{-q}(1-c)\bigr)^{t_0}.
+\]
+One may first fix all independent random seeds of the players, apply the
+bound, and then average; this covers the stated random strategies.
+
+Finally replace $c$, if necessary, by an effectively chosen rational
+number $\bar c$ with $c\le\bar c<1$. Successively multiplying the rational
+number $1-2^{-q}(1-\bar c)<1$ finds an integer $t_0$ whose power is strictly
+less than $s$. This finite procedure is independent of $t$, the instance,
+and its completeness error. It supplies the asserted effective choice.
+\end{proof}
+
+\subsection{Joint marginal smoothness}
+
+The following estimate concerns the joint distribution of several forms
+pulled back through the same outer sample. Conditioning is on $U$ only;
+in particular it is not conditioning on any previously received hint.
+For finite probability distributions $\mu,\nu$, use
+$\TV(\mu,\nu)=\frac12\sum_x\abs{\mu(x)-\nu(x)}$.
+
+\begin{lemma}[Joint smoothness]\label{lem:smoothness}
+Fix any actual first question $U$, integers $d\ge1$ and $t\ge t_0\ge1$,
+and draw the remaining outer sample conditional on $U$. Draw
+$L_1,\ldots,L_d$ independently and uniformly from $D(A_V)$. Then
+\begin{equation}\label{eq:smoothness-bound}
+ \TV\left(\mathcal L\bigl((\pi_e^*L_1,\ldots,\pi_e^*L_d)\mid U\bigr),
+                 \operatorname{Unif}(D(A_U)^d)\right)
+ \le\frac12\sqrt{(2^{4dt_0}-1)\frac{t_0^2}{t}}.
+\end{equation}
+The bound is uniform in $U$ and the equation list, including repeated
+variable names and zero-dimensional local alphabets. For fixed $d,t_0$
+and positive rational $\Delta$, an effective integer $t\ge t_0$ makes
+the right-hand side strictly less than $\Delta$.
+\end{lemma}
+\begin{proof}
+Write $A_j=A(E_j)$ and $r_j=\dim A_j\le2$. Choose, using $E_j$ alone,
+an affine origin $o_j\in A_j$ and an injective linear map
+$T_j:\F_2^{r_j}\to\F_2^3$ with image the translation space of $A_j$.
+Thus every label has a unique expression
+\[
+ a_j=o_j+T_ju_j,\qquad u_j\in\F_2^{r_j}.
+\]
+For example, lexicographic search and binary Gaussian elimination make
+these choices canonical and effective. In these product coordinates a
+form on $A_U$ consists of one constant bit and a linear part in each
+coordinate group $\F_2^{r_j}$. A $d$-tuple of forms consequently consists
+of $d$ constant bits and groups
+\[
+ \xi_j\in(\F_2^{r_j})^d,\qquad 1\le j\le t.
+\]
+
+Generate the $d$ forms by their independent raw coefficients and constants
+on the unrestricted slots of $A_V$, as in
+\eqref{eq:hint-coefficients}. After pullback, their constant bits are the
+original independent uniform constants plus offsets determined by the
+other coefficients, the positions, and the origins $o_j$. Conditional
+on all those other data, this addition is a translation of $\F_2^d$.
+Hence the resulting constants are jointly uniform and independent of
+every linear part, of $H$, and of the chosen positions. Their common
+uniform factor contributes no total-variation distance, so it suffices
+to analyze the joint linear parts $(\xi_1,\ldots,\xi_t)$.
+
+Fix $H$. If $j\notin H$, a single form has independent uniform coefficient
+vector $w\in\F_2^3$ on its three raw slots; its pulled-back linear part
+is $T_j^{\mathsf T}w$. The map $T_j^{\mathsf T}$ has rank $r_j$ and is
+onto $\F_2^{r_j}$. Every fiber therefore has the same size, so its output
+is uniform. All $d$ forms in this group are independent, and their joint
+law is the uniform law $\mu_j$ on $(\F_2^{r_j})^d$.
+
+If $j\in H$, condition first on its chosen position $p_j$. The $\ell$th
+form has a uniform bit coefficient $\beta_{\ell j}$ on that slot, so its
+linear part is $\beta_{\ell j}v_{j,p_j}$, where $v_{j,p}$ is the linear
+part of the $p$th coordinate of $o_j+T_ju_j$. Average over the single
+uniform choice of $p_j$ shared by all $d$ forms, to obtain a distribution
+$Q_j$ on $(\F_2^{r_j})^d$. Its density $\rho_j$ with respect to $\mu_j$
+satisfies
+\begin{equation}\label{eq:local-density}
+ \E_{\mu_j}\rho_j=1,\qquad
+ 0\le\rho_j\le2^{r_jd}\le2^{2d}.
+\end{equation}
+Indeed, every point of this finite space has uniform mass $2^{-r_jd}$,
+whereas its $Q_j$ mass is at most one. This argument allows a position's
+linear part to be zero or to coincide with another position's linear
+part. If $r_j=0$, the space is a singleton and $\rho_j=1$.
+
+For fixed $H$, the linear-part groups are independent across $j$:
+their coefficients are independent, and the positions in distinct hidden
+coordinates are independently sampled. Fresh slots give this independence
+even when variable names in different equations coincide. Relative to
+the product uniform measure $\mu=\prod_{j=1}^t\mu_j$, their joint density
+is therefore
+\[
+ g_H(\xi_1,\ldots,\xi_t)=\prod_{j\in H}\rho_j(\xi_j).
+\]
+The densities $\rho_j$ depend on $U,d,j$ but not on the other elements
+of $H$. Since $H$ is uniform and independent of $U$, the desired mixed
+density is $g=\E_H g_H$.
+
+Let $H'$ be an independent uniform $t_0$-element subset of $[t]$.
+If $H\cap H'=\varnothing$, independence of the coordinate groups and
+\eqref{eq:local-density} give
+$\E_\mu g_Hg_{H'}=1$. For every $H,H'$, the pointwise bound
+$g_Hg_{H'}\le2^{4dt_0}$ gives the sufficient bound
+$\E_\mu g_Hg_{H'}\le2^{4dt_0}$. Moreover, for fixed $H$,
+\[
+ \Prob[H\cap H'\ne\varnothing]
+ \le\sum_{j\in H}\Prob[j\in H']
+ =\frac{t_0^2}{t}.
+\]
+Since $\E_\mu g=1$, it follows that
+\begin{align*}
+ \E_\mu(g-1)^2
+ &=\E_{H,H'}\E_\mu g_Hg_{H'}-1\\
+ &\le(2^{4dt_0}-1)\Prob[H\cap H'\ne\varnothing]\\
+ &\le(2^{4dt_0}-1)\frac{t_0^2}{t}.
+\end{align*}
+Cauchy--Schwarz now yields
+$\TV(g\mu,\mu)=\frac12\E_\mu\abs{g-1}
+\le\frac12\sqrt{\E_\mu(g-1)^2}$, proving
+\eqref{eq:smoothness-bound}, including the independent uniform constants.
+
+All estimates used only $r_j\le2$, so the bound is uniform as asserted.
+For effectiveness, it is enough to choose an integer
+\[
+ t\ge t_0,\qquad
+ t>\frac{(2^{4dt_0}-1)t_0^2}{4\Delta^2}.
+\]
+The right-hand side is an explicitly computable rational number for fixed
+$d,t_0,\Delta$. No parameter depending on $U$ occurs in this choice.
+\end{proof}
+
+\begin{remark}\label{rem:joint-smoothness-use}
+Because \eqref{eq:smoothness-bound} is uniform in $U$, it may be averaged
+over any distribution of $U$ and any extra randomness independent of the
+outer sample. In particular, if a bounded statistic is chosen as a function
+of $U$ and some of the pulled-back forms, one may apply Lemma~\ref{lem:smoothness} to the
+joint collection of all forms used by that statistic. For a statistic
+bounded in absolute value by $B$, the change in expectation is at most
+$2B$ times the displayed total-variation bound. This does not assert
+uniformity of one form conditional on previously revealed forms.
+\end{remark}
+
+Finally, these outer games are explicit finite objects. Their complete
+sampling space has
+\[
+ M_0^t\binom{t}{t_0}3^{t_0}
+\]
+equally likely draws, counting repeated list entries with their
+multiplicities. There are at most $2^{2t}$ labels at a first question and
+$2^{3t-2t_0}$ labels at a second question. Their affine spaces, functions,
+canonical truth tables, and projections are all enumerable by binary
+linear algebra and finite evaluation. For fixed $t,t_0,q,d$ these local
+enumerations have constant size independent of the input. Comparing
+actual question encodings and identifying equal ones takes polynomial
+bit complexity. Thus the fresh-slot and canonical-function conventions
+introduce no oracle or uncharged lookup table.

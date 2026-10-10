@@ -1,0 +1,308 @@
+\subsubsection{Labels, routing domains, and preprocessing}
+\label{ha:preprocessing}
+
+Write $\mathcal F_i$ for the family of bags at scale $\delta_i$ and
+$\mathcal B_i=\bigcup_{t\in T_i}\operatorname{Bag}_t$ for its balls.
+The balls in $\mathcal B_i$ are pairwise disjoint, whereas balls at
+different scales need not be disjoint.  Throughout this proof all
+geometric sets are restricted to the continuous cube $Q=[0,1]^d$.
+We abbreviate the common notation $B_Q$ to $B$ in this proof; in particular,
+\[
+ B(x,r)=\{y\in Q:\|x-y\|_1<r\},\qquad
+ B(x,a\Vert b)=\{y\in Q:a<\|x-y\|_1<b\}
+ \quad(0\le a<b).
+\]
+An ordinary ball includes its center; a hollow ball has strict inner
+and outer boundaries.  Its width is $b-a$, and the width of $B(x,r)$
+is $r$.  When a statement uses inner and outer radii for an ordinary
+ball, they mean $0$ and $r$.  The sets $B(x,r)$ and
+$B(x,0\Vert r)$ differ only at $x$; we keep this distinction when
+testing membership.  In particular, every test below for an endpoint
+in an input ball includes endpoints mapped to its center.
+All centers used in the construction are centers of input balls, hence
+belong to $\{0,1\}^d$: new hollow balls inherit an existing center.
+Consequently, for each such center $x$, the map $y\mapsto\|x-y\|_1$
+is affine on $Q$.  Intersections here mean intersections in the
+continuous cube, not merely intersections on the finite set $X(V)$.
+
+\begin{lemma}[Edge-disjoint paths from cut bounds]\label{ha:edge-paths}
+If every cut separating distinct vertices $u,v$ of an undirected
+multigraph has at least $q$ edges, where $q$ is a positive integer,
+then the graph has $q$ pairwise edge-disjoint $u$--$v$ paths.
+\end{lemma}
+\begin{proof}
+Give each edge an arbitrary orientation and maintain an integral
+antisymmetric flow whose value on an oriented edge is in
+$\{-1,0,1\}$.  Start with zero flow.  A directed traversal of an edge
+is available when its signed flow in that direction is less than
+$1$.  As long as the current flow value is less than $q$, augment
+by one along an available directed $u$--$v$ path if one exists.
+The edge bounds and flow conservation at all other vertices remain
+valid, and the value increases by one.
+If no such path exists, let $S$ be the vertices reachable from $u$
+by available traversals.  Then $v\notin S$, and every edge leaving
+$S$ has signed outward flow $1$.  Summing flow conservation over
+$S$ says that the current flow value equals the number of those
+edges, at least $q$, a contradiction.  Thus the procedure reaches
+value $q$ after $q$ augmentations.
+An integral flow of positive value contains a directed positive-flow
+$u$--$v$ path: otherwise the vertices reachable on positive-flow
+edges would have no positive outward flow, contradicting their
+positive net flow.  Extract such a path and subtract one on its
+edges.  Repeating extracts $q$ paths.  Each used edge had flow $1$
+in its traversal direction and then has flow zero, so the extracted
+paths are edge-disjoint.  Parallel edges are separate edges
+throughout the argument.
+\end{proof}
+
+Let $\mathcal T[t]$ denote the set of hierarchy nodes in the subtree
+rooted at $t$, including $t$.  Its leaves are identified with $V(t)$.
+Recall that
+\[
+ P(t)=E(V(t),V\setminus V(t)),\qquad
+ O(t)=E(V(t),V(t^*)\setminus V(t)).
+\]
+A ball record consists of its geometric ball and its labels; two
+records may have the same geometric set.  Its owner $t(B)$ is a
+hierarchy node.  A nonavoiding record will route in $G[V(t(B))]$.
+An avoiding record also has a label $t_d(B)$, a strict descendant of
+$t(B)$, and will route in
+$G[V(t(B))\setminus V(t_d(B))]$.  In either case a further label
+$t_P(B)$ is a set of strict descendants of $t(B)$.  Define the
+\emph{conflict domain} and its leaf set by
+\begin{align*}
+ C(B)&=\mathcal T[t(B)]\setminus
+       \bigcup_{s\in t_P(B)}\mathcal T[s]
+       &&\text{if $B$ is nonavoiding},\\
+ C(B)&=\mathcal T[t(B)]\setminus
+       \left(\mathcal T[t_d(B)]\cup
+       \bigcup_{s\in t_P(B)}\mathcal T[s]\right)
+       &&\text{if $B$ is avoiding},\\
+ L(B)&=C(B)\cap V.
+\end{align*}
+Thus $C(B)$ is a connected set of hierarchy nodes containing its root
+$t(B)$.  The set $L(B)$, rather than the geometric points of $B$,
+specifies the graph vertices available for charging.
+
+\Needspace{13\baselineskip}
+\begin{definition}[Valid labeling]\label{ha:valid-labeling}
+A collection $Z$ of labeled ordinary and hollow balls is valid if the
+following four conditions hold for every record $B$ with center $x$
+and radii $a<b$.
+\begin{enumerate}
+ \renewcommand{\theenumi}{L\arabic{enumi}}
+ \renewcommand{\labelenumi}{(\theenumi)}
+ \item\label{ha:L1} The labels and conflict domain have the form just
+ described; in particular $t(B)\in C(B)$.
+ \item\label{ha:L2} For $s\in t_P(B)$ and $\{v,w\}\in P(s)$,
+ \[
+       \|x-X_v\|_1\ge b,\qquad \|x-X_w\|_1\ge b.
+ \]
+ \item\label{ha:L3} There is $u\in L(B)$ with $\|x-X_u\|_1\le a$
+ and at least $k/4$ pairwise edge-disjoint paths starting at $u$ and
+ ending at vertices of distance at least $b$ from $x$.  The paths lie
+ in $G[V(t(B))]$ if $B$ is nonavoiding, and in
+ $G[V(t(B))\setminus V(t_d(B))]$ if it is avoiding.
+ \item\label{ha:L4} Distinct records whose geometric balls intersect
+ have disjoint conflict domains.
+\end{enumerate}
+\end{definition}
+
+The paths in \ref{ha:L3} may initially visit predecessor subtrees;
+condition~\ref{ha:L2} will allow their relevant prefixes to avoid all
+of them.  Also, the shape of the domains gives the useful equivalence
+\begin{equation}\label{ha:domain-root-test}
+ C(B)\cap C(B')\ne\varnothing
+ \quad\Longleftrightarrow\quad
+ t(B)\in C(B')\ \hbox{or}\ t(B')\in C(B).
+\end{equation}
+Indeed, a common node lies below both roots.  The roots are therefore
+comparable, and the path from the higher root to that common node
+contains the lower root and stays in the higher root's domain.
+The converse follows since each root belongs to its own domain.
+
+\paragraph{Predecessors and insertability.}
+For $t\in T_i$ define
+\[
+ \operatorname{Pred}(t)=
+ \{s:\ s\text{ is a strict descendant of }t,
+                  \ s\in T_j\text{ for some }j<i\}.
+\]
+For $B=B(X_u,\delta_i)\in\operatorname{Bag}_t$, say that $B$ is
+\emph{noninsertable by $s$} if $s\in\operatorname{Pred}(t)$ and an
+endpoint $w$ of an edge of $P(s)$ satisfies
+$\|X_u-X_w\|_1<\delta_i$.  A ball is \emph{insertable} if no
+predecessor makes it noninsertable.  Every insertable input ball is
+labeled nonavoiding, with
+\[
+       t(B)=t,\qquad t_P(B)=\operatorname{Pred}(t).
+\]
+Its center vertex $u$ belongs to $L(B)$.  To verify this, use the
+assigned-bag property to choose an edge $\{u,v\}\in O(t)$ with
+$v\notin V(t)$.  If $u\in V(s)$ for a predecessor $s$ of $t$, then
+$\{u,v\}\in P(s)$.  Its endpoint $u$ is in the center-inclusive
+ball $B$, contrary to insertability.  This argument also covers
+distinct graph vertices having the same image under $X$.
+
+\begin{lemma}[Cost of one predecessor]\label{ha:pruning}
+Suppose $\delta_{i+1}\le\lambda\delta_i$ with $\lambda\le1/2$,
+$|O(t)|\ge k\lambda|P(t)|$ for the selected hierarchy nodes, and each
+bag is at least $C_3/k$-assigned.  For $s\in T_\ell$,
+\[
+ \sum_i\delta_i
+   |\{B\in\mathcal B_i:B\text{ is noninsertable by }s\}|
+ \le \frac{4}{C_3}\delta_\ell|\operatorname{Bag}_s|.
+\]
+\end{lemma}
+\begin{proof}
+The set being counted is empty for $i\le\ell$.  For each $i>\ell$,
+assign to every counted ball one endpoint of an edge in $P(s)$ that
+lies in that ball.  Pairwise disjointness of the center-inclusive
+balls in $\mathcal B_i$ makes this assignment injective on endpoint
+vertices.  There are at most $2|P(s)|$ such vertices, even when edges
+are parallel or several vertices have the same image.  Thus the
+left-hand side is at most
+\begin{align*}
+ 2|P(s)|\sum_{i>\ell}\delta_i
+ &\le \frac{2\lambda}{1-\lambda}|P(s)|\delta_\ell\\
+ &\le 4\lambda|P(s)|\delta_\ell
+ \le \frac{4}{k}|O(s)|\delta_\ell
+ \le \frac{4}{C_3}|\operatorname{Bag}_s|\delta_\ell.
+\end{align*}
+The last inequality is precisely the assigned-bag cardinality bound.
+\end{proof}
+
+\Needspace*{3\baselineskip}
+\begin{lemma}[Charging a valid labeled collection]\label{ha:labeled-energy}
+Every finite collection $Z$ with a valid labeling satisfies
+\[
+       \frac{k}{4}\sum_{B\in Z}\operatorname{width}(B)
+       \le \sum_{\{v,w\}\in E}\|X_v-X_w\|_1.
+\]
+\end{lemma}
+\begin{proof}
+Realize each graph edge $e=\{v,w\}$ by one fixed straight segment
+from $X_v$ to $X_w$ in $Q$, of length $\ell_e=\|X_v-X_w\|_1$.
+Different parallel edges are distinct resources even if their
+segments coincide geometrically.  Concatenating these segments
+realizes a graph path as a continuous curve.
+
+Fix a record $B$ with center $x$ and radii $a<b$.  Take the paths in
+\ref{ha:L3}, and stop each at its first vertex $z$ satisfying
+$\|x-X_z\|_1\ge b$.  Every vertex in each resulting graph path
+belongs to $L(B)$.  Avoidance of $V(t_d(B))$ already follows from
+\ref{ha:L3}.  To check avoidance of $V(s)$ for $s\in t_P(B)$,
+suppose the path first enters $V(s)$ along $\{v,w\}\in P(s)$.
+The start vertex is outside $V(s)$, so this entering edge exists.
+Its preceding endpoint $v$ occurs before the stopping vertex and
+therefore has $\|x-X_v\|_1<b$.  This contradicts \ref{ha:L2}.
+In particular, both graph endpoints of every edge of the stopped
+path are in $L(B)$, including the edge containing its geometric
+exit point.
+
+On each of the resulting continuous curves, keep the portion between
+the last point at radius $a$ preceding its first point at radius $b$
+and that first point at radius $b$.  Those points exist by continuity.
+The retained curve, apart from its endpoints, is in the open shell
+$a<\|x-y\|_1<b$.  The function $y\mapsto\|x-y\|_1$ is
+$1$-Lipschitz, so its length is at least $b-a$.  This also applies to
+an ordinary ball by taking $a=0$; removing its center changes no
+charged length.  Charge each retained portion to its underlying
+graph edge.  The paths for one record are edge-disjoint, so this
+record charges no portion of a graph edge twice.
+
+Now fix a graph edge $e=\{v,w\}$.  If two distinct records charge
+portions of $e$, the preceding paragraph gives
+$v,w\in L(B)\cap L(B')$, so their conflict domains meet.
+Condition~\ref{ha:L4} forces their geometric balls to be disjoint.
+Hence their charged open portions of the fixed segment of $e$ are
+disjoint.  Summing over all records charges $e$ at most $\ell_e$.
+This reasoning uses edge portions, not the whole length of every
+edge on a witness path.  It also handles zero-length edges, which
+contribute no charge.  Each record receives at least
+$(k/4)(b-a)$, and summing the edge budgets proves the claim.
+\end{proof}
+
+\begin{lemma}[Arrangement of insertable bags]\label{ha:insertable-arrangement}
+Let $\mathcal T$ be a locally $k$-connected hierarchy, with selected
+nonroot nodes $T$ satisfying $|O(t)|\ge k\lambda|P(t)|$ for $t\in T$.
+Let $\mathcal F_i$ be a $\lambda$-geometric sequence of families
+of $12C_3/k$-assigned bags of type $(\delta_i,T_i)$, where the
+$T_i\subseteq T$ are pairwise disjoint.  Suppose all input balls are
+insertable and
+\[
+ C_4\ge3,\qquad \lambda\le\frac{1}{6C_4},\qquad
+ C_3\ge2\bigl((C_4+1)+4(C_4+2)^2\bigr).
+\]
+Then there is a finite valid collection $Z$ of labeled ordinary and
+hollow balls, with centers inherited from the input balls, such that
+\begin{equation}\label{ha:arrangement-width}
+ \sum_{B\in Z}\operatorname{width}(B)
+ \ge \frac{C_4}{12C_3}
+       \sum_i\delta_i\sum_{t\in T_i}|\operatorname{Bag}_t|.
+\end{equation}
+\end{lemma}
+
+The next parts prove Lemma~\ref{ha:insertable-arrangement}.  First we
+show that it suffices for the assigned-bag proposition.
+
+\begin{proof}[Reduction of Proposition~\ref{prop:hierarchy-assigned}
+to Lemma~\ref{ha:insertable-arrangement}]
+Let
+$M=\sum_i\delta_i\sum_{t\in T_i}|\operatorname{Bag}_t|$
+be the original total radius.  A ball can be noninsertable by several
+predecessors; summing Lemma~\ref{ha:pruning} over all selected nodes
+therefore bounds the total radius $N$ of noninsertable balls from
+above, without needing a unique predecessor charge:
+\begin{equation}\label{ha:preprocess-mass}
+ N\le\frac{4}{C_3}M\le\frac14M.
+\end{equation}
+Here the original $24C_3/k$ assignment implies the weaker assignment
+needed in that lemma, and the displayed condition on $C_3$ implies
+$C_3\ge16$.
+
+Delete all noninsertable balls.  If a bag retains at least half its
+original balls, keep the remaining bag; otherwise delete the bag and
+its node from the corresponding $T_i$.  A kept bag is
+$12C_3/k$-assigned.  In a deleted bag more than half the original
+balls were noninsertable, so its entire radius is at most twice its
+noninsertable radius.  The same upper bound holds for the radius
+removed from a kept bag.  The resulting sequence consequently has
+total radius
+\[
+       M'\ge M-2N\ge M/2.
+\]
+Discard empty families, retaining the remaining scales in their
+original order. The sequence retains disjointness at each scale
+and the geometric scale condition. Deleting selected nodes can only remove predecessors,
+so all surviving balls are still insertable after recomputing their
+labels.  The hypotheses of Lemma~\ref{ha:insertable-arrangement}
+therefore hold.  Combining that lemma with
+Lemma~\ref{ha:labeled-energy} gives
+\[
+ \sum_{\{v,w\}\in E}\|X_v-X_w\|_1
+ \ge\frac{k}{4}\frac{C_4}{12C_3}M'
+ \ge\frac{k}{8}\frac{C_4}{12C_3}M,
+\]
+as required.
+\end{proof}
+
+\begin{lemma}[Validity of an insertable input ball]\label{ha:input-valid}
+An insertable ball $B=B(X_u,\delta_i)\in\operatorname{Bag}_t$
+with the input labels above satisfies \ref{ha:L1}--\ref{ha:L3}.
+\end{lemma}
+\begin{proof}
+The definition gives \ref{ha:L1}, and insertability says exactly that
+every endpoint in \ref{ha:L2} has distance at least $\delta_i$ from
+$X_u$.  We have already proved that $u\in L(B)$.
+Every selected node is nonroot, so $|O(t)|\ge k$ by the cut bound
+in its parent's induced graph.  Moreover,
+$|\operatorname{Bag}_t|\ge12C_3|O(t)|/k\ge12C_3>1$.
+Choose another ball in the bag, with center vertex $w\in V(t)$.
+Disjointness of the two open balls gives $X_w\notin B$, so
+$\|X_u-X_w\|_1\ge\delta_i$.  Since $G[V(t)]$ is
+$k$-edge-connected, Lemma~\ref{ha:edge-paths} supplies
+$k$ pairwise edge-disjoint $u$--$w$ paths in this induced graph.
+These witness \ref{ha:L3}, with inner radius zero, and in fact give
+the stronger count $k$ in place of $k/4$.
+\end{proof}

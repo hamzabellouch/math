@@ -1,0 +1,176 @@
+\section{A fixed filtering construction}\label{sec:filtering}
+
+The squared magnitude of the Fourier term in the overview is a product
+of coordinate factors $M(x)^2=2+2\cos x$.  We construct scores for two tests on pairs of digit
+vectors, choosing them to satisfy $M^2$-weighted moment bounds
+that control the error of the resulting estimator.  Everything
+constructed in this section is fixed independently of the input.
+
+Write $\mathbb T=\mathbb R/(2\pi\mathbb Z)$ with normalized Lebesgue
+measure; every integral below includes the factor $1/(2\pi)$.
+Consider one pair of coordinates $y,z\in\mathbb T$ with difference
+$x=y-z$.  A common uniform shift $\theta$ gives
+$w=z-\theta$ uniform on $\mathbb T$ and $y-\theta=x+w$.
+The tests will separately score these two shifted coordinates.
+
+Start with any strictly positive continuous probability densities $f,g$
+on $\mathbb T$.  For a fixed difference $x$, the formula
+\begin{equation}\label{eq:filter-kernel}
+ Q(x)=\int_{\mathbb T} f(x+w)g(w)\,dw,
+ \qquad K_x(w)=\frac{f(x+w)g(w)}{Q(x)}
+\end{equation}
+defines a strictly positive probability density in $w$.  Replacing the
+uniform law of $w$ by $K_x$ weights each shift by the product of its two
+density values.  The actual tests use the normalized powers
+\[
+ \kappa=1.0315,\qquad
+ f_* =\frac{f^\kappa}{\int_{\mathbb T} f^\kappa},\qquad
+ g_* =\frac{g^\kappa}{\int_{\mathbb T} g^\kappa}.
+\]
+Under the new law, record the expected base-two log likelihood ratio
+against the uniform law and the expected scores on the two sides:
+\begin{equation}\label{eq:filter-scores}
+\begin{split}
+ D(x)&=\int_{\mathbb T}K_x(w)\log K_x(w)\,dw,\\
+ A(x)&=\int_{\mathbb T}K_x(w)\log f_*(x+w)\,dw,\\
+ E(x)&=\int_{\mathbb T}K_x(w)\log g_*(w)\,dw,\\
+ u(x)&=A(x)+E(x)-D(x),\qquad
+ v(x)=2D(x)-A(x)-E(x).
+\end{split}
+\end{equation}
+Thus $D$ measures the cost of this change of law, while $A,E$ give the
+score thresholds it can support.  Products of these one-coordinate
+laws will prove that the block tests cover each frequency.  In particular,
+\begin{equation}\label{eq:filter-entropy-order}
+ D(x)\ge0,\qquad D(x)-A(x)\ge0,\qquad D(x)-E(x)\ge0.
+\end{equation}
+Indeed, the three quantities are the relative entropies of $K_x$ with
+respect to the densities $1$, $f_*(x+\cdot)$, and $g_*$, respectively.
+For completeness, if $p,q$ are positive probability densities, concavity
+of $\ln$ gives
+\[
+ \int p\ln(q/p)\le \ln\int q=0,
+\]
+which proves the asserted nonnegativity.
+
+We now choose the densities and numerical parameters.  The modulus
+will have about $\eta n$ bits, and the estimator will use about
+$2^{\tau n}$ operations, before rounding slack and subexponential
+factors.  The differences $\Delta$ and $\Gamma$ are the exponent
+budgets that enter its sampling and list-size bounds:
+\begin{equation}\label{eq:filtering-constants}
+\begin{gathered}
+ \eta=0.51772,\qquad \tau=0.48996,\qquad
+ \Delta=\eta-\tau=0.02776,\\
+ \Gamma=2\tau-\eta=0.46220,\qquad
+ a=\Delta/\Gamma,\qquad \epsilon=10^{-8}.
+\end{gathered}
+\end{equation}
+The constant $\epsilon$ allows fixed-accuracy evaluation of the scores.
+Define the trigonometric polynomials
+\begin{equation}\label{eq:filter-polynomials}
+ r(x)=\sum_{j=1}^{6}r_j\cos(jx),\qquad
+ s(x)=\sum_{j=1}^{6}s_j\cos(jx),
+\end{equation}
+where
+\[
+\begin{split}
+ (r_1,\ldots,r_6)&=(0.851,0.466,0.325,0.253,0.224,-0.314),\\
+ (s_1,\ldots,s_6)&=(1.281,-0.938,0.731,-0.559,0.391,0.110).
+\end{split}
+\]
+Put $F=2^r$, $G=2^s$, and use the positive normalized densities
+\[
+ Z_f=\int_{\mathbb T}F,\qquad Z_g=\int_{\mathbb T}G,
+ \qquad f=F/Z_f,\qquad g=G/Z_g
+\]
+in the preceding definitions.  These explicit coefficients give the
+following strict inequalities, where $M(x)=|1+e^{ix}|$.
+
+\begin{proposition}[Filtering moments]\label{prop:filtering-moments}
+The functions in \eqref{eq:filter-scores} satisfy
+\begin{equation}\label{eq:continuous-filtering-moments}
+\begin{split}
+ \int_{\mathbb T}M(x)^2 2^{8.5(\Delta-u(x))}\,dx&<2^{0.5168},\\
+ \int_{\mathbb T}M(x)^2 2^{8.3(a v(x)-u(x))}\,dx&<2^{0.5168}.
+\end{split}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Appendix~\ref{app:numerical} proves both inequalities by a 64-point
+quadrature with explicit rational enclosures and analytic error bounds.
+\end{proof}
+
+The algorithm uses a finite circle, not a continuous one.  For an integer
+$P\ge2$, identify $j\in\mathbb Z/P\mathbb Z$ with the angle $2\pi j/P$,
+and replace \emph{every} integral in the definitions above by the
+normalized average $P^{-1}\sum_{j=0}^{P-1}$.  In particular the
+normalizers of $f,g,f_*,g_*$ and the definition of $K_x$ all use this
+finite average.  We use the same notation for these finite functions
+when the underlying circle has been specified.
+
+\begin{lemma}[Finite filtering data]\label{lemma:finite-filtering}\label{filtering-finite}
+There is an absolute integer $P_0$ such that for every $P\ge P_0$ the
+finite functions satisfy \eqref{eq:filter-entropy-order} and
+\begin{equation}\label{eq:finite-filtering-moments}
+\begin{split}
+ \frac1P\sum_{x\in\mathbb Z/P\mathbb Z}
+       M(x)^2 2^{8.5(\Delta-u(x))}&<2^{0.5169},\\
+ \frac1P\sum_{x\in\mathbb Z/P\mathbb Z}
+       M(x)^2 2^{8.3(a v(x)-u(x))}&<2^{0.5169}.
+\end{split}
+\end{equation}
+There is an absolute bound, independent of $P$, for the absolute values
+of $D,A,E,u,v,\log f_*,\log g_*$, and $\log K_x(w)$.
+For every fixed positive rational $\rho$, each of these quantities can
+be approximated to absolute error at most $\rho$ by one fixed
+deterministic rational-arithmetic procedure, in time polynomial in
+$\log P$, given the relevant residues and $P$.  This procedure need not
+enumerate the $P$ points.
+\end{lemma}
+
+\begin{proof}
+The relative-entropy argument is unchanged for normalized finite
+averages.  For uniform bounds, note that
+\[
+ |r|\le2.433,\qquad |s|\le4.010.
+\]
+Consequently $F,G$, all their normalizers, and all the densities above
+are bounded above and bounded away from zero by absolute constants,
+on either circle.  The same holds for $Q$ and $K_x$, so their logarithms
+and the averages defining the scores are uniformly bounded.
+
+If $H(x,w)$ is a continuously differentiable periodic function, the
+error in replacing its $w$ integral by a $P$-point average is at most
+$2\pi\|\partial_w H\|_\infty/P$, uniformly in $x$.  Apply this fact
+first to the normalizers and then to the numerators in
+\eqref{eq:filter-kernel} and \eqref{eq:filter-scores}.  The lower bounds
+on denominators allow division and taking logarithms without losing
+uniform convergence.  Thus the finite versions of $D,A,E,u,v$
+converge uniformly, at their grid points, to the continuous versions.
+Applying the same Riemann-sum estimate once more to the two outer
+integrands proves \eqref{eq:finite-filtering-moments} from
+Proposition~\ref{prop:filtering-moments} and the strict slack between
+$0.5168$ and $0.5169$.
+
+Here is also an effective version of this argument.  The displayed
+coefficient bounds give explicit bounds on every fixed derivative
+needed above.  For a prescribed fixed $\rho$, choose a constant mesh
+fine enough to approximate the continuous integrals, and choose a
+constant threshold above which the finite-to-continuous error is less
+than $\rho/2$.  Evaluate the mesh sums and elementary functions by
+rational Taylor expansions with error less than the remaining
+$\rho/2$.  Arguments are bounded, and all logarithm arguments lie in a
+fixed compact subinterval of $(0,\infty)$.  For logarithms, the series
+$\ln y=2\sum_{j\ge0}d^{2j+1}/(2j+1)$, where $d=(y-1)/(y+1)$,
+therefore converges geometrically at a uniform rate.  The input angle
+$2\pi j/P$ can be approximated with
+a fixed number of fractional bits using arithmetic polynomial in
+$\log P$.  Below the constant threshold one may instead compute the
+finite averages directly.  The mesh, precision, and threshold depend
+only on $\rho$ and the displayed coefficients, not on $P$ or the
+instance.  This gives a single deterministic procedure for each fixed
+$\rho$; in particular repeated calls on the same inputs return the
+same rational value.
+\end{proof}

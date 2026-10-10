@@ -1,0 +1,327 @@
+\section{Encoding comparisons by locally reconstructible graphs}
+\label{sec:encoding}
+
+We now encode scalar comparisons between vector values at binary
+addresses. A full-address value will be represented by a sum of $r$
+entries, each depending on two consecutive address coordinates. The graph
+will encode the table entries through local constraints, without listing
+the exponentially many values of their sums.
+
+The construction must also control graphs that were not produced by the
+encoding. We will prove that every graph equivalent to the homogeneous
+graph has the same constraint pieces, with possibly shifted right-hand
+sides. An isomorphism will require one assignment to the shared table
+entries satisfying all those shifts simultaneously.
+
+\subsection{Comparisons and subdivided wires}
+
+Throughout the construction we work over the field $\F$, fix
+$r\ge 32$, and put $K=r+1$. Indices $i\in\{1,\ldots,r\}$ are cyclic, so
+$r+1$ in an address-coordinate index means $1$. A finite nonempty
+list of \emph{real types} is given. Each real type $P$ has dimension
+$d_P\in\{1,2\}$; a value at type $P$ and address
+$a\in\{0,1\}^r$ belongs to $\F^{d_P}$.
+
+A \emph{comparison schema} $e$ consists of ordered real endpoints
+$P,R$, a nonempty product domain
+\[
+D_e=\prod_{i=1}^r D_{e,i},
+\qquad \varnothing\ne D_{e,i}\subseteq\{0,1\},
+\]
+coordinate injections $\sigma_{e,i}:D_{e,i}\to\{0,1\}$, and
+scalar linear forms
+\[
+\lambda_{e,0}:\F^{d_P}\to\F,
+\qquad
+\lambda_{e,1}:\F^{d_R}\to\F.
+\]
+Write $\sigma_e(a)=(\sigma_{e,i}(a_i))_{i=1}^r$. The schema
+represents comparisons between the first form at $(P,a)$ and the
+second form at $(R,\sigma_e(a))$ for every $a\in D_e$. Zero
+forms, repeated schemas, parallel schemas, and $P=R$ are all
+allowed.
+
+Replace each schema $e:P\to R$ by an oriented \emph{wire}
+from $P$ to $R$ with $4K$ private internal types, each of dimension
+one. Thus a wire has $4K+1$ links, and different wires have no
+internal types in common. The real and internal types, joined by
+these links, form the \emph{type layout}. For a type $t$, define its
+allowed labels at coordinate $i$ by
+\[
+A_{t,i}=
+\begin{cases}
+\{0,1\},&t\text{ is real},\\
+D_{e,i},&t\text{ is internal to wire }e.
+\end{cases}
+\]
+Its dimension is denoted by $d_t$, extending the notation for real
+types.
+
+Write a link as $\ell=tu$, with $t$ first and $u$ second in its
+wire's orientation. At coordinate $i$, its allowed label matches
+are
+\[
+M_{\ell,i}=
+\begin{cases}
+\{(p,p):p\in D_{e,i}\},
+ &\ell\text{ is not the last link of }e,\\
+\{(p,\sigma_{e,i}(p)):p\in D_{e,i}\},
+ &\ell\text{ is the last link of }e.
+\end{cases}
+\]
+Give each endpoint of $\ell$ a scalar form $L_{\ell,t}$ or
+$L_{\ell,u}$. At an internal endpoint this is the identity of
+$\F$. At the first real endpoint of the wire it is
+$\lambda_{e,0}$, and at the last real endpoint it is
+$\lambda_{e,1}$. These assignments refer to the respective wire
+ends even when both real endpoints are the same type.
+
+\subsection{Readouts and blocks}
+
+Introduce the following names for vector and scalar variables:
+\begin{align*}
+x_{i,t,p,p'}&\in\F^{d_t}
+ &&(p\in A_{t,i},\ p'\in A_{t,i+1}),\\
+y_{i,\ell,p,q}&\in\F
+ &&((p,q)\in M_{\ell,i}).
+\end{align*}
+We call these variables \emph{readouts}; each vector readout has its
+fixed ordered bit coordinates. It is useful to regard them as edges
+between \emph{corners}, where a corner is a triple $(i,t,p)$ with
+$p\in A_{t,i}$. The horizontal readout $x_{i,t,p,p'}$ joins
+$(i,t,p)$ to $(i+1,t,p')$. The vertical readout
+$y_{i,\ell,p,q}$ for $\ell=tu$ joins $(i,t,p)$ to $(i,u,q)$.
+
+A full allowed address $a\in\prod_i A_{t,i}$ selects one horizontal
+readout in each row. These edges form a cycle through the corners
+$(i,t,a_i)$. Once values have been assigned to the horizontal names,
+their sum
+\[
+                 h_t(a)=\sum_{i=1}^r x_{i,t,a_i,a_{i+1}}
+\]
+is the value represented at this address. It is determined by the
+short tables $x_{i,t,\cdot,\cdot}$, not assigned independently at each
+address. For example, the homogeneous comparison $e:P\to R$ is intended
+to impose
+\[
+ \lambda_{e,0}(h_P(a))
+     =\lambda_{e,1}(h_R(\sigma_e(a)))
+       \qquad(a\in D_e).
+\]
+We implement this equality by local equations along the subdivided wire.
+Their shifted versions will control the corresponding comparison in an
+equivalent graph.
+
+There are two kinds of \emph{blocks}. Each horizontal name $x$ has
+one \emph{site block}, using just $x$. For each link $\ell=tu$,
+row $i$, and matches
+$(p,q)\in M_{\ell,i}$ and
+$(p',q')\in M_{\ell,i+1}$, there is a \emph{square block} $B$
+using the four names
+\[
+x_t=x_{i,t,p,p'},\qquad x_u=x_{i,u,q,q'},\qquad
+y_i=y_{i,\ell,p,q},\qquad
+y_{i+1}=y_{i+1,\ell,p',q'}.
+\]
+Figure~\ref{fig:square} records these shared names. A valuation of
+a block assigns a value to each of its names, in that name's vector
+or scalar space.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm,every node/.style={font=\small}]
+  \coordinate (tl) at (0,2);
+  \coordinate (tr) at (5,2);
+  \coordinate (bl) at (0,0);
+  \coordinate (br) at (5,0);
+  \draw (tl) -- node[midway,above] {$x_t$} (tr);
+  \draw (bl) -- node[midway,below] {$x_u$} (br);
+  \draw (tl) -- node[midway,left] {$y_i$} (bl);
+  \draw (tr) -- node[midway,right] {$y_{i+1}$} (br);
+  \fill (tl) circle (1.4pt);
+  \fill (tr) circle (1.4pt);
+  \fill (bl) circle (1.4pt);
+  \fill (br) circle (1.4pt);
+  \node[above left] at (tl) {$(i,t,p)$};
+  \node[above right] at (tr) {$(i+1,t,p')$};
+  \node[below left] at (bl) {$(i,u,q)$};
+  \node[below right] at (br) {$(i+1,u,q')$};
+\end{tikzpicture}
+\caption{A square block at link $\ell=tu$ and row $i$.
+Horizontal edges carry vector readouts at their types; vertical
+edges carry scalar readouts at the matched labels. Its legal
+valuations satisfy Equation~\eqref{eq:square}.}
+\label{fig:square}
+\end{figure}
+
+Choose one bit $\beta_B\in\F$ for each square block. Every
+valuation of a site is legal. A valuation of the displayed square
+is legal if
+\begin{equation}
+\label{eq:square}
+L_{\ell,t}(x_t)+L_{\ell,u}(x_u)+y_i+y_{i+1}=\beta_B.
+\end{equation}
+At least one endpoint of every link is internal, so a square uses
+$d_t+d_u+2\le 5$ bit coordinates. The two vertical names are
+distinct, and both have coefficient one. Consequently this is a
+nonzero linear equation with at most sixteen legal valuations,
+the same number for either right-hand side. This remains true when
+an endpoint form is zero.
+
+The long wires have a separate role in the game analysis. A collection
+of at most $K$ blocks uses at most $K$ layout links, because a site uses
+none and a square uses just one. It therefore cannot span a whole wire
+of $4K+1$ links. Section~\ref{sec:projection} will use this separation
+to extend assignments on small block collections.
+
+The full address space has not been enumerated: each name or block uses
+only one coordinate or two consecutive coordinates. We next turn these
+bounded-size blocks into a graph in which any equivalent mate must retain
+their incidence pattern.
+
+\subsection{The uncolored graph}
+
+First build a graph with indicated vertex colors.
+\begin{enumerate}[label=\arabic*.]
+\item For each bit coordinate of each readout name, make two
+\emph{bit-value vertices}, labeled $0$ and $1$. Give this pair a
+fresh color. The same pair is used in every block containing that
+coordinate.
+\item For each block, make one \emph{valuation vertex} for every
+legal valuation, all with a fresh color specific to that block.
+Connect a valuation vertex to the bit-value vertex specifying its
+assigned value in each coordinate used by the block. Add no other
+edges.
+\end{enumerate}
+This graph is bipartite, with valuation vertices on one side and
+bit-value vertices on the other. Call these vertices the
+\emph{base vertices}, and let their number be $N$. The number is
+independent of the chosen bits $\beta_B$, by the preceding count.
+Number the fresh colors, in one common order for all choices of
+$\beta$, by $1,\ldots,J$.
+
+To erase the colors, attach $j(N+1)$ new private leaves to each base
+vertex of color $j$, and then forget the colors. The resulting
+uncolored graph is denoted by $G(\beta)$. Here $\beta$ denotes the
+list of all square bits, and $G(0)$ is the graph in which all these
+bits vanish. The graph is simple and nonempty, and its order is
+independent of $\beta$.
+
+\begin{proposition}[Reconstruction of an arbitrary mate]
+\label{prop:mate}
+For any comparison data just described, with $r\ge 32$, every graph
+$H$ satisfying $H\equiv_r G(0)$ is isomorphic to $G(\beta)$ for
+some choice of one bit $\beta_B$ per square block.
+\end{proposition}
+
+\begin{proof}
+The two graphs have the same positive order, and
+Lemma~\ref{lem:wl-game} supplies a winning strategy from $G(0)$ to
+$H$ with $K=r+1$ pair slots. We first recover the forgotten colors
+and the private leaves, and then recover each block.
+
+A base vertex of color $j$ in $G(0)$ has degree in the interval
+\[
+I_j=[j(N+1),\ j(N+1)+N-1].
+\]
+These intervals are pairwise disjoint and lie above degree one.
+Every other vertex has degree one. By Lemma~\ref{lem:degree}, the
+first announced bijection preserves degrees for every possible
+vertex choice. It follows that $H$ has precisely the same number
+of vertices in each $I_j$, the same number of degree-one vertices,
+and no vertices of other degrees. Call its vertices in $I_j$ base
+vertices of color $j$.
+
+Any chosen base vertex of $H$ can be reached in the first
+placement, by taking its inverse under the announced bijection.
+The next announced bijection must preserve both degrees and
+adjacency to that vertex. Its number of degree-one neighbors is
+therefore exactly $j(N+1)$. Summing these required counts over
+all base vertices accounts for the full number of degree-one
+vertices in $H$. Since such a vertex has only one neighbor, all
+are private leaves on bases; none remain in a separate component.
+The degree intervals continue to preserve base colors throughout
+every winning play.
+
+There can be no base edge between two color classes whose vertices
+are never adjacent in $G(0)$. Indeed, two arbitrary target vertices
+can be reached through two successive placements, using the
+inverse of each announced bijection. Their preimages have the
+prescribed colors, and partial isomorphism preserves the edge
+test. This also rules out edges within either side of the original
+bipartition and edges to unrelated bit coordinates.
+
+Fix a block. Mark every one of its valuation vertices in $G(0)$
+and both bit-value vertices of each coordinate it uses. For a
+square there are at most $16+2\cdot 5=26$ such vertices. A site
+has at most four valuations and four bit-value vertices, so is
+smaller. All these placements fit within $K\ge 33$ slots. Their
+images are distinct, preserve their colors, and exhaust the
+corresponding classes in $H$, since the class sizes agree. Thus
+the entire colored incidence piece for this block is isomorphic
+to its intended piece.
+
+Label the two vertices in every bit pair of $H$ by $0$ and $1$,
+once for the whole graph. In a local colored isomorphism, each
+bit coordinate is either kept or flipped; different coordinates
+cannot be exchanged because they have different colors. The
+valuation vertices of a site are therefore precisely all
+valuations in these labels. For a square, translating the
+homogeneous equation by its coordinate flips changes only the
+right-hand side, to some bit $\beta_B$. Its valuation vertices
+are exactly the legal valuations of
+Equation~\eqref{eq:square} with that bit.
+
+No agreement between the flips used in different local
+isomorphisms is being assumed. What is shared is the single
+labeling already assigned to each target bit pair, so every
+block uses the same coordinates for its incidences. Combining
+the resulting block descriptions, the exclusion of other base
+edges, and the private leaves gives $H\cong G(\beta)$.
+\end{proof}
+
+It remains to distinguish those shifts that merely relabel the
+graph. A \emph{global offset assignment} gives a vector in
+$\F^{d_t}$ to every horizontal name $x_{i,t,p,p'}$ and a scalar
+in $\F$ to every vertical name $y_{i,\ell,p,q}$, with the same
+value used in all blocks containing that name. Such an assignment
+solves the shifted constraints if it satisfies
+Equation~\eqref{eq:square} for every square; sites impose no
+additional condition.
+
+\begin{proposition}[Isomorphisms and global offsets]
+\label{prop:isomorphism}
+For every choice of square bits $\beta$, the graphs $G(0)$ and
+$G(\beta)$ are isomorphic if and only if there is a global offset
+assignment solving all shifted square constraints.
+\end{proposition}
+
+\begin{proof}
+An isomorphism preserves degrees, hence every named base-color
+class. Its action on each bit pair is a fixed flip. Assemble
+these flips into an offset vector for each horizontal name and
+an offset scalar for each vertical name. Each block of $G(0)$
+has its all-zero valuation vertex. Its image is adjacent to
+the bit-value vertices specified by these same offsets, so
+its valuation is exactly their restriction to that block.
+Legality of the image yields Equation~\eqref{eq:square} with
+right-hand side $\beta_B$. Because a bit pair is shared by all
+blocks using it, the resulting offsets form one global assignment.
+
+Conversely, suppose such an assignment exists. Translate each
+bit pair by its offset, and translate each block valuation by
+the offsets on that block's coordinates. Linearity and
+Equation~\eqref{eq:square} make the latter a bijection from the
+homogeneous legal valuation set to the shifted legal set.
+Shared offsets preserve all valuation--bit incidences and
+nonincidences. The resulting color-preserving base-graph
+isomorphism extends to the private leaves, whose numbers
+depend only on the preserved base color.
+\end{proof}
+
+Proposition~\ref{prop:mate} reduces the analysis of every
+equivalent graph to a list of shifted equations, while
+Proposition~\ref{prop:isomorphism} identifies precisely which
+lists admit an isomorphism. The next step is to extract
+constraints on these shifts from the bijective game and to
+express global solvability in terms of full addresses.

@@ -1,0 +1,391 @@
+\section{Finite interpolation}\label{sec:interpolation}
+
+The depth-first and entropy estimates let us move two large distinct
+clusters from the ends of a path to the ends of one edge. Binary
+subdivision limits the number of new clusters used to a logarithm of
+the path length. We must also control the probability cost of joining
+these clusters; counting the opened edges alone does not control how
+many original configurations can produce the same output.
+
+\begin{proposition}[Interpolation along a path]\label{prop:interpolation}
+Let $\mu$ be Bernoulli bond percolation with parameter $p\in(0,1)$ on
+a finite undirected graph, and put $q=1-p$. Let
+$x_0,x_1,\ldots,x_d$ be a simple path, with $d\ge2$. Suppose that
+\[
+ \mu(x_j\leftrightarrow x_k)\ge c>0
+ \qquad(0\le j<k\le d,\ k-j<d).
+\]
+For an integer $s\ge1$, suppose that the clusters of $x_0,x_d$ are
+distinct and both have at least $s$ vertices with probability
+$\delta>0$. There is a path edge $e$ such that
+\[
+ -\log\mu(H_s(e))
+ \le C\bigl(\log(1/\delta)+\lceil\log_2d\rceil+1\bigr).
+\]
+Here $H_s(e)$ is the event that the endpoint clusters of $e$ are
+distinct and each has at least $s$ vertices. The constant $C$ depends
+only on $c$ and positive lower bounds for $p$ and $q$.
+\end{proposition}
+
+Recall that for probability laws $P,R$ on a finite space,
+\[
+ D(P\Vert R)=\sum_x P(x)\log\frac{P(x)}{R(x)}
+\]
+is their relative entropy, with zero summands omitted. We will construct
+a law $Q_\eta$ supported on $H_s(e)$ for a fixed path edge $e$, with
+relative entropy of order $\log(1/\delta)+\log d$ from $\mu$.
+Since any law supported on an event of probability $u$ has relative
+entropy at least $\log(1/u)$, this will prove the proposition.
+
+We construct $Q_\eta$ by opening contacts along two chains of clusters.
+A reverse procedure that guesses and closes these contacts will account
+for the possible multiplicity of the opening map.
+
+An exact incidence exposure of a cluster records its vertex set and the
+states of every edge with at least one endpoint in that set, including
+internal edges skipped by a lazy search. All edges wholly outside the
+exposed set retain their product law. We will repeatedly use this
+observation for unions of distinct clusters.
+
+\subsection{Contact weights and normalized exposures}
+
+We first record the normalization that makes the construction possible.
+Suppose a union $O$ of exact clusters has been exposed, a deterministic
+target set $\mathcal A$ is contained in $O$, and $w\notin O$.
+Run the deterministic lazy depth-first search of Lemma~\ref{lem:dfs}
+from $w$ towards $\mathcal A$. For every query $f$, let $h$ be the
+conditional probability of $w\leftrightarrow\mathcal A$ under the
+\emph{original product law $\mu$, conditioned only on this search's
+own query prefix}. Write $h_0,h_1$ for the two continuations and
+$d_f=h_1-h_0\ge0$. Thus $h=ph_1+qh_0$.
+
+A contact is a queried edge from the newly explored cluster into $O$.
+Every contact is closed in the exposed configuration. Give it weight
+\[
+ a_f=pd_f,
+ \qquad A=\sum_{\text{queried contacts }f}a_f,
+ \qquad h_* =\mu(w\leftrightarrow\mathcal A).
+\]
+The numbers $d_f$ are not recomputed under the law conditioned on $O$.
+This distinction is essential: under that conditioned law a contact is
+forced closed, and the ordinary conditional probability drops by
+$h-h_0=pd_f$. Every noncontact query is a fresh Bernoulli bit, so its
+conditional expected change in $h$ is zero. The search fails and its
+final prefix certifies failure even under $\mu$, since it has queried
+all edges leaving the cluster of $w$. Telescoping therefore gives
+\begin{equation}\label{eq:contact-normalization}
+ \EE_{\mathrm{ext}}A=h_*.
+\end{equation}
+Here the expectation samples only the product exterior of the fixed
+incidence exposure.
+
+Conditional on the fixed incidence exposure and any query prefix, the
+same telescoping gives expected remaining contact weight at most one.
+The potential $h$ still uses only the search's own prefix. Since each
+contact weight is at most one,
+expansion of the square yields
+\begin{equation}\label{eq:contact-second-moment}
+ \EE_{\mathrm{ext}}A^2
+ \le \EE_{\mathrm{ext}}\sum_f a_f
+       +2\EE_{\mathrm{ext}}\sum_f a_f
+ \le3.
+\end{equation}
+In the middle expression the second sum bounds each contact weight
+multiplied by the conditional expected sum of subsequent weights.
+Consequently, when $h_*>0$, the rule
+\begin{equation}\label{eq:marked-contact-law}
+ \frac{a_f}{h_*}\,\mu_{\mathrm{ext}}(d\omega)
+ \quad\text{on exterior configurations and a chosen contact }f
+\end{equation}
+defines a probability measure, with counting measure on the contact
+coordinate.
+
+After this choice, expose the exact incidence configuration of the
+new cluster $K=C_w$. The chosen contact, its query prefix, and its
+weight are determined by the old exposure and the incidence states of
+$K$. Thus the factor in \eqref{eq:marked-contact-law} imposes no
+condition on edges wholly outside $O\cup K$. Conditional on the new
+exposure and chosen contact, those edges still have product law.
+This proves both normalization and preservation of the exterior law
+at each successive exposure.
+
+\subsection{Binary interpolation and its description}
+
+Let $J=\lceil\log_2d\rceil$. Start with the product law conditioned
+on the endpoint event in Proposition~\ref{prop:interpolation}. Expose
+the two endpoint clusters, calling them the left and right bases, and
+assign every vertex in each base its respective side.
+Maintain an interval of the path whose endpoints have opposite sides.
+At a step $i$, take its midpoint $w_i$, using the lower index in a tie,
+and set
+\[
+ \mathcal A_i=\{x_0,x_d,w_1,\ldots,w_{i-1}\}.
+\]
+Every target anchor belongs to a previously exposed cluster. If $w_i$
+already lies in their union $O$, make no new exposure and give it its
+cluster's side; call this a hold. Otherwise apply
+\eqref{eq:marked-contact-law} with $w=w_i$ and
+$\mathcal A=\mathcal A_i$, expose $K_i=C_{w_i}$, and record its
+chosen contact $f_i$. The cluster containing the head of $f_i$ is its
+parent, and $K_i$ inherits that parent's side. Leave $f_i$ closed.
+Retain the subinterval joining $w_i$ to the endpoint of opposite side.
+
+The new interval has length at most the ceiling of half the old length,
+so after $\ell\le J$ steps its endpoints are adjacent. At each
+nonhold step, one current endpoint is a target anchor at path-index
+distance strictly less than $d$ from $w_i$. Therefore
+\begin{equation}\label{eq:interpolation-root-bound}
+ h_i:=\mu(w_i\leftrightarrow\mathcal A_i)\ge c.
+\end{equation}
+The preceding normalization constructs a joint law of a common final
+configuration $\Omega$ and its chosen contacts. Equivalently, one
+successively multiplies the conditional exterior law by the normalized
+factors \eqref{eq:marked-contact-law}; each factor is measurable in the
+new frozen incidence data, so later exterior sampling preserves all
+earlier factors.
+
+The parent relations form a forest rooted at the two bases. Call a
+nonbase cluster active if it lies on the ancestry path from the owner
+of one terminal endpoint to its base. The active clusters on each side
+form one chain. Record a descriptor consisting of the number of steps,
+the side and hold bit at each step, and the active indices. There are
+at most $\sum_{j=0}^J8^j\le8^{J+1}$ descriptors. Condition on one of
+maximum probability and denote the resulting joint law by $Q$.
+All midpoints, target sets, nonhold indices $I$, active indices $I_*$,
+and the terminal edge are now deterministic. Moreover, the parent of
+an active index is the preceding active index on its side, or its base
+if there is none. Indeed, the active indices on that side are exactly
+one ancestry chain, ordered by creation time. Thus every active parent
+has a deterministic anchor.
+
+\input{figures/interpolation}
+
+Relative to $\mu$ on configurations and counting measure on the
+contacts indexed by $I$, the joint density satisfies
+\begin{equation}\label{eq:interpolation-density}
+ \frac{dQ}{d(\mu\otimes\mathrm{count})}
+ \le e^L\prod_{i\in I}a_i,
+ \qquad a_i=pd_{f_i},
+ \qquad
+ L=\log(1/\delta)+(J+1)\log8+J\log(1/c).
+\end{equation}
+The three costs are the endpoint conditioning, descriptor conditioning,
+and the normalizers \eqref{eq:interpolation-root-bound}.
+
+\subsection{The two chains and their inverse}
+
+Open only the active contacts in $\Omega$, and call the resulting
+configuration $\eta$. Each terminal endpoint is now joined along its
+active ancestry chain to a base cluster of size at least $s$. The two
+resulting clusters remain distinct: all original cluster boundaries were
+closed, and the only newly opened edges join clusters within one of the
+two same-side chains. Thus $Q_\eta$ is supported on $H_s(e)$ for the
+terminal edge fixed by the descriptor.
+
+We next give a reverse procedure and compute its probability of recovering
+the chosen contacts. This computation will identify the quantities that
+the remaining entropy estimates must control.
+
+For the fixed schedule, expose all anchor clusters in order on an
+ordinary product configuration. Let $A_i$ be the sum of the contact
+weights at step $i$, with $A_i=1$ when $w_i$ is already exposed. These
+quantities depend only on the configuration and schedule, not on earlier
+contact choices: the exposed union is exactly the union of the clusters
+of the preceding anchors. Write
+\[
+ X=\sum_{i\in I}\log^+A_i,
+ \qquad \log^+t=\log\max\{1,t\}.
+\]
+
+For each active $i$, let $t_i$ be a standalone deterministic transcript
+that exposes the two exact clusters at $w_i$ and its parent anchor,
+querying all their incidence edges and caching duplicate queries.
+For an ordinary pair transcript $t$, call a contact $f$ admissible if
+the cluster at $w_i$ avoids $\mathcal A_i$ and its depth-first search
+queries $f$ closed into the distinct parent cluster. Every pair selected
+under $Q$ is admissible.
+
+Open just $f$ in an admissible configuration. It becomes the sole open
+exit from the original cluster of $w_i$, and the parent contains a target
+anchor. Hence $f$ is a queried actual open pivot. Let $S_i(t,f)$ be the
+sum of the weights $qd$ of queried actual open pivots through $f$ in this
+modified search, including $f$ itself. This number is determined by
+$(t,f)$. The prefix through $f$ uses only incidences of the original
+cluster at $w_i$; an earlier queried open edge is an actual pivot exactly
+when deleting it separates $w_i$ from the tail of $f$ within that cluster.
+The exact incidence transcript records all the internal edges needed for
+this test.
+
+Construct a reference probability $R$ on output configurations and marks
+as follows. First sample $\eta$ under $\mu$. On a working copy, process
+the active indices in descending order. At index $i$, run the
+$\mathcal A_i$ depth-first search from $w_i$. For each queried actual open
+pivot of weight $b_f=qd_f$, let $S_f$ be the cumulative weight through it,
+and give that pivot guess probability
+\begin{equation}\label{eq:interpolation-inverse-guess}
+ \pi_i(f)=\frac{b_f}{(1+S_f)^2}.
+\end{equation}
+The sum of these probabilities is at most
+$\int_0^\infty(1+t)^{-2}\,dt=1$, by comparison with the integral on
+each cumulative-weight interval. Assign the remaining probability to
+a dummy guess. Close the guessed pivot and continue, using arbitrary
+dummy defaults after an invalid history. After all active guesses, on
+the recovered working copy guess each inactive contact independently
+with probabilities $a_f/A_i$, again using a dummy default if necessary.
+The configuration marginal of $R$ is $\mu$.
+
+We verify that the true inverse guesses have precisely the weights just
+defined. At active step $i$, all later active contacts have already been
+closed. Every earlier active contact has both endpoints in original
+clusters created before $K_i$, since a contact joins its new cluster to
+an older parent. Thus none of those earlier contacts touches $K_i$.
+Its only open boundary edge in the current working copy is $f_i$, and
+its parent still contains the deterministic target anchor. The search
+prefix through $f_i$, its original-product conditional differences
+$d_f$, and the criterion for earlier actual pivots are therefore unchanged
+from the configuration with only $f_i$ opened. In particular, the guess
+$f_i$ is available with cumulative weight exactly $S_i$. Holds add target
+anchors but no new cluster or switched edge, so they do not affect this
+argument.
+
+The active contacts are distinct: different nonhold indices create
+distinct original clusters, and each contact joins its new cluster to
+an older one. Consequently the map
+$(\Omega,(f_i))\mapsto(\eta,(f_i))$ is injective. Along the true inverse
+history, \eqref{eq:interpolation-density} bounds the ratio of the joint
+output density to $R$ by
+\[
+ e^L\prod_{i\in I_*}
+ \frac{(q/p)a_i}{qd_{f_i}/(1+S_i)^2}
+ \prod_{i\in I\setminus I_*}A_i
+ =e^L\prod_{i\in I_*}(1+S_i)^2
+       \prod_{i\in I\setminus I_*}A_i.
+\]
+Here $q/p$ is the original-to-opened Bernoulli likelihood ratio for each
+active contact. It cancels because the forward weight is $a_i=pd_{f_i}$
+and the inverse guess has numerator $qd_{f_i}$.
+Taking logarithms and discarding the marks by data processing gives
+\begin{equation}\label{eq:interpolation-cost-to-bound}
+ D(Q_\eta\Vert\mu)
+ \le L+2\EE_Q\sum_{i\in I_*}\log(1+S_i)+\EE_Q X.
+\end{equation}
+It remains to bound the two expectations on the right by a constant
+times $L+J$. We do this under the closed-contact law $Q$, before opening
+any edge.
+
+\subsection{Entropy of the sampled configuration}
+
+We use the same formula for $D(P\Vert R)$ when $R$ is a nonnegative finite
+measure rather than a probability; in that case it need not be
+nonnegative. For $P\ll R$, Jensen's inequality gives
+\begin{equation}\label{eq:interpolation-entropy-inequality}
+ \EE_P g\le D(P\Vert R)+\log\sum R e^g.
+\end{equation}
+Write $Q_\Omega$ for the configuration marginal of $Q$ and put
+$D_\Omega=D(Q_\Omega\Vert\mu)$.
+
+By \eqref{eq:contact-second-moment},
+\[
+ \EE_\mu[\max(1,A_i)^2\mid\text{previous exact exposures}]\le4.
+\]
+Each $A_i$ is known after the next exact exposure. Successive conditional
+expectation therefore gives
+$\EE_\mu e^{2X}\le4^J$. Summing the density bound
+\eqref{eq:interpolation-density} over the possible contact choices,
+which only enlarges the sum if the descriptor restrictions are dropped,
+gives
+\[
+ D_\Omega\le L+\EE_Q X.
+\]
+Applying \eqref{eq:interpolation-entropy-inequality} to $2X$ gives
+$2\EE_Q X\le D_\Omega+J\log4$. Hence
+\begin{equation}\label{eq:interpolation-configuration-entropy}
+ D_\Omega\le2L+J\log4,
+ \qquad \EE_Q X\le L+J\log4.
+\end{equation}
+
+\subsection{Entropy of the inverse guesses}
+
+We now estimate the sum involving $S_i$. The pair transcripts $t_i$
+contain just the cluster data needed to determine each marked weight.
+On the support of $Q$, every cluster occurs in at most two such pairs,
+and an edge is incident to at most two clusters. Each bit is therefore
+read by at most four pair algorithms. Lemma~\ref{lem:entropy} gives
+\begin{equation}\label{eq:interpolation-pair-entropy}
+ \sum_{i\in I_*}D(Q_{t_i}\Vert\mu_{t_i})\le C_pD_\Omega,
+\end{equation}
+with $C_p$ uniform when $p,q$ are bounded below. The multiplicity
+condition is needed only on the support of $Q$.
+
+For each active $i$, define a finite measure on marked pair transcripts by
+\[
+ \nu_i(t,f)=\mu_{t_i}(t)\,pd_f
+ \quad\text{for admissible }(t,f),
+\]
+and zero otherwise. This reference measure combines the original pair
+transcript law with the contact weight used in the forward sampling.
+It need not have mass one. Its usefulness is the following bound, which
+converts the cost of an inverse guess to the pivotal second moment.
+
+The map that opens $f$ and records $f$ is injective on full marked
+configurations. The original-to-modified product probability ratio is
+$q/p$, so multiplying the original weight $pd_f$ gives the modified
+weight $qd_f$. In any modified configuration, the admissible inverse
+marks are a subset of its queried actual open pivots. Their cumulative
+weights are at most the total $W$ from Lemma~\ref{lem:dfs}. Therefore
+\begin{equation}\label{eq:interpolation-contact-measure}
+ \sum_{t,f}\nu_i(t,f)(1+S_i(t,f))
+ \le\EE_\mu[W(1+W)]\le4.
+\end{equation}
+
+We next control the entropy of the chosen marks, not just that of their
+pair transcripts. Write $\mathcal H(\cdot\mid\cdot)$ for conditional
+Shannon entropy. Taking logarithms in
+\eqref{eq:interpolation-density} and averaging yields
+\begin{equation}\label{eq:interpolation-joint-contact-cost}
+ D_\Omega+\sum_{i\in I}\EE_Q\log(1/a_i)
+       -\mathcal H((f_i)_{i\in I}\mid\Omega)\le L.
+\end{equation}
+Since $t_i$ is determined by $\Omega$,
+\[
+ \mathcal H((f_i)_{i\in I}\mid\Omega)
+ \le\sum_{i\in I_*}\mathcal H(f_i\mid t_i)
+    +\sum_{i\in I\setminus I_*}\mathcal H(f_i\mid\Omega).
+\]
+For an inactive index, nonnegativity of conditional relative entropy
+to the probabilities $a_f/A_i$ gives
+\[
+ \EE_Q\log(1/a_i)-\mathcal H(f_i\mid\Omega)
+ \ge-\EE_Q\log A_i.
+\]
+Combining these inequalities with
+\eqref{eq:interpolation-configuration-entropy} and
+\eqref{eq:interpolation-pair-entropy}, we obtain
+\begin{align*}
+ \sum_{i\in I_*}D(Q_{t_i,f_i}\Vert\nu_i)
+ &=\sum_{i\in I_*}\left[
+ D(Q_{t_i}\Vert\mu_{t_i})+
+ \EE_Q\log(1/a_i)-\mathcal H(f_i\mid t_i)\right]\\
+ &\le C_pD_\Omega+L+\EE_Q X
+ \le C'_p(L+J).
+\end{align*}
+All chosen weights are positive, and all spaces are finite, so these
+expressions are finite on the support of $Q$.
+Apply \eqref{eq:interpolation-entropy-inequality} with
+$g=\log(1+S_i)$ and use
+\eqref{eq:interpolation-contact-measure}. This proves
+\begin{equation}\label{eq:interpolation-inverse-cost}
+ \EE_Q\sum_{i\in I_*}\log(1+S_i)\le C''_p(L+J).
+\end{equation}
+
+Substituting \eqref{eq:interpolation-configuration-entropy} and
+\eqref{eq:interpolation-inverse-cost} into
+\eqref{eq:interpolation-cost-to-bound} yields
+\begin{equation}\label{eq:interpolation-output-entropy}
+ D(Q_\eta\Vert\mu)\le C'''_p(L+J).
+\end{equation}
+We already proved that $Q_\eta$ is supported on $H_s(e)$. If
+$u=\mu(H_s(e))$, conditioning $\mu$ on this event gives
+$D(Q_\eta\Vert\mu)\ge\log(1/u)$.
+Together with the definition of $L$, the last display proves
+Proposition~\ref{prop:interpolation}.

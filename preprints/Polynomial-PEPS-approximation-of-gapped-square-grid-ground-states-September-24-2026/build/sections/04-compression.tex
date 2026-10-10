@@ -1,0 +1,611 @@
+\section{Compression of distributed density networks}
+\label{sec:compression}
+
+We approximate the physical density produced by a distributed construction
+after tracing out its private registers.  The private work spaces and
+bipartite resources may have arbitrary finite dimensions.  We first replace
+pair effects by operations using only prepared pair sources, then replace
+the source operators in the density calculation by sums of product
+operators.  The error is
+controlled after contraction of the whole construction.  The result is an
+operator tensor network, with one ket and one bra physical leg at each
+party; it need not be positive.
+
+We use a size parameter $L\ge2$.  A quantity is \emph{uniformly polynomial}
+if it is at most $C L^a$, where $C,a$ are independent of the particular
+construction and of all its private Hilbert-space dimensions.  These
+constants may depend on a prescribed, fixed accuracy exponent.  Every
+Hilbert space below is finite dimensional, but an unspecified dimension
+has no size bound.
+
+\subsection{Distributed constructions and pair effects}
+
+A party is a label for a collection of registers.  At every time the
+memory is a tensor product of the parties' current Hilbert spaces.  A
+gate has specified input and output spaces for each participating party;
+these spaces may differ.  Registers outside the participating parties
+are spectators.  A \emph{private} gate has one participating party.
+Gates are linear contractions.  Registers to be discarded are retained
+as part of their owner's memory until the end, so the entire construction
+is a pure linear calculation before its final partial trace.
+
+An allowed monomial in a gate expansion is a finite composition of local
+contractions, preparations of normalized vectors shared between two
+participating parties, and contractions by normalized bras shared
+between two participating parties.  A transferred register of dimension
+$d$ can also be allowed when $d$ is uniformly polynomial: expand its
+identity transfer as
+\[
+ \sum_{a=1}^{d}|a\rangle_{\mathrm{receiver}}
+                 \langle a|_{\mathrm{sender}}.
+\]
+Each summand consists of local norm-one maps.  A bounded number of such
+transfers therefore changes a polynomial gate expansion by only a
+polynomial factor.  We make this expansion first whenever such messages
+occur.
+
+The density argument will sample prepared pair sources.  The following
+lemma converts pair effects to that form while approximating the original
+gate in operator norm.  The ideal extra output is the same fixed garbage
+vector in every branch; this common comparison lets us sum the branchwise
+operator-norm errors.
+
+\begin{lemma}[Elimination of normalized pair effects]
+\label{lem:effects}
+Let $G$ be a contraction with an expansion
+$G=\sum_{\xi}c_{\xi}M_{\xi}$ into $K$ allowed monomials on a fixed set of
+parties.  Suppose each monomial has at most $r$ pair effects.  For every
+integer $m\ge1$ there is a gate $\widetilde G_m$, with additional garbage
+registers, and a fixed normalized garbage vector $\Gamma_m$, such that
+\begin{equation}
+ \norm{\widetilde G_m-G\otimes|\Gamma_m\rangle}
+ \le \frac{r}{\sqrt m}\sum_{\xi}|c_{\xi}|.
+ \label{eq:compression-effect-error}
+\end{equation}
+The gate $\widetilde G_m$ has an expansion using only local contractions
+and normalized pair sources.  It has at most $K m^r$ monomials, and their
+absolute coefficient sum is at most $\sum_{\xi}|c_{\xi}|$.  Its additional
+registers are owned by the original participating parties.  All sources
+on the same pair of parties may be combined into one normalized pair
+source.
+\end{lemma}
+
+\begin{proof}
+First consider a single normalized pair vector
+$\eta\in\mathcal U\otimes\mathcal V$.  Its effect consumes a pair of
+registers in this space.  Append $m-1$ copies of $\eta$, and average the
+$m$ cyclic permutations of the $m$ pair registers.  Each permutation is
+the tensor product of the same cyclic permutation of the $\mathcal U$
+registers at one party and of the $\mathcal V$ registers at the other.
+Denote the resulting map by
+\[
+ T_m:\mathcal U\otimes\mathcal V
+       \longrightarrow(\mathcal U\otimes\mathcal V)^{\otimes m}.
+\]
+It is a contraction, being an average of isometries.  It sends $\eta$ to
+$\eta^{\otimes m}$.  If $v\perp\eta$, its $m$ insertion positions among
+the copies of $\eta$ are pairwise orthogonal and each has norm
+$\norm{v}$.  Consequently
+\begin{equation}
+ \norm{T_m-|\eta\rangle^{\otimes m}\langle\eta|}
+       =m^{-1/2}
+ \label{eq:compression-one-effect}
+\end{equation}
+unless the perpendicular subspace is zero, in which case the left side
+is zero.  This operator-norm estimate is unchanged by adjoining
+spectators.  The permutation average has $m$ terms, each with coefficient
+$1/m$ and consisting of local unitaries after normalized source
+preparation.
+
+For the whole gate, index every prescribed effect occurrence by its
+monomial and its position within that monomial.  Give each such
+occurrence its own output stack of $m$ pair registers, with the dimensions
+and endpoint parties of its vector $\eta$.  In the branch using that
+occurrence, replace its effect by $T_m$ and leave the stack idle
+thereafter.  In every other branch append the full fixed stack
+$\eta^{\otimes m}$ as a pair source.  Thus every branch has the same
+additional output space, and its ideal additional output is the same
+vector
+\[
+ \Gamma_m=\bigotimes_{\text{prescribed occurrences }o}
+                    \eta_o^{\otimes m}.
+\]
+Different branches may consume different internal registers in their
+original effects; the occurrence-specific output stacks still give a
+common external output space.  No subsequent operation acts on a stack.
+
+All original monomial factors, their ideal augmented replacements, and
+the maps $T_m$ are contractions.  Telescoping the at most $r$ replacements
+in one monomial bounds its error by $r/\sqrt m$.  Summing with the
+original coefficients proves
+\eqref{eq:compression-effect-error}.  Expanding the active permutation
+averages creates at most $m^r$ terms per original monomial.  Their
+averaging coefficients are nonnegative and sum to one, so this expansion
+does not increase the absolute coefficient sum.  The inactive stacks
+require no extra summation labels.  Finally, a tensor product of
+normalized pair vectors on a fixed pair of parties is a normalized pair
+vector on the tensor products of their respective half-spaces.
+\end{proof}
+
+\subsection{The density-compression theorem}
+
+\begin{theorem}[Distributed density compression]
+\label{thm:compression}
+Consider a family of distributed constructions indexed by $L\ge2$ with
+the following uniform properties.
+\begin{enumerate}
+\item The number of parties and gates is uniformly polynomial.  The
+initial vector is a tensor product of normalized private vectors, one
+at each party, and every gate is a contraction.
+\item There is a constant $b$ such that each nonprivate gate involves at
+most $b$ parties, and each party participates in at most $b$ nonprivate
+gates over the entire construction.
+\item Each nonprivate gate is a sum of uniformly polynomially many
+allowed monomials with uniformly polynomially bounded scalar
+coefficients.  There is a constant $r$ bounding the number of pair
+sources, pair effects, and polynomial-dimensional messages in each
+monomial.  All constituent local maps are contractions.
+\item At the end, the intended physical output space of each party has
+uniformly polynomial dimension.  All other registers are traced out
+party by party.
+\end{enumerate}
+Write $\rho$ for the resulting physical output density operator; it is
+positive and may have trace less than one.  For every fixed $p>0$, there
+is an operator tensor network $\sigma$ satisfying
+\[
+ \norm{\sigma-\rho}_1\le L^{-p}.
+\]
+It has one node per party, a bounded number of incident virtual links at
+each node, and uniformly polynomial link dimensions.  Every link joins
+two parties which participate in a common nonprivate gate of the
+original construction.  The physical legs at a node are the ket and bra
+legs of that party's intended output.
+The constants in these bounds depend only on $p$ and the fixed uniform
+data in the assumptions, including $b,r$ and the polynomial bounds,
+and not on private dimensions or source Schmidt ranks.
+
+The same conclusion holds if the gate expansions in the third
+assumption are available to every fixed inverse-polynomial
+operator-norm accuracy, with uniform polynomial bounds at each fixed
+accuracy.
+\end{theorem}
+
+\begin{proof}
+We give the estimates for a target error $0<\epsilon\le1$ whose inverse
+is uniformly polynomial; take $\epsilon=L^{-p}$ at the end.  Expand the
+small messages as above.  This preserves all constant incidence and
+participation bounds and gives a uniformly polynomial absolute
+coefficient sum for every gate.
+
+After eliminating effects, we will replace each source operator
+$|\eta\rangle\langle\widetilde\eta|$ in the density calculation by an
+unbiased sum of $k$ product operators.  We estimate the resulting physical
+output, allowing the sampled factors themselves to have large norms.
+Expanding the error by the positions where a centered correction is used
+makes the lifetime participation bound decisive: $s$ corrected positions
+have at most $2s$ endpoint parties, which together participate in at most
+$2bs$ nonprivate gates.  We expand only those gates into monomials; all
+other gates remain aggregate contractions.  Thus the coefficient and
+physical-output choices cost a fixed polynomial per corrected position,
+rather than a product over every gate in the construction.
+
+For each fixed choice, the remaining task is a mean trace-norm estimate
+of $k^{-s/2}$.  Normalized probability weights from the corrected endpoints
+and the exact sources crossing the boundary of their party set make this
+estimate
+independent of all private dimensions.  Summing over correction positions
+will then give a small error with polynomial $k$.
+
+\paragraph{Reduction to source-only gates.}
+Let $M$ bound the number of nonprivate gates.  If $M=0$, the output is a
+product of private densities and the assertion is immediate.  Otherwise
+choose $\delta=\epsilon/(8M)$.  Apply Lemma~\ref{lem:effects} at every
+nonprivate gate, choosing one sufficiently large polynomial integer $m$
+so that its error is at most $\delta$.  This choice is made using the
+\emph{original} coefficient sum and number of effects, before expanding
+the permutation averages.  Afterward there are polynomially many
+monomials, and their absolute coefficient sum has not increased.  Thus
+the choice of $m$ is not circular.
+
+The gate $\widetilde G_m$ has norm at most $1+\delta$.  Replace it by
+$\widetilde G_m/(1+\delta)$, a contraction within $2\delta$ of the
+original gate with its fixed garbage appended.  Keep these garbage
+registers idle.  The augmented original circuit has the same physical
+output density as the original circuit, since all the appended garbage
+vectors are fixed and normalized.  Telescoping products of contractions
+shows that the two final pure vectors differ by at most $2M\delta$.
+For vectors of norm at most one,
+\[
+ \norm{|v\rangle\langle v|-|w\rangle\langle w|}_1
+       \le(\norm{v}+\norm{w})\norm{v-w}
+       \le2\norm{v-w}.
+\]
+Partial trace does not increase this norm.  Hence the source-only
+circuit's physical density, denoted $\rho'$, satisfies
+\begin{equation}
+ \norm{\rho'-\rho}_1\le4M\delta\le\epsilon/2.
+ \label{eq:compression-effect-circuit-error}
+\end{equation}
+The number of gates and the list of participating parties have not
+changed.  The new polynomial exponents are now fixed.  The sampling
+parameter introduced below is chosen only after this reduction.
+
+Each nonprivate gate of this new circuit can be written
+\begin{equation}
+ G_g=\sum_{\xi\in\Xi_g}c_{g,\xi}
+       \Bigl(\bigotimes_{P}B_{g,P,\xi}\Bigr)
+       \left[\Bigl(\bigotimes_{e\in E_g}
+                         |\eta_{g,e,\xi}\rangle\Bigr)
+                    \otimes\id_{\mathrm{in}}\right],
+ \qquad \norm{G_g}\le1.
+ \label{eq:compression-source-gate}
+\end{equation}
+Here $E_g$ contains one slot for each participating pair of parties,
+each $\eta_{g,e,\xi}$ is normalized, and every $B_{g,P,\xi}$ is a local
+contraction.  Unused pairs have a one-dimensional source.  To obtain
+this form, prepare a monomial's sources in fresh registers before their
+first use, and tensor the preceding local maps with identities on those
+registers.  This preserves their norms and their chronological action.
+Then combine sources on each pair, and compose the local maps at each
+party.  This procedure stores fresh registers; it does not commute an
+existing source half through an earlier map.
+
+\paragraph{Common private slot spaces.}
+The dimensions of a source slot can depend on $\xi$.  For each endpoint
+$P$ of $e$, embed its half-space for branch $\xi$ isometrically into
+\[
+ \mathcal H_{g,P,e}
+       =\bigoplus_{\xi\in\Xi_g}\mathcal H_{g,P,e,\xi}.
+\]
+Embed the branch source accordingly, and extend $B_{g,P,\xi}$ by
+orthogonal projection onto its branch's source sectors.  Its norm
+remains at most one.  All external gate input and output spaces are
+already fixed by the memory layout and, in the preceding reduction, by
+the common inventory of stacks.  Formula
+\eqref{eq:compression-source-gate} therefore has one fixed ambient
+space for each slot.  These direct sums are private spaces; no bound on
+their dimensions will be used.
+
+Fix uniformly polynomial bounds $B(L)$ and $d(L)$ such that
+\begin{equation}
+ \sum_{\xi\in\Xi_g}|c_{g,\xi}|\le B(L),
+ \qquad
+ \dim\mathcal H_{P,\mathrm{phys}}\le d(L)
+ \label{eq:compression-polynomial-bounds}
+\end{equation}
+for all gates and parties.  The cardinalities $|\Xi_g|$ are also
+uniformly polynomial.  We may increase $B,d$ to be at least one.
+
+\paragraph{A random replacement for one density source.}
+For a ket branch $\xi$ and bra branch $\zeta$ at a slot, write Schmidt
+decompositions, in their respective bases, as
+\[
+ |\eta\rangle=\sum_a\sqrt{\lambda_a}
+                      |u_a\rangle|v_a\rangle,
+ \qquad
+ |\widetilde\eta\rangle=\sum_c\sqrt{\mu_c}
+                      |\widetilde u_c\rangle
+                      |\widetilde v_c\rangle.
+\]
+Both probability lists sum to one; their lengths need not agree.  Let
+$g_{ac}^{(j)}$, for $1\le j\le k$, be independent standard circular
+complex Gaussians, normalized by $\mathbb E|g_{ac}^{(j)}|^2=1$.  Put
+\begin{align}
+ U_j&=\sum_{a,c}(\lambda_a\mu_c)^{1/4}g_{ac}^{(j)}
+             |u_a\rangle\langle\widetilde u_c|,\nonumber\\
+ V_j&=\sum_{b,d}(\lambda_b\mu_d)^{1/4}
+                    \overline{g_{bd}^{(j)}}
+             |v_b\rangle\langle\widetilde v_d|,\nonumber\\
+ \widehat X&=\frac1k\sum_{j=1}^k U_j\otimes V_j,
+ \qquad X=|\eta\rangle\langle\widetilde\eta|,
+ \qquad \Delta=\widehat X-X.
+ \label{eq:compression-random-source}
+\end{align}
+These matrices act between the corresponding bra and ket source
+supports in the common ambient half-spaces.  No bound on their sampled
+operator norms is claimed or needed.  Since
+$\mathbb E[g_{ac}\overline{g_{bd}}]=\delta_{ab}\delta_{cd}$,
+$\mathbb E\widehat X=X$.
+
+The centered coefficient of $\Delta$ with ket endpoint indices $(a,b)$
+and bra endpoint indices $(c,d)$ is
+\[
+ (\lambda_a\lambda_b\mu_c\mu_d)^{1/4}
+ \left(\frac1k\sum_{j=1}^k
+          g_{ac}^{(j)}\overline{g_{bd}^{(j)}}
+                   -\delta_{ab}\delta_{cd}\right).
+\]
+For composite Gaussian indices $\alpha,\beta,\gamma,\delta$, the
+complex Gaussian pairing formula \cite{Isserlis1918,FassinoPistoneRogantin2019}
+gives the fourth-moment identity
+\begin{equation}
+ \mathbb E\left[
+  (g_\alpha\overline{g_\beta}-\delta_{\alpha\beta})
+  \overline{(g_\gamma\overline{g_\delta}
+                         -\delta_{\gamma\delta})}\right]
+       =\delta_{\alpha\gamma}\delta_{\beta\delta}.
+ \label{eq:compression-gaussian-covariance}
+\end{equation}
+Indeed independence, circular symmetry, and $\mathbb E|g_\alpha|^4=2$
+give the two Gaussian pairings
+$\delta_{\alpha\beta}\delta_{\gamma\delta}
+ +\delta_{\alpha\gamma}\delta_{\beta\delta}$, and centering removes
+the first.  Thus the coefficient covariance is diagonal and its
+diagonal entry is
+\begin{equation}
+ \frac1k\sqrt{\lambda_a\lambda_b\mu_c\mu_d}.
+ \label{eq:compression-slot-variance}
+\end{equation}
+Take fresh independent samples for each slot location and each ordered
+pair of monomial labels at that gate.
+
+\paragraph{Expansion by corrected positions.}
+Let $\mathcal E=\{(g,e):e\in E_g\}$ be the set of slot locations and
+$N=|\mathcal E|$.  It is uniformly polynomial.  In the density
+calculation for each gate, substitute $X+\Delta$ for each source
+operator inside its sum over ket and bra labels.  Expanding these
+products throughout the circuit gives
+\begin{equation}
+ \widehat\rho-\rho'
+       =\sum_{\varnothing\ne S\subseteq\mathcal E}F_S.
+ \label{eq:compression-subset-expansion}
+\end{equation}
+A set $S$ specifies which \emph{positions} use centered corrections;
+it does not specify their monomial labels.  At a gate with no selected
+position, summing its labels gives exactly $G_g(.)G_g^\dagger$.
+
+Fix $S$, write $s=|S|$, and let $\mathcal A$ be the parties which are
+endpoints of its slots.  Then $|\mathcal A|\le2s$.  Expand the ket and
+bra labels at every nonprivate gate touching $\mathcal A$, whether or
+not that gate has a selected slot.  There are at most $2bs$ such gates.
+All other gates lie entirely in the exterior and remain their exact
+aggregate contractions.  Also fix ket and bra basis entries $x,y$ of
+the physical outputs at parties in $\mathcal A$.  The total weighted
+cost of these choices is at most
+\begin{equation}
+ B(L)^{4bs}d(L)^{4s}=Q(L)^s,
+ \qquad Q(L):=B(L)^{4b}d(L)^4.
+ \label{eq:compression-choice-cost}
+\end{equation}
+Here each expanded gate contributes at most
+$(\sum_\xi|c_{g,\xi}|)^2$; the number of physical matrix entries is at
+most $d(L)^{2|\mathcal A|}$.  Scalar coefficients are removed from the
+maps and charged in this bound.
+
+From now on fix one such deterministic choice of labels and physical
+entries.  The samples used at its different corrected positions are
+independent.  There is no sample-dependent selection of a branch.  We
+will apply the triangle inequality over these choices, so no
+cross-branch covariance assumption is necessary.  It remains to bound the
+mean trace norm for this fixed choice by $k^{-s/2}$, with no private-dimension
+factor; the normalized source weights will provide that bound.
+
+\paragraph{The two separated contractions.}
+Both ends of every corrected source lie in $\mathcal A$.  All sources
+crossing from $\mathcal A$ to its exterior are therefore exact.  Their
+tensor product is a normalized pure vector on the ket side and a
+possibly different normalized pure vector on the bra side.  In their
+Schmidt bases let the probability matrices be $\tau$ and
+$\widetilde\tau$.  Their diagonal entries sum to one.  Empty lists of
+sources are represented by a one-dimensional space and the scalar
+probability one.
+
+For every corrected slot retain both ket endpoint indices as free
+indices; collect them in $i$.  Similarly collect the bra endpoint
+indices in $l$.  Define normalized product probability lists $p_i$ and
+$\widetilde p_l$ by giving a corrected slot the respective factors
+$\lambda_a\lambda_b$ and $\mu_c\mu_d$.  In particular the two endpoint
+indices are independent summation indices, even though an exact pure
+source would identify them.  If $z_{il}$ is the product of the centered
+coefficients at these slots, independence and
+\eqref{eq:compression-slot-variance} give
+\begin{equation}
+ \mathbb E[z_{il}\overline{z_{i'l'}}]
+       =k^{-s}\sqrt{p_i\widetilde p_l}\,
+                      \delta_{ii'}\delta_{ll'}.
+ \label{eq:compression-product-covariance}
+\end{equation}
+
+Regard all corrected endpoint registers and all affected-side halves of
+exact crossing sources as free inputs supplied at the beginning of the
+separated calculation.  This again means keeping fresh registers idle
+until first use.  Prepare all exact sources internal to either side as
+normalized vectors on that side.  Every previously expanded crossing
+gate now consists of local contractions and these exact sources.  Thus
+there is no remaining communication between the two sides.  Gates
+wholly in the exterior which were not expanded remain their aggregate
+contractions; their internal branch sums are not opened.
+
+Let $\mathcal I$ be the ket space with basis $i$ and $\mathcal T$ the
+affected-side ket Schmidt-support space with basis $t$ for $\tau$.
+Use tildes for their bra analogues.  Including final physical basis
+projection, the affected calculations give contractions
+\[
+ A_x:\mathcal I\otimes\mathcal T\longrightarrow\mathcal F,
+ \qquad
+ \widetilde A_y:\widetilde{\mathcal I}\otimes
+              \widetilde{\mathcal T}\longrightarrow\mathcal F.
+\]
+The codomain $\mathcal F$ contains all affected discard registers.  It
+is the same on ket and bra because the external memory spaces are fixed;
+the inventory construction ensured this also for the added garbage.
+These are contractions on \emph{all} free inputs: each operation in
+their construction is a contraction, an isometric preparation, an
+identity on an idle register, or a physical basis projection.  No
+normalization of an output vector has occurred.  Therefore
+\begin{equation}
+ O:=\widetilde A_y^\dagger A_x:
+       \mathcal I\otimes\mathcal T\longrightarrow
+       \widetilde{\mathcal I}\otimes\widetilde{\mathcal T},
+ \qquad \norm{O}\le1.
+ \label{eq:compression-block-contraction}
+\end{equation}
+Write its blocks as $O_{li}:\mathcal T\to\widetilde{\mathcal T}$.
+
+The exterior calculations similarly give contractions from their
+crossing-source half-spaces to the exterior physical output and
+garbage.  In the matching Schmidt coordinate spaces denote them by
+$K$ and $\widetilde K$.  They can differ on ket and bra but do not
+depend on $i,l$.  Those indices are free inputs only on the affected
+side, and fixing all crossing-gate labels removed every other means
+of communication across the division.  For any rectangular operator
+$Z$ between the two exterior input spaces,
+\begin{equation}
+ \norm{\Tr_{\mathrm{garbage}}(KZ\widetilde K^\dagger)}_1
+          \le\norm{Z}_1.
+ \label{eq:compression-exterior-contraction}
+\end{equation}
+To see this, test the output against an arbitrary matrix $M$ of operator
+norm at most one.  The pulled-back test is
+$\widetilde K^\dagger(M\otimes\id)K$, of norm at most one.
+Trace-norm duality proves the inequality even when $Z$ is neither
+Hermitian nor positive.
+
+\paragraph{The second-moment bound.}
+Density-weighted comparisons between trace and Hilbert--Schmidt norms
+also occur in privacy amplification and decoupling
+\cite[Lemma~5.1.3]{Renner2005Security} \cite[Lemma~3.7]{DupuisBertaWullschlegerRenner2014}.
+Here we use a two-weight rectangular form of Schatten H\"older, proved below.
+Tracing the affected garbage gives the following exterior input
+operator for the fixed labels and $x,y$:
+\begin{equation}
+ Z=\sum_{i,l}z_{il}\,
+          \tau^{1/2}O_{li}^{T}\widetilde\tau^{1/2}.
+ \label{eq:compression-exterior-input}
+\end{equation}
+Indeed its $(t,t')$ coefficient is
+$\sum_{i,l}z_{il}\sqrt{\tau_t\widetilde\tau_{t'}}
+       \langle\widetilde A_y(l,t'),A_x(i,t)\rangle$.
+The transpose in \eqref{eq:compression-exterior-input} is the ordinary
+full matrix transpose in these bases, including when the matrix is
+rectangular; it preserves all Schatten norms.
+
+For an operator $W$ between these coordinate spaces, Schatten
+H\"older with exponents $4,2,4$ gives
+\begin{equation}
+ \norm{\tau^{1/2}W\widetilde\tau^{1/2}}_1
+ \le\norm{\tau^{1/4}}_4\,
+       \norm{\tau^{1/4}W\widetilde\tau^{1/4}}_2\,
+       \norm{\widetilde\tau^{1/4}}_4
+ =\norm{\tau^{1/4}W\widetilde\tau^{1/4}}_2.
+ \label{eq:compression-quarter-powers}
+\end{equation}
+The subscript $2$ here denotes the Hilbert--Schmidt norm, and the
+quarter-power Schatten-$4$ norms equal one because the probability
+matrices have trace one.  Applying this and transposing the middle
+matrix in \eqref{eq:compression-exterior-input} yields
+\[
+ \norm{Z}_1\le
+ \norm{\sum_{i,l}z_{il}
+             \widetilde\tau^{1/4}O_{li}\tau^{1/4}}_2.
+\]
+By \eqref{eq:compression-product-covariance}, the expected square of
+the right side is
+\begin{equation}
+ k^{-s}\sum_{i,l}\sqrt{p_i\widetilde p_l}\,
+          \norm{\widetilde\tau^{1/4}O_{li}\tau^{1/4}}_2^2.
+ \label{eq:compression-block-second-moment}
+\end{equation}
+Define trace-one positive diagonal matrices on the full free input
+spaces by
+\[
+ R=\operatorname{diag}(p_i)\otimes\tau,
+ \qquad
+ \widetilde R=\operatorname{diag}(\widetilde p_l)
+                                      \otimes\widetilde\tau.
+\]
+The sum in \eqref{eq:compression-block-second-moment} is exactly
+$\norm{\widetilde R^{1/4}OR^{1/4}}_2^2$: its $(l,i)$ block is
+$\widetilde p_l^{1/4}p_i^{1/4}
+ \widetilde\tau^{1/4}O_{li}\tau^{1/4}$, and the
+Hilbert--Schmidt squares of disjoint blocks add.  Another application
+of Schatten H\"older and \eqref{eq:compression-block-contraction} gives
+\begin{equation}
+ \norm{\widetilde R^{1/4}OR^{1/4}}_2
+   \le\norm{\widetilde R^{1/4}}_4\norm{O}\norm{R^{1/4}}_4
+   \le1.
+ \label{eq:compression-dimension-free}
+\end{equation}
+This bound contains no rank or dimension of a source, an input, or a
+discard space.  Cauchy--Schwarz for the expectation now proves
+\begin{equation}
+ \mathbb E\norm{Z}_1\le k^{-s/2}.
+ \label{eq:compression-one-choice}
+\end{equation}
+Applying the exterior map preserves this bound by
+\eqref{eq:compression-exterior-contraction}.  Reinserting the affected
+physical matrix unit $|x\rangle\langle y|$ preserves the trace norm,
+since that matrix unit has trace norm one.
+
+\paragraph{Summation and realization as a network.}
+Summing over the fixed choices with
+\eqref{eq:compression-choice-cost} gives
+\[
+ \mathbb E\norm{F_S}_1\le Q(L)^{|S|}k^{-|S|/2}.
+\]
+Consequently
+\begin{equation}
+ \mathbb E\norm{\widehat\rho-\rho'}_1
+ \le\left(1+\frac{Q(L)}{\sqrt k}\right)^N-1.
+ \label{eq:compression-total-error}
+\end{equation}
+If $N=0$, there is no sampling error.  Otherwise choose an integer
+$k$ with
+\[
+ \frac{Q(L)}{\sqrt k}\le\frac{\epsilon}{8N}.
+\]
+It is uniformly polynomial.  The right side of
+\eqref{eq:compression-total-error} is at most
+$e^{\epsilon/8}-1\le\epsilon/4$.  Hence there is a realization with
+$\norm{\widehat\rho-\rho'}_1\le\epsilon/2$, for example by Markov's
+inequality.  Fix one such realization and set $\sigma=\widehat\rho$.
+Together with \eqref{eq:compression-effect-circuit-error}, this proves
+the asserted error.
+
+It remains to check the network dimensions and link locality.  At a
+gate, the common label $(\xi,\zeta)$ ranges over a polynomial set.
+Choose one participating party and share this label along a star to
+the other participating parties, using one virtual index of that
+polynomial dimension on each star edge.  Each slot's sample index
+$j\in\{1,\ldots,k\}$ is shared directly between its two endpoint
+parties.  The local source matrices in
+\eqref{eq:compression-random-source} are determined by these labels
+and the fixed samples.  Put the gate's scalar coefficient and averaging
+factors into any one local tensor.  All local maps, private source
+preparations, intermediate memories, and final garbage traces can then
+be contracted within each party to give a single tensor with its
+physical ket and bra legs.  In particular, coordinates in the common
+private direct sums are contracted locally and are not virtual link
+indices.
+
+There are at most $b-1$ star links and $\binom b2$ sample links per
+gate.  Every party belongs to at most $b$ nonprivate gates, so the
+resulting network has bounded incidence.  Each link joins two
+participants of one original gate.  Parallel links can be left
+separate or combined; only boundedly many meet a party, so combining
+them preserves a polynomial dimension bound.  Sampled tensor entries
+need not be bounded.  Their existence and link dimensions, rather than
+their numerical size or efficient computation, are what is required.
+
+Finally, suppose only approximate gate expansions are provided.  At
+any prescribed fixed accuracy exponent their operator-norm errors can
+be made smaller than $\epsilon$ divided by a sufficiently large
+polynomial bound on the number of gates.  A near-contraction can be
+rescaled by its known bound $1+\delta$ to be a contraction at an
+additional error at most $\delta$.  The same telescoping estimate as
+above absorbs these errors.  Apply the proved result at a fixed
+smaller error budget.  All subsequent choices remain uniform
+polynomials at that precision, which proves the last assertion.
+\end{proof}
+
+\begin{remark}[Absolute error and retained norm]
+\label{rem:compression-retained-norm}
+Theorem~\ref{thm:compression} approximates the subnormalized density
+produced by the contraction circuit.  It does not normalize that
+density.  In its later application, the construction separately ensures
+that its physical output is close in trace norm to a normalized pure
+state; in particular, the retained norm is close to one.  The theorem's
+absolute error can then be added directly to that approximation error.
+No bound on the private dimensions or on the Schmidt ranks of the
+supplied pair vectors is needed for this use.
+\end{remark}

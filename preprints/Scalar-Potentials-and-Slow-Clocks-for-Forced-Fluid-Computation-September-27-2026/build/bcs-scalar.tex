@@ -1,0 +1,139 @@
+\section{A compact realization by three scalar potentials}\label{bcs:scalar-section}
+A planar instruction may be easy to interpolate even when its image overlaps another instruction's source. A third coordinate resolves this overlap: lift each source rectangle to its own height, perform its planar map there, and lower it using its image rectangle. This section makes that procedure into a complete machine-to-fluid construction. Zero is the blank digit, so some encoded points lie on interval endpoints; every cutoff below is one on a neighborhood of the full closed rectangle.
+
+We now prove Theorem~\ref{bcs:scalar-theorem}. The proof first makes the finite instruction table injective, then realizes its full rectangles, and finally changes the physical clock.
+
+
+\subsection{Recording an instruction before moving the head}
+We first produce a finite local table whose images can be distinguished. Retaining erased information is the history method of reversible computation~\cite{Bennett1973}. Here the ordinary head displacement is delayed until the history has been written and the recorder has returned.
+
+Let $A$ be the work alphabet, $Q$ the state set, and $q_0$ the initial state. Identify all designated halt states with one state $h$, redirect transitions into them to $h$, and replace an initially terminal state by $h$. Replace each missing instruction at $(q,a)$ by the stationary symbol-preserving instruction $(q,a)\mapsto(h,a,0)$. A transition into $h$ completes its prescribed write and move before halting. For a one-sided tape, include an immutable end-marker track at cell zero in $A$ and retain its prescribed boundary action in the finite table; every write preserves that track. Write
+$\delta(q,a)=(q^+,b,d^+)$ with $d^+\in\{-1,0,1\}$. Let
+\[
+ I=\{(q,d,a):q\ne h,\ d\in\{-1,0,1\},\ a\in A\},\qquad
+ \mathcal H=\{\bot,P\}\sqcup\{[i]:i\in I\}.
+\]
+A tape cell has a work letter, a history letter in $\mathcal H$, and a bit. The auxiliary states are $R_{q,d},B_{q,d},L_{q,d}$ and $F_i$. At a ready state $R_{q,d}$ after $n$ ordinary steps, the intended invariant has its frontier at cell $2+n$, at least two cells to the right of the work head; records occupy cells $2,\ldots,1+n$, all remaining history cells except the frontier are blank, and all bits are zero. The recorder writes the work letter and marks the old head, scans right to append a history record, and returns to erase that mark. Only then does it make the ordinary head displacement, restoring a ready state; the proof below verifies the invariant and finite scan lengths.
+
+The following rules, expanded over the indicated letters, are the entire table.
+\begin{enumerate}
+\item In $R_{q,d_0}$ with $q\ne h$, on $(a,\gamma,0)$ with $\gamma\ne P$, write $(b,\gamma,1)$, move right, and enter $F_i$, where $i=(q,d_0,a)$.
+\item In $F_i$, move right over unmarked cells with history different from $P$. On $(v,P,0)$, write $(v,[i],0)$, move right, and enter $B_{q^+,d^+}$.
+\item In $B_{q,d}$, on $(v,\bot,0)$, write $(v,P,0)$, move left, and enter $L_{q,d}$.
+\item In $L_{q,d}$, move left over unmarked cells whose history is not $P$. On $(v,\gamma,1)$ with $\gamma\ne P$, erase the bit, move by $d$, and enter $R_{q,d}$.
+\end{enumerate}
+Initialize in $R_{q_0,0}$ with head at zero and the given finite work input, blank work elsewhere. The history track has $P$ at cell $2$ and $\bot$ at every other cell; every marker bit is zero.
+
+\begin{lemma}\label{bcs:delayed-recorder}
+At successive ready states the auxiliary table has exactly the ordinary work tape, head and state. It reaches an $R_{h,d}$ exactly when the ordinary machine halts. Every ordinary step uses a positive finite number of auxiliary steps. On the full domain of the auxiliary table, a destination state fixes the incoming displacement, and that state together with the full written symbol determines the incoming rule.
+\end{lemma}
+\begin{proof}
+After $n$ completed ordinary steps, put $k=2+n$. The unique frontier $P$ is at $k$, cells $2,\ldots,k-1$ contain the records, and all other history cells are blank. At a ready state all bits are zero and the head $j$ satisfies $k-j\ge2$. The first rule changes the work letter and marks $j$. The right scan reaches the frontier, writes the record, creates the frontier at $k+1$, and returns to the sole marked cell. Erasing that mark and then moving by $d^+$ restores the invariant, since $(k+1)-(j+d^+)\ge2$. Both scans cross finite intervals. An initial halt requires no ordinary transition.
+
+For the inverse assertion, into $F_i$ the index $i$ identifies the original ready state and read work letter, while the written bit distinguishes entry from the scanning loop. An arrival at $B_{q,d}$ writes a record $[i]$, which identifies the forward state; its work letter is retained. Into $L_{q,d}$, the frontier written on entry distinguishes that rule from the backward loop. An arrival at $R_{q,d}$ is the marker-erasure rule with displacement $d$, and the written work and history letters recover the read symbol. Within each family the retained letters distinguish the remaining choices. These checks use all allowed symbols and do not assume initialization.
+\end{proof}
+
+\subsection{From the local table to full rectangles}
+The positional encoding follows the generalized-shift viewpoint of Moore~\cite{Moore1990,Moore1991}; its explicit gap and endpoint estimates are proved here. Order the alphabet $\Gamma=A\times\mathcal H\times\{0,1\}$ with its all-blank symbol first. Give its letters the digits $c(a)=2\operatorname{index}(a)$, starting at index zero, in base $G=2|\Gamma|$. Put
+\[
+ E(a_1a_2\cdots)=\sum_{n\ge1}c(a_n)G^{-n},\qquad
+ I_a=[c(a)/G,(c(a)+1)/G].
+\]
+The digits range from $0$ to $G-2$. Distinct first-letter intervals have a gap at least $G^{-1}$, and $GE(a\omega)-c(a)=E(\omega)$ uniquely decodes the tails, including the zero blank tail. Give the states distinct positive indices. Set $o_s$ equal to three times its index for nonterminal states, and minus three times its index for $R_{h,d}$. A relative tape with head at $j$ is encoded by
+\[
+ (x,y)=\bigl(o_s+E(w_{j-1}w_{j-2}\cdots),E(w_jw_{j+1}\cdots)\bigr).
+\]
+At an initialized ready state the consecutive records immediately left of the frontier give their number $n$, so the frontier has absolute index $2+n$. Its relative distance from the head recovers the absolute head index as well.
+
+Split each local rule $(s,a)\mapsto(s',b,d)$ by the letter $l$ immediately to the left, and index the resulting geometric branches by $i$. This index labels the split branches, rather than the recorder triples used above. The source of branch $i$ is
+$C_i=(o_s+I_l)\times I_a$, and the affine instruction is
+\begin{equation}\label{bcs:scalar-branches}
+ \Theta_i(x,y)=\begin{cases}
+ (o_{s'}+(c(b)+x-o_s)/G,\ Gy-c(a)),&d=1,\\
+ (o_{s'}+G(x-o_s)-c(l),\ (c(l)+y+(c(b)-c(a))/G)/G),&d=-1,\\
+ (o_{s'}+x-o_s,\ y+(c(b)-c(a))/G),&d=0.
+ \end{cases}
+\end{equation}
+Removing and prefixing digits proves the update on every applicable code. Its linear part is $\operatorname{diag}(\lambda_i,\lambda_i^{-1})$ with positive $\lambda_i$. Its full image rectangle is, respectively,
+\[
+ (o_{s'}+(c(b)+I_l)/G)\times[0,1],\quad
+ (o_{s'}+[0,1])\times(c(l)+I_b)/G,\quad
+ (o_{s'}+I_l)\times I_b.
+\]
+The source family is separated. The image family is separated too: within a destination the displacement is fixed by Lemma~\ref{bcs:delayed-recorder}, and the pair $(l,b)$ identifies the split rule. Distinct such pairs have distinct two-digit intervals in a moving case, or separated coordinate products in the stationary case. Every gap is at least $G^{-2}$. This verifies the needed geometric property on full rectangles, not just on encoded points.
+
+\subsection{Lifting, interpolation, and lowering}
+For a closed interval $[a,b]$ and $\varepsilon>0$ use
+\[
+ \eta_{[a,b]}^\varepsilon(v)=
+ \sigma(2(v-a+\varepsilon)/\varepsilon)
+ \sigma(2(b+\varepsilon-v)/\varepsilon),
+\]
+where $\sigma$ is the smooth step in \eqref{bcs:smooth-step}. It is one on a neighborhood of the closed interval and vanishes outside its $\varepsilon$ enlargement. Products give rectangle cutoffs. With $\varepsilon=1/(4G^2)$, choose $g_i$ for $C_i$ and $\bar g_i$ for $\Theta_i(C_i)$; within each family their supports are disjoint.
+
+Write $\Theta_i(x,y)=(\lambda_i x+\alpha_i,\lambda_i^{-1}y+\beta_i)$ and let $N$ be the number of branches. Put $h_i=3i$. Choose $\eta_i(z)$ equal to one near $h_i$ and supported within distance one of it. Choose $\vartheta(z)$ equal to one on a neighborhood of $[0,3N]$ and compactly supported. Let $O=1+\max_s|o_s|$, and choose an integer $A$ greater than $O+1$ and every number
+\[
+ \max(1,\lambda_i)O+|\alpha_i|,\qquad
+ \max(1,\lambda_i^{-1})+|\beta_i|.
+\]
+Choose a compactly supported planar cutoff $\Xi$ equal to one near $[-A,A]^2$. Define the two divergence-free differential operators
+\[
+ D_yP=(-\partial_zP,0,\partial_xP),\qquad
+ D_zP=(\partial_yP,-\partial_xP,0).
+\]
+They act on scalar potentials; their divergence vanishes because mixed partial derivatives commute.
+
+Figure~\ref{fig:scalar-stages} shows why separate source and image families suffice. A source is selected before lifting; its image is selected only after the planar map.
+\input{scalar-stages}
+
+For $m=1,2,3$ let $r_m(\tau)=\sigma(8\tau-(2m-1))$. The three derivative supports are disjoint and contained in $(0,1)$. Put
+\[
+ a_i(r)=1+(\lambda_i-1)r,\qquad b_i(r)=(\lambda_i-1)/a_i(r).
+\]
+For $(x_0,y_0)\in C_i$, the desired planar path is the reciprocal interpolation
+\begin{equation}\label{bcs:scalar-path}
+ (x,y)=(a_i(r)x_0+r\alpha_i,\ a_i(r)^{-1}y_0+r\beta_i),
+ \qquad 0\le r\le1.
+\end{equation}
+It starts at $(x_0,y_0)$ and ends at $\Theta_i(x_0,y_0)$.
+The scalar potential generating this path is
+\[
+ K_i(x,y,r)=b_i(r)xy+(1-rb_i(r))\alpha_i y
+                         -(1+rb_i(r))\beta_i x.
+\]
+All denominators have a positive lower bound. Use the potentials
+\begin{align*}
+ P_1&=r_1' x\vartheta(z)\sum_i h_i g_i(x,y),\\
+ P_2&=r_2'\Xi(x,y)\sum_i\eta_i(z)K_i(x,y,r_2),\\
+ P_3&=-r_3' x\vartheta(z)\sum_i h_i\bar g_i(x,y),\qquad
+ W=D_yP_1+D_zP_2+D_yP_3.
+\end{align*}
+The resulting field is divergence free, smooth, supported in one compact spatial set, and zero near the temporal endpoints.
+
+For $(x_0,y_0)\in C_i$ at height zero, the first phase is exactly
+$(x_0,y_0,h_i r_1)$. On this path $g_i=1$, all its derivatives vanish, and $\vartheta=1$, so the curl correction has no horizontal component. At height $h_i$ the second phase follows \eqref{bcs:scalar-path} with $r=r_2(\tau)$.
+Indeed its derivatives with respect to $r$ are
+$b_i x+(1-rb_i)\alpha_i$ and $-b_i y+(1+rb_i)\beta_i$, which are $\partial_yK_i$ and $-\partial_xK_i$. The choice of $A$ keeps the path in the plateau of $\Xi$; exactly one height cutoff is active. At its endpoint $\bar g_i=1$, so the third phase lowers it as $z=h_i(1-r_3)$. ODE uniqueness proves that these are the actual trajectories. One period therefore sends every point $(x,y,0)$ above $C_i$ to $(\Theta_i(x,y),0)$.
+
+The first coordinate during \eqref{bcs:scalar-path} is
+$(1-r)x_0+r\Theta_{i,1}(x_0,y_0)$. The other phases keep it fixed. Thus a branch with nonterminal endpoints cannot cross the negative detection half-space during its interpolation.
+
+\subsection{Loading and an unbounded slow clock}
+The initial code $(x_*,y_*)$ is rational because it has only finitely many nonblank digits. Put $r_*(t)=\sigma(2t-1/2)$ and, on $0\le t\le1$, use
+\[
+ P_*(t,x,y,z)=r_*'(t)\Xi(x,y)\vartheta(z)(x_*y-y_*x),\qquad U=D_zP_*.
+\]
+The trajectory of the origin is $(r_*x_*,r_*y_*,0)$. The chosen plateau contains this segment. Extend $W$ with period one in its time variable, writing the result as $V$. The loader occupies the first unit of time; after it, the onto processor clock $s=\log_2t$ starts at zero when $t=1$. For $t>1$ define
+\[
+ U(t,x)=\frac1{t\log2}V(\log_2t,x).
+\]
+The zero time collars glue these definitions smoothly at $t=1$. At $t=2^m$, the particle has the code after $m$ auxiliary steps, up to its first halt. This follows from the onto clock $\log_2t$ and the exact full-rectangle map. Each finite ordinary computation thus finishes in finite physical time.
+
+For a nonhalting computation every code has $x\ge3$, and the loader travels from zero to such a code. Convexity of the first coordinate proves avoidance of $x<-1$ at every real time. A terminal code has $x\le-2$, including an initial halt immediately after loading. This proves the event equivalence.
+
+Finally,
+\[
+ \partial_t[t^{-a}Y(\log_2t,x)]
+ =t^{-a-1}[-aY+(\log2)^{-1}\partial_sY](\log_2t,x).
+\]
+The proof of Lemma~\ref{bcs:clock} therefore gives the stated $t^{-1-j}$ bounds on $t>1$; the finite loading interval adds bounded quantities. Define $f=U_t+(U\cdot\nabla)U-\nu\Delta U$. Fixed compact support gives the Sobolev comparison conditions and every asserted norm. Lemma~\ref{lem:b-comparison} proves uniqueness. All rules, cutoffs and clock formulas are finite effective data. Periodic evaluation uses a finite superset of possibly active translates, so it does not test equality at a seam or follow the machine's run. This proves Theorem~\ref{bcs:scalar-theorem}.

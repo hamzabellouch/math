@@ -1,0 +1,221 @@
+\section{From a splitting procedure to complete factorization}
+\label{driver:section}
+\label{sec:driver}
+
+We now assemble the splitting procedures into an algorithm for an arbitrary
+nonzero polynomial over $\mathbf F_p$.  The driver has two jobs: handle
+multiplicities without restrictions on the characteristic, and turn a
+reducible square-free polynomial into a totally split polynomial to which
+the earlier procedures apply.  Its degree restrictions also explain why the
+primary table can be constructed in increasing order without circularity.
+
+For a degree bound $b$, a \emph{primary table through $b$} consists of a
+generator of the full $2$-primary subgroup of $\mathbf F_p^*$, when $b\ge2$,
+and, for each odd prime $q\le b$, the field $K_q/\mathbf F_p$, the element
+$\zeta_q$ of order $q$, and the full $q$-primary generator $\omega_q$
+constructed in Proposition~\ref{table:construction}.  This is precisely the
+data consumed by the splitting procedures.  All calls in this section are
+over $\mathbf F_p$, even when the splitting procedure itself uses an
+extension field.
+
+\subsection{Separating the factors through the Berlekamp algebra}
+
+Let $h\in\mathbf F_p[X]$ be monic and square-free, of degree $d\ge1$.
+The Berlekamp algebra~\cite{Berlekamp67} in $R_h=\mathbf F_p[X]/h$ is
+\begin{equation}
+ \mathcal B_h=\{a\in R_h:a^p=a\}.
+ \label{driver:berlekamp}
+\end{equation}
+The Frobenius map is $\mathbf F_p$-linear, so a basis of $\mathcal B_h$ is
+computed by powering the standard basis of $R_h$ and taking the kernel of
+Frobenius minus the identity.  Products of basis elements are computed in
+$R_h$ and expressed in this basis by linear algebra.
+
+If $h=\prod_{i=1}^{r}h_i$ is its unknown irreducible factorization, the
+Chinese remainder theorem identifies
+\[
+ R_h\simeq\prod_{i=1}^{r}\mathbf F_p[X]/h_i,
+ \qquad \mathcal B_h\simeq\mathbf F_p^r.
+\]
+Indeed the Frobenius-fixed elements of each finite field component are
+exactly $\mathbf F_p$.  Thus $r=\dim\mathcal B_h$, and $h$ is irreducible
+if and only if $r=1$.
+
+\begin{lemma}[A separating element]
+\label{driver:separator}
+Let $h\in\mathbf F_p[X]$ be monic and square-free of degree $d$, let
+$r=\dim\mathcal B_h\ge2$, and suppose $p>r^3$.  From any ordered basis
+$b_0,\ldots,b_{r-1}$ of $\mathcal B_h$, one can find an integer
+$t\in\{0,\ldots,r^3\}$ such that the characteristic polynomial $F_t$ of
+multiplication by
+\[
+ b(t)=\sum_{j=0}^{r-1}t^j b_j
+ \quad\text{on }\mathcal B_h
+\]
+is square-free.  The polynomial $F_t$ is monic, totally split over
+$\mathbf F_p$, and has degree $r$.  Every nontrivial proper monic divisor
+$S$ of $F_t$ gives a nontrivial proper factor
+$\gcd(h,S(b(t)))$ of $h$.
+The construction has bit complexity polynomial in $d$ and $\log p$.
+\end{lemma}
+
+\begin{proof}
+In $\mathcal B_h\simeq\mathbf F_p^r$, multiplication by $b(t)$ is diagonal
+with its $r$ coordinates as diagonal entries.  For any two coordinates their
+difference is a polynomial in $t$ of degree at most $r-1$.  This polynomial
+is nonzero: otherwise the two coordinate functionals agree on every basis
+vector and hence on the whole algebra, contrary to the product description.
+There are therefore at most
+\[
+ \binom r2(r-1)<r^3
+\]
+parameters at which any pair of coordinates coincide.  Since $p>r^3$, the
+listed parameters are distinct elements of the field, and at least one has
+all coordinates different.  This is exactly the condition that $F_t$ be
+square-free, which is tested by $\gcd(F_t,F_t')=1$.
+
+A proper factor $S$ selects a nonempty proper subset of these distinct
+coordinates.  The element $S(b(t))\in R_h$ vanishes precisely on the
+corresponding irreducible components, so its gcd with $h$ selects precisely
+the same nonempty proper subset of the factors $h_i$.  Polynomial powering,
+linear algebra, determinants, and gcds of the displayed degrees implement
+all instructions within the stated bound.
+\end{proof}
+
+\subsection{The recursive driver}
+
+Fix the degree $n$ of the original input, put
+\begin{equation}
+ L=\lceil\log_2p\rceil,
+ \qquad B=20+(n+1)(L+1),
+ \label{driver:parameters}
+\end{equation}
+and use the same $B$ throughout preprocessing and recursion.  Call the
+characteristic \emph{small} when $p\le B^{200000}$.  For larger $p$, the
+inequalities needed for the separating-element search and all finite-field
+searches in the splitting procedures follow from the size bounds in
+Section~\ref{sec:complexity}.
+
+The procedure $\mathsf{Split}(F)$ receives a monic, square-free, totally
+split polynomial of degree $N\ge2$ in the large-characteristic case.  If
+$N$ is even, use Proposition~\ref{ff:even-split}.  If $N$ is odd, use
+Proposition~\ref{odd:split}.  In either case it returns a nontrivial proper
+monic divisor, and uses table entries only for primes at most $N$.
+
+Here is the complete recursive procedure.  Its input $h$ is monic; its
+output is a list of distinct monic irreducible factors with multiplicities.
+Repeated occurrences of the same monic polynomial are merged by comparing
+their coefficient lists.
+
+\medskip
+\noindent\textbf{Procedure $\mathsf{Factor}(h)$.}
+\begin{enumerate}
+\item If $\deg h=0$, return the empty list.  If $\deg h=1$, return $h$ with
+multiplicity one.
+
+\item Compute the formal derivative $h'$.  If $h'=0$, write $h=g^p$ by
+retaining the coefficients in positions divisible by $p$, recursively
+factor $g$, multiply every returned multiplicity by $p$, and return the
+resulting list.
+
+\item If $h'\ne0$, compute $d_0=\gcd(h,h')$.  When $d_0\ne1$, recursively
+factor $d_0$ and $h/d_0$, merge the two lists by adding multiplicities of
+equal factors, and return the merged list.
+
+\item Now $h$ is square-free.  Compute $\mathcal B_h$ and
+$r=\dim\mathcal B_h$.  If $r=1$, return $h$ with multiplicity one.
+
+\item If the characteristic is small and $r\ge2$, choose a nonscalar
+$b\in\mathcal B_h$.  Test $\gcd(h,b-a)$ for $a=0,\ldots,p-1$ until a
+nontrivial proper gcd is found.  Denote it by $h_1$.
+
+\item If the characteristic is large and $r\ge2$, use
+Lemma~\ref{driver:separator} to obtain $b(t)$ and $F_t$.  Compute
+$S=\mathsf{Split}(F_t)$ and set $h_1=\gcd(h,S(b(t)))$.
+
+\item In either splitting case, recursively factor $h_1$ and $h/h_1$,
+and return the union of the resulting lists.
+\end{enumerate}
+
+A nonscalar element in Step~5 is found by testing the computed basis against
+the one-dimensional space $\mathbf F_p\cdot1$.
+In Step~2 the coefficient list is merely scanned; no loop of length $p$ is
+needed to form $g$.
+
+\begin{proposition}[Correctness and the table contract]
+\label{driver:correctness}
+\label{driver:factor}
+Fix $n$, $p$, and $B$ as in Equation~\eqref{driver:parameters}.
+For every monic $h\in\mathbf F_p[X]$ of degree $b\le n$,
+$\mathsf{Factor}(h)$ terminates and returns its complete irreducible
+factorization.  In the large-characteristic case this conclusion assumes
+the primary table through $b$; no entry for a prime larger than $b$ is used.
+The number of recursive calls for a single input is $O((b+1)^2)$.
+\end{proposition}
+
+\begin{proof}
+We argue by degree.  The two base cases are immediate.  In characteristic
+$p$, the derivative vanishes precisely when all nonconstant exponents are
+divisible by $p$.  Every coefficient of $\mathbf F_p$ is its own $p$-th
+root, so the polynomial $g$ in Step~2 satisfies $h=g^p$ exactly and has
+smaller degree.  The rule for its multiplicities follows.
+
+In Step~3 a nonconstant gcd is proper because $\deg h'<\deg h$.
+Both recursive arguments have smaller positive degree and their product is
+$h$.  They need not be relatively prime; adding multiplicities handles
+exactly that possibility.
+
+After these steps, $h$ is square-free.  Equation~\eqref{driver:berlekamp}
+and its product description prove the irreducibility test in Step~4.
+For Step~5, a nonscalar $b$ has at least two different coordinates in
+$\mathbf F_p^r$.  Taking $a$ equal to one of its coordinate values makes
+$\gcd(h,b-a)$ nonconstant and proper, so the scalar search succeeds.
+Step~6 succeeds by Lemma~\ref{driver:separator} and the two splitting
+propositions.  Both final recursive arguments again have smaller positive
+degree and product $h$.
+
+Every call to a splitter has degree $r\le\deg h$ and requires only primes
+at most that degree.  Hence induction also proves the stated restriction
+on table entries.  Along any recursion path degrees decrease strictly.
+At a binary branch the child degrees sum to the parent degree; at a unary
+branch the degree decreases.  Consequently there are at most $b+1$ levels
+and at most $O(b+1)$ calls at each level, which gives the call bound.
+\end{proof}
+
+\subsection{Preprocessing and the original input}
+
+The table restriction in Proposition~\ref{driver:correctness} closes the
+apparent dependency between factoring and constructing the table.  Enumerate
+primes $q\le n$ in increasing order by trial division.  At prime $q$, carry
+out Proposition~\ref{table:construction} with the supplied auxiliary prime
+$\ell_q$.  Its only factorization call, for odd $q$, is on the cyclotomic
+polynomial $\Phi_q$ of degree $q-1$.  Proposition~\ref{driver:correctness}
+therefore uses only table entries already constructed.  At $q=2$ no
+factorization call is required.  Induction over these primes constructs the
+whole table before the final call on the input polynomial.  A recursive
+$\mathsf{Factor}$ call uses the available table and never restarts this
+preprocessing.
+
+For the original nonzero polynomial $f$, first read its degree and leading
+coefficient $c$.  A constant input returns $(c,\varnothing)$ immediately.
+For positive degree normalize to $h=c^{-1}f$.  Degrees zero and one require
+no table.  In the small-characteristic case use the scalar-search driver
+directly.  Otherwise construct the table once as above and apply
+$\mathsf{Factor}(h)$.  Its output $(g_i,e_i)$ satisfies
+\[
+ f=c\prod_i g_i^{e_i},
+\]
+with distinct monic irreducible $g_i$ and positive integer $e_i$, exactly as
+required.  Each exponent is at most $n$ and is stored in binary.
+
+Apart from the splitting calls, the driver consists of polynomial arithmetic
+and linear algebra of degree at most $n$, together with the displayed
+parameter searches.  Scalar enumeration in the small case costs at most
+$B^{200000}$ trials per call.  In the large case the separating-element
+search has at most $n^3+1$ trials.  Across the at most $n$ table entries and
+the final factorization, Proposition~\ref{driver:correctness} gives
+$O((n+1)^3)$ recursive calls.  Section~\ref{sec:complexity} combines these
+bounds with the sizes of the norm, divisor, and table computations.  Thus
+the complete algorithm has polynomial bit cost in $n$, $L$, and the largest
+supplied auxiliary prime; obtaining suitably small auxiliary primes is the
+separate arithmetic issue considered later.

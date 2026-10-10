@@ -1,0 +1,197 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Mean-payoff games ask how two players can control the long-run average
+reward of an infinite play. In the stochastic version, some transitions
+are chosen by chance. This combines strategic choice with the possibility
+of moving between regions having different long-run rewards. The input
+may describe very small transition probabilities and very large rewards
+with only a few binary digits, so an algorithm whose cost depends on
+their magnitudes need not be efficient in the input length.
+
+\subsection{The problem and the result}
+
+An instance consists of a finite directed multigraph $G=(V,E)$ with
+$V=\{1,\ldots,n\}$, $n\ge1$, and at least one outgoing edge at every
+vertex. The vertex set is partitioned as
+\[
+ V=V_{\max}\sqcup V_{\min}\sqcup V_{\mathrm{ch}}.
+\]
+Each edge $e$ has an integer reward $w(e)$. At a vertex of $V_{\max}$,
+Max chooses the next edge; at a vertex of $V_{\min}$, Min chooses it;
+at a vertex $i\in V_{\mathrm{ch}}$, the next edge is drawn from a
+prescribed rational probability distribution $p_i$ on the outgoing
+edges. Rewards and the numerators and positive denominators of the
+probabilities are encoded in binary. The graph and all edge data are
+listed explicitly. Loops, parallel edges, zero probabilities, and
+unreduced fractions are permitted.
+
+Both players observe the complete finite history, including traversed
+edges, and may use arbitrary behavioral strategies with private
+randomness. Chance draws have the prescribed conditional law at the
+current vertex. A pure positional strategy chooses one outgoing edge at
+each vertex of its player, independently of the preceding history.
+For a play $\pi=(X_0,e_0,X_1,e_1,\ldots)$ define
+\[
+ \MP_w(\pi)=\liminf_{T\to\infty}\frac1T\sum_{t=0}^{T-1}w(e_t),
+ \qquad
+ \val(i)=\sup_\sigma\inf_\tau
+           \E_{i,\sigma,\tau}[\MP_w].
+\]
+Here $\sigma$ and $\tau$ range over Max's and Min's behavioral
+strategies, respectively. The expectation is taken after the pathwise
+lower limit. If $L$ is the complete binary input length, the decision
+problem is to output the set
+\[
+                         U=\{i\in V:\val(i)\ge0\}.
+\]
+
+\begin{theorem}
+\label{thm:main}
+There are a uniform deterministic Turing machine and an absolute constant
+$C$ such that, on every valid input described above, the machine outputs
+exactly $U$ in at most
+\[
+                       2^{C(\log_2(L+2))^2}
+\]
+bit operations. The bound includes input reading, exact rational
+arithmetic, and output. Vertices of value zero are included.
+\end{theorem}
+
+\subsection{Historical context}
+\label{subsec:history}
+
+Shapley introduced stochastic games with positive stopping probabilities
+and characterized their values by a contraction operator
+\cite{Shapley1953}. Gillette considered the undiscounted, long-run
+average objective \cite{Gillette1957}; Liggett and Lippman supplied
+the classical stationary-strategy theorem for perfect-information
+time-average games \cite{LiggettLippman1969}. The relation between
+discounting and long-run optimization is also classical. Blackwell
+showed in finite dynamic programming that one stationary policy is
+optimal for every discount factor sufficiently close to one
+\cite{Blackwell1962}. Rational discounted values provide the
+corresponding stabilization mechanism for perfect-information
+stochastic games; see, for example, Gimbert and Zielonka
+\cite[Theorem~3]{GimbertZielonka2010}.
+
+The computational problem connects several familiar classes of games.
+A simple stochastic game is a finite turn-based reachability game in
+which chance chooses fairly between two successors. Condon placed its
+threshold problem in $\mathrm{NP}\cap\mathrm{coNP}$
+\cite{Condon1992}, and Ludwig gave a randomized subexponential
+algorithm \cite{Ludwig1995}. Zwick and Paterson developed
+pseudopolynomial algorithms for deterministic mean-payoff games and
+a reduction to simple stochastic games \cite{ZwickPaterson1996}.
+Andersson and Miltersen later proved polynomial-time Turing
+equivalences among computing values and optimal strategies in
+simple stochastic, stochastic mean-payoff, and stochastic
+discounted-payoff games, with numerical parameters---including the
+discount factor---given in binary
+\cite[Theorem~1]{AnderssonMiltersen2009}.
+Randomized strategy-improvement algorithms have
+subexponential expected bounds \cite{Zwick2026}. A different line
+obtains pseudopolynomial bounds when the number of random positions
+is fixed \cite{BorosEtAl2019,AllamigeonEtAl2025}. Numerical reward
+and denominator parameters in such bounds distinguish them from a
+bound in the complete binary input length. Deterministic
+quasipolynomial algorithms have also been obtained for simple
+stochastic games of bounded treewidth \cite{ChatterjeeEtAl2023}.
+
+Theorem~\ref{thm:main} also gives a deterministic quasipolynomial
+algorithm for deciding whether the reachability value of a simple
+stochastic game is at least $1/2$. Make the target absorbing, with
+reward $+1$ on its self-loop, and give every other edge reward $-1$;
+any other terminal vertex receives a self-loop of reward $-1$.
+For every strategy pair the pathwise mean payoff is
+$2\one_{\{\text{target is reached}\}}-1$.
+Its expectation is twice the reachability probability minus one,
+so taking the strategy extrema proves the reduction. The transformation
+increases the input length by at most a constant factor.
+
+An explicit small discount is only one part of the present algorithm.
+Andersson and Miltersen already bounded a sufficient discount using
+determinant coefficients and polynomial sign stabilization
+\cite[Lemma~1]{AnderssonMiltersen2009}; Gaubert, Grand-Cl\'ement,
+and Katz give sharper bounds on Blackwell optimality thresholds
+\cite{GaubertGrandClementKatz2025}.
+Hansen, Miltersen, and Zwick proved that strategy iteration is
+strongly polynomial when the discount factor is fixed
+\cite{HansenMiltersenZwick2013}. The dependence of their bound on
+the inverse distance of that factor from one does not yield a
+polynomial bound in its binary encoding. Here the discount has
+polynomial bit length, and a recursive comparison algorithm controls
+the cost of locating its fixed point.
+
+For games without chance vertices, a deterministic quasipolynomial
+algorithm in the complete binary input length is given in
+\citet[Theorem~1.1]{OpenAI2026Deterministic}. Its simultaneous labeling
+construction is the direct predecessor of the method used here. We
+extend that construction to discounted operators, so that chance
+transitions enter through the same order and translation properties
+as player choices.
+
+\subsection{The proof and its main ideas}
+
+The first part of the proof replaces the mean-payoff problem by one
+discounted fixed point. For $0<u<1$, the discounted map takes the maximum,
+minimum, or chance average of $u w(e)+(1-u)t_j$ over edges $e:i\to j$.
+It is a contraction and has a unique fixed point $v(u)$. An explicit
+integer $H$, of polynomial binary length, gives a nonzero-value gap of
+at least $1/H$ and a discount $\lambda$ for which
+$\|v(\lambda)-\val\|_\infty\le1/(16H)$. Section~\ref{sec:discount}
+proves these estimates by elementary bounds on the rational functions
+of a fixed positional pair. Its gain and bias then give pathwise
+guarantees against every behavioral opponent. This establishes the
+payoff convention used here directly.
+
+Finding the discounted fixed point by ordinary contraction iteration
+would take a number of steps depending on $1/\lambda$, which can be
+exponential in the input length. The second part of the proof treats
+any monotone map $F:\R^n\to\R^n$ satisfying
+\[
+             F(t+c\one)=F(t)+\gamma c\one,
+             \qquad 0<\gamma<1.
+\]
+In an integer box, a subsolution is an integer vector $y$ satisfying
+$F_i(y)\ge y_i$ at coordinates above the lower face; a supersolution
+satisfies the reverse inequality at coordinates below the upper face.
+A subsolution close to an upper face requires a plus label there,
+while a supersolution close to a lower face requires a minus label.
+The procedure assigns each coordinate a positive mass for each sign.
+Its guarantee holds simultaneously for all comparison vectors whose
+coordinates away from the opposite face have total mass at most one.
+
+Section~\ref{sec:labeling} adapts the two-pass pivot and mass-reweighting
+method of \citet[Sections~4--5]{OpenAI2026Deterministic}.
+The crucial translations have a fixed sign: subsolutions move downward
+and supersolutions upward. The discounted translation identity preserves
+their required inequalities, allowing comparison vectors in a large box
+to be used in smaller recursive boxes. Two pivot passes then arrange a
+redistribution of the masses that keeps the required comparisons valid.
+At each recursive call, at most one child leaves both mass vectors
+unchanged. Every other child increases each product of a coordinate's
+two masses by a fixed factor. Starting from uniform masses, only
+$O(\log(n+1))$ such choices are possible along a path, even when the
+coordinate range is exponentially large.
+
+The final part explains why these boundary labels suffice to find the
+fixed point. After scaling, we place an integer subsolution $Y$ and an
+integer supersolution $Z$ on opposite sides of it, with $Z-Y$ uniformly
+small. Neither vector is computed. A label excluding one comparison
+vector from a boundary strip permits that boundary to move inward while
+retaining both. Section~\ref{sec:application} shrinks the enclosing box
+in this way, and the value gap converts the final approximation into
+the exact nonnegative-value set.
+
+The reusable part of the argument is the labeling procedure: its
+correctness uses monotonicity and the scalar translation identity,
+and does not inspect the graph or the transition probabilities. The
+two-sided integer comparison vectors provide the link from that
+procedure to a discounted game. Quantitative discounting supplies the
+required accuracy, while the recursion determines the deterministic
+quasipolynomial running time.
+
+Throughout, vector inequalities, extrema, and integer rounding are
+coordinatewise, and $\one$ denotes the all-ones vector. The proof uses
+only exact arithmetic.

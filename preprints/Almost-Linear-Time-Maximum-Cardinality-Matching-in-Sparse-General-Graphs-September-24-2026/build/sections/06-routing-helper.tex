@@ -1,0 +1,841 @@
+\section{A resource-preserving static routing sparsifier}
+\label{sec:routing-helper}
+
+The recursive cycle construction needs a sparse set of representative edges
+through which all edges of an auxiliary graph can be routed.  Its application
+also associates resources with the original edges: using a representative
+edge consumes its resources in either direction, and repeated traversals must
+be charged repeatedly.  We prove a static sparsification statement that
+preserves these loads.  The support bound depends on the number of incident
+labels, even when the number of demands is much larger.
+
+Throughout this section, let $S=2^s\ge2$ and $M=2^u$ satisfy
+$S^{1/a}\le M\le S^2$, where $a\ge10$ is an integer and $u>0$ is divisible
+by $2a^2$.  Define
+\begin{equation}\label{route:parameters}
+ b=M^{1/a^2},\qquad
+ \Lambda=2^{1000a^2}(1+u),\qquad P_*=\Lambda^{400a^2},
+ \qquad P_*\le b.
+\end{equation}
+The last inequality is a checked prerequisite.  In particular, $b$ is an
+integer.  Powers of $\Lambda$ are logarithmic powers of the master size for
+each fixed $a$.
+
+\begin{lemma}[Static routing with resources]\label{lem:routing-helper}
+Let $F$ be an explicitly listed undirected multigraph with identified edge
+copies, and let $v_+$ be its number of incident vertex labels.  For each
+edge $f$, an explicit list specifies resource counts
+$m_{xf}\in\{1,\ldots,10\}$; unlisted counts are zero.  Suppose that
+\[
+ \deg_F(v)\le C_0,\qquad \sum_{f\in F}m_{xf}\le C_0
+ \quad\text{for every vertex $v$ and resource $x$},
+\]
+where $C_0\ge1$ is an integer, degrees count incidences, and both $2|F|$
+and the total resource-list length are at most $M^2$.
+Assume that identifiers and numerical input data have
+$(\log S)^{O_a(1)}$ bits.  There is a uniform randomized algorithm that
+either reports detected failure or returns a set $F'\subseteq F$ and,
+for every $f=vw\in F$, an explicit walk $Q_f$ from $v$ to $w$ in $F'$,
+such that
+\begin{equation}\label{route:guarantees}
+ |F'|\le P_*v_+,\qquad
+ |Q_f|\le P_*,\qquad
+ \sum_{f\in F}\ \sum_{e\text{ traversed in }Q_f}m_{xe}
+       \le P_*C_0\quad\text{for every $x$}.
+\end{equation}
+The inner sum counts traversal multiplicities and ignores orientation.
+A loop demand may be assigned the empty walk.  Every returned result is
+verified.  For each fixed reliability parameter $\sigma\ge0$, the time
+on every computation path is
+\begin{equation}\label{route:time}
+ (1+\text{input list size})\,b\,M^{o_a(1)},
+\end{equation}
+and the probability of detected failure is at most
+$2^{-\sigma}S^{-800}$.  The same statement holds conditionally when the
+input is determined by earlier computation and this call uses fresh bits.
+\end{lemma}
+
+We build the representative set in stages, each routing at least half
+the remaining demands.  An attempt samples edges according to their
+endpoint degrees and gives each retained edge its inverse-probability
+weight.  Introduce a distinct \emph{stub} for each edge incidence.
+A flow between two equal halves of the stubs either identifies a cut
+for recursion or pairs almost all the stubs by walks in the sampled
+graph.  The sampling estimate ensures that the cuts are sparse with
+high probability.  We defer their crossing demands to later stages
+and recurse on the two induced pieces with fresh samples.  When almost
+all stubs are paired, completing the unpaired stubs with temporary fake
+edges gives a perfect matching on the stubs.  A piece that completes the
+prescribed rounds without a further cut obtains an overlay made from these matchings;
+the median rule makes it expanding with high probability.  Each nonfake
+overlay edge stores its sampled-edge walk.
+
+We then route the demand stub pairs through this overlay.  Partition its
+labels into groups and send each demand packet on a short random walk
+conditioned to reach its target's group.  Additional independent walks,
+starting and ending within each group, supply the edges of smaller
+graphs on which routing continues.  Recursion reaches singleton groups,
+and substituting the saved walks gives overlay routes with bounded
+length and congestion.  Discard routes that touch a fake edge or an
+excessively long real embedding.  Congestion bounds the number of lost
+demands, while the sampling weights bound resource use after the
+remaining real embeddings are substituted.  The final verification
+checks these walks and their loads before accepting the stage.
+
+We use the following parameters:
+\begin{equation}\label{route:internal-parameters}
+\begin{gathered}
+ r_m=\Lambda^3,\qquad K_s=\Lambda^{230a^2},\qquad
+ \chi=\Lambda^{110a^2},\qquad \epsilon_0=\Lambda^{-100a^2},\\
+ D_p=\Lambda^{105a^2},\qquad H_*=\Lambda^{70a^2},\qquad
+ L_0=\Lambda^{200a^2},\qquad t=\Lambda^{10},\qquad q_v=\Lambda^3.
+\end{gathered}
+\end{equation}
+Here $r_m$ counts overlay rounds, $K_s$ sets the sampling scale, $\chi$
+multiplies flow capacities, $\epsilon_0$ sets the deficiency scale, and
+$D_p$ caps the cut depth.  The bounds $H_*$ and $L_0$ control overlay routes
+and retained real embeddings; $t$ is half the conditioned-walk length.
+The symbol $q_v$ prescribes the same number of virtual jobs at each vertex,
+a fixed logarithmic power for fixed $a$; it is unrelated to the accuracy
+parameter $q$ of the priced engine.
+
+For an unweighted multigraph $H$, let $\partial_H X$ be the edge-copy cut
+of $X$, and let $\vol_H(X)=\sum_{v\in X}\deg_H(v)$.
+Parallel copies count separately; loops count twice in volume and never
+in a cut.  We suppress the subscript when the graph is clear.  Its graph
+conductance, whenever there is a cut with two positive volumes, is
+\[
+ \phi(H)=\min_{\substack{X\subseteq V(H)\\
+                 \vol_H(X)>0,\ \vol_H(V(H)\setminus X)>0}}
+ \frac{|\partial_H X|}
+      {\min\{\vol_H(X),\vol_H(V(H)\setminus X)\}}.
+\]
+We invoke conductance and mixing only on nonsingleton active walk graphs;
+singleton router instances are settled directly.  For the lazy walk used
+below, the corresponding transition-kernel conductance is $\phi(H)/2$.
+
+\subsection{Stages, pieces, and normalized sampling}
+
+Remove loop demands by giving them empty walks.  Work on the remaining
+demands in stages.  One successful stage must route at least half its
+input demands while using, separately for support, maximum hop count,
+and resource load, the bound $\Lambda^{350a^2}$ in place of $P_*$ in
+\eqref{route:guarantees}.  All these properties, including endpoints and
+selected edge identities, are checked before a stage is accepted.  A
+stage gets at most
+\begin{equation}\label{route:attempts}
+ T=2(\sigma+1000\log_2 S+10)
+\end{equation}
+fresh attempts (rounding up if necessary).  Exhausting these attempts is
+a detected failure.  There are at most $2u+2$ successful stages, since
+$|F|\le M^2/2$ and the residual number halves each time.
+
+An attempt processes a recursive family of pieces.  A piece is an edge
+list induced by the vertex side of each earlier cut; cut edges are
+discarded for this stage.  Empty lists need no further processing.
+Pieces at a fixed depth have disjoint edge lists and disjoint incident
+vertex sets.  Process pieces by depth, using fresh samples at each
+depth.  We cap the recursion depth at $D_p$ and abort an attempt
+that would exceed the cap.  Let a nonempty piece have $s'$ edges and
+positive original degrees $d_i$.  Retain each edge $e=ij$ independently
+with probability $p_e$, the smallest number of the form $2^{-j}$,
+$j\ge0$, that is at least
+\[
+ \min\{1,K_s(1/d_i+1/d_j)\}.
+\]
+A retained edge receives integral weight $\omega_e=1/p_e$.
+Before any flow call, require
+\begin{equation}\label{route:sample-checks}
+ \sum_{e\text{ retained}}\omega_e\le2s',\qquad
+ \#\{e\text{ retained}\}\le4K_s\#\{i:d_i>0\}.
+\end{equation}
+A violation aborts this attempt.  Volumes in the following sampling
+estimate use the original piece degrees, not the sampled degrees.
+
+\begin{lemma}[Simultaneous cuts and resource loads]
+\label{route:sampling}
+For a sampled piece, except with probability at most
+$4s'\exp[-K_s/(100\chi^2)]$, every vertex set $X$ satisfies
+\begin{equation}\label{route:cut-approximation}
+ \left|\sum_{e\in\partial X\text{ retained}}\omega_e
+                -|\partial X|\right|
+ \le\frac{\min\{\vol(X),\vol(\bar X)\}}{4\chi}.
+\end{equation}
+This event implies the total-weight check in
+\eqref{route:sample-checks}; the sample-count check also holds with
+exponentially high probability in $K_s$.  Conditional on the input
+pieces at a fixed depth, for each resource $x$,
+\begin{equation}\label{route:sample-resources}
+ \sum_{\substack{e\text{ retained}\\\text{over all pieces at this depth}}}
+          \omega_e m_{xe}\le2C_0
+\end{equation}
+except with probability at most $\exp(-K_s/30)$.
+\end{lemma}
+
+\begin{proof}
+Put $D=\operatorname{diag}(d_i)$ on the nonisolates and set
+\[
+ A_e=D^{-1/2}(\mathbf e_i-\mathbf e_j)
+             (\mathbf e_i-\mathbf e_j)^\mathsf{T}D^{-1/2}.
+\]
+These are positive semidefinite rank-one matrices,
+$\|A_e\|=1/d_i+1/d_j$, and $\|\sum_e A_e\|\le2$.
+If $\xi_e$ is the retention indicator, write
+$Y_e=(\xi_e/p_e-1)A_e$.  Deterministically retained edges contribute
+zero.  For any other edge, $p_e\ge K_s\|A_e\|$, whence
+\[
+ \|Y_e\|\le K_s^{-1},\qquad
+ \E Y_e^2=(p_e^{-1}-1)A_e^2\preceq K_s^{-1}A_e.
+\]
+Thus the variance parameter is at most $2/K_s$.  The self-adjoint
+matrix Bernstein inequality, applied to both signs
+\cite[Theorem~6.1(ii)]{TroppBernstein}, states that independent centered
+self-adjoint summands of norm at most $J$ and total variance norm at
+most $V$ satisfy
+\[
+ \Pr\left\{\left\|\sum_eY_e\right\|\ge z\right\}
+ \le2d\exp\left(-\frac{z^2}{2(V+Jz/3)}\right),
+\]
+where $d$ is the matrix dimension.  Here $d\le2s'$, $J=1/K_s$,
+$V\le2/K_s$, and $z=1/(4\chi)$ give the claimed probability bound.
+Testing the quadratic form on $D^{1/2}\mathbf1_X$ gives additive
+error $\vol(X)/(4\chi)$ in its cut weight.  Testing the complement
+gives the other bound in \eqref{route:cut-approximation}.  Testing a
+singleton bounds its weighted degree by
+$(1+1/(4\chi))d_i$; summing degrees proves the weight check.
+
+Dyadic rounding gives
+\[
+ \sum_ep_e\le2K_s\sum_{ij=e}(1/d_i+1/d_j)
+       =2K_s\#\{i:d_i>0\}.
+\]
+The scalar Chernoff inequality therefore proves the sample-count
+check with failure at most $\exp(-K_s\#\{i:d_i>0\}/3)$.
+If the threshold exceeds the total possible edge count, failure is
+of course impossible.
+
+For \eqref{route:sample-resources}, condition on all lists at this
+depth.  They are disjoint sublists of the input, so the expected sum
+for $x$ is at most $C_0$.  A nondeterministic summand
+$\xi_e m_{xe}/p_e$ lies in $[0,10C_0/K_s]$, since piece degrees are at
+most $C_0$ and $1/p_e\le C_0/K_s$.  After centering, its absolute
+value has the same upper bound.  The sum of variances is at most
+$10C_0^2/K_s$, by bounding each second moment by its maximum value
+times its expectation.  Deterministic summands have zero variance.
+For an upward deviation of $C_0$, scalar Bernstein consequently
+gives
+\[
+ \Pr\{\text{sum}>2C_0\}
+ \le\exp\left(
+ -\frac{C_0^2}{2(10C_0^2/K_s+10C_0^2/(3K_s))}\right)
+ \le e^{-K_s/30}.
+\]
+\end{proof}
+
+\subsection{Median cuts, integral matchings, and an expanding overlay}
+
+The median-projection and matching-overlay argument has the cut-matching
+structure of Khandekar, Rao, and
+Vazirani~\cite[Sections~3--3.2]{KhandekarRaoVazirani2006}.
+Here the vertices are incidence stubs, and the proof separately controls
+deficient flow, resource loads, exact arithmetic and rejected attempts.
+
+The piece has $N_p=2s'$ distinct stubs, one for each original edge
+incidence.  Run at most $r_m$ rounds.  Each round divides the stubs
+into two equal halves by the median rule below.  Let $l_i$ and $h_i$
+count the left and right stubs at original vertex $i$.  Form a flow
+network with source capacities $l_i$, sink capacities $h_i$, and
+both directed arcs of capacity $\chi\omega_e$ for every retained
+edge.  Its maximum possible value is $s'$.
+
+If its deficiency $\Delta=s'-\text{maximum value}$ is at least
+$\epsilon_0s'$, use the source-side vertex set $X$ of a minimum cut
+to split the piece and stop its rounds.  The cut formula gives
+\begin{equation}\label{route:deficiency-cut}
+ l(X)-h(X)=\Delta+
+             \chi\sum_{e\in\partial X\text{ retained}}\omega_e.
+\end{equation}
+The left side equals $h(\bar X)-l(\bar X)$, so both original volumes
+are at least $\epsilon_0s'$.  It is also at most their minimum.
+On the event in Lemma~\ref{route:sampling},
+\begin{equation}\label{route:piece-cut}
+ |\partial X|\le
+ \frac{2\min\{\vol(X),\vol(\bar X)\}}{\chi}.
+\end{equation}
+Indeed the weighted cut is at most the minimum volume divided by
+$\chi$, and \eqref{route:cut-approximation} adds only one quarter
+of that upper bound.  Each child's internal edge count is at most
+$(1-\epsilon_0/2)s'$, because the opposite side has volume at least
+$\epsilon_0s'$.  A nonempty branch thus has fewer than
+$1+4\epsilon_0^{-1}\log M<D_p$ cuts.  Moreover,
+$\min\{\vol(X),\vol(\bar X)\}\le s'$, so summing
+\eqref{route:piece-cut} at each depth shows that all cuts discard
+at most the fraction
+\begin{equation}\label{route:cut-loss}
+ 2(D_p+1)/\chi
+\end{equation}
+of the attempt's initial demands.  This charging uses disjoint
+piece lists at each depth; it does not charge each demand to every
+piece at that depth.
+
+When $\Delta<\epsilon_0s'$, extract the integral flow as individually
+identified pairs of left and right stubs with explicit sampled-edge
+walks.  Pair all remaining left and right stubs arbitrarily and call
+these pairs \emph{fake edges}.  The result is a perfect matching on
+the stubs.  Save this matching as one round of an overlay multigraph,
+together with real embeddings for its nonfake edges.
+
+These flow calls use Lemma~\ref{lem:integral-flow}.  Padding to
+$O((\chi+1)s')$ makes every capacity polynomially bounded in the
+padded size, since the weight check precedes the call.  Alternatively,
+Lemma~\ref{lem:capacity-scaling} provides the same fixed primitive
+when local capacities are presented with longer bit strings.  Path
+extraction has a separate explicit charge: pair incoming and outgoing
+flow units at each internal vertex, also pairing the units on source
+and sink arcs with their stubs, and trace from source units.  Remaining
+cycles are omitted.  There are at most
+\begin{equation}\label{route:flow-throughput}
+ 2\chi\sum_{e\text{ retained}}\omega_e\le4\chi s'
+\end{equation}
+interior arc units per round.  Lists of these units and their pairings
+therefore construct all paths within this bound plus the network size.
+No uncharged expansion of a large integral flow is used.
+
+\begin{lemma}[The median rule]\label{route:overlay}
+There is a median rule for which a piece completing all $r_m$ rounds
+has an $r_m$-regular overlay of conductance at least $1/(4r_m)$,
+except with probability at most
+$4N_p^3\exp[-r_m/(80\Lambda)]$.  This guarantee holds for any choice
+of perfect matching across each chosen pair of halves.
+\end{lemma}
+
+\begin{proof}
+For a perfect matching let $A$ be its averaging matrix: on each
+matched pair it replaces two coordinates by their average.  Start
+with $P_0=I$, and after round $j$ set
+$P_j=A_jP_{j-1}$.  All these matrices are doubly stochastic.  At a
+round's start, let $p_i$ be the current rows and choose a fresh vector
+$\zeta$ of independent uniform signs.  Order the real numbers
+$\langle p_i,\zeta\rangle$, resolving ties by stub identifiers, and
+put their first and last halves on opposite sides.
+
+Write $\bar p=\mathbf1/N_p$ and
+$\Psi=\sum_i\|p_i-\bar p\|_2^2$.  The centered projected values
+$z_i=\langle p_i-\bar p,\zeta\rangle$ have mean zero over $i$, and
+$Z=\sum_i z_i^2$ satisfies
+\[
+ \E Z=\Psi,\qquad \E Z^2\le3\Psi^2.
+\]
+For the second inequality, sign fourth moments give
+$\E\langle v,\zeta\rangle^4\le3\|v\|_2^4$, and
+Cauchy--Schwarz bounds each cross term in $Z^2$.
+The elementary second-moment inequality now gives
+$\Pr\{Z\ge\Psi/2\}\ge1/12$ when $\Psi>0$.
+The sign tail estimate and a union bound over pairs give, with
+failure probability at most $2N_p^2e^{-\Lambda/2}$,
+\[
+ |\langle p_i-p_j,\zeta\rangle|^2
+       \le\Lambda\|p_i-p_j\|_2^2\quad\text{for every $i,j$}.
+\]
+
+Choose a median value $m$ between the two central centered values $z_i$.
+For any pair $i,j$ on opposite sides,
+$(z_i-z_j)^2\ge(z_i-m)^2+(z_j-m)^2$.  Every stub occurs once in
+the matching, and the sum of squared distances is minimized at the
+mean, zero.  Consequently, for \emph{every} matching across the
+halves,
+\[
+ \sum_{ij\text{ matched}}(z_i-z_j)^2
+       \ge\sum_i(z_i-m)^2\ge Z.
+\]
+The exact decrease under averaging is
+$\frac12\sum_{ij\text{ matched}}\|p_i-p_j\|_2^2$.
+With conditional probability at least $1/20$ this is at least
+$\Psi/(4\Lambda)$.  The parameter values ensure that the sign-tail
+failure above is smaller than $1/12-1/20$.  If $\Psi=0$, it stays
+zero.  Thus
+\[
+ \E\Psi_{r_m}\le N_p\exp[-r_m/(80\Lambda)].
+\]
+For this analysis one can continue with arbitrary median-crossing
+matchings after a piece has been cut; hence stopping a piece early
+does not introduce conditioning on successful mixing.  If any entry
+of $P_{r_m}$ is below $1/(2N_p)$, then
+$\Psi_{r_m}\ge1/(4N_p^2)$.  Markov's inequality proves the stated
+failure bound.
+
+It remains to identify which walk this product describes.  Since
+$P_{r_m}=A_{r_m}\cdots A_1$, its row starting at stub $i$ describes
+averaging steps in the order $r_m,r_m-1,\ldots,1$.  Place one unit
+of mass at each stub of a set $X$ with $|X|\le N_p/2$, and run this
+\emph{reverse-round} walk.  All product entries are at least
+$1/(2N_p)$, so at least $|X|/4$ mass finishes outside $X$.
+At every intermediate time, double stochasticity keeps mass at each
+stub at most one.  A matching edge $\{v,w\}$ at its single time step
+therefore carries total mass at most
+$(\mathrm{mass}(v)+\mathrm{mass}(w))/2\le1$.  The number of overlay
+edge occurrences crossing $X$ is at least $|X|/4$.  Every stub has
+degree $r_m$, which proves conductance at least $1/(4r_m)$.
+
+The construction does not form dense products.  To compute a new
+projection, apply the earlier matching averages in chronological
+order to $\zeta$, obtaining $P_{j-1}\zeta$.  This costs
+$O(jN_p)$ elementary averages.  All entries are dyadic rationals
+with denominator dividing $2^{j-1}$, so exact projections, comparisons,
+and tie resolution use $O(r_m+\log N_p)$ bits per number.
+\end{proof}
+
+\subsection{Recursive routing on the overlay}
+
+The next task is to route the demand stub pairs through the overlay
+with bounded path length and total traversal load on each overlay
+edge.  These two bounds will control the lengths and resource loads
+after the saved real-edge embeddings are substituted.
+
+The recursive sampling of virtual graphs uses the group-conditioned
+walk construction of Ghaffari, Kuhn, and Su
+\cite[Section~3.1.2]{GhaffariKuhnSu2017}.  We give the packet routing,
+congestion, and finite-computation estimates needed here, allowing
+nonuniform stationary distributions and counting repeated traversals.
+
+Pair the original stubs according to their demand edges and orient
+each pair arbitrarily, giving one packet with a specified source and
+final target.  Both the initial sources and the final targets are
+distinct.  At recursive calls current packet locations can coincide,
+but their final targets remain distinct.  We route these packets
+through the overlay, temporarily permitting fake edges.
+
+Every walk graph retains distinct parallel edge copies and uses
+incidence degrees: a loop has two incidences.  Its lazy walk holds
+with probability $1/2$ and otherwise chooses a uniform incident
+edge occurrence.  Holding incurs no traversal.  An actual traversal
+of a loop is counted once.  The stationary law is
+$\pi(v)=d_v/\sum_i d_i$.
+
+We use the standard conductance-to-mixing argument for reversible
+chains~\cite[Section~3]{SinclairJerrum1989}. The proof fixes our graph
+conductance normalization and allows loops and parallel copies.
+
+\begin{lemma}[Mixing from conductance]\label{route:cheeger}
+In a connected undirected multigraph with at least two vertices and
+conductance $\phi$, the
+lazy walk has spectral gap at least $\phi^2/4$.  If the graph has at
+most $N_p$ labels, degree ratio at most $D_c\le\Lambda^{1/20}$,
+and conductance at least $1/(4r_m)$, then for every $h\ge t$,
+\begin{equation}\label{route:pointwise-mixing}
+ \tfrac12\pi(y)\le P^h(x,y)\le2\pi(y)
+ \quad\text{for all $x,y$}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For any nonnegative vector $f$ supported on at most half the degree
+volume, integrate the boundary sizes of the sets
+$\{i:f_i^2>\xi\}$ over $\xi\ge0$.  The result is
+\[
+ \sum_{ij\text{ edge}}|f_i^2-f_j^2|
+       \ge\phi\sum_i d_i f_i^2.
+\]
+Cauchy--Schwarz, together with
+$\sum_{ij\text{ edge}}(f_i+f_j)^2\le2\sum_i d_i f_i^2$, implies
+\begin{equation}\label{route:cheeger-energy}
+ \sum_{ij\text{ edge}}(f_i-f_j)^2
+       \ge\frac{\phi^2}{2}\sum_i d_i f_i^2.
+\end{equation}
+Both formulas remain valid with loops counted by their two incidences.
+For an arbitrary vector $g$ of degree-weighted mean zero, subtract a
+degree-weighted median $m$.  The positive and negative parts of
+$g-m$ each have support volume at most half.  Their edge energies
+sum to at most that of $g$, while their squared degree norms sum to
+\[
+ \sum_i d_i(g_i-m)^2
+       =\sum_i d_i g_i^2+m^2\sum_i d_i
+       \ge\sum_i d_i g_i^2.
+\]
+Applying \eqref{route:cheeger-energy} to both parts proves the
+nonlazy gap bound $\phi^2/2$, by the Dirichlet quotient, and hence
+the lazy bound $\phi^2/4$.  The nonlazy reversible operator is a
+contraction in the degree-weighted Euclidean norm; making it lazy
+places its spectrum in $[0,1]$.
+
+Apply its contraction on mean-zero densities to a point mass.
+Cauchy--Schwarz in the stationary inner product gives relative
+pointwise error at most
+\[
+ \frac{\exp(-h\phi^2/4)}{\sqrt{\pi(x)\pi(y)}}
+       \le\frac{\exp(-h\phi^2/4)}{\pi_{\min}}.
+\]
+Here $\pi_{\min}\ge1/(D_cN_p)$, $N_p\le M^2$,
+$\phi\ge1/(4\Lambda^3)$, and $t=\Lambda^{10}$.
+Thus the last expression is at most
+$D_cM^2\exp(-\Lambda^4/64)<1/2$, establishing
+\eqref{route:pointwise-mixing}.
+\end{proof}
+
+The grouped recursive virtual-job construction below adapts the
+hierarchical routing idea of Ghaffari--Kuhn--Su~\cite[Lemma~3.1]{GhaffariKuhnSu2017}.
+The sequential implementation, explicit caps, and resource-load bounds
+needed here are established below; we do not invoke their distributed-algorithm
+guarantee.
+
+At a recursive call, a singleton label requires no routing.  Otherwise
+divide its label set into $\min\{b,\#\text{labels}\}$ groups whose
+sizes differ by at most one.  For each packet, draw a $2t$-step walk
+from its present location conditioned to end in the group of its final
+target.  For each vertex, also draw $q_v$ independent \emph{virtual
+jobs} with the same length, starting there and conditioned to end in
+that vertex's own group.  The start and endpoint of every virtual job
+form one undirected edge within its group; its sampled walk is saved
+as the edge's embedding.  Recurse on each of these virtual graphs
+with the packets at their newly sampled locations and with their
+original final targets.  On return, substitute the stored embeddings,
+reversing them when necessary.
+
+All job draws within a call are independent conditional on its input.
+A conditioned draw is implemented by ordinary walk trials, retaining
+the first whose endpoint is in the prescribed group.  Allow at most
+$\Lambda^3b$ trials per job.  For a uniform choice among $d$ incident
+occurrences, draw $\lceil\log_2 d\rceil$ fair bits and reject indices
+outside $\{0,\ldots,d-1\}$; allow at most $\Lambda$ strings for
+one such choice.  A cap violation aborts the attempt.  These rules
+also cover graphs with loops and parallel edges.  The group-size rule
+makes the maximum size after $j$ recursive levels at most
+$\lceil N_p/b^j\rceil$.  Hence the recursion depth is at most
+$2a^2$, since $b^{2a^2}=M^2\ge N_p$.
+
+\begin{lemma}[Packet and virtual-job router]\label{route:router}
+Conditional on an overlay satisfying Lemma~\ref{route:overlay}, the
+procedure above produces explicit routes for all packets with both
+maximum length and total traversal congestion on each overlay edge
+at most $H_*$, except with probability less than $M^{-20}$ throughout
+the checked parameter range.  All its data sizes and running
+times remain bounded by the specified caps even when it fails.
+\end{lemma}
+
+\begin{proof}
+First analyze ideal unlimited rejection, stopping the analysis when
+an inductive good event fails.  The current degree ratio is allowed
+to be $D_c$, initially one, with the allowance multiplied by $20$
+per level.  Thus
+\[
+ D_c\le20^{2a^2}\le\Lambda^{1/20}.
+\]
+The inductive conductance lower bound is $1/(4r_m)$, so
+Lemma~\ref{route:cheeger} applies.  A group $A$ occupies at least
+$1/(2b)$ of the labels; hence $\pi(A)\ge1/(2D_cb)$.
+An ordinary trial succeeds with probability at least
+$1/(4D_cb)$.  The endpoint of a successful trial has distribution
+\begin{equation}\label{route:conditioned-endpoints}
+ \frac{P^{2t}(x,y)}{P^{2t}(x,A)}
+ \in\left[\frac14,4\right]\frac{\pi(y)}{\pi(A)}
+ \subseteq\left[\frac{1}{4D_c|A|},\frac{4D_c}{|A|}\right]
+ \quad(y\in A).
+\end{equation}
+Distinct final targets mean that at most $|A|$ packets seek group
+$A$.  Packet arrivals at a specified child vertex therefore have
+expectation at most $4D_c$, and Chernoff gives an upper bound of
+$q_v$ with overwhelmingly high probability.
+
+Exactly $q_v|A|$ virtual jobs seek $A$.  If $I_z$ counts their
+endpoints at $z$, then $\E I_z\le4D_cq_v$, and with overwhelmingly
+high probability $I_z\le16D_cq_v$ for every $z$.  The child degree
+is exactly $q_v+I_z$: a loop contributes its start incidence and
+its endpoint incidence.  Thus every child degree is at least $q_v$
+and at most $(1+16D_c)q_v\le20D_cq_v$, proving the claimed next
+degree ratio.
+
+For any $X\subseteq A$ with $1\le|X|\le|A|/2$, each of the
+$q_v|X|$ jobs starting in $X$ leaves $X$ with probability at least
+$1/(8D_c)$, by \eqref{route:conditioned-endpoints}.  Chernoff yields
+\begin{equation}\label{route:child-cut}
+ \#\{\text{virtual edges from $X$ to $A\setminus X$}\}
+       \ge\frac{q_v|X|}{16D_c}
+\end{equation}
+except with probability $\exp[-q_v|X|/(64D_c)]$.
+Union over subsets by cardinality costs at most
+\begin{equation}\label{route:cut-union}
+ \sum_{j\ge1}N_p^j\exp[-q_vj/(64D_c)].
+\end{equation}
+For an arbitrary nontrivial cut, apply \eqref{route:child-cut} to
+its smaller-cardinality side $X$.  Its volume is at most
+$20D_cq_v|X|$, and the smaller of the two cut volumes is no larger
+than this volume.  The child conductance is at least
+$1/(320D_c^2)\ge1/(4r_m)$.  This establishes all graph and packet
+invariants required at the next level.
+
+We next bound loads of \emph{all} jobs at one call before any
+substitution.  Set $Q=q_v$, $W=\sum_i d_i$, and
+$d_{\min}=\min_i d_i$.  At most $2Q$ jobs start at any vertex:
+there are $Q$ virtual jobs and at most $Q$ packets.  At most
+$(Q+1)|A|$ jobs seek group $A$, because virtual jobs seeking $A$
+start in $A$ and packet final targets are distinct.
+
+Fix an oriented incidence $x\to y$ of a specific edge.  At a step
+in the first half, the remaining suffix has at least $t$ steps.
+Conditioning a job on its prescribed terminal group increases the
+probability of this step's traversal by at most four: the ratio is
+$P^h(y,A)/P^{2t}(z,A)\le2\pi(A)/(\pi(A)/2)$, where $z$ is its
+start.  Without conditioning, the aggregate initial density is at
+most $2Q/\pi_{\min}=2QW/d_{\min}$ relative to stationarity, and
+the walk preserves this bound.  A stationary lazy step traverses
+this oriented incidence with probability $1/(2W)$.  Therefore its
+expected conditioned load is at most
+\begin{equation}\label{route:first-half-load}
+ 4\frac{2QW}{d_{\min}}\frac{1}{2W}
+       =\frac{4Q}{d_{\min}}.
+\end{equation}
+
+In a second-half step, the prefix before traversal has at least
+$t$ steps.  If $j$ steps remain after this incidence and the job
+seeks $A$, its conditional traversal probability is at most
+\[
+ \frac{2\pi(x)\,(1/(2d_x))\,P^j(y,A)}{\pi(A)/2}
+       =\frac{2P^j(y,A)}{W\pi(A)}.
+\]
+Summing first over jobs seeking $A$ and then over the groups gives
+\begin{align}
+ \sum_A\frac{2(Q+1)|A|}{W\pi(A)}P^j(y,A)
+ &=2(Q+1)\sum_A\frac{|A|}{\vol(A)}P^j(y,A)\notag\\
+ &\le\frac{2(Q+1)}{d_{\min}}\sum_AP^j(y,A)
+ =\frac{2(Q+1)}{d_{\min}}.\label{route:second-half-load}
+\end{align}
+This calculation cancels the rare-conditioning factor group by
+group.  In particular it introduces neither the number of groups
+nor a degree-ratio factor.  Adding the two oriented incidences of
+an undirected edge, including the two incidences of a loop, bounds
+its expected traversal load at any step by $24q_v$.
+
+Conditional on the current input, different job streams are
+independent.  At one fixed step, their indicators of traversing
+a fixed edge are independent Bernoulli variables, regardless of
+dependence between different steps of one job.  Scalar Chernoff
+therefore bounds this load by $\Lambda^6$ with overwhelmingly high
+probability.  A union bound over edges and the $2t$ steps gives
+total local edge load at most $2t\Lambda^6\le\Lambda^{20}$;
+local walk lengths are also at most $\Lambda^{20}$.
+
+To account for substitution, suppose child routes have maximum
+length and edge congestion at most $Z$.  Initial packet walks
+contribute at most $\Lambda^{20}$ load to a current edge.
+Each virtual-edge embedding is then used at most $Z$ times, so
+all substitutions contribute at most $Z\Lambda^{20}$.
+The same inequality bounds length, using the maximum embedding
+length.  Starting at the leaves and iterating through at most
+$2a^2$ levels bounds both quantities by
+\begin{equation}\label{route:substitution}
+ (2\Lambda^{20})^{2a^2}\le H_*.
+\end{equation}
+
+For completeness, all probabilities just used are conditional on
+the actual recursively specified input.  Endpoints chosen at a
+parent create the child graph, but at that child the new streams
+are fresh independent streams.  This permits induction up to the
+first failed graph or packet invariant and avoids any assumption
+that the child graph is independent of its packet starts.
+The group-cut bound \eqref{route:cut-union}, all point-count and
+edge-step tails, and all cap tails are below $M^{-40}$ with the
+parameters above.  A conditioned job exceeds its trial cap with
+probability at most
+\[
+ \left(1-\frac{1}{4D_cb}\right)^{\Lambda^3b}
+       \le\exp[-\Lambda^3/(4D_c)],
+\]
+and a uniform incidence choice exceeds its string cap with
+probability at most $2^{-\Lambda}$.  Coupling capped rejection to
+unlimited rejection until the first cap justifies using these
+bounds with the ideal distributions.
+
+Finally, the bounds on the work of a failed run require no good
+event.  Packets never duplicate; each vertex always initiates
+exactly $q_v$ virtual jobs; group sizes shrink by the fixed rule;
+and every trial and walk has an explicit cap.  Across a router
+depth there are at most $q_vN_p$ virtual edges, with incidence
+arrays for constant-index access.  Even if congestion bounds fail,
+let $\mathcal L_h$ bound a fully expanded packet route with $h$ levels remaining.
+The newly sampled prefix has at most $2t$ steps, and each edge of the
+child route expands to at most $2t$ steps.  Thus
+\[
+ \mathcal L_0=0,\qquad \mathcal L_h\le2t(1+\mathcal L_{h-1})
+       \le\sum_{j=1}^{h}(2t)^j\le2(2t)^h
+       \qquad(1\le h\le2a^2).
+\]
+This is a fixed power of $\Lambda$.  These deterministic size bounds also bound
+all elementary choice counts.  Under $P_*\le b$, a crude total
+of pieces, calls, edges, steps, and capped choices in an entire
+attempt is less than $M^{20}$.  A union bound thus proves the
+asserted router probability, with ample margin.
+\end{proof}
+
+\subsection{Filtering real embeddings and verifying a stage}
+
+The router's good event bounds route lengths and congestion in the
+overlay, where fake edges are still allowed.  We must now discard
+routes using fake edges or excessively long real embeddings.  The
+congestion bound limits how many demands this discards and controls
+the resource load of the remaining expanded routes.
+
+At a completed piece, discard every packet route using a fake
+overlay edge or an overlay edge whose real embedding has more than
+$L_0$ sampled-edge hops.  This filtering is performed on overlay
+identities before any long real embedding is substituted.  In one
+piece there are fewer than $\epsilon_0s'r_m$ fake edges.  By
+\eqref{route:flow-throughput}, the total length of all real
+embeddings is at most $4r_m\chi s'$, so at most
+$4r_m\chi s'/L_0$ overlay edges have a long real embedding.
+Each such edge is used by at most $H_*$ packets, since traversal
+congestion bounds the number of packets using it.  The fraction
+discarded within completed pieces is therefore at most
+\begin{equation}\label{route:filter-loss}
+ H_*\epsilon_0r_m+\frac{4H_*r_m\chi}{L_0}.
+\end{equation}
+Adding \eqref{route:cut-loss}, the total lost fraction is at most
+\[
+ 2(D_p+1)/\chi+
+       H_*\epsilon_0r_m+4H_*r_m\chi/L_0<\tfrac12.
+\]
+Thus more than half the original stage demands survive all cuts
+and filtering on the good events.
+
+Replace each remaining overlay traversal by its real sampled-edge
+embedding.  Its direction specifies whether to use the embedding
+or its reverse.  The resulting walks have correct endpoints and
+at most $H_*L_0$ hops.  In each round, an undirected sampled edge
+$e$ appears at most $2\chi\omega_e$ times among the real embeddings,
+by its two directed capacities.  It is therefore traversed at most
+\begin{equation}\label{route:sampled-edge-load}
+ 2H_*r_m\chi\omega_e
+\end{equation}
+times by the final walks from its completed piece.
+
+Completed pieces are vertex-disjoint even when they stop at
+different depths: no completed piece has descendants, and sibling
+pieces use disjoint vertex sets.  Their samples therefore contain
+at most $4K_sv_+$ distinct original edges.  For resources, use
+\eqref{route:sampled-edge-load} and apply
+\eqref{route:sample-resources} separately at each of the at most
+$D_p+1$ depths.  This bounds every resource load by
+\begin{equation}\label{route:stage-load}
+ 4H_*r_m\chi(D_p+1)C_0.
+\end{equation}
+The parameters give each required stage margin explicitly:
+\begin{equation}\label{route:stage-margins}
+ 4K_s\le\Lambda^{350a^2},\qquad
+ H_*L_0=\Lambda^{270a^2}\le\Lambda^{350a^2},\qquad
+ 4H_*r_m\chi(D_p+1)\le\Lambda^{350a^2}.
+\end{equation}
+
+The algorithm accepts a stage only after checking these three
+bounds with $\Lambda^{350a^2}$, checking that at least half the
+demands have been assigned, and checking every returned walk's
+edge identities and endpoint sequence.  It counts total
+traversals of each selected edge and multiplies these counts into
+the edge's sparse resource list to verify resource loads.  In
+particular, neither expansion nor the probabilistic premises of
+the construction need to be trusted by a subsequent user of the
+sparsifier: accepted walks satisfy the deterministic interface.
+
+\subsection{Failure probability and finite computation}
+
+\begin{proof}[Proof of Lemma~\ref{lem:routing-helper}]
+At a fixed cut depth, condition on its input lists before making
+its fresh samples.  Lemma~\ref{route:sampling} applies to these
+lists even though earlier cuts were random.  Likewise the median
+potential and the recursive routing estimates are conditional on
+their respective inputs.  The sum of all bad-event probabilities
+in one attempt is less than $1/2$ in the checked parameter range.
+Here are quantitative counts for this assertion.  There are at
+most $M^2(D_p+1)$ pieces and at most $M^2$ resources having nonzero
+input data.  The matrix and sample-count tails, resource tails,
+and product-mixing tails displayed above are each below $M^{-40}$,
+including their per-piece factors.  For the router, the group-cut
+union is bounded by \eqref{route:cut-union}; the point-count and
+edge-step tails use $q_v=\Lambda^3$ and threshold $\Lambda^6$;
+the rejection tails are the ones proved in
+Lemma~\ref{route:router}.  Each is below $M^{-40}$.  Their total
+number, including capped random-choice positions, is less than
+$M^{20}$.  These comparisons follow directly from
+$\Lambda=2^{1000a^2}(1+u)$, $a\ge10$, and $P_*\le b$:
+every polynomial count in the listed powers of $\Lambda$ is
+absorbed by the latter inequality, while every displayed tail
+has an exponent dominating a constant multiple of $u$.
+All good events imply that the stage passes its verification.
+
+After each unsuccessful attempt, the unchanged residual graph is
+tried again with fresh bits.  Conditional failure probability is
+at most $1/2$ per attempt; hence failure of all $T$ attempts has
+probability at most $2^{-T}$.  Taking a union bound over at most
+$2u+2$ stages, using $u\le2\log_2 S$, gives
+\[
+ (2u+2)2^{-T}\le2^{-\sigma}S^{-800}.
+\]
+This also proves the stated conditional guarantee for adaptive
+inputs.  Taking the union of selected supports over accepted
+stages and retaining each demand's first accepted walk yields
+\eqref{route:guarantees}, because
+\[
+ (2u+2)\Lambda^{350a^2}\le P_*.
+\]
+Support and resource loads add over stages; maximum hop count
+does not increase when supports are united.
+
+We finish with the cost on every path, including rejected
+attempts.  At any fixed cut depth, piece edge counts sum to at
+most the starting edge count.  Sampling scans their lists once.
+For each piece there are at most $r_m$ flow calls, each on padded
+size $P=O((1+\chi)s')$.  Lemmas~\ref{lem:integral-flow}
+and~\ref{lem:capacity-scaling} bound their exact finite-word cost
+by padded size times $M^{o_a(1)}$, uniformly over these local
+sizes.  In particular, $P\le O((1+\chi)M^2)$ and the flow
+primitive's subpolynomial overhead at these sizes is
+$M^{o_a(1)}$.  The total padding over a depth is linear in its
+edge count times a fixed power of $\Lambda$.  The weight check
+\eqref{route:sample-checks} bounds flow throughput by
+\eqref{route:flow-throughput} even for a sample with inaccurate
+cuts.  Constructing all integral paths is therefore charged
+explicitly.  Projecting sign vectors requires only repeated
+matching averages, $O(r_m^2N_p)$ operations per piece, and never
+requires a dense matrix.  Sorting projected values to choose each
+median costs $O(N_p\log N_p)$ comparisons and is absorbed in the
+same logarithmic-power allowance.
+
+At a completed piece, the initial overlay has $r_mN_p/2$ edges.
+At each routing depth there are at most $q_vN_p$ virtual edges
+and $O(q_vN_p)$ jobs across its calls.  Store all incident-edge
+arrays explicitly, so a walk step does not scan a neighborhood.
+A job uses at most $\Lambda^3b$ trials, each of $2t$ steps, and
+each incident choice has at most $\Lambda$ bit-string trials.
+These caps supply the sole additional nonlogarithmic factor $b$.
+The deterministic recursion-depth and substitution bounds from
+Lemma~\ref{route:router} control intermediate walk-list sizes
+even on bad random outcomes.  Long real embeddings are filtered
+before substitution; all remaining expansions have a further
+factor of at most $L_0$.  Thus explicit output construction is
+also linear in the input size times $b$ and a fixed power of
+$\Lambda$.
+
+Finally, sparse dictionaries translate original labels, edge
+identifiers, and resource names to local indices and back.
+Verification first counts traversals by selected edge and then
+scans its resource list, so a large resource list is not recopied
+at every traversal.  All comparisons, capacity operations,
+resource-load products, and dyadic averages use bounded
+multiword integers.  In particular, the projection denominator
+has at most $r_m$ binary digits; local path lengths and load
+counters have the deterministic size bounds just proved; and
+all input bit strings have the assumed logarithmic-power width.
+The normalized matrices, potentials, and stationary probabilities
+are used only for analysis; the algorithm never computes their
+square roots or eigenvectors.  The sampling probabilities are
+found by exact integer comparisons, and an event of probability
+$2^{-j}$ is drawn using $j$ fair bits.  Here $j\le2u$, since the
+positive piece degrees are at most $M^2$.  Each random sign uses
+one fair bit.  The ordinary multiword implementations of all
+arithmetic operations add only logarithmic powers for fixed $a$.
+Individual generated bits,
+initialization of arrays, allocation, and movement of these
+records are included in the same charges.  Multiplication by the
+capped numbers of cut depths, routing depths, stages, and
+attempts leaves precisely \eqref{route:time}.  Since all caps
+are enforced independently of the good events, this is a bound
+on every computation path.
+\end{proof}

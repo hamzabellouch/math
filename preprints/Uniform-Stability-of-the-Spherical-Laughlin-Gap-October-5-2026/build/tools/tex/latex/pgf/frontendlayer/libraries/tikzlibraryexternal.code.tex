@@ -1,0 +1,63 @@
+
+\usepackage{pdftexcmds}
+\pgfutil@IfFileExists{atveryend.sty}{%
+	\usepackage{atveryend}%
+}{%
+	\message{! Package tikz Warning: \string\usepackage{atveryend} impossible. Automatic resolving of references within external files impossible.}%
+}%
+
+\input tikzexternalshared.code.tex
+
+\pgfutil@IfUndefined{pdf@mdfivesum}{}{%
+	\let\tikzexternal@mdfivesum=\pdf@mdfivesum
+}%
+
+\def\tikzexternal@TEXDIALECT@begpicture{\begin{tikzpicture}}
+\def\tikzexternal@TEXDIALECT@endpicture{\end{tikzpicture}}%
+
+\def\tikzexternal@TEXDIALECT@collectpicture#1{%
+	\begingroup
+	\t@tikzexternal@tmpa={}%
+	\tikzexternal@laTeX@collect@until@end@tikzpicture{#1}%
+}
+
+\long\def\tikzexternal@laTeX@collect@until@end@tikzpicture#1#2\end#3{%
+	\def\tikzexternal@laTeX@collect@until@end@tikzpicture@{#3}%
+	\ifx\tikzexternal@laTeX@collect@until@end@tikzpicture@\tikzexternal@laTeX@collect@until@end@tikzpicturetikzpicturestring
+		\t@tikzexternal@tmpa=\expandafter{\the\t@tikzexternal@tmpa #2}%
+		\edef\tikzexternal@TEXDIALECT@collectpicture@next{%
+			\noexpand\endgroup
+			\noexpand#1{\the\t@tikzexternal@tmpa}%
+		}%
+		\t@tikzexternal@tmpa={}%
+	\else
+		\t@tikzexternal@tmpa=\expandafter{\the\t@tikzexternal@tmpa #2\end{#3}}%
+		\def\tikzexternal@TEXDIALECT@collectpicture@next{%
+			\tikzexternal@laTeX@collect@until@end@tikzpicture{#1}}%
+	\fi
+	\tikzexternal@TEXDIALECT@collectpicture@next
+}%
+\def\tikzexternal@laTeX@collect@until@end@tikzpicturetikzpicturestring{tikzpicture}%
+
+\def\tikzexternal@handle@landscape{%
+	\ltx@ifpackageloaded{pdflscape}{%
+		\tikzset{
+			external/.cd,
+			optimize command away=\landscape,
+			optimize command away=\endlandscape
+		}%
+	}{%
+	}%
+}%
+
+\let\tikzexternal@currname\@currname
+\def\@currname{tikzlibraryexternal}
+
+\AtBeginDocument{%
+	\pgfutil@ifundefined{tikzexternalrealjob}{%
+		\global\let\tikzexternalrealjob=\jobname
+	}{}%
+	\tikzexternal@handle@landscape
+}%
+
+\let\@currname\tikzexternal@currname

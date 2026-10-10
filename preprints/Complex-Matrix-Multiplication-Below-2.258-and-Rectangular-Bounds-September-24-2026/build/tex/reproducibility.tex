@@ -1,0 +1,124 @@
+\section{Reproducing the finite certificate}
+\label{cert:reproducibility}
+
+The accompanying certificate verifies the finite arithmetic statements used in
+\Cref{thm:certificate}.  The tensor constructions, the passage from grid checks
+to continuum inequalities, and the error allowances used in that passage are
+proved in the body of the manuscript.
+
+\paragraph{Inputs and source identity.}
+The directory \texttt{verification/certificate/} contains the 52 exact decimal coefficients
+of the barrier, both integer coefficient charts, all numerical generators and
+checkers, and their reference outputs.  The packet manifest records the size
+and SHA-256 of every source and input file.  The README describes the package,
+and the supplemental checker verifies the additional arithmetic bounds used
+in this manuscript.
+
+The two chart hashes are
+\begin{verbatim}
+qP420_gmp:
+7dc037ea127cece2216f3219eeeca4cdab0288319a10111a78d272586b776f0b
+qP780_gmp:
+f23c0480f1109509545fdd17bb4de81602f50952411554b337105defbe7a070c
+\end{verbatim}
+The barrier coefficient file, \texttt{inputs/newc22}, has SHA-256
+\begin{verbatim}
+41d42a58936b9da0f01a98a24fc4e998a00b83c9f4032a4ae166b7ef11073912
+\end{verbatim}
+The working-copy path substitutions made by the driver are recorded separately
+from the source hashes.  They change input locations and compiler
+selection, not arithmetic formulas or thresholds.
+
+\paragraph{Running the check.}
+A standard run requires Python 3.10 or later, a POSIX system supporting
+\texttt{fork}, a C++17 compiler with signed 128-bit integer support and
+UndefinedBehaviorSanitizer, and the GMP C++ library for chart generation.
+A preflight checks the additional assumptions of a 64-bit \texttt{long} and
+arithmetic right shift of signed negative integers.  Assertions must remain
+enabled.  From \texttt{verification/certificate/}, run
+\begin{verbatim}
+python3 reproduce.py \
+  --cxx 'g++ -fsanitize=undefined -fno-sanitize-recover=all' \
+  --work-dir ../../certificate-run
+python3 verify_manuscript_bounds.py --work-dir ../../certificate-run
+\end{verbatim}
+A compatible Clang installation may be selected instead.  The commands make no
+network requests or package installations.  They write into a new output
+directory and refuse to overwrite an existing run or supplemental report.
+The optional flag \texttt{-{}-reuse-charts} uses the supplied chart bytes after
+hash verification; omitting it regenerates both charts.
+
+This distinction matters mathematically.  The low-degree residual calculation
+uses the rounding-defect bound for the coefficient recurrence.  Matching a
+stored hash alone does not independently establish that recurrence.  Both full
+charts were regenerated with GMP integer arithmetic, with fail-fast
+undefined-behavior checks, and found to agree
+byte-for-byte with the supplied inputs.  Separate small-degree comparisons also
+matched the GMP generator against the Python recurrence.  The computation of
+the residual and chart differences then uses exact integer upper bounds.
+
+\paragraph{Finite coverage.}
+The complete run passed all stages listed below.  The preserved command records
+include compiler flags, exit codes, source substitutions, hashes, and logs.
+\begin{center}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{.29\linewidth}>{\raggedright\arraybackslash}p{.65\linewidth}@{}}
+\toprule
+Check & Coverage \\
+\midrule
+Chart generation and norms & Degrees 420 at scale $2^{224}$ and 780 at scale
+$2^{500}$; coefficient norms, tails, residual and chart differences. \\
+Boundary shell & All 2,161 endpoints of its 2,160 sampling intervals. \\
+Outer boundary & All 65,536 coarse intervals; 8,192 subcells in each of the
+six ambiguous intervals. \\
+Interior & All 128 angular sectors, with 128 initial radial cells in each;
+all recursively required child boxes. \\
+Geometry & All $480\times480=230{,}400$ grid centers. \\
+Finite tensor examples & 9,837 COMPLETE words, 27 PARITY words, five edge
+atoms, and 40,087 GROUP tangent pairs. \\
+\bottomrule
+\end{tabular}
+\end{center}
+The finite tensor examples check selected identities; their general forms are
+proved earlier.  For the interior run, the sector identifiers were independently
+checked to be exactly $0,\ldots,127$, without omissions or duplicates.  Each saved
+sector-input hash agreed with the corresponding reference hash, and every
+checker process returned success.  The interval checker rejects an unresolved
+box at its maximum depth rather than accepting it.
+
+The reproduced boundary output is
+\begin{verbatim}
+h -4180063084
+b 0 65536 amb 6 terms 7250 edge 128315602072 cap 152568202355
+\end{verbatim}
+In particular, the actual edge-sample minimum is
+\[
+ \frac{128315602072}{2^{52}}>28.49\cdot10^{-6}.
+\]
+The boundary proof uses this stronger measured minimum when paying its
+conservative endpoint and displacement allowances.  It does not replace it by
+the checker's weaker acceptance threshold $12\cdot10^{-6}$.
+A supplemental execution also asserted that each endpoint gap used in a
+nonambiguous boundary interval had actually been evaluated; its full output was
+unchanged.
+
+\paragraph{The interface with the analytic estimates.}
+The rational certificate gives
+\[
+ \varepsilon<3.329\cdot10^{-22},\qquad
+ \frac{6\varepsilon}{2\cdot10^{-9}}<10^{-12},\qquad
+ \varphi(0)-\log 3>7.0946\cdot10^{-6}.
+\]
+The logarithm comparison uses a finite positive series for
+$2\operatorname{atanh}(1/2)$ and an exact geometric remainder.
+The physical fourth-derivative coefficient sum is also checked exactly to be
+less than $435\cdot10^6$.
+
+The final-summary program takes the analytic interior margin
+$9.8\cdot10^{-8}$, boundary margin $5.5\cdot10^{-6}$, and inset cost
+$1.3\cdot10^{-6}$ as inputs; it does not prove those estimates.  The supplemental
+program \texttt{verify\_manuscript\_bounds.py} explicitly records this interface,
+checks the actual boundary minimum and the exact allowance subtractions, and
+rechecks the complete interior-sector identities and hashes.  The justification
+of each allowance, and hence of the continuum conclusion, is the analytic
+argument of \Cref{thm:certificate}.  These programs are not a proof-assistant
+formalization and do not claim a practical matrix-multiplication implementation.

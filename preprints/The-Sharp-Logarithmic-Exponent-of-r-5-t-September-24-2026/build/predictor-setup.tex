@@ -1,0 +1,243 @@
+\section{Preparing the sparse-pair description}
+\label{sec:predictor-setup}
+
+We now prove Theorem~\ref{thm:predictor}. The proof is by induction
+on the projective dimension \(d\). A large concentration on a proper
+flat reduces the dimension. Otherwise, a small collection of flats
+records all relevant concentrations, and the score in
+Section~\ref{sec:predictor-score} gives the required description.
+
+The following consequences of the parameter choices will be used
+throughout:
+\begin{equation}
+\label{eq:parameter-orders}
+ P=o(\sigma),\quad \log\sigma=o(P),\quad
+ R\log L=o(P),\quad b+P\tau=o(L),\quad L=o(P).
+\end{equation}
+For example, \(P\le3D\sigma^{9\beta}\), whereas
+\(D\le\sigma^{1-\eta/2}\); also \(b/L=O(\sigma^{-2\beta})\)
+and \(P\tau/L=R\tau=o(1)\).
+In particular, all fixed numerical constants used below are
+eventually smaller than \(R\).
+
+\subsection{Small sets and greedy removal of flats}
+
+Orient the input so that \(n=|S|\le|T|\), and put \(n=q^{1+v}\).
+Lemma~\ref{lem:incidence} gives \(n\le Cq^{(d+1)/2}\).
+If \(n\le100qP\), send \(n\) and the rank of \(S\) among the
+\(n\)-element subsets of the known set \(U_S\).
+The elementary inequality
+\(\binom{|U_S|}{n}\le(e|U_S|/n)^n\) bounds the message length by
+\[
+ O\bigl(\sigma+n(d_S+1)\bigr)
+ \le CqP(d_S+P).
+\]
+The decoder takes \(W=S\). Henceforth \(n>100qP\), so \(v>0\).
+
+Define
+\[
+ g_0=(v-\tfrac12)\sigma,\qquad g_1=(v-1)\sigma,\qquad
+ \xi=L/100,\qquad \chi=P/100,\qquad \chi_0=P/10000.
+\]
+The following two greedy procedures refer to the original value
+of \(n\), including in their thresholds.
+
+\begin{enumerate}
+\item If \(d=4\) and \(g_1>\chi_0\), repeatedly choose a hyperplane
+containing the largest number of remaining points of \(S\).
+Remove its remaining points whenever this number is at least \(q^2\).
+Stop as soon as at least \(n/2\) points have been removed, or when
+the maximum is below \(q^2\).
+In the first case retain the removed points and their ordered list
+of hyperplanes. In the second retain the residual and no list.
+If the procedure is not used, retain all of \(S\).
+Call the retained set \(S_1\).
+\item If \(d\ge3\) and \(g_0>\chi_0\), apply the same rule to planes
+and the points of \(S_1\), now with threshold
+\[
+ K_p=n^{4/3}q^{-1}\exp(-g_0/5).
+\]
+Stop on removing at least \(|S_1|/2\), or when the largest
+remaining plane count is below \(K_p\).
+Retain the removed points and the ordered plane list in the first
+case, and the residual with no plane list in the second.
+If this procedure is not used, retain \(S_1\).
+Write \(S'\) for the final training set and \(n'=|S'|\).
+\end{enumerate}
+
+Ties are resolved by a fixed ordering of flats. Each retained list
+partitions the training points by \emph{earliest membership}:
+a point belongs to the first listed flat containing it. The
+hyperplane partition, if present, is restricted to \(S'\) after
+the second procedure. The sizes of the original hyperplane
+cells, before that restriction, will also be used in the
+geometric analysis; they are not needed by the decoder.
+
+\begin{lemma}[Training data]
+\label{lem:training}
+The construction has \(n/4\le n'\le n\).
+If the hyperplane list or plane list is present, its length satisfies
+\[
+ J_h\le n/q^2,\qquad
+ J_p\le n/K_p=q^{1/2}\exp(-2g_0/15),
+\]
+respectively. If both lists are present, then
+\(J_hJ_p\le q^{13/15+o(1)}\).
+If a performed procedure retained a residual, that residual has
+the corresponding flat cap.
+
+If every training cell in both partitions has size less than
+\(.04n'\), then for each query point \(x\) define \(O_x\) as the
+union of the following cells: the cell of the earliest listed
+hyperplane containing \(x\), and the cell of the earliest listed
+plane containing \(x\). Omit a cell when no such flat exists.
+Then \(|O_x|/n'<.08\). We call this the \emph{small-cell case}.
+
+The ordered lists, \(n'\), all training cell sizes, and the table
+of intersections between the two partitions can be communicated
+in \(O(q)\) bits. From these data the decoder determines
+\(|O_x|/n'\) for every \(x\), and determines which samples belong
+to \(O_x\) from their flat memberships.
+\end{lemma}
+
+\begin{proof}
+Every retention keeps at least half the previous set.
+Each listed flat removes at least its threshold, and its assigned
+points are disjoint from those of earlier flats, proving the
+length bounds. In dimension four,
+\[
+ J_hJ_p
+ \le q^{v-1}q^{1/2-(2/15)(v-1/2)}
+ =q^{13v/15-13/30}
+ \le q^{13/15+o(1)},
+\]
+because \(v\le3/2+O(1/\sigma)\).
+Each single list has length at most \(q^{1/2+o(1)}\).
+A flat is described by a basis in a fixed coordinate system, using
+\(O(\sigma)\) bits; every cell or intersection size uses
+\(O(\sigma)\) bits as well. These bounds give \(O(q)\) in total.
+The union formula and the intersection table give \(|O_x|\).
+For a sampled point, earliest membership in a known list determines
+its cell. Finally the union involves at most two cells of size
+less than \(.04n'\).
+\end{proof}
+
+\subsection{A large cell reduces the dimension}
+
+Suppose a training cell has at least \(.04n'\) points.
+Its listed flat \(K_0\), of projective dimension \(2\le j<d\),
+satisfies
+\[
+ S_0=S\cap K_0,\qquad |S_0|\ge .01n.
+\]
+The encoder sends \(K_0\), with a canonical coordinate system.
+The average incidence proportion from \(T\) into \(S_0\) is at
+most \(100\tau/q\). Delete members whose proportion exceeds
+\(\sqrt\tau/q\). This loses at most \(100\sqrt\tau\,|T|\) members,
+so leaves at least \(|T|/2\) for large \(q\).
+Each remaining covector restricts nontrivially to \(K_0\).
+
+Normalize each nonzero projective restriction. Each restriction
+has at most \(q^{d-j}\) projective lifts: after fixing one
+nonzero restricted coordinate to be \(1\), the remaining \(d-j\)
+coordinates are free. Among the dyads \([l,2l)\) of lift
+multiplicity, choose one carrying at least \(|T|/(C\sigma)\)
+of the retained lift mass. Let \(T_0\) be its set of distinct
+restrictions. Then
+\begin{equation}
+\label{eq:reduced-pair}
+ |S_0||T_0|\ge q^{j+1}\exp\{-b-O(\log\sigma)\},
+ \qquad
+ \frac{e(S_0,T_0)}{|S_0||T_0|}\le\frac{\sqrt\tau}{q}.
+\end{equation}
+Indeed, the number of restrictions is at least the retained mass
+divided by \(2l\), and \(l\le q^{d-j}\).
+The density assertion holds for each restriction separately,
+so forgetting its multiplicity causes no problem.
+
+The decoder's enclosures are
+\[
+ U_{S_0}=U_S\cap K_0,\qquad
+ U_{T_0}=\{\text{nonzero projective restrictions with at least \(l\) lifts in \(U_T\)}\}.
+\]
+Their logarithmic gaps are bounded by
+\(d_S+O(1)\) and \(d_T+O(\log\sigma)\).
+The extra term in \(b\) in \eqref{eq:reduced-pair} is absorbed in
+\(O(D\sigma^{6\beta})\). Moreover,
+\[
+ \sqrt\tau\le
+ \sigma^{-200\cdot2^{j-2}\beta}\qquad(j<d).
+\]
+Thus the induction hypothesis applies after orienting the reduced
+pair so that its smaller side is first. The dimension decreases,
+and its initial value is at most four.
+
+If the recursive output captures \(S_0\), it already captures
+a constant fraction of \(S\) in a set of size at most \(ne^{CP}\).
+Intersect it with \(U_S\), if necessary.
+If instead it captures \(T_0\), let \(W_0\) be the decoded set and
+\(C_0=W_0\cap T_0\) its hidden capture, with
+\(|C_0|\ge c|T_0|\) and \(|W_0|/|C_0|\le e^{CP}\).
+We convert this to a capture on the original side.
+
+Take \(h=\lceil Cq(d_S+1)\rceil\) independent uniform samples
+from \(C_0\), temporarily using the true hidden-set law.
+On \(U_S\cap K_0\) define the cap
+\[
+ W=\{x:\text{fewer than } .2h/q
+       \text{ of the sampled restrictions annihilate }x\}.
+\]
+By Lemma~\ref{lem:incidence}, at most \(C'q^{j+1}/|T_0|\)
+points in the whole \(j\)-space have incidence proportion
+less than \(.5/q\) into \(C_0\).
+Every other point belongs to \(W\) with probability at most
+\(\exp(-ch/q)\).
+The bounds
+\[
+ |U_S\cap K_0|\le e^{d_S}n,\qquad
+ n\le Cq^{j+1}/|T_0|
+\]
+therefore imply, by increasing \(C\) and applying Markov's
+inequality, that
+\[
+ |W|\le C''q^{j+1}/|T_0|
+ \le n\exp\{O(b+\log\sigma+1)\}
+\]
+with probability at least \(.9\).
+The second displayed inequality for \(n\) follows by applying
+mixing to \(S_0,T_0\) and using \(|S_0|\ge .01n\).
+
+Every member of \(T_0\) has incidence proportion at most
+\(\sqrt\tau/q\) into \(S_0\). Consequently every all-in-\(C_0\)
+sample row, regardless of its bias, loses at most
+\(5\sqrt\tau\,|S_0|\) points of \(S_0\) under this test:
+sum the hit counts and divide by the rejection threshold.
+Thus a row satisfying the size test also captures at least
+\(.9|S_0|\) for large \(q\).
+
+To implement this sampling with a message, send the integer \(h\)
+and use a fresh table indexed by this row length.
+Its \(O(\sigma)\)-bit cost is absorbed in the bounds below.
+Propose independent rows uniform in the known \(W_0\).
+A row falls entirely in \(C_0\)
+and passes the size test with probability at least
+\(.9e^{-ChP}\). Searching at most \(\exp(C'hP)\) rows gives
+failure probability \(O(e^{-cq})\), and its row index takes
+\(O(hP)\) bits. Conditional on being all in \(C_0\), a proposed
+row is exactly iid uniform in \(C_0\); the comparison is made
+before searching. After search, no unbiased-sampling assertion
+is used.
+
+The flat, dyad, recursive message, row length and optional conversion
+have total length \(O(qP(d_S+d_T+P))\).
+Here the recursive increases of \(O(\log\sigma)\) in the gaps
+are absorbed because \(\log\sigma=o(P)\).
+There are at most two dimension reductions, and each uses
+fresh tables. The constants and failure probabilities can
+therefore be absorbed in those of Theorem~\ref{thm:predictor}.
+
+We have reduced the proof to training data satisfying the small-cell
+case of Lemma~\ref{lem:training}. The next section bounds the rich
+radial configurations that can correlate incidence tests at one
+query point. Those bounds will be applied separately to validation
+on \(S'\) and to output size in the ambient space.

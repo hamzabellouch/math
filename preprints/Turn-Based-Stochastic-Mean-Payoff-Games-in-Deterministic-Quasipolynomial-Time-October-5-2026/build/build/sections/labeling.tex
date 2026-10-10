@@ -1,0 +1,608 @@
+\section{Simultaneous labeling for discounted monotone maps}
+\label{sec:labeling}
+
+We now construct the labels that will permit a box to shrink while
+retaining the integer comparison vectors around the discounted fixed
+point.  The construction depends only on order and on the response to
+a common translation.  We therefore work in the following abstract
+setting: $n\ge1$ and $F:\R^n\to\R^n$ satisfy
+\begin{equation}
+ t\le t'\ \Longrightarrow\ F(t)\le F(t'),\qquad
+ F(t+c\one)=F(t)+\gamma c\one
+ \quad(t\in\R^n,\ c\in\R),\qquad 0<\gamma<1.
+ \label{eq:label-map}
+\end{equation}
+All vector inequalities, minima, maxima, and floors in this section
+are coordinatewise.  The algorithm uses $F$ only by evaluating
+$\lfloor F(t)\rfloor$ at integer vectors $t$.
+
+The two pivot passes and subsequent mass change adapt the simultaneous
+labeling construction of
+\cite[Sections~4--5]{OpenAI2026Deterministic}.  Here the operator has
+the discounted translation rule in Equation~\eqref{eq:label-map}.
+The proof below establishes the required labeling theorem directly;
+the signs of the witness translations are what make that adaptation
+possible.
+
+\subsection{Witnesses and the labeling guarantee}
+
+An input consists of $A\in\Z^n$, a width
+\begin{equation}
+ D=h2^d,\qquad 128\le h\le255,\quad h,d\in\Z,\quad d\ge0,
+ \label{eq:label-width}
+\end{equation}
+and positive rational mass vectors $a,b\in\mathbb Q_{>0}^n$.
+Write $u=A+D\one$, $P=D/32$, and
+$a(S)=\sum_{i\in S}a_i$, $b(S)=\sum_{i\in S}b_i$ for
+$S\subseteq\{1,\ldots,n\}$.  The representation in
+Equation~\eqref{eq:label-width} is unique.  Its short range of
+mantissas will later allow small relative decreases in the width.
+
+\begin{definition}[Witnesses and claims]
+\label{def:label-witness}
+An integer vector $y\in[A,u]$ is a \emph{subsolution in the box} if
+\[
+ F_i(y)\ge y_i\quad\text{for every }i\in S_y,
+ \qquad S_y=\{i:y_i>A_i\}.
+\]
+It is a \emph{plus witness} if also $a(S_y)\le1$; its claims are
+the indices $i$ for which $y_i\ge u_i-P$.
+
+An integer vector $z\in[A,u]$ is a \emph{supersolution in the box} if
+\[
+ F_i(z)\le z_i\quad\text{for every }i\in S_z,
+ \qquad S_z=\{i:z_i<u_i\}.
+\]
+It is a \emph{minus witness} if also $b(S_z)\le1$; its claims are
+the indices $i$ for which $z_i\le A_i+P$.
+The sets $S_y,S_z$ are the respective supports.  A witness is
+\emph{relevant} if it has at least one claim.
+\end{definition}
+
+Every claim belongs to its witness's support, since $0<P<D$.
+The output must respect all these claims simultaneously, although
+the algorithm is not given any witness and does not search for one.
+
+\begin{theorem}[Recursive simultaneous labeling]
+\label{thm:labeling}
+Let $F:\R^n\to\R^n$ satisfy Equation~\eqref{eq:label-map}.
+There is a terminating deterministic procedure $\cL(A,D,a,b)$,
+using exact evaluations of $\lfloor F(t)\rfloor$ for $t\in\Z^n$
+and integer and rational arithmetic, with the following guarantee.
+For every input as in Equation~\eqref{eq:label-width} and
+Definition~\ref{def:label-witness}, its output
+$\ell\in\{+,-\}^n$ satisfies
+\[
+ \begin{aligned}
+ y_i\ge A_i+D-P&\ \Longrightarrow\ \ell_i=+
+       &&\text{for every plus witness }y,\\
+ z_i\le A_i+P&\ \Longrightarrow\ \ell_i=-
+       &&\text{for every minus witness }z.
+ \end{aligned}
+\]
+\end{theorem}
+
+The existence of a labeling will already follow from the finite box
+iteration below.  The purpose of the recursive construction is to
+obtain such labels with the controlled branching and decreasing rank
+of Lemma~\ref{lem:label-rank}, replacing dependence on the numerical
+width by dependence on its exponent.
+
+\begin{lemma}[Comparison and a finite box iteration]
+\label{lem:label-comparison}
+Every subsolution $y$ and supersolution $z$ in the same box satisfy
+$y\le z$.  Starting at $t^0=u$, the iteration
+\begin{equation}
+ t^{m+1}=T(t^m),\qquad
+ T(t)=\min\{u,\max\{A,\lfloor F(t)\rfloor\}\},
+ \label{eq:label-floor}
+\end{equation}
+stops at a vector $t^*$ after at most $nD+1$ evaluations of $T$.
+For every such pair $y,z$ one has $y\le t^*\le z$.
+\end{lemma}
+
+\begin{proof}
+If $m=\max_j(y_j-z_j)>0$, choose $i$ with $y_i-z_i=m$.
+Since $y_i>z_i\ge A_i$ and $z_i<y_i\le u_i$, both defining
+inequalities apply at $i$.  Monotonicity and the common translation
+rule give
+\[
+ m\le F_i(y)-F_i(z)
+   \le F_i(z+m\one)-F_i(z)=\gamma m,
+\]
+a contradiction.
+
+The map $T$ preserves the finite integer box and is monotone.
+Moreover $T(u)\le u$, so induction gives $t^{m+1}\le t^m$.
+Each changing step decreases the nonnegative integer
+$\sum_i(t_i^m-A_i)$ by at least one.  Its initial value is $nD$,
+which proves the termination bound, including the final unchanged
+step.
+
+For an integer $y\in[A,u]$, the subsolution condition is equivalent
+to $y\le T(y)$.  Indeed, when $y_i>A_i$, the latter inequality is
+equivalent to $y_i\le\lfloor F_i(y)\rfloor$, and at the other
+coordinates it is automatic.  If $y$ is a subsolution, induction
+gives $y\le t^m$: from $y\le t^m$ one obtains
+$y\le T(y)\le T(t^m)=t^{m+1}$.  Thus $y\le t^*$.
+The fixed point $t^*=T(t^*)$ is itself a subsolution, and the
+comparison principle gives $t^*\le z$ for every supersolution $z$.
+\end{proof}
+
+\subsection{The recursive procedure}
+
+A \emph{centered call} of even width $r$ at an integer pivot $k$
+means the call $\cL(k-(r/2)\one,r,a',b')$ with the indicated
+masses.  All calls use the same map $F$.  In a nonbase call set
+\begin{equation}
+ c=A+\frac D2\one,\qquad M=\frac D8,\qquad
+ q=\frac D{128},\qquad p=\frac q{32}=\frac D{4096}.
+ \label{eq:label-scales}
+\end{equation}
+The pivot will stay between $c-M\one$ and $c+M\one$.
+The two passes use narrow centered boxes to identify some labels
+directly and arrange the remaining witnesses so that the later mass
+change preserves their admissibility. The downward pass preserves
+the plus masses, and the upward pass preserves the minus masses.
+A final wider centered call supplies the signs used to change both
+mass vectors.
+
+\medskip
+\noindent\textbf{Procedure $\cL(A,D,a,b)$.}
+Execute the first applicable base case.  If neither applies, execute
+Steps~3--6 in order.
+\begin{enumerate}
+\item \textbf{Mass base case.}
+If $a_i b_i>1$ for every $i$, return $+$ at $i$ when $b_i>1$,
+and return $-$ otherwise.
+
+\item \textbf{Width base case.}
+If $d<12$, compute $t^*$ by Equation~\eqref{eq:label-floor}.
+Return $+$ at $i$ when $t_i^*>A_i+D/2$, and return $-$ otherwise.
+
+\item \textbf{Downward pass.}
+Initialize $k=c$.  Make a centered width-$q$ call at $k$ with
+masses $(a,\frac43 b)$, and use its labels to update all coordinates
+simultaneously by
+\begin{equation}
+ k_i^{\mathrm{new}}=
+ \begin{cases}
+  \max\{c_i-M,k_i-p\},&\text{if the child labels }i\text{ by }-,\\
+  k_i,&\text{if the child labels }i\text{ by }+.
+ \end{cases}
+ \label{eq:label-down-update}
+\end{equation}
+Replace $k$ by $k^{\mathrm{new}}$ and repeat until an update leaves
+the pivot unchanged.  Denote this last pivot by $k^{\downarrow}$ and set
+\begin{equation}
+ I_- =\{i:k_i^{\downarrow}<c_i-P\}.
+ \label{eq:label-minus-override}
+\end{equation}
+
+\item \textbf{Upward pass.}
+Start at $k=k^{\downarrow}$.  Make a centered width-$q$ call at $k$
+with masses $(\frac43 a,b)$, and update simultaneously by
+\begin{equation}
+ k_i^{\mathrm{new}}=
+ \begin{cases}
+  \min\{c_i+M,k_i+p\},&\text{if the child labels }i\text{ by }+,\\
+  k_i,&\text{if the child labels }i\text{ by }-.
+ \end{cases}
+ \label{eq:label-up-update}
+\end{equation}
+Replace $k$ by $k^{\mathrm{new}}$ and repeat until an unchanged
+update.  Denote the last pivot by $k^f$ and set
+\begin{equation}
+ I_+ =\{i:k_i^f>c_i+P\}.
+ \label{eq:label-plus-override}
+\end{equation}
+
+\item \textbf{Provisional labels and new masses.}
+Make a centered width-$D/2$ call at $k^f$ with masses $(a,b)$.
+For its output $\ell^0$, define
+\begin{equation}
+ (\bar a_i,\bar b_i)=
+ \begin{cases}
+  (\frac45 a_i,\frac85 b_i),&\ell_i^0=+,\\[1mm]
+  (\frac85 a_i,\frac45 b_i),&\ell_i^0=-.
+ \end{cases}
+ \label{eq:label-reweight}
+\end{equation}
+
+\item \textbf{Continuation and overrides.}
+Call $\cL(A,D,\bar a,\bar b)$.  In its output replace the signs
+on $I_-$ by $-$ and those on $I_+\setminus I_-$ by $+$.
+Return this label vector.
+\end{enumerate}
+
+Each pass includes the final child call whose update changes nothing.
+That call will certify a mass inequality at the stopped pivot.  All
+coordinates in one update use the same old pivot and the same child
+output; there is no order-dependent coordinate update.
+
+The purpose of the passes is the following mass property. For every
+witness with a claim outside its own override set---$I_+$ for a plus
+witness and $I_-$ for a minus witness---the coordinates in its support
+whose provisional labels match its sign will have total mass greater
+than $3/4$. Here mass means $a$-mass for a plus witness and $b$-mass
+for a minus witness. Its original total mass is at most one, so
+Step~5 will leave its new total mass below
+\[
+                  \frac85-\frac45\cdot\frac34=1.
+\]
+It will therefore remain a witness for the continuation in the
+unchanged box. At the same time, every product $a_i b_i$ is multiplied
+by $32/25$. We first use this product growth to prove termination;
+the subsequent witness analysis proves the stated mass property and
+hence correctness.
+
+\begin{lemma}[Valid boxes and bounded passes]
+\label{lem:label-mechanics}
+Every child input is valid and its box lies inside its parent's box.
+If the child calls terminate, each pivot pass makes at most
+$1024n+1$ calls.  The width base case makes at most
+$522240n+1$ evaluations of $\lfloor F\rfloor$.
+\end{lemma}
+
+\begin{proof}
+In a nonbase call $d\ge12$, so $c,M,q,p$ and the half-widths
+$q/2,D/4$ are integral.  The centered widths have the allowed
+representations $q=h2^{d-7}$ and $D/2=h2^{d-1}$.
+The pivot caps keep $c-M\one\le k\le c+M\one$, and a centered
+box has width $r\le D/2$.  Its boundaries satisfy
+\[
+ k-\frac r2\one\ge A+\frac D8\one\ge A,
+ \qquad
+ k+\frac r2\one\le A+\frac{7D}8\one\le u.
+\]
+The continuation uses the same box.  All masses remain positive
+rationals.
+
+Every pivot coordinate lies on the grid of spacing $p$ through
+$c_i$, because $M/p=512$ is integral.  In a changing update some
+coordinate moves by $p$; each coordinate is monotone during a pass
+and travels at most $2M$, hence moves at most $1024$ times.
+There are at most $1024n$ changing updates, followed by one
+unchanged update.  Finally, $d<12$ implies
+$D\le255\cdot2^{11}=522240$, so the width bound follows from
+Lemma~\ref{lem:label-comparison}.
+\end{proof}
+
+The continuation preserves the width, so width reduction alone does
+not prove termination.  The mass products provide the missing
+measure.  Define
+\begin{equation}
+ \mu(a,b)=\min_i a_i b_i,\qquad \rho=\frac{32}{25},\qquad
+ B(\mu)=\min\{j\in\Z_{\ge0}:\rho^j\mu>1\}.
+ \label{eq:label-budget}
+\end{equation}
+This integer is used only in the proof, not computed by the procedure.
+
+\begin{lemma}[Rank and branching]
+\label{lem:label-rank}
+The procedure terminates.  At a nonbase call every child has smaller
+rank $d+B(\mu(a,b))$.  There is exactly one child preserving $B$,
+the provisional call, and it decreases $d$ by one.  There are at most
+$2048n+3$ other children; each decreases $B$ by at least one and
+does not increase $d$.
+\end{lemma}
+
+\begin{proof}
+At a nonbase call $B(\mu)>0$, since otherwise the mass base case
+would apply.  Whenever $\mu'\ge\rho\mu$, the definition gives
+$B(\mu')\le B(\mu)-1$.  Both pivot passes multiply every mass
+product by $4/3\ge\rho$.  The continuation multiplies every mass
+product by $(4/5)(8/5)=\rho$, independently of the provisional
+label.  These children reduce $B$ and preserve or reduce $d$.
+Only the provisional call keeps the masses; it halves the width
+and reduces $d$ by one.  This proves the rank assertion.
+
+Induction on the nonnegative rank proves termination.  The base cases
+are finite by their definitions and Lemma~\ref{lem:label-mechanics}.
+At a nonbase call every child terminates by induction, and the bound
+on each pivot pass then applies.  The number of children decreasing
+$B$ is at most $2(1024n+1)+1=2048n+3$.
+\end{proof}
+
+\subsection{Translating a witness into a centered box}
+
+To analyze the labels, we follow an arbitrary parent witness through
+the centered calls.  Translation places its largest deviation from
+the pivot at one boundary of the child box; clipping removes
+coordinates far below that largest deviation.  The surviving support
+will identify the mass forced near the largest deviation when a
+pivot pass stops.
+
+Fix a nonbase input and a pivot $k\in[c-M\one,c+M\one]$.
+For a relevant plus witness $y$, define its \emph{peak} and
+\emph{gaps} by
+\begin{equation}
+ s_y(k)=\max_i(y_i-k_i),\qquad
+ g_i^y(k)=s_y(k)-(y_i-k_i).
+ \label{eq:label-plus-gaps}
+\end{equation}
+For a relevant minus witness $z$, put
+\begin{equation}
+ s_z(k)=\max_i(k_i-z_i),\qquad
+ g_i^z(k)=s_z(k)-(k_i-z_i).
+ \label{eq:label-minus-gaps}
+\end{equation}
+The gaps are nonnegative integers and at least one gap is zero.
+The following lemma handles both signs, including the inequalities
+introduced by the discount factor.
+
+\begin{lemma}[Translation and clipping]
+\label{lem:label-translation}
+Let $r\in\{q,D/2\}$ and let $y$ or $z$ be a relevant witness
+of the parent box.  Define, according to its sign,
+\begin{equation}
+ \begin{aligned}
+ y'_i&=\max\{k_i-r/2,\ y_i-s_y(k)+r/2\},\\
+ z'_i&=\min\{k_i+r/2,\ z_i+s_z(k)-r/2\}.
+ \end{aligned}
+ \label{eq:label-translation}
+\end{equation}
+The resulting vector is an integer subsolution or supersolution,
+respectively, in the centered width-$r$ box.  Its support is exactly
+$\{i:g_i(k)<r\}$, which is contained in the parent's support.
+It claims every index with $g_i(k)\le r/32$.  It is a witness
+for that child whenever its support has mass at most one for the
+child's mass vector of the corresponding sign.
+\end{lemma}
+
+\begin{proof}
+A parent claim gives, in either case,
+\begin{equation}
+ s(k)\ge D/2-M-P=11D/32.
+ \label{eq:label-peak-lower}
+\end{equation}
+Outside the parent support one has $y_i=A_i$ or $z_i=u_i$.
+The corresponding deviation is at most $-D/2+M=-3D/8$,
+so its gap is at least $23D/32>D/2$.  Such an index cannot
+belong to $\{i:g_i(k)<r\}$.
+
+Before clipping, the two expressions on the right of
+Equation~\eqref{eq:label-translation} are
+\[
+ k_i+r/2-g_i^y(k),\qquad
+ k_i-r/2+g_i^z(k),
+\]
+respectively.  They lie on the correct side of the far boundary;
+clipping at the other boundary puts the vector in the child box.
+These expressions also show directly that the support is exactly
+the set of gaps strictly below $r$, and that every gap at most
+$r/32$ gives a claim.
+
+For the plus case let $t=-s_y(k)+r/2<0$, where the strict sign
+follows from Equation~\eqref{eq:label-peak-lower} and $r/2\le D/4$.
+One has $y'\ge y+t\one$.  At an index in the child support,
+equality holds in that coordinate, and the parent subsolution
+inequality applies.  Therefore
+\[
+ F_i(y')\ge F_i(y+t\one)=F_i(y)+\gamma t
+          \ge y_i+t=y'_i,
+\]
+using $\gamma t\ge t$.  For the minus case let
+$t=s_z(k)-r/2>0$.  Now $z'\le z+t\one$, with coordinatewise
+equality on the child support, and
+\[
+ F_i(z')\le F_i(z+t\one)=F_i(z)+\gamma t
+          \le z_i+t=z'_i,
+\]
+using $\gamma t\le t$.  Thus the required inequalities survive
+both translation and clipping.  The stated mass condition is
+exactly the remaining condition for being a child witness.
+\end{proof}
+
+\subsection{What the two pivot passes enforce}
+
+We prove correctness by induction on the rank from
+Lemma~\ref{lem:label-rank}.  For the remainder of this subsection,
+fix a nonbase call and assume that all its children satisfy
+Theorem~\ref{thm:labeling}.  Witnesses, supports, and claims refer
+to the parent input unless stated otherwise.
+
+In each pass, the sign whose masses are unchanged protects its own
+peak: coordinates close enough to that peak must receive its sign
+and remain stationary.  The opposite sign has its masses multiplied
+by $4/3$.  At the final unchanged update, any witness of that sign
+with a claim outside its override set must consequently have mass greater than
+$3/4$ near its peak.  The next two lemmas make these statements
+precise.
+
+\begin{lemma}[The downward pass]
+\label{lem:label-down}
+For every relevant plus witness $y$, the peak $s_y(k)$ is constant
+throughout the downward pass and at most $D/2$.  No plus witness
+claims an index in $I_-$.  Every minus witness $z$ with a claim
+outside $I_-$ satisfies
+\begin{equation}
+ b\bigl(\{i:g_i^z(k^{\downarrow})<q\}\bigr)>3/4.
+ \label{eq:label-down-mass}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Fix a relevant plus witness $y$ and consider an update from $k$.
+The width-$q$ translation in Lemma~\ref{lem:label-translation}
+is a plus witness for the child, since the plus masses are unchanged
+and its support is contained in $S_y$.  Its claims include all
+indices with $g_i^y(k)\le q/32=p$.  The child labels all of them
+by $+$, so they do not move.  In particular, every peak achiever
+continues to attain the old peak.
+
+At any other coordinate let $\delta_i=k_i-k_i^{\mathrm{new}}$.
+Then $0\le\delta_i\le p$ and
+\[
+ y_i-k_i^{\mathrm{new}}
+   =s_y(k)-g_i^y(k)+\delta_i<s_y(k).
+\]
+Thus no moving coordinate reaches the old peak, even when several
+coordinates move simultaneously.  The peak is unchanged.  At the
+initial pivot $c$, $y\le u$ gives $s_y(c)\le D/2$.  If $y$
+claims $i$, it follows that
+\[
+ k_i^{\downarrow}\ge y_i-D/2
+    \ge A_i+D/2-P=c_i-P,
+\]
+so $i\notin I_-$.
+
+For the mass assertion, let $z$ claim $j\notin I_-$.  Then
+$k_j^{\downarrow}\ge c_j-P$ and $z_j\le A_j+P$, whence
+\begin{equation}
+ s_z(k^{\downarrow})\ge D/2-2P=7D/16>D/2-M.
+ \label{eq:label-down-uncapped}
+\end{equation}
+At a lower-capped coordinate $k_i^{\downarrow}=c_i-M$ one instead
+has $k_i^{\downarrow}-z_i\le D/2-M$, since $z_i\ge A_i$.
+Every peak achiever is therefore strictly above the lower cap.
+
+If the mass in Equation~\eqref{eq:label-down-mass} were at most
+$3/4$, the width-$q$ translation of $z$ would have support mass
+at most one under the final child's minus masses $\frac43 b$.
+It would be a minus witness and would claim every peak achiever.
+The child would label such a coordinate by $-$, forcing it to move
+down because it is above the lower cap.  This contradicts the
+unchanged update.  The mass is therefore strictly greater than
+$3/4$.
+\end{proof}
+
+\begin{lemma}[The upward pass]
+\label{lem:label-up}
+For every relevant minus witness $z$, the peak $s_z(k)$ is constant
+throughout the upward pass and at most $D/2$.  No minus witness
+claims an index in $I_+$.  At the final pivot the following mass
+inequalities hold:
+\begin{align}
+ b\bigl(\{i:g_i^z(k^f)<q\}\bigr)&>3/4
+ &&\text{if $z$ has a claim outside $I_-$},
+ \label{eq:label-final-minus-mass}\\
+ a\bigl(\{i:g_i^y(k^f)<q\}\bigr)&>3/4
+ &&\text{if $y$ has a claim outside $I_+$}.
+ \label{eq:label-final-plus-mass}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Fix a relevant minus witness $z$.  The width-$q$ translation is a
+minus witness for every child in this pass because the minus masses
+are unchanged.  All coordinates with $g_i^z(k)\le p$ must receive
+$-$ and stay fixed.  In particular a peak achiever stays fixed.
+At a coordinate with $g_i^z(k)>p$, write
+$\delta_i=k_i^{\mathrm{new}}-k_i\in[0,p]$.  Then
+\[
+ k_i^{\mathrm{new}}-z_i
+    =s_z(k)-g_i^z(k)+\delta_i<s_z(k).
+\]
+No coordinate overtakes the peak, so the peak is constant.  At the
+starting pivot $k^{\downarrow}\le c$ and $z\ge A$, it is at most
+$D/2$.  A minus claim at $i$ consequently implies
+\[
+ k_i^f\le z_i+D/2\le A_i+P+D/2=c_i+P,
+\]
+excluding $i$ from $I_+$.  Because the peak is constant and $k$
+only increases during this pass, every gap $g_i^z(k)$ is
+nonincreasing.  Thus the set of gaps below $q$ can only grow,
+and Equation~\eqref{eq:label-down-mass} implies
+Equation~\eqref{eq:label-final-minus-mass}.
+
+Now let a plus witness $y$ claim $j\notin I_+$.  At the final
+pivot $k_j^f\le c_j+P$ and $y_j\ge A_j+D-P$, so
+\[
+ s_y(k^f)\ge D/2-2P=7D/16>D/2-M.
+\]
+An upper-capped coordinate $k_i^f=c_i+M$ has
+$y_i-k_i^f\le D/2-M$, since $y_i\le u_i$.  Every peak
+achiever is strictly below the upper cap.  If the mass in
+Equation~\eqref{eq:label-final-plus-mass} were at most $3/4$,
+its width-$q$ translation would be a plus witness for the last
+child, whose plus masses are $\frac43 a$.  Every peak achiever
+would have label $+$ and would move up, contradicting the final
+unchanged update.  This proves the remaining inequality.
+\end{proof}
+
+The two passes have now separated the claims into those that can
+safely receive an override and those whose witnesses have substantial
+mass near a peak at $k^f$.  The wider provisional call labels all
+that mass with the witness's sign.  Reducing the masses of that sign
+then keeps each remaining witness admissible for the continuation.
+Figure~\ref{fig:labeling-passes} summarizes how the two passes supply
+the information used in this final step.
+
+\begin{figure}[!htb]
+ \centering
+ \input{figures/labeling}
+ \caption{The two passes preserve opposite peaks and force opposite
+ mass inequalities.  A remaining witness means one with a claim
+ outside its own override set: $I_+$ for plus witnesses and $I_-$
+ for minus witnesses.  The upward pass preserves the mass inequality
+ obtained during the downward pass.}
+ \label{fig:labeling-passes}
+\end{figure}
+
+\subsection{Mass reweighting and completion of the proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:labeling}]
+Termination follows from Lemma~\ref{lem:label-rank}; we prove the
+labeling guarantee by induction on the same rank.  In the mass
+base case, an index labeled $+$ has $b_i>1$, so no minus witness
+can contain that index in its support or claim it.  At an index
+labeled $-$ one has $b_i\le1$ and $a_i b_i>1$, hence $a_i>1$;
+no plus witness can claim that index.  This proves both guarantees.
+
+In the width base case, Lemma~\ref{lem:label-comparison} gives
+$y\le t^*\le z$ for all witnesses.  A plus claim forces
+$t_i^*\ge u_i-P>A_i+D/2$; a minus claim forces
+$t_i^*\le A_i+P<A_i+D/2$.  Thus the returned signs are correct.
+
+For a nonbase call, assume correctness of all its children.  Let
+$Q_+=\{i:\ell_i^0=+\}$ and $Q_-=\{i:\ell_i^0=-\}$ be the
+provisional sign sets.  Consider a plus witness $y$ that has a
+claim outside $I_+$.  By Equation~\eqref{eq:label-final-plus-mass},
+the set $G_y=\{i:g_i^y(k^f)<q\}$ has $a$-mass greater than
+$3/4$.  It lies in $S_y$ by Lemma~\ref{lem:label-translation}.
+Apply that lemma with width $r=D/2$ to the provisional call.
+Its plus masses are unchanged, so the translated vector is a
+plus witness.  Since
+\[
+ q=D/128<D/64=r/32,
+\]
+every index in $G_y$ is a claim of this translated witness.
+All these indices belong to $Q_+$ by the child's guarantee.
+Consequently
+\begin{equation}
+ \bar a(S_y)
+   =\frac85 a(S_y)-\frac45 a(S_y\cap Q_+)
+   <\frac85-\frac45\cdot\frac34=1.
+ \label{eq:label-plus-survives}
+\end{equation}
+The parent vector $y$ is still a subsolution in the unchanged box,
+so it is a plus witness for the continuation.
+
+For a minus witness $z$ having a claim outside $I_-$, the set
+$G_z=\{i:g_i^z(k^f)<q\}$ has $b$-mass greater than $3/4$ by
+Equation~\eqref{eq:label-final-minus-mass}.  It lies in $S_z$.
+The width-$D/2$ minus translation is a witness for the provisional
+call because the minus masses are unchanged; every index in $G_z$
+is one of its claims, and hence belongs to $Q_-$.  Therefore
+\begin{equation}
+ \bar b(S_z)
+   =\frac85 b(S_z)-\frac45 b(S_z\cap Q_-)
+   <\frac85-\frac45\cdot\frac34=1.
+ \label{eq:label-minus-survives}
+\end{equation}
+The same vector $z$ is a minus witness for the continuation.
+
+It remains to check every claim after the overrides.  Let $y$
+claim $i$.  Lemma~\ref{lem:label-down} gives $i\notin I_-$.
+If $i\in I_+$, it receives the plus override.  If $i\notin I_+$,
+Equation~\eqref{eq:label-plus-survives} applies to $y$, the
+continuation labels $i$ by $+$, and no override changes it.
+Now let $z$ claim $i$.  Lemma~\ref{lem:label-up} gives
+$i\notin I_+$.  If $i\in I_-$, it receives the minus override.
+Otherwise Equation~\eqref{eq:label-minus-survives} applies to $z$,
+and the continuation's minus label is unchanged.  In particular
+$I_-\cap I_+$ contains no claim of either sign, so the stated
+priority between overrides causes no conflict.  This completes
+the induction.
+\end{proof}

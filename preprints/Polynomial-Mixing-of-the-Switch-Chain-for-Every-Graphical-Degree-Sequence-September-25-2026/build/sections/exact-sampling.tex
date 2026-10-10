@@ -1,0 +1,171 @@
+\section{Exact uniform sampling}
+\label{sec:exact-sampling}
+
+We use the rare residual-mixture construction of G\"obel, Liu,
+Manurangsi, and Pappik~\cite[Section~3.1, Algorithm~1 and
+Theorem~6]{GLMP2024}. Their Corollary~15 computes the approximate law
+by powers of the transition matrix. Exact tabulation is also used in
+the contingency-table sampler~\cite[Sections~6.3--6.4]{OpenAIContingency2026}. Here we
+establish the tabulation and bit-cost bounds directly for the rational
+switch chain.
+
+The idea is to sample from a very accurate finite-time law $p$ most of
+the time, and to correct its remaining bias on a rare branch. For a
+suitably small $\delta>0$, we will have $(1-\delta)p\le\pi_d$ pointwise.
+Then
+\[
+ r=\frac{\pi_d-(1-\delta)p}{\delta}
+\]
+is a probability law, and the mixture $(1-\delta)p+\delta r$ is exactly
+$\pi_d$. Only the branch of probability $\delta$ enumerates the state
+space and tabulates $p$ to sample from $r$. We choose $\delta$
+exponentially small enough to pay for that enumeration in expectation;
+the chain still reaches the required accuracy in polynomially many
+steps.
+
+\begin{proof}[Proof of Corollary~\ref{cor:exact-sampling}]
+We use the usual explicit binary encoding of the degree vector, with
+delimiters between its entries. Let $n$ be the number of entries of
+$d$. For $n<4$,
+enumerate the at most $2^3$ simple graphs and retain those with the
+specified labeled degrees. The unbiased integer draw described below
+samples uniformly from this nonempty constant-size set. We may
+therefore assume $n\ge4$ and use the notation of
+Section~\ref{sec:introduction}. Havel's greedy degree-realization
+procedure~\cite{Havel55}, with deterministic tie-breaking, constructs
+one graph $G_0\in\Omega_d$ in polynomial bit time.
+
+\paragraph{An accurate rational law.}
+Set
+\begin{equation}\label{exact:parameters}
+\begin{gathered}
+ B=\binom n2,\qquad M=|\Omega_d|\le2^B,\qquad
+ q=12\binom n4,\\
+ D=4B+10,\qquad \delta=2^{-D},\qquad
+ t=\left\lceil\gamma_0^{-1}(B+2D+2)\right\rceil,
+\end{gathered}
+\end{equation}
+where $\gamma_0=[24n^2\binom n4]^{-1}$ is from
+Equation~\eqref{mix:gamma}. Thus $D=O(n^2)$ and $t=O(n^8)$.
+Write $p_G=P_d^t(G_0,G)$. If $M>1$, Equation~\eqref{mix:TV} gives
+\[
+ \|p-\pi_d\|_{\mathrm{TV}}
+ \le\frac12\sqrt M\,e^{-\gamma_0t}
+ \le\frac12\,2^{B/2}e^{-(B+2D+2)}
+ \le2^{-2D}=\delta^2.
+\]
+The last inequality follows from $2<e$ and $B,D\ge0$.
+If $M=1$, then $p=\pi_d$, so the same bound holds.
+Applying total variation to the singleton event $\{G\}$ gives
+$p_G\le1/M+\delta^2$. Since $M\delta\le2^{B-D}\le1$,
+\begin{equation}\label{exact:domination}
+ (1-\delta)p_G
+ \le\frac{1-\delta}{M}+(1-\delta)\delta^2
+ \le\frac1M
+ \qquad(G\in\Omega_d).
+\end{equation}
+The parameters in Equation~\eqref{exact:parameters}, apart from the
+analytical quantity $M$, are computable from $n$ in polynomial bit
+time. The ordinary sampling branch below does not need to know $M$.
+
+For distinct $G,H$, the proof of Theorem~\ref{thm:main} shows that
+$qP_d(G,H)$ is one for switch neighbors and zero otherwise. The row
+sum identity gives
+\[
+ qP_d(G,G)=q-\bigl|\{H\ne G:H\text{ is a switch neighbor of }G\}\bigr|,
+\]
+which is also a nonnegative integer. Hence $A=qP_d$ is a
+nonnegative integer matrix whose rows sum to $q$. Starting with the
+integer point mass $a^{(0)}$ at $G_0$, define
+\begin{equation}\label{exact:law}
+ a^{(s+1)}=a^{(s)}A\quad(0\le s<t).
+ \qquad
+ p_G=\frac{a_G^{(t)}}{q^t},
+ \qquad
+ \sum_{G\in\Omega_d}a_G^{(t)}=q^t.
+\end{equation}
+All numerators are nonnegative integers.
+
+We can tabulate this law exactly when needed. Enumerate all $2^B$
+adjacency bit strings and retain exactly those whose labeled degrees
+are $d$; this also computes $M$. Each degree test has polynomial bit
+cost. For every retained pair of graphs, the switch-neighbor test and
+the corresponding entry of $A$ are computable in polynomial bit time.
+Dense propagation in Equation~\eqref{exact:law} uses at most $tM^2$
+integer multiply-add operations. At step $s$, every numerator and
+every partial nonnegative sum is at most $q^s$ or $q^{s+1}$,
+respectively. Their bit lengths are therefore $O(t\log q)$, which is
+polynomial in $n$. With, for example, schoolbook integer arithmetic,
+the complete enumeration and tabulation cost at most
+\begin{equation}\label{exact:tabulation-cost}
+ 2^{2B}\operatorname{poly}(n)
+\end{equation}
+bit operations. The enumerated graph universe depends only on $n$,
+not on the accuracy parameter $D$.
+
+\paragraph{Exact correction.}
+We first specify the elementary random choice used throughout.
+For an integer $K\ge1$, a uniform element of $\{0,\ldots,K-1\}$ is
+obtained by drawing $\lceil\log_2 K\rceil$ independent unbiased bits
+and repeating if the resulting integer is at least $K$; for $K=1$
+use zero bits. Each attempt succeeds with probability greater than
+$1/2$, except that a power of two succeeds with probability one.
+The draw is exact, terminates almost surely, and uses fewer than two
+attempts in expectation. An attempt has bit cost polynomial in
+$\log(K+1)$.
+
+Draw $D$ fresh unbiased bits. If they are not all zero, run exactly
+$t$ steps of $P_d$ from $G_0$ and output the resulting graph.
+Each step uses one bit for the holding decision and the preceding
+integer draw to choose a uniform four-element vertex set and one of
+the six ordered matching pairs. A four-set can be selected by
+unranking its index in the lexicographic list, in polynomial bit
+time. This implements $P_d$ exactly. The branch has output law $p$,
+terminates almost surely, and has expected polynomial bit cost.
+
+If the $D$ bits are all zero, perform the exact tabulation above and
+write $a_G=a_G^{(t)}$. Form the integer weights
+\begin{equation}\label{exact:weights}
+ w_G=2^Dq^t-M(2^D-1)a_G,
+ \qquad
+ \sum_{G\in\Omega_d}w_G=Mq^t.
+\end{equation}
+They are nonnegative by Equation~\eqref{exact:domination}; their sum
+uses $\sum_Ga_G=q^t$. Their bit lengths are
+$O(D+t\log q+\log M)$, again polynomial in $n$. Draw a uniform
+integer in $\{0,\ldots,Mq^t-1\}$ and select its interval in the
+cumulative weights $w_G$. This samples exactly the probability law
+\[
+ r_G=\frac{w_G}{Mq^t}
+     =\frac{1/M-(1-\delta)p_G}{\delta}.
+\]
+Use fresh random bits in all draws after the branch decision.
+The correction branch has probability $\delta$, so the output law is
+\begin{equation}\label{exact:mixture}
+ (1-\delta)p_G+\delta r_G=\frac1M
+ \qquad(G\in\Omega_d).
+\end{equation}
+Thus the output is exactly uniform.
+
+\paragraph{Bit cost and termination.}
+Every enumeration and integer computation on the correction branch
+is finite. All rejection draws terminate almost surely; only finitely
+many such draws are invoked on either branch. Hence the complete
+algorithm terminates almost surely. The preprocessing, branch choice,
+and ordinary branch have expected polynomial bit cost. By
+Equation~\eqref{exact:tabulation-cost}, the conditional expected cost
+of the correction branch, including its final exact integer draw and
+cumulative scan, is at most $2^{2B}\operatorname{poly}(n)$. Its
+contribution to the unconditional expectation is
+\[
+ \delta\,2^{2B}\operatorname{poly}(n)
+ =2^{-2B-10}\operatorname{poly}(n)
+ \le\operatorname{poly}(n).
+\]
+All loops, graph tests, and integer computations are specified by one
+algorithm, and the input explicitly lists $n$ degrees. The resulting
+expected bit bound is therefore a fixed polynomial in the input
+length. The correction branch may take exponential time, and the
+rejection draws have unbounded tails; the conclusion is an expected
+bound, not a polynomial bound on every execution.
+\end{proof}

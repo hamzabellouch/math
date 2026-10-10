@@ -1,0 +1,713 @@
+\newcommand{\DoNotLoadEpstopdf}{}
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1.05in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\input{glyphtounicode}
+\input{glyphtounicode-cmex}
+\pdfgentounicode=1
+\pdftrailerid{}
+\pdfsuppressptexinfo=15
+\hypersetup{pdftitle={Linear Variance of the Random 3-SAT Hitting Time},pdfauthor={OpenAI}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\Prb}{\mathbb P}
+\newcommand{\E}{\mathbb E}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\ind}{\mathbf 1}
+\newcommand{\cE}{\mathcal E}
+\newcommand{\cG}{\mathcal G}
+\newcommand{\cH}{\mathcal H}
+\DeclareMathOperator{\SAT}{SAT}
+\numberwithin{equation}{section}
+\title{Linear Variance of the Random 3-SAT Hitting Time}
+\author{OpenAI}
+\date{October 5, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For random 3-SAT on $n$ Boolean variables, with independent uniformly
+signed clauses on three distinct variables sampled with replacement,
+we prove that the first unsatisfiable prefix has variance $\Theta(n)$.
+The upper bound removes the logarithmic loss in the earlier variance estimate;
+the matching lower bound follows from Wilson's transition-width theorem.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Fix an integer $n\ge3$. A \emph{proper 3-clause} is a disjunction of three
+literals on distinct variables among $x_1,\ldots,x_n$. Let
+$C_1,C_2,\ldots$ be independent clauses, each uniform among the
+$8\binom n3$ proper 3-clauses. Thus the signs are fair and independent,
+and whole clauses may repeat. Write
+\[
+ F_m=\bigwedge_{j=1}^m C_j,\qquad
+ H_n=\min\{m\ge1:F_m\text{ is unsatisfiable}\},
+\]
+where $F_0$ is the empty, satisfiable formula. The random variable $H_n$
+records the location of the satisfiability transition in the clause process.
+
+\begin{theorem}
+\label{thm:main}
+There is an absolute constant $C<\infty$ such that
+\[
+ \Var(H_n)\le Cn\qquad(n\ge3).
+\]
+There are also absolute constants $c>0$ and $n_0$ such that
+$\Var(H_n)\ge cn$ for $n\ge n_0$. In particular,
+$\Var(H_n)=\Theta(n)$ as $n\to\infty$.
+\end{theorem}
+
+The new assertion is the upper bound. We give its proof in full.
+The lower bound follows from Wilson's quantitative separation of
+satisfiability levels~\cite[Corollary~4]{Wilson2002}; Section~\ref{sec:finish}
+includes the short deduction, with the integer endpoints treated explicitly.
+
+\subsection*{Context and contribution}
+
+Friedgut proved sharpness of the random $k$-SAT threshold for every fixed
+$k\ge2$~\cite[Theorem~1.3]{Friedgut1999}. Quantifying the width of that
+transition is a finer problem. Wilson showed that, for $k\ge3$, a fixed
+decrease in the satisfiability probability requires at least a constant
+times $\sqrt n$ additional clauses~\cite{Wilson2002}. More recently,
+Carenini obtained an $O(n/\log n)$ central clause-window bound for fixed
+$k\ge3$, including independently sampled proper
+constraints~\cite[Corollaries~7.10--7.11]{Carenini2026}.
+Her subsequent paper~\cite[Theorems~1.1 and~1.3, Corollary~1.2]{Carenini2026Polynomial},
+made public on October 5, 2026, proves for every fixed $k\ge3$ a central
+window bound $O_{k,\eta}(n^{1/2+1/k})$ at each fixed $0<\eta<1/2$
+and a hitting-time variance bound $O_k(n^{1+2/k})$.
+Together with the Abbe--Montanari criterion, her result establishes the
+limiting satisfiability threshold for every fixed $k\ge3$.
+We credit Carenini with priority for the resolution of the satisfiability
+conjecture. The present paper concerns the sharper fluctuation question
+for three-literal clauses.
+
+A bound on a fixed central window alone does not control the variance,
+which also depends on the tails.
+In the other direction, Theorem~\ref{thm:main} and Wilson's lower bound
+show that the clause window over which satisfiability drops from
+$1-\eta$ to $\eta$ has order $\sqrt n$ for every fixed $0<\eta<1/2$;
+see Corollary~\ref{cor:window}.
+
+The companion preprint \emph{Variance of the Random $k$-SAT Hitting
+Time}~\cite{OpenAI2026Variance} develops a clause-omission and root-test
+framework. It proves variance $\Theta_k(n)$ for every fixed $k\ge4$
+and an upper bound $O(n\log n)$ for $k=3$. Our argument uses that
+framework, which we reprove here, and replaces its critical occupation
+estimate in the three-literal case. The companion has broader general-$k$
+and capped formulations; the present paper concerns the uncapped proper
+3-clause process defined above.
+
+The new ingredient is a family of potentials for an arbitrary set $S$ of
+Boolean assignments. Let $q_j(S)$ be the probability that $j$ independent
+random proper 2-clauses leave no assignment in $S$, and put
+\[
+ P_d(S)=\sum_{j=0}^{d-1}q_j(S),\qquad d\ge1.
+\]
+The potential increases when $S$ shrinks and is bounded by $d$.
+Section~\ref{sec:potential} proves that $q_d(S)^{3/2}$, for nonempty $S$,
+is controlled by the expected increment of $P_d$ under a random
+3-clause, up to a small error. Summing those increments gives a direct
+bound on the accumulated values of $q_d^{3/2}$. This is the step that
+removes the logarithmic loss.
+
+Here is how the potential enters the variance proof. For $n\ge6$, cap $H_n$ at $10n$
+and let $D_i$ be the delay caused by omitting the clause at index $i$,
+without renumbering later clauses. The coordinate-omission form of the
+Efron--Stein inequality bounds the capped variance by
+$\sum_i\E D_i^2$~\cite{EfronStein1981,BBLM2005}. Fixing the omitted clause
+singles out its three variables as roots. If that clause is pivotal,
+every remaining solution has the unique root assignment that falsifies it.
+Flipping each root gives an independent family of necessary tests on the
+nonroot solution set, except when another clause meets two or more roots.
+Section~\ref{sec:deletion} constructs this exposure and proves the test bound.
+
+Let $d$ be the larger of $1$ and the number of clauses other than $C_i$
+among the first $10n$ that meet a root. At a given index, let $S$ be
+the nonroot solution set of the omitted-clause prefix with the roots
+fixed to their falsifying assignment, and write $p=q_d(S)$.
+With no collisions, the three test
+families each have at most $d$ clauses and give a pivotality bound $p^3$.
+For $p>0$, the potential gives a conditional remaining-duration bound
+$O(d^{3/2}p^{-3/2})$ and bounds the conditional expected sum of $p^{3/2}$,
+while $S$ is nonempty, by $O(d^{3/2})$.
+The identity $3-3/2=3/2$ thus yields a
+conditional squared-delay bound $O(d^3)$. The root-incidence count $d$
+has bounded moments uniformly in $n$. Section~\ref{sec:occupation}
+carries out this calculation and averages the rare collision cases,
+obtaining $\E D_i^2=O(1)$ uniformly in $i$.
+Finally, Section~\ref{sec:finish} removes the cap using an elementary
+first-moment tail bound and proves the matching lower bound.
+
+Throughout, a random proper $a$-clause on a specified variable set is
+uniform over the clauses using $a$ distinct variables and independent
+fair signs. Independent collections are sampled with replacement.
+All unspecified constants are absolute.
+
+\section{A potential for killing assignment sets}
+\label{sec:potential}
+
+We first work on $u\ge3$ variables, independently of the clause process.
+The aim is to bound a power of a short-clause killing probability by
+the drift of a bounded, monotone potential.
+For $S\subseteq\{0,1\}^u$ and a clause $C$, let
+\[
+ S[C]=\{z\in S:z\models C\}.
+\]
+For $j\ge0$, define $q_j(S)$ as the probability that $j$ independent
+random proper 2-clauses \emph{kill} $S$, meaning that no member of $S$
+satisfies them all. In particular,
+\[
+ q_j(\varnothing)=1\quad(j\ge0),\qquad
+ q_0(S)=0\quad(S\ne\varnothing).
+\]
+The quantity $q_j(S)$ is nondecreasing both in $j$ and when $S$ shrinks.
+Set $\beta=3/2$ for the rest of the paper.
+
+\begin{lemma}[One-clause comparison]
+\label{lem:one}
+For a nonempty assignment set $S$, let $h_a(S)$ be the probability
+that one random proper $a$-clause kills $S$, for $a=2,3$. Then
+\begin{equation}
+ h_2(S)^\beta\le3h_3(S)+u^{-3}.
+ \label{eq:one}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+A coordinate is \emph{frozen} if it is constant throughout $S$.
+Let $b$ be the number of frozen coordinates. A clause kills all of $S$
+exactly when all its variables are frozen and each literal has the
+falsifying sign. Consequently,
+\[
+ h_a(S)=\frac{(b)_a}{2^a(u)_a},\qquad a=2,3,
+\]
+where $(t)_a=t(t-1)\cdots(t-a+1)$, with value zero for integers
+$0\le t<a$. Since $b\le u$,
+\[
+ \sqrt{h_2(S)}\le\frac b{2u}.
+\]
+For $b\ge3$ we also have
+\[
+ \frac{h_3(S)}{h_2(S)}=\frac{b-2}{2(u-2)}\ge\frac b{6u},
+\]
+which proves $h_2(S)^{3/2}\le3h_3(S)$ in this case.
+For $b\le1$ the left side is zero. For $b=2$ it is
+$[2u(u-1)]^{-3/2}\le u^{-3}$, proving \eqref{eq:one}.
+\end{proof}
+
+The error term accounts for sets with exactly two frozen coordinates:
+a 2-clause can kill such a set, whereas a proper 3-clause cannot.
+The following lemma turns the one-clause comparison into the potential
+estimate needed along a decreasing sequence of assignment sets.
+
+\begin{lemma}[Potential drift]
+\label{lem:potential}
+For every integer $d\ge1$, put
+\[
+ P_d(S)=\sum_{j=0}^{d-1}q_j(S).
+\]
+Then $0\le P_d(S)\le d$, and $P_d$ is nondecreasing when $S$ shrinks.
+If $C$ is an independent random proper 3-clause on the $u$ variables,
+then
+\begin{equation}
+ \ind_{\{S\ne\varnothing\}}q_d(S)^\beta
+ \le d^{\beta-1}
+ \left(3\E_C[P_d(S[C])-P_d(S)]+du^{-3}\right).
+ \label{eq:drift}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Fix $j\ge0$, and let $Y$ be the subset of $S$ surviving $j$ independent
+random proper 2-clauses. Adding one more such clause gives
+\begin{equation}
+ q_{j+1}(S)-q_j(S)=\E[\ind_{\{Y\ne\varnothing\}}h_2(Y)].
+ \label{eq:two-increment}
+\end{equation}
+Adding instead the independent 3-clause $C$ gives
+\begin{equation}
+ \E_C[q_j(S[C])-q_j(S)]
+   =\E[\ind_{\{Y\ne\varnothing\}}h_3(Y)].
+ \label{eq:three-increment}
+\end{equation}
+Indeed, in either order of adding the clauses, the increase in killing
+probability is precisely the probability that the old surviving set
+is nonempty and the final clause kills it. Products with the indicators
+in these formulas are defined to be zero when $Y$ is empty.
+Jensen's inequality and Lemma~\ref{lem:one} imply
+\[
+ (q_{j+1}(S)-q_j(S))^\beta
+ \le3\E_C[q_j(S[C])-q_j(S)]+u^{-3}.
+\]
+For nonempty $S$, the nonnegative successive differences telescope to
+$q_d(S)$, because $q_0(S)=0$. Thus the power-sum inequality yields
+\[
+ q_d(S)^\beta
+ \le d^{\beta-1}\sum_{j=0}^{d-1}(q_{j+1}(S)-q_j(S))^\beta,
+\]
+and summing the preceding bound proves \eqref{eq:drift}.
+For empty $S$, its left side is zero and its right side is nonnegative.
+The bounds and monotonicity of $P_d$ follow directly from those of $q_j$.
+\end{proof}
+
+\section{Clause deletion and independent root tests}
+\label{sec:deletion}
+
+We now reduce the variance bound to a uniform squared-delay estimate.
+The root exposure and root-flip tests in this section follow the
+clause-omission framework of~\cite[Section~3]{OpenAI2026Variance};
+all details needed here are included.
+
+Assume $n\ge6$, set $L=10n$, and let $T=\min(H_n,L)$.
+For $1\le i\le L$, omit $C_i$ while retaining the original indices:
+\[
+ B_m^{(i)}=\bigwedge_{\substack{1\le j\le m\\j\ne i}} C_j.
+\]
+Let $T^{(i)}$ be the first index at which this omitted-clause process
+is unsatisfiable, capped at $L$, and set $D_i=T^{(i)}-T\ge0$.
+Both capped variables are functions of the first $L$ clauses, and
+$T^{(i)}$ does not depend on $C_i$.
+
+\begin{lemma}[Coordinate omission]
+\label{lem:omission}
+The capped hitting time satisfies
+\begin{equation}
+ \Var(T)\le\sum_{i=1}^L\E D_i^2.
+ \label{eq:variance-deletion}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+This is the coordinate-omission form of the Efron--Stein inequality;
+see~\cite[Section~3.2, Equation~(3.6)]{BBLM2005}.
+For completeness, write $\mathcal F_i=\sigma(C_1,\ldots,C_i)$ and
+$\Delta_i X=\E[X\mid\mathcal F_i]-\E[X\mid\mathcal F_{i-1}]$.
+Independence and the omission of $C_i$ give $\Delta_i T^{(i)}=0$,
+so $\Delta_i T=-\Delta_i D_i$.
+Orthogonality of conditional-expectation projections implies
+$\E(\Delta_i D_i)^2\le\E D_i^2$.
+Summing the orthogonal martingale differences of $T$ proves
+\eqref{eq:variance-deletion}.
+\end{proof}
+
+\subsection{The exposure and its two filtrations}
+\label{subsec:exposure}
+
+Fix $i$ and condition on the value of $C_i$ until further notice.
+All probabilities and expectations in this section and in
+Section~\ref{sec:occupation}, until the final averaging step, are in this
+conditional law. Write $B_m=B_m^{(i)}$.
+Call the three variables of $C_i$ the \emph{roots}, denote their set
+by $R$, and let $w\in\{0,1\}^R$ be the unique root assignment falsifying
+$C_i$. There are $u=n-3\ge3$ nonroot variables.
+
+For $i\le m<L$, define
+\begin{equation}
+ A_m=\{B_m\text{ is satisfiable and }B_m\wedge C_i
+                      \text{ is unsatisfiable}\}
+     =\{T\le m<T^{(i)}\}.
+ \label{eq:A}
+\end{equation}
+The processes agree before $i$, so
+\begin{equation}
+ D_i=\sum_{m=i}^{L-1}\ind_{A_m}.
+ \label{eq:delay}
+\end{equation}
+For $i\le m\le L$, let $S_m\subseteq\{0,1\}^u$ consist of the
+nonroot assignments that, together with $w$, satisfy $B_m$.
+The sets $S_m$ decrease with $m$. On $A_m$, the set $S_m$ is nonempty,
+and every solution of $B_m$ has root assignment $w$.
+
+We will retain two independent sources of randomness: clauses driving
+the evolution of $S_m$, and clauses testing possible root flips.
+For every index $j\le L$ other than $i$, first reveal the subset of
+$R$ met by $C_j$ and all signs on that subset. Classify the index as
+follows:
+\begin{itemize}
+\item An \emph{ordinary} clause meets no root; leave all its contents hidden.
+\item A \emph{test} clause meets exactly one root, whose literal is true
+under $w$; leave its two nonroot literals hidden.
+\item For every other clause, reveal all its remaining contents.
+\end{itemize}
+Let $\cE$ be the sigma-field of this exposure, including the information
+at future indices. Let $Z$ count the exposed indices meeting at least
+one root, and let $V$ count those meeting at least two roots. The latter
+clauses are called \emph{collisions}. Set $d=\max\{1,Z\}$.
+The counts $Z,V,d$ and the complete schedule of clause types are
+$\cE$-measurable.
+
+Conditional on $\cE$, the hidden ordinary clauses are independent uniform
+proper 3-clauses on the nonroots, and the hidden nonroot parts of the
+test clauses are independent uniform proper 2-clauses there.
+These two collections are also independent of each other.
+To see this, condition first on the root subset and its signs separately
+at each index. Every permitted signed nonroot part remains equiprobable,
+and the original product law across indices is preserved. Revealing
+the remaining contents at the other indices does not change the law
+of the hidden coordinates.
+
+For $i\le m\le L$, define
+\begin{align*}
+ \cG_m&=\cE\vee\sigma(\text{ordinary contents through index }m),\\
+ \cH_m&=\cG_m\vee\sigma(\text{test parts through index }m).
+\end{align*}
+The set $S_m$ is $\cG_m$-measurable: all test clauses are already true
+under $w$, whatever their nonroot parts. The event $A_m$ is
+$\cH_m$-measurable, because this larger sigma-field knows all clauses
+of $B_m$. Future ordinary contents remain fresh given $\cH_m$.
+Finally, put
+\begin{equation}
+ p_m=q_d(S_m).
+ \label{eq:p}
+\end{equation}
+The quantity $p_m$ is $\cG_m$-measurable and nondecreasing in $m$.
+Keeping the tests out of $\cG_m$ will allow us to estimate pivotality
+after using $\cH_m$ to estimate the remaining duration.
+
+\subsection{Necessary tests for root flips}
+
+\begin{lemma}[Root-test bound]
+\label{lem:tests}
+For $i\le m<L$, conditional on $\cG_m$,
+\begin{align}
+ \Prb(A_m\mid\cG_m)&\le\ind_{\{S_m\ne\varnothing\}}p_m^3
+                         &&\text{on }\{V=0\},\label{eq:test3}\\
+ \Prb(A_m\mid\cG_m)&\le\ind_{\{S_m\ne\varnothing\}}p_m^2
+                         &&\text{on }\{V=1\}.
+ \label{eq:test2}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Call a root $x$ \emph{available at time $m$} if no collision through
+index $m$, excluding $i$, has its literal on $x$ as the unique root
+literal true under $w$. A collision excludes at most one root, so at
+least $3-V$ roots are available. Availability is $\cE$-measurable.
+
+For an available root $x$, the nonroot parts of its test clauses through
+$m$ must kill $S_m$ on $A_m$. Otherwise, take $z\in S_m$ satisfying
+all these parts and flip only $x$ in the assignment $(w,z)$.
+Every clause of $B_m$ remains satisfied. A clause with no true root
+literal under $w$ already has a satisfied nonroot literal, which is
+unchanged. A clause with a true root literal other than the one on $x$
+keeps that literal. Finally, a clause whose unique true root literal
+is on $x$ cannot be a collision, by availability; it is therefore a
+test clause for $x$, and $z$ satisfies its nonroot part.
+The flipped assignment also satisfies $C_i$, contradicting $A_m$.
+
+Given $\cG_m$, the test families for distinct roots remain independent
+collections of random proper 2-clauses, independent of $S_m$.
+Each family has at most $Z\le d$ members, so its probability of killing
+$S_m$ is at most $q_d(S_m)=p_m$. On $V=0$ all three roots are available;
+on $V=1$ at least two are. Taking these necessary independent events
+proves the two inequalities, including the cases $p_m=0$ or
+$S_m=\varnothing$.
+\end{proof}
+
+\section{Occupation and squared deletion delays}
+\label{sec:occupation}
+
+We continue with $i$ and $C_i$ fixed. Our goal is $\E D_i^2=O(1)$,
+uniformly in the value of the fixed clause. The root tests bound the
+chance that a delay is present; the potential will bound how long
+that delay can continue.
+
+\begin{lemma}[Conditional occupation estimate]
+\label{lem:occupation}
+With $K=7$, for every $i\le m<L$,
+\begin{equation}
+ \E\left[\sum_{s=m}^{L-1}\ind_{\{S_s\ne\varnothing\}}p_s^\beta
+                         \,\middle|\,\cH_m\right]
+ \le Kd^\beta.
+ \label{eq:occupation}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Suppose $s+1$ is ordinary, a fact known under $\cE$.
+Then $S_{s+1}=S_s[C_{s+1}]$, and $C_{s+1}$ is still a uniform proper
+3-clause on the nonroots given $\cH_s$. Lemma~\ref{lem:potential} gives
+\[
+ \ind_{\{S_s\ne\varnothing\}}p_s^\beta
+ \le3d^{\beta-1}\E[P_d(S_{s+1})-P_d(S_s)\mid\cH_s]
+          +d^\beta u^{-3}.
+\]
+Condition on $\cH_m$ and sum over such $s$. Every potential increment
+is nonnegative, even at nonordinary steps. Thus, pathwise,
+\[
+ \sum_{\substack{m\le s<L\\s+1\text{ ordinary}}}
+       (P_d(S_{s+1})-P_d(S_s))
+ \le P_d(S_L)-P_d(S_m)\le d.
+\]
+The tower property therefore bounds the contribution of the ordinary
+steps by $3d^\beta+Ld^\beta u^{-3}$.
+There are at most $Z$ remaining steps: all indices $s+1$ in question
+exceed $i$, and every nonordinary index meets a root.
+Each remaining summand is at most one. Since $Z\le d\le d^\beta$,
+$u=n-3\ge n/2$, and $n\ge6$, the full sum is bounded by
+\[
+ 3d^\beta+Ld^\beta u^{-3}+Z
+ \le \left(4+\frac{80}{n^2}\right)d^\beta\le7d^\beta.
+\]
+\end{proof}
+
+\begin{corollary}[Remaining duration]
+\label{cor:duration}
+For $i\le m<L$,
+\begin{equation}
+ \E\left[\sum_{s=m}^{L-1}\ind_{A_s}\,\middle|\,\cH_m\right]\le W_m,
+ \qquad
+ W_m=\begin{cases}
+ \min\{L,Kd^\beta p_m^{-\beta}\},&p_m>0,\\
+ L,&p_m=0.
+ \end{cases}
+ \label{eq:duration}
+\end{equation}
+In particular, $W_m$ is measurable with respect to the smaller
+sigma-field $\cG_m$.
+\end{corollary}
+
+\begin{proof}
+For $s\ge m$, we have $p_s\ge p_m$, and $A_s$ implies
+$S_s\ne\varnothing$. If $p_m>0$, divide \eqref{eq:occupation} by
+$p_m^\beta$. The count is always at most $L$, giving both the minimum
+and the case $p_m=0$. Measurability follows from that of $d$ and $p_m$.
+\end{proof}
+
+The two estimates now have the compatible conditioning we need:
+the duration estimate knows whether $A_m$ has occurred, while its
+upper bound $W_m$ does not reveal the test parts. We can therefore
+multiply it by the independent-test probability from
+Lemma~\ref{lem:tests}.
+
+\begin{proposition}[Squared delay conditional on the exposure]
+\label{prop:delay}
+For every $1\le i\le L$,
+\begin{equation}
+ \E[D_i^2\mid\cE]
+ \le 2K^2d^3\ind_{\{V=0\}}
+       +2KLd^{3/2}\ind_{\{V=1\}}
+       +L^2\ind_{\{V\ge2\}}.
+ \label{eq:delay-bound}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For $i=L$ we have $D_i=0$. Otherwise, \eqref{eq:delay} implies
+\[
+ D_i^2\le2\sum_{m=i}^{L-1}\ind_{A_m}
+                         \sum_{s=m}^{L-1}\ind_{A_s}.
+\]
+First condition on $\cH_m$, where $A_m$ is known, and apply
+Corollary~\ref{cor:duration}. Then condition on $\cG_m$, where $W_m$
+is known. Conditioning both estimates down to $\cE$ gives
+\begin{equation}
+ \E[D_i^2\mid\cE]
+ \le2\sum_{m=i}^{L-1}
+     \E[W_m\Prb(A_m\mid\cG_m)\mid\cE].
+ \label{eq:towers}
+\end{equation}
+On $V=0$, Lemma~\ref{lem:tests} bounds the product inside by
+\[
+ Kd^\beta\ind_{\{S_m\ne\varnothing\}}p_m^{3-\beta}
+   =Kd^\beta\ind_{\{S_m\ne\varnothing\}}p_m^\beta.
+\]
+This remains valid for $p_m=0$, because the conditional probability
+then vanishes. Lemma~\ref{lem:occupation} with $m=i$, conditioned
+further down to $\cE$, bounds the sum in \eqref{eq:towers} by
+$2K^2d^{2\beta}=2K^2d^3$.
+On $V=1$, the same product is at most
+$Kd^\beta p_m^{2-\beta}\le Kd^\beta$ when $p_m>0$, and is zero
+when $p_m=0$. There are at most $L$ terms. Finally, on $V\ge2$ use
+$D_i\le L$. The cases are $\cE$-measurable, proving
+\eqref{eq:delay-bound}.
+\end{proof}
+
+\subsection{Averaging the collision costs}
+
+It remains to average the three terms of \eqref{eq:delay-bound}.
+Although one collision costs a factor $L$ and two collisions cost
+$L^2$, their probabilities are correspondingly small.
+
+\begin{lemma}[Root-incidence moments]
+\label{lem:moments}
+Uniformly in $n\ge6$, $i$, and the fixed value of $C_i$,
+\begin{equation}
+ \E d^3=O(1),\qquad
+ \E[d^{3/2}\ind_{\{V\ge1\}}]=O(n^{-1}),\qquad
+ \Prb(V\ge2)=O(n^{-2}).
+ \label{eq:moments}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Each of the other $L-1$ independent clauses meets a specified root
+with probability $3/n$, and contains a specified pair of roots with
+probability $6/[n(n-1)]$. Union bounds over the three roots and their
+three pairs give incidence and collision probabilities satisfying
+\[
+ p_{\rm hit}\le\frac9n,\qquad
+ p_{\rm coll}\le\frac{18}{n(n-1)}.
+\]
+The incidence count $Z$ is binomial, so
+\[
+ \E e^Z=(1+(e-1)p_{\rm hit})^{L-1}
+      \le\exp(90(e-1)).
+\]
+This uniformly bounded exponential moment gives $\E d^3=O(1)$.
+
+For each $j\ne i$ with $j\le L$, let $J_j$ be the event that $C_j$
+is a collision. Bound $\ind_{\{V\ge1\}}$ by
+$\sum_{j\ne i}\ind_{J_j}$. Conditional on $J_j$, the count $Z$ is
+one plus a binomial variable with $L-2$ trials and success probability
+$p_{\rm hit}$; all other clauses retain their original law.
+Its exponential moment, and hence $\E[d^{3/2}\mid J_j]$, is bounded
+uniformly. Therefore
+\[
+ \E[d^{3/2}\ind_{\{V\ge1\}}]
+ \le\sum_{j\ne i}\Prb(J_j)\E[d^{3/2}\mid J_j]
+ \le O(1)(L-1)p_{\rm coll}=O(n^{-1}).
+\]
+Finally, independence at different indices gives
+\[
+ \Prb(V\ge2)\le\E\binom V2
+ =\binom{L-1}{2}p_{\rm coll}^2=O(n^{-2}).
+\]
+\end{proof}
+
+Combining Proposition~\ref{prop:delay} and Lemma~\ref{lem:moments},
+and using $L=10n$, proves $\E D_i^2=O(1)$ in the law conditional
+on $C_i$, with a constant independent of its value. We may now remove
+that conditioning. Lemma~\ref{lem:omission} gives
+\begin{equation}
+ \Var(\min\{H_n,10n\})=O(n)\qquad(n\ge6).
+ \label{eq:capped}
+\end{equation}
+This completes the deletion argument. No information about the
+location of the satisfiability threshold was needed.
+
+\section{The uncapped hitting time and the lower bound}
+\label{sec:finish}
+
+\subsection{Removing the cap}
+
+For a fixed assignment, each independent clause is satisfied with
+probability $7/8$. A union bound over the $2^n$ assignments gives,
+for every $n\ge3$ and integer $m\ge0$,
+\begin{equation}
+ \Prb(H_n>m)=\Prb(F_m\text{ is satisfiable})
+          \le2^n(7/8)^m.
+ \label{eq:tail}
+\end{equation}
+In particular $H_n$ is finite almost surely and has a finite second
+moment. For $n\ge6$, write $T=\min\{H_n,L\}$ as before. The
+integer-valued tail-sum formula yields
+\begin{align}
+ \E(H_n-T)^2
+ &=\sum_{j=0}^\infty(2j+1)\Prb(H_n>L+j)\notag\\
+ &\le120\left(2(7/8)^{10}\right)^n.
+ \label{eq:cap-error}
+\end{align}
+Here $\sum_{j\ge0}(2j+1)r^j=(1+r)/(1-r)^2=120$ for $r=7/8$,
+and $2(7/8)^{10}<1$. Since
+\[
+ \Var(H_n)\le2\Var(T)+2\Var(H_n-T)
+              \le2\Var(T)+2\E(H_n-T)^2,
+\]
+Equations \eqref{eq:capped} and \eqref{eq:cap-error} give the upper
+bound in Theorem~\ref{thm:main} for $n\ge6$.
+For $3\le n<6$, the same tail bound gives
+$\E H_n^2\le120\cdot2^n$, so enlarging the absolute constant covers
+these finitely many sizes.
+
+\subsection{Wilson's separation theorem}
+
+Define the survival function and its integer level locations by
+\[
+ s_n(m)=\Prb(H_n>m),\qquad
+ r_n(p)=\min\{m\ge0:s_n(m)\le p\}\quad(0<p<1).
+\]
+These locations are finite by \eqref{eq:tail} and positive because
+$s_n(0)=1$. We use the following consequence of Wilson's theorem
+for the independent proper-clause model with replacement.
+
+\begin{theorem}[Wilson~\cite{Wilson2002}, Corollary~4]
+\label{thm:wilson}
+Fix $1>p_1>p_2>0$. There is a constant $a(p_1,p_2)>0$ such that,
+for all sufficiently large $n$, if integers $m_1,m_2$ satisfy
+$s_n(m_1)\ge p_1$ and $s_n(m_2)\le p_2$, then
+\[
+ m_2-m_1\ge a(p_1,p_2)\sqrt n.
+\]
+\end{theorem}
+
+Take $a_n=r_n(3/4)$ and $b_n=r_n(1/4)$. Minimality gives
+$s_n(a_n-1)>3/4$, whereas $s_n(b_n)\le1/4$.
+Theorem~\ref{thm:wilson}, applied at $a_n-1$ and $b_n$, therefore
+implies $b_n-a_n+1\ge a(3/4,1/4)\sqrt n$. Thus
+\begin{equation}
+ b_n-a_n\ge c_0\sqrt n
+ \label{eq:separation}
+\end{equation}
+for an absolute $c_0>0$ and all sufficiently large $n$.
+Moreover,
+\[
+ \Prb(H_n\le a_n)\ge\frac14,\qquad
+ \Prb(H_n\ge b_n)=s_n(b_n-1)>\frac14.
+\]
+Let $H_n'$ be an independent copy of $H_n$. The two events
+$\{H_n\le a_n,H_n'\ge b_n\}$ and
+$\{H_n'\le a_n,H_n\ge b_n\}$ are disjoint for large $n$,
+each has probability at least $1/16$, and on each
+$|H_n-H_n'|\ge b_n-a_n$. Consequently,
+\[
+ \Var(H_n)=\frac12\E(H_n-H_n')^2
+       \ge\frac{(b_n-a_n)^2}{16}\ge\frac{c_0^2}{16}n.
+\]
+This completes the proof of Theorem~\ref{thm:main}.
+
+\begin{corollary}[Fixed central windows]
+\label{cor:window}
+For every fixed $0<\eta<1/2$,
+\[
+ r_n(\eta)-r_n(1-\eta)=\Theta_\eta(\sqrt n).
+\]
+\end{corollary}
+
+\begin{proof}
+The lower bound follows from Theorem~\ref{thm:wilson} at
+$r_n(1-\eta)-1$ and $r_n(\eta)$, absorbing the additive one.
+For the upper bound, put $\mu_n=\E H_n$ and choose
+$t=(2Cn/\eta)^{1/2}$, with $C$ from Theorem~\ref{thm:main}.
+Chebyshev's inequality gives
+$\Prb(|H_n-\mu_n|\ge t)\le\eta/2$.
+For every nonnegative integer $m\le\mu_n-t$ this implies
+$s_n(m)\ge1-\eta/2>1-\eta$, whereas at
+$m=\lceil\mu_n+t\rceil$ it implies $s_n(m)\le\eta/2<\eta$.
+Hence $r_n(1-\eta)>\mu_n-t$ and
+$r_n(\eta)\le\lceil\mu_n+t\rceil$, proving the upper bound.
+If $\mu_n-t<0$, the first inequality follows instead from
+$r_n(1-\eta)\ge0$.
+\end{proof}
+
+The variance bound controls fluctuations around the finite-size mean
+$\E H_n$. Neither the proof nor Corollary~\ref{cor:window} requires a
+limiting value of $\E H_n/n$ or a limiting distribution for the
+centered hitting time.
+
+\bibliographystyle{abbrv}
+\bibliography{references}
+\end{document}

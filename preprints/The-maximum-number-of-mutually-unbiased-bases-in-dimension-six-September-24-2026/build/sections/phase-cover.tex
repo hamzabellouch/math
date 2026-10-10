@@ -1,0 +1,1008 @@
+\section{Certified phase balls and their atlas}
+\label{sec:phase-cover}
+
+This section converts a cell retained by the completion search of
+Section~\ref{sec:completion} into a ball of real phase matrices.  For a
+center \(P\), the matrix \(e(P)\) need not be an exact Hadamard matrix.
+The certificates control the center's residual and the displacement of
+every exact solution in the ball.  Phase matrices and their ball radii
+are measured in cycles.  Angular displacements explicitly identified
+below are measured in radians.
+
+We use the entrywise exponential \(e\) and the orthogonal double-centering
+projection \(\Pi\) defined in the seed-cover section.  Real \(6\)-by-\(6\)
+matrices are identified with \(\R^{36}\) in row-major order.  A phase
+displacement is \emph{horizontal} if it belongs to \(\operatorname{ran}\Pi\).
+All vector norms are Euclidean, all phase-matrix norms are Frobenius, and
+norms of linear maps are induced Euclidean norms unless a subscript
+specifies otherwise.  Stars on real matrices mean transpose.
+
+\subsection{Residual and Root certificates}
+\label{sec:root-certificate}
+
+For a real phase matrix \(P\), define \(F(P)\in\C^{15}\) by
+\begin{equation}
+ F_{ij}(P)=\frac{1}{2\pi i}\sum_{g=0}^{5}e(P_{ig}-P_{jg}),
+ \qquad 0\leq j<i\leq5.
+ \label{phase:residual}
+\end{equation}
+Edges are ordered by increasing \(i\), then increasing \(j\); a complex
+coordinate is stored as its real part followed by its imaginary part.
+We also regard \(F(P)\) as a real \(30\)-vector.  Since every entry of
+\(e(P)\) has modulus one, \(F(P)=0\) is equivalent to the row Hadamard
+conditions, and hence to all the Hadamard conditions.  Its real
+derivative \(L_P:\R^{36}\longrightarrow\R^{30}\), in complex notation, is
+\begin{equation}
+ (L_Px)_{ij}=\sum_{g=0}^{5}e(P_{ig}-P_{jg})(x_{ig}-x_{jg}).
+ \label{phase:derivative}
+\end{equation}
+The factor \(2\pi i\) from differentiation cancels the denominator in
+\eqref{phase:residual}.  These are the residual and full derivative in
+\texttt{buildH::gen}, in \texttt{patchx.cpp}.
+
+\begin{definition}[Root certificate]
+\label{phase:root-data}
+A \texttt{Root} consists of a stored real center \(P\), a stored real
+\(36\)-by-\(k\) matrix \(T\), and nonnegative constants
+\[
+ \mathtt{C},\quad \mathtt{n0},\quad \mathtt{id},\quad
+ \mathtt{ort},\quad \mathtt{hor},\quad
+ \mathtt{mnorm},\quad \mathtt{froot}.
+\]
+The source stores column \(a\) of \(T\) as \texttt{T[a]} and uses
+\(0\leq k\leq10\).  Write
+\begin{equation}
+ n_P(s)=\mathtt{n0}+\mathtt{id}\,s+\mathtt{C}\,s^2,
+ \qquad s\geq0.
+ \label{phase:normal-polynomial}
+\end{equation}
+It is certified if the basic bounds
+\begin{equation}
+ \|T^*T-I\|\leq\mathtt{ort},\qquad
+ \|(I-\Pi)T\|\leq\mathtt{hor},\qquad
+ \|F(P)\|\leq\mathtt{froot}
+ \label{phase:root-basic}
+\end{equation}
+hold, together with the following displacement assertions.  For every
+horizontal \(\delta\) satisfying \(F(P+\delta)=0\), put
+\(\eta=T^*\delta\) and \(s=\|\delta\|\).  Then
+\begin{align}
+ \|(I-TT^*)\delta\|&\leq n_P(s), \label{phase:root-normal}\\
+ s^2&\leq(1+\mathtt{ort})\|\eta\|^2+
+                  \|(I-TT^*)\delta\|^2. \label{phase:root-square}
+\end{align}
+For every such \(\delta\) and every horizontal \(v\), with
+\(h'=\delta-v\), one also has
+\begin{equation}
+ \|(I-TT^*)h'\|
+ \leq\bigl[\mathtt{id}+\mathtt C(\|\delta\|+\|v\|)\bigr]\|h'\|
+       +\mathtt{mnorm}\,\|F(P+v)\|.
+ \label{phase:root-difference}
+\end{equation}
+These assertions have no radius restriction.  A Root certificate
+neither requires \(F(P)=0\) nor asserts the existence of an exact
+solution.  A radius will be attached when a phase ball is recorded.
+\end{definition}
+
+The first two displacement bounds explain how the certificate will be
+used.  For such a \(\delta\), if \(s_0\geq\|\delta\|\) and
+\(t_0\geq\|T^*\delta\|\), then nonnegativity of the coefficients of
+\(n_P\) gives
+\[
+ \|\delta\|\leq
+ \left(n_P(s_0)^2+(1+\mathtt{ort})t_0^2\right)^{1/2}.
+\]
+For a retained completion cell we shall bound both the full displacement
+and its tangent coordinates.  The displayed bound can then improve the
+radius that covers all exact completions in the cell.  The difference
+bound will compare displacements from two centers during refinement.
+
+\begin{remark}
+\label{phase:approximate-tangent}
+The columns of \(T\) are only numerical directions.  Neither exact
+horizontality nor exact orthogonality is assumed.  In particular
+\[
+ \|T\|\leq\sqrt{1+\mathtt{ort}},
+\]
+and the explicit \(\mathtt{hor}\) error will be retained when raw
+coordinate displacements are projected.  The normal estimates bound
+the omitted directions; those directions are not set equal to zero.
+No constant-rank or manifold hypothesis on the exact solution set is
+needed.
+\end{remark}
+
+\subsection{Constructing Root certificates}
+
+The construction uses an auxiliary real map
+\(M:\R^{30}\longrightarrow\R^{36}\) to turn the residual equation into
+a bound on \((I-TT^*)\delta\).  This map is used only to establish the
+Root assertions and is not serialized.  We first control the nonlinear
+remainder after applying \(M\).
+
+\begin{lemma}[Quadratic and difference remainders]
+\label{phase:remainder}
+There is a real \(30\)-vector \(\mathcal R_P(x)\) such that
+\[
+ F(P+x)=F(P)+L_Px+\mathcal R_P(x).
+\]
+Put \(a_{ij}(x)=\|x_i-x_j\|^2\), where \(x_i\) is row \(i\) of \(x\).
+Then
+\begin{align}
+ |(\mathcal R_P(x))_{ij}|&\leq\pi a_{ij}(x), \label{phase:edge-remainder}\\
+ |(\mathcal R_P(x)-\mathcal R_P(v))_{ij}|
+ &\leq\pi\sqrt{a_{ij}(x-v)}
+       \bigl(\sqrt{a_{ij}(x)}+\sqrt{a_{ij}(v)}\bigr).
+ \label{phase:edge-difference}
+\end{align}
+Let \(M:\R^{30}\longrightarrow\R^{36}\) be any real matrix.  For real
+unit \(y\in\R^{36}\), let \(w_{ij}(y)\) be the Euclidean norm of the two
+edge coordinates of \(M^*y\).  If
+\begin{equation}
+ \sum_{i>j}w_{ij}(y)a_{ij}(x)\leq b\|x\|^2
+ \quad\hbox{for every horizontal \(x\) and every unit \(y\),}
+ \label{phase:weighted-constant}
+\end{equation}
+then, for horizontal \(x,v\),
+\begin{align}
+ \|M\mathcal R_P(x)\|&\leq\pi b\|x\|^2,
+ \label{phase:matrix-remainder}\\
+ \|M(\mathcal R_P(x)-\mathcal R_P(v))\|
+ &\leq\pi b\,\|x-v\|(\|x\|+\|v\|).
+ \label{phase:matrix-difference}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+For real \(t\), put
+\[
+ r(t)=\frac{e(t)-1-2\pi i t}{2\pi i}.
+\]
+Its derivative is \(e(t)-1\), of modulus at most \(2\pi|t|\).
+Integration from zero gives \(|r(t)|\leq\pi t^2\).  On the segment from
+\(v\) to \(x\), convexity of absolute value gives
+\[
+ |r(x)-r(v)|
+ \leq2\pi|x-v|\int_0^1|(1-u)v+ux|\,du
+ \leq\pi|x-v|(|x|+|v|).
+\]
+Apply these formulas to each scalar row difference and sum over \(g\).
+The unit factors \(e(P_{ig}-P_{jg})\) do not affect modulus.
+Cauchy--Schwarz in \(g\) gives \eqref{phase:edge-difference}.
+
+Pairing \(M\mathcal R_P(x)\) with a real unit \(y\) and using the
+two-coordinate Cauchy--Schwarz inequality on each edge proves
+\eqref{phase:matrix-remainder}.  For the difference use, separately,
+\[
+ \sum_{i>j}w_{ij}
+     \sqrt{a_{ij}(x-v)a_{ij}(x)}
+ \leq
+ \left(\sum_{i>j}w_{ij}a_{ij}(x-v)\right)^{1/2}
+ \left(\sum_{i>j}w_{ij}a_{ij}(x)\right)^{1/2}
+ \leq b\|x-v\|\|x\|,
+\]
+and the same inequality with \(v\) in the last factor.  Take the
+supremum over \(y\).  This also proves that the same constant controls
+both remainders.
+\end{proof}
+
+\begin{lemma}[Two computable remainder constants]
+\label{phase:remainder-constants}
+Two sufficient choices in \eqref{phase:weighted-constant} are
+\[
+ b=\sqrt8\,\|M\|,\qquad b=\sqrt6\,\|\mathcal S\|,
+\]
+where the \(30\)-by-\(216\) real matrix \(\mathcal S\) has row
+\[
+ \mathcal S_{a,:}
+   =M_{:,a}^*\otimes(\mathbf e_i-\mathbf e_j)^*
+\]
+when \(a\) is either of the two real-coordinate indices of edge
+\(i>j\).  Consequently
+\(\pi\) times the smaller of any certified upper bounds for these two
+quantities is a valid \(\mathtt C\).
+\end{lemma}
+
+\begin{proof}
+For horizontal \(x\), its row vectors satisfy \(\sum_i x_i=0\).
+Let \(s=\|x\|\) and \(u_i=\|x_i\|^2\).  Expansion gives
+\begin{align}
+ \sum_{i>j}a_{ij}(x)&=6s^2,\nonumber\\
+ \sum_{i>j}a_{ij}(x)^2
+   &=6\sum_i u_i^2+s^4+2\sum_{i,j}(x_i\cdot x_j)^2.
+ \label{phase:row-distance-identities}
+\end{align}
+Indeed the cross terms use
+\(\sum_{j\ne i}x_i\cdot x_j=-u_i\).  Also
+\[
+ u_i=\left\|-\sum_{j\ne i}x_j\right\|^2
+ \leq5(s^2-u_i),\qquad
+ \sum_{i,j}(x_i\cdot x_j)^2\leq\sum_{i,j}u_i u_j=s^4.
+\]
+Thus \(\sum_i u_i^2\leq(5/6)s^4\), and the second sum in
+\eqref{phase:row-distance-identities} is at most \(8s^4\).
+Cauchy--Schwarz on the edges, with
+\(\sum w_{ij}(y)^2=\|M^*y\|^2\), proves the first choice of \(b\).
+
+For the second, apply \(\mathcal S\) to
+\(y\otimes x_{:,g}\), then sum squared norms over \(g\).  For unit \(y\)
+this gives
+\[
+ \sum_{i>j}w_{ij}(y)^2a_{ij}(x)
+ \leq\|\mathcal S\|^2s^2.
+\]
+Another Cauchy--Schwarz inequality, now using
+\(\sum a_{ij}=6s^2\), proves the claim.  The row Gram of \(\mathcal S\)
+is computable without forming its \(216\) columns:
+\begin{equation}
+ (\mathcal S\mathcal S^*)_{ab}
+  =\bigl((\mathbf e_i-\mathbf e_j)\cdot
+                (\mathbf e_{i'}-\mathbf e_{j'})\bigr)
+           (M_{:,a}\cdot M_{:,b}).
+ \label{phase:tensor-gram}
+\end{equation}
+Here the edge labels are repeated for their real and imaginary parts.
+This is the sign-factor formula in \texttt{buildH::patch}.
+\end{proof}
+
+\begin{proposition}[Sufficient conditions for a Root certificate]
+\label{phase:root-bounds}
+Let \(P,T\) and the nonnegative constants be as in
+Definition~\ref{phase:root-data}.  Suppose the basic bounds
+\eqref{phase:root-basic} hold and an auxiliary stored real
+\(36\)-by-\(30\) matrix \(M\) satisfies
+\begin{equation}
+ \|M\|\leq\mathtt{mnorm},\qquad
+ \mathtt{mnorm}\,\mathtt{froot}\leq\mathtt{n0},\qquad
+ \|\Pi-TT^*-ML_P\Pi\|\leq\mathtt{id},
+ \label{phase:projector-certificate}
+\end{equation}
+and \(\mathtt C\) is an upper bound for a remainder constant
+\(\pi b\) in Lemma~\ref{phase:remainder}.  Then these data form a
+certified Root.
+\end{proposition}
+
+\begin{proof}
+Let \(\delta\) be horizontal with \(F(P+\delta)=0\), and put
+\(\eta=T^*\delta\).  Write \(E=\Pi-TT^*-ML_P\Pi\).  The Taylor
+equation at the exact solution gives
+\[
+ (I-TT^*)\delta
+  =E\delta-MF(P)-M\mathcal R_P(\delta).
+\]
+The certificate and Lemma~\ref{phase:remainder} prove
+\eqref{phase:root-normal}.  The squared inequality follows without
+assuming that \(TT^*\) is a projector:
+\[
+ \|\delta-T\eta\|^2
+   =\|\delta\|^2-2\|\eta\|^2+\eta^*(T^*T)\eta
+   \geq\|\delta\|^2-(1+\mathtt{ort})\|\eta\|^2.
+\]
+In fact this calculation holds for arbitrary \(\delta\).
+
+For any horizontal \(v\), put \(h'=\delta-v\) and subtract the Taylor
+formulas at \(\delta\) and \(v\).  Since \(h'\) is horizontal and
+\(F(P+\delta)=0\),
+\[
+ (I-TT^*)h'
+   =Eh'-MF(P+v)-M\bigl(\mathcal R_P(\delta)-\mathcal R_P(v)\bigr).
+\]
+Apply \eqref{phase:matrix-difference}.  This proves
+\eqref{phase:root-difference}, including its residual term at the
+possibly inexact comparison point \(P+v\).
+\end{proof}
+
+The use of a numerical factorization followed by a checked Gram defect
+is a standard device in verified matrix-norm estimation; compare
+\cite{Rump2011VerifiedSingularValues}. The bounds here are derived from
+the displayed residual identities and the source-specific arithmetic
+estimates, including the error in the proposed tangent frame.
+
+\begin{proposition}[Certificates produced by the source]
+\label{phase:stored-root-certificate}
+A successful call to \texttt{buildH::patch}, under the arithmetic
+conditions of Section~\ref{sec:rounding}, certifies
+\eqref{phase:root-basic}, \eqref{phase:projector-certificate}, and a valid
+remainder constant \(\mathtt C\).  Therefore it produces certified Root
+data in the sense of Definition~\ref{phase:root-data}.
+\end{proposition}
+
+\begin{proof}
+The direct checks, rather than the accuracy of the proposed
+eigendecomposition, establish the assertion.  The source first proposes
+an approximate horizontal basis and a splitting of the \(25\)-coordinate
+horizontal Jacobian.  Eigenvalues below \(.64\) propose columns of \(T\);
+the other columns propose factors \(H_V,L_V\) for \(M\).
+Every accepted factor entry is checked to have magnitude at most \(2\),
+and at most \(25\) columns occur.  More than \(10\) proposed \(T\)
+columns causes failure.
+
+Certified absolute row sums of the column Grams of \(H_V,L_V\) bound
+their squared operator norms.  The bound \(\mathtt{mnorm}\) also
+includes the difference between the accumulated stored \(M\) and the
+exact product \(H_VL_V^*\) of those stored factors.  The required
+additions and the \(2.1\cdot10^{-11}\) Frobenius bound on this difference
+are proved in Section~\ref{round:root}.  Thus \(\mathtt{mnorm}\) bounds
+the actual stored map, and the first choice in
+Lemma~\ref{phase:remainder-constants} supplies a certified \(\mathtt C\).
+
+For the optional tensor improvement the source forms the row Gram
+\eqref{phase:tensor-gram}.  It proposes a real change of basis \(U\) and
+checks an upper \(\beta\) for \(\|U^*U-I\|\).  If \(\beta<.1\), then
+\(\|U^{-1}\|^2\leq1/(1-\beta)\).  A certified absolute-row-sum bound
+\(r\) for \(U^*(\mathcal S\mathcal S^*)U\) implies
+\[
+ \|\mathcal S\|^2
+ \leq\frac{r}{1-\beta}.
+\]
+This uses congruence by an invertible matrix, not assumed exact
+orthogonal diagonalization.  The second choice in
+Lemma~\ref{phase:remainder-constants}, with the one-sided margins in
+Section~\ref{round:root}, gives the alternative \(\mathtt C\).
+Both candidates are upper bounds, so their minimum is allowed.
+
+Finally, the source evaluates the full \(36\)-coordinate identity in
+\eqref{phase:projector-certificate}, not merely the identity in the
+proposed horizontal coordinates.  The padded Frobenius residual gives
+\(\mathtt{id}\).  Corresponding checks on \(T^*T-I\), \((I-\Pi)T\),
+and \(F(P)\) give the basic bounds, and the stored \(\mathtt{n0}\)
+is an upper bound for \(\mathtt{mnorm}\,\mathtt{froot}\).
+Section~\ref{round:root} proves the one-sided error estimates for all
+these checks and records their acceptance thresholds.  Replacing
+operator norms by Frobenius norms only enlarges the bounds.
+Proposition~\ref{phase:root-bounds} therefore applies to every successful
+call.
+\end{proof}
+
+\subsection{Transport and alignment of phase balls}
+
+\begin{lemma}[Equivalence transport]
+\label{phase:transport}
+Let \(\Phi\) permute rows and columns of a phase matrix, with optional
+transpose and optional simultaneous change of all signs.  Then \(\Phi\)
+is a real linear isometry commuting with \(\Pi\), and
+\begin{equation}
+ \|F(\Phi P)\|=\|F(P)\|.
+ \label{phase:residual-invariance}
+\end{equation}
+The residual norm is also invariant under row/column rephasings and
+entrywise integer additions.  Replacing \(P,T\) by \(\Phi P,\Phi T\),
+with \(\Phi\) applied to every column of \(T\), preserves all the
+certified Root assertions with the same scalar constants.  The
+existence of an extension by two further mutually unbiased bases is
+preserved in both directions.
+\end{lemma}
+
+\begin{proof}
+Commutation with double centering and preservation of Euclidean norms
+follow from the formulas for these maps.  Row or column permutations,
+conjugation, and rephasing preserve the residual norm directly.  For
+transpose, put \(A=e(P)\).  Both \(AA^*\) and \(A^*A\) have diagonal
+entries \(6\), and
+\[
+ \|AA^*\|_F^2=\|A^*A\|_F^2,\qquad
+ \|F(P)\|^2=\frac{\|AA^*\|_F^2-216}{8\pi^2}.
+\]
+The first identity follows by cyclically permuting the factors under
+the trace.  For \(A^T\) the same expression uses \(A^*A\), up to
+transpose/conjugation.  This proves
+\eqref{phase:residual-invariance} at every real center, not just at a
+solution.
+
+Pull back horizontal \(\delta,v\) by \(\Phi^{-1}\) in
+\eqref{phase:root-normal}--\eqref{phase:root-difference}.  Inner products,
+norms, horizontality, and exact solution status are preserved, and the
+residual term is preserved by \eqref{phase:residual-invariance}.
+The same argument preserves \eqref{phase:root-basic}.  No transported
+matrix \(M\) is required.
+
+Extendibility is preserved by Lemma~\ref{seed:equivalences}.
+Its transpose argument applies to each exact solution; it does not
+use unitarity of the approximate center.
+\end{proof}
+
+Write
+\[
+ D_0(P)_{ij}=P_{ij}-P_{i0}-P_{0j}+P_{00}.
+\]
+For any two real centers \(P,Q\) and any integer matrix \(N\),
+\begin{equation}
+ d=\Pi(D_0(P)-D_0(Q)-N)
+ \quad\Longrightarrow\quad
+ e(Q+d)\text{ is phase-equivalent to }e(P).
+ \label{phase:alignment}
+\end{equation}
+Indeed \(\Pi D_0(P)=\Pi P\); subtracting \(\Pi\) from the identity
+operator leaves a matrix constant on rows plus a matrix constant on
+columns.  Thus the difference between \(Q+d\) and \(P-N\) is such a
+rephasing.  For every horizontal \(\delta\), the same fixed
+alignment makes \(e(Q+d+\delta)\) equivalent to \(e(P+\delta)\).
+This is why a particular choice of integers suffices: no optimality
+of the wraps is needed.  The source's rounded \texttt{dephase} and
+\texttt{wrap} operations determine these integer choices, and
+Section~\ref{sec:rounding} bounds their remaining arithmetic error.
+
+\subsection{Phase displacements for a retained completion cell}
+
+Use the notation of Section~\ref{sec:completion}.  In particular \(D\)
+is the ideal comparison block at the fixed seed and unitary-cell
+center, \(D'\) is the lower-right block of a feasible exact flat
+matrix, and \(Z=D'-D\).  The certified bounds and linearization are
+\[
+ \|Z\|_F\leq z,\qquad
+ \|Z-\mathcal J(s,\theta)\|_F\leq E_r,\qquad
+ \|s\|\leq R_s,\quad |\theta_a|\leq h\quad(1\leq a\leq4),
+\]
+as in \eqref{completion:z-bound},
+\eqref{completion:linear-map}, and
+\eqref{completion:linear-remainder-bound}.  Here \(s\in\R^9\) and
+\(\theta\in\R^4\) are in radians.  Denote by \(\mathcal I_s\) the nine
+seed positions, whose row-major indices are
+\[
+ (7,8,9,10,11,13,19,25,31),
+\]
+and by \(\mathcal I_D\) the \(16\) lower-right positions
+\((i,j)\) with \(2\leq i,j\leq5\).  The first row and column have zero
+raw displacement.
+
+\begin{lemma}[Arc and weighted-arc bounds]
+\label{phase:arc-bounds}
+Suppose \(m_j=|D_j|>0\) at every lower-right position and put
+\(D_j^\circ=D_j/m_j\).  Choose the shortest angular displacement, in
+radians, \(d_j\in[-\pi,\pi]\) from \(D_j^\circ\) to \(D'_j\).  Let
+\(\mathtt{slack}\) be a nonnegative upper bound for
+\(z^2-\sum_j(m_j-1)^2\), let \(\mathtt{mi}\) be a positive lower bound
+for \(\min_jm_j\), and choose
+\[
+ q_d\geq\frac{\mathtt{slack}}{\mathtt{mi}},\qquad q_d<3.8.
+\]
+Then valid upper bounds are
+\begin{equation}
+ \|d\|\leq\mathtt{arc},\qquad
+ \left(\sum_jm_jd_j^2\right)^{1/2}\leq\mathtt{weighted},
+ \label{phase:arc-weighted}
+\end{equation}
+provided
+\[
+ \mathtt{arc}\geq\frac{\sqrt{q_d}}{\sqrt{1-q_d/4}},\qquad
+ \mathtt{weighted}\geq
+             \frac{\sqrt{\mathtt{slack}}}{\sqrt{1-q_d/4}}.
+\]
+\end{lemma}
+
+\begin{proof}
+Since \(D'_j\) has modulus one,
+\begin{equation}
+ |D'_j-D_j|^2=(m_j-1)^2+
+                         m_j|D'_j-D_j^\circ|^2.
+ \label{phase:chord-identity}
+\end{equation}
+Summing proves
+\(\sum_jm_j|D'_j-D_j^\circ|^2\leq\mathtt{slack}\), and hence
+\(\sum_j|D'_j-D_j^\circ|^2\leq q_d\).  In particular no individual
+chord reaches \(2\).  If \(c_j=|D'_j-D_j^\circ|\), then
+\(|d_j|=2\arcsin(c_j/2)\).  On \(0\leq c\leq\sqrt{q_d}\) its
+derivative is at most \((1-q_d/4)^{-1/2}\).  Integrating from zero
+gives
+\(|d_j|\leq c_j(1-q_d/4)^{-1/2}\), and the two summed bounds follow.
+\end{proof}
+
+The source's \texttt{Candidate::prep} only attempts this argument when
+its direction and magnitude checks pass.  It uses the stored flat
+sum \(\mathtt{sum}\) and sets
+\[
+ \mathtt{slack}
+   =\max(0,\mathtt z^2-\mathtt{sum}+10^{-5})+10^{-10},
+ \qquad
+ q_d=\mathtt{slack}/\mathtt{mi}+10^{-8}.
+\]
+The subtraction \(10^{-6}\) from each computed magnitude gives
+\(\mathtt{mi}\) and the upper reciprocal
+\(\mathtt{invmag}_j=1/(\mathtt m_j-10^{-6})+10^{-9}\).
+The ratio has \(10^{-7}\) added and the final arc quantities each have
+\(10^{-8}\) added.  As proved in Section~\ref{sec:rounding}, these
+numbers have the one-sided properties of Lemma~\ref{phase:arc-bounds}
+for the ideal comparison block.  Failure of any check means failure
+to cover this cell by this route, not an exclusion of the cell.
+
+\begin{lemma}[Stored center and support representation]
+\label{phase:center-correction}
+Let \(P_0\) be the stored \texttt{Candidate} phase matrix.  On a
+successful preparation path there is a correction \(\epsilon\), in
+cycles, with
+\begin{equation}
+ \|\epsilon\|\leq2\cdot10^{-6},
+ \label{phase:epsilon}
+\end{equation}
+such that, up to entrywise integer choices, the actual feasible phase
+matrix has the form
+\begin{equation}
+ P_0+\epsilon+\frac{u}{2\pi}.
+ \label{phase:candidate-lift}
+\end{equation}
+Here the raw angular matrix \(u\) is \(s\) at \(\mathcal I_s\), is
+\(d\) at \(\mathcal I_D\), and is zero elsewhere.  In particular
+\begin{equation}
+ \|u\|\leq\sqrt{R_s^2+\mathtt{arc}^2}.
+ \label{phase:raw-displacement}
+\end{equation}
+Let \(X:\R^{13}\longrightarrow\R^{36}\) give \(s\) at the seed
+positions and, at the lower-right positions, give
+\begin{equation}
+ (X(s,\theta))_j
+       =\Im\bigl(\overline{D_j^\circ}\mathcal J(s,\theta)_j\bigr).
+ \label{phase:X}
+\end{equation}
+Then
+\begin{equation}
+ u=X(s,\theta)+e_D+e_{\sin},\qquad
+ \|e_D\|\leq E_r,\qquad
+ \|e_{\sin}\|_1\leq\mathtt{arc}^3/6,
+ \label{phase:raw-support}
+\end{equation}
+where both errors are supported on \(\mathcal I_D\).
+\end{lemma}
+
+\begin{proof}
+The first row and column of \(P_0\) are zero.  Its seed entries are the
+binary seed-center phases after
+integer reduction; this is the fixed center used in the completion
+bounds.  On \(\mathcal I_D\), the source proposes a phase with
+\texttt{atan2} but checks its unit direction:
+\[
+ \bigl|e((P_0)_j)-D^{\rm num}_j/m^{\rm num}_j\bigr|<10^{-7}.
+\]
+Section~\ref{sec:rounding} bounds the latter normalized direction's
+error from the ideal \(D_j^\circ\) by \(5.5\cdot10^{-8}\), and the
+total true chord error by \(1.56\cdot10^{-7}\).
+For circular phase distance \(t\in[0,1/2]\), the chord
+\(2\sin(\pi t)\) is at least \(4t\), by concavity of sine on this
+interval.  Thus a suitable integer lift has phase error at most one
+quarter of that chord.  Over \(16\) positions this is below
+\eqref{phase:epsilon}.  No accuracy property of the proposed
+\texttt{atan2} value was assumed.  Adding the shortest block
+displacements and the original seed displacements proves
+\eqref{phase:candidate-lift}; their supports are disjoint, proving
+\eqref{phase:raw-displacement}.
+
+On a lower-right position,
+\[
+ \Im(\overline{D_j^\circ}Z_j)=\sin d_j.
+\]
+The difference between this quantity and
+\eqref{phase:X} has Euclidean norm at most
+\(\|Z-\mathcal J(s,\theta)\|_F\leq E_r\).
+Finally
+\[
+ \sum_j|d_j-\sin d_j|
+ \leq\frac16\sum_j|d_j|^3
+ \leq\frac16\|d\|^3
+ \leq\mathtt{arc}^3/6.
+\]
+These are the two errors in \eqref{phase:raw-support}.
+\end{proof}
+
+\subsection{Direct and tangent bounds for a cell}
+
+Fix a certified Root \(P,T\).  Let \(N\) incorporate the particular
+integer choices made by \texttt{Root::finish} and
+\texttt{Candidate::delta}, and define the ideal horizontal alignment
+\begin{equation}
+ \Delta=\Pi(P_0-D_0(P)-N).
+ \label{phase:Delta}
+\end{equation}
+By \eqref{phase:alignment}, every exact feasible matrix in the cell
+has an equivalent representation \(e(P+\delta)\), with horizontal
+\begin{equation}
+ \delta=\Delta+\Pi\left(\epsilon+\frac{u}{2\pi}\right).
+ \label{phase:delta}
+\end{equation}
+The equivalence preserves the extension problem.  The computed
+\texttt{delta} array approximates the particular ideal \(\Delta\);
+its rounding error is included in the estimates below.
+
+\begin{lemma}[A direct displacement bound]
+\label{phase:direct-bound}
+Either of the following is an upper bound for \(\Delta\cdot u\):
+\begin{align}
+ S_1={}&R_s\|(X^*\Delta)_s\|
+          +h\|(X^*\Delta)_\theta\|_1
+          +E_r\|\Delta_D\|
+          +\|\Delta_D\|_\infty\mathtt{arc}^3/6, \label{phase:support-linear}\\
+ S_2={}&R_s\|\Delta_s\|
+          +\mathtt{weighted}
+                  \left(\sum_{j\in\mathcal I_D}\Delta_j^2/m_j\right)^{1/2}.
+ \label{phase:support-weighted}
+\end{align}
+Subscripts \(s,D\) on a phase matrix mean restriction to
+\(\mathcal I_s,\mathcal I_D\); subscripts on \(X^*\Delta\) mean its
+nine seed and four angle coordinates.  With \(S_\Delta=\min(S_1,S_2)\),
+a valid bound is
+\begin{equation}
+ \|\delta\|\leq
+ \left(\|\Delta\|^2+
+       \frac{R_s^2+\mathtt{arc}^2}{(2\pi)^2}
+       +\frac{S_\Delta}{\pi}\right)^{1/2}
+       +\|\epsilon\|.
+ \label{phase:s0}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Equation~\eqref{phase:raw-support}, the seed ball, and the angle box
+give \eqref{phase:support-linear}.  Direct weighted Cauchy--Schwarz
+using \eqref{phase:arc-weighted} gives
+\eqref{phase:support-weighted}.  Since \(\Delta\) is horizontal,
+\(\Delta\cdot\Pi u=\Delta\cdot u\).  Expand the squared norm of
+\(\Delta+\Pi u/(2\pi)\), use contraction by \(\Pi\), and then add
+\(\|\Pi\epsilon\|\leq\|\epsilon\|\) by the triangle inequality.
+\end{proof}
+
+The source's \texttt{covercompute::value} computes these supports and
+uses their minimum, with \(+.0001\) before division by \(\pi\).
+Its \(\mathtt{d2}\) bounds
+\((R_s^2+\mathtt{arc}^2)/(2\pi)^2\), with \(10^{-8}\) added, and
+\[
+ \mathtt{s0}
+   =\sqrt{\mathtt{nd}+\mathtt{d2}
+                       +(\mathtt{supp}+.0001)/\pi}+.00001.
+\]
+Section~\ref{sec:rounding} proves this is an upper bound in
+\eqref{phase:s0}: it includes the projection error in
+\(\mathtt{nd}\), support-coefficient error, and \(\epsilon\).
+An early successful return based solely on this bound is valid.
+
+For a sharper bound put \(\eta=T^*\delta\).  The expression obtained
+by temporarily omitting projection and center correction, in radians,
+is
+\[
+ 2\pi T^*\Delta+T^*u.
+\]
+The total omission has the explicit bound
+\begin{equation}
+ \left\|2\pi\eta-(2\pi T^*\Delta+T^*u)\right\|
+ \leq
+ \mathtt{hor}\sqrt{R_s^2+\mathtt{arc}^2}
+       +2\pi\sqrt{1+\mathtt{ort}}\,\|\epsilon\|.
+ \label{phase:tangent-projection-error}
+\end{equation}
+Indeed \(T^*(I-\Pi)=((I-\Pi)T)^*\), and
+\(\|T^*\Pi\epsilon\|\leq\|T\|\|\epsilon\|\).
+
+We next enclose the sum of two linear images of balls by one ellipsoid.
+This is a standard outer-sum construction in ellipsoidal calculus; see
+\cite[Section~2.2.2, equation~(2.16)]{KurzhanskiyVaraiya2006EllipsoidalToolbox}.
+The support-function proof below also covers singular shape matrices.
+
+\begin{lemma}[Ellipsoid containment]
+\label{phase:ellipsoid-containment}
+For real linear maps \(A,B\), vectors \(\|s\|\leq r\),
+\(\|v\|\leq q\), and \(\beta>0\), the sum \(As+Bv\) belongs to
+the ellipsoid
+\[
+ \{G^{1/2}w:\|w\|\leq1\}
+ \quad\hbox{whenever}\quad
+ G\succeq(1+\beta)r^2AA^*+(1+1/\beta)q^2BB^*.
+\]
+\end{lemma}
+
+\begin{proof}
+For each real test vector \(z\), the support of the sum is at most
+\[
+ r\|A^*z\|+q\|B^*z\|
+ \leq\bigl((1+\beta)r^2\|A^*z\|^2+
+                 (1+1/\beta)q^2\|B^*z\|^2\bigr)^{1/2}
+ \leq(z^*Gz)^{1/2}.
+\]
+The scalar inequality follows by completing a square.
+For completeness, diagonalizing the positive semidefinite \(G\)
+shows that the vectors satisfying
+\(|z\cdot x|\leq(z^*Gz)^{1/2}\) for every \(z\) are exactly
+\(G^{1/2}\) times the unit ball: zero-eigenvalue directions force
+zero components, and taking
+\(z_a=x_a/\lambda_a\) in the positive-eigenvalue coordinates gives
+\(\sum x_a^2/\lambda_a\leq1\).
+This proves the claimed containment, including singular \(G\).
+\end{proof}
+
+Partition \(X=(X_s,X_\theta)\), and let \(T_s,T_D\) denote the rows
+of \(T\) restricted to the indicated position sets.  From the angle
+box, \(2\pi T^*\Delta+hT^*X_\theta[-1,1]^4\) is the convex hull of
+the \(16\) offsets
+\begin{equation}
+ U_\sigma=2\pi T^*\Delta+
+                h\sum_{a=1}^{4}\sigma_a T^*X_{\theta,a},
+ \qquad \sigma_a\in\{-1,1\}.
+ \label{phase:offset-corners}
+\end{equation}
+By Lemma~\ref{phase:ellipsoid-containment} with \(\beta=.45\), the
+sum of the seed and \(e_D\) contributions to \(T^*u\) lies in an
+ellipsoid whenever
+\begin{equation}
+ G_{\rm lin}\succeq
+    1.45R_s^2(T^*X_s)(T^*X_s)^*
+       +(1+1/.45)E_r^2T_D^*T_D.
+ \label{phase:ellipsoid-linear}
+\end{equation}
+The remaining sine error has norm at most
+\[
+ \left(\max_{j\in\mathcal I_D}\|T_{j,:}\|\right)
+                               \mathtt{arc}^3/6.
+\]
+There is also a bound using the raw seed and weighted angle balls,
+with a single offset \(U_0=2\pi T^*\Delta\):
+\begin{equation}
+ G_{\rm dir}\succeq
+    1.8R_s^2T_s^*T_s+
+       (1+1/.8)\mathtt{weighted}^2
+                     T_D^*\operatorname{diag}(1/m_j)T_D.
+ \label{phase:ellipsoid-direct}
+\end{equation}
+This is Lemma~\ref{phase:ellipsoid-containment} with \(\beta=.8\).
+It has no sine-error term because it bounds \(d\) directly.
+
+\begin{lemma}[Offset ellipsoid norm bound]
+\label{phase:ellipsoid-norm}
+Let \(G\succeq0\) and \(U\in\R^k\).  For every
+\(\gamma>\lambda_{\max}(G)\) and \(\|w\|\leq1\),
+\begin{equation}
+ \|U+G^{1/2}w\|^2
+   \leq\gamma\bigl(1+U^*(\gamma I-G)^{-1}U\bigr).
+ \label{phase:ellipsoid-gamma}
+\end{equation}
+The simpler upper bound
+\(\|U\|+\sqrt{\lambda_{\max}(G)}\) for the norm is also valid.
+If offsets range over a convex hull of finitely many \(U_\sigma\),
+it suffices to take the largest of the bounds at those offsets.
+\end{lemma}
+
+\begin{proof}
+Put \(A=\gamma I-G\succ0\).  Expanding and completing the square,
+\[
+ \|U+G^{1/2}w\|^2
+ \leq\gamma+\|U\|^2+
+       2w^*G^{1/2}U-w^*Aw
+ \leq\gamma+\|U\|^2+
+       U^*G^{1/2}A^{-1}G^{1/2}U.
+\]
+Since \(G\) commutes with \(A^{-1}\), the last two terms equal
+\(\gamma U^*A^{-1}U\).  The simpler bound is the triangle
+inequality.  For fixed \(w\), convexity of norm bounds the norm at
+any convex combination of offsets by the maximum over those
+offsets; taking the supremum over \(w\) proves the last assertion.
+\end{proof}
+
+Let \(\mathcal E(G;\{U_\sigma\})\) denote any certified upper bound
+obtained from Lemma~\ref{phase:ellipsoid-norm}.  The preceding
+arguments give either of the tangent bounds
+\begin{align}
+ \|T^*\delta\|
+ \leq{}&
+ \frac{\mathcal E(G_{\rm lin};\{U_\sigma\})+
+      \max_{j\in\mathcal I_D}\|T_{j,:}\|\,\mathtt{arc}^3/6+
+      \mathtt{hor}\sqrt{R_s^2+\mathtt{arc}^2}}{2\pi}
+       +\sqrt{1+\mathtt{ort}}\|\epsilon\|,
+ \label{phase:tangent-linear}\\
+ \|T^*\delta\|
+ \leq{}&
+ \frac{\mathcal E(G_{\rm dir};\{U_0\})+
+      \mathtt{hor}\sqrt{R_s^2+\mathtt{arc}^2}}{2\pi}
+       +\sqrt{1+\mathtt{ort}}\|\epsilon\|.
+ \label{phase:tangent-direct}
+\end{align}
+
+\paragraph{Numerical realization of these tangent bounds.}
+In \texttt{covercompute}, \texttt{off} is the computed
+\(2\pi T^*\Delta\), \texttt{AB} is the computed \(T^*X\), and
+\texttt{U} holds the \(16\) corners.  The covariance calculations use
+the \emph{stored} \texttt{AB} coefficients; their errors from the
+ideal coefficients are charged separately outside the ellipsoid.
+More explicitly, if \(\widehat A\) denotes the stored
+\texttt{AB} matrix, the first stored covariance dominates the
+right-hand side of \eqref{phase:ellipsoid-linear} with
+\(T^*X_s\) replaced by \(\widehat A_s\), and its corners use
+\(\widehat A_\theta\).  Section~\ref{sec:rounding} gives
+\[
+ \|\widehat A-T^*X\|<1.5\cdot10^{-5},\qquad
+ \|(s,\theta)\|<.226,
+\]
+so this substitution costs less than \(3.4\cdot10^{-6}\) radians.
+For both covariance choices a diagonal \(10^{-7}I\) is added.  The
+reciprocals in the second choice are the certified upper
+\texttt{invmag} values, so this change also enlarges the covariance.
+Section~\ref{sec:rounding} proves positive semidefinite domination of
+the exact covariance expressions in this stored-coefficient model.
+
+The function \texttt{spectralUpper} bounds the norm of a symmetric
+stored \(G\) by the smaller of a maximum absolute row sum plus
+\(10^{-10}\), and
+\(\|G^2\|_F^{1/2}\) computed with \(2\cdot10^{-7}\) added.  Thus
+\texttt{ell} starts with a certified triangle-inequality bound.
+For each attempted \(\gamma\), it uses a lower gap
+\(\mathtt{gap}\leq\gamma-\lambda_{\max}(G)\), requiring
+\(\mathtt{gap}\geq10^{-6}\).  If \(z\) is any finite trial solve and
+\(r=U-(\gamma I-G)z\), then
+\begin{equation}
+ U^*(\gamma I-G)^{-1}U
+ \leq U^*z+\frac{\|U\|\|r\|}{\mathtt{gap}}.
+ \label{phase:inverse-residual}
+\end{equation}
+This follows by substituting
+\((\gamma I-G)^{-1}U=z+(\gamma I-G)^{-1}r\).
+The source checks the finite scale of \(z\), bounds this residual
+expression with its explicit \(10^{-10}\)-scale additions, and adds
+\(10^{-6}\) after taking the candidate square root and again upon
+return.  It does not rely on accuracy of its Cholesky solve.
+Section~\ref{sec:rounding} verifies the errors including division by
+the lower gap.
+
+On a potentially successful completion-cell path, the external
+error in either applicable tangent bound, in radians, is below
+\(.00012\).  This includes the coefficient and offset errors, the
+projection term in \eqref{phase:tangent-projection-error} (less than
+\(8.81\cdot10^{-5}\) radians), and the center correction (less than
+\(1.27\cdot10^{-5}\) radians).
+Accordingly the source adds \(.00015\) in radians before division
+by \(2\pi\), and another \(.00002\) in cycles afterward.  The sine
+term is included only for \eqref{phase:tangent-linear}.  These
+margins establish an upper \(t_0\geq\|T^*\delta\|\) while retaining
+both the phase lift and approximate-horizontality errors.
+
+\subsection{Bootstrap and local coverage}
+
+\begin{proposition}[Finite improvement of a certified radius]
+\label{phase:bootstrap}
+Suppose \(s_0\geq\|\delta\|\) and
+\(t_0\geq\|T^*\delta\|\) for every feasible solution in a completion
+cell, using the particular alignment \eqref{phase:delta}.  Starting
+with any such upper \(s\), a further upper is
+\begin{equation}
+ \left(n_P(s)^2+(1+\mathtt{ort})t_0^2\right)^{1/2}.
+ \label{phase:bootstrap-update}
+\end{equation}
+Replacing \(s\) by this number only when it decreases \(s\), and
+stopping after any finite number of steps, preserves coverage of
+every feasible solution in the cell.
+\end{proposition}
+
+\begin{proof}
+The constants in \(n_P\) are nonnegative, so
+\(n_P(\|\delta\|)\leq n_P(s)\).  Substitute
+\eqref{phase:root-normal} into \eqref{phase:root-square} and use
+the given tangent upper.  Each proposed update is an upper bound
+at the current stored upper, so induction proves the assertion.
+No convergence or uniqueness assertion is involved.
+\end{proof}
+
+The source's \texttt{bootstrap} uses at most \(30\) updates.  It
+inflates its tangent input by \(.00002\) and its initial radius by
+\(10^{-6}\), then evaluates \eqref{phase:bootstrap-update} with
+\(10^{-8}\) added at each attempted update.  The positive-expression
+error bounds of Section~\ref{sec:rounding} make each update an upper.
+When \(k=0\), the mathematical tangent norm is zero; the source's
+small positive tangent input is harmless.
+
+Scale failures in \texttt{ell} return \(100\), which makes that
+tangent path fail \texttt{bootstrap}'s \(t<10\) guard.  Its failure
+sentinel is \(10\).  These values cannot pass the local target
+\(.103\); they are not certificates.  The other guard requires
+\(0\leq\mathtt{init}<3\) and \(\mathtt C<20\).  A direct valid
+\(\mathtt{s0}\) can still establish coverage without either
+ellipsoid path.
+
+\texttt{local::test} returns success only after a certified
+\texttt{covercompute} bound for a specific Root fits the target with
+its final margins.  It grows that Root's recorded radius to cover
+the bound, adding \(10^{-8}\).  Selecting only a few nearby Roots
+by a heuristic score cannot invalidate this implication.  If
+those fail, snapping merely proposes a new center, which must pass
+\texttt{buildH::patch} and the same covering computation.  Failed
+snapping or failed coverage does not discard the completion cell:
+the completion search subdivides it, or records an unresolved
+seed if its depth or node limit is reached, as described in
+Section~\ref{sec:completion}.
+
+\subsection{Merging the global atlas}
+
+\begin{definition}[Record and its covered solution set]
+\label{phase:record}
+A \texttt{Record} is a certified Root with a nonnegative radius \(r\).
+Its solution set consists of matrices \(e(P+\delta)\) with
+\(\delta\) horizontal, \(\|\delta\|\leq r\), and \(F(P+\delta)=0\).
+Coverage by Records may be up to the extendibility-preserving
+equivalences of Lemma~\ref{phase:transport}; the chosen equivalence
+may differ for different assignments.  The term \emph{sphere} in the
+source includes the interior and boundary of this closed ball.
+\end{definition}
+
+\begin{lemma}[A certified atlas merge]
+\label{phase:atlas-merge}
+Let a local Record have center \(P\) and radius \(r\).  Let \(Q\)
+be an existing certified atlas center.  Suppose an allowed
+\(\Phi\) and integer matrix \(N\) have been selected, and \(d\) is
+a certified upper for
+\[
+ \left\|\Pi\bigl(D_0(\Phi P)-D_0(Q)-N\bigr)\right\|.
+\]
+Then the local Record is covered up to equivalence by the Record
+at \(Q\) of radius \(r+d\).
+\end{lemma}
+
+\begin{proof}
+An exact solution \(e(P+\delta)\) from the local Record first
+transports to \(e(\Phi P+\Phi\delta)\).  The center alignment
+\eqref{phase:alignment} represents it at \(Q\) by the horizontal
+displacement
+\[
+ \Pi(D_0(\Phi P)-D_0(Q)-N)+\Phi\delta.
+\]
+Its norm is at most \(d+r\).  Both transformations preserve exact
+solution status and extendibility.
+\end{proof}
+
+The implementation in \texttt{atlas.cpp} uses \texttt{mapH} for
+\(\Phi\).  Its two index arrays are genuine permutations.  To see
+this directly in \texttt{variants}, the leading two row indices
+are distinct and \texttt{complement} supplies precisely the other
+four.  The six column labels remain attached to six distinct
+integers when their phase keys are sorted and cyclically reordered.
+The later tail sort and rotation only permute the four remaining
+row labels.  With the transpose flag the lookup is
+\(6\,\mathtt{col}[j]+\mathtt{row}[i]\), rather than
+\(6\,\mathtt{row}[i]+\mathtt{col}[j]\); either lookup is a bijection
+of all \(36\) entries.  The sign flag multiplies every entry, and
+every column of \(T\), by the same sign.
+
+For a finite certified center, \texttt{canonicalMap} obtains at
+least one callback, so it does not use an uninitialized or
+degenerate index choice.  In each finite pivot list a largest gap
+is attained and is admitted by the nonnegative tolerance.  A list
+attaining the smallest such largest gap is admitted by the next
+comparison.  Among its five tail scores a maximum is attained
+and is admitted by the final comparison.  The first resulting
+callback initializes the chosen map.  Ties and repeated phase
+values do not alter the distinct attached labels.  The signature
+used to choose among these maps need not be a canonical invariant.
+
+\texttt{Atlas::find} computes an explicit wrapped dephased
+difference, projects it, and evaluates its norm.  On a successful
+return it adds \(10^{-7}\) to the computed norm, exceeding the
+dephasing/projection errors certified in
+Section~\ref{sec:rounding}.  \texttt{Atlas::add} then grows the
+selected radius to at least the incoming radius plus this
+distance, with another \(10^{-8}\) added and a separate
+\(2\cdot10^{-8}\)-margin comparison to the cap.  This is
+Lemma~\ref{phase:atlas-merge}.  It remains valid when an alternative
+map found by \texttt{variants} supplied the distance; only existence
+of that allowed map is needed to establish the merge.
+
+If no merge is certified, the source inserts the transformed
+Root and its original local radius.  The hash buckets, pivot
+selection, and early raw-distance cuts only reduce the
+opportunities to merge; none removes an input Record.  The A
+atlas uses radius cap \(.125\).  Its size cap aborts rather than
+certifying a discarded Record.
+
+\begin{proposition}[Output meaning of a successful A stage]
+\label{phase:A-cover}
+Suppose the initial seed cover is valid and the completion search
+processes all its seeds with no failed or unresolved seed.  Then
+the A-stage Records cover, up to extendibility-preserving
+equivalence, every exact second-basis Hadamard matrix required
+for the four-basis problem.
+\end{proposition}
+
+\begin{proof}
+The completion parametrization covers each feasible matrix in a
+seed by its closed unitary cells.  Follow any such matrix through
+containing cells.  A sound exclusion cannot reject it; subdivision
+retains a containing child.  Since the search is finite and the
+failed-setup and unresolved depth/node-limit paths are assumed
+absent, this path must end with a certified local covering bound.
+The preceding propositions give a certified Root ball for that
+assignment.  Atlas insertions preserve these
+balls, and every merge preserves their solution sets up to
+equivalence by Lemma~\ref{phase:atlas-merge}.  This proves the
+claim.  Boundaries cause no exception: all seed balls, unitary
+cells, ellipsoids, and phase balls used in this argument may be
+taken closed, and overlapping assignments are harmless.
+\end{proof}

@@ -1,0 +1,228 @@
+\section{Joint refinement and its bijective game}
+\label{game:section}
+
+We first fix the refinement convention and prove the game characterization
+used in the reduction.  The standard joint convention and parameter shift are described in
+\citep[Section~2.2 and Theorem~1]{KieferNeuen2019}. We prove the precise
+histogram and empty-position statement, including the order in which
+a bijection is announced.
+
+\begin{definition}[Joint-update Weisfeiler--Leman refinement]
+\label{def:joint-wl}
+Let $X$ be a finite simple graph and let $k\geq 2$.  For
+$\mathbf v=(v_1,\ldots,v_k)\in V(X)^k$, write
+$\mathbf v[i\leftarrow z]$ for the tuple obtained by replacing its $i$th
+coordinate by $z$.  The initial color $\chi_0^X(\mathbf v)$ records, for every
+ordered pair of coordinates, whether their entries are equal and whether
+they are adjacent.  Recursively, set
+\begin{equation}
+\label{game:joint-update}
+ \chi_{s+1}^X(\mathbf v)=
+ \left(\chi_s^X(\mathbf v),
+ \left\{\!\!\left\{
+ \bigl(\chi_s^X(\mathbf v[1\leftarrow z]),\ldots,
+       \chi_s^X(\mathbf v[k\leftarrow z])\bigr):z\in V(X)
+ \right\}\!\!\right\}\right).
+\end{equation}
+The braces in the second component denote a multiset.  The recursive names
+of colors are common to all graphs under comparison.  We write
+$G\equiv_k H$ if, at every round $s\geq 0$, the multisets of colors on
+$V(G)^k$ and $V(H)^k$ agree.
+\end{definition}
+
+In particular, all $k$ coordinate replacements associated with one vertex
+$z$ remain grouped together in~\eqref{game:joint-update}.  This is the joint
+update, rather than an update using $k$ separate multisets.
+
+\begin{lemma}[Capping the dimension]
+\label{lem:dimension-cap}
+Let $G,H$ have the same positive order $n$.  For every $k\geq n$ with
+$k\geq 2$, the relation $G\equiv_k H$ holds if and only if $G$ and $H$ are
+isomorphic.  Consequently, when $n\geq 2$ and $k\geq 2$,
+\[
+ G\equiv_k H \quad\Longleftrightarrow\quad
+ G\equiv_{\min\{k,n\}}H.
+\]
+\end{lemma}
+
+\begin{proof}
+An isomorphism acts coordinatewise on tuples and preserves their initial
+colors.  Induction in~\eqref{game:joint-update} shows that it preserves every
+later color as well, and hence preserves each color histogram.
+
+Conversely, suppose $k\geq n$ and the initial histograms agree.  Choose a
+tuple $\mathbf v\in V(G)^k$ containing every vertex of $G$.  There is a tuple
+$\mathbf w\in V(H)^k$ with the same initial color.  The common equality
+pattern shows that the rule $v_i\mapsto w_i$ is a well-defined bijection
+between the $n$ distinct entries of $\mathbf v$ and the $n$ distinct entries
+of $\mathbf w$.  These are all vertices of the two graphs.  The adjacency
+part of the initial color shows that this bijection is an isomorphism.
+Applying the same assertion with $k=n$ proves the displayed equivalence
+when $k\geq n$; when $k<n$, it is an identity.
+\end{proof}
+
+\begin{proposition}[Uniform upper bound]
+\label{prop:membership}
+Both \(\WL\) and \(\SubWL\) belong to \(\EXPTIME\).
+More precisely, after checking their respective input conditions,
+an input of common graph order \(n\ge2\) and total bit length \(L\)
+can be decided in time
+$2^{O(n\log n)}L^{O(1)}$, with absolute constants in the exponents.
+\end{proposition}
+
+\begin{proof}
+First check that the input consists of the prescribed two adjacency matrices
+and a binary integer $k\geq 2$.  Check matrix lengths before allocating data
+for any claimed order.  Symmetry, zero diagonal, and entries in \(\{0,1\}\) are checked in
+polynomial time. For \(\SubWL\), also check positive equal orders,
+maximum degree three, and connectedness. Reject a failed condition.
+For \(\WL\), unequal orders give different tuple counts and are
+rejected; at equal orders zero or one the simple graphs are necessarily
+isomorphic and are accepted. At order one the promised subcubic graphs
+are also isomorphic.
+
+For $n\geq 2$, compare the binary integer $k$ with $n$ and replace it by
+$\min\{k,n\}$, using \Cref{lem:dimension-cap}.  This comparison takes
+polynomial time in $L$ even when the value of the supplied integer is
+enormous.  In the rest of the algorithm, therefore, $2\leq k\leq n$.
+
+Maintain tables for $V(G)^k$ and $V(H)^k$, and give their union a common
+system of integer color labels.  There are
+\[
+ A=2n^k
+\]
+table entries.  To perform a round, form the replacement-color vector for
+each of the $n$ possible replacement vertices at each entry, sort these
+vectors with multiplicities, and include the old label in the resulting
+signature.  Sorting all signatures assigns the next common labels.  The
+replacements in a graph's table use only vertices of that graph; mixed
+tuples are neither needed nor introduced.
+
+Every new partition refines the old one because the old label is part of
+the signature.  A strict refinement increases the number of classes, which
+never exceeds $A$.  If a round makes no split, its labels are a bijective
+renaming of the old classes, and substituting those names into the next
+signatures cannot create a split.  Thus at most $A$ rounds, including a
+possible final no-split round, establish stabilization.  Compare the two
+histograms initially and after every round, rejecting as soon as they
+differ.  If they agree at stabilization, every later update merely renames
+the same common classes, so all later histograms also agree.
+
+An integer label uses $O(1+\log A)$ bits.  A replacement vector has $k$
+such labels, and a signature has $n$ such vectors together with an old
+label.  Explicit table access, sorting, comparison, and counting can be
+implemented in time bounded by a fixed polynomial in $A+n+k+L$ per round,
+even with sequential access.  Since $k\leq n$ and $n\geq 2$, multiplying
+by at most $A$ rounds gives
+\[
+ (A+n+k+L)^{O(1)}=2^{O(n\log n)}L^{O(1)}.
+\]
+The graph order is polynomially bounded by the length of its explicit
+adjacency matrix.  This is a uniform exponential-time bound in $L$.
+\end{proof}
+
+We now define the game directly, so that no convention about the timing of
+a pebble move is implicit.  For equal-order graphs $G,H$ and an integer
+$q\geq 1$, the game has $q$ named \emph{pair slots}.  An occupied slot holds
+one vertex of $G$ and one vertex of $H$.  Initially all slots are vacant.
+Spoiler may discard any occupied slots.  To place a new pair, Spoiler
+requests a vacant slot; Duplicator then announces a bijection
+$f:V(G)\to V(H)$; finally Spoiler chooses $v\in V(G)$, and the requested
+slot receives $(v,f(v))$.  The same vertex may occur in several slots.
+After every move the marked pairs must form a partial isomorphism: equality
+and adjacency between any two occupied slots must agree in the two graphs.
+Duplicator wins if a strategy, allowed to depend on the entire finite
+history, maintains this condition for every finite play.  No time bound is
+imposed on either player's strategy.
+
+\begin{lemma}[Joint refinement and announced bijections]
+\label{lem:wl-game}
+For graphs $G,H$ of the same positive order and every $k\geq 2$,
+$G\equiv_k H$ if and only if Duplicator wins the game with $k+1$ pair slots.
+\end{lemma}
+
+\begin{proof}
+We first record a symmetry of the colors.  If two tuples have equal
+round-$s$ colors, applying the same permutation to their coordinates gives
+tuples of equal round-$s$ colors.  At round zero this follows from the
+definition of the atomic data.  For the induction step, equal next-round
+colors give equal old colors and a matching of replacement vertices whose
+entire old-color vectors agree.  By the induction hypothesis, applying the
+coordinate permutation to each replaced tuple preserves these equalities.
+Reordering the vector components by the same permutation then gives the
+replacement vectors for the permuted tuples.  Their multisets agree, as
+required.  Notice that the assertion concerns equality of colors, not that
+an individual color name is fixed by every permutation.
+
+Suppose first that $G\equiv_k H$.  On the union of their tuple tables, let
+$\sim$ be equality in a stable common refinement partition.  For
+$\mathbf v\sim\mathbf w$, stability gives a bijection
+$f:V(G)\to V(H)$ such that, simultaneously for every $z\in V(G)$ and every
+$i\in\{1,\ldots,k\}$,
+\begin{equation}
+\label{game:stable-bijection}
+ \mathbf v[i\leftarrow z]\sim\mathbf w[i\leftarrow f(z)].
+\end{equation}
+Indeed, the stable-color vectors in the two multisets can be paired with
+their multiplicities, and this pairing matches the replacement vertices
+bijectively.
+
+The stable histograms agree and are nonempty, so some related tuple pair
+exists.  Append any vertex and its image under a bijection
+from~\eqref{game:stable-bijection}.  The resulting pair of $(k+1)$-tuples
+has the following property: deleting any one coordinate produces related
+$k$-tuples, in the common order of the remaining coordinates.  Deleting
+the new entry recovers the original related pair.  Deleting an old entry
+gives the corresponding replacement pair up to a common permutation, to
+which the preceding symmetry applies.
+
+Duplicator keeps such a full pair of $(k+1)$-tuples as auxiliary data,
+with the entries of occupied slots equal to their actual marked entries
+and the entries of vacant slots regarded as virtual.  Discarding a slot
+does not change this data.  When slot $j$ is requested, delete its virtual
+entries to obtain a related pair of $k$-tuples, and announce the bijection
+in~\eqref{game:stable-bijection} for that pair.  Overwrite slot $j$ with
+Spoiler's chosen pair.  The projection omitting $j$ is unchanged.  A
+projection omitting any other slot is, up to a common coordinate
+permutation, one of the replacements in~\eqref{game:stable-bijection}.
+Thus the auxiliary invariant persists.  Any two occupied coordinates occur
+together in some $k$-projection because $k\geq 2$.  Their equality and
+adjacency therefore agree, proving that the strategy wins.
+
+Conversely, fix a winning strategy for Duplicator.  We prove by induction
+on $s$ that at every reached history with exactly $k$ occupied slots, the
+two tuples in any common ordering of those slots have equal round-$s$
+colors.  For $s=0$ this is the partial-isomorphism condition.  Suppose the
+assertion holds at round $s$, and consider such a history with ordered
+tuples $\mathbf v,\mathbf w$.  Request the one vacant slot and let $f$ be
+the announced bijection.  For each choice of $z\in V(G)$, place
+$(z,f(z))$.  For each $i$, there is a continuation that discards the old
+$i$th slot and orders the remaining $k$ slots by putting the new slot in
+its position.  The induction hypothesis, which applies to every reached
+history, gives
+\[
+ \chi_s^G(\mathbf v[i\leftarrow z])
+ =\chi_s^H(\mathbf w[i\leftarrow f(z)]).
+\]
+The bijection $f$ was announced before $z$ was chosen and is the same for
+all of these alternatives.  It matches the entire replacement vectors,
+and the old tuple colors also agree by induction.  Equation
+\eqref{game:joint-update} now gives equality at round $s+1$.
+
+Finally, fill $k$ fixed slots from empty in a fixed order, with no
+discards, following the strategy.  This procedure defines a map
+$F:V(G)^k\to V(H)^k$.  It is bijective: given a target tuple, invert the
+first announced bijection to recover the first source entry; the recovered
+history determines the second announced bijection, which recovers the
+second entry; continue in this way.  This inversion remains valid when
+the strategy depends on its full history.  For every $s$, the induction
+just proved says that $F$ preserves round-$s$ colors.  Hence the two
+histograms agree at every round, proving the required equivalence.
+\end{proof}
+
+We will repeatedly use one elementary consequence of winning.  At a
+reached history, a property of specified marked pairs can be established
+by showing that its failure would admit a losing continuation after all
+other pairs are discarded.  Such an argument establishes the property
+in the original history; it does not require executing the test during a
+different intended continuation, nor restoring any discarded answers.

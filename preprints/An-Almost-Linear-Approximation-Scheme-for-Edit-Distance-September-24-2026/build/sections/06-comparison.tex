@@ -1,0 +1,329 @@
+\section{A comparison tree and cost-weighted curvature}\label{sec:comparison}
+
+Multiscale restrictions of alignment paths, controlled by bounds on their
+total deviation, are central to Mao and
+Rubinstein's approximation scheme~\cite[Sections~2.3 and~6.1]{MaoRubinstein2026}.
+Here the weights are warmup cost estimates. They need not add exactly from
+children to parent, so our energy calculation also charges their mass
+discrepancy and the difference between a comparison action and a minimum
+wide action.
+
+Fix a seed table satisfying the hypotheses of Theorem~\ref{thm:refinement}.
+We construct a comparison tree from exact alignments.  Its states are fixed
+before the randomness of this refinement is drawn.  The warmup values supply
+weights on this tree.  A telescoping energy calculation controls the total
+cost of nodes with large curvature or a large gap between the comparison
+action and the minimum wide action.  At the other nodes, the velocity test
+has two useful outcomes.  Passing it places the comparison action in the
+computed band; failing it means that length imbalance nearly accounts for
+the warmup cost.  Section~\ref{sec:regret} will use these alternatives to
+bound the refinement error.
+
+\subsection{Exact paths and rounded child states}
+
+Start at a state $(I,q)$ of true cost $D=c(I,q)$.  If $D=0$, the good-seed
+bounds force all its estimates to be zero, so assume $D>0$.  Stop a branch at
+a leaf of the interval tree or at a state of cost zero.  At each remaining
+node, write $c=c(I,q)>0$, choose the dyadic scale $b$ with $b\le c<2b$, and put
+\[
+ r=r_b(q),\qquad e=|q-r|_1\le 2b/P.
+\]
+Choose an optimal alignment for $(I,r)$ and points on this path at the child
+cuts, in their path order.  Use its exact endpoints at the outside cuts.
+For repeated cuts, repeated path points are permitted; alternatively a
+vertical segment can be assigned to one of the intervening empty children.
+Round the internal target anchors down to the grid at scale $b$.  The resulting
+child states $q_1,\ldots,q_M$ remain ordered and share endpoints, with outside
+endpoints exactly $r$.  Denote this action by $\alpha^*$, and continue the
+construction at its child states.
+
+Fix a deterministic order for all choices of optimal paths and cut points.
+The entire comparison tree, including its stopping states, then depends only
+on the input strings and its starting state.  In particular it is independent
+of every group sample and online draw in the refinement.  This tree is used
+only in the proof.
+
+\begin{lemma}[Comparison costs]\label{lem:comparison-tree}
+At each nonterminal of the comparison tree, $(b,r)$ is a representative,
+$b$ satisfies the local scale restriction~\eqref{eq:local-scales}, and
+$\alpha^*$ is a wide action whose endpoint shifts are within $6b$ of
+$p_0=r^- -l$.  Writing $c_i=c(I_i,q_i)$, we have
+\begin{equation}\label{eq:comparison-split}
+ c(I,r)\le\sum_i c_i\le (1+4M/P)c,
+ \qquad c\le Le+\sum_i c_i.
+\end{equation}
+Let $C_{\mathrm{term}}$ be the sum of terminal true costs.  Then
+\begin{equation}\label{eq:comparison-totals}
+ \begin{aligned}
+ C_{\mathrm{term}}&\le(1+8MJ/P)D\le2D,\\
+ \sum_{\mathrm{nonterminal}}c&\le2JD,
+ &\sum_{\mathrm{nonterminal}}e&\le4JD/P.
+ \end{aligned}
+\end{equation}
+The sum of true costs at any depth is at most $2D$, also if stopped costs are
+carried unchanged to subsequent depths.  At every terminal, $m=c$ and every
+refinement estimate equals $c$.
+\end{lemma}
+
+\begin{proof}
+If the grid spacing is one, no rounding changes any endpoint.  Otherwise an
+endpoint moves by less than $b/P$.  Thus
+\[
+ c-e\le c(I,r)\le c+e.
+\]
+The initial-cone bounds give
+\[
+ w_0(I,r)\ge c(I,r)/a\ge b/(4a),
+ \qquad
+ w_0(I,r)\le2F c(I,r)\le8Fb,
+\]
+so $(b,r)$ is a representative.  At $q$, the same bounds imply
+$w_0(I,q)/(16F)\le b\le8a w_0(I,q)$, as required for
+\eqref{eq:local-scales}.
+
+Along an alignment, each change of shift is caused by an insertion or
+deletion and is at most the cost of that part of the path.  Hence every
+unrounded anchor shift differs from $p_0$ by at most $c(I,r)$.  Rounding adds
+less than $b/P$, so the distance is at most
+\[
+ c+e+b/P<(2+3/P)b<6b.
+\]
+This proves the wide-action and radius assertions.
+
+The exact subpath costs before rounding sum to $c(I,r)$.  Each internal anchor
+affects the endpoints of two child problems.  Endpoint Lipschitz continuity
+therefore gives
+\[
+ \sum_i c_i\le c(I,r)+2(M-1)b/P
+ \le c+2Mb/P\le(1+4M/P)c.
+\]
+Concatenation gives the other inequality in the first part of
+\eqref{eq:comparison-split}; it also gives
+$c\le c(I,r)+e\le\sum_i c_i+Le$.
+These arguments apply without change to repeated cuts and empty child
+intervals.
+
+At each successive frontier of the tree, carry terminal costs unchanged.
+The frontier sum grows by a factor at most $1+4M/P$ in one step.  The parameter
+bounds give $4MJ/P\le1/2$, and consequently
+\[
+ (1+4M/P)^J\le1+8MJ/P\le2.
+\]
+This proves the terminal and level bounds.  There are at most $J$
+nonterminal levels.  Summing $e\le2b/P\le2c/P$ proves the remaining bounds
+in~\eqref{eq:comparison-totals}.
+
+At a leaf, every table uses the exact answer.  At a zero-cost state, the
+good seed is zero and the upper bound $w_0\le2Fc$ forces all warmup and
+refinement values to be zero.  These are precisely the terminal cases.
+\end{proof}
+
+\subsection{Mass and energy telescopes}
+
+If the warmup masses added exactly from children to parent, the energies
+$z^2/m$ would telescope up to endpoint-rounding errors.  The masses do not
+add exactly: a parent's mass can be either
+larger or smaller than its children's total.  The warmup inequalities bound
+the total upward discrepancy, and conservation of mass over the comparison
+tree then bounds the total downward discrepancy as well.  This is why the
+energy argument can use cost estimates instead of exact additive weights.
+
+At a nonterminal use the representative and child states just constructed,
+and define
+\[
+ m_q=m(I,q),\qquad m_i=m(I_i,q_i),\qquad W=\sum_i m_i,
+ \qquad G=W-Z,\qquad R=m_q-W.
+\]
+Here $Z$ is the minimum wide-action cost with child table $m$, as in
+Section~\ref{sec:bands}.  The comparison action has zero connection cost,
+so $W\ge Z$.  The lower invariants and the comparison costs imply
+\begin{equation}\label{eq:comparison-masses}
+ 0<\max\{c(I,r)/a,|z(I,r)|\}\le Z\le W\le4Fc<8Fb.
+\end{equation}
+In particular, the denominator $Z$ defining $\widehat v$ is positive at
+every nonterminal comparison representative.
+
+Write $z_i=z(I_i,q_i)$ and $z_r=z(I,r)$.  Since the child targets share
+endpoints, $\sum_i z_i=z_r$.  Define the curvature quantity
+\begin{equation}\label{eq:curvature-definition}
+ K=\sum_i\frac{z_i^2}{m_i}-\frac{z_r^2}{W},
+\end{equation}
+with $0/0=0$.  A zero $m_i$ necessarily has $z_i=0$ by the lower invariant.
+For $v=z_r/W$, the weighted variance identity is
+\begin{equation}\label{eq:weighted-variance}
+ K=\sum_{i:m_i>0}\frac{(z_i-vm_i)^2}{m_i}\ge0.
+\end{equation}
+These weights are costs supplied by the warmup; they are not interval
+lengths.
+
+\begin{lemma}[Total curvature]\label{lem:curvature-telescope}
+On the fixed comparison tree, put $h=Le+w_0(I,q)/T$ at each nonterminal.
+Then
+\begin{equation}\label{eq:curvature-structural}
+ \sum_{\mathrm{nonterminal}}(K+G)
+ \le4C_{\mathrm{term}}+3\sum_{\mathrm{nonterminal}}e
+                       +4\sum_{\mathrm{nonterminal}}h.
+\end{equation}
+Consequently,
+\begin{equation}\label{eq:curvature-total}
+ \sum_{\mathrm{nonterminal}}(K+G)
+ \le5000F(1+J/P+J/T)D.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+First compare the parent and child warmup averages.  For each wide action,
+average the parent warmup inequalities over indices $1,\ldots,T$, using
+child indices $0,\ldots,T-1$.  Minimize the resulting action cost.  This gives
+\[
+ m_q-\frac{w_0(I,q)-w_T(I,q)}T\le Le+Z.
+\]
+Thus
+\begin{equation}\label{eq:warmup-mass-slack}
+ R+G\le h,\qquad R_+\le h,\qquad G\le R_-+h,
+ \qquad R_\pm=\max\{\pm R,0\}.
+\end{equation}
+The masses cancel exactly across the tree:
+\[
+ \sum R=m_{\mathrm{root}}-C_{\mathrm{term}},
+ \qquad
+ \sum R_-\le\sum R_++C_{\mathrm{term}}
+             \le\sum h+C_{\mathrm{term}}.
+\]
+In particular, summing $G\le R_-+h$ gives
+$\sum G\le C_{\mathrm{term}}+2\sum h$.
+
+Next define the energy of any comparison state by
+\[
+ E(I,q)=z(I,q)^2/m(I,q),
+\]
+again using $0/0=0$.  At a nonterminal put $z_q=z(I,q)$.  We have
+$|z_q|\le m_q$, $|z_r-z_q|\le e$, and $|z_r|\le W$.  Moreover,
+\[
+ e\le2c/P\le2a m_q/P\le m_q,
+\]
+because $a\le A_{\rm init}$ and $2A_{\rm init}<P$.  Therefore
+$|z_r|\le2m_q$.  The identity
+\[
+ \frac{z_q^2}{m_q}-\frac{z_r^2}{W}
+ =\frac{z_q^2-z_r^2}{m_q}
+  +\frac{z_r^2(W-m_q)}{m_qW}
+\]
+has first term at most $3e$.  If $W\le m_q$, its second term is nonpositive;
+otherwise the bounds $|z_r|\le W$ and $|z_r|\le2m_q$ bound it by
+$2(W-m_q)=2R_-$.  It follows that
+\begin{equation}\label{eq:local-energy-telescope}
+ K\le\sum_iE(I_i,q_i)-E(I,q)+3e+2R_-.
+\end{equation}
+No zero denominator occurs at a nonterminal, by
+\eqref{eq:comparison-masses}; zero child masses have already been treated.
+
+Terminal energies are at most their true costs, and the root energy is
+nonnegative.  Summing~\eqref{eq:local-energy-telescope} therefore gives
+\[
+ \sum K\le C_{\mathrm{term}}+3\sum e+2\sum R_-
+          \le3C_{\mathrm{term}}+3\sum e+2\sum h.
+\]
+Adding the preceding bound on $\sum G$ proves
+\eqref{eq:curvature-structural}.  It remains only to substitute the
+comparison-tree bounds.  By Lemma~\ref{lem:comparison-tree} and $w_0\le2Fc$,
+\begin{equation}\label{eq:total-warmup-slack}
+ \sum h\le512FJD/P+4FJD/T.
+\end{equation}
+Together with~\eqref{eq:comparison-totals}, this yields
+\[
+ \sum(K+G)\le8D+(2048F+12)JD/P+16FJD/T,
+\]
+which implies~\eqref{eq:curvature-total}.
+\end{proof}
+
+Call a nonterminal \emph{bad} if $K>bH^{-1/4}$ or $G>bH^{-1/4}$; otherwise
+call it \emph{non-bad}.  These are conditions on the deterministic comparison
+tree and its warmup values.
+
+\begin{corollary}\label{cor:bad-node-cost}
+The total true cost of bad nodes satisfies
+\begin{equation}\label{eq:bad-node-cost}
+ \sum_{\mathrm{bad}}c
+ \le10000FH^{1/4}(1+J/P+J/T)D.
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+At a bad node, $c<2b<2H^{1/4}(K+G)$.  Sum and apply
+Lemma~\ref{lem:curvature-telescope}.
+\end{proof}
+
+\subsection{Coverage by the computed bands}
+
+The preceding estimate controls the cost of exceptional nodes.  We now show
+that at every remaining node which passes the velocity test, the band and
+rounding guards retain the comparison action.  This is the point where
+cost-weighted curvature produces a usable prediction for the algorithm.
+
+\begin{lemma}[Comparison-band coverage]\label{lem:comparison-band}
+At a non-bad comparison node with $|\widehat v|\le1-\tau$, the action
+$\alpha^*$ belongs to $\mathcal C_{b,r}$.  Its representative is not skipped:
+the band is nonempty, $h_\Sigma\le64Fb$, and the rounded action $\beta(b,r)$
+passes both the wide-action and imbalance guards.
+\end{lemma}
+
+\begin{proof}
+Let $p_j^*$ be the comparison shift at internal cut $j$, and write
+$M_j=\sum_{i\le j}m_i$.  The comparison prefix is feasible for
+$\Phi_j(p_j^*)$, so this prefix cost is at most $M_j$.  Conversely, concatenate
+any feasible prefix in that minimum with the comparison suffix.  The prefix's
+final jump is exactly its connection to the suffix.  The resulting wide
+action has cost at least $Z$, and hence
+\[
+ M_j-G\le\Phi_j(p_j^*)\le M_j.
+\]
+With $v=z_r/W$, we also have
+\[
+ |v-\widehat v|W=|z_r|G/Z\le G.
+\]
+Weighted Cauchy--Schwarz in~\eqref{eq:weighted-variance} gives
+\[
+ \sum_i|z_i-vm_i|\le\sqrt{KW}.
+\]
+The shared endpoints imply $p_j^*-p_0=\sum_{i\le j}z_i$.  Combining the last
+three observations yields
+\begin{equation}\label{eq:band-coverage}
+ |p_j^*-p_0-\widehat v\Phi_j(p_j^*)|
+ \le\sqrt{KW}+2G\le\tau\theta b/M.
+\end{equation}
+For completeness, the last numerical inequality follows from
+$K,G\le bH^{-1/4}$, $W<8Fb$, and the parameter bounds:
+\[
+ \frac M b(\sqrt{KW}+2G)
+ \le\sqrt{8\ell}\,H^{-3/40}+2H^{-1/5}
+ \le\ell^{-44}=\tau\theta.
+\]
+Indeed $\ell^{200}\le H^{1/100}$ bounds the middle expression by
+$\sqrt{8\ell}\,\ell^{-1500}+2\ell^{-4000}$.
+The radius and shared-endpoint conditions were proved in
+Lemma~\ref{lem:comparison-tree}.  Thus~\eqref{eq:band-coverage} proves
+$\alpha^*\in\mathcal C_{b,r}$.
+
+The diameter bound for the band implies that any of its child states is
+within $4\theta b/M$ of $q_i$ in endpoint metric.  Using the
+$L_0$-Lipschitz property of $w_0$ and the factor of at most two from dyadic
+ceiling, we get
+\[
+ \begin{aligned}
+ h_\Sigma
+ &\le2b+2\sum_i w_0(I_i,q_i)+8L_0\theta b\\
+ &\le2b+4F\sum_i c_i+8L_0\theta b
+ \le64Fb.
+ \end{aligned}
+\]
+The last step uses~\eqref{eq:comparison-split}, $c<2b$, and the parameter
+range.  This verifies the sum guard.
+
+Under the fixed good seed, the rounding verification following
+\eqref{eq:rounded-guard} applies as soon as this sum guard holds.
+It shows that $\beta(b,r)$ is a wide action and satisfies the imbalance
+guard.  Rounding preserves the order of each child's two endpoints;
+different child spacings may separate shared endpoints, with total
+connection charge at most $2\theta h_\Sigma$.  Thus every guard passes.
+\end{proof}

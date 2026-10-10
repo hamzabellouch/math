@@ -1,0 +1,238 @@
+\section{From potential comparisons to a labelling problem}
+\label{sec:boxes}
+
+This section specifies the finite-box input used from the companion,
+then proves the game reduction at the width required by our recursion.
+The outcome is a labelling problem whose obligations are expressed by
+potential vectors. Later sections solve that problem without finding
+the potential that certifies the winning partition.
+
+\subsection{The common finite-box interface}
+
+Fix the input graph and ownership throughout. Following the integer
+cycle perturbation of Bj\"orklund and Vorobyov
+\cite[Section~9]{BjorklundVorobyov2007}, put
+\begin{equation}
+ \widehat w(e)=(n+1)w(e)+1,
+ \qquad W=\max_{e\in E}|\widehat w(e)|.
+ \label{eq:bias}
+\end{equation}
+The edge set is nonempty. Each transformed weight is a nonzero integer,
+so $W\ge1$. If a simple directed cycle has length $\ell$ and
+original sum $c$, then
+\begin{equation}
+ \widehat w(C)=(n+1)c+\ell,\qquad 1\le\ell\le n.
+ \label{eq:cycle-signs}
+\end{equation}
+For $c\ge0$ the transformed sum is positive; for $c\le-1$ it is
+negative. Thus no simple cycle has zero transformed sum, and positive
+transformed sums correspond exactly to nonnegative original sums.
+A self-loop has $\ell=1$, and the calculation applies to every
+actual edge sequence when parallel edges are present.
+
+For all $z\in\Z^V$, define
+\begin{equation}
+ F_i(z)=
+ \begin{cases}
+  \displaystyle\max_{e:i\to j}(\widehat w(e)+z_j),&i\in V_{\mathrm{Max}},\\[2mm]
+  \displaystyle\min_{e:i\to j}(\widehat w(e)+z_j),&i\in V_{\mathrm{Min}}.
+ \end{cases}
+ \label{eq:operator}
+\end{equation}
+The finite, nonempty outgoing-edge sets ensure that these extrema are
+attained. With coordinatewise vector order and common scalar shifts,
+\begin{equation}
+ z\le z'\ \Longrightarrow\ F(z)\le F(z'),
+ \qquad F(z+t)=F(z)+t\quad(t\in\Z).
+ \label{eq:operator-properties}
+\end{equation}
+For integer vectors $A\le u$, the notation $[A,u]$ denotes all
+integer vectors between them. A \emph{subsolution} is a full vector
+$x\in[A,u]$ satisfying $x_i\le F_i(x)$ at every coordinate where
+$x_i>A_i$. A \emph{supersolution} is a full vector $y\in[A,u]$
+satisfying $y_i\ge F_i(y)$ wherever $y_i<u_i$. No inequality is
+required on the respective excluded boundary. These conventions agree
+with the companion's Definition~2.2~\cite{OpenAI2026Randomized}.
+
+\begin{lemma}[Finite-box comparison and basic iteration]
+\label{lem:accepted-box}
+For the operator in Equation~\eqref{eq:operator} and arbitrary finite
+integer bounds $A\le u$, every subsolution $x$ and supersolution
+$y$ in $[A,u]$ satisfy $x_i\le y_i$ for all $i\in V$. There is a
+unique $h\in[A,u]$ that is both a subsolution and a supersolution.
+It is precisely the unique fixed point of
+\[
+ T_{A,u}(z)=\min\{u,\max\{A,F(z)\}\}.
+\]
+Consequently every such pair satisfies $x\le h\le y$.
+
+The following synchronous iteration finds $h$. Start with $p=A$;
+evaluate $q=T_{A,u}(p)$; return $p$ if $q=p$, and otherwise set
+$p=q$ and repeat. It uses at most
+\[
+                         1+\sum_{i\in V}(u_i-A_i)
+\]
+evaluations of $T_{A,u}$, including the final stability test.
+\end{lemma}
+
+We use this statement from the complete September 25 companion,
+Lemmas~2.3--2.4~\cite{OpenAI2026Randomized}. It permits negative
+endpoints and collapsed coordinates $A_i=u_i$. In particular its
+comparison conclusion concerns all vertices, even though each
+hypothesis is imposed only on its stated support. The operator and
+integer hypotheses are exactly those above, and
+Equation~\eqref{eq:cycle-signs} verifies the required absence of zero
+simple-cycle sums. The sandwich inequality follows by comparing with
+$h$ on each side. We call $h$ the \emph{box solution} and the
+iteration $\Basic$. The algorithm will invoke $\Basic$ only when
+the box width is bounded by an absolute constant.
+
+\subsection{The two bands of a wide box}
+
+Choose the initial dyadic width
+\begin{equation}
+ D_0=\min\{2^d:d\in\Z_{\ge0},\ 2^d\ge64(n+1)(W+1)\}.
+ \label{eq:initial-width}
+\end{equation}
+The next proposition establishes the game reduction for this width.
+The companion uses width $8nW$ in its own reduction; that different
+choice is not an input to the proof here.
+
+\begin{proposition}[Winning partition from the wide box]
+\label{prop:game-reduction}
+Let $h$ be the box solution in $[0,D_0]^V$. Then
+\[
+ V_{\lo}=\{i:h_i\le nW\},\qquad
+ V_{\hi}=\{i:h_i\ge D_0-nW\}
+\]
+partition $V$. There is a positional Max strategy under which every
+play starting in $V_{\hi}$ has original mean payoff at least zero.
+There is a positional Min strategy under which every play starting
+in $V_{\lo}$ has original upper limiting average at most $-1/n$.
+Both assertions allow arbitrary history-dependent opposition.
+\end{proposition}
+
+\begin{proof}
+We first locate the coordinates of $h$, then construct the two
+strategies. If $0<h_i<D_0$, both box inequalities apply and give
+$h_i=F_i(h)$. Follow an edge attaining that equality and continue
+from its head as long as the current coordinate is interior. A first
+repeated vertex would yield a simple cycle of tight equalities
+$h_i=\widehat w(e)+h_j$, with transformed sum zero. This is
+impossible by Equation~\eqref{eq:cycle-signs}. A boundary is
+therefore reached within $n$ edges. Each edge changes the potential
+by at most $W$. Including the length-zero path from a boundary
+coordinate, every coordinate is within $nW$ of either $0$ or
+$D_0$. Since $D_0>2nW$, the two bands are disjoint and exhaust $V$.
+
+Every high coordinate is above the lower boundary. At a high Max
+vertex choose one outgoing edge satisfying
+\begin{equation}
+                         h_i\le\widehat w(e)+h_j;
+ \label{eq:high-edge}
+\end{equation}
+such an edge exists by the subsolution inequality. At a high Min
+vertex every outgoing edge satisfies this inequality. Each of these
+permitted edges has
+\[
+                  h_j\ge D_0-(n+1)W>nW,
+\]
+so its head is high by the partition just proved. Fixing the Max
+choices and extending them arbitrarily outside the high band gives
+a positional strategy keeping all consistent plays from high
+vertices in that band.
+
+On a simple cycle of permitted edges,
+Equation~\eqref{eq:high-edge} telescopes to a nonnegative transformed
+sum. Its original sum is therefore nonnegative. Let
+$W_0=\max_e|w(e)|$. Delete simple cycles successively from any
+finite play prefix until fewer than $n$ edges remain. The removed
+cycles have nonnegative original sums, and the remaining walk has
+weight at least $-(n-1)W_0$. Hence every prefix of every consistent
+play has at least that weight. Dividing by its length and taking a
+lower limit proves Max's assertion.
+
+For the other band, every low coordinate is below the upper boundary.
+At a low Min vertex fix an edge attaining the minimum in $F_i(h)$,
+and at a low Max vertex permit all outgoing edges. The supersolution
+inequality gives
+\begin{equation}
+                         h_i\ge\widehat w(e)+h_j
+ \label{eq:low-edge}
+\end{equation}
+for each permitted edge. Its head satisfies
+$h_j\le(n+1)W<D_0-nW$, so it is low. These choices, extended
+arbitrarily elsewhere, give a positional Min strategy preserving
+the low band.
+
+Every simple cycle of permitted edges now has nonpositive
+transformed sum and hence original integer sum at most $-1$.
+Deleting simple cycles from a prefix of length $T$ leaves at most
+$n-1$ edges. Each deleted cycle has at most $n$ edges, so the
+number removed is at least $(T-(n-1))/n$. The original prefix
+weight is at most
+\[
+                       -\frac{T-(n-1)}n+(n-1)W_0.
+\]
+Its upper limiting average is at most $-1/n$. The prefix estimates
+on both sides apply to every consistent edge sequence, independently
+of how the opposing player uses the history.
+\end{proof}
+
+\subsection{Simultaneous boundary obligations}
+
+The recursion works on inputs
+\begin{equation}
+ A\in\Z^V,\qquad D=2^d\ (d\in\Z_{\ge0}),\qquad
+ a,b\in\Q_{>0}^V.
+ \label{eq:recursive-input}
+\end{equation}
+Its box is $[A,u]$ with $u=A+D$, and its claim margin is
+$P=D/32$. For $S\subseteq V$ let
+$a(S)=\sum_{i\in S}a_i$ and $b(S)=\sum_{i\in S}b_i$.
+The positive rational vectors $a,b$ are called \emph{masses}.
+
+\begin{definition}[Witnesses and their claims]
+\label{def:witnesses}
+A \emph{Max witness} for $(A,D,a,b)$ is a subsolution
+$x\in[A,u]$ with support $S_x=\{i:x_i>A_i\}$ and
+$a(S_x)\le1$. It \emph{claims} each $i$ with $x_i\ge u_i-P$.
+A \emph{Min witness} is a supersolution $y\in[A,u]$ with support
+$S_y=\{i:y_i<u_i\}$ and $b(S_y)\le1$. It claims each $i$
+with $y_i\le A_i+P$. A witness is \emph{relevant} when it claims
+at least one index.
+\end{definition}
+
+Since $P<D$, every claim belongs to its witness's support. Claims
+of opposite types cannot coincide: otherwise box comparison would
+give $u_i-P\le x_i\le y_i\le A_i+P$, contradicting $2P<D$.
+Masses limit the witnesses covered by an obligation; the graph itself
+always retains every vertex and edge.
+
+\begin{theorem}[Simultaneous labelling]
+\label{thm:labelling}
+For every input in Equation~\eqref{eq:recursive-input}, the
+procedure $\Label(A,D,a,b)$ of Section~\ref{sec:algorithm}
+terminates and returns a vector in $\{+,-\}^V$. It assigns $+$
+to every index claimed by any Max witness and $-$ to every index
+claimed by any Min witness.
+\end{theorem}
+
+All witnesses of a call are covered by this one output. They are
+neither enumerated nor supplied to the procedure. On vertices with
+no claim the theorem permits either label.
+
+Apply this guarantee to
+\begin{equation}
+                  A=0,\qquad D=D_0,\qquad a_i=b_i=1/n.
+ \label{eq:main-call}
+\end{equation}
+Every support then has mass at most one. The box solution $h$ is
+therefore a witness of both types. Moreover
+$P=D_0/32\ge nW$, so its Max claims include all high vertices and
+its Min claims include all low vertices. By
+Proposition~\ref{prop:game-reduction}, a labelling satisfying
+Theorem~\ref{thm:labelling} returns the exact winning set by taking
+its positively labelled vertices. This uses the existence and
+boundary location of $h$, without executing $\Basic$ on the wide
+initial box.

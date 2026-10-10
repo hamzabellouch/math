@@ -1,0 +1,760 @@
+\section{Typed data channels}
+\label{chan-section}
+
+We retain the labelled proof and data fragment, its fixed ambient context,
+the proof-formula constructors, and the data-path wrappers constructed
+above.  In particular, a formula is a stable data type sorted at the logic
+vertex $b$; its proofs have mode $\mathsf p$.  All data introduced in this
+section have mode $\mathsf d$.  Saying that a type is \emph{sorted at a
+vertex} means that it is typed at every sort belonging to that vertex.  This
+asserts the indicated typings, and does not assert that the vertex is its
+exact profile.
+
+The aim is to construct a common type of probes that works with different
+choices of a data type and a data parameter. We first build observations
+and predicates for one type, then query objects and a bundle that retains
+the chosen parameter. These give a probe type independent of those
+choices and a second observation channel on that type. The permitted
+logical quantifier domains are recorded at the end of the section.
+
+For reference, an even data path $\rho$ from a vertex at which $T$ is sorted
+has the operations
+\[
+ \operatorname{pack}_{\rho}(t):W_{\rho}(T),\qquad
+ \operatorname{use}_{\rho}(w;x.\Phi),
+\]
+where $t:T$, $w:W_{\rho}(T)$, and $\Phi$ is a formula under $x:T$.
+An odd data path has the operations
+\[
+ \operatorname{mk}_{\rho}(x.\Phi):W_{\rho}(T),\qquad
+ \langle w,t\rangle_{\rho}.
+\]
+The last expressions in both displays are formulas.  We use the proof
+builders of Lemma~\ref{lem:enc-data-cancellation} in the following form:
+\begin{equation}
+\begin{aligned}
+ \operatorname{use}_{\rho}(\operatorname{pack}_{\rho}(t);x.\Phi)
+       &\leftrightarrow \Phi[x:=t] &&(\rho\text{ even}),\\
+ \langle\operatorname{mk}_{\rho}(x.\Phi),t\rangle_{\rho}
+       &\leftrightarrow \Phi[x:=t] &&(\rho\text{ odd}).
+\end{aligned}
+\label{chan-cancellation}
+\end{equation}
+These are logical biconditionals with typed proof terms, rather than
+equations permitting replacement inside data.  Subscripts may name a
+particular resulting type instead of its fixed path.  Even when paths are
+reused, their source type and their role are fixed by that subscript.
+
+\subsection{The required paths and the first channel}
+
+Assume the configuration to be excluded: $C$ is a plain active strongly
+connected component of the secondary graph, it has an internal negative
+edge, and
+\begin{equation}
+\begin{gathered}
+ (I,J,k)\text{ is a profile triple},\qquad J,k,d=\{s\}\in C,\\
+ \operatorname{Ax}(s)\ne\varnothing,\qquad
+ \operatorname{Ax}(s)\longrightarrow I
+ \text{ by a primary positive path}.
+\end{gathered}
+\label{chan-configuration}
+\end{equation}
+The logic component $S$ has its odd closed walk and all-$S$ triple, as in
+the preceding construction.  We do not assume that $C$ itself has an odd
+closed walk.
+
+\begin{lemma}[Choice of paths]
+\label{chan-paths}
+There is a retained negative edge associated to a triple $(p,n,g)$, with
+$p,g\in C$, and there are fixed secondary paths
+\[
+ \alpha:k\longrightarrow p\quad\text{odd},\qquad
+ \beta:p\longrightarrow k\quad\text{odd},\qquad
+ \kappa:g\longrightarrow J\quad\text{even},
+\]
+all inside $C$.  There are also fixed secondary paths
+\[
+ \lambda:k\longrightarrow j\quad\text{odd},\qquad
+ \theta:k\longrightarrow h\quad\text{even},
+\]
+where $j$ and $h$ are direct vertices.  In particular,
+$\eta=\beta\theta:p\longrightarrow h$ is odd.
+\end{lemma}
+
+\begin{proof}
+If $C$ has an odd closed walk, between any two of its vertices there are
+paths of both parities: choose paths to and from the base of that walk,
+and insert the walk once to change parity.  Choose any internal retained
+negative $(p,n,g)$ and then choose the three required parities for
+$\alpha$, $\beta$, and $\kappa$.
+
+Suppose instead that every closed walk in $C$ is even.  Color its vertices
+by the parity of a path from a fixed vertex.  The color is well defined:
+appending a fixed return path to two such paths shows that their parities
+are equal.  A positive edge preserves color and a negative edge changes
+it.  The positive edge $J\longrightarrow k$ of the triple in
+\eqref{chan-configuration} is retained, since $J,k\in C\subseteq H$;
+hence $J$ and $k$ have the same color.  There is a negative edge entering
+this color.  Indeed, take any internal negative.  If it enters the other
+color, follow a directed return path to its source; that path must contain
+a negative edge entering the color of $k$.  Choose such an edge
+$p\longrightarrow g$, with its retained triple $(p,n,g)$.  Thus $g$ has
+the color of $J,k$, and $p$ has the opposite color.  Connectivity now gives
+$\kappa$ even and $\alpha,\beta$ odd.
+
+Finally, $k$ is plain.  By the definition of plainness it has an odd path
+to a direct vertex $j$ and an even path to a direct vertex $h$.  They need
+not have the same endpoint and need not stay inside $C$.  Choose them as
+$\lambda$ and $\theta$.  Concatenating $\beta$ with $\theta$ gives the
+claimed odd path $\eta$.
+\end{proof}
+
+Fix also a path $\delta:d\longrightarrow k$ inside $C$, with no parity
+condition.  We use $\delta$ only to form a type.  Work for the moment under
+the data declaration $A:s$.  This is a valid declaration because
+$\operatorname{Ax}(s)$ is nonempty.  Define
+\begin{equation}
+\begin{aligned}
+ B(A)&=W_{\delta}(A),&
+ L_c(A)&=W_{\alpha}(B(A)),\\
+ L(A)&=W_{\lambda}(B(A)),&
+ \mathsf P_L(A)&=W_{\eta}(L_c(A)).
+\end{aligned}
+\label{chan-basic-types}
+\end{equation}
+When $A$ is fixed, omit it from the notation.  The sort ledger is
+\[
+\begin{array}{c|c|l}
+\text{data type}&\text{sorted at}&\text{support}\\ \hline
+A&d=\{s\}&A:s\\
+B(A)&k&\delta:d\longrightarrow k\\
+L_c(A)&p&\alpha:k\longrightarrow p\text{ odd}\\
+L(A)&j&\lambda:k\longrightarrow j\text{ odd}\\
+\mathsf P_L(A)&h&\eta:p\longrightarrow h\text{ odd}
+\end{array}
+\]
+Each line follows from the corresponding data-path formation lemma.
+For instance, $\operatorname{mk}_{L}(t.\Phi)$ binds $t:B(A)$, whereas
+$\operatorname{mk}_{\mathsf P_L}(c.\Phi)$ binds $c:L_c(A)$.  These
+different sources will be important below.
+
+\begin{definition}[Logical and raw channel values]
+\label{chan-raw-log}
+For $y:L$, $c:L_c$, and $P:\mathsf P_L$, put
+\[
+\begin{aligned}
+ \operatorname{Raw}(y)
+   &=\operatorname{mk}_{L_c}(t.\langle y,t\rangle_L):L_c,\\
+ \operatorname{Log}(c)
+   &=\operatorname{mk}_{L}(t.\langle c,t\rangle_{L_c}):L,\\
+ \operatorname{Round}(y)&=\operatorname{Log}(\operatorname{Raw}(y)):L,\\
+ P@y&=\langle P,\operatorname{Raw}(y)\rangle_{\mathsf P_L}.
+\end{aligned}
+\]
+For a formula $\Phi$ under $x:L$, define
+\[
+ \operatorname{pred}(x.\Phi)
+   =\operatorname{mk}_{\mathsf P_L}
+       (c.\Phi[x:=\operatorname{Log}(c)]):\mathsf P_L.
+\]
+Here $t:B(A)$ and $c:L_c(A)$ in their respective callbacks.
+\end{definition}
+
+\begin{lemma}[Rounding and predicate evaluation]
+\label{chan-rounding}
+There are proof builders, for $y:L$ and $t:B(A)$, of
+\begin{equation}
+ \langle\operatorname{Round}(y),t\rangle_L
+       \leftrightarrow\langle y,t\rangle_L.
+\label{chan-primitive-round}
+\end{equation}
+For every formula $\Phi$ under $x:L$ and every $w:L$, there is a proof of
+\begin{equation}
+ \operatorname{pred}(x.\Phi)@w
+       \leftrightarrow\Phi[x:=\operatorname{Round}(w)].
+\label{chan-predicate-evaluation}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For \eqref{chan-primitive-round}, cancellation for $\operatorname{Log}$
+gives the comparison with
+$\langle\operatorname{Raw}(y),t\rangle_{L_c}$, and cancellation for
+$\operatorname{Raw}$ compares this with $\langle y,t\rangle_L$.
+Apply $\mathsf{pl}$ to these two biconditionals.  For
+\eqref{chan-predicate-evaluation}, expand $@$ and cancel
+$\operatorname{mk}_{\mathsf P_L}$ at the exact argument
+$c=\operatorname{Raw}(w)$.  Its callback becomes
+$\Phi[x:=\operatorname{Log}(\operatorname{Raw}(w))]$, which is the
+displayed formula by definition.
+\end{proof}
+
+\subsection{Bits stored by pairs of odd wrappers}
+
+Two odd wrappers store one bit while retaining formula observations of
+the original input. Iterating this construction will distinguish the
+finite query markers.
+
+\begin{definition}[A double wrapper]
+\label{chan-double}
+Let $T_1=W_{\rho}(T)$ and $T_2=W_{\sigma}(T_1)$ for two odd data paths.
+Use subscripts $1$ and $2$ for their respective constructors and
+evaluations.  For $t:T$ define two data embeddings
+\[
+ \operatorname{emb}_1(t)
+   =\operatorname{mk}_2(f.\langle f,t\rangle_1),\qquad
+ \operatorname{emb}_0(t)
+   =\operatorname{mk}_2(f.\neg\langle f,t\rangle_1),
+ \qquad f:T_1.
+\]
+Both have type $T_2$.  Set
+\[
+ \operatorname{if}(G;H,H')=(G\land H)\lor(\neg G\land H'),
+\]
+and, for $v:T_2$ and a formula $\Phi$ under $u:T$, set
+\[
+\begin{aligned}
+ \operatorname{bit}(v)
+   &=\langle v,\operatorname{mk}_1(u.\top)\rangle_2,\\
+ \operatorname{rec}(v;u.\Phi)
+   &=\operatorname{if}\bigl(\operatorname{bit}(v);
+          \langle v,\operatorname{mk}_1(u.\Phi)\rangle_2,
+          \neg\langle v,\operatorname{mk}_1(u.\Phi)\rangle_2\bigr).
+\end{aligned}
+\]
+\end{definition}
+
+\begin{lemma}[Canonical bit and recovery proofs]
+\label{chan-double-laws}
+For $\epsilon\in\{0,1\}$ there are proofs of the signed bit
+\[
+ \begin{cases}
+  \operatorname{bit}(\operatorname{emb}_1(t)),&\epsilon=1,\\
+  \neg\operatorname{bit}(\operatorname{emb}_0(t)),&\epsilon=0,
+ \end{cases}
+\]
+and a proof of
+\[
+ \operatorname{rec}(\operatorname{emb}_{\epsilon}(t);u.\Phi)
+       \leftrightarrow\Phi[u:=t].
+\]
+\end{lemma}
+
+\begin{proof}
+Cancel the second wrapper, then the first.  Evaluation of
+$\operatorname{emb}_1(t)$ against $\operatorname{mk}_1(u.\Phi)$ is
+biconditional to $\Phi[u:=t]$; evaluation of
+$\operatorname{emb}_0(t)$ against the same value is biconditional to
+$\neg\Phi[u:=t]$.  Each comparison follows by $\mathsf{pl}$ from the two
+cancellation proofs.  With $\Phi=\top$, the proof of $\top$ and these
+comparisons give the signed bits.  If $\epsilon=1$, the definition of
+$\operatorname{rec}$ then selects the positive comparison.  If
+$\epsilon=0$, it selects the negation of the negative comparison.  The
+propositional double-negation equivalence is available from
+$\mathsf{pl}$ by Lemma~\ref{lem:enc-propositional}, since the logical
+constructors and classical proof builders have already been derived in
+the labelled fragment.  Thus
+$\mathsf{pl}$ gives the recovery biconditional in both cases.
+\end{proof}
+
+To record the iteration explicitly, begin with $T_0=L_c$ and define, for
+$1\le r\le4$,
+\[
+ T_{2r-1}=W_{\beta}(T_{2r-2}),\qquad
+ T_{2r}=W_{\alpha}(T_{2r-1}),\qquad
+ \operatorname{Big}=T_8.
+\]
+The even-indexed types are sorted at $p$ and the odd-indexed types at $k$.
+Let $\operatorname{emb}^{(r)}$, $\operatorname{bit}_r$, and
+$\operatorname{rec}_r$ refer to the $r$th pair.  For a string
+$\epsilon=(\epsilon_1,\ldots,\epsilon_r)$ put
+\[
+ E_0(c)=c,\qquad
+ E_r(c;\epsilon)=\operatorname{emb}^{(r)}_{\epsilon_r}
+                (E_{r-1}(c;\epsilon_1,\ldots,\epsilon_{r-1})).
+\]
+The bit observations at level $r$ are the formulas
+\[
+\begin{aligned}
+ H_{r,r}(v)&=\operatorname{bit}_r(v),\\
+ H_{r,a}(v)&=\operatorname{rec}_r(v;u.H_{r-1,a}(u))
+                      &&(1\le a<r).
+\end{aligned}
+\]
+Similarly, for a formula $\Phi$ under $c:L_c$, define iterated recovery by
+\[
+ R_0(v;c.\Phi)=\Phi[c:=v],\qquad
+ R_r(v;c.\Phi)=\operatorname{rec}_r(v;u.R_{r-1}(u;c.\Phi)).
+\]
+Induction using Lemma~\ref{chan-double-laws} and $\mathsf{pl}$ gives the
+appropriate signed proof of every
+$H_{r,a}(E_r(c;\epsilon))$ and gives
+\begin{equation}
+ R_r(E_r(c;\epsilon);u.\Phi)
+       \leftrightarrow\Phi[u:=c].
+\label{chan-iterated-recovery}
+\end{equation}
+The induction uses logical comparisons of the displayed formulas; it
+does not replace an inner encoded datum by a logically equivalent datum.
+
+\subsection{Marked queries and point values}
+
+Let
+\[
+ \mathcal T=\{G,C_0,C_\ell,C_r,E_\ell,E_r,R,\operatorname{pt}\},
+ \qquad
+ \mathcal T_{\mathrm{str}}=\mathcal T\setminus\{\operatorname{pt}\}.
+\]
+Thus there are eight marker indices and seven structural indices.
+Assign distinct four-bit strings to the data tag and these markers; for
+example, in the displayed order, take
+\[
+\begin{array}{c|ccccccccc}
+\text{tag}&\mathrm{data}&G&C_0&C_\ell&C_r&E_\ell&E_r&R&\operatorname{pt}\\ \hline
+\text{string}&0000&0001&0010&0011&0100&0101&0110&0111&1000.
+\end{array}
+\]
+Write $\epsilon(q)$ for the string of a tag $q$, and put
+$E_q(c)=E_4(c;\epsilon(q)):\operatorname{Big}$.  For a string
+$\epsilon\in\{0,1\}^4$, let $\operatorname{bits}_{\epsilon}(v)$ be the
+fixed-bracketing conjunction whose $a$th conjunct is $H_{4,a}(v)$ if
+$\epsilon_a=1$ and $\neg H_{4,a}(v)$ if $\epsilon_a=0$.
+Abbreviate this formula by $\operatorname{bits}_{q}(v)$ for the string of
+a tag $q$.  The canonical signed-bit proofs give
+$\operatorname{bits}_{q}(E_q(c))$ and
+$\neg\operatorname{bits}_{q'}(E_q(c))$ whenever $q'\ne q$: in the
+latter case use a position where the two strings differ and apply
+$\mathsf{pl}$.
+
+Define
+\[
+ \operatorname{BP}=W_{\beta}(\operatorname{Big}),\qquad
+ M(A)=W_{\alpha}(\operatorname{BP}).
+\]
+For $P:\mathsf P_L$ and $t\in\mathcal T$, put
+\begin{equation}
+ \operatorname{Enc}_t(P)=\operatorname{mk}_{\operatorname{BP}}\left(
+ v.\bigl(\operatorname{bits}_{\mathrm{data}}(v)
+        \land R_4(v;c.\langle P,c\rangle_{\mathsf P_L})\bigr)
+        \lor\operatorname{bits}_{t}(v)\right).
+\label{chan-enc}
+\end{equation}
+Here $v:\operatorname{Big}$ and $c:L_c$, so
+$\operatorname{Enc}_t(P):\operatorname{BP}$.  Choose the fixed value
+\[
+ c_\top=\operatorname{mk}_{L_c}(u.\top):L_c,
+ \qquad u:B(A),
+\]
+and define, for $bp:\operatorname{BP}$,
+\[
+\begin{aligned}
+ \operatorname{Mark}_t(bp)
+    &=\langle bp,E_t(c_\top)\rangle_{\operatorname{BP}},\\
+ \operatorname{Dec}(bp)
+    &=\operatorname{mk}_{\mathsf P_L}
+                  (c.\langle bp,E_{\mathrm{data}}(c)\rangle_{\operatorname{BP}})
+                    :\mathsf P_L,\\
+ \operatorname{qry}_t(o,P)
+    &=\langle o,\operatorname{Enc}_t(P)\rangle_M,
+                      \qquad o:M(A).
+\end{aligned}
+\]
+The sort and value ledger for these constructions is
+\[
+\begin{array}{c|c|l}
+\text{data type}&\text{sorted at}&\text{values just constructed}\\ \hline
+T_{2r}&p&E_r(c;\epsilon)\quad(0\le r\le4)\\
+T_{2r-1}&k&\operatorname{mk}\text{ values in pair }r\quad(1\le r\le4)\\
+\operatorname{Big}=T_8&p&E_q(c)\\
+\operatorname{BP}&k&\operatorname{Enc}_t(P)\\
+\mathsf P_L&h&\operatorname{Dec}(bp)\\
+M(A)&p&\operatorname{mk}_M(bp.\Phi)
+\end{array}
+\]
+All observations, marks, queries, and recovery expressions are formulas
+sorted at $b$; none is a data value of type $\operatorname{Big}$ or
+$\operatorname{BP}$.
+
+\begin{lemma}[Marker and decoder laws]
+\label{chan-marker-laws}
+For $P:\mathsf P_L$ and $t,u\in\mathcal T$ there are proofs of
+\[
+ \operatorname{Mark}_t(\operatorname{Enc}_t(P)),\qquad
+ \neg\operatorname{Mark}_u(\operatorname{Enc}_t(P))\quad(u\ne t).
+\]
+For every $c:L_c$ there is a proof of
+\[
+ \langle\operatorname{Dec}(\operatorname{Enc}_t(P)),c\rangle_{\mathsf P_L}
+       \leftrightarrow\langle P,c\rangle_{\mathsf P_L},
+\]
+and consequently, for every $y:L$, a proof of
+\begin{equation}
+ \operatorname{Dec}(\operatorname{Enc}_t(P))@y\leftrightarrow P@y.
+\label{chan-decode}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For a marker, cancel \eqref{chan-enc} at $E_u(c_\top)$.  The data-string
+test is false by the signed-bit proofs.  The remaining marker-string
+test holds exactly when $u=t$, again by those proofs.  Apply
+$\mathsf{pl}$ to obtain the asserted signed mark.
+
+For the decoder, first cancel its $\mathsf P_L$ constructor at the exact
+input $c$, then cancel \eqref{chan-enc} at
+$E_{\mathrm{data}}(c)$.  Here the data-string test holds, the
+marker-string test fails, and \eqref{chan-iterated-recovery} compares the
+remaining recovery formula with $\langle P,c\rangle_{\mathsf P_L}$.
+Combine these proofs with $\mathsf{pl}$.  To obtain \eqref{chan-decode},
+use this result at $c=\operatorname{Raw}(y)$ and expand the definition of
+$@$.  Thus this calculation inserts neither
+$\operatorname{Round}(y)$ nor an additional rounding of its raw value.
+\end{proof}
+
+Define the data values and the formula
+\begin{equation}
+\begin{aligned}
+ bp_\bot&=\operatorname{mk}_{\operatorname{BP}}(v.\bot)
+                       :\operatorname{BP},\\
+ \operatorname{dummy}&=\operatorname{mk}_M(bp.\top):M(A),\\
+ D(o)&=\langle o,bp_\bot\rangle_M,\\
+ \operatorname{point}(y)
+   &=\operatorname{mk}_M
+       (bp.\operatorname{Mark}_{\operatorname{pt}}(bp)
+                   \land(\operatorname{Dec}(bp)@y)):M(A).
+\end{aligned}
+\label{chan-point}
+\end{equation}
+
+\begin{lemma}[Dummy and point laws]
+\label{chan-point-laws}
+There are proofs of
+\[
+ D(\operatorname{dummy}),\qquad
+ \neg\operatorname{Mark}_t(bp_\bot)\quad(t\in\mathcal T),\qquad
+ \neg D(\operatorname{point}(y)),
+\]
+and there is a proof, for $P:\mathsf P_L$, of
+\begin{equation}
+ \operatorname{qry}_{\operatorname{pt}}(\operatorname{point}(y),P)
+                  \leftrightarrow P@y.
+\label{chan-point-query}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Cancellation compares $D(\operatorname{dummy})$ with $\top$, which has
+its derived proof.  It compares every marker of $bp_\bot$ with $\bot$,
+giving the asserted negations by $\mathsf{pl}$.  Cancellation at
+$bp_\bot$ compares $D(\operatorname{point}(y))$ with a conjunction
+having $\operatorname{Mark}_{\operatorname{pt}}(bp_\bot)$ as its first
+conjunct, and hence gives its negation.  Finally, cancellation compares
+the left side of \eqref{chan-point-query} with
+\[
+ \operatorname{Mark}_{\operatorname{pt}}
+       (\operatorname{Enc}_{\operatorname{pt}}(P))
+ \land
+ \bigl(\operatorname{Dec}(\operatorname{Enc}_{\operatorname{pt}}(P))@y\bigr).
+\]
+The marker proof and \eqref{chan-decode} prove the required
+biconditional by $\mathsf{pl}$.
+\end{proof}
+
+\subsection{A bundle carrying an exact parameter}
+
+Define two more odd wrappers
+\begin{equation}
+ F(A)=W_{\beta}(M(A)),\qquad
+ \operatorname{Single}(A)=W_{\alpha}(F(A)).
+\label{chan-single}
+\end{equation}
+Thus $F(A)$ is sorted at $k$ and $\operatorname{Single}(A)$ is sorted at
+$p$.  We use $\langle f,o\rangle_F$ for $f:F(A)$ and $o:M(A)$, and
+$\langle w,f\rangle_{\operatorname{Single}}$ for
+$w:\operatorname{Single}(A)$ and $f:F(A)$.
+
+\begin{definition}[Bundle and access]
+\label{chan-bundle-definition}
+For $m:M(A)$ and $y:L(A)$, put
+\[
+ \operatorname{Bundle}(m,y)=\operatorname{mk}_{\operatorname{Single}}
+ \left(f.\operatorname{if}\bigl(
+    \langle f,\operatorname{dummy}\rangle_F;
+    \langle f,m\rangle_F,
+    \langle f,\operatorname{point}(y)\rangle_F\bigr)\right)
+       :\operatorname{Single}(A).
+\]
+Let $\Psi(o,x)$ be a formula under $o:M(A),x:L(A)$, independent of the
+new variable $w:\operatorname{Single}(A)$.  Its other free data parameters
+are allowed and remain fixed.  Define
+\begin{equation}
+\begin{aligned}
+ f_i(o)&=\operatorname{mk}_{F}\left(o'.
+    \operatorname{if}\bigl(D(o');\bot,
+       \operatorname{qry}_{\operatorname{pt}}
+           (o',\operatorname{pred}(x.\Psi(o,x)))\bigr)\right),\\
+ f_e(w)&=\operatorname{mk}_{F}\left(o.
+    \operatorname{if}\bigl(D(o);\top,
+             \langle w,f_i(o)\rangle_{\operatorname{Single}}\bigr)\right),\\
+ \operatorname{Access}(w;o,x.\Psi)
+     &=\langle w,f_e(w)\rangle_{\operatorname{Single}}.
+\end{aligned}
+\label{chan-access-definition}
+\end{equation}
+Here $o,o':M(A)$, both $f_i(o)$ and $f_e(w)$ have type $F(A)$, and
+$\operatorname{Access}$ is a formula.  The dependence of $f_i$ and $f_e$
+on $\Psi$ is suppressed only in their names.
+\end{definition}
+
+\begin{lemma}[Access]
+\label{chan-access}
+Under $A:s$, $m:M(A)$, $y:L(A)$ and the proof input $d_m:\neg D(m)$,
+there is a proof of
+\begin{equation}
+ \operatorname{Access}(\operatorname{Bundle}(m,y);o,x.\Psi)
+        \leftrightarrow\Psi(m,\operatorname{Round}(y)).
+\label{chan-access-law}
+\end{equation}
+The definitions of $\operatorname{Bundle}$ and $\operatorname{Access}$
+themselves do not use $d_m$.
+\end{lemma}
+
+\begin{proof}
+Throughout this proof $w$ abbreviates the exact data expression
+$\operatorname{Bundle}(m,y)$; it is not a fresh datum with an assumed
+property.  For any $f:F(A)$, cancellation of the bundle gives a proof of
+\begin{equation}
+ \langle w,f\rangle_{\operatorname{Single}}
+ \leftrightarrow
+ \operatorname{if}\bigl(
+    \langle f,\operatorname{dummy}\rangle_F;
+    \langle f,m\rangle_F,
+    \langle f,\operatorname{point}(y)\rangle_F\bigr).
+\label{chan-bundle-evaluation}
+\end{equation}
+
+First apply cancellation to $f_e(w)$ at
+$\operatorname{dummy}:M(A)$.  It gives
+\[
+ \langle f_e(w),\operatorname{dummy}\rangle_F
+ \leftrightarrow
+ \operatorname{if}\bigl(D(\operatorname{dummy});\top,
+      \langle w,f_i(\operatorname{dummy})\rangle_{\operatorname{Single}}\bigr).
+\]
+Together with $D(\operatorname{dummy})$ from
+Lemma~\ref{chan-point-laws} and the proof of $\top$, this gives, by
+$\mathsf{pl}$, a proof of
+$\langle f_e(w),\operatorname{dummy}\rangle_F$.
+Cancellation at the exact input $m$ gives
+\[
+ \langle f_e(w),m\rangle_F
+ \leftrightarrow
+ \operatorname{if}\bigl(D(m);\top,
+                  \langle w,f_i(m)\rangle_{\operatorname{Single}}\bigr).
+\]
+Use $d_m$ and $\mathsf{pl}$ to obtain
+\[
+ \langle f_e(w),m\rangle_F
+       \leftrightarrow\langle w,f_i(m)\rangle_{\operatorname{Single}}.
+\]
+Now use \eqref{chan-bundle-evaluation} with $f=f_e(w)$.  Its condition has
+the positive proof just constructed, so $\mathsf{pl}$ selects its first
+branch and gives
+\begin{equation}
+ \operatorname{Access}(w;o,x.\Psi)
+       \leftrightarrow\langle w,f_i(m)\rangle_{\operatorname{Single}}.
+\label{chan-access-first-selection}
+\end{equation}
+This is where the first occurrence of the callback parameter is fixed:
+it is the original $m$ by the exact substitution in cancellation.
+
+For the second selection, cancellation of $f_i(m)$ at
+$\operatorname{dummy}$ gives
+\[
+ \langle f_i(m),\operatorname{dummy}\rangle_F
+ \leftrightarrow
+ \operatorname{if}\bigl(D(\operatorname{dummy});\bot,
+       \operatorname{qry}_{\operatorname{pt}}
+          (\operatorname{dummy},\operatorname{pred}(x.\Psi(m,x)))\bigr).
+\]
+The proof of $D(\operatorname{dummy})$ therefore gives a proof of
+$\neg\langle f_i(m),\operatorname{dummy}\rangle_F$ by $\mathsf{pl}$.
+Cancellation of $f_i(m)$ at $\operatorname{point}(y)$, followed by
+$\neg D(\operatorname{point}(y))$, gives
+\[
+ \langle f_i(m),\operatorname{point}(y)\rangle_F
+ \leftrightarrow
+ \operatorname{qry}_{\operatorname{pt}}
+       (\operatorname{point}(y),\operatorname{pred}(x.\Psi(m,x))).
+\]
+The point-query proof \eqref{chan-point-query}, at the exact predicate
+$\operatorname{pred}(x.\Psi(m,x))$, compares this right side with
+$\operatorname{pred}(x.\Psi(m,x))@y$.  In turn,
+\eqref{chan-predicate-evaluation} compares that formula with
+$\Psi(m,\operatorname{Round}(y))$.  Combining these proofs gives
+\[
+ \langle f_i(m),\operatorname{point}(y)\rangle_F
+        \leftrightarrow\Psi(m,\operatorname{Round}(y)).
+\]
+Use \eqref{chan-bundle-evaluation} once more, now with $f=f_i(m)$.  Its
+condition has the negative proof above, so $\mathsf{pl}$ selects its
+second branch and yields
+\[
+ \langle w,f_i(m)\rangle_{\operatorname{Single}}
+        \leftrightarrow\Psi(m,\operatorname{Round}(y)).
+\]
+Finally combine this with \eqref{chan-access-first-selection} by
+$\mathsf{pl}$.  Only predicate evaluation rounded an argument, and that
+argument was $y$.  Every occurrence of $m$ in this derivation comes from
+exact data substitution, without a logical replacement of data.
+\end{proof}
+
+\subsection{The common type of probes}
+
+Recall the retained triple $(p,n,g)$ selected in
+Lemma~\ref{chan-paths}.  Its tail type $U_n$ is the previously fixed
+positive data wrapper of a literal sort.  It is sorted at $n$, with the
+operations $\operatorname{send}_n$ and $\operatorname{read}_n$ and the
+read--send biconditional \eqref{eq:enc-read-send}.  Since
+$\operatorname{Single}(A)$ is sorted at $p$, form
+\begin{equation}
+ \operatorname{Fun}(A)
+    =\Pi^{\mathsf d,\mathsf d}w:\operatorname{Single}(A).U_n,
+ \qquad\text{sorted at }g.
+\label{chan-fun}
+\end{equation}
+This uses precisely the formation rules represented by $(p,n,g)$.
+
+Let $\zeta$ be the fixed primary positive path
+$\operatorname{Ax}(s)\longrightarrow I$ of
+\eqref{chan-configuration}, and positively wrap the literal $s$:
+\begin{equation}
+ Z=W_{\zeta}^{+}(s),\qquad
+ A^\uparrow:Z\quad(A:s),\qquad
+ z^\downarrow:s\quad(z:Z),\qquad
+ (A^\uparrow)^\downarrow={}_\beta A.
+\label{chan-z}
+\end{equation}
+The initial type $s$ is sorted at all of $\operatorname{Ax}(s)$, so $Z$
+is sorted at $I$.  The superscripts in \eqref{chan-z} denote the fixed
+positive lift and projection, not additional primitive operations.
+
+Now define the data type
+\begin{equation}
+ V=\Pi^{\mathsf d,\mathsf d}z:Z.
+             W_{\kappa}(\operatorname{Fun}(z^\downarrow)).
+\label{chan-v}
+\end{equation}
+Under $z:Z$ the projection $z^\downarrow:s$ can be substituted for the
+data parameter $A$ in every preceding channel type.  The resulting
+$\operatorname{Fun}(z^\downarrow)$ is sorted at $g$, and its wrapper
+along $\kappa:g\longrightarrow J$ is sorted at $J$.  The triple
+$(I,J,k)$ therefore sorts $V$ at $k$.  This construction binds the former
+parameter $A$ through $z^\downarrow$: $V$ has no free $A$ or $m$.
+
+For $v:V$, $A:s$, $m:M(A)$ and $y:L(A)$, define the formula
+\begin{equation}
+ v\diamond_{A,m}y
+   =\operatorname{use}_{\kappa}\left(
+        v\,A^\uparrow;
+        f.\operatorname{read}_n(f\,\operatorname{Bundle}(m,y))\right).
+\label{chan-diamond}
+\end{equation}
+The applications displayed here have label $(\mathsf d,\mathsf d)$.
+For clarity, their typing chain is
+\[
+\begin{aligned}
+ v\,A^\uparrow
+   &:W_{\kappa}(\operatorname{Fun}((A^\uparrow)^\downarrow))
+       =_\beta W_{\kappa}(\operatorname{Fun}(A)),\\
+ f&:\operatorname{Fun}(A),\qquad
+ \operatorname{Bundle}(m,y):\operatorname{Single}(A),\\
+ f\,\operatorname{Bundle}(m,y)&:U_n.
+\end{aligned}
+\]
+The conversion in the first line is allowed because all paths, tails,
+and role-dependent syntax choices were fixed before substitution.  Since
+$\kappa$ is even, its $\operatorname{use}$ operation accepts exactly the
+formula callback in \eqref{chan-diamond}.  Thus $\diamond$ is well typed
+without a proof assumption about $m$.
+
+The final data-sort ledger is
+\[
+\begin{array}{c|c|l}
+\text{data type}&\text{sorted at}&\text{formation support}\\ \hline
+M(A)&p&W_{\alpha}(\operatorname{BP}(A))\\
+F(A)&k&W_{\beta}(M(A))\\
+\operatorname{Single}(A)&p&W_{\alpha}(F(A))\\
+U_n&n&\text{the retained negative's fixed tail}\\
+\operatorname{Fun}(A)&g&(p,n,g)\\
+Z&I&\zeta:\operatorname{Ax}(s)\longrightarrow I\text{ positive}\\
+W_{\kappa}(\operatorname{Fun}(z^\downarrow))&J&\kappa:g\longrightarrow J\text{ even}\\
+V&k&(I,J,k)
+\end{array}
+\]
+In particular, neither the use of $M(A)$ as an open parameter nor that of
+$V$ as an input type requires $p$ or $k$ to be direct.
+
+\subsection{The second channel and permitted quantifiers}
+
+Apply the first-channel construction to $V$ itself, which is sorted at
+$k$, using the same three fixed odd paths:
+\begin{equation}
+ X_c=W_{\alpha}(V),\qquad
+ X=W_{\lambda}(V),\qquad
+ \mathsf P_X=W_{\eta}(X_c).
+\label{chan-x-types}
+\end{equation}
+These types are sorted at $p,j,h$, respectively.  For $x:X$ and $c:X_c$
+define
+\[
+\begin{aligned}
+ \operatorname{Raw}_X(x)&=\operatorname{mk}_{X_c}
+                          (v.\langle x,v\rangle_X),\\
+ \operatorname{Log}_X(c)&=\operatorname{mk}_{X}
+                          (v.\langle c,v\rangle_{X_c}),\\
+ \operatorname{Round}_X(x)&=\operatorname{Log}_X(\operatorname{Raw}_X(x)),\\
+ i@x&=\langle i,\operatorname{Raw}_X(x)\rangle_{\mathsf P_X}
+                         \qquad(i:\mathsf P_X),\\
+ \operatorname{pred}_X(x.\Phi)
+   &=\operatorname{mk}_{\mathsf P_X}
+                          (c.\Phi[x:=\operatorname{Log}_X(c)]).
+\end{aligned}
+\]
+The callbacks defining $\operatorname{Raw}_X$ and
+$\operatorname{Log}_X$ bind $v:V$.  Write
+\[
+ [xv]=\langle x,v\rangle_X\qquad(x:X,\ v:V).
+\]
+The proofs of Lemma~\ref{chan-rounding}, with these types substituted,
+give
+\begin{equation}
+\begin{aligned}
+ {}[\operatorname{Round}_X(x)v]&\leftrightarrow[xv],\\
+ \operatorname{pred}_X(x.\Phi)@w
+       &\leftrightarrow\Phi[x:=\operatorname{Round}_X(w)].
+\end{aligned}
+\label{chan-x-evaluation}
+\end{equation}
+
+All logical quantifiers in the subsequent relational construction have
+one of the following fixed domain annotations:
+\[
+\begin{array}{c|c|c}
+\text{domain}&\text{chosen sorting vertex}&\text{quantifier constructor}\\ \hline
+L(A)&j&\text{the fixed direct-domain constructor at }j\\
+X&j&\text{the fixed direct-domain constructor at }j\\
+\mathsf P_L(A)&h&\text{the fixed direct-domain constructor at }h\\
+\mathsf P_X&h&\text{the fixed direct-domain constructor at }h.
+\end{array}
+\]
+Here $j$ and $h$ are direct by Lemma~\ref{chan-paths}, so each constructor
+has its required profile triple and fixed proof paths.  Existentials use
+the same domain annotation through their derived definition.  Other
+generic data, including $A:s$, $m:M(A)$, and $v:V$, occur as open
+parameters or as raw data binders whose supporting products have been
+displayed above.  Schematic assertions about these parameters denote
+proof builders in valid contexts, not further logical quantifiers.
+Every data definition in this section is independent of proof variables;
+the proof input $d_m$ is used only in the proof of
+Lemma~\ref{chan-access}.

@@ -1,0 +1,279 @@
+\section{Covering a tree}\label{sec:trees}
+
+We now cover an entire chain of extensions. The input is a finite tree
+whose edge labels are disjoint along each path and whose child laws are
+spread. The aim is to put the labels of one full path inside a product
+sample, with a cost logarithmic in the largest extension size.
+
+A \emph{probability tree on $X$} is a finite rooted tree with all
+leaves at the same depth, together with a probability distribution
+$\nu_v$ on the children $\ch(v)$ of each non-leaf node $v$ and a label
+$A_v(b)\subseteq X$ on the arc from $v$ to each child $b$.
+We delete zero-weight children. Different nodes or arcs may carry
+identical labels; nodes are never identified merely because their
+labels agree. A \emph{path} always means a full root-to-leaf path,
+unless otherwise specified. Write
+\[
+ \UU(P)=\bigcup_{(v,b)\in P}A_v(b)
+\]
+for its union of labels.
+
+The tree is \emph{disjoint} if the labels along each path are pairwise
+disjoint. A level has \emph{capacity} $m$ if all its labels have size
+at most $m$. A level is \emph{$a$-spread} if the child distribution
+at every node immediately above that level is $a$-spread.
+Thus all requirements concern individual child distributions;
+no spread assumption is made on the distribution of a full path.
+
+\Needspace{13\baselineskip}
+\begin{theorem}[Tree covering]\label{thm:tree}
+Let $\TT$ be a disjoint probability tree on a finite set $X$,
+with $k\ge1$ levels. Suppose that every level is $\sigma$-spread,
+where $\sigma>0$, and that its positive integer capacities satisfy
+\[
+ \ell_{i+1}\ge16\ell_i\qquad(1\le i<k).
+\]
+Set
+\[
+ r=\min\{1,\;16\ee^{50}\sigma(1+\log_2\ell_k)\}.
+\]
+Then
+\[
+ \PP_{W\sim\mu_r}
+ \bigl(\UU(P)\subseteq W\text{ for some path }P\text{ of }\TT\bigr)
+ \ge\tfrac23.
+\]
+\end{theorem}
+
+Section~\ref{sec:graphs} constructs such a tree for $H$ with
+$\sigma=128\pE(n,H)$ and $\ell_k\le e(H)$. We prove the tree theorem
+by repeatedly pruning and reweighting the tree while replacing its
+labels by smaller subsets. Empty labels and unequal label sizes
+must therefore be allowed.
+
+\subsection{One simultaneous reduction}
+
+\begin{lemma}[Reduction]\label{lem:reduction}
+Let $\TT$ be a disjoint probability tree with $k\ge1$ levels and positive integer
+capacities $m_1,\ldots,m_k$ satisfying $m_{j+1}\ge16m_j$.
+Suppose level $j$ is $\alpha_j$-spread, where
+\[
+ 0<\alpha_j\le a,\qquad \rho=\ee^{50}a<1.
+\]
+There is a deterministic procedure which, given $W\sim\mu_\rho$,
+succeeds with probability at least $3/4$ and on success returns a
+disjoint probability tree $\TT'$ with the same levels, such that:
+\begin{enumerate}[label=(\roman*),leftmargin=2.2em,itemsep=3pt]
+ \item level $j$ has capacity $\lfloor m_j/2\rfloor$ and is
+ $\alpha_j/(1-\ee^{-m_j})$-spread;
+ \item for every path $Q$ of $\TT'$ there is a path $P$ of $\TT$ with
+ \begin{equation}\label{eq:recovery}
+   \UU(P)\subseteq W\cup\UU(Q).
+ \end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+The output will be a subtree with labels $A_v(b)\setminus W$ and
+child laws obtained from the target marginals of the local transition.
+We first identify which children can be retained while discarding
+at most $\ee^{-m_j}$ of the transition mass at each retained node
+with outgoing level $j$.
+Keep the input tree fixed throughout this analysis. At a node whose
+outgoing level is $j$, use the transition of
+Section~\ref{sec:resampling} with its child distribution and
+capacity $m_j$. All nodes use the same set $W$. At fixed $W$, write
+$d_v(W)$ for the probability of local failure at $v$, and
+$t_{vb}(W)$ for the probability of local non-failure with target $b$.
+Thus
+\begin{equation}\label{eq:local-masses}
+ d_v(W)+\sum_{b\in\ch(v)}t_{vb}(W)=1.
+\end{equation}
+All these probabilities refer to the child laws of the fixed input
+tree, before any pruning or conditioning.
+
+\medskip\noindent
+\textit{Pruning.}
+For the remainder of the construction, fix $W$ and put
+$\epsilon_j=\ee^{-m_j}$. Declare all leaves good. Working upward,
+declare a node $v$ with outgoing level $s$ good if
+\begin{equation}\label{eq:good-node}
+ \sum_{\substack{b\in\ch(v)\\b\ \mathrm{good}}}t_{vb}(W)
+ \ge1-\epsilon_s.
+\end{equation}
+The attempt succeeds exactly when the root is good.
+
+To bound the probability that the root is bad, define a nonnegative
+potential on every node of the input tree. Set $D_v(W)=0$ at leaves
+and, at a node with outgoing level $s$, define recursively
+\begin{equation}\label{eq:pruning-recurrence}
+ D_v(W)=\frac{d_v(W)+\sum_{b\in\ch(v)}t_{vb}(W)D_b(W)}{\epsilon_s}.
+\end{equation}
+Every bad node satisfies $D_v(W)>1$. Indeed, assuming this for its
+bad children, the numerator in \eqref{eq:pruning-recurrence} is at
+least
+\[
+ d_v(W)+\sum_{b\ \mathrm{bad}}t_{vb}(W)>\epsilon_s,
+\]
+where the last inequality follows from \eqref{eq:local-masses} and
+the failure of \eqref{eq:good-node}. This proves the assertion by
+backward induction.
+
+\medskip\noindent
+\textit{Expected potential.}
+We now average over $W\sim\mu_\rho$. Fix a child $b$ of a node $v$
+with outgoing level $s$, and abbreviate its incoming label to $A_b$.
+Every label in the entire subtree below $b$ is disjoint from $A_b$:
+each such label lies on a path containing the arc into $b$.
+The transition at any node in that subtree only inspects $W$ on the union
+of that node's child labels. By its recursive definition, $D_b(W)$
+therefore depends only on $W$ outside $A_b$.
+
+This statement concerns every node of the fixed input tree, before
+conditioning on that node being good or being retained. Figure~\ref{fig:outside}
+shows the disjointness that makes this possible.
+\input{figures/outside-label}
+
+In the local transition at $v$,
+\[
+ t_{vb}(W)\le
+ \PP\bigl(\mathrm{target}=b,\ Z(Y)\ge\ee^{-10m_s}\mid W\bigr).
+\]
+We may consequently apply \eqref{eq:distortion} with $f(W)=D_b(W)$.
+Together with \eqref{eq:local-failure} and
+$\epsilon_s^{-1}=\ee^{m_s}$, the recurrence gives
+\begin{equation}\label{eq:expected-potential}
+ \EE D_v(W)
+ \le \ee^{-8m_s}
+    +\ee^{12m_s}\sum_{b\in\ch(v)}\nu_v(b)\,\EE D_b(W).
+\end{equation}
+This step controls the dependence caused by reusing $W$.
+Since the child weights sum to one, backward induction yields
+\[
+ \EE D_v(W)\le
+ \sum_{j=s}^k
+ \exp\left(12\sum_{h=s}^{j-1}m_h-8m_j\right).
+\]
+In particular, if $o$ is the root, then
+\begin{align*}
+ \PP(o\text{ is bad})
+ &\le\EE D_o(W)\\
+ &\le\sum_{j=1}^k
+   \exp\left(12\sum_{h<j}m_h-8m_j\right)
+ <\tfrac14.
+\end{align*}
+For the last inequality, geometric growth gives
+$\sum_{h<j}m_h\le m_j/15$, and the $m_j$ are distinct positive
+integers. Thus the sum is at most
+$\sum_{m\ge1}\ee^{-7m}<1/4$.
+
+\medskip\noindent
+\textit{The reduced tree.}
+On success, start from the good root. At any good node $v$ with
+outgoing level $j$, put
+\[
+ \gamma_v(W)=\sum_{b\ \mathrm{good}}t_{vb}(W)\ge1-\epsilon_j.
+\]
+Retain each good child $b$ with $t_{vb}(W)>0$, give it weight
+$t_{vb}(W)/\gamma_v(W)$, replace its incoming label by
+\[
+ T_b=A_v(b)\setminus W,
+\]
+and continue recursively into $b$. The result is a pruned and
+reweighted subtree of the input tree. It has the same depth because
+$\gamma_v>0$ at every retained non-leaf node. Its labels are subsets
+of the old labels, so it is disjoint. Since
+$A_v(b)\subseteq W\cup T_b$ on every retained arc, it also satisfies
+\eqref{eq:recovery}. A retained child has $t_{vb}>0$, which implies
+$|T_b|\le\lfloor m_j/2\rfloor$.
+
+This new child law is the target marginal of the joint transition
+conditioned on local non-failure and a good target. Denote this
+conditioning event by $E_v$. For the spread bound, use the source:
+\eqref{eq:two-inclusions} gives $T\subseteq A_v(c)$ for every
+transition, and the unconditioned source has law $\nu_v$ even at fixed
+$W$. Thus, for every nonempty $J\subseteq X$,
+\begin{align*}
+ \PP(J\subseteq T\mid E_v,W)
+ &\le\frac{\PP_{c\sim\nu_v}(J\subseteq A_v(c))}{\gamma_v(W)}\\
+ &\le\frac{\alpha_j^{|J|}}{1-\epsilon_j}
+ \le\left(\frac{\alpha_j}{1-\epsilon_j}\right)^{|J|}.
+\end{align*}
+This proves all the assertions. The quantities $t_{vb}(W)$ define
+the entire construction deterministically; sources and targets are
+auxiliary random variables used to analyze its weights.
+\end{proof}
+
+\subsection{Iteration}
+
+\begin{proof}[Proof of Theorem~\ref{thm:tree}]
+If $r=1$, the conclusion is immediate. Suppose $r<1$, and set
+\[
+ a=4\sigma,\qquad \rho=\ee^{50}a,
+ \qquad s=\lfloor\log_2\ell_k\rfloor+1.
+\]
+In particular $0<\rho<1$. Start with $\TT$ and make successive
+attempts using fresh independent sets of law $\mu_\rho$. A failed attempt leaves
+the current tree unchanged. After a successful attempt, retain the
+tree provided by Lemma~\ref{lem:reduction}.
+Conditionally on the complete past, the current tree is fixed and the
+next draw still has law $\mu_\rho$.
+
+After $t$ successes, the capacity at original level $i$ is
+\begin{equation}\label{eq:capacities}
+ m_i(t)=\left\lfloor\frac{\ell_i}{2^t}\right\rfloor,
+\end{equation}
+using $\lfloor\lfloor x\rfloor/2\rfloor=\lfloor x/2\rfloor$.
+Levels of zero capacity form an initial segment. After each success,
+choose any one path through that segment and keep its ending
+subtree, deleting the segment. All committed labels are empty, so
+each path of the retained subtree extends to a full path by adjoining
+the chosen empty prefix. This preserves the recovery guarantee and every
+bound at a retained node. If no levels remain, only the root is left.
+Fix a tie-breaking rule for these choices. The remaining positive capacities still
+satisfy $m_{i+1}(t)\ge16m_i(t)$, since
+$\lfloor16x\rfloor\ge16\lfloor x\rfloor$.
+
+At a remaining original level $i$, a valid spread parameter after
+$t$ successes is
+\begin{equation}\label{eq:spread-iteration}
+ \alpha_i(t)=\sigma
+ \prod_{u=0}^{t-1}
+ \left(1-\ee^{-\lfloor\ell_i/2^u\rfloor}\right)^{-1}.
+\end{equation}
+The positive integers $\lfloor\ell_i/2^u\rfloor$ in this product are
+distinct. The infinite product over all positive integers is less
+than $4$, because
+\begin{align*}
+ \sum_{m=1}^{\infty}-\log(1-\ee^{-m})
+ &\le \frac{1}{1-\ee^{-1}}\sum_{m=1}^{\infty}\ee^{-m}\\
+ &=\frac{\ee^{-1}}{(1-\ee^{-1})^2}<\log 4.
+\end{align*}
+Consequently $\alpha_i(t)\le4\sigma=a$. The initial tree satisfies
+these bounds, and Lemma~\ref{lem:reduction} proves them inductively
+after every success. Thus every attempt before completion has
+conditional success probability at least $3/4$.
+
+After $s$ successes, \eqref{eq:capacities} is zero at every level.
+Composing \eqref{eq:recovery} through the successful reductions shows
+that the union of their draws contains the labels of a path in the
+original tree. The expected waiting time for each next success is
+at most $4/3$: conditionally on the past, its tail is bounded by
+that of a geometric random variable with success probability $3/4$.
+Hence the expected number of attempts needed is at most $4s/3$.
+By Markov's inequality, completion occurs within $4s$ attempts with
+probability at least $2/3$.
+
+Predraw $4s$ independent sets of law $\mu_\rho$, including any that
+the procedure ultimately does not use, and take their union $W_* $.
+It has law $\mu_{r_*}$, where
+\[
+ r_*=1-(1-\rho)^{4s}
+ \le4s\rho
+ =16\ee^{50}\sigma s
+ \le16\ee^{50}\sigma(1+\log_2\ell_k)=r.
+\]
+With probability at least $2/3$, $W_*$ contains a path union.
+The same bound holds for $\mu_r$ by monotonicity.
+\end{proof}
+

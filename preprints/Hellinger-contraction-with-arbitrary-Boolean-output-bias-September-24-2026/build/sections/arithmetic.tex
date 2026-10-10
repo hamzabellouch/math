@@ -1,0 +1,106 @@
+\section{Exact arithmetic conventions}\label{app:arithmetic}
+All constants in the certificates are rational; a terminating decimal denotes the corresponding rational number exactly.
+This appendix explains the common sign-certification rules.
+The individual polynomials, parameter maps, and subdivision orders are specified where they are used.
+
+\subsection{Bernstein coefficients}
+We use the standard enclosure supplied by the Bernstein form of a
+polynomial; see Cargo and Shisha~\cite[Section~3]{CargoShisha66} for
+the univariate coefficient identity and range bound. We include the
+tensor-product formula and its proof to make the rational checks explicit.
+Let \(P(x,y)=\sum_{k=0}^N\sum_{\ell=0}^K a_{k\ell}x^ky^\ell\).
+On the unit square its Bernstein expansion is
+\begin{equation}\label{eq:bernstein-expansion}
+P(x,y)=\sum_{i=0}^N\sum_{j=0}^K b_{ij}
+\binom Ni x^i(1-x)^{N-i}\binom Kj y^j(1-y)^{K-j},
+\end{equation}
+where
+\begin{equation}\label{eq:bernstein-coefficients}
+b_{ij}=
+\sum_{\substack{0\le k\le i\\0\le\ell\le j}}
+a_{k\ell}
+\frac{\binom ik}{\binom Nk}
+\frac{\binom j\ell}{\binom K\ell}.
+\end{equation}
+Indeed,
+\[
+x^k=\sum_{i=k}^N
+\frac{\binom ik}{\binom Nk}\binom Ni x^i(1-x)^{N-i},
+\]
+by the binomial theorem after factoring out \(x^k\); multiplying two such identities proves the formula.
+The basis functions in Equation~\eqref{eq:bernstein-expansion} are nonnegative and sum to one.
+Therefore
+\begin{equation}\label{eq:bernstein-lower}
+P(x,y)\ge\min_{i,j}b_{ij}\qquad(0\le x,y\le1).
+\end{equation}
+The univariate version is obtained by omitting \(y\).
+
+For a rational rectangle, first substitute the affine maps from the unit square.
+For a polynomial obtained after a rational or algebraic change of variables, the displayed denominator is cleared only where it is positive, as verified in the corresponding argument.
+A positive common scale may be applied to all coefficients, making every calculation integral.
+If a table reports
+\(\lfloor C\min b_{ij}\rfloor\) for a stated \(C>0\), a positive table entry is an exact strict sign certificate.
+
+Subintervals can be handled either by direct substitution or by de Casteljau subdivision.
+For subdivision at \(1/2\), start from a Bernstein row
+\((b_0,\ldots,b_N)\), repeatedly replace neighboring entries by their arithmetic mean, and take the left and right outer diagonals as the Bernstein rows on the two halves.
+This rule follows by substituting \(x=t/2\) and \(x=(1+t)/2\) into the basis expansion.
+It is exact over the rationals; a common power of two clears all new denominators.
+For rectangles, apply the rule separately in each coordinate.
+
+\subsection{Intervals and derivative enclosures}
+An interval \([a,b]\) encloses a real quantity if \(a\le x\le b\).
+Addition, subtraction, multiplication, and reciprocal use the endpoint extrema, with a reciprocal taken only when zero is excluded.
+Square roots are taken only on nonnegative intervals.
+For a positive integer scale \(Q\), rounding a lower endpoint down to a multiple of \(1/Q\) and an upper endpoint up preserves enclosure.
+Scaled square roots reduce to integer square-root bounds:
+for an integer \(A\ge0\),
+\[
+\lfloor\sqrt A\rfloor^2\le A<
+(\lfloor\sqrt A\rfloor+1)^2.
+\]
+Consequently no floating-point operation is needed for an interval certificate.
+
+A derivative enclosure supplies a second bound on a box.
+If a function has center enclosure \(I_0\), coordinate half-widths \(h_i\), and derivative magnitude bounds \(M_i\), then
+\begin{equation}\label{eq:mean-value-box}
+P(\text{box})\subseteq
+I_0+\left[-\sum_i h_iM_i,\;\sum_i h_iM_i\right].
+\end{equation}
+This follows by integrating the derivative along a segment from the center.
+The same statement holds with bounded limiting derivatives at a boundary whenever the resulting Lipschitz estimate extends continuously.
+At a square-root singularity the direct interval enclosure is used instead.
+The pair certificate in Appendix~\ref{app:scalar} specifies which bounds are used and how uncertified boxes are subdivided.
+An undefined local interval operation causes further subdivision, never acceptance.
+
+\subsection{Supplementary sources}
+The complete certificate sources accompany the paper in the directory
+\texttt{verification/}.
+They are organized as follows.
+\begin{center}
+\small
+\begin{tabular}{@{}lp{.52\textwidth}@{}}
+\toprule
+Source & Certified calculations\\
+\midrule
+\texttt{interval\_certificate.cpp}
+ & The three pair cases in Appendix~\ref{app:scalar}.\\
+\texttt{profile\_certificate.py}
+ & The polynomial profiles, their branch inequalities, and the three-bit base cases.\\
+\texttt{central\_band.py}
+ & The central-band polynomial signs and rational constant bounds.\\
+\texttt{intermediate\_bias.py}
+ & The six intermediate-bias Bernstein bounds.\\
+\texttt{large\_bias.py}
+ & The four norm-estimate bounds, including the series tail.\\
+\texttt{profile\_formula\_audit.py}
+ & An independent coefficient reconstruction of the profile formulas and printed data.\\
+\bottomrule
+\end{tabular}
+\end{center}
+The accompanying README gives the compiler and Python requirements and a single command to reproduce the calculations.
+The C++ source uses outward-rounded integer intervals with signed extended 128-bit intermediates; Appendix~\ref{app:scalar} gives the relevant bounds.
+The principal Python profile certificate uses arbitrary-precision integer arithmetic.
+The symbolic reconstruction scripts use exact rational coefficients.
+The arguments proving the enclosure rules, the complete domain coverage, and the passage from the scalar inequalities to the dimension-free theorem are part of the paper.
+

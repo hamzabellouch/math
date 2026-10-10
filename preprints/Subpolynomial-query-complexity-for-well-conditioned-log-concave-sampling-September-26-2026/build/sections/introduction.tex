@@ -1,0 +1,269 @@
+\section{Introduction}\label{sec:introduction}
+
+How many evaluations of a potential and its gradient are needed
+to sample its Gibbs distribution? Even when the potential is
+uniformly strongly convex and smooth, familiar discretizations
+incur an error that grows with dimension. The question is
+particularly sharp when conditioning and accuracy are held fixed:
+is a positive power of the dimension intrinsically necessary,
+or is it a feature of the sampling algorithms used?
+
+We answer this question in the exact first-order oracle model
+with unrestricted real computation between queries. The optimal
+dimension exponent is zero. The construction uses approximation
+orders that can depend on the desired exponent and is aimed at
+oracle complexity rather than practical running time.
+
+\subsection{Model and result}
+
+For \(d\ge2\), let \(\mathcal V_d\) consist of the functions
+\(V\in C^2(\R^d)\) satisfying
+\begin{equation}\label{eq:original-class}
+ V(0)=0,\qquad \nabla V(0)=0,\qquad
+ I_d\preceq\nabla^2V(x)\preceq2I_d
+                         \quad\text{for every }x\in\R^d.
+\end{equation}
+The target law is
+\[
+ \pi_V(dx)=Z_V^{-1}e^{-V(x)}\,dx,\qquad
+ Z_V=\int_{\R^d}e^{-V(x)}\,dx.
+\]
+An exact first-order query at \(x\) returns
+\((V(x),\nabla V(x))\). Queries may be adaptive.
+Random real variables may be generated, and computation
+between queries is unrestricted. An algorithm may depend
+on \(d\), but its only information about \(V\) is through
+the oracle responses. All algorithms are measurable.
+
+Write \(\norm{\mu-\eta}_{\TV}=\sup_B|\mu(B)-\eta(B)|\).
+Let \(Q(d)\) be the smallest integer \(q\) for which
+an algorithm makes at most \(q\) queries on \emph{every}
+execution and returns \(X\) satisfying
+\(\norm{\mathcal L(X)-\pi_V}_{\TV}\le1/10\) for
+every \(V\in\mathcal V_d\). Thus the budget is not
+merely an expectation. Define the optimal dimension exponent
+by
+\[
+ \gamma_*=\inf\{\gamma\ge0:Q(d)\le d^{\gamma+o(1)}\}
+          =\limsup_{d\to\infty}\frac{\log Q(d)}{\log d}.
+\]
+
+\begin{theorem}\label{thm:main}
+In the oracle model above, for every \(\varepsilon>0\)
+there is \(C_\varepsilon<\infty\) such that
+\[
+                  Q(d)\le C_\varepsilon d^\varepsilon
+                  \qquad(d\ge2).
+\]
+There are also absolute constants \(c>0\) and \(d_0\)
+such that
+\[
+                  Q(d)\ge c\log d\qquad(d\ge d_0).
+\]
+The lower bound applies to arbitrary randomized adaptive
+first-order algorithms. In particular, \(\gamma_*=0\).
+\end{theorem}
+
+The upper assertion is proved in Theorem~\ref{thm:upper}
+and the lower assertion in Theorem~\ref{thm:lower}.
+Together they determine the exponent but not the finer
+growth rate of \(Q(d)\). In particular, the upper bound
+does not assert a polylogarithmic query count.
+The constants and the algorithmic approximation orders
+may depend on \(\varepsilon\). No arithmetic or
+bit-complexity bound is imposed or deduced.
+
+\subsection{Historical context}
+
+Sampling by discretizing Langevin or Hamiltonian dynamics turns
+functional inequalities and smoothness into algorithmic bounds, but it
+also introduces a dimension-dependent discretization problem.
+Nonasymptotic analyses of the unadjusted Langevin algorithm were developed
+by \citet{dalalyan2017langevin} and \citet{durmus2017langevin};
+\citet{cheng2018underdamped} analyzed the underdamped method under strong
+convexity and smoothness. Randomized midpoint discretization further
+improved the quadratic-Wasserstein guarantees
+\citep{shen2019randomized}. Wasserstein and total-variation guarantees
+must be distinguished in comparing these results.
+The shifted-composition analysis of
+\citet[Theorem~5.6]{altschuler2026shifted} gives a relative-entropy
+guarantee that yields a \(\widetilde O(d^{1/3})\) query bound at fixed
+conditioning and total-variation accuracy. Another gradient-only route,
+based on rejection sampling on diffusion path space, was developed by
+\citet[Theorem~3.2(ii)]{chen2026exact}; its stated query-tail bound also
+gives \(\widetilde O(d^{1/3})\) in this fixed-parameter setting.
+
+High-order integration and polynomial collocation already reduce the
+dimensional dependence of Hamiltonian Monte Carlo under stronger
+regularity or structural assumptions
+\citep{mangoubi2017rapid,lee2018odes}. In particular, their high-order
+results use assumptions beyond the two-sided Hessian bounds in
+\eqref{eq:original-class}. The obstacle here is to obtain high-order
+accuracy under those bounds while implementing every conditional mean
+with finitely many first-order queries.
+
+More recently, \citet[Theorem~7.1(i)]{chen2026picard} obtain
+a \(\widetilde O(d^{1/6})\) expected-gradient-query bound at fixed
+relative-entropy accuracy and fixed conditioning. Their theorem applies
+with the supplied minimizer in our model, and Pinsker's inequality gives
+the same dimension exponent at fixed total-variation accuracy.
+The expected budget can also be capped at a constant multiple of its
+uniform bound, using a fixed fallback on overflow, without changing that
+exponent.\footnote{For example, take their relative-entropy parameter
+\(\Delta=1/20\), so that the total-variation error is at most
+\(1/(20\sqrt2)\). If \(B(d)\) bounds the expected number of queries,
+capping the run at \(\lceil20B(d)\rceil\) adds at most \(1/20\) to
+the error by Markov's inequality and a coupling of the two runs.
+The resulting error is less than \(1/10\).}
+Their separate high-accuracy total-variation result combines this
+construction with the proximal bouncy-particle sampler
+\citep{chen2026bps} and has a \(d^{1/4}\) term, while its dependence
+on inverse accuracy is polylogarithmic
+\citep[Theorem~1.3]{chen2026picard}.
+A subsequent preprint of September 30, 2026 by
+\citet[Theorem~1.1]{chen2026cloud} improves the high-accuracy
+dimension dependence to \(\widetilde O(d^{1/5})\) expected gradient
+queries at fixed conditioning, while retaining polylogarithmic dependence
+on inverse total-variation accuracy. Its Gaussian-cloud representation
+propagates unevaluated Picard iterates using likelihood corrections.
+
+The smoothed Picard work is also a close methodological precedent:
+it develops Gaussian smoothing of \(C^2\) potentials, conditional
+cumulant estimates for derivatives of the smoothed potential, and
+high-order Picard approximation, including
+arbitrary Picard depth when exact smoothed gradients are available.
+Here we prove the all-split tensor estimates needed by our construction
+and implement recursively nested noisy conditional means with finitely
+many queries to the original gradient. This finite implementation,
+together with the subsequent removal of the auxiliary noise, gives
+every fixed positive query exponent in Theorem~\ref{thm:main}.
+
+The Gaussian conditional-sampling framework used below was developed by
+\citet{lee2021proximal}; see also the functional-inequality analysis of
+\citet{chen2022proximal}. Its main operation adds a Gaussian quadratic
+to the potential and samples the resulting restricted conditional law.
+We retain that framework and give the contraction argument used here,
+while implementing its conditional operation by the recursive
+construction above.
+
+For lower bounds, \citet{chewi2023lower} developed a systematic
+first-order query-complexity treatment of log-concave sampling. Their
+Gaussian lower bounds use rotational invariance to reduce arbitrary
+adaptive algorithms to block-Krylov information. Their results already give logarithmic dimension dependence for
+well-conditioned Gaussian sampling at a suitable fixed total-variation
+accuracy. Our lower-bound proof follows that strategy, with an explicit
+spectrum in \([1,2]\) and a separating statistic. We give the full argument for total-variation
+threshold \(1/10\), including unrestricted randomized outputs.
+
+\subsection{Proof strategy and principal ingredients}
+
+The auxiliary problem comes from conditioning a target sample after a
+small Gaussian perturbation. Fix $h>0$. If $X\sim\pi_V$ and $G$ is an independent
+standard Gaussian, the conditional density of $X$ given
+$X+\sqrt h\,G=y$ is proportional to
+\[
+ \exp\!\left(-V(x')-\frac{|x'-y|^2}{2h}\right).
+\]
+Writing $x'=y+\sqrt h\,z$ gives the potential
+$|z|^2/2+F_y(z)$, where $F_y(z)=V(y+\sqrt h\,z)$ and
+$\Lip(\nabla F_y)\le2h$. Thus a small $h$ makes the perturbation
+weak, using one original gradient query for each evaluation of
+$\nabla F_y$. We first implement this conditional operation with an
+added Gaussian, then remove that noise by further conditioning.
+
+To make the conditional operation reusable, we work with a $C^2$ perturbation
+$F:\R^d\to\R$, a center $x\in\R^d$, a scale $0<r\le1$,
+and the near-quadratic law
+\[
+                 \nu(dz)\propto
+                 e^{-|z|^2/2-F(x+rz)}\,dz,
+\]
+where the gradient of $F$ has small Lipschitz constant.
+We construct two procedures: a sample from \(\nu\)
+with an added Gaussian, and the mean
+\(\E_\nu\nabla F(x+rZ)\) with an added Gaussian.
+The noise is not merely an error allowance. It is
+used to make recursive evaluation possible.
+
+\paragraph{Gaussian transport.}
+For independent \(Z\sim\nu\) and standard Gaussian
+\(N\), consider
+\(Y_\rho=\rho Z+\sqrt{1-\rho^2}\,N\).
+The velocity of its marginal-law transport is a
+conditional gradient mean, hence another instance
+of the same auxiliary mean problem. This
+conditional-velocity construction belongs to the
+probability-flow and stochastic-interpolant viewpoint
+\citep{song2021score,albergo2025interpolants}.
+
+\paragraph{Dimension-controlled high derivatives.}
+High-order approximation is useful only if each further derivative
+does not introduce another power of the dimension. Derivatives of a
+Gaussian conditional mean form tensors with many coordinate slots.
+We bound each tensor as a matrix under every division of those slots
+into two nonempty groups. These bounds let us estimate the contractions
+arising along the flow by matrix composition. Repeated integration by
+parts then incurs only polylogarithmic dimension losses, followed by
+one $\sqrt d$ cost at the final vector output. The first step builds
+on classical Appell polynomials and higher-order Poincar\'e estimates
+\citep{anshelevich2004appell,adamczak2015concentration,kothari2017agnostic};
+we prove the all-split cumulant and subsequent divergence estimates
+needed here. All high derivatives come from Gaussian conditioning;
+the original potential still needs only the $C^2$ regularity in
+\eqref{eq:original-class}.
+
+\paragraph{Stationary centering.}
+To produce a noisy mean, we next couple one of the smoothed marginal laws above
+to a Gaussian momentum law while preserving their product.
+Its invariance uses a skew-matrix drift, as in
+\citet[Section~2.1]{ma2015recipe}. Our transport-derived matrix
+makes the momentum displacement convert a path integral of gradient
+means into a Gaussian centered at the desired mean.
+The derivative estimates control high-order quadrature of both the
+probability transport and this stationary flow.
+
+\paragraph{Noisy recursive evaluation.}
+Fixed-depth polynomial and Picard computations
+represent the transports and centering flow as
+finite expressions in exact conditional means.
+The difficulty is to implement nested mean
+evaluations without knowing their exact centers.
+Our recursive procedure has a pathwise
+translation property: shifting a center can be
+compensated by a specified shift of its Gaussian
+random seeds, leaving every primitive query
+unchanged. A deterministic covariance reduction
+of those seeds then absorbs independent Gaussian
+noise in the center. This converts a noisy-center
+call into the correct known-center law.
+There are two distinct depths: the dependency depth of a finite
+expression in means, and the height of the routines called to evaluate
+those means. We bound both before choosing the quadrature mesh.
+Each routine is assigned a requested error and a bound on the size of
+its perturbation. The update rules for these parameters make the routine
+recursion finite and allow its query exponent to be arbitrarily small.
+This seed transformation
+is an exact finite-dimensional identity, not an
+appeal to an approximate sampling oracle.
+
+\paragraph{Return to the original target.}
+A Gaussian proximal chain uses the near-quadratic
+procedure to sample \(\pi_V\) with a small added
+Gaussian. Repeated conditioning halves the
+remaining variance and reduces the conditional
+problem to an almost Gaussian law. A mode-centered
+Gaussian completes the descent. This final
+step is necessary because the requested accuracy
+is for the unnoised target in total variation.
+
+Section~\ref{sec:preliminaries} states the auxiliary
+sampling guarantee and the elementary comparison
+facts. Sections~\ref{sec:jets} and \ref{sec:divergence}
+prove the derivative estimates.
+Sections~\ref{sec:centering} and \ref{sec:numerics}
+construct and discretize the two flows.
+Section~\ref{sec:compiler} implements the resulting
+expressions with actual gradient calls.
+Section~\ref{sec:sampling} proves the sampling
+upper bound, and Section~\ref{sec:lower} gives
+the independent lower bound.

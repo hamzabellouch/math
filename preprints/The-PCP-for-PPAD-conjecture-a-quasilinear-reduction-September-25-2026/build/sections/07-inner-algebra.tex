@@ -1,0 +1,1552 @@
+\section{The inner path and its algebraic representation}\label{sec:inner-algebra}
+
+We construct the algebraic part of the decision gadget promised in
+Theorem~\ref{thm:port-gadget}.  Its graph consists of one directed path for
+each tuple of read-only inputs.  Besides encoding these paths, the
+construction arranges that every chart involving one read port has exactly
+the same native layout and formula in a common one-port template.  This
+literal correspondence, including all verification auxiliaries, will supply
+the distinguished source in Section~\ref{sec:inner-gadget}.
+
+\emph{All field, clock, dimension, and size notation is reset in this
+section.}  In particular, the fields and the polynomial-size affine domain
+below are independent of the outer index group.  The construction and its
+proof do not use the outer circuit realization.  All graphs in this section
+are described implicitly; we never enumerate their exponentially many
+Boolean input tuples.
+
+\subsection{Parameters and the extended path}\label{ia:path-parameters}
+
+Fix the exponent allowance $c_{\rm allow}$ in
+Theorem~\ref{thm:port-gadget}, and choose a fixed integer
+$c_0>c_{\rm allow}+5$.  For a port length $L$, set
+\begin{equation}
+ n'=(L+2)^{c_0},\qquad
+ h=\Theta\bigl((\log(n'+2))^{1/4}\bigr),\qquad
+ H=\mathbb F_h,\qquad q=h^v,                         \label{ia:parameters}
+\end{equation}
+where $h$ is a deterministically chosen power of two and $v$ is a fixed
+sufficiently large integer.  Let $\ell$ be the least positive integer
+coprime to $v$ for which $h^\ell\ge(n')^3+3$, and put
+\begin{equation}
+ K_1=\mathbb F_{h^\ell},\quad K=\mathbb F_{q^\ell},\quad
+ C=K_1^\times,\quad M=h^\ell-1,\quad D=\ell^2-1.
+                                                               \label{ia:fields}
+\end{equation}
+Fix a generator $\gamma$ of $C$.  Since $\gcd(\ell,v)=1$, the subfields
+$K_1$ and $\mathbb F_q$ of $K$ intersect in $H$ and generate $K$.
+An $H$-basis of $K_1$ is therefore an $\mathbb F_q$-basis of $K$.
+We use it throughout: one $K$ variable has $\ell$ coordinates over
+$\mathbb F_q$, and its $H^\ell$ digit grid is precisely $K_1$.
+
+An interval of $v$ consecutive integers contains an integer congruent to
+$1$ modulo $v$.  Thus the coprimality restriction changes the first size
+threshold for $\ell$ by at most $v$, and
+\begin{equation}
+ \ell=\Theta(\log n'/\log\log n'),\qquad
+ h=o(\ell),\qquad |K|=q^\ell=(n')^{O(1)}.          \label{ia:size-bounds}
+\end{equation}
+Choose $v$ large enough that $q$ dominates the fixed power of $D$ needed
+by the scalar line--point input in Section~\ref{sec:inner-binary}, with
+positive power slack.  In particular, $D/q\longrightarrow0$.  After $v$,
+fix an integer $a>v$ and set
+\begin{equation}
+ B=\lceil q^{1/a}\rceil\le\ell                     \label{ia:radix-size}
+\end{equation}
+for all sufficiently large $L$.  Every fixed multiple of $\ell h$ is then
+eventually below $D$.  All these choices precede the number of ports and
+the particular Boolean function.
+
+All finite sets used below have polynomial cardinality in $n'$.  Field
+presentations, compatible embeddings, bases, generators, interpolation
+matrices, and deterministic orderings can consequently be found by
+exhaustive finite-field algebra in polynomial time in these cardinalities.
+For instance, irreducible presentations and suitable generators can be
+found by enumeration and their defining properties checked by finite
+arithmetic.  No claim of polynomial time in the logarithm of a field's
+cardinality is required.  Fix these conventions once for the common
+template.  Finitely many smaller sizes can be handled by enlarging the
+fixed lower cutoff as in the gadget statement.
+
+Now fix an arbitrary constant number $k\ge1$ of ports and an arbitrary
+constant size factor for the Boolean circuit of
+$f:(\{0,1\}^L)^k\to\{0,1\}$.  Invocations with fewer ports are padded
+by unused public-zero ports.  Normalize the circuit to a topological list
+of gates with Boolean rules of degree at most two over characteristic two,
+and finish with a separate output copy gate.  This costs only a constant
+factor in circuit size.  The size cutoff may depend on $k$ and on the
+fixed size factor.
+
+The logical tape has read-only groups $s_i\in\{0,1\}^L$ for $i\in[k]$,
+a work group $w$ indexed by $K_1$, and legacy bits $e_z$ indexed by
+$z\in C$.  Each $s_i$ is embedded by the same fixed injection of $[L]$
+into $K_1$; other grid entries are specified zeros.  Stages
+$r=0,\ldots,M-1$ have labels $c=\gamma^r$.  Work is blank at stage zero.
+During step $r=j-1\to j$, for $1\le j\le L$, copy $s_i[j]$ to a
+distinct work location $w_{i,j}$ for every $i$ in parallel.  Thereafter
+assign one new gate location per step, using earlier work locations or
+public constants.  Reserve a fixed grid position $y_{\rm out}$ solely
+for the final output assignment.  Pad remaining steps by idle work rules.
+The number of work positions and nonidle steps is at most
+\[
+ kL+O(1)+O(L^{c_{\rm allow}}),
+\]
+with constants allowed to depend on the circuit size factor.  The choices
+above make both counts fit below the available grid and stage sizes.
+
+At stage $c$, require $e$ to be one-hot at $c^{-1}$.  Require every
+unassigned work position to be zero, every assigned copy to equal its
+specified input, and every assigned gate to satisfy its rule.  Consequently
+each Boolean tuple $s=(s_i)_i$ has exactly one valid tape
+$b=(w,e,(s_i)_i)$ at every stage.  Join consecutive stages by their
+assignment steps, and disable the wrap step $\gamma^{-1}\to1$.
+
+\begin{lemma}[Validity and a constant edit alphabet]\label{ia:validity}
+The union of the stage-valid tapes is described by polynomially many
+Boolean equations of degree at most $d=3$.  For fixed $k$, every macro
+step and its inverse use a fixed finite alphabet of flips, whose
+coefficients are determined by a bounded number of logical reads and
+public rule bits.  Equations involving $s_i$ and other groups can be
+written as the sum of an $(e,s_i)$ contribution and an $(e,w)$
+contribution.  No equation requires a product involving two distinct
+positive port groups.
+\end{lemma}
+
+\begin{proof}
+Impose bitness on all logical coordinates, and
+\begin{equation}
+ e_z e_{z'}=0\quad(z\ne z'),\qquad
+ \sum_{z\in C}e_z=1.                              \label{ia:one-hot}
+\end{equation}
+For each stage $c$, multiply all its work requirements by
+$e_{c^{-1}}$.  Gate equations have degree at most two before this
+multiplication, so the resulting degree is at most three.  A copy
+requirement at an occupied position is specifically
+\begin{equation}
+ e_{c^{-1}}w_{i,j}-e_{c^{-1}}s_i[j]=0.             \label{ia:copy-equation}
+\end{equation}
+The requirements are vacuous at unselected stages.  At the one selected
+stage, the prefix equations determine all assigned work positions in
+topological order and force every other position to zero.  This proves
+the characterization and the dependency assertion.
+
+For start frame $c$, list $k$ work write slots and the two legacy slots
+$c^{-1},(\gamma c)^{-1}$.  During a gate step only the first work slot
+is active; use a zero unit vector for every inactive slot.  Write
+$v_1(c),\ldots,v_{k+2}(c)$ for these public vectors in the logical tape
+space, and for $\sigma\in\{0,1\}^{k+2}$ put
+\begin{equation}
+ h_\sigma(c)=\sum_{r=1}^{k+2}\sigma_r v_r(c).
+                                                               \label{ia:flip-mask}
+\end{equation}
+At a valid pre tape, choose a work coefficient to be the old bit plus
+its required new assignment; choose both legacy coefficients to be one.
+The required assignment is a read input, a degree-at-most-two gate of
+earlier work bits, or the unchanged value for an inactive slot.  At a
+valid post tape, the inverse clears precisely the newly assigned
+positions and flips the same legacy positions.  Earlier operands have
+not changed, so the two operations are reciprocal.  There is a bounded
+list of old-value, operand, and input reads for fixed $k$.  Public phase,
+gate, activity, and wrap bits select their roles.  Define the same
+coefficient rules on arbitrary Boolean read answers; at the disabled
+wrap use an idle work proposal.  This gives a finite branch system
+without any assumption that those arbitrary answers describe a valid
+tape.
+\end{proof}
+
+\begin{definition}[Extended inner graph]\label{ia:extended-path}
+An extended label is $(c,b,\eta,t)$, where $c\in C$,
+$\eta\in\{0,1\}$, and $0\le t\le q-1$.  In pre mode $\eta=0$,
+$b$ must be valid at stage $c$; in post mode $\eta=1$, it must be valid
+at stage $\gamma c$.  Edges are the following:
+\begin{enumerate}
+\item in pre mode, increase $t$ by one until $q-1$;
+\item at full pre progress, perform the enabled macro edit and change
+to post mode, retaining the frame and full progress;
+\item in post mode, decrease $t$ by one until zero;
+\item at empty post progress, change to empty pre mode in frame
+$\gamma c$, leaving $b$ unchanged.
+\end{enumerate}
+The fourth operation is included also for $c=\gamma^{-1}$; only the
+second operation is disabled at that frame.
+\end{definition}
+
+\begin{lemma}[Endpoints and output]\label{ia:path-endpoints}
+For each $s$, the extended labels with that read-only tuple form a
+single directed path, without isolated vertices or self edges.  Its
+unique source and immediate successor are respectively
+\begin{equation}
+ (\gamma^{-1},b_0(s),1,q-1),\qquad
+ (\gamma^{-1},b_0(s),1,q-2),                      \label{ia:source-successor}
+\end{equation}
+where $b_0(s)$ has blank work and legacy bit $e_1=1$.  Its other
+endpoint is the full pre label at stage $M-1$, and there
+$w[y_{\rm out}]=f(s)$.
+\end{lemma}
+
+\begin{proof}
+Replace the unique macro tape at stage $x$ by its post labels in frame
+$\gamma^{-1}x$, in decreasing order of $t$, followed by its pre labels
+in frame $x$, in increasing order of $t$.  The frame-advance edge joins
+the two halves.  Each enabled macro edit joins the full pre end of one
+such segment to the full post start of the next.  The only absent join
+is the wrap join from the final stage to stage zero.  This gives exactly
+the stated path and endpoints.  Every segment has more than one vertex,
+so there are no isolated vertices; each edge changes a label component,
+so there are no self edges.  The final work assignment and all its
+ancestors have been completed at the last stage, proving the output
+claim.
+\end{proof}
+
+\subsection{Chart conventions and lifted cyclic interpolation}
+\label{ia:lifts-and-masks}
+
+A native chart is an $\mathbb F_q$-coefficient polynomial on
+$O(\ell)$ coordinates over $\mathbb F_q$, possibly with slots.  A
+persistent chart has at most one slot axis of length $O(\ell)$; stacks
+will have a bounded number of such axes.  A full rotating or projection
+variable always occupies one whole $K$ label.  Native charts will later
+be embedded in one common $K^u$, with unused coordinates ignored.
+
+For slot lengths $t_1,\ldots,t_r$ and masks
+$L_b\in\mathbb F_q^{t_b}$, write
+\begin{equation}
+ L\cdot F(Y)=\sum_{z_1,\ldots,z_r}
+             \left(\prod_{b=1}^r L_b[z_b]\right)
+             F_{z_1,\ldots,z_r}(Y).                \label{ia:contraction}
+\end{equation}
+There are $q^{O(\ell)}$ mask tuples.  To query any specified mask tuple
+smoothly, choose independent uniform $A_b$, substitute
+$L_b=A_b+(L_b-A_b)$, and expand the $2^r$ terms.  Each term has uniform
+mask marginals, even conditional on the point and the requested tuple.
+A nonzero tensor remains nonzero after independent random contractions
+with probability at least $(1-1/q)^r$: at each step a nonzero linear
+map has a kernel of relative size at most $1/q$.
+
+We repeatedly use the elementary polynomial zero bound: a nonzero
+polynomial of total degree $d_*$ on $\mathbb F_q^m$ vanishes on at most
+a $d_*/q$ fraction of the grid.  For completeness, expand in the last
+variable with leading coefficient of degree at most $d_*-r$ and last
+variable degree $r$.  Inductively that coefficient vanishes on at most
+$(d_*-r)/q$ of the earlier coordinates; elsewhere there are at most
+$r$ roots in the last variable.  Induction on $m$ proves the bound.
+We apply it also after adjoining the finitely many mask groups.
+Thus any nonzero degree-$O(D+\ell h)$ chart identity, including a
+whole slot list, is detected with constant probability.  An ignored
+coordinate group is checked by comparing two independent replacements
+of that group with common uniform other coordinates.  Its difference
+is a polynomial; the same bound gives an exact alternative between
+independence and constant rejection probability.  Throughout, smoothness
+means bounded marginal density relative to uniform point and mask
+coordinates.  Ignored coordinates are independently filled uniformly.
+
+Ordinary interpolation on the $H$ digits extends a function on $K_1$
+with individual degrees below $h$ and total degree at most
+$\ell(h-1)$.  The punctured cyclic grid requires a different extension.
+
+\begin{lemma}[Cyclic lift, including descent at zero]\label{ia:cyclic-lift}
+For $0\le j<M$, write $j=\sum_{t=0}^{\ell-1}j_t h^t$ and define
+\begin{equation}
+ \widetilde j=\sum_{b=0}^{\ell-1}j_{vb\bmod\ell}q^b.
+                                                               \label{ia:lift-exponent}
+\end{equation}
+Replacing $Z^j$ by $Z^{\widetilde j}$ in interpolation on $C$ gives a
+linear extension to $K$, of coordinate degree at most $\ell(h-1)$.
+For $\mathbb F_q$-valued data this extension has coefficients in
+$\mathbb F_q$ in the chosen coordinates, including its value at zero.
+It commutes with $Z\mapsto xZ$ for every $x\in C$.
+\end{lemma}
+
+\begin{proof}
+Modulo $M$ we have $q^b=h^{vb}$ and $h^\ell=1$, hence
+\[
+ \widetilde j\equiv
+ \sum_b j_{vb\bmod\ell}h^{vb\bmod\ell}=j\pmod M.
+\]
+The two monomials therefore agree on $C$, where the powers
+$1,Z,\ldots,Z^{M-1}$ form the usual interpolation basis.  Each map
+$Z\mapsto Z^{q^b}$ is linear over $\mathbb F_q$, so the coordinate
+degree of the lifted monomial is at most $\sum_t j_t\le\ell(h-1)$.
+
+Multiplication of $\widetilde j$ by $q$ modulo $q^\ell-1$ cyclically
+rotates its base-$q$ digits.  Under \eqref{ia:lift-exponent}, this is
+the permutation $j\mapsto qj\bmod M$.  The digit list all of whose
+entries equal $h-1$ is excluded by $j<M$; exponent zero is consequently
+the unique representative of residue zero on $C$.  If the original
+interpolant is $\sum_j a_jZ^j$ and its values belong to $\mathbb F_q$,
+uniqueness of interpolation on $C$ gives
+\[
+ a_{qj\bmod M}=a_j^q.
+\]
+The digit rotation then proves that its lift $F$ satisfies
+$F(z)^q=F(z)$ for every $z\in K^\times$.  At zero, $F(0)=a_0$ and
+$a_0^q=a_0$, so the same assertion holds.
+
+The coordinate degree is below $q$ after our cutoff.  Conjugating the
+coordinate coefficients by the $q$-power map leaves the values on
+$\mathbb F_q^\ell$ unchanged.  Uniqueness of interpolation with
+individual degrees below $q$ forces each coefficient to be fixed by
+that conjugation, and thus to lie in $\mathbb F_q$.  Finally
+$x^{\widetilde j}=x^j$ for $x\in C$, which proves the scaling assertion
+on every basis monomial.  These arguments apply coefficientwise in any
+additional independent variables.
+\end{proof}
+
+\subsection{Canonical certificates for linear conditions}
+\label{ia:linear-certificates}
+
+Partial-sum polynomial certificates also appear in Rubinstein's
+construction~\cite[Sections~6.2--6.3]{Rubinstein2016Settling}.
+Here each input chart has its own canonical certificates, and contributions
+from different charts meet only in a tested identity.  We require these
+recipes to remain linear in their input chart and, in rotating calls, to
+respect cyclic scaling of the designated variables even when the final
+condition fails.
+
+\begin{lemma}[Smooth linear verification]\label{ia:linear-tool}
+Let a fixed finite list of primary native charts, each scalar or with
+one $O(\ell)$ slot axis, be subject to an explicit
+$\mathbb F_q$-linear condition $\mathcal S$ on their full evaluation
+arrays.  Its matrix has polynomially many rows and columns, with
+logarithms $O(\ell\log q)$.  Coefficient and special-grid conditions
+may be expressed by public linear matrices.  A nonrotating call may
+adjoin a separately enforced primary $1$ for affine terms.
+
+In a rotating call, at most one full variable in each primary is
+designated to scale by a common $x\in C$.  Assume $\mathcal S$ is
+invariant under this simultaneous pullback and imposes the lifted
+shape of Lemma~\ref{ia:cyclic-lift} in every rotating variable.  No
+arbitrary noninvariant affine term is allowed in such a call.
+
+The condition has a canonical verification construction with the
+following properties.
+\begin{enumerate}
+\item A fixed number of auxiliary families is stored \emph{separately
+for each primary block}.  Each has native dimension $O(\ell)$ and at
+most one slot axis of length $O(\ell)$.  Its canonical arrays are
+linear in that primary's arrays, also when $\mathcal S$ fails.
+\item Honest input coordinate degree $d_{\rm in}$ produces auxiliary
+degree $O(d_{\rm in}+\ell h)$.  A fixed mixture of bounded, smooth
+linear field probes is perfectly complete on legal canonical tuples
+within the degree budgets.  On genuine degree-at-most-$D$ polynomial
+tuples, either $\mathcal S$ holds and every auxiliary is canonical, or
+the mixture rejects with a fixed positive probability.
+\item In a rotating call each auxiliary has a new designated full
+variable $R$, and rotating its primary by $x$ changes the auxiliary by
+$R\mapsto xR$.  Its canonical recipe has the lifted shape in $R$
+whenever its primary has the required shape, even if final rows fail.
+All canonical arrays and public maps are polynomial-time constructible.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+We give the construction, uniqueness, degree, and probe arguments.
+
+\paragraph{Why arbitrary scaling factors preserve the linear condition.}
+In a rotating call substitute $RZ$ for the designated variable of a
+primary and denote the resulting chart by $f_R$.  An unchanged primary
+stays unchanged.  We first show that legal input arrays satisfy
+$\mathcal S$ for every $R\in K$, rather than only for $R\in C$.
+Extend scalars in the evaluation space and its linear subspace
+$\mathcal S$ from $\mathbb F_q$ to $K$.  Since $|C|=M$ is odd, it is
+invertible in characteristic two.  The character projections
+\[
+ \Pi_j=\frac1M\sum_{x\in C}x^{-j}\rho(x)
+ \qquad(0\le j<M)
+\]
+for the simultaneous scaling action $\rho$ decompose the space and
+preserve every invariant subspace.  On the imposed lift shape, the
+character $j$ is represented by the single exponent $\widetilde j$
+in every rotating primary.  Nonrotating components occur in character
+zero.  Substitution by $R\ne0$ therefore acts by the scalar
+$R^{\widetilde j}$ on each character space, and preserves the extended
+subspace.  At $R=0$ it projects onto character zero, which also preserves
+the subspace.  Scaled evaluations of our $\mathbb F_q$-valued chart
+are still $\mathbb F_q$-valued; intersecting with the original
+evaluation space, or using the original defining rows, proves the
+assertion over $\mathbb F_q$.
+
+A failed original row fails at $R=1$, so it remains a nonzero polynomial
+condition.  Tests requiring the substitution sample $R$ uniformly from
+$K^\times$; this changes a uniform density by at most
+$(1-|K|^{-1})^{-1}$ and keeps primary point marginals uniform.  The
+substitution is bilinear in coordinate variables and at most doubles
+total degree.  In a nonrotating call omit $R$ everywhere below.
+
+\paragraph{Separate row contributions and partial sums.}
+Pad the row set by zero rows to $H^\rho$, with $\rho=O(\ell)$.
+For one primary block with $m_0$ native $q$-coordinates, put $m'=vm_0$.
+An $H$-basis of $\mathbb F_q$ gives a packing map
+\[
+ w_{\rm pack}:\mathbb F_q^{m'}\longrightarrow\mathbb F_q^{m_0}.
+\]
+This is a surjective $\mathbb F_q$-linear map whose restriction to
+$H^{m'}$ is a bijection onto $\mathbb F_q^{m_0}$.  In particular it
+sends uniform inputs to uniform outputs.  For each primary slot $s_0$,
+interpolate that block's public matrix entries as
+$A_{s_0}(I,X)$ on $H^\rho\times H^{m'}$, with individual degrees below
+$h$.  Define, for this block only,
+\begin{align}
+ p_{m'}(R,I,X)
+   &=\sum_{s_0}A_{s_0}(I,X)
+                 f_{s_0,R}(w_{\rm pack}(X)),       \label{ia:linear-top}\\
+ p_j(R,I,X_1,\ldots,X_j)
+   &=\sum_{x_{j+1},\ldots,x_{m'}\in H}
+      p_{m'}(R,I,X_1,\ldots,X_j,x_{j+1},\ldots,x_{m'})
+      \quad(0\le j<m').                           \label{ia:partial-sums}
+\end{align}
+The top identity requests the primary with the public slot mask
+$(A_{s_0}(I,X))_{s_0}$, made smooth by additive splitting.  This is a
+linear probe; the matrix entries are not unknown operands.
+
+The final condition is the tested identity
+\begin{equation}
+ \sum_{\text{primary blocks }b} p_{0,b}(R,I)=0.
+                                                               \label{ia:final-row-sum}
+\end{equation}
+\emph{No chart for this mixed sum is stored.}  On legal data it
+vanishes on every $I\in H^\rho$ and every $R\in K$.  Its individual
+$I$ degrees are below $h$, and its honest $R$ coordinate degrees are
+below $q$, so this is a polynomial identity.  Conversely, its
+vanishing at $R=1$ and at the row grid, with correct partial sums,
+is exactly the original matrix condition.
+
+\paragraph{Division enforces all partial sums uniquely.}
+For $1\le j\le m'$ introduce quotient and remainder charts and impose
+\begin{align}
+ p_j&=(X_j^h-X_j)Q_j+X_j^{h-1}p_{j-1}+E_j,
+                                                        \label{ia:division}\\
+ p_{j-1}&\text{ is independent of }X_j,
+ \qquad \deg_{X_j}E_j\le h-2.                       \label{ia:division-bounds}
+\end{align}
+In characteristic two,
+\[
+ \sum_{x\in H}x^r=0\quad(0\le r<h-1),\qquad
+ \sum_{x\in H}x^{h-1}=1.
+\]
+Here the $r=0$ identity is $h=0$ in the field.  The coefficient of
+$X_j^{h-1}$ in the remainder modulo $X_j^h-X_j$ is thus precisely the
+sum of the original polynomial over $X_j\in H$.  Euclidean division
+by this monic polynomial uniquely fixes $Q_j$, the top remainder
+coefficient $p_{j-1}$, and $E_j$.  Starting at
+\eqref{ia:linear-top}, downward induction fixes all certificates and
+gives \eqref{ia:partial-sums}.  Independence from later trailing
+coordinates follows in the same induction.
+
+To test the degree restriction without concentrated reads, write
+\begin{equation}
+ G_j(R,I,X_{\ne j},U)
+   =\sum_{b=0}^{h-2}E_{jb}(R,I,X_{\ne j})U_b,
+ \qquad U\in\mathbb F_q^{h-1},                     \label{ia:coefficient-chart}
+\end{equation}
+where $E_{jb}$ is the coefficient of $X_j^b$ in $E_j$.  Check
+independence from $X_j$, addition in $U$, and homogeneity under a
+uniform nonzero scalar $\lambda\in\mathbb F_q$.  Sampling a nonzero
+scalar makes $\lambda U$ uniform; zero homogeneity already follows
+from addition.  If these identities are exact, $G_j$ is pointwise
+$\mathbb F_q$-linear in $U$, and uniqueness of reduced interpolation
+makes its polynomial linear in $U$.  Now check
+\begin{equation}
+ E_j(R,I,X)=G_j(R,I,X_{\ne j},(1,X_j,\ldots,X_j^{h-2})).
+                                                               \label{ia:coefficient-evaluation}
+\end{equation}
+The special $U$ tuple is queried as two uniform additive summands.
+Only \emph{after} linearity has been established in the exact-soundness
+case analysis do we use the $O(D+h)$ degree bound for this substitution.
+The earlier linearity discrepancies have degree $O(D)$ and themselves
+have constant gap.  Equation~\eqref{ia:coefficient-evaluation} then
+enforces \eqref{ia:division-bounds} and fixes $G_j$ uniquely.
+
+\paragraph{A whole list is checked at once.}
+Sampling a single recurrence index would lose a factor $m'$.  Instead
+choose a cyclic permutation $\omega$ of the $m'$ scalar coordinates
+so that coordinate $j$ of $\omega^jX$ is one fixed coordinate of $X$.
+Store
+\begin{equation}
+ \overline p_j(R,I,X)=p_j(R,I,\omega^jX),
+ \qquad
+ p_{j-1}(R,I,\omega^jX)
+      =\overline p_{j-1}(R,I,\omega X),             \label{ia:recurrence-frames}
+\end{equation}
+and store $Q_j,E_j,G_j$ in the equation-$j$ frame, with $U$ unchanged.
+Both public powers in \eqref{ia:division}, and the predecessor
+independence axis in its corresponding frame, are now common across
+all $j$.  A uniform mask on the recurrence-index list checks all its
+equations with boundedly many point probes.  Endpoint slices and
+predecessor shifts only change the requested linear mask, which is
+split smoothly.  The coefficient families use the same $U$ group in
+every slot.  If $m'=0$, retain only the unsummed top contribution and
+introduce no division family.
+
+\paragraph{Degree, covariance, and exact gap.}
+The top degree is at most
+\begin{equation}
+ 2d_{\rm in}+(\rho+m')(h-1).                       \label{ia:tool-degree}
+\end{equation}
+Monic division by $X_j^h-X_j$, reduction, coefficient extraction, and
+finite summation do not increase total degree.  Multiplication by a
+linear $U_b$ costs at most one.  This proves the honest degree bound.
+There is a fixed number of families per primary; the growing recurrence
+index is one $O(\ell)$ slot axis, and the additional $U$ domain has
+$h-1\le\ell$ coordinates.
+
+First test ignored coordinates and the independence and linearity
+devices.  Unless they hold identically, one has a nonzero polynomial
+discrepancy of degree $O(D)$ and constant rejection probability.
+Once they hold, every remaining displayed discrepancy has degree
+$O(D+\ell h)=o(q)$ and a failed slot identity survives a random
+contraction with constant probability.  Exact identities give the
+uniqueness just proved and then \eqref{ia:final-row-sum}.  A fixed
+mixture of test types therefore has a uniform positive gap.  Perfect
+completeness concerns canonical tuples within the budgets; it does not
+claim that every legal primary of degree exactly $D$ has auxiliaries
+of degree at most $D$.
+
+For covariance even on invalid inputs, expand a lifted primary after
+substitution over $K$ as
+\[
+ f_R=\sum_{j=0}^{M-1}R^{\widetilde j}v_j
+\]
+in its evaluation arrays.  All subsequent operations in
+\eqref{ia:linear-top}--\eqref{ia:coefficient-chart} are the same fixed
+linear maps on that primary, independent of $R$.  This includes
+division and coefficient extraction, since honest-degree evaluation
+arrays determine the required polynomials by interpolation.  These
+maps preserve the exponent list, and rotating the input by $x\in C$
+replaces $R$ by $xR$.  No final zero-row identity is used.  In particular
+every canonical certificate is defined even when its primary belongs
+to data failing the final condition.
+
+Finally, all point substitutions used in these tests are coordinate
+permutations, surjective packing, nonzero scaling, fresh independent
+coordinate replacement, or additive splitting.  They have bounded
+point marginals.  Requested masks are split.  All arrays have
+polynomial size, and every construction operation is finite linear
+algebra on them.  This proves the remaining claims.
+\end{proof}
+\subsection{Persistent charts and their dependency tags}
+\label{ia:persistent}
+
+Every persistent chart has a canonical recipe $F(c,b;Y)$, possibly
+with one slot axis.  At each fixed frame $c$, both its values and its
+coordinate coefficients have an assigned multilinear Boolean degree
+$\kappa_F\le d=3$ in $b$, after reducing by $b_j^2=b_j$.  This
+logical degree is different from the coordinate degree bounded by
+$D$.  All recipes are defined for every Boolean tape, including tapes
+that fail validity.  A recipe either is independent of $c$, or has
+one designated full variable whose scaling realizes $c\mapsto xc$.
+
+Give each family a tag in $\{0,1,\ldots,k\}$.  A tag-$0$ recipe
+depends only on $c,w,e$ and public data; that public data may include
+the circuit, work addresses, and the port index.  A tag-$i$ recipe
+depends only on $c,s_i,e$ and public data fixed by the standardized
+one-port template.  It may ignore $s_i$ if it is a certificate created
+inside that template.  Call tags compatible if they are equal or one
+of them is zero.  After fixing a finite Boolean transition branch,
+tag-$0$ update operands will all have tag $0$, and tag-$i$ update
+operands will have compatible tags.
+
+\paragraph{Monomials and the separated validity calls.}
+Use the ordinary full-grid extension for $W_w$ and each $W_{s_i}$,
+and the cyclic lift for $W_e$.  Include the constant chart $1$,
+tested against its prescribed value.  For all ordered lists of length
+at most $d$ from $\{w,e\}$, and separately from $\{s_i,e\}$ for
+each $i$, include
+\begin{equation}
+ W_{g_1,\ldots,g_j}(b;Y_1,\ldots,Y_j)
+    =\prod_{r=1}^j W_{g_r}(b;Y_r).                 \label{ia:monomial-charts}
+\end{equation}
+Repeated types use independent variables.  Share the legacy-only
+types.  A monomial containing $s_i$ has tag $i$; all other monomials
+have tag $0$.  Enforce each nontrivial product by factorization into
+its shorter prefix and last factor on independent native variables,
+together with all ignored-coordinate requirements.
+
+Apply the nonrotating linear tool as follows.
+\begin{enumerate}
+\item One tag-$0$ validity call uses the monomials from $\{w,e\}$
+and $1$.  It imposes the order-one extension shapes, bitness on the
+grids, the one-hot requirements \eqref{ia:one-hot}, and all blank and
+gate requirements of Lemma~\ref{ia:validity}.  Use one work-requirement
+row for each pair (stage, work grid position), with a zero row when
+that position is an occupied copy.  Other conditions have fixed
+lists of rows.  Circuit data affect matrix entries only.
+\item For each $i$, a separate copy/port call imposes the shape,
+padding, and bitness of $W_{s_i}$, and the copy rows indexed by
+$(c,j)$ for $c\in C$ and $1\le j\le L$.  The row is zero when
+the stage index of $c$ is less than $j$.  Otherwise it compares
+\begin{equation}
+ W_{e,s_i}(c^{-1},\iota(j))
+     -W_{e,w}(c^{-1},w_{i,j})=0,                  \label{ia:separate-copy-row}
+\end{equation}
+where $\iota$ is the common input injection.  Primary-list, row-order,
+and padding conventions are identical in every such call.  The
+matrix blocks for port-dependent primaries depend only on these
+common stage and source-bit indices.  Work destinations occur only
+in the separate $W_{e,w}$ matrix block.  Auxiliaries for port-dependent
+blocks receive tag $i$; auxiliaries for the work-side block receive
+tag $0$.
+\end{enumerate}
+For example, bitness is the linear row
+\[
+ W_{g,g}(y,y)-W_g(y)=0
+\]
+on represented grid entries.  Although its two grid arguments
+coincide, it is verified as a matrix row, not by a concentrated
+unknown-product query.  The same representation handles every
+degree-at-most-three Boolean validity term.  Extension shapes are
+linear evaluation/interpolation conditions; the cyclic shape is
+$\mathbb F_q$-linear by Lemma~\ref{ia:cyclic-lift}.
+
+If these conditions and the factorization identities hold exactly
+on genuine polynomials, order-one grid entries are bits, their
+shapes fix their full extensions, products fix higher monomials,
+and the rows give exactly a valid union-of-stages tape.  The linear
+tool fixes each certificate separately.  The initial auxiliary
+assigned degrees can all be bounded by $d$, or by the smaller
+degree of their primary when useful.  Since every certificate map
+is linear in one primary, the same degree statement holds on
+arbitrary Boolean tapes even when a final validity row is nonzero.
+
+Include also a tag-$0$, point-constant output chart
+\begin{equation}
+ F_{\rm out}(b)=w[y_{\rm out}].                    \label{ia:output-chart}
+\end{equation}
+A separate nonrotating linear call ties it to the designated grid
+entry of $W_w$ and enforces its ignored coordinates.  Give it and
+the associated certificates assigned degree one.  This output chart
+does not need a critical-address projection for transitions.
+
+\paragraph{Frame and clock-times-monomial charts.}
+Let $J_c(X)$ be the cyclic lift of the indicator of $c^{-1}$ on
+$C$.  It has tag $0$, assigned degree zero, and
+\begin{equation}
+ J_{xc}(X)=J_c(xX).                                \label{ia:clock-covariance}
+\end{equation}
+Tie it to the legacy chart by
+\begin{equation}
+ W_e(X)=J_c(\gamma^\eta X).                        \label{ia:clock-legacy}
+\end{equation}
+Below, $\eta$ is enforced as a point-constant bit.  Equation
+\eqref{ia:clock-legacy} is then a finite choice of two smooth
+polynomial identities.  One-hot legacy validity determines a unique
+$c$ and the required pre/post relation, and fixes $J_c$.  For every
+monomial $W$, including $1$, include
+\begin{equation}
+ T_W(c,b;X,Y)=J_c(X)W(b;Y),                         \label{ia:clock-monomial}
+\end{equation}
+with independent arguments.  It has the same tag and degree tier as
+$W$, and rotates only $X$.  Enforce it by factorization.
+
+\begin{lemma}[Clock-indexed linear formulas]\label{ia:clock-formula}
+Suppose for each $y\in C$ that $L_y$ is an explicitly given
+$\mathbb F_q$-linear map from selected monomial evaluation arrays
+of logical degree at most $k_0$ to the full native array of a scalar
+or one-slot output.  There is a canonical chart, lifted in $Z$, with
+\begin{equation}
+ G(c,b;z,\cdot)=L_{cz}(W(b))\quad(z\in C).         \label{ia:clock-formula-value}
+\end{equation}
+It rotates only $Z$, and it and its verification auxiliaries have
+assigned degree at most $k_0$.  A rotating linear-tool call verifies
+them.  The recipes and their covariance hold for all Boolean $b$.
+\end{lemma}
+
+\begin{proof}
+Use the needed $T_W$ inputs and the output $G$ as primaries.  Impose
+their lifted shapes in the designated variables and the linear rows
+\begin{equation}
+ G(z,\cdot)=\sum_{x\in C}L_{x^{-1}z}(T(x,\cdot))
+ \quad(z\in C).                                  \label{ia:clock-convolution}
+\end{equation}
+Rows also range over every output evaluation position and slot.
+On canonical $T$ inputs, only $x=c^{-1}$ contributes, giving
+\eqref{ia:clock-formula-value}.  The lift shape then determines the
+whole chart uniquely.  The row condition is invariant under the
+simultaneous replacement $G(z)\mapsto G(u_0z)$ and
+$T(x)\mapsto T(u_0x)$: setting $x'=u_0x$ changes the map index to
+$(x')^{-1}u_0z$.  The shape conditions are invariant too, so
+Lemma~\ref{ia:linear-tool} applies.  Every input has logical degree
+at most $k_0$; interpolation and all per-primary certificate operations
+are linear and preserve that degree.  Covariance follows first on
+$C$ and then by uniqueness of the lift, and for the auxiliaries by
+the last part of the linear tool.  No validity row on $b$ was used.
+Public clock-dependent terms are supplied through $T_1=J_c$, keeping
+the rotating condition linear.
+\end{proof}
+
+Apply this lemma to a fixed list, for fixed $k$, of critical addresses
+needed by either transition direction.  A critical output chart has
+only the variable $Z$ and gives at $z\in C$ the required logical read
+or rule bit for absolute frame $cz$.  For each port, make a separate
+tag-$i$ read chart that reads $s_i[j]$ during initial copy step $j$
+and is identically zero on every other step.  This is a standardized
+degree-one call independent of all subsequent computation.  Work
+reads have separate tag-$0$ charts, defined as zero when inactive;
+there are a bounded number per write slot for old and operand reads.
+Phase, gate, activity, and wrap-disable bits use tag-$0$ degree-zero
+calls.  Fix their numbers and tiers by the rule basis and write-slot
+bound, padding inactive roles.  Their public values and work address
+maps may depend on the circuit.
+
+Every auxiliary of a tag-$0$ clock call has tag $0$.  Every auxiliary
+of a standardized tag-$i$ clock call has tag $i$, even an auxiliary
+for a shared legacy-only or public $T$ primary in that call.  The
+shared primary itself retains its base tag and formula.  This
+distinction between an input's tag and the ancestry of its
+per-call certificate is part of the construction.
+
+A fixed-frame tape edit must update every persistent chart, including the
+certificates introduced to verify other charts.  Its effect on a chart
+$F$ is the difference
+\[
+ F(c,b+h_\sigma(c);Y)-F(c,b;Y).
+\]
+For a positive-tier chart we store this difference in a new chart with a
+clock variable $Z$, whose restriction at $Z=1$ gives the required change.
+Taking a Boolean difference lowers the logical degree.  We can also store the
+changes of this new chart and its certificates, stopping after at most
+three levels.  The construction below supplies these polynomial charts;
+the projection stacks in Section~\ref{ia:projection-stacks} will realize
+the restriction at $Z=1$ without a concentrated point read.
+
+\begin{lemma}[Derivative closure for all persistent families]
+\label{ia:derivative-closure}
+The persistent system can be closed under every required fixed-frame
+Boolean edit, including edits to verification auxiliaries, with a
+fixed number of families for fixed $k$.  Each has at most one
+$O(\ell)$ slot axis, native dimension $O(\ell)$, honest coordinate
+degree $O(\ell h)$, and assigned logical degree at most three.  The
+closure and its polynomial-time canonical recipes are defined on
+invalid Boolean tapes as well.
+\end{lemma}
+
+\begin{proof}
+Let $F$ have positive assigned tier $k_0$.  For every required flip
+mask, retain its native variables $Y$ and slots, adjoin a new full
+variable $Z$, and prescribe on the cyclic grid
+\begin{equation}
+ G_F^\sigma(c,b;z,Y)
+   =F(cz,b+h_\sigma(cz);Y)-F(cz,b;Y),\qquad z\in C.
+                                                               \label{ia:derivative}
+\end{equation}
+Extend in $Z$ by the cyclic lift.  Both parent terms are evaluated
+in frame $cz$; the parent's existing argument coordinates remain
+exactly $Y$.  A tag-$0$ parent uses the full flip alphabet
+\eqref{ia:flip-mask}.  For a tag-$i$ parent, only the two legacy
+coefficients matter: the input bits $s_i$ are never written and
+work bits are absent from its recipe.  Use the fixed four masks
+\begin{equation}
+ h_\chi(y)=\chi_1\mathbf 1_{e_{y^{-1}}}
+            +\chi_2\mathbf 1_{e_{(\gamma y)^{-1}}},
+ \qquad \chi\in\{0,1\}^2,                        \label{ia:port-flip-mask}
+\end{equation}
+independent of $k$ and $i$.
+
+For a squarefree monomial, a fixed Boolean translation gives
+\begin{equation}
+ \prod_{j\in S}(b_j+h_j)-\prod_{j\in S}b_j
+   =\sum_{T\subsetneq S}\left(\prod_{j\in T}b_j\right)
+                         \left(\prod_{j\in S\setminus T}h_j\right).
+                                                               \label{ia:degree-drop}
+\end{equation}
+Thus \eqref{ia:derivative} has logical degree at most $k_0-1$.
+Lifting its new variable adds at most $\ell(h-1)$ to its coordinate
+degree.  For each absolute frame $y$, output evaluation point, and
+inherited slot, the derivative is a known linear combination of
+grid monomials of degree at most $k_0-1$: from $\{w,e\}$ for tag
+$0$, or from $\{s_i,e\}$ for tag $i$.
+
+These coefficients are computed from the \emph{canonical parent
+recipe}, not from the presently supplied parent table.  An explicit
+method is bounded-degree Boolean interpolation.  For a multilinear
+function $P$ of degree at most $r$ on a universe of $N$ bits, its
+coefficient on $S$, $|S|\le r$, is
+\begin{equation}
+ [b_S]P=\sum_{T\subseteq S}(-1)^{|S|-|T|}P(\mathbf 1_T).
+                                                               \label{ia:boolean-inversion}
+\end{equation}
+In characteristic two the signs are all one.  Use this on the
+right side of \eqref{ia:derivative}, which is computable on every
+Boolean argument, including translated invalid tapes.  There are
+only $\sum_{j\le r}\binom Nj=\poly(n')$ required subsets, because
+$r\le3$ and $N=\poly(n')$.  For tag $i$ the interpolation universe
+is the common ordered list of its $L$ source bits and $M$ legacy
+bits, with no work coordinates.  Interpret the resulting coefficients
+as public maps $L_y$ on the permitted monomial arrays.
+
+Apply Lemma~\ref{ia:clock-formula} using only inputs through tier
+$k_0-1$.  The output derivative and every newly introduced auxiliary
+receive that tier and the parent's tag.  In particular a certificate
+for a shared tag-$0$ $T$ input in this positive call receives the
+positive ancestry tag.  The derivative rotates only its new variable,
+since on the grid
+\[
+ G_F^\sigma(u_0c,b;z,Y)=G_F^\sigma(c,b;u_0z,Y),
+\]
+and lift uniqueness extends this to $K$.  Its older parent variables
+are not additionally scaled under a frame change.  Each verification
+auxiliary instead rotates its own new $R$, as proved by the linear
+tool.
+
+Repeat this operation for every added positive-tier family, including
+derivatives and all their proof families.  Every descendant call
+strictly lowers its assigned tier, whether or not its actual degree
+was already smaller.  The recursion ends after at most three levels.
+A family has only finitely many children for fixed $k$.  A derivative
+inherits its parent's single slot axis; a verification auxiliary uses
+its own recurrence-index axis rather than tensoring it with primary
+slots.  Consequently the number of families is fixed, their native
+dimensions and slot lengths remain $O(\ell)$, and their coordinate
+degrees remain $O(\ell h)$.  Tier-zero charts require no derivative
+for a fixed-frame Boolean edit.
+
+All maps have polynomial construction cost: there are polynomially
+many frames, evaluations, slots, monomials, and rows, and only a
+fixed number of recursive levels.  Finite sums, monic division,
+coefficient extraction, and interpolation are fixed linear operations
+on each primary array.  They neither create a further logical product
+nor import another primary's dependency.  This remains true when the
+final row sum fails, by Lemma~\ref{ia:linear-tool}.  The asserted
+invalid-tape recipes and their degree bounds follow as well.
+\end{proof}
+
+\begin{lemma}[Literal positive-port ancestry]\label{ia:port-ancestry}
+There are deterministic local call and ancestry conventions such that
+the entire tag-$i$ construction in an actual $k$-port graph is
+identical, after renaming $s_i$ to $s$, to the positive-tag construction
+in the one-port template with the same $L,n'$ and field parameters.
+The agreement includes primary lists, row indexing and zero padding,
+packing maps, all auxiliary and derivative families, native dimensions,
+slot orders, and canonical arrays whenever $(c,e,s_i)=(c,e,s)$.
+It holds independently of the actual work destinations, $k$, and $f$.
+\end{lemma}
+
+\begin{proof}
+Choose row lists, their order, and zero padding separately for each
+call's local template.  Do not choose a row dimension by maximizing
+over all calls in the actual graph.  In each copy/port call use the
+same input-shape rows, bitness rows, and $(c,j)$ copy rows, and the
+same full primary-list conventions.  Although the work-side matrix
+depends on $w_{i,j}$, its dimensions do not.  This makes all
+port-dependent primary blocks literal copies of their dummy blocks.
+
+For a concrete example, consider $W_{e,s_i}$ in
+\eqref{ia:separate-copy-row}.  Its matrix $A_{e,s}(I,X)$ knows the
+stage and the source position $\iota(j)$, and has no reference to
+$w_{i,j}$.  That destination appears only in the separate
+$A_{e,w}$ block.  The top formula for its positive certificate is
+\[
+ p_{m',e,s}(I,X)
+       =A_{e,s}(I,X)W_{e,s_i}(w_{\rm pack}(X)),
+\]
+with the evident slot contraction when needed.  Its row padding,
+packing, recurrence permutation, recurrence-index order, and
+coefficient-vector domain are therefore exactly those of the
+one-port construction.  Each partial sum, quotient, remainder, and
+coefficient chart uses that block alone.  The equality with the
+work-side contribution is tested only in \eqref{ia:final-row-sum};
+there is no mixed stored chart from which work addresses could
+enter this positive family.
+
+The critical source-bit calls agree directly, since they use the
+same initial-copy address rule and the same zero rule thereafter.
+For the remaining families, induct on positive ancestry.  If a
+parent's recipe and native layout agree, its derivative uses exactly
+the same restricted mask \eqref{ia:port-flip-mask}.  Its values on
+every subset in \eqref{ia:boolean-inversion}, including translated
+invalid inputs, are identical in the two templates.  Hence its maps
+$L_y$ are identical.  Make each derivative call separately by parent
+type and mask, with the fixed allowed lower-tier monomial list, full
+output-equality rows, shape rows, deterministic order, and local
+padding.  Its output and every per-primary auxiliary then agree
+literally by the linear-tool formulas.  This includes auxiliaries
+whose primary is a shared legacy-only or constant $T$ chart: the
+input formula is common and the auxiliary's own call matrix is the
+standardized positive one.  These auxiliary families are themselves
+parents in the induction.  Strictly decreasing tiers terminate it.
+
+Keep descendants from distinct standardized calls separate, without
+coalescing them differently with circuit-dependent tag-$0$ families.
+Additional full work masks and additional tag-$0$ calls then create
+separate branches and do not change any positive branch.  The
+construction does not use validity to establish this correspondence.
+\end{proof}
+
+\begin{lemma}[A common dimension and inherited full labels]
+\label{ia:placements}
+The common point domain $K^u$ and all per-chart dimension bounds can
+be fixed before $k$.  Persistent charts can be placed in it so that
+every derivative preserves all its parent's labels and slot order
+and adds an unused whole label for its new variable.  Corresponding
+positive families have identical placements.  For each fixed $k,L$,
+all actual graph family and slot layouts can be fixed independently
+of the size-bounded circuit's values and wiring.
+\end{lemma}
+
+\begin{proof}
+Initially a monomial uses at most $d$ full variables and a $T$ chart
+one more.  Base linear calls have native dimension $O_d(\ell)$.
+Their row counts are bounded by $q^{C\ell}$ for an absolute fixed
+$C$ independent of $k$: the work grid, clock grid, input length, and
+stage count are at most $h^\ell$, and shape conditions are polynomial
+in the corresponding full evaluation sizes.  Occupied-copy calls
+are separate, so their number does not enter an individual row
+dimension.  They use fixed stage/source-index lists.
+
+For a derivative call on a parent of $m_0$ native coordinates and
+one possible slot axis, its output, shape, and clock-equality rows
+have size polynomial in $q^{m_0+C\ell}$, with a fixed exponent.
+Its permitted monomial input list is fixed by its tag and tier.
+Different masks have separate calls.  Therefore $\rho/\ell$, the
+new native dimension divided by $\ell$, and the new slot length
+divided by $\ell$ are bounded by a fixed multiple of one plus the
+corresponding parent bounds.  Digit unpacking contributes the fixed
+factor $v$; the coefficient-vector domain contributes at most
+$h-1\le\ell$ coordinates.  Iterating through the at most three
+tier drops gives an absolute bound $C_{\rm dim}\ell$, independent
+of the number of calls or ports.
+
+Choose $u$ to accommodate this bound and at most $d+1$ additional
+whole labels along an inherited derivative-axis chain.  Put every
+full $K$ variable in a whole label, and pack remaining native
+$q$-coordinates into additional labels, ignoring their padding.
+An initial chart or a new verification auxiliary is a placement
+root; unrelated roots may reuse labels according to their native
+templates.  A derivative retains exactly its parent's placements
+and chooses a deterministically first unused whole label for its
+new variable.  Repeat along that chain.  No labels have to be
+globally disjoint across all ports: tests between unrelated charts
+assemble their native arguments separately and fill ignored
+coordinates uniformly.  Enforce all ignored-coordinate conditions.
+These deterministic choices depend only on local templates and
+ancestry, proving positive-family agreement.
+
+For tag-$0$ calls at fixed $k,L$, use the full uniform
+(stage, work-position) validity list, fixed critical-read roles and
+tiers, the full fixed flip alphabet for every parent, and the
+allowed monomial, shape, and output lists fixed by domain and tier.
+Only matrix entries and rule values vary with the circuit.  This
+makes the entire actual layout independent of circuit wiring, as
+claimed.
+\end{proof}
+\subsection{Projection stacks and their exact tests}\label{ia:projection-stacks}
+
+Critical reads and tape edits require algebraic restrictions of charts
+with one or more full labels set to $1$.  Reading these special points
+directly would not preserve a uniform point marginal.  Instead we
+express each restriction as a sum of invertible affine pullbacks and
+store the affine-pulled values in slots.  The progress coordinate $t$
+specifies which of these slots are active.  At full progress, summing
+over the new stack axes will give the required restriction; changing
+progress will use bounded slot shifts and affine pulls.
+
+Give each critical address output its clock-formula variable as a
+projection axis.  Other initial persistent charts, including all
+verification auxiliaries, start with no projection axes.  A derivative
+inherits its parent's axes, with their exact labels, and adds its new
+outer variable.  New verification auxiliaries again start with no
+axes.  Denote the resulting set by $A_F$; its size is at most $d+1$.
+
+Fix a generator $g$ of $\mathbb F_q^\times$.  For a full label
+$\alpha$, let $D_\alpha$ be pullback by
+\begin{equation}
+ Z_\alpha\longmapsto 1+g(Z_\alpha-1).              \label{ia:dilation}
+\end{equation}
+This is an invertible $K$-affine map on the common domain.
+
+\begin{lemma}[Projection by full-label dilations]\label{ia:projection}
+If the coordinate degree in label $\alpha$ is below $q-1$, then
+\begin{equation}
+ \sum_{r=0}^{q-2}D_\alpha^r F
+       =F\big|_{Z_\alpha=1},                      \label{ia:projection-identity}
+\end{equation}
+where the right side ignores that label.  Dilations on distinct
+full labels commute.
+\end{lemma}
+
+\begin{proof}
+Center the $\mathbb F_q$ coordinates of $Z_\alpha$ at the coordinate
+vector of $1\in K$.  Decompose $F$ into parts homogeneous of degree
+$r$ in the centered coordinates.  Their sums under all nonzero
+scalar dilations have multiplier
+\[
+ \sum_{j=0}^{q-2}g^{jr}
+   =\begin{cases}1,&r=0,\\0,&0<r<q-1.\end{cases}
+\]
+For $r=0$ this is $q-1=1$ in characteristic two, and for positive
+$r$ it is a geometric sum with ratio different from one.  Thus
+only the constant homogeneous part remains.  Pullbacks on disjoint
+labels commute by direct substitution.
+\end{proof}
+
+\paragraph{Mode and progress marker.}
+Represent $\eta$ by a point-constant scalar chart.  Enforce constancy,
+then membership in $\mathbb F_2\cdot1$ by random additive binary
+forms annihilating $1$.  A value outside this subspace is detected
+with probability $1/2$; on the subspace, a fixed form sending $1$
+to $1$ reads the bit.
+
+Let $N=B^a$.  Represent progress by a point-constant marker tensor
+$M^{\rm mark}_j$, with $a$ radix axes of length $B$, indexing
+$0\le j<N$.  At $t=0$ it is zero; at $t>0$ it is one-hot at $t-1$.
+After constancy is enforced, test with independent uniform separable
+masks $L,L'$ the identity
+\begin{equation}
+ (L\cdot M^{\rm mark})(L'\cdot M^{\rm mark})
+                  =(LL')\cdot M^{\rm mark},       \label{ia:marker-identity}
+\end{equation}
+where each axis of $LL'$ is an entrywise product.  Expanding in the
+separate mask variables, exactness says
+$M_j^{\rm mark}M_{j'}^{\rm mark}=0$ for $j\ne j'$ and
+$(M_j^{\rm mark})^2=M_j^{\rm mark}$ for each $j$.  Hence the tensor
+is zero or has exactly one coefficient equal to one.  A nonzero
+discrepancy is a polynomial of bounded mask degree and is detected
+with constant probability.  Enforce zero support for
+\begin{equation}
+ q-1\le j<N.                                      \label{ia:marker-padding}
+\end{equation}
+This range is a union of at most $a+1$ radix rectangles: compare
+digits from the most significant end, separating the first larger
+digit and the boundary itself.  Masked restrictions check every
+rectangle with boundedly many probes.  The remaining possibilities
+are exactly $t\in\{0,\ldots,q-1\}$.  Both mode and marker have
+tag $0$.
+
+For each persistent $F$ and each nonempty $S\subseteq A_F$, include
+a stack with the same tag, point placements, and inherited slots as
+$F$, and $a$ additional radix slot axes for each $\alpha\in S$.
+Its intended formula is
+\begin{equation}
+ C^S_{F,\mathbf j}(c,b,\eta,t;Y)=
+ \begin{cases}
+ \displaystyle\left(\prod_{\alpha\in S}
+           D_\alpha^{t-1-j_\alpha}\right)F(c,b;Y),
+             &j_\alpha<t\text{ for every }\alpha\in S,\\[2pt]
+ 0,           &\text{otherwise},
+ \end{cases}
+ \qquad C_F^\varnothing=F.                         \label{ia:stack-formula}
+\end{equation}
+Indices run through $0,\ldots,N-1$ on each integer axis.
+
+\begin{lemma}[Canonical stacks and bounded radix probes]\label{ia:stacks}
+For a legal marker, the stacks are uniquely characterized by a fixed
+number of types of bounded-probe polynomial identities.  These tests
+are perfectly complete and have constant exact gap on
+degree-at-most-$D$ polynomials.  Their only unknown products are
+marker times smaller-stack products, with independent full operand
+point marginals and compatible tags.  All slot shifts, restrictions,
+and boundary slices have bounded separable-mask expansions.
+\end{lemma}
+
+\begin{proof}
+For each nonempty $S$, fix one $\alpha\in S$ and require
+\begin{equation}
+ C^S_{F,(j_\alpha,\mathbf j_-)}
+  =D_\alpha C^S_{F,(j_\alpha+1,\mathbf j_-)}
+      +M^{\rm mark}_{j_\alpha}
+                 C^{S\setminus\{\alpha\}}_{F,\mathbf j_-},
+                                                               \label{ia:stack-recurrence}
+\end{equation}
+with the upper boundary at $j_\alpha=N$ defined to be zero.
+For fixed $\mathbf j_-$ this is triangular downward in $j_\alpha$.
+If the marker is zero its only solution is zero.  If it is one-hot
+at $t-1$, its solution is
+\[
+ C^S_{F,(j_\alpha,\mathbf j_-)}
+   =\begin{cases}
+     D_\alpha^{t-1-j_\alpha}
+             C^{S\setminus\{\alpha\}}_{F,\mathbf j_-},
+                       &j_\alpha<t,\\
+     0,                 &j_\alpha\ge t.
+    \end{cases}
+\]
+Induction on $|S|$ gives exactly \eqref{ia:stack-formula}.
+
+Here are explicit slot formulas for the shift, including boundary
+handling.  Use little-endian radix digits
+$j=\sum_{s=0}^{a-1}j_sB^s$ and let
+$\lambda_L(j)=\prod_{s=0}^{a-1}L_s[j_s]$.  With out-of-range
+coefficients zero,
+\begin{align}
+ \sum_{j=0}^{N-1}\lambda_L(j)C_{j+1}
+   &=\sum_{r=0}^{a-1}L^{(r,+)}\cdot C,
+                                                        \label{ia:radix-plus}\\
+ L_s^{(r,+)}[d]
+   &=\begin{cases}
+      L_s[B-1]\mathbf1_{d=0},&s<r,\\
+      \mathbf1_{d\ge1}L_r[d-1],&s=r,\\
+      L_s[d],&s>r,
+     \end{cases}                                      \nonumber\\
+ \sum_{j=0}^{N-1}\lambda_L(j)C_{j-1}
+   &=\sum_{r=0}^{a-1}L^{(r,-)}\cdot C,
+                                                        \label{ia:radix-minus}\\
+ L_s^{(r,-)}[d]
+   &=\begin{cases}
+      L_s[0]\mathbf1_{d=B-1},&s<r,\\
+      \mathbf1_{d\le B-2}L_r[d+1],&s=r,\\
+      L_s[d],&s>r.
+     \end{cases}                                      \nonumber
+\end{align}
+Indeed the first pullback mask on index $k>0$ is
+$\lambda_L(k-1)$.  Partition $k$ by its least digit $r$ which is
+nonzero; precisely the lower digits borrow.  The second pullback
+is $\lambda_L(k+1)$ for $k<N-1$; partition by the least digit below
+$B-1$.  Overflow is absent in both formulas.  Slicing at zero is
+a single separable restriction, and interval restrictions use the
+bounded rectangle decomposition used in \eqref{ia:marker-padding}.
+Tensoring these expansions over the bounded number of stack axes
+still gives a bounded number of separable masks.  Split every
+requested mask additively as in \eqref{ia:contraction}.
+
+Contract the entire identity \eqref{ia:stack-recurrence} over all
+slots.  The last term factors into a contraction of the marker on
+axis $\alpha$ and a contraction of the smaller stack on its other
+axes and inherited slots.  In the exact-soundness analysis marker
+constancy has already been imposed, so its full point can be sampled
+independently of the smaller stack point.  This retains perfect
+completeness on canonical data.  If the recurrence is not an
+identity, its discrepancy has point degree at most $2D$ and bounded
+mask degree, giving constant rejection probability.  Honest stacks
+are affine pullbacks of persistent charts or zero, so they have the
+same honest coordinate degree.  Marker tag $0$ is compatible with
+every parent tag.  This proves all claims.
+\end{proof}
+
+\subsection{Exact validation and locally encoded evolution}
+\label{ia:validation-and-evolution}
+
+\begin{lemma}[Exact algebraic validity]\label{ia:exact-validator}
+For each fixed $k$ there is a fixed finite mixture of bounded-probe
+tests with perfect completeness on canonical extended labels and a
+uniform constant gap on genuine degree-at-most-$D$ polynomial
+families.  Passing all identities is equivalent to being the unique
+canonical tuple of a valid extended label.  The gap is independent
+of $L$ past the fixed cutoff and uniform over the allowed circuit
+coefficients.  Linear probes have bounded point and mask density.
+Every unknown product has compatible tags and can be queried with
+independent full point marginals for its two operands.
+\end{lemma}
+
+\begin{proof}
+The tests just constructed constitute a fixed number of family
+types for fixed $k$; growing slot lists are checked by whole
+contractions.  We prove exact soundness in an order that licenses
+all substitutions.  First consider ignored-coordinate requirements,
+mode and marker constancy, and the independence and coefficient
+linearity devices of every linear tool.  If one fails, its direct
+test has constant gap.  Otherwise these are exact polynomial
+identities.  Monomial factorization and the nonrotating base calls
+then force a Boolean tape, all its monomial extensions, its
+union-of-stages validity, its output chart, and the canonical
+per-primary certificates.  Mode and marker membership give unique
+$\eta$ and $t$.  The legacy identity \eqref{ia:clock-legacy}
+forces the unique frame $c$ and fixes $J_c$; clock-monomial
+factorizations fix all $T_W$.
+
+Now apply the clock-formula calls in construction order.  Their
+uniqueness fixes each critical output, each derivative, and every
+auxiliary.  A derivative's rows were computed from a prescribed
+parent recipe; the proof never treats an unverified parent table
+as an additional oracle for those rows.  The strictly decreasing
+tier construction is therefore acyclic.  Finally the triangular
+stack identities give \eqref{ia:stack-formula}.  Hence exactness
+of all identities gives precisely a valid label's canonical tuple.
+Conversely every valid label satisfies every identity for every
+random choice in the support.
+
+If exactness fails, the first failed identity in this ordering has
+point degree $O(D+\ell h)$ after the stated preliminary devices
+and bounded degree in its mask variables.  The polynomial zero and
+contraction bounds give a uniform positive rejection probability.
+Taking the minimum over the fixed mixture gives the asserted gap.
+Honest degrees are $O(\ell h)<D$ eventually, also after any later
+fixed-factor enlargement of the point domain.  The constants in
+these degree bounds and in the finite family list depend on fixed
+templates, not on the values of public circuit coefficients.
+
+For the product claim, the only possibilities are monomial
+factorizations, $J_cW$ factorizations, marker membership, and marker
+times smaller stack.  In a factorization, choose the two native
+operand arguments independently, assemble the output's relevant
+groups from them, and independently fill all ignored coordinates.
+Even repeated operand types then have independent full operand
+points.  The relevant output groups are independent uniform too.
+For marker products use independent points, justified by the
+earlier constancy step.  Every such pair has compatible tags by
+construction.  Bitness, diagonal grid entries, copy equalities,
+and all other correlated grid uses are linear matrix rows, so they
+require no concentrated unknown-product query.  The linear tool's
+packing, permutation, and splitting probes have bounded individual
+point density.  Dependent or prescribed masks, including those
+inside products, are smoothed by fresh independent axis splittings.
+These observations prove the stated probe interface.
+\end{proof}
+
+\begin{lemma}[All neighbor coordinates evolve by bounded affine pulls]
+\label{ia:evolution}
+For canonical valid data, edge existence and the transition branch
+in either direction are determined using only mode, empty/full
+marker comparisons, and boundedly many critical projected bits at
+full progress.  Equality decisions can have any prescribed fixed
+error probability by a fixed number of repetitions.  Once the
+finite Boolean branch is fixed, every requested contraction in the
+neighbor tuple is a bounded public linear sum of contractions in
+the current tuple at invertible $K$-affine pullbacks of the common
+point.  Its coefficients and slot pulls depend on the branch,
+requested masks, and public data, but not on the point, row index,
+or further hidden values.  Tag-$0$ updates use only tag $0$;
+tag-$i$ updates use only compatible types.
+\end{lemma}
+
+\begin{proof}
+We give formulas for each transition, including the boundaries.
+Write $C^{S,t}_{F,\mathbf j}$ for the stack at progress $t$.
+
+\paragraph{Progress increase and decrease.}
+On increasing from $0$ to $1$, initialize every nonempty stack by
+\begin{equation}
+ C^{S,1}_{F,\mathbf j}
+       =\mathbf1_{\mathbf j=\mathbf0}F,
+ \qquad M^{\rm mark,new}_j=\mathbf1_{j=0}.         \label{ia:increase-zero}
+\end{equation}
+For $0<t<q-1$, and $\mathbf j$ in the padded radix range, let
+$Z(\mathbf j)=\{\alpha\in S:j_\alpha=0\}$ and put
+$k_\alpha=0$ for $\alpha\in Z(\mathbf j)$ and
+$k_\alpha=j_\alpha-1$ otherwise.  Then
+\begin{equation}
+ C^{S,t+1}_{F,\mathbf j}
+    =\left(\prod_{\alpha\in Z(\mathbf j)}D_\alpha\right)
+           C^{S,t}_{F,\mathbf k},\qquad
+ M^{\rm mark,new}_j=M^{\rm mark,old}_{j-1},       \label{ia:increase-positive}
+\end{equation}
+with zero padding.  For $j_\alpha>0$, the old exponent is
+$t-1-(j_\alpha-1)=t-j_\alpha$, as required; for $j_\alpha=0$,
+one extra dilation gives exponent $t$.  Old inactive coefficients
+remain zero.  Partitioning by $Z(\mathbf j)$ and using the radix
+pull formulas implements this with boundedly many mask operations.
+For a decrease from $t>0$, the formula is simply
+\begin{equation}
+ C^{S,t-1}_{F,\mathbf j}
+     =C^{S,t}_{F,(j_\alpha+1)_{\alpha\in S}},\qquad
+ M^{\rm mark,new}_j=M^{\rm mark,old}_{j+1}.       \label{ia:decrease}
+\end{equation}
+Its exponent is $t-1-(j_\alpha+1)=t-2-j_\alpha$ and its support
+is $j_\alpha<t-1$.  In particular $t=1$ produces empty stacks
+and a zero marker.  Persistent data remain fixed during these
+progress transitions.
+
+\paragraph{Critical readings and full-progress edits.}
+At $t=q-1$, for a critical chart $F$ with projection axis $\alpha$,
+\begin{equation}
+ \sum_{j=0}^{N-1}C^{\{\alpha\}}_{F,j}
+     =\sum_{j=0}^{q-2}D_\alpha^{q-2-j}F
+     =F\big|_{Z_\alpha=1}.                       \label{ia:critical-projection}
+\end{equation}
+All-ones radix masks perform this sum.  A critical output ignores
+every other native group, so the result is a constant-in-point
+logical or public rule bit.  Lemma~\ref{ia:validity} therefore
+determines the edit mask from finitely many such bits.
+
+Fix that mask and direction.  For every positive-tier parent $F$
+and every $S\subseteq A_F$, including $S=\varnothing$, add the
+increment
+\begin{equation}
+ \Delta C^S_{F,\mathbf j}
+    =\sum_{r=0}^{N-1}
+      C^{S\cup\{\alpha_{\rm new}\}}_{G_F^\sigma,(\mathbf j,r)}.
+                                                               \label{ia:edit-increment}
+\end{equation}
+For a positive port parent use its corresponding legacy mask
+$\chi$.  For active old indices, commuting all inherited-label
+dilations with projection on the new label gives
+\begin{align}
+ \Delta C^S_{F,\mathbf j}
+   &=\left(\prod_{\alpha\in S}D_\alpha^{q-2-j_\alpha}\right)
+          G_F^\sigma(c,b;1,Y)                    \label{ia:edit-calculation}\\
+   &=\left(\prod_{\alpha\in S}D_\alpha^{q-2-j_\alpha}\right)
+          \bigl(F(c,b+h_\sigma(c);Y)-F(c,b;Y)\bigr).
+                                                        \nonumber
+\end{align}
+If any inherited index is inactive, every summand is zero.  This
+is precisely the new stack minus the old one, including the empty
+stack, which is the persistent chart itself.  The recursion supplied
+the necessary lower-tier derivative for \emph{every} positive-tier
+parent, including proof and derivative charts, so all coordinates
+update simultaneously from old data.  Tier-zero charts stay fixed
+under the Boolean change.  The marker is unchanged and the mode
+changes as prescribed.  Reverse edits obey the same calculation
+with the inverse branch's coefficients.
+
+\paragraph{Frame change and edge flags.}
+At empty progress all stacks are zero.  For frame advance, a
+rotating persistent chart is pulled back on its one designated
+variable by multiplication by $\gamma$; for reverse advance use
+$\gamma^{-1}$.  A nonrotating persistent chart stays fixed.  The
+empty stacks remain zero, and the mode changes.  In particular,
+an auxiliary with native variables $(R,I,X,U)$ rotates only $R$;
+its packing, division, and coefficient formulas are not recomputed
+by the update.
+
+The successor rules are: pre increases unless full; at full pre
+perform the enabled edit, or report the absent wrap edge; post
+decreases unless empty; at empty post advance the frame.  The
+predecessor rules are: full post performs the inverse enabled edit,
+or reports the absent wrap edge; other post reverses a decrease;
+positive-progress pre reverses an increase; empty pre reverses the
+frame advance.  Empty must also be distinguished for initialization
+in \eqref{ia:increase-zero}.  These are all finite cases.  Comparing
+the marker with the public zero tensor or the public full tensor
+uses random separable masks and binary forms, with a constant
+inequality-detection gap.  A fixed number of repetitions makes
+either comparison as reliable as prescribed.  Mode and critical
+constant bits are read with forms taking $1$ to $1$.  No progress
+index scan or proposed-target validity check is needed for edge
+flags on the valid inner path.
+
+Finally, all point maps in these formulas are identities, full-label
+dilations \eqref{ia:dilation}, or full-label multiplications by
+$\gamma^{\pm1}$, and their bounded compositions.  They are
+invertible $K$-affine maps.  In \eqref{ia:edit-increment}, the child
+retains the parent's placements and has an already available extra
+whole label; the sum projects that label to one and makes it
+irrelevant to the target coordinate.  Thus a requested update has
+the form
+\begin{equation}
+ L\cdot F^{\rm new}(Y)
+    =P_L(Y)+\sum_{r=1}^{R_*}a_r
+                         (L_r\cdot F_r)(T_rY),    \label{ia:affine-update}
+\end{equation}
+where $R_*$ is bounded, $P_L$ is publicly computable, $a_r$ and
+$L_r$ are fixed by the requested masks and branch, and $T_r$ is
+an invertible $K$-affine map.  No $a_r$ or slot pull depends on
+$Y$ or on a later row index.  The inherited tags in
+Lemma~\ref{ia:derivative-closure}, and the public fixed branch,
+give the tag assertions.
+\end{proof}
+
+\begin{remark}[Native tests and encoded updates have different maps]
+\label{ia:testing-versus-evolution}
+The arbitrary $\mathbb F_q$ coordinate permutations and surjective
+digit packing in Lemma~\ref{ia:linear-tool} need not be $K$-affine.
+They are used to construct certificates and to test systematic
+target-point values with bounded density.  They are not maps for
+propagating an encoded parity row or a line-coefficient array.
+Equation~\eqref{ia:affine-update} is the separate evolution
+interface for those encodings.  For example, the proof chart
+$F(c,b;R,I,X,U)$ changes frame only through its whole $R$ label,
+and changes Boolean tape through its stored child's full-label
+projection.  Its canonical division is not rerun on the requested
+encoded symbol.  This distinction permits the binary construction
+to use ordinary systematic representations for all native tests
+while transporting neighbor updates through its common affine
+action and linear row encoding.
+\end{remark}
+\begin{lemma}[Source data, original indices, and Boolean degree]
+\label{ia:source-data}
+At each of the two labels in \eqref{ia:source-successor}, every
+tag-$0$ chart and stack is publicly computable.  Every tag-$i$
+chart and stack has exactly the value of its corresponding
+positive-tag one-port-template chart at the same native point,
+slot, and mask indices, evaluated on input $s_i$.  These statements
+hold for the source and its first successor separately, with
+their indicated progresses $q-1$ and $q-2$.
+
+At either label, every prime-field coordinate function of every
+chart value or coordinate coefficient has multilinear degree at
+most three in the read inputs.  Any common public linear
+representation of these arrays preserves this bound and their
+original-index correspondence.  A binary bilinear form of two
+such represented values has degree at most six.  Its coefficients
+are computable in polynomial time by bounded-degree Boolean
+interpolation.
+\end{lemma}
+
+\begin{proof}
+At both labels, $c=\gamma^{-1}$, work is blank, $e_1=1$ and other
+legacy bits are zero, the mode is post, and progress is the public
+value specified in \eqref{ia:source-successor}.  Tag-$0$ persistent
+recipes depend only on these values and public circuit data, so
+they are computable.  Their derivatives might evaluate a translated
+tape with nonblank work, but every flip vector is then public and
+the translated work is public too.  Such a tape need not be valid:
+the canonical recipe is evaluated by its finite-array operations,
+and never by solving for a valid circuit computation.  In
+particular a work-side copy certificate uses its own work primary
+and public matrix, not a stored sum involving $s_i$.  Recursively,
+all its derivative and proof arrays remain public.  Stack
+dilations at either fixed progress preserve this conclusion.
+
+Positive persistent recipes and layouts agree by
+Lemma~\ref{ia:port-ancestry}, and their placements agree by
+Lemma~\ref{ia:placements}.  The projection-axis choices, inherited
+labels, $q,a,B$, and radix slot conventions also agree.  Formula
+\eqref{ia:stack-formula} therefore gives identical stacks at each
+of the two progresses, including every descendant proof stack.
+This proves a literal map of original algebraic indices, not
+merely equality up to unspecified isomorphisms or comparable sizes.
+Applying the same public row extension, restriction to an ordered
+line, extraction of its coefficients, slot contraction, or basis
+map to corresponding arrays preserves both values and indices.
+Later balancing by repeated copies may use different multiplicities;
+it does not alter this statement about original indices.
+
+At a fixed frame every persistent value and coefficient has
+assigned degree at most three in the Boolean tape.  At the present
+labels all tape bits except the read inputs are fixed public bits.
+Fixed-progress stacks are fixed affine pullbacks or zero.  Their
+degree is thus at most three in the read inputs as well.  A public
+linear operation over $\mathbb F_q$, or over any fixed public
+extension field followed by prime-field coordinates, is
+$\mathbb F_2$-linear on these functions.  It cannot increase
+multilinear degree.  For two degree-three coordinate vectors, a
+binary bilinear form is a sum of products of two such coordinate
+functions and hence has degree at most six.  Copies do not alter
+degree.  Evaluate the specified canonical bit on supports of size
+at most six and apply \eqref{ia:boolean-inversion}; the number of
+evaluations and each canonical finite-array computation are
+polynomial.  This proves the coefficient-computation assertion.
+\end{proof}
+
+\subsection{The complete inner algebra interface}\label{ia:interface}
+
+\begin{lemma}[Inner algebra interface]\label{lem:inner-algebra-interface}
+Fix $c_{\rm allow}$.  The field and grid parameters
+\eqref{ia:parameters}--\eqref{ia:radix-size}, the common domain
+$K^u$, and the one-port positive family templates can be chosen
+before the port count and the function.  For every fixed $k$ and
+fixed circuit size factor, and all sufficiently large $L$, a
+uniform polynomial-time construction has the following properties.
+\begin{enumerate}
+\item \textbf{Paths and endpoints.}
+The graph on all port tuples is the graph of
+Definition~\ref{ia:extended-path}.  On each fixed tuple $s$ it is
+one directed path with source and first successor
+\eqref{ia:source-successor}, no isolated vertices or self edges,
+and a sink at full pre stage $M-1$.  The point-constant output
+chart \eqref{ia:output-chart} equals $f(s)$ at the sink.
+
+\item \textbf{Canonical polynomial arrays and their size.}
+Each valid extended label has a unique canonical tuple
+$\mathcal A(c,b,\eta,t)$ of $\mathbb F_q$-coefficient polynomials
+on $K^u$.  Persistent native dimensions are at most
+$C_{\rm dim}\ell$, with $C_{\rm dim}$ independent of $k$, and
+each persistent family has at most one $O(\ell)$ slot axis.
+Stack families have a bounded number of slot axes, each of length
+$O(\ell)$.  Their honest coordinate degrees are $O(\ell h)<D$.
+For fixed $k$, the number of families is fixed and every full
+evaluation table, fully masked table, public matrix, and indexing
+map has polynomial size and is polynomial-time constructible.
+The layouts for fixed $k,L$ are independent of the circuit's
+values and wiring.  The construction does not enumerate all
+Boolean tapes or graph vertices.
+
+\item \textbf{Exact validity with smooth binary-form probes.}
+There is a fixed finite mixture of bounded-probe algebraic tests,
+perfectly complete on canonical valid tuples.  For every tuple
+of genuine degree-at-most-$D$ polynomials, either it is a
+canonical valid tuple or the rejection probability is at least
+$\theta_{\rm alg}>0$.  For fixed $k$ this gap and the probe density
+bounds are uniform in $L$ and in the allowed circuit coefficients.
+Each linear probe has bounded point and mask marginals.  Every
+unknown product has compatible tags and independent full point
+marginals for its two operands, also for repeated types.
+The tests require only a bounded number of additive binary forms
+and binary bilinear forms of hidden field values, followed by a
+bounded number of Boolean operations.  They do not require reading
+the full binary expansion of a hidden field element.
+
+\item \textbf{Invalid tapes and finite derivative closure.}
+Canonical recipes exist also for arbitrary Boolean $b$ at every
+specified $c,\eta,t$, whether or not that label is valid.  They
+retain their coordinate bounds, logical degree at most three,
+per-primary dependencies, and designated frame covariance.
+Every positive-tier persistent family, including every
+verification auxiliary, has all its required lower-tier
+derivatives.  The recursion terminates in at most three tier
+drops.  A nonvalid tuple so obtained has the same exact rejection
+gap; no alternative certificate can hide a failed row condition.
+
+\item \textbf{Neighbor evolution.}
+On valid data, both edge flags and finite transition branches use
+only mode, empty/full marker comparisons, and boundedly many
+critical projected bits at full progress.  At any desired fixed
+reliability, these distinctions use boundedly many binary probes.
+After a branch is fixed, every neighbor contraction has the
+form \eqref{ia:affine-update} with boundedly many invertible
+$K$-affine pulls of the common point.  Coefficients and slot
+pulls are independent of point and row position.  Tag-$0$
+updates use tag $0$ only; positive updates use compatible tags.
+The formulas update all proof data simultaneously.  Their
+fixed-branch algebraic identities remain valid on canonical
+invalid Boolean inputs, without asserting that the resulting
+proposed label is valid.
+
+\item \textbf{Standardized ports and source access.}
+Every positive-tag family has the literal per-call ancestry and
+original-index correspondence of Lemma~\ref{ia:port-ancestry},
+including all descendants, full-label placements, projection
+axes, and stacks.  At the source and first successor, the
+tag-$0$ part is public, and tag $i$ agrees with the one-port
+template on $s_i$.  The source Boolean-degree bounds are three
+under public linear representations and six after one binary
+bilinear pairing, as in Lemma~\ref{ia:source-data}.  These
+templates and bounds are fixed before actual $k$ or any later
+correction accuracy is chosen.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+The path and endpoint assertions are
+Lemmas~\ref{ia:validity} and~\ref{ia:path-endpoints}.  The linear
+tool, clock-formula construction, derivative closure, and common
+placements give the persistent arrays.  Lemma~\ref{ia:stacks}
+gives their stacks.  At fixed $k$, all depths and family counts
+are fixed, while all dimensions and total mask lengths are
+$O(\ell)$.  Consequently every domain and mask space has size
+$q^{O(\ell)}=\poly(n')=\poly(L)$.  Row and coefficient arrays
+have the same polynomial bounds.  Their construction consists
+of the explicit finite-array operations and bounded-degree
+interpolation above.  In particular, increasing the number of
+separate calls does not change the already chosen common $u$.
+
+Lemma~\ref{ia:exact-validator} proves the exact gap and all point
+and tag restrictions.  Here is its conversion to the asserted
+binary-form interface.  A nonzero element of $\mathbb F_q$ is
+detected by a uniformly random additive form
+$\mu:\mathbb F_q\to\mathbb F_2$ with probability $1/2$.
+Applying $\mu$ to a field equality turns its public linear terms
+into additive forms, since
+\[
+ \mu\left(\sum_r a_r x_r\right)
+      =\bigoplus_r(\mu\circ[a_r])(x_r),
+ \qquad [a_r](x)=a_rx.
+\]
+For a product, the requested bit is the binary bilinear form
+$(x,y)\mapsto\mu(xy)$.  Random annihilating forms handle mode
+membership as already specified.  A bounded field test therefore
+uses a bounded number of such bits and Boolean operations,
+losing at most a fixed factor in its gap.  Prescribed masks and
+forms can be split by fresh additive randomness.  Their public
+descriptions have polynomial size; even the space of all binary
+bilinear forms on $\mathbb F_q$ has cardinality
+\[
+ 2^{(\log_2 q)^2}=\poly(n'),
+\]
+since $\log q=O(\log\log n')$.  A bounded sequence of all the
+displayed random choices consequently has polynomial support.
+
+The invalid-tape assertion follows from the per-primary
+canonical formulas and the finite-difference construction, not
+from successful final rows.  If a label is invalid, a validity
+or frame/legacy condition fails and exact soundness rejects;
+uniqueness of the division certificates prevents a different
+proof table from canceling the failed condition.
+Lemma~\ref{ia:evolution} proves all fixed-branch update formulas,
+including for canonical invalid tapes.  Frame changes occur
+only when stacks are empty, so no commutation between centered
+dilations and frame scaling is needed.  Finally
+Lemmas~\ref{ia:port-ancestry}, \ref{ia:placements}, and
+\ref{ia:source-data} give the exact standardized source
+correspondence and its Boolean-degree bounds.  This proves
+every part of the interface.
+\end{proof}

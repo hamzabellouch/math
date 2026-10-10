@@ -1,0 +1,462 @@
+
+\ProvidesFileRCS{pgfcalendar.code.tex}
+
+\ifdefined\pgfintloaded\else
+  \input pgfint.code.tex
+\fi
+
+
+\ifx\translate\@undefined
+  \def\translate#1{#1}
+\fi
+
+
+\ifx\usedictionary\@undefined
+\else
+  \usedictionary{translator-months-dictionary}
+\fi
+
+
+
+
+
+\long\def\pgfcalendar#1#2#3#4{%
+  \begingroup%
+    \let\ifdate=\pgfcalendar@local@ifdate%
+    \def\pgfcalendarprefix{#1}%
+    \pgfcalendardatetojulian{#2}{\pgfcalendarcurrentjulian}%
+    \edef\pgfcalendarbeginjulian{\the\pgfcalendarcurrentjulian}%
+    \edef\pgfcalendarbeginiso{#2}%
+    \pgfcalendardatetojulian{#3}{\pgfutil@tempcnta}%
+    \edef\pgfcalendarendjulian{\the\pgfutil@tempcnta}%
+    \advance\pgfutil@tempcnta by1\relax%
+    \edef\pgfcalendarendjulianplus{\the\pgfutil@tempcnta}%
+    \edef\pgfcalendarendiso{#3}%
+    \loop%
+    \ifnum\pgfcalendarcurrentjulian<\pgfcalendarendjulianplus\relax%
+      \pgfcalendarjuliantodate{\pgfcalendarcurrentjulian}%
+      {\pgfcalendarcurrentyear}{\pgfcalendarcurrentmonth}{\pgfcalendarcurrentday}%
+      \pgfcalendarjuliantoweekday{\pgfcalendarcurrentjulian}{\pgfutil@tempcntb}%
+      \edef\pgfcalendarcurrentweekday{\the\pgfutil@tempcntb}%
+      #4%
+      \advance\pgfcalendarcurrentjulian by1\relax%
+    \repeat%
+  \endgroup%
+}
+
+\newcount\pgfcalendarcurrentjulian
+
+\def\pgfcalendar@local@ifdate{%
+  \let\pgfcalendarifdatejulian=\pgfcalendarcurrentjulian%
+  \let\pgfcalendarifdateyear=\pgfcalendarcurrentyear%
+  \let\pgfcalendarifdatemonth=\pgfcalendarcurrentmonth%
+  \let\pgfcalendarifdateday=\pgfcalendarcurrentday%
+  \let\pgfcalendarifdateweekday=\pgfcalendarcurrentweekday%
+  \pgfcalendar@launch@ifdate%
+}
+
+
+
+
+\def\pgfcalendarifdate#1#2#3#4{%
+  \pgfcalendardatetojulian{#1}{\pgfutil@tempcnta}%
+  \pgfcalendarjuliantodate{\pgfutil@tempcnta}
+    {\pgfcalendarifdateyear}{\pgfcalendarifdatemonth}{\pgfcalendarifdateday}%
+  \edef\pgfcalendarifdatejulian{\the\pgfutil@tempcnta}%
+  \pgfcalendarjuliantoweekday{\pgfutil@tempcnta}{\pgfutil@tempcntb}%
+  \edef\pgfcalendarifdateweekday{\the\pgfutil@tempcntb}%
+  \pgfcalendar@launch@ifdate{#2}{#3}{#4}%
+}
+
+
+\long\def\pgfcalendar@launch@ifdate#1{%
+  \pgfcalendarmatchesfalse%
+  \pgfqkeys{/pgf/calendar}{#1}%
+  \ifpgfcalendarmatches%
+    \expandafter\pgfutil@firstoftwo
+  \else%
+    \expandafter\pgfutil@secondoftwo
+  \fi%
+}
+
+\newif\ifpgfcalendarmatches
+
+
+
+\pgfkeys{/pgf/calendar/all/.code=\pgfcalendarmatchestrue}
+
+\pgfkeys{/pgf/calendar/Monday/.code={\ifnum\pgfcalendarifdateweekday=0\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Tuesday/.code={\ifnum\pgfcalendarifdateweekday=1\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Wednesday/.code={\ifnum\pgfcalendarifdateweekday=2\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Thursday/.code={\ifnum\pgfcalendarifdateweekday=3\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Friday/.code={\ifnum\pgfcalendarifdateweekday=4\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Saturday/.code={\ifnum\pgfcalendarifdateweekday=5\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/Sunday/.code={\ifnum\pgfcalendarifdateweekday=6\relax\pgfcalendarmatchestrue\fi}}
+
+\pgfkeys{/pgf/calendar/workday/.code={\ifnum\pgfcalendarifdateweekday<5\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/weekend/.code={\ifnum\pgfcalendarifdateweekday>4\relax\pgfcalendarmatchestrue\fi}}
+
+\pgfkeys{/pgf/calendar/equals/.cd,.value required,.code={%
+  \pgfcalendar@special@datetojulian{#1}%
+  \ifnum\pgfcalendarifdatejulian=\pgfutil@tempcnta\relax%
+    \pgfcalendarmatchestrue%
+  \fi}%
+}
+
+\pgfkeys{/pgf/calendar/day of month/.cd,.value required,.code={\ifnum#1=\pgfcalendarifdateday\relax\pgfcalendarmatchestrue\fi}}
+\pgfkeys{/pgf/calendar/end of month/.cd,.default=1,.code={%
+  \ifpgfcalendarmatches%
+  \else%
+    {%
+      \pgfutil@tempcnta=\pgfcalendarifdatejulian\relax%
+      \advance\pgfutil@tempcnta by#1\relax%
+      \pgfcalendarjuliantodate{\pgfutil@tempcnta}{\pgf@dummy}{\pgf@dummy}{\pgf@cal@temp}%
+      \global\let\pgf@cal@temp=\pgf@cal@temp%
+    }%
+    \ifnum\pgf@cal@temp=1\relax\pgfcalendarmatchestrue\fi%
+  \fi}%
+}
+
+\pgfkeys{/pgf/calendar/at least/.cd,.value required,.code={%
+  \pgfcalendar@special@datetojulian{#1}%
+  \ifnum\pgfcalendarifdatejulian<\pgfutil@tempcnta\relax%
+  \else%
+    \pgfcalendarmatchestrue%
+  \fi%
+}}
+
+\pgfkeys{/pgf/calendar/at most/.cd,.value required,.code={%
+  \pgfcalendar@special@datetojulian{#1}%
+  \ifnum\pgfcalendarifdatejulian>\pgfutil@tempcnta\relax%
+  \else%
+    \pgfcalendarmatchestrue%
+  \fi%
+}}
+
+\pgfkeys{/pgf/calendar/between/.cd,.value required,.code args={#1and#2}{%
+  \pgfcalendar@special@datetojulian{#1}%
+  \ifnum\pgfcalendarifdatejulian<\pgfutil@tempcnta\relax%
+  \else%
+    \pgfcalendar@special@datetojulian{#2}%
+    \ifnum\pgfcalendarifdatejulian>\pgfutil@tempcnta\relax%
+    \else%
+      \pgfcalendarmatchestrue%
+    \fi%
+  \fi%
+}}
+
+\def\pgfcalendar@special@datetojulian#1{%
+  \edef\pgf@temp{#1}%
+  \expandafter\pgfcalendar@special@split@test\pgf@temp-\relax{#1}%
+}
+
+\def\pgfcalendar@special@split@test#1-#2-#3\relax#4{%
+  \def\pgf@temp{#3}%
+  \ifx\pgf@temp\pgfutil@empty%
+    \def\pgf@temp{\pgfcalendarifdateyear-#1-#2}%
+  \else%
+    \def\pgf@temp{#4}%
+  \fi%
+  \pgfcalendardatetojulian{\pgf@temp}{\pgfutil@tempcnta}%
+}
+
+
+
+\def\pgfcalendarsuggestedname{%
+  \ifx\pgfcalendarprefix\pgfutil@empty\else\pgfcalendarprefix-%
+  \pgfcalendarcurrentyear-\pgfcalendarcurrentmonth-\pgfcalendarcurrentday\fi%
+}
+
+
+
+
+
+
+
+\def\pgfcalendardatetojulian#1#2{\edef\pgf@temp{#1}\expandafter\pgfcalendar@datetojulian\pgf@temp+/{#2}}
+\def\pgfcalendar@datetojulian#1-#2-#3+#4/#5{%
+  {%
+    \count1=#1\relax%
+    \count2=#2\relax%
+    \edef\pgf@temp{#3}%
+    \ifx\pgf@temp\pgfcalendar@last@text%
+      \advance\count2 by1\relax%
+      \count3=1\relax%
+    \else%
+      \count3=#3\relax%
+    \fi%
+    \edef\pgf@@temp{#4}%
+    \ifx\pgf@@temp\pgfutil@empty%
+      \count8=0\relax%
+    \else%
+      \pgfcalendar@unpack#4%
+    \fi%
+    \ifnum\count2<3\relax%
+      \count4=1\relax%
+    \else%
+      \count4=0\relax%
+    \fi%
+    \count5=\count1\relax%
+    \advance\count5 by 4800\relax%
+    \advance\count5 by-\count4\relax%
+    \count6=\count2\relax%
+    \count0=\count4\relax%
+    \multiply\count0 by12\relax
+    \advance\count6 by\count0\relax%
+    \advance\count6 by-3\relax%
+    \count7=\count3\relax%
+    \count0=\count6\relax%
+    \multiply\count0 by 153\relax%
+    \advance\count0 by 2\relax%
+    \divide\count0 by 5\relax%
+    \advance\count7 by \count0\relax%
+    \count0=\count5%
+    \multiply\count0by365\relax%
+    \advance\count7 by\count0\relax%
+    \count0=\count5\relax%
+    \divide\count0 by 4\relax%
+    \advance\count7 by\count0%
+    \count0=\count5\relax%
+    \divide\count0 by 100\relax%
+    \advance\count7 by-\count0\relax%
+    \count0=\count5\relax%
+    \divide\count0 by 400\relax%
+    \advance\count7 by\count0%
+    \advance\count7 by-32045\relax%
+    \ifx\pgf@temp\pgfcalendar@last@text%
+      \advance\count7by-1\relax%
+    \fi%
+    \advance\count7by\count8\relax%
+    \expandafter%
+  }%
+  \expandafter#5\the\count7\relax%
+}
+\def\pgfcalendar@last@text{last}
+\def\pgfcalendar@unpack#1+{%
+  \count8=#1\relax%
+}
+
+
+\def\pgfcalendarjuliantodate#1#2#3#4{%
+  {%
+    \count1=#1\relax%
+    \count2=\count1\relax%
+    \advance\count2 by 32044\relax%
+    \count3=\count2\relax%
+    \divide\count3 by 146097\relax%
+    \count4=\count3\relax%
+    \multiply\count4 by-146097\relax%
+    \advance\count4 by\count2\relax%
+    \count5=\count4\relax%
+    \divide\count5 by36524\relax%
+    \advance\count5 by1\relax%
+    \multiply\count5 by3\relax%
+    \divide\count5 by4\relax%
+    \count6=\count4\relax%
+    \count0=\count5\relax%
+    \multiply\count0 by-36524\relax%
+    \advance\count6 by\count0\relax%
+    \count7=\count6\relax%
+    \divide\count7 by1461\relax%
+    \count8=\count7\relax%
+    \multiply\count8 by-1461\relax%
+    \advance\count8 by\count6\relax%
+    \count9=\count8\relax%
+    \divide\count9 by 365\relax%
+    \advance\count9 by 1\relax%
+    \multiply\count9 by3\relax%
+    \divide\count9 by4\relax%
+    \count10=\count8\relax%
+    \count0=\count9\relax%
+    \multiply\count0 by-365\relax%
+    \advance\count10 by\count0\relax%
+    \count11=\count3\relax%
+    \multiply\count11 by400\relax%
+    \count0=\count5\relax%
+    \multiply\count0 by100\relax%
+    \advance\count11 by\count0\relax%
+    \count0=\count7\relax%
+    \multiply\count0 by4\relax%
+    \advance\count11 by\count0\relax%
+    \advance\count11 by\count9\relax%
+    \count12=\count10\relax%
+    \multiply\count12 by5\relax%
+    \advance\count12 by 308\relax%
+    \divide\count12 by 153\relax%
+    \advance\count12 by -2\relax%
+    \count13=\count12\relax%
+    \advance\count13 by 4\relax%
+    \multiply\count13 by153\relax%
+    \divide\count13 by5\relax%
+    \count13=-\count13\relax%
+    \advance\count13 by 122\relax%
+    \advance\count13 by \count10\relax%
+    \count14=\count12\relax%
+    \advance\count14 by 2\relax%
+    \divide\count14 by12\relax%
+    \advance\count14 by\count11\relax%
+    \advance\count14 by-4800\relax%
+    \count15=\count12\relax%
+    \advance\count15 by2\relax%
+    \count0=\count15\relax%
+    \divide\count0 by12\relax%
+    \multiply\count0 by12\relax%
+    \advance\count15 by-\count0\relax%
+    \advance\count15 by1\relax%
+    \count16=\count13%
+    \advance\count16by 1\relax%
+    \xdef\pgf@temp@year{\the\count14}%
+    \xdef\pgf@temp@month{\ifnum\count15<10 0\fi\the\count15}%
+    \xdef\pgf@temp@day{\ifnum\count16<10 0\fi\the\count16}%
+  }%
+  \let#2=\pgf@temp@year%
+  \let#3=\pgf@temp@month%
+  \let#4=\pgf@temp@day%
+}
+
+
+
+
+\def\pgfcalendarjuliantoweekday#1#2{%
+  {%
+    \pgfutil@tempcnta=#1\relax%
+    #2=\pgfutil@tempcnta%
+    \divide#2by7\relax%
+    \multiply#2by-7\relax%
+    \advance#2by\pgfutil@tempcnta\relax%
+    \expandafter%
+  }%
+  \expandafter#2\the#2\relax%
+}
+
+
+
+
+\def\pgfcalendarweekdayname#1{%
+  \pgfutil@translate{\ifcase#1Monday\or Tuesday\or Wednesday\or Thursday\or Friday\or Saturday\or Sunday\fi}%
+}
+
+\def\pgfcalendarweekdayshortname#1{%
+  \pgfutil@translate{\ifcase#1Mon\or Tue\or Wed\or Thu\or Fri\or Sat\or Sun\fi}%
+}
+
+
+
+\def\pgfcalendarmonthname#1{%
+  \pgfutil@translate{\ifcase#1\or January\or February\or March\or April\or
+    May\or June\or July\or August\or September\or October\or
+    November\or December\fi}%
+}
+
+\def\pgfcalendarmonthshortname#1{%
+  \pgfutil@translate{\ifcase#1\or Jan\or Feb\or Mar\or Apr\or
+    May\or Jun\or Jul\or Aug\or Sep\or Oct\or
+    Nov\or Dec\fi}%
+}
+
+
+
+
+
+
+
+\def\pgfcalendarshorthand#1#2{\csname pgfcalendar@shorthand@#1#2\endcsname}
+\expandafter\def\csname pgfcalendar@shorthand@d-\endcsname{%
+  {\pgfutil@tempcnta=\pgfcalendarcurrentday\relax\the\pgfutil@tempcnta}}
+\expandafter\def\csname pgfcalendar@shorthand@d=\endcsname{%
+  {\pgfutil@tempcnta=\pgfcalendarcurrentday\relax\ifnum\pgfutil@tempcnta<10\relax\setbox0=\hbox{1}\kern\wd0\relax\fi\the\pgfutil@tempcnta}}
+\expandafter\def\csname pgfcalendar@shorthand@d0\endcsname{%
+  \pgfcalendarcurrentday}
+\expandafter\def\csname pgfcalendar@shorthand@m-\endcsname{%
+  {\pgfutil@tempcnta=\pgfcalendarcurrentmonth\relax\the\pgfutil@tempcnta}}
+\expandafter\def\csname pgfcalendar@shorthand@m=\endcsname{%
+  {\pgfutil@tempcnta=\pgfcalendarcurrentmonth\relax\ifnum\pgfutil@tempcnta<10\relax\setbox0=\hbox{1}\kern\wd0\relax\fi\the\pgfutil@tempcnta}}
+\expandafter\def\csname pgfcalendar@shorthand@m0\endcsname{%
+  \pgfcalendarcurrentmonth}
+\expandafter\def\csname pgfcalendar@shorthand@y-\endcsname{%
+  \pgfcalendarcurrentyear}
+\expandafter\def\csname pgfcalendar@shorthand@y=\endcsname{%
+  \pgfcalendarcurrentyear}
+\expandafter\def\csname pgfcalendar@shorthand@y0\endcsname{%
+  \pgfcalendarcurrentyear}
+\expandafter\def\csname pgfcalendar@shorthand@w.\endcsname{%
+  \pgfcalendarweekdayshortname{\pgfcalendarcurrentweekday}}
+\expandafter\def\csname pgfcalendar@shorthand@wt\endcsname{%
+  \pgfcalendarweekdayname{\pgfcalendarcurrentweekday}}
+\expandafter\def\csname pgfcalendar@shorthand@m.\endcsname{%
+  \pgfcalendarmonthshortname{\pgfcalendarcurrentmonth}}
+\expandafter\def\csname pgfcalendar@shorthand@mt\endcsname{%
+  \pgfcalendarmonthname{\pgfcalendarcurrentmonth}}
+
+
+
+\newcount\pgf@cal@easter@Y
+\newcount\pgf@cal@easter@G
+\newcount\pgf@cal@easter@C
+\newcount\pgf@cal@easter@X
+\newcount\pgf@cal@easter@Z
+\newcount\pgf@cal@easter@D
+\newcount\pgf@cal@easter@E
+\newcount\pgf@cal@easter@N
+\newcount\pgf@cal@easter@M
+\newcount\pgf@cal@easter@julianday
+
+\pgfutil@protected\def\pgfcalendareastersunday#1#2{%
+  \pgfintset\pgf@cal@easter@Y{#1}%
+  \pgfintset\pgf@cal@easter@G{%
+    \pgfintmod{\pgf@cal@easter@Y}{19}+1
+  }%
+  \pgfintset\pgf@cal@easter@C{%
+    \pgfintdivfloor{\pgf@cal@easter@Y}{100}+1
+  }%
+  \pgfintset\pgf@cal@easter@X{%
+    \pgfintdivfloor{3*\pgf@cal@easter@C}{4}-12
+  }%
+  \pgfintset\pgf@cal@easter@Z{%
+    \pgfintdivfloor{8*\pgf@cal@easter@C+5}{25}-5
+  }%
+  \pgfintset\pgf@cal@easter@D{%
+    \pgfintdivfloor{5*\pgf@cal@easter@Y}{4}-\pgf@cal@easter@X-10
+  }%
+  \pgfintset\pgf@cal@easter@E{%
+    \pgfintmod{11*\pgf@cal@easter@G+20+\pgf@cal@easter@Z-\pgf@cal@easter@X}{30}
+  }%
+  \ifnum\pgf@cal@easter@E<0
+    \pgfintset\pgf@cal@easter@E{\pgf@cal@easter@E+30}%
+  \fi
+  \ifnum\pgf@cal@easter@E=25
+    \ifnum\pgf@cal@easter@G>11
+      \pgfintset\pgf@cal@easter@E{\pgf@cal@easter@E+1}%
+    \fi
+  \else
+    \ifnum\pgf@cal@easter@E=24
+      \pgfintset\pgf@cal@easter@E{\pgf@cal@easter@E+1}%
+    \fi
+  \fi
+  \pgfintset\pgf@cal@easter@N{44-\pgf@cal@easter@E}%
+  \ifnum\pgf@cal@easter@N<21
+    \pgfintset\pgf@cal@easter@N{\pgf@cal@easter@N+30}%
+  \fi
+  \pgfintset\pgf@cal@easter@N{%
+    \pgf@cal@easter@N+7-\pgfintmod{\pgf@cal@easter@D+\pgf@cal@easter@N}{7}
+  }%
+  \ifnum\pgf@cal@easter@N>31
+    \pgfintset\pgf@cal@easter@N{\pgf@cal@easter@N-31}%
+    \pgfintset\pgf@cal@easter@M{4}%
+  \else
+    \pgfintset\pgf@cal@easter@M{3}%
+  \fi
+  \pgfcalendardatetojulian
+    {\pgf@cal@easter@Y-\pgf@cal@easter@M-\pgf@cal@easter@N}%
+    {#2}%
+}
+
+\pgfkeys{/pgf/calendar/Easter/.cd,.default=0,.code={%
+  \pgfcalendareastersunday{\pgfcalendarifdateyear}{\pgf@cal@easter@julianday}%
+  \ifnum\pgfcalendarifdatejulian=\pgfinteval{\pgf@cal@easter@julianday+#1}
+    \expandafter\pgfcalendarmatchestrue
+  \fi}%
+}
+
+
+\endinput

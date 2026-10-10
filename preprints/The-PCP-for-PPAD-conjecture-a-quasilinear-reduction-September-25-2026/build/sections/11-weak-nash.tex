@@ -1,0 +1,785 @@
+\section{Consequences for games and markets}\label{sec:weak-nash}
+
+Theorem~\ref{thm:main} supplies the positive failed-gate premise in
+the cited reductions to equilibrium problems. We first put its
+circuits into the forms those reductions use. This preparation, together
+with the finite-witness checks below, makes the transfers precise for
+our gate conventions and complete binary encodings. The applications
+then concern weak and relative Nash equilibria, allocation and market
+equilibria, and stationary equilibria in discounted games. Their
+approximation requirements differ, so we specify each target relation
+before stating its consequence.
+
+\subsection{Circuit preparation for the applications}
+
+The Boolean tolerance in Definition~\ref{def:gcircuit} is nonmonotone.
+We therefore remove Boolean gates before reducing numerical tolerances
+or controlling fan-out. The two stages of the following lemma are used
+separately below.
+
+\begin{lemma}[Common circuit interfaces]\label{lem:application-circuits}
+There are fixed positive rational constants $\eta,\gamma,\tau,\gamma_2$
+and deterministic polynomial-time constructions which, from any
+End-of-Line instance $I$, produce circuits $G_{\rm nb}$ and $G_2$
+using only Constant, Scale, Copy, Add, Subtract, and Less. Their parameters
+lie in $[0,1]$, and every used node has a defining gate. The circuit
+$G_2$ has fan-out at most two.
+
+Every assignment of $G_{\rm nb}$ satisfying all but a $\gamma$
+fraction of its gates at tolerance $\eta$, and every assignment of
+$G_2$ satisfying all but a $\gamma_2$ fraction at tolerance $\tau$,
+can be converted to an assignment of $R(I)$ meeting the tolerances of
+Theorem~\ref{thm:main}. For rational assignments the conversion and the
+resulting End-of-Line decoder take time polynomial in the input length
+plus the total assignment encoding length.
+\end{lemma}
+
+\begin{proof}
+Let $\eps_c,\delta_c$ be the constants in Theorem~\ref{thm:main}, and
+let $G=(V,T)=R(I)$.
+
+\paragraph{Removing Boolean gates.}
+First give every used node a defining gate, if necessary. A node used as
+an input but not defined by a gate can be given the self-copy gate
+$\mathrm{Copy}(v;v)$, which every assignment satisfies. There are at
+most $2|T|$ such nodes, because the original gates have at most $2|T|$
+input positions. Thus the new gate count is at most $3|T|$; reducing
+the permitted failed-gate fraction by a factor three compensates.
+Unused nodes may be omitted and later assigned zero.
+
+On this gate list, use the strong-Boolean relation of Schuldenzucker
+and Seuken at the same tolerance $\eps_c$. Their Proposition~2 shows
+gatewise that a strong-Boolean $\eps_c$ solution satisfies the
+weak-Boolean relations in Definition~\ref{def:gcircuit}, since
+$\eps_c<1/10<1/4$. Their Lemma~1 replaces each Boolean gate by a
+constant-size gadget with no Boolean gates, such that an
+$\eps_c/2$ solution restricts to a strong-Boolean $\eps_c$ solution.
+Their Section~6 records the same reduction with a positive failed-gate
+fraction: the constant-size gadgets lose only a constant factor in
+that fraction~\cite[Proposition~2, Lemma~1, and Section~6]{SchuldenzuckerSeuken2019}.
+The comparison gate in that paper has the opposite orientation from
+$\mathrm{Less}$ here, so we swap its two inputs. The new parameters
+remain bounded rationals.
+
+Consequently there are fixed positive rationals
+$\eta=\eps_c/2$ and $\gamma$ and a polynomial-time constructed circuit
+$G_{\rm nb}$ using only Constant, Scale, Copy, Add, Subtract, and Less
+such that any assignment satisfying its gates at tolerance $\eta$ with
+at most a $\gamma$ fraction of failures yields an assignment of $G$
+satisfying the original $\eps_c,\delta_c$ bounds. All scale factors
+are at most one. This no-Boolean relation is monotone in its numerical
+tolerance. We use that monotonicity only after this conversion; at no
+point is a weak-Boolean gate reclassified at a larger tolerance.
+
+\paragraph{Fan-out reduction with fixed slack.}
+We spell out the precision and failure accounting in the fan-out
+steps of~\cite[proof of Theorem~2, pp.~4--5]{BPR2016}.
+Suppose $G_{\rm nb}$ has $m$ gates, put
+$\gamma_0=\min\{\gamma,1/4\}$, and set
+\[
+ D=\lceil 8/\gamma_0\rceil,\qquad
+ \eta_1=\eta/3,\qquad \gamma_1=\gamma_0/4.
+\]
+There are at most $2m$ outgoing wire occurrences in total, hence at
+most $\gamma_0m/4$ gates with fan-out at least $D$. Delete those gates.
+For each wire from a deleted output into a retained gate, supply an
+independent $\mathrm{Constant}(0)$ gate. The resulting circuit has
+at most $3m$ gates and fan-out less than $D$.
+
+Given an assignment to this circuit, restore each deleted output as
+zero. A failed new constant can spoil only its one receiving gate. A
+new constant satisfied at tolerance $\eta_1$ changes its receiving
+input by at most $\eta_1$ under restoration. For a retained arithmetic
+gate satisfied at tolerance $\eta_1$, the residual after changing its
+two inputs increases by at most $2\eta_1$; this uses the scale bound
+one. For Less, an original input gap greater than $3\eta_1$ remains
+greater than $\eta_1$ after those two changes, so its required output
+also remains valid at tolerance $3\eta_1=\eta$. Therefore, if $f_1$
+gates failed before restoration, at most
+$\gamma_0m/4+f_1$ original gates can fail at tolerance $\eta$.
+The bound $f_1\leq\gamma_1(3m)$ makes this at most $\gamma_0m$.
+This also shows why a smaller numerical tolerance is used when the
+replacement constants are made exact. The large-multiplier step in
+the cited construction is unnecessary for our bounded scale factors.
+
+Next route the $d>2$ outgoing wires of each remaining gate through
+a balanced binary tree of Copy gates. One may use at most $2d$ new
+gates and depth at most
+\[
+ h=\lceil\log_2 D\rceil+1.
+\]
+If the preceding circuit has $m_1$ gates, there are at most $2m_1$
+wire occurrences, so the new fan-out-two circuit has at most $5m_1$
+gates. Use the fixed parameters
+\[
+ \tau=\frac{\eta_1}{2(2h+1)},\qquad
+ \gamma_2=\frac{\gamma_1}{5D}.
+\]
+When every Copy gate on a route is $\tau$-satisfied, its leaf differs
+from the root by at most $h\tau$. The same arithmetic and comparison
+check shows that a retained gate satisfied at tolerance $\tau$
+becomes satisfied at tolerance at most $(2h+1)\tau<\eta_1$ when its
+inputs are restored to the roots. A failed Copy gate has fewer than
+$D$ descendant receiving gates. Charging these receivers, and charging
+each failed retained gate to itself, loses at most $D$ retained gates
+per failed gate. Thus at most a $\gamma_2$ fraction of failures in
+the new circuit produces at most a $\gamma_1$ fraction in the preceding
+one. All depths, blowups, and tolerance losses are fixed independently
+of $I$.
+
+Denote the final fan-out-two circuit by $G_2$. All instance maps have
+polynomial bit cost: they copy bounded rational parameters and introduce
+only fixed rational constants. Their solution maps restrict assignments,
+restore zero values, or copy existing coordinates, so they also have
+polynomial bit cost on rational inputs.
+
+The resulting assignment of $G$ need not obey the particular witness
+polynomial $p(M)$ in Definition~\ref{def:gcircuit}. This causes no
+restriction on the decoder. The argument after
+\eqref{out:endpoint-proximity} proves soundness for every real assignment
+meeting the gate-failure budget, and gives a deterministic decoder for
+rational assignments in time polynomial in $N$ plus their total encoding
+length. Applying it proves the stated interface.
+\end{proof}
+
+\subsection{Weak approximate Nash equilibria}
+
+Babichenko, Papadimitriou, and Rubinstein reduce positive-gap generalized
+circuits to weak approximate Nash search, where a fixed fraction of
+players may have deviation gain larger than a fixed positive
+error~\cite[Definition~4 and Theorem~2]{BPR2016}.
+Lemma~\ref{lem:application-circuits} supplies the required circuit
+interface. We retain the normalization and finite-witness details of the
+transfer.
+
+An $n$-player two-action polymatrix game is specified by an undirected
+interaction graph and, for each edge, a pair of rational $2$-by-$2$
+payoff matrices. Each player chooses action $0$ or $1$ and receives the
+sum of its payoffs on incident edges. We use matrices with entries in
+$[0,1/3]$ and graphs of maximum degree at most three, so every total
+payoff lies in $[0,1]$. The encoding explicitly lists all players,
+edges, and matrices, so its length is at least $n$. For a product
+mixed-strategy profile $\sigma$,
+write
+\[
+ \operatorname{reg}_i(\sigma)
+ =\max_{a\in\{0,1\}}u_i(a,\sigma_{-i})-u_i(\sigma)
+\]
+for player $i$'s possible gain from deviation. A rational profile is
+encoded by the binary rational probabilities $\sigma_i(1)\in[0,1]$.
+
+\begin{corollary}[Fixed-gap weak approximate Nash hardness]
+\label{cor:weak-nash}
+There are fixed positive rational constants $\eps_{\rm w},\delta_{\rm w}$
+and a fixed polynomial $p_{\rm w}$ for which the following search problem
+is PPAD-hard under deterministic polynomial-time many-one search
+reductions. Given an explicitly encoded rational two-action polymatrix
+game of maximum degree at most three with the normalization above and
+complete binary length $L$, find a rational product profile of total
+encoding length at most $p_{\rm w}(L)$ such that
+\begin{equation}\label{eq:weak-nash}
+ \bigl|\{i:\operatorname{reg}_i(\sigma)>\eps_{\rm w}\}\bigr|
+ \leq \lfloor\delta_{\rm w}n\rfloor .
+\end{equation}
+No further regret bound is imposed on the players counted on the left.
+\end{corollary}
+
+\begin{proof}
+Use the fan-out-two circuit of Lemma~\ref{lem:application-circuits},
+with numerical tolerance $\tau$ and failure allowance $\gamma_2$.
+
+\paragraph{The game reduction.}
+For a fan-out-two generalized circuit, the gate construction in
+Rubinstein~\cite[Section~7]{Rubinstein2018}, used in
+the forward reduction of~\cite[Theorem~2]{BPR2016}, has two actions per
+player and maximum degree at most three. If the players of a gate
+gadget use only actions within $\xi_0$ of a best response, their node
+probabilities satisfy that gate at tolerance $2\xi_0$. Choose a fixed
+positive rational $\xi_0<\tau/2$. These bounds imply our no-Boolean
+gate relations at tolerance $\tau$: an antecedent for Less at
+tolerance $\tau$ is also an antecedent at tolerance $2\xi_0$, and
+the arithmetic and output bounds are stronger. The scale gadget's
+output $\min\{\alpha x,1\}$ equals $\alpha x$ here because $\alpha\leq1$.
+Each gate uses a fixed number of players, and a player belongs to only
+a fixed number of gate gadgets.
+Hence there are fixed integers $C_1,C_2$ such that the game has at most
+$C_1$ times as many players as circuit gates and each player not
+meeting the well-supported condition can spoil at most $C_2$ gates.
+Choose a fixed positive rational
+\[
+ \delta_{\rm w}\leq\frac{\gamma_2}{C_1C_2}.
+\]
+The decoded circuit assignment then meets its failure budget whenever
+all but a $\delta_{\rm w}$ fraction of players meet that condition.
+
+The gadget matrices have rational entries bounded in absolute value
+by a fixed rational $B\geq1$: their variable scale parameters lie in
+$[0,1]$, and all other gadget constants are fixed. Replacing every
+payoff entry $a$ by $(a+B)/(6B)$ puts the entries in $[0,1/3]$.
+For each player this adds an action-independent constant and scales
+every deviation gain by $\lambda=1/(6B)$. Put $\xi=\lambda\xi_0$.
+Thus the needed well-supported tolerance in the normalized game is
+the fixed positive rational $\xi$.
+
+Choose a fixed rational $t>0$ such that
+$t(t+13)<\xi$, and put $\eps_{\rm w}=t^2$. We use the local pruning
+argument of Rubinstein~\cite[Lemma~5]{Rubinstein2018}; this is the lemma
+cited with an earlier number in the proof of BPR's Theorem~2. For every
+player whose regret is at most $t^2$, remove actions whose payoff is
+more than $(1+1/t)t^2$ below its best response and renormalize.
+Leave the other players unchanged. The regret bound ensures that the
+removed probability is less than one. The lemma's calculation, with
+incoming degree at most three and total payoffs in $[0,1]$, shows that
+every retained action of each formerly happy player is within
+\[
+ t(t+1+4\cdot3)=t(t+13)<\xi
+\]
+of a best response after all these changes. Unchanged unhappy
+neighbors contribute no change to that calculation. The fraction of
+players not meeting the well-supported condition therefore does not
+increase. This gives the required circuit assignment from any profile
+satisfying~\eqref{eq:weak-nash}.
+
+\paragraph{Rational witnesses and decoding.}
+All instance maps above have polynomial bit cost. The auxiliary
+constants are fixed rationals, and the game matrices copy bounded
+rational gate parameters through fixed-size gadgets. For a rational
+profile, its regrets require only a fixed number of rational operations
+per player. The pruning threshold is rational, so exact comparisons,
+deletion of actions, and renormalization have polynomial bit cost.
+The extracted node probabilities, restrictions, and restored zero
+values consequently form a rational assignment of polynomial total
+encoding length.
+
+Lemma~\ref{lem:application-circuits} decodes this assignment in its
+total encoding length, so the particular witness polynomial $p(M)$ of
+Definition~\ref{def:gcircuit} imposes no additional condition here.
+
+Finally, the finite target search relation has a polynomial witness
+bound. Round the probabilities of a mixed Nash equilibrium to a grid
+of denominator $q$, where the fixed integer $q$ is greater than
+$3/\eps_{\rm w}$. With entries in $[0,1/3]$ and degree at most three,
+each pure-action payoff changes by at most $1/q$ when the neighboring
+probabilities are rounded. Changing the player's own probability
+changes its payoff by at most another $1/q$. Its resulting regret is
+therefore at most $3/q<\eps_{\rm w}$. A fixed polynomial $p_{\rm w}$
+can encode these $n$ rational probabilities. Satisfaction of
+\eqref{eq:weak-nash} is checked by rational arithmetic in polynomial
+time. The composed instance map and solution decoder establish the
+stated search reduction.
+\end{proof}
+
+
+\subsection{Relative approximate bimatrix equilibria}
+
+For a rational bimatrix game $(A,B)$ with $A\geq0$ and $B\leq0$
+entrywise, a pair of mixed strategies $(x,y)$ is a relative
+$\eps_{\rm r}$-approximate Nash equilibrium if
+\begin{equation}\label{eq:relative-nash}
+ x^{\mathsf T}Ay\geq(1-\eps_{\rm r})\max_i(Ay)_i,
+ \qquad
+ x^{\mathsf T}By\geq(1+\eps_{\rm r})\max_j(x^{\mathsf T}B)_j.
+\end{equation}
+The plus sign in the second inequality reflects the column player's
+nonpositive payoffs: each player's loss is at most $\eps_{\rm r}$
+times the absolute value of its best-response payoff. These are
+conditions on expected payoffs, not on every action in the support.
+
+\begin{corollary}[Relative approximate Nash hardness]
+\label{cor:relative-nash}
+There are a fixed rational $0<\eps_{\rm r}<1$ and a fixed polynomial
+$p_{\rm r}$ such that the following search problem is PPAD-complete
+under deterministic polynomial-time many-one search reductions.
+Given an explicitly encoded rational bimatrix game $(A,B)$ with
+$A\geq0$, $B\leq0$, and complete binary length $L$, find a rational
+mixed-strategy profile of total encoding length at most $p_{\rm r}(L)$
+satisfying~\eqref{eq:relative-nash}.
+\end{corollary}
+
+\begin{proof}
+Apply the implication from Conjecture~2 to Theorem~3 in
+\cite[Section~4]{BPR2016}. This published chain passes through a
+bipartite degree-three family of weak approximate Nash instances.
+Theorem~\ref{thm:main} supplies its fixed-tolerance circuit premise on
+a bounded-rational subclass, and Lemma~\ref{lem:application-circuits}
+makes the gate-basis and fan-out preparation explicit. No change of
+weak-Boolean tolerance is needed. The remaining polynomial reduction
+gives hardness for a fixed positive relative error;
+choosing a smaller positive rational error only strengthens the
+requirements. Its marginal and conditional-probability decoder uses
+polynomial-time rational arithmetic. Composing with the circuit
+decoder after~\eqref{out:endpoint-proximity}, which is polynomial in
+the total rational assignment length, gives the required search
+reduction.
+
+For membership, an exact Nash equilibrium of the same game satisfies
+\eqref{eq:relative-nash}. Exact rational bimatrix Nash belongs to
+PPAD, and every rational bimatrix game has an exact equilibrium of
+polynomial encoding length~\cite[Theorem~1.1 and Section~2]{CDT2007Preprint}.
+Choose $p_{\rm r}$ to accommodate that bound. The displayed inequalities
+are checked by polynomial-time rational arithmetic, so the stated
+finite search problem is total and belongs to PPAD.
+\end{proof}
+
+
+\subsection{Indivisible course allocation}
+
+We also apply the course-allocation implication of Babichenko,
+Papadimitriou, and Rubinstein~\cite[Theorem~4 and Appendix~B]{BPR2016}.
+There are $M\geq1$ courses with nonnegative integer capacities $q_j$
+and $N\geq1$ students. Each student's acceptable bundles are explicitly
+listed in strict preference order, with the empty bundle as a final,
+always-available choice; let $k$ be the maximum bundle size.
+At prices $p_j\geq0$ and budgets $b_i>0$, each student receives its
+most-preferred bundle $x_i\in\{0,1\}^M$ satisfying $p\cdot x_i\leq b_i$.
+Budish's clearing convention and guaranteed threshold are
+\cite[Definition~1 and Theorem~1]{Budish2011}
+\[
+ z_j=\begin{cases}
+ \sum_i x_{ij}-q_j,&p_j>0,\\
+ \max\{\sum_i x_{ij}-q_j,0\},&p_j=0,
+ \end{cases}
+ \qquad
+ \alpha_* = \frac{\sqrt{M\min\{2k,M\}}}{2}.
+\]
+For positive budgets, their Gini coefficient is
+\[
+ \operatorname{Gini}(b)
+ =\frac{\sum_{i,h}|b_i-b_h|}{2N\sum_i b_i}.
+\]
+
+\begin{corollary}[Low-Gini course-allocation hardness]
+\label{cor:course-allocation}
+There are a fixed rational $0<\gamma_{\rm c}<1/2$ and a fixed
+polynomial $p_{\rm c}$ such that the following search problem is
+PPAD-complete under deterministic polynomial-time many-one search
+reductions. Given the explicit lists and capacities above, of total
+binary length $L$, find rational prices and positive rational budgets,
+together with the demanded bundles, of total encoding length at most
+$p_{\rm c}(L)$, satisfying
+\[
+ \norm{z}_2\leq\alpha_*,\qquad
+ \operatorname{Gini}(b)\leq\gamma_{\rm c}.
+\]
+\end{corollary}
+
+\begin{proof}
+Use the no-Boolean, fan-out-two circuits of
+Lemma~\ref{lem:application-circuits}, with their fixed positive numerical
+and failed-gate tolerances. The published reduction in
+\cite[Appendix~B.2--B.3]{BPR2016} applies to this bounded-rational
+subclass: after common normalization of prices and budgets, any
+invalid circuit decoding forces the Gini coefficient to be at least a fixed
+positive constant. Choose $\gamma_{\rm c}$ strictly below that
+bound. Median normalization and price extraction have polynomial bit
+cost on rational outputs. Composing with the circuit decoder after
+\eqref{out:endpoint-proximity} therefore gives the hardness reduction,
+with time polynomial in the input and total witness length.
+
+For membership, Othman, Papadimitriou, and
+Rubinstein~\cite[Appendix~A, Remarks~1--2]{OPR2014} prove that computing
+an allocation at this clearing threshold with budgets in
+$[1,1+\beta]$ belongs to PPAD in the explicit-list model, for every
+fixed rational $\beta>0$. Choose a rational $0<\beta<\gamma_{\rm c}$.
+Such budgets have Gini coefficient at most $\beta/2<\gamma_{\rm c}$;
+existence is guaranteed by~\cite[Theorem~1]{Budish2011}.
+The budget interval selects solutions for membership and is not an
+additional requirement of the target problem.
+
+Polynomial-size rational witnesses can also be seen directly.
+Fix such an allocation and its zero-price pattern, and cap prices at
+$2+\beta$ without changing demands. Keep the budget interval, these
+price bounds and affordability of the chosen bundles. Introduce a
+common slack $s\in[0,1]$ for the unaffordability of every strictly
+preferred listed bundle and for the positivity of every positive
+price. Maximizing $s$ over the resulting bounded rational polytope
+has a positive optimum and a rational vertex optimum of polynomial
+bit length. Demands and the price-sign pattern, hence clearing error,
+are preserved. All target conditions are checked by rational
+arithmetic and enumeration of the explicit lists; the clearing test
+is equivalently $4\sum_jz_j^2\leq M\min\{2k,M\}$.
+\end{proof}
+
+
+\subsection{Markets with approximately optimal bundles}
+
+The market reduction of Deligkas, Fearnley, Hollender, and
+Melissourgos~\cite{Fisher2026} uses a ternary circuit intermediary.
+We record it first; it will also supply the input to the single-controller
+game reduction below.
+
+A Pure-Circuit instance consists of explicit finite lists of nodes and
+gates. An assignment $z$ gives each node a value in $\{0,1,\bot\}$.
+A gate $\mathrm{NAND}(u,v;w)$ requires $z_w=0$ if $z_u=z_v=1$,
+and $z_w=1$ if either input is zero; otherwise it imposes no condition.
+A gate $\mathrm{PURIFY}(u;v,w)$ requires at least one of $z_v,z_w$
+to lie in $\{0,1\}$, and requires $z_v=z_w=z_u$ whenever
+$z_u\in\{0,1\}$.
+Each gate uses three distinct nodes, and each node is the output of
+exactly one gate. We use the version in which each node is also an input
+to exactly one gate~\cite[Section~2.2.1]{Fisher2026}.
+
+\begin{lemma}[The input-once Pure-Circuit interface]
+\label{lem:application-pure-circuit}
+There are a fixed positive rational $\delta_F$ and a deterministic
+polynomial-time reduction from End-of-Line to NAND/PURIFY circuits of
+the form just defined. Every ternary assignment satisfying all but a
+$\delta_F$ fraction of the gates yields an End-of-Line solution in
+polynomial time.
+\end{lemma}
+\begin{proof}
+Apply \cite[Theorem~2.2 and Lemma~A.2]{Fisher2026} to the
+no-Boolean, fan-out-two circuits of
+Lemma~\ref{lem:application-circuits}. The published bridge gives a fixed positive failure allowance and makes
+every node an input to exactly one gate. Its solution decoder returns
+rational unary-count values, to which the decoder in
+Lemma~\ref{lem:application-circuits} applies. All comparisons and
+arithmetic have polynomial bit cost. No change of tolerance for a
+weak-Boolean gate is required.
+\end{proof}
+
+We now define the simple market families used in the reduction.
+There is one unit of each good, and utilities have the separable form
+\[
+ u_i(x_i)=\sum_j\min\{a_{ij}x_{ij},b_{ij}\},
+ \qquad a_{ij}\geq0,\quad b_{ij}\in[0,\infty].
+\]
+All finite data are rational and explicitly encoded. Each buyer has
+nonzero utility for only a bounded number of goods, each good has
+nonzero utility for only a bounded number of buyers, and the ratio of
+nonzero slopes for each buyer is bounded. These bounds are constants
+for the family. Every buyer has at least one uncapped term of positive
+slope. Fisher buyers have budget one. In the exchange version, every
+buyer initially owns $1/|B|$ units of every good, where $B$ is the set
+of buyers; in particular the endowments are identical and the economy
+is strongly connected.
+
+For errors $\eps_{\rm m},\delta_{\rm m}>0$, an approximate equilibrium
+consists of prices $p_j\geq0$ and bundles $x_{ij}\geq0$. Each bundle
+must be affordable and give its buyer at least $1-\delta_{\rm m}$
+times the maximum utility attainable within that budget; each good
+satisfies $\abs{\sum_i x_{ij}-1}\leq\eps_{\rm m}$. In the exchange
+case the budget is the value of the buyer's endowment at $p$.
+Affordability is exact. Outputs are rational prices and bundles of
+polynomial encoding length; the rational-witness formulation is
+discussed in~\cite[Section~2.1]{Fisher2026}.
+
+\begin{corollary}[Approximate market equilibrium hardness]
+\label{cor:market-hardness}
+For every fixed $0<\eps_{\rm m}<1/9$, there is a fixed
+rational $0<\delta_{\rm m}<1$ such that finding an
+$(\eps_{\rm m},\delta_{\rm m})$-approximate equilibrium in the simple
+Fisher markets above is PPAD-hard under deterministic polynomial-time
+many-one search reductions. The same holds for their exchange-market
+versions with identical endowments and strongly connected economies.
+\end{corollary}
+
+\begin{proof}
+Use the circuits of Lemma~\ref{lem:application-pure-circuit}.
+For each fixed $\eps_{\rm m}<1/9$,
+\cite[Proposition~4.4]{Fisher2026} supplies a fixed positive $\delta_{\rm m}$ and a polynomial-time
+reduction to the stated Fisher markets. Composing its solution decoder
+with the circuit decoders proves the Fisher assertion of
+\cite[Theorem~4.1]{Fisher2026} without its conjectural premise.
+For rational $\eps_{\rm m}$, the other constants may be chosen rational
+within the reduction's strict margins. For a nonrational fixed
+$\eps_{\rm m}$, choose a rational clearing tolerance strictly between
+$\eps_{\rm m}$ and $1/9$ and use its reduction: every solution with
+the smaller clearing error also satisfies the larger one.
+The Pure-Circuit bridge returns rational unary-count values;
+for rational market witnesses, all comparisons and decoding have
+polynomial bit cost. The decoder after~\eqref{out:endpoint-proximity}
+applies in the total length of the resulting rational assignment,
+without requiring the particular bound $p(M)$ in
+Definition~\ref{def:gcircuit}.
+
+For the exchange markets, normalize prices so that
+$\sum_jp_j=|B|$. Every buyer's endowment then has value one, so the
+same prices and bundles give a Fisher equilibrium with precisely the
+same two errors. The positive-slope uncapped terms ensure that the
+price sum is nonzero at any approximate equilibrium. This is the
+transfer in~\cite[Appendix~B and Theorem~B.1]{Fisher2026}; normalization
+also preserves polynomial rational encoding length.
+\end{proof}
+
+\subsection{Stationary equilibria in discounted games}
+
+Daskalakis, Golowich, and Zhang~\cite{DGZ2023} obtain conditional
+hardness for stationary equilibria whose incentive constraints are
+averaged over an initial distribution. Their premise also follows
+from Theorem~\ref{thm:main}.
+
+A finite two-player discounted stochastic game has explicitly encoded
+rational transition probabilities, rewards, and initial distribution
+$\mu$. A stationary joint policy $\pi$ assigns a distribution on action
+pairs to each state, sampled afresh at every visit. Write $\pi_{-i}$
+for the other player's marginal policy and use normalized values
+\[
+ V_i^\pi(\mu)=(1-\gamma)\E_{\mu,\pi}
+                 \sum_{t\geq0}\gamma^t r_i(s_t,a_t).
+\]
+The policy is an $\eps$-stationary Markov coarse correlated equilibrium
+(CCE) when
+\[
+ \sup_{\sigma_i}
+ \bigl(V_i^{\sigma_i\times\pi_{-i}}(\mu)-V_i^\pi(\mu)\bigr)
+ \leq\eps\qquad(i=1,2),
+\]
+where $\sigma_i$ ranges over stationary policies chosen independently
+of any action recommendation. These constraints use the supplied
+$\mu$, rather than requiring the bound at every state. An
+$\eps$-stationary Nash equilibrium has the same supplied-$\mu$
+incentive bound and additionally requires $\pi$ to be a product policy.
+
+\begin{corollary}[Stationary stochastic-game hardness]
+\label{cor:stationary-game-hardness}
+For some fixed rational $\eps_{\rm s}>0$, finding an
+$\eps_{\rm s}$-stationary Markov CCE is PPAD-hard under deterministic
+polynomial-time many-one search reductions, even for two-player
+turn-based general-sum games with discount $\gamma=1/2$, rewards in
+$[-1,1]$, and at most two actions for the active player at each state.
+The inactive player's action affects neither rewards nor transitions.
+The same hardness holds for $\eps_{\rm s}$-stationary Nash equilibria
+with the same supplied-initial-distribution convention. Outputs are
+rational policy tables of polynomial encoding length.
+\end{corollary}
+
+\begin{proof}
+Use the no-Boolean circuit $G_{\rm nb}$ of
+Lemma~\ref{lem:application-circuits}, with its fixed positive rational
+tolerance $\eta$ and failure allowance $\delta_{\rm nb}$ (the constant
+$\gamma$ of that lemma). The target basis in
+\cite[Definition~8 and Appendix~D]{DGZ2023} consists of exact zero/one
+constants, clipped linear gates, and comparison gates. For Scale and
+Copy, repeat the input with coefficient pairs $(\alpha/2,\alpha/2)$
+and $(1/2,1/2)$, respectively; Add and Subtract use $(1,1)$ and
+$(1,-1)$. A Constant$(\alpha)$ uses its own exact-one node followed
+by the scaled linear gate. Retain Less: each strict source comparison
+antecedent implies the corresponding weak target antecedent, and the
+target output error is smaller. Choose a positive rational target
+tolerance below $\min\{\eta,1/12\}$. Each original gate uses at most
+two target gates, and each failed target gate can spoil only its own
+original gate. A target failure fraction at most $\delta_{\rm nb}/2$ therefore
+suffices. This proves the positive-gap premise in
+\cite[Conjecture~10]{DGZ2023}; no weak-Boolean tolerance is changed.
+
+Apply the second assertion of~\cite[Theorem~4]{DGZ2023}. Its turn-based
+construction has the stated discount, reward bounds and binary
+choices. Taking statewise marginals of a joint policy in such a game
+gives a product policy with the same values and unilateral deviation
+gains, so its approximate stationary CCE decodes to an approximate
+stationary Nash equilibrium with the same error. Choose a smaller
+positive rational error if needed.
+The fixed reduction parameters can be chosen rational with slack.
+For rational policy tables, policy evaluation solves rational linear
+systems, and the gate decoder and restrictions have polynomial bit
+cost. The decoder after~\eqref{out:endpoint-proximity} then applies in
+the total rational assignment length. Polynomial-size rational
+approximate policy tables exist by rounding stationary Nash policies
+at this fixed discount, as in~\cite[Section~2.5]{DGZ2023}.
+\end{proof}
+
+\subsection{Restricted stationary-game families}
+
+The preceding consequence also supplies the input for the triangular
+zero-sum construction of Park, Zhang, and Ozdaglar~\cite{PZO2025}.
+Here the interaction graph concerns the whole auxiliary function,
+not just immediate rewards: for every $V:S\to\mathbb R$, each
+\[
+ Q_i^V(s,a)=r_i(s,a)+\gamma\sum_{s'}P(s'\mid s,a)V(s')
+\]
+must be a sum of functions of $(s,a_i,a_j)$ over neighbors $j$ of $i$.
+This is the Q-function separability of~\cite[Definition~1]{PZO2025}.
+Use the same normalized values and supplied-initial-distribution CCE
+inequalities as above, now for all three players, with $\pi_{-i}$ the
+joint marginal of the other two players.
+
+\begin{corollary}[Triangular zero-sum stationary-game hardness]
+\label{cor:triangle-stationary-hardness}
+For some fixed rational $\eps_{\triangle}>0$, finding an
+$\eps_{\triangle}$-stationary Markov CCE is PPAD-hard under deterministic
+polynomial-time many-one search reductions even for rational three-player
+zero-sum games with Q-function-separable interactions on the fixed
+triangle $K_3$, discount $1/2$, and each player's stage reward in $[-1,1]$.
+The hard games are turn-based, with at most two actions for the active
+player and a third player with only one action. Outputs are rational
+joint-policy tables of polynomial encoding length; incentives are
+required only from the supplied rational initial distribution.
+\end{corollary}
+
+\begin{proof}
+Apply the triangle construction in~\cite[Appendix~C, Case~1]{PZO2025}
+to Corollary~\ref{cor:stationary-game-hardness}.
+Write $c(s)\in\{1,2\}$ for the state controller and suppress inactive
+actions. Add a one-action third player and retain states, transitions
+and initial distribution. Specify oriented edge rewards before scaling by
+\[
+ (b_{12},b_{13},b_{23})=
+ \begin{cases}
+ (-r_2,r_1+r_2,0),&c(s)=1,\\
+ (r_1,0,r_1+r_2),&c(s)=2,
+ \end{cases}
+ \qquad b_{ji}=-b_{ij}.
+\]
+Each term depends only on the actions at its edge. Divide every edge
+reward by two. The resulting total rewards are
+$(r_1/2,r_2/2,-(r_1+r_2)/2)$, lie in $[-1,1]$, and sum to zero.
+For every test function $V$, the continuation term in $Q_i^V$ depends
+only on $a_{c(s)}$. Allocate it to edge $\{i,c(s)\}$ when $i\ne c(s)$,
+and to any incident edge when $i=c(s)$. This proves the required
+separability on $K_3$ for every player and every $V$.
+
+The state process of any new-game policy agrees with that of its
+first-two-player restriction in the original game. Each original
+player's normalized value and deviation gain in the new game is half
+the corresponding quantity in the original game; the dummy has no
+deviation. Thus error
+$\eps_{\triangle}=\eps_{\rm s}/2$ suffices at the unchanged initial
+distribution. The primary source uses unnormalized values, which are
+twice our normalized values at discount $1/2$; the stated error
+calculation uses our convention throughout. All new data use only
+rational addition and halving, and restriction has polynomial bit cost.
+Polynomial-size rational witnesses follow by the same fixed-discount
+rounding argument as above.
+\end{proof}
+
+The single-controller construction of Farina, Kontogiannis, Panageas,
+and Pollatos~\cite{FKPP2026} gives a different restricted family.
+One player controls transitions at every state, while both players'
+actions may affect rewards. Joint policies need not be product policies.
+
+\begin{corollary}[Single-controller stationary-game hardness]
+\label{cor:single-controller-hardness}
+For some fixed rational $\eps_{\rm sc}>0$, finding an
+$\eps_{\rm sc}$-stationary Markov CCE is PPAD-hard under deterministic
+polynomial-time many-one search reductions for rational two-player
+single-controller games with discount $1/16$, rewards in $[0,1]$,
+and at most two actions per player per state. In the hard instances,
+the initial law is uniform on the circuit-output variable states of
+the cited construction and gives no mass to its absorbing sinks.
+Outputs are rational joint-policy tables of polynomial encoding length.
+The same assertion, with the same error, holds for every fixed rational
+$\gamma\in[1/16,1)$.
+\end{corollary}
+
+\begin{proof}
+Lemma~\ref{lem:application-pure-circuit} supplies input-once
+NAND/PURIFY circuits with a fixed positive failed-gate allowance
+$\delta_F$. Convert each NAND$(u,v;w)$ to
+\[
+ \mathrm{NOT}(u;a),\qquad \mathrm{NOT}(v;b),\qquad
+ \mathrm{OR}(a,b;w),
+\]
+using fresh private nodes $a,b$, and keep PURIFY unchanged.
+These are the ternary relations on $\{0,1,\bot\}$
+of~\cite[Definition~2.6]{FKPP2026}: if $u=v=1$, the NOT outputs are
+both zero and OR forces $w=0$; if either input is zero, its NOT output
+is one and OR forces $w=1$, even when the other input is $\bot$.
+In all other cases NAND imposes no condition. PURIFY has the same
+relation in both bases.
+Every node remains the input of exactly one gate, and outputs remain
+uniquely defined. An original failed gate charges a failure in its own
+disjoint replacement block. Since $m$ original gates give at most $3m$
+new gates, a failed-gate allowance $\delta_F/3$ suffices. No numerical
+tolerance of a weak-Boolean gate is changed.
+
+This establishes the premise of~\cite[Conjecture~1]{FKPP2026}.
+Apply its Theorem~5.5, choosing the fixed reduction parameters and a
+positive rational equilibrium error within the strict bounds in its
+equations~(23)--(24). Its states consist of circuit-variable states
+and constantly many absorbing sinks; the initial law is uniform
+precisely on the output-variable states. For a rational joint policy,
+equation~(8) of that paper decodes a node from the reward player's
+marginal $p$: output zero for $p\leq1/4$, one for $p\geq3/4$, and
+$\bot$ otherwise. Marginalization, comparison and restriction have
+polynomial bit cost. Follow these by the Fisher unary-count decoder
+and the decoder after~\eqref{out:endpoint-proximity}.
+At fixed discount, rounding stationary equilibrium policies with
+slack gives polynomial-size rational witnesses; policy evaluation and
+best-response optimization are rational finite-state discounted MDP
+computations. No collapse of correlated policies to Nash policies is
+used in this reduction.
+
+Finally, the extension in~\cite[Remark~5.7]{FKPP2026} preserves the
+normalized incentive inequalities exactly. Put $\beta=1/16$ and, for
+a fixed rational $\gamma\in[\beta,1)$, set
+\[
+ \tau=\frac{\beta(1-\gamma)}{\gamma(1-\beta)},\qquad
+ \widetilde P=(1-\tau)I+\tau P.
+\]
+For every stationary joint or unilaterally deviated policy $\pi$,
+\[
+ I-\gamma\widetilde P^\pi
+ =\frac{1-\gamma}{1-\beta}(I-\beta P^\pi).
+\]
+Thus $(1-\gamma)(I-\gamma\widetilde P^\pi)^{-1}r_i^\pi$
+equals $(1-\beta)(I-\beta P^\pi)^{-1}r_i^\pi$.
+Rewards, actions and initial law are unchanged, and the lazy transition
+remains rational and single-controller with polynomial encoding length.
+\end{proof}
+
+\subsection{Hylland--Zeckhauser equilibria}
+
+The reduction of Braverman, Liu, Xue, and Zhou~\cite{HZ2026}
+also yields constant-error hardness for one-sided allocation with
+unit demand. An instance has $n$ agents, $n$ unit-supply goods, and
+an explicitly encoded rational utility matrix $u\in[0,1]^{n\times n}$.
+In their approximate Hylland--Zeckhauser (HZ) equilibrium
+\cite[Definition~2.1]{HZ2026}, an allocation $x\geq0$ and prices
+$p\geq0$ satisfy
+\[
+ \sum_i x_{ij}=1,\qquad \sum_j x_{ij}=1,\qquad \min_jp_j=0,
+\]
+and, for each agent $i$,
+\[
+ p\cdot x_i\leq1+\eps,\qquad
+ u_i\cdot x_i\geq
+ \max\{u_i\cdot y:y\geq0,\ \sum_jy_j=1,\ p\cdot y\leq1\}-\eps.
+\]
+Thus clearing and unit demand are exact; the additive errors concern
+expenditure and utility, with comparison budget one.
+
+\begin{corollary}[Approximate HZ equilibrium hardness]
+\label{cor:hz-hardness}
+There are a fixed rational $\eps_{\rm h}>0$ and a fixed polynomial
+$p_{\rm h}$ such that finding an $\eps_{\rm h}$-HZ equilibrium with
+rational prices and allocation of total encoding length at most
+$p_{\rm h}(L)$ is PPAD-hard under deterministic polynomial-time
+many-one search reductions, where $L$ is the input encoding length.
+\end{corollary}
+
+\begin{proof}
+Use the fan-out-two circuit of Lemma~\ref{lem:application-circuits},
+with its fixed positive numerical tolerance $\tau$ and failure
+allowance $\gamma_2$. Its no-Boolean gate relations agree with
+\cite[Table~1]{HZ2026}, so no Boolean tolerance is changed.
+The reduction underlying~\cite[Theorem~3.2]{HZ2026} has two stages:
+Lemma~3.4 of that paper converts these circuits to bounded-degree
+threshold games, and Lemma~3.25 converts those games to HZ instances.
+The construction uses a fixed integer $m$ and rational market data,
+with HZ error $m^{-40}$. In that construction, each threshold-game
+vertex $v$ has an associated group $G_{v,1}$ of goods. The first
+decoder assigns $v$ the value $\min\{1,m^2p(G_{v,1})\}$, where
+$p(G_{v,1})$ is the minimum price in that group. This decoder, the
+threshold-game-to-circuit decoder, and the subsequent circuit decoders
+have polynomial bit cost on rational witnesses. Composing
+with the decoder after~\eqref{out:endpoint-proximity} therefore gives
+an End-of-Line solution in time polynomial in the input and total
+rational witness length.
+
+For completeness, polynomial-size rational HZ witnesses preserve the
+exact equalities above. Start from a normalized exact equilibrium
+$(x,p)$, as in~\cite[Lemma~B.2]{HZ2026}; summing budgets and column
+sums gives $\sum_jp_j\leq n$.
+Round prices upward on a rational grid of mesh at most
+$\eps_{\rm h}/4$, retaining zero prices. Express $x$ as a convex
+combination of at most $n^2$ permutation matrices and round its
+weights, preserving nonnegativity and total weight one, so each row
+changes in $\ell_1$ norm by at most $\eps_{\rm h}/[4(n+1)]$.
+A denominator of order $n^3/\eps_{\rm h}$ suffices. Row and column
+sums remain exact, expenditures increase by less than $\eps_{\rm h}$,
+and utilities decrease by less than $\eps_{\rm h}$. Since prices only
+increase, the comparison optimum cannot increase. These rational
+witnesses have a fixed polynomial encoding bound; their utility
+conditions are checked by rational linear programming.
+\end{proof}

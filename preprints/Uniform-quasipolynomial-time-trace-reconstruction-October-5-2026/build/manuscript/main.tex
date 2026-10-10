@@ -1,0 +1,184 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype,enumitem,xcolor,tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\hypersetup{pdftitle={Uniform quasipolynomial-time trace reconstruction},pdfauthor={OpenAI}}
+\setlength{\emergencystretch}{2em}
+\setlist{itemsep=3pt,topsep=5pt}
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\RR}{\mathbb R}
+\newcommand{\CC}{\mathbb C}
+\newcommand{\ii}{\mathrm i}
+\newcommand{\EE}{\mathcal E}
+\newcommand{\abs}[1]{\lvert #1\rvert}
+\newcommand{\norm}[1]{\lVert #1\rVert}
+\DeclareMathOperator{\re}{Re}
+\title{Uniform quasipolynomial-time trace reconstruction}
+\author{OpenAI}
+\date{October 5, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We give a uniform algorithm that reconstructs every binary string from
+independent deletion traces when its length and rational retention
+probability are known. For each fixed retention probability, both the
+number of traces and the bit complexity are quasipolynomial in the string
+length. More generally, we give an explicit sample bound uniform over
+all rational retention probabilities, with running time polynomial in
+the sample budget and the binary input length. If the deletion probability
+is at most $n^{-\varepsilon}$ for fixed $\varepsilon>0$, the sample and
+running-time bounds are polynomial. Reconstruction succeeds with
+probability at least $2/3$ for each input string.
+\end{abstract}
+
+\section{Introduction}
+A deletion trace of a binary string is obtained by retaining each position
+independently with probability $p$ and concatenating the retained bits in
+order. The trace contains its length and its bits, but does not identify
+their original positions. Trace reconstruction asks for the original
+string from independent repetitions of this experiment. We consider the
+worst case: the unknown string is arbitrary, and the recovery probability
+must hold separately for each string.
+
+Knowing that a collection of statistics distinguishes every pair of
+strings gives a sample bound, but an efficient decoder needs a way to
+find the unknown string. We obtain such a decoder by extending separation
+to a convex family of moment arrays. The resulting tests determine one
+bit at a time and can be implemented using rational arithmetic.
+
+\subsection{The uniform guarantee}
+Let $n\ge2$ be the known original length and let $p=a/b\in(0,1]$ be known,
+where $a,b$ are positive integers in lowest terms. Write $L$ for the total
+binary length of $a$ and $b$, and put $q=1-p$. All logarithms are natural
+unless a base is displayed. Define
+\begin{equation}\label{eq:budget}
+ \begin{split}
+ \mathsf X(n,p)&=
+ \begin{cases}
+  1+\dfrac{\log n}{1+\log(1/q)},&q>0,\\[3pt]
+  1,&q=0,
+ \end{cases}\\
+ B(n,p)&=p^{-1}(\log n)\mathsf X(n,p)^2
+                   (1+\log\mathsf X(n,p))^6.
+ \end{split}
+\end{equation}
+
+\begin{theorem}[Uniform trace reconstruction]\label{thm:main}
+There exist absolute constants $C,c\ge1$ and one randomized multitape
+Turing machine $\mathcal A$ with the following property. For every
+$n\ge2$, every rational $p\in(0,1]$, and every $x\in\{0,1\}^n$, given
+$n,p$ in binary and access to independent ordinary deletion traces of
+$x$, the machine requests at most
+\[
+ M_C(n,p)=\left\lceil\exp\bigl(CB(n,p)\bigr)\right\rceil
+\]
+traces, outputs an element of $\{0,1\}^n$, and returns $x$ with probability
+at least $2/3$.
+
+For every internal random-bit sequence and every well-formed trace
+stream of strings of length at most $n$, it halts within
+\[
+ \bigl(n+L+M_C(n,p)\bigr)^c
+\]
+bit operations. This bound includes preprocessing, all parameter and
+finite-precision calculations, every received trace bit and delimiter,
+and the output. The only oracle operation is the external generation
+of the independent deletion traces.
+\end{theorem}
+
+For fixed $p$, the budget in \eqref{eq:budget} is
+$O_p((\log n)^3(1+\log\log n)^6)$ as $n\to\infty$.
+Thus both resources in Theorem~\ref{thm:main} are quasipolynomial.
+The theorem also controls channels whose retention probability varies
+with $n$, including probabilities arbitrarily close to zero or one.
+Its running-time guarantee is polynomial in the permitted sample budget.
+For every fixed $\kappa>0$, the regime $q\le n^{-\kappa}$ has polynomial
+sample complexity in $n$ and polynomial bit complexity in $n+L$:
+indeed, $\mathsf X(n,p)\le1+1/\kappa$ and $p^{-1}$ is bounded by a
+constant depending only on $\kappa$, so $B(n,p)=O_\kappa(\log n)$.
+
+\input{history}
+
+\subsection{Proof strategy and additional ingredients}
+The decoder estimates products of bits at specified trace ranks; those
+ranks may be far apart. It then tests a proposed prefix by asking for
+moments of the remaining input bits that agree with these estimates within
+a prescribed tolerance.
+The moment array is constrained so that the expected squared magnitude
+of every polynomial up to a prescribed degree is nonnegative. Actual
+distributions give such arrays, but an arbitrary feasible array need
+not come from a distribution.
+
+The central statement separates the true input from every such array
+fixing a wrong prefix. Let $d$ be the first wrong position, and write
+$\Delta[P]$ for the difference between the array's value on a polynomial
+$P$ and its value at the true input. Then $\Delta[X_d]=\pm1$, whereas
+all differences strictly before $d$ vanish. We propagate this local
+signal through progressively larger distance scales. At each stage,
+the statistics are weighted sums over increasing tuples of input
+positions, with exponential weights on their gaps.
+We track an exponentially damped Fourier sum of the
+discrepancies of these tuple statistics, indexed by the last input
+position. The aim is to reduce its damping and frequency while retaining
+a detectable discrepancy.
+
+Two features make this propagation compatible with the convex
+relaxation. First, positivity turns polynomial moments into inner
+products. If squared norms and neighboring inner products along a
+chain of $J$ vectors differ from one by at most $\xi$, then a telescoping
+argument bounds the endpoint error by $O(J^2\xi)$. Applied to normalized
+Fourier sums and their products, this forces a detectable product whose
+total frequency is small. Pairing frequencies at prescribed differences
+under a Cauchy density supplies enough pairs for this chain.
+
+Second, a Gaussian contour deformation converts each such product back
+into a tuple statistic with smaller decay and frequency. The paths joining
+consecutive positions in each old tuple, together with links between their
+endpoints, form a connected graph.
+A spanning tree assigns distinct edges to the new gaps, controlling
+the coefficient mass under interleaving. This retains the signal while
+the tuple order increases by a factor of at most four.
+
+After the last scale, a generating-function identity transfers input
+statistics to ordinary trace statistics. In this identity, the channel
+substitution $z=q+pw$ maps the unit disk in a trace gap parameter $w$
+to the disk $|z-q|\le p$ in the corresponding input parameter $z$.
+A single complex strip moves all input gap parameters into these disks
+simultaneously.
+This supplies the quantitative separation theorem without requiring
+the algorithm to search for any of the analytic witnesses.
+
+Finally, when the empirical estimates are sufficiently accurate, a true
+prefix has a moment completion with strict slack: give
+independent uniform signs a sufficiently small weight in a mixture with
+its true completion. This preserves the statistical tolerance while making
+the moment matrix positive definite. We exploit that
+slack with an explicit sequence of rational updates, exact positivity
+tests, and rounding to a fixed dyadic grid. A fixed iteration cap gives
+the worst-stream bound in Theorem~\ref{thm:main}.
+
+Section~\ref{sec:setup} introduces the relaxation.
+Section~\ref{sec:multiscale} proves the multiscale step, and
+Section~\ref{sec:separation} transfers its signal to traces.
+Section~\ref{sec:decoding} constructs the decoder and proves
+Theorem~\ref{thm:main}.
+
+\input{setup}
+\input{multiscale}
+\input{contour}
+\input{separation}
+\input{decoding}
+\input{../references/references}
+\end{document}

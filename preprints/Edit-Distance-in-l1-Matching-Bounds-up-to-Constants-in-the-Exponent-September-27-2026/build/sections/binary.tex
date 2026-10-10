@@ -1,0 +1,193 @@
+\section{Binary encoding and the lower bound}\label{sec:binary}
+
+We replace each letter by a binary block of width logarithmic in the
+alphabet size. For insertion--deletion distance, the code below expands
+by at most its width and contracts by at most an absolute factor; hence
+transferring the preceding obstruction to binary words costs only the
+width times an absolute factor. The delimiter ensures that a code block
+whose bits all match consecutive positions must match one equal code
+block. We also prove the variable-length padding statement needed for
+the upper bound.
+
+\begin{lemma}[Binary delimiter code]\label{lem:binary-code}
+Let $\mathcal A$ have size $A\ge2$, let
+$t=\lceil\log_2A\rceil$, and put $w=2t+3$. Assign distinct labels
+$(a_1,\ldots,a_t)\in\{0,1\}^t$ to its letters. Let $c(a)$ be the
+prefix $110$ followed, in order, by the two-bit words $a_j0$ for
+$j=1,\ldots,t$.
+Extend $c$ by concatenation to all finite strings, with
+$c(\eps)=\eps$. Then
+\begin{equation}\label{eq:code-unpadded}
+ \tfrac12\ID(x,y)\le\ID(c(x),c(y))\le w\ID(x,y)
+ \qquad(x,y\in\mathcal A^*).
+\end{equation}
+For an integer $D\ge0$ and $|x|\le D$, set
+$c_D(x)=c(x)0^{w(D-|x|)}\in\{0,1\}^{wD}$. Then
+\begin{equation}\label{eq:code-padded}
+ \tfrac12\ID(x,y)\le\ID(c_D(x),c_D(y))\le2w\ID(x,y)
+ \qquad(|x|,|y|\le D).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+We prove both lower bounds at once for
+$U=c(x)0^r$ and $V=c(y)0^s$, where $r,s\ge0$ are arbitrary integers.
+The pattern $11$ occurs exactly at the start of a genuine letter block:
+zeros separate the label bits, every block ends in zero, and the added
+suffixes contain only zeros.
+
+Fix an increasing bit matching. Let $a_U,a_V$ be its unmatched counts
+on the two sides and put $a=a_U+a_V$. Call a genuine block good if all
+of its bits are matched and their partners occupy consecutive positions.
+On either one side, at most $a$ genuine blocks are not good. For the
+$U$ side, a block containing an unmatched bit can be charged to one
+such bit, with distinct charges for distinct blocks; this accounts for
+at most $a_U$ blocks. Any other non-good block has all its bits matched,
+but some two consecutive block positions have partners separated by a
+nonempty open interval in $V$. Every bit in that interval is unmatched,
+since a partner would have to lie between consecutive positions in
+$U$. Charge one bit in the interval. The intervals for distinct blocks
+are disjoint by monotonicity, so this accounts for at most $a_V$ more
+blocks. The argument includes skipped intervals containing whole blocks
+or padding. Interchanging the two strings gives the same bound on the
+$V$ side.
+
+A good block begins with matched bits $11$. Its consecutive partners
+therefore start at a genuine block boundary on the other side. There
+are exactly $w$ partners, so they form that entire block. The two
+blocks are equal and encode the same letter; the target block is itself
+good. The same argument in reverse shows that the good blocks on the
+two sides pair bijectively, in increasing order. They give a letter
+matching between $x$ and $y$ whose loss is the number of non-good
+genuine blocks, at most $2a$. Lemma~\ref{lem:alignments} yields
+$\ID(x,y)\le2a$. Minimizing the bit loss proves the lower bounds,
+including empty strings and independently chosen zero suffixes.
+
+For the unpadded upper bound, implement each letter insertion or
+deletion by $w$ bit operations. For the padded bound, put
+$r=w(D-|x|)$ and $s=w(D-|y|)$. Transform the coded prefix while
+retaining its suffix, then adjust the suffix length:
+\[
+ \ID(c(x)0^r,c(y)0^s)
+ \le\ID(c(x),c(y))+|r-s|
+ \le w\ID(x,y)+w\bigl||x|-|y|\bigr|
+ \le2w\ID(x,y).
+\]
+The last inequality follows because one insertion or deletion changes
+length by one.
+\end{proof}
+
+\subsection{The quantitative obstruction}
+
+First bound the recurrence in Proposition~\ref{prop:family}. For
+sufficiently large $k$, we have $2P\le P^{3/2}$ and
+\[
+ \eta:=\frac{2(2P)^{2h}}L
+ \le2P^{3h-b/2}=2P^{-b/5}
+ \le P^{-b/6}\le h^{-k}.
+\]
+For the last inequality,
+$P^{b/6}=b^{b/3}=b^{(100/3)k}\ge(b/10)^k=h^k$.
+Since $h\ge2$, solving \eqref{eq:recurrences} gives
+\begin{equation}\label{eq:Q-small}
+ Q_k=2h^{-k}+\eta\sum_{j=0}^{k-1}h^{-j}
+ \le2h^{-k}+2\eta\le4h^{-k}.
+\end{equation}
+
+The alphabet recurrence gives
+$A_s\le(2P+1)(2b)^s$: the base case is immediate and
+$1+(2b-1)A_{s-1}\le2bA_{s-1}$. Hence
+$\log A_k=O(k\log k)$. Fix a prime $p\in\mathcal P$ and apply
+Lemma~\ref{lem:binary-code} to the alphabet of $W_{k,p}$, without
+padding. Write $\enc$ for the resulting concatenated code. Its width
+is $w=O(k\log k)$, and all encoded words have the same length
+\begin{equation}\label{eq:encoded-length}
+ N_k=wn_k=w\bigl(2(2b-1)P^{b/2}\bigr)^k,
+ \qquad
+ \log N_k\le C_{\mathrm{len}}k^2\log k
+\end{equation}
+for an absolute $C_{\mathrm{len}}$ and all sufficiently large $k$.
+
+\begin{proposition}\label{prop:binary-lower}
+For all sufficiently large $k$, every $\ell_1$ embedding of
+\[
+ \mathcal W_k=\{\enc(W_{k,p}(z)):z\in G_{k,p}\}
+ \subseteq\{0,1\}^{N_k}
+\]
+has distortion at least
+\begin{equation}\label{eq:distortion-k}
+ \frac{(h/24)^k}{16w}\ge\exp(c_0k\log k)
+\end{equation}
+for an absolute constant $c_0>0$.
+\end{proposition}
+
+\begin{proof}
+Let $f$ be an injective embedding of $\mathcal W_k$ with distortion
+$D$. Rescale it so that
+\[
+ \frac{\ED(x,y)}D\le\norm{f(x)-f(y)}\le\ED(x,y)
+ \qquad(x,y\in\mathcal W_k),
+\]
+and define $H(z)=f(\enc(W_{k,p}(z)))/(wn_k)$.
+For every listed step $(e,r)$, the code's upper bound and
+\eqref{eq:step-property} give, at each state,
+\begin{align*}
+ \norm{H(z+e)-H(z)}
+ &\le\frac{\ED(\enc(W_{k,p}(z+e)),\enc(W_{k,p}(z)))}{wn_k}\\
+ &\le\frac{w\ID(W_{k,p}(z+e),W_{k,p}(z))}{wn_k}\le r.
+\end{align*}
+Thus $H$ meets the averaged hypotheses of Proposition~\ref{prop:family}.
+
+For $v=v_{k,p}$, the lower bounds give, again at every state,
+\begin{align*}
+ \norm{H(z+v)-H(z)}
+ &\ge\frac{\ED(\enc(W_{k,p}(z+v)),\enc(W_{k,p}(z)))}{Dwn_k}\\
+ &\ge\frac{\ID(\enc(W_{k,p}(z+v)),\enc(W_{k,p}(z)))}{2Dwn_k}\\
+ &\ge\frac{\ID(W_{k,p}(z+v),W_{k,p}(z))}{4Dwn_k}
+ \ge\frac{24^{-k}}{4Dw}.
+\end{align*}
+In particular, these designated pairs represent distinct words,
+although other state pairs may coincide. Averaging and using
+\eqref{eq:l1-property} and \eqref{eq:Q-small}, we obtain
+\[
+ \frac{24^{-k}}{4Dw}\le V_H(v)\le4h^{-k},
+ \qquad
+ D\ge\frac{(h/24)^k}{16w}.
+\]
+Since $h=10k$ and $w=O(k\log k)$, the logarithm of the last expression
+is $k\log k-O(k)-O(\log k)$. It is at least $c_0k\log k$ for all
+sufficiently large $k$.
+\end{proof}
+
+\subsection{A witness for every sufficiently large cap}
+
+Set $t=\log d$ and fix $a>0$ small enough that
+$C_{\mathrm{len}}a^2\le1/2$. Choose
+\[
+ k=\left\lfloor a\sqrt{\frac{t}{\log t}}\right\rfloor.
+\]
+For sufficiently large $d$, this depth is available and
+$\log k\le\log t$. Equation~\eqref{eq:encoded-length} gives
+\[
+ \log N_k\le C_{\mathrm{len}}k^2\log k
+ \le C_{\mathrm{len}}a^2t\le t,
+\]
+so $N_k\le d$. After increasing the threshold on $d$,
+\[
+ k\ge\frac a2\sqrt{\frac{t}{\log t}},\qquad
+ \log k\ge\frac13\log t,\qquad
+ k\log k\ge\frac a6\sqrt{t\log t}.
+\]
+Proposition~\ref{prop:binary-lower} therefore proves the lower bound
+in \eqref{eq:main} for binary strings. This direct choice of $k$ uses
+no estimate on gaps between successive lengths $N_k$.
+
+Finally, choose two letters in any finite alphabet $\Sigma$ of size
+at least two. Their strings form an isometric copy of binary edit
+distance. One inequality follows because every binary edit script is
+also a $\Sigma$-script. For the reverse inequality, project all other
+letters to one of the chosen letters; each operation in a
+$\Sigma$-script becomes at most one binary edit. Restricting an
+embedding to this subspace gives
+$E_\Sigma(d)\ge E_{\{0,1\}}(d)$ and completes the lower half of
+Theorem~\ref{thm:main}.

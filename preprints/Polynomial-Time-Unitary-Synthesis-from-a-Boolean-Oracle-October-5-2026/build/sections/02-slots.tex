@@ -1,0 +1,133 @@
+\section{Controlled tasks and programmable slots}\label{sec:slots}
+
+We first construct circuits whose one-qubit gates can be selected from arbitrary
+tables. This separates the geometry of the circuit from the information about
+the target unitary. Section~\ref{sec:compilation} will store finite approximations
+to these tables in one Boolean oracle.
+
+All vector norms are Euclidean, and $\norm{A}$ denotes the operator norm of a
+linear map $A$. Both $A^*$ and $A^\dagger$ denote its adjoint. We never minimize
+this norm over scalar phases. For
+$1\le d\le 2^n$, write
+\[
+ \mathcal H_d=\operatorname{span}\{\ket{0},\ldots,\ket{d-1}\}
+ \subseteq (\C^2)^{\otimes n}.
+\]
+The recursion must synthesize many unitaries coherently. Its input therefore
+includes a \emph{label register} with basis $\ket{\lambda}$,
+$\lambda\in\{0,1\}^t$, and its prescribed action is
+\[
+ \mathcal U=\sum_{\lambda}\ket{\lambda}\bra{\lambda}\otimes U_\lambda,
+ \qquad U_\lambda\colon\mathcal H_d\longrightarrow\mathcal H_d
+ \text{ unitary}.
+\]
+Let $\iota$ append all working qubits in state $\ket{0}$. A circuit $C$
+solves this controlled task with error $\delta$ if
+\begin{equation}\label{slot:clean-error}
+ \norm{C\iota-\iota\mathcal U}\le\delta.
+\end{equation}
+Thus the estimate includes restoration of the working qubits, and is uniform
+over superpositions of labels. No behavior is prescribed outside the input
+subspace $\operatorname{span}\{\ket{\lambda}\}\otimes\mathcal H_d$.
+The same estimate holds after tensoring with the identity on any further
+register, because operator norm is unchanged by that operation.
+
+A \emph{programmable slot} specifies one target qubit and an ordered list of
+other qubits as controls. Given a table of matrices $W_y\in U(2)$, its action is
+\begin{equation}\label{slot:definition}
+ \sum_{y\in\{0,1\}^c}\ket{y}\bra{y}\otimes W_y,
+\end{equation}
+where $c$ is the number of controls. A \emph{circuit skeleton} specifies the
+registers, targets, and control lists of its slots, but leaves their tables
+unspecified. The tables may depend on the target unitaries. Their contents
+are not part of the skeleton that the uniform generator must produce.
+Reversing a skeleton reverses its slot order and replaces every table by its
+adjoint table.
+Slots are uniformly controlled one-qubit gates, or quantum multiplexors,
+in the terminology of~\cite{BVMS2005}.
+
+Every diagonal unitary on $u\ge1$ qubits uses a single slot: choose one of
+the qubits as target and put the two diagonal entries for each value of the
+other $u-1$ bits in the corresponding $2\times2$ diagonal table entry.
+Additional labels can be included among the controls. In particular,
+reflections in subspaces spanned by specified computational basis states
+take one slot. A phase depending only on labels can be applied to a zero
+working qubit, or by scalar matrices on an existing target qubit.
+
+\begin{lemma}[State preparation]\label{slot:preparation}
+For every $u\ge1$ there is a skeleton of $u+1$ slots that maps
+$\ket{\lambda}\ket{0^u}$ to $\ket{\lambda}\ket{a_\lambda}$ for any prescribed
+family of unit vectors $a_\lambda\in\C^{2^u}$. Its structure depends only on
+the register sizes.
+\end{lemma}
+
+\begin{proof}
+Fix a label and write $a=\sum_x a_x\ket{x}$. For a binary prefix $p$, let
+$P(p)=\sum_{x\text{ extending }p}|a_x|^2$. Process the bits from first to last.
+At the next bit, controlled on the preceding prefix $p$, apply a real
+rotation whose first column is
+\[
+ \begin{pmatrix}
+  \sqrt{P(p0)/P(p)}\\[2pt]
+  \sqrt{P(p1)/P(p)}
+ \end{pmatrix}
+ \quad\text{when }P(p)>0.
+\]
+Choose any rotation when $P(p)=0$. After $u$ such slots the amplitude at $x$
+is $|a_x|$. One diagonal slot then supplies the phases of the $a_x$, choosing
+arbitrary phases at zero entries. Including $\lambda$ among the controls
+makes all these choices simultaneously. This is the usual conditional
+rotation construction for state preparation; here an entire uniformly
+controlled rotation is counted as one slot; see~\cite{MVBS2005,BVMS2005}.
+\end{proof}
+
+\begin{lemma}[Basis permutations]\label{slot:permutation}
+Any family of permutations of the $2^u$ computational basis states can be
+implemented with $5u$ slots and $u$ temporary qubits that start and finish
+at zero. The skeleton is independent of the permutations.
+\end{lemma}
+
+\begin{proof}
+For the permutation $\pi_\lambda$, use $u$ slots to write its image bitwise
+into a temporary register:
+\[
+ \ket{\lambda}\ket{x}\ket{0}
+ \longmapsto \ket{\lambda}\ket{x}\ket{\pi_\lambda(x)}.
+\]
+Each slot chooses either $I$ or the bit flip, controlled on $\lambda$ and
+$x$. Next use $u$ slots to xor $\pi_\lambda^{-1}(y)$ into the first register,
+controlled on the second register $y$. The two registers become
+$\ket{0}\ket{\pi_\lambda(x)}$. Swap them using three CNOTs per pair of bits.
+\end{proof}
+
+The same convention makes a Fourier transform inexpensive. We use the
+positive-phase transform, so that a frequency basis vector becomes its
+character in the computational basis.
+
+\begin{lemma}[Fourier transforms]\label{slot:fourier}
+The unitary
+\[
+ \ket{x}\longmapsto 2^{-b/2}\sum_{z=0}^{2^b-1}
+       e^{2\pi i xz/2^b}\ket{z}
+\]
+on $b\ge1$ qubits has a uniformly generated skeleton with $O(b)$ slots.
+Products of such transforms have a number of slots linear in their total
+register width.
+\end{lemma}
+
+\begin{proof}
+Write the input integer as $x$. Process its bits in decreasing order of
+place value. At the bit of place value $2^{b-1-j}$, apply $H$, then a
+diagonal slot controlled on the still unprocessed lower bits. Give the
+state $1$ the additional phase that, together with its sign from $H$,
+makes the ratio of its two amplitudes equal to
+$e^{2\pi i x/2^{b-j}}$. Bits above the current bit contribute integral
+multiples of $2\pi$ to this expression, and are no longer needed as
+controls. The resulting bit is the Fourier output bit of place value
+$2^j$. A final reversal of bit order gives the stated transform. There are
+two slots per processed bit and $O(b)$ CNOTs for the reversal.
+\end{proof}
+
+These constructions retain the scalar phase of every label branch. This is
+essential: phases that would be irrelevant for one isolated unitary become
+relative phases when the same operation is controlled by a quantum register.

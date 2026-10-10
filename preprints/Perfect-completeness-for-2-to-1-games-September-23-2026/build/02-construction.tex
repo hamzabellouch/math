@@ -1,0 +1,521 @@
+\section{The tree of function spaces and the one-bit test}
+\label{sec:construction}
+
+We first construct questions whose labels are nonempty parts of a joint-evaluation
+partition.  Deleting one output direction gives maps with fibers of size at
+most two, and a satisfying source assignment supplies labels that satisfy
+every such map.  We then specify the distribution of tests, obtaining a
+finite weighted game with perfect completeness.  Its soundness will be proved
+in the next four sections; the
+conversion to the exact alphabets and unweighted format of
+Theorem~\ref{thm:main} is deferred to Section~\ref{sec:assembly}.
+The shared questions must forget both the names of their output values and
+every input coordinate that their evaluations cannot distinguish.  We give
+this identification explicitly, since it is responsible for both exact
+folding and the later comparison of clause and variable questions.
+
+\subsection{Formal slots and pointwise spaces}
+
+Let the source game be the fixed power of the clause--variable game from
+Section~\ref{sec:preliminaries}, and let $t\geq1$ denote its power.
+A source left question is an ordered tuple of $t$ clause occurrences.
+For a clause occurrence $c$, write $v(c,1),v(c,2),v(c,3)$ for its three
+distinct variable IDs in their specified order, and let
+\[
+ \Omega_c=\mathcal A_c=\{x\in\F^3:x\text{ satisfies }c\}.
+\]
+These are actual variable values, with the literal signs accounted for in
+the satisfaction condition.  Thus $|\Omega_c|=7$, and every coordinate map
+$x\mapsto x_j$, and every pair of distinct coordinate maps, is surjective.
+A source edge chooses one position in each clause.  Its right question is
+the resulting ordered tuple of variable IDs and its answer domain is
+$\F^t$.  Coordinates of this domain remain separate even when two IDs agree.
+
+Fix positive integers $d,n_1,\ldots,n_d$, row counts
+$\ell_1,\ldots,\ell_d$, and product counts $R_1,\ldots,R_d$.
+Let $\mathcal T$ be the rooted ordered tree with a single root at level $d$,
+leaves at level $0$, and exactly $n_p$ children at every level-$p$ node.
+Write $\mathcal T_p$ for its level-$p$ nodes, and set $K_p=\F^{\ell_p}$.
+Every location in this fixed tree is part of its indexing, independently of
+the question ID placed there.
+
+Let $E$ be a tuple of source left questions, one at each leaf.  Its elementary slots
+are the formal pairs $(C,k)$ with $C\in\mathcal T_0$ and $k\in[t]$.
+If the clause occurrence at this slot is $c$, its domain is $\Omega_c$.
+All slots are distinct factors of a Cartesian product: repeated clause or
+variable IDs impose no equality constraint between their answer coordinates.
+For any node $D$, let $\Omega_D(E)$ be the product of the elementary-slot
+domains below $D$, and write $\Omega(E)$ for the root domain.
+
+We will also use a mixed tuple $O$ obtained by replacing some leaf left
+questions by source right questions along specified source edges.
+At a projected elementary slot the domain is $\F$, tagged with the selected
+variable ID.  Write $\Omega_D(O)$ and $\Omega(O)$ for the resulting products.
+The selected coordinate maps give a surjection
+\[
+ \pi_D:\Omega_D(E)\longrightarrow\Omega_D(O).
+\]
+Neither the formal location nor the independence of the answer coordinates
+is changed by projection.  For example, the right question $(v,v)$ has the
+legal answer $(0,1)$, although a completeness labeling will not use that
+answer.
+
+\begin{definition}[Pointwise function spaces]\label{def:spaces}
+For any such tuple $Q$ of clause and variable questions, define finite
+vector spaces over $\F$ recursively.  At a leaf $C$, set
+$H_C(Q)=\F^{\Omega_C(Q)}$, the space of all functions from its answer domain
+to $\F$.  For every node $C$, set
+\[
+ H_C(Q)^2=\Span\{gh:g,h\in H_C(Q)\},
+ \qquad (gh)(x)=g(x)h(x).
+\]
+At a nonleaf node $D$, put
+\begin{equation}\label{eq:construction-spaces}
+ H_D(Q)=\sum_{C\text{ child of }D} H_C(Q)^2
+       \ \subseteq\ \F^{\Omega_D(Q)}.
+\end{equation}
+Here a function on a descendant domain is extended by ignoring every
+other argument.  All sums, products and equalities are equalities of actual
+functions on these product domains, rather than formal polynomials.
+\end{definition}
+
+\begin{lemma}\label{lem:construction-space-properties}
+The spaces in Definition~\ref{def:spaces} contain $1$ and satisfy
+$H_C(Q)\subseteq H_C(Q)^2$.  For every proper descendant $C$ of $D$,
+\begin{equation}\label{eq:descendant-square-inclusion}
+ H_C(Q)^2\subseteq H_D(Q).
+\end{equation}
+Moreover, pullback by $\pi_D$ injectively identifies $H_D(O)$ with a
+subspace of $H_D(E)$ and preserves pointwise multiplication.
+\end{lemma}
+\begin{proof}
+Every elementary domain is nonempty, so extension by ignoring arguments
+is injective.  At a leaf, the constant $1$ belongs to the full function
+space.  Inductively, any child's constant $1=1\cdot1$ supplies the constant
+at its parent.  Multiplication by $1$ gives $H_C(Q)\subseteq H_C(Q)^2$.
+For a child, \eqref{eq:descendant-square-inclusion} is the definition.
+For a more distant descendant, repeatedly use
+$H_C(Q)^2\subseteq H_{D'}(Q)\subseteq H_{D'}(Q)^2$ along the route to $D$.
+
+Each elementary projection onto a selected bit is surjective; their
+product $\pi_D$ is therefore surjective.  Consequently pullback is
+injective on the entire function space and respects sums and products.
+At a leaf its image lies in the full original function space.  Applying
+the recursive sum-of-products definition proves the asserted inclusion
+at every other node.
+\end{proof}
+
+We henceforth use these injective pullbacks without writing their symbols.
+No assertion that the summands in \eqref{eq:construction-spaces} form a
+direct sum is intended.  In particular their copies of the constant
+function coincide.
+
+\subsection{Joint evaluations and canonical questions}
+
+An array at a level-$p$ nonleaf node $D$ is an element
+$M_D\in K_p\otimes H_D(E)$, equivalently an ordered list of $\ell_p$ rows
+in $H_D(E)$.  At $x\in\Omega(E)$, its evaluation is the vector
+$M_D(x)\in K_p$.  The full question function of an array family
+$\mathbf M=(M_D)_{D\in\mathcal T,\,D\text{ nonleaf}}$ is
+\begin{equation}\label{eq:joint-question-function}
+ \Psi_{E,\mathbf M}:\Omega(E)\longrightarrow
+       \prod_{p=1}^d\prod_{D\in\mathcal T_p}K_p,
+ \qquad x\longmapsto (M_D(x))_D.
+\end{equation}
+Every nonleaf output occurs in this tuple.
+
+For a nonleaf node $D$ at level $p$ and a nonzero direction $a\in K_p$,
+let $Q_{D,a}$ act on the output product in
+\eqref{eq:joint-question-function} by the quotient map
+$K_p\to K_p/\Span\{a\}$ at the $D$ block and by the identity at every
+other block.  Define
+\begin{equation}\label{eq:quotient-question-function}
+ \Psi^{D,a}_{E,\mathbf M}=Q_{D,a}\Psi_{E,\mathbf M}.
+\end{equation}
+The quotient merges at most two attained output values.  To turn this
+observation into a game constraint, we must first specify which representations
+of a joint function give the same question and which answers are legal.
+
+We now turn an array-valued function into a question without retaining
+unobservable metadata.  The construction applies to any finite-valued
+function $f:\Omega(Q)\to Y$ on a mixed product domain, and in particular
+to both functions \eqref{eq:joint-question-function} and
+\eqref{eq:quotient-question-function}.  The codomain $Y$ may be a product
+of vector spaces and quotient spaces.
+
+An elementary slot $s$ is \emph{unused by $f$} if changing only its
+argument never changes $f$.  A clause slot with domain $\Omega_c$ is
+\emph{reducible to position $j$} if, for every fixed choice $x_{-s}$ of
+all other arguments and every $u,u'\in\Omega_c$ with $u_j=u'_j$,
+\begin{equation}\label{eq:global-singleton-factorization}
+ f(x_{-s},u)=f(x_{-s},u').
+\end{equation}
+Thus one fixed position $j$ must work for the whole joint function, for
+all choices of the other arguments.
+
+\begin{lemma}\label{lem:canonical-support}
+If a used clause slot is reducible to a position, that position is unique.
+The following reductions can be performed simultaneously: discard unused
+slots; replace each used reducible clause slot by its selected bit; retain
+every other used clause slot in full; and retain each used variable slot
+as its bit.  They give a surjection
+$r_f:\Omega(Q)\to\Omega_f$ and a unique induced function
+$\widetilde f:\Omega_f\to Y$ such that $f=\widetilde f\circ r_f$.
+The reduced domain and its partition into fibers depend only on the
+equality relation
+\[
+ x\sim_f x'\quad\Longleftrightarrow\quad f(x)=f(x')
+\]
+on the original product domain, not on names of the output values.
+\end{lemma}
+\begin{proof}
+Suppose the clause slot factors through two distinct positions $j,k$.
+Fix all other arguments.  For this section, write the value both as
+$g(u_j)$ and as $h(u_k)$.  Pair-surjectivity gives
+$g(b)=h(b')$ for every $(b,b')\in\F^2$.  Both functions are constant,
+so this section is constant.  This holds for every choice of the other
+arguments, making the slot unused.
+
+For each slot let its coordinate reduction be the constant map to a
+one-point set, the selected coordinate map, or the identity, according
+to the stated rule.  Each is surjective, hence their product $r_f$ is
+surjective.  If $r_f(x)=r_f(x')$, replace the slots of $x$ by those of $x'$
+one at a time.  At every replacement the value of $f$ is unchanged by
+the definition of the reduction at that slot.  This proves that $f$ is
+constant on fibers of $r_f$, giving the unique $\widetilde f$.
+One-point factors are removed in the notation $\Omega_f$; if all slots
+disappear, $\Omega_f$ is a one-point domain.
+
+Both unusedness and \eqref{eq:global-singleton-factorization} are predicates
+about pairs of arguments having equal $f$-values.  They are therefore
+determined by $\sim_f$.  So are the coordinate reductions, by uniqueness
+in the used singleton case.  Surjectivity then shows that the fiber
+partition of $\widetilde f$ is determined by the same relation.
+\end{proof}
+
+The global quantifier in \eqref{eq:global-singleton-factorization} cannot
+be replaced by a sectionwise choice of position.  For example, on
+$\Omega_c\times\F$ the function
+$f(x,b)=(1+b)x_1+bx_2$ uses one clause position in each fixed-$b$ section,
+but has no single position through which it factors globally.  The
+canonical reduction retains its clause slot.  Pair-surjectivity proves
+uniqueness when a global factorization exists; it does not turn these
+different sectionwise choices into one factorization.
+
+The reduced domain has explicit typed coordinates.  At a retained full
+clause slot we record its formal location, clause occurrence ID and
+triple domain.  At a retained bit slot we record its formal location
+and variable ID, with domain $\F$.  When a clause slot is reduced to a
+bit, its clause occurrence and selected position are discarded.
+Unused locations are discarded.  Retained locations are kept in the fixed
+tree-and-slot order, so equal IDs in distinct slots are never merged.
+Let
+\begin{equation}\label{eq:canonical-partition}
+ \mathcal P_f=
+ \{\widetilde f^{-1}(y):y\in\im f\}
+\end{equation}
+be the \emph{unordered} partition of this reduced domain into nonempty
+fibers.  The canonical key $\mathfrak k_L(f)$ consists of a left-side
+tag, the retained typed coordinates, and $\mathcal P_f$.
+Define $\mathfrak k_R(f)$ with a distinct right-side tag.
+The codomain $Y$, names $y$ of its values, array coordinates, source
+projection positions and any sampling choices are not additional fields
+of a key.  The typed coordinates and finite subsets in
+\eqref{eq:canonical-partition} have ordinary deterministic finite encodings.
+
+A legal label at this key is a part $P\in\mathcal P_f$.
+At a particular representation $f$ of the key, define its restored output
+by
+\begin{equation}\label{eq:restored-output}
+ \operatorname{out}_f(P)=y
+ \quad\Longleftrightarrow\quad
+ P=\widetilde f^{-1}(y).
+\end{equation}
+This is a bijection from legal labels to $\im f$.
+In particular every restored joint response is realized by one
+$x\in\Omega(Q)$: choose a point of the part and lift it through $r_f$.
+We never allow separately legal block outputs that do not belong to
+the image of the whole joint function.
+
+\begin{lemma}[Sharing across projected domains]\label{lem:canonical-sharing}
+Let $O$ be obtained from $E$ by the specified source projections, let
+$\pi:\Omega(E)\to\Omega(O)$ be their product, and let
+$f:\Omega(O)\to Y$ be any function.  For either side tag,
+the keys of $f$ and $f\pi$ coincide literally, with the same parts and
+the same restored outputs.
+\end{lemma}
+\begin{proof}
+At an unprojected slot, unusedness and every candidate singleton
+factorization are the same for $f$ and $f\pi$, because the projection
+of all other arguments is surjective.  At a projected slot, unusedness
+is likewise equivalent by surjectivity.  If the slot is used by $f$,
+then $f\pi$ factors through its selected position and is used.
+Lemma~\ref{lem:canonical-support} makes that position its unique singleton
+reduction.  Both representations consequently retain the same formal
+location and selected variable ID, with the same bit domain; neither
+retains the original clause occurrence or projection position there.
+These observations identify their reduced domains.  On that common
+domain the two induced functions are identical, since the relevant
+product maps are surjective and both lift to $f\pi$.
+Their fiber partitions and restored values therefore agree.
+\end{proof}
+
+Take as vertices all keys of the indicated side obtainable from mixed
+tuples of source questions, arbitrary arrays in their prescribed spaces,
+and, on the right, one quotient at a nonleaf node in a nonzero direction.
+Every key used by the sampling law below belongs to this set.  Keys never used by a
+test have zero incident weight and may be assigned any legal part.
+Equivalently, a labeling of the positive-weight vertices can always be
+extended to these auxiliary keys.  Because the definition identifies
+keys before choosing labels, all such extensions retain the exact sharing
+identity of Lemma~\ref{lem:canonical-sharing}.
+
+\subsection{One-bit constraints and perfect completeness}
+
+Fix an array family on $E$, a nonleaf node $D$ at level $p$, and
+$a\in K_p\setminus\{0\}$.  Put $f=\Psi_{E,\mathbf M}$ and
+$g=Q_{D,a}f$.  The edge joins $\mathfrak k_L(f)$ to
+$\mathfrak k_R(g)$ and has the following map on legal parts:
+\begin{equation}\label{eq:legal-edge-map}
+ \pi_{f,D,a}(P)=
+    \operatorname{out}_g^{-1}
+       \bigl(Q_{D,a}\operatorname{out}_f(P)\bigr).
+\end{equation}
+The argument of the inverse belongs to $\im g$, since
+$\operatorname{out}_f(P)\in\im f$.
+These edge records define the constraints that our game may use.  We specify
+their sampling distribution at the end of this section.  Distinct records
+may have identical endpoints and may be combined only when their actual
+maps agree.
+
+\begin{lemma}\label{lem:construction-two-fibers}
+Every map \eqref{eq:legal-edge-map} is a well-defined surjection between
+nonempty legal label sets and has at most two preimages per right label.
+For a fixed labeling, acceptance of the edge is exactly equality of its
+restored outputs through $Q_{D,a}$.
+\end{lemma}
+\begin{proof}
+Restoration is a bijection between parts and attained values on each
+side.  Since $g=Q_{D,a}f$, every attained $g$-value has a preimage
+among attained $f$-values.  This proves surjectivity and the acceptance
+description.  The linear map $Q_{D,a}$ has kernel consisting of the
+zero vector and the vector supported at $D$ with value $a$.
+Hence every fiber on the entire output space has exactly two elements,
+and its intersection with $\im f$ has at most two.
+Applying the two restoration bijections proves the claimed fiber bound.
+This argument is unchanged if the two question functions retain
+different input supports.
+\end{proof}
+
+The local label sets have a uniform finite bound once the parameters are
+fixed.  Indeed, if $N=|\mathcal T_0|$, every mixed answer domain has size at
+most $7^{tN}$, so every legal partition has at most $7^{tN}$ parts.
+The canonicalization and each edge map can be computed by enumerating
+these finite domains.  Quantitative polynomial-time and weight-removal
+details will be given when the parameters have been chosen.
+
+\begin{proposition}[Perfect completeness]\label{prop:completeness}
+If the source clause instance has a satisfying assignment, every constraint
+just defined is satisfied by one common legal labeling, for every choice
+of the positive integer parameters.  Consequently every game supported on
+these constraints has value one.
+\end{proposition}
+\begin{proof}
+Let $\xi$ be a satisfying assignment to all source variables.
+At a canonical key, assign each retained full clause coordinate the
+corresponding satisfying triple from $\xi$, and each retained bit
+coordinate its variable value under $\xi$.  These choices form a point
+of the reduced domain, even if IDs recur at distinct locations.
+Label the vertex by the unique part containing this point.
+This prescription depends only on the typed coordinates and partition
+in the key, so it gives one consistent label at every shared vertex.
+
+For any original tuple $E$, the assignment $\xi$ gives a legal
+point $x_\xi\in\Omega(E)$ whose support reduction is exactly the point
+just prescribed at either endpoint.  The restored outputs are therefore
+$f(x_\xi)$ and $g(x_\xi)$, respectively.  Their equality through
+$Q_{D,a}$ follows from $g=Q_{D,a}f$, so
+Lemma~\ref{lem:construction-two-fibers} shows that the edge accepts.
+Every constraint therefore accepts, proving the assertion.
+\end{proof}
+
+\subsection{Algebraic identities forced by joint answers}
+
+Evaluation tables and folding are standard mechanisms in PCP constructions;
+see Bellare, Goldreich and Sudan~\cite[Section~3.3]{BellareGoldreichSudan1998}.
+Here the canonical joint partition forces an exact algebraic identity on
+every labeling.  It allows an upper array to absorb products of already
+displayed descendant rows, including all relations among those products.
+
+\begin{lemma}[Joint folding]\label{lem:folding}
+Fix a full array question on $\Omega(Q)$ and a nonleaf node $D$.
+For each row index $h$ of $M_D$, choose
+\begin{equation}\label{eq:folding-shift}
+ b_h=c_h1+
+   \sum_{C,u,v}\lambda_{h,C,u,v}
+              (M_C)_u(M_C)_v,
+ \qquad c_h,\lambda_{h,C,u,v}\in\F,
+\end{equation}
+where $C$ ranges over any collection of proper nonleaf descendants of $D$
+and $u,v$ over their displayed rows.  Let $\widetilde{\mathbf M}$ replace
+$(M_D)_h$ by $(M_D)_h+b_h$ and keep every other array fixed.
+Then $\widetilde{\mathbf M}$ is a valid array family and its full question
+has exactly the same canonical key as that of $\mathbf M$.
+For any fixed label at this key, write $y_C$ and $\widetilde y_C$ for
+its restored block outputs.  They satisfy
+\begin{equation}\label{eq:folding-output}
+ \widetilde y_C=y_C\quad(C\neq D),\qquad
+ (\widetilde y_D)_h=(y_D)_h+c_h+
+   \sum_{C,u,v}\lambda_{h,C,u,v}(y_C)_u(y_C)_v.
+\end{equation}
+The same statement holds for a question with quotient blocks whenever
+the shift uses only unchanged scalar rows actually displayed in that
+question; a shift at a quotient block is interpreted through its quotient
+map.
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lem:construction-space-properties}, every term in
+\eqref{eq:folding-shift} lies in $H_D(Q)$, proving validity.
+On the full output product, define a transformation that fixes every
+block other than $D$ and adds the displayed polynomial in those blocks
+to block $D$.  Applying this transformation twice is the identity:
+its input blocks remain fixed, and addition is in characteristic two.
+It is therefore a bijection, and the new joint function is this bijection
+composed with the old joint function.  The two functions have identical
+equality relations on $\Omega(Q)$.  Lemma~\ref{lem:canonical-support}
+gives the same coordinate reduction and the same unordered partition.
+Thus a fixed part represents precisely the same set of reduced arguments
+in both questions, and evaluating either function on any such argument
+gives \eqref{eq:folding-output}.
+
+For quotient blocks use the identical triangular transformation on the
+product of displayed quotient spaces.  Its inverse is again itself
+because all arguments of the added expression are unchanged displayed
+outputs.  The previous proof applies verbatim.  No action on labels is
+assumed to be free, and no choice of a representative assignment is
+needed to define the identity.
+\end{proof}
+
+\begin{lemma}[Joint evaluation of product generators]
+\label{lem:joint-evaluation}
+Fix a legal response to a full array question and a node $D$.
+For any collection $\mathcal C$ of proper nonleaf descendants of $D$, let
+\[
+ B=\Span\bigl(\{1\}\cup
+       \{(M_C)_u(M_C)_v:C\in\mathcal C,\ 1\leq u,v\leq
+                                    \ell_{\operatorname{level}(C)}\}\bigr)
+       \subseteq H_D(Q).
+\]
+If $y_C$ are the restored outputs, there is a unique linear functional
+$b_y:B\to\F$ such that $b_y(1)=1$ and
+$b_y((M_C)_u(M_C)_v)=(y_C)_u(y_C)_v$.
+The functional $b_y$ extends to $H_D(Q)^*$.  Every such extension $z$ has
+value $1$ on the constant function, and its matrix on these products at each $C$ is
+$y_Cy_C^{\mathsf t}$, of rank at most one.
+\end{lemma}
+\begin{proof}
+The restored response has one realizing assignment $x\in\Omega(Q)$.
+Point evaluation at $x$ restricts to a linear functional on $B$ and has
+the stated generator values.  This proves that every pointwise linear
+relation between the generators is respected, including relations
+involving different descendants.  The generators span $B$, so this
+functional is unique and depends only on the displayed $y_C$.
+Extend a basis of $B$ to a basis of $H_D(Q)$ and assign arbitrary values
+on the added basis vectors to obtain an extension.  Any extension has
+the same generator values, giving the asserted outer product at each descendant.
+\end{proof}
+
+The use of all relevant descendant outputs in
+Lemma~\ref{lem:joint-evaluation} will allow one upper quotient table to
+handle every possible lower node.  A label always supplies those
+outputs together; selecting a single descendant is not part of the
+vertex key.
+
+\subsection{The distribution of tests}
+
+The low-rank, Hadamard-bucket viewpoint is inspired by Golowich's
+construction \cite{Golowich2023}, as mediated by Fei--Minzer--Wang
+\cite{FeiMinzerWang2026}.  The sampler here is a recursive-product
+redesign with separate independent calls.  We prove its sampling
+estimates below; no expansion theorem or identical sampler from those
+works is assumed.
+
+We now choose an original tuple $E$, an array family, a node, and an omitted
+direction to sample one of the preceding constraints.  Sample a source left
+question independently at each leaf, using the source left marginal, and
+denote the resulting tuple by $E$.
+
+Independently of $E$, sample a path
+$\mathsf P=(D_d,D_{d-1},\ldots,D_0)$ by choosing $D_{p-1}$ uniformly
+among the children of $D_p$, successively for $p=d,\ldots,1$.
+We next define scalar laws conditional on $E$ and this whole path.
+The procedure $\operatorname{Sample}(D_p)$ returns a function in $H_{D_p}(E)$.
+At $p=0$ it returns an independent uniform element of $H_{D_0}(E)$.
+At $p\geq1$, write $C_*=D_{p-1}$ for the path child and make the following
+independent draws:
+\[
+ U_C\sim\operatorname{Unif}(H_C(E)^2)\quad(C\neq C_*),
+ \qquad
+ G_h,H_h\sim\operatorname{Sample}(C_*)\quad(1\leq h\leq R_p).
+\]
+Return
+\begin{equation}\label{eq:scalar-sampler}
+ \operatorname{Sample}(D_p)
+   =\sum_{C\neq C_*}U_C+\sum_{h=1}^{R_p}G_hH_h.
+\end{equation}
+Its conditional law is denoted $\nu_{D_p}$; the dependence on $E$ and
+the path below $D_p$ is suppressed in this notation.
+An empty sum over ordinary children is zero.  By
+\eqref{eq:construction-spaces}, every returned function lies in the
+claimed space.
+
+Every invocation of $\operatorname{Sample}$ uses a new random tape for
+the entire recursive call tree.  In particular the two factors in one
+product, the factors in different products, and calls made on behalf of
+different displayed arrays are independent conditional on $E,\mathsf P$.
+Visiting the same geometric node in two calls does not reuse a value.
+Uniform functions in ordinary children are drawn directly from the stated
+spaces; they do not refer to the displayed arrays in those children.
+
+For every nonleaf path node $D_p$, $1\le p\le d$, independently take a fresh sample
+$h_{p,v}\sim\nu_{D_p}$ for each $v\in K_p\setminus\{0\}$ and set
+\begin{equation}\label{eq:array-bucket-sampler}
+ M_{D_p}=\sum_{v\in K_p\setminus\{0\}}v\otimes h_{p,v}.
+\end{equation}
+We refer to the summands indexed by $v$ as buckets; $v$ is a bucket
+direction in $K_p$, not a row map.
+For every nonleaf node off the path, take $M_D$ uniform in
+$K_{\operatorname{level}(D)}\otimes H_D(E)$.
+All these displayed arrays use separate random tapes.  Thus, conditional
+on $E,\mathsf P$, the displayed arrays are independent, including a path
+array and an ancestor array whose scalar calls pass through that path
+node.  They need not be independent after the common path is averaged out.
+The same definitions apply to any mixed tuple $O$ in its own function
+spaces.  Later modifications will explicitly replace calls at a specified
+cut by uniform draws.
+
+Figure~\ref{fig:tree-cut}, beside the decoder input definitions, depicts the
+two cuts and the distinction between a node and separate calls at that node.
+
+Only the canonical key of the joint function
+\eqref{eq:joint-question-function} is supplied as the left question.  The
+path, buckets, and internal tapes determine its distribution and are not
+appended to that key.
+
+To specify all candidate tests on the sampled array family, draw independently
+\[
+ a_p\sim\operatorname{Unif}(K_p\setminus\{0\}),\qquad 1\leq p\leq d,
+\]
+independently of the preceding data.  At level $p$ use the quotient
+$Q_{D_p,a_p}$; abbreviate it to $Q_{p,a_p}$.  The actual test chooses $p$
+uniformly from $[d]$, independently, and uses the edge with left question
+$\mathfrak k_L(\Psi_{E,\mathbf M})$, right question
+$\mathfrak k_R(\Psi^{D_p,a_p}_{E,\mathbf M})$, and projection
+\eqref{eq:legal-edge-map}.  This finite distribution of edge records defines
+the preliminary weighted game.  Equivalently, one may draw only the direction
+belonging to the chosen level.  Sampling all directions specifies a joint law
+of the candidate tests whose individual marginals are precisely this test.
+
+By Proposition~\ref{prop:completeness}, the game has perfect completeness.
+The remaining sections prove its soundness by analyzing what a successful
+labeling reveals about the sampled arrays.

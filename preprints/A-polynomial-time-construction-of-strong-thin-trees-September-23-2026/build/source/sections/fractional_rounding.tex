@@ -1,0 +1,175 @@
+\section{Simultaneous cost-and-cut rounding}
+\label{sec:fractional-rounding}
+
+The all-cut theorem also permits control of one nonnegative cost
+functional. The reduction combines the truncation and rounding in
+\eqref{eq:ta-binary-reduction} with repeated deletion and selection of
+the least-cost tree, as in Oveis Gharan and Saberi
+\cite[full preprint, Proposition~5.1]{OveisGharanSaberi2011}.
+The rational compression below keeps the auxiliary graph polynomial
+in the input bit length.
+
+\begin{corollary}[Thin and cheap rounding of fractional cuts]
+\label{cor:ta-fractional-rounding}
+Fix once and for all an integer $B\ge\max\{1,C\}$, where $C$ is the
+constant in Theorem~\ref{thm:tt-algorithm}. Let $G=(V,E)$ be a finite undirected
+graph on $n\ge2$ vertices, given by an explicit list of edge records;
+in this corollary, loops and parallel records are allowed. Given
+nonnegative rational numbers $x_e,c_e$ in binary, suppose that
+\[
+ x(\delta_G(S)):=\sum_{e\in\delta_G(S)}x_e\ge1
+       \qquad(\varnothing\ne S\subsetneq V).
+\]
+There is a deterministic algorithm, polynomial in the total binary
+input length, that returns a spanning tree
+$T\subseteq\{e\in E:x_e>0\}$ satisfying simultaneously
+\begin{align}
+ |\delta_T(S)|&\le24B\,x(\delta_G(S))
+       &&(\varnothing\ne S\subsetneq V),
+       \label{eq:ta-fractional-cuts}\\
+ c(T):=\sum_{e\in T}c_e&\le24B\sum_{e\in E}c_ex_e.
+       \label{eq:ta-fractional-cost}
+\end{align}
+The cut inequalities are a promise on the input; no metric assumption
+on the costs is required.
+\end{corollary}
+
+\begin{proof}
+Discard loops, which affect no cut and can only reduce the nonnegative
+cost sum. For each unordered nonloop pair $p$, let $E_p$ be its set of
+edge records and put $X_p=\sum_{e\in E_p}x_e$. Discard pairs with $X_p=0$;
+otherwise choose an original edge $e_p$ with $x_{e_p}>0$ of minimum
+cost among such edges, and put $d_p=c_{e_p}$. This preserves every
+cut mass and gives
+\[
+ \sum_p d_pX_p\le\sum_{e\in E}c_ex_e.
+\]
+Set $K=n^2$, $y_p=\min\{X_p,1\}$, and
+$a_p=\lfloor2K y_p\rfloor$. Form an explicit loopless multigraph $A$
+with $a_p$ labelled copies of pair $p$, each of cost $d_p$.
+Every cut has $y$-mass at least one: if a crossing coordinate was
+truncated, that coordinate alone contributes one, and otherwise the
+cut mass is unchanged. A cut crosses at most $n^2/4$ unordered pairs,
+so rounding down loses at most $n^2/4$ from its scaled mass. Hence
+\begin{align}
+ |\delta_A(S)|&\ge2K-n^2/4\ge K,
+       \label{eq:ta-fractional-lower}\\
+ |\delta_A(S)|&\le2K\,x(\delta_G(S)),
+       \qquad
+ c(A):=\sum_p a_pd_p\le2K\sum_{e\in E}c_ex_e.
+       \label{eq:ta-fractional-upper}
+\end{align}
+Each $a_p\le2n^2$, and fewer than $n^2/2$ pairs occur, so
+$|E(A)|<n^4$. In particular, $A$ is connected.
+
+If $K<12B$, select any spanning tree of $A$. Its load on each cut is
+at most that of $A$, and its cost is at most $c(A)$ by nonnegativity.
+Equation~\eqref{eq:ta-fractional-upper} and $2K<24B$ therefore give
+both asserted bounds, including when the cost sum is zero.
+
+Suppose now that $K\ge12B$, and set
+$k=\lfloor K/2\rfloor$ and $m=\lfloor K/(6B)\rfloor$.
+Starting with $R_0=A$, apply Theorem~\ref{thm:tt-algorithm} with
+connectivity parameter $k$ to $R_i$, obtain a tree $T_i$, and delete
+its labelled edges to form $R_{i+1}$, for $0\le i<m$.
+To verify that every call is legal, inductively we have, for all cuts
+and $0\le i\le m$,
+\begin{equation}
+ |\delta_{R_i}(S)|\ge
+       (1-3Bi/K)|\delta_A(S)|\ge\tfrac12|\delta_A(S)|.
+ \label{eq:ta-fractional-residual}
+\end{equation}
+Indeed, the second inequality follows from $m\le K/(6B)$.
+Together with \eqref{eq:ta-fractional-lower}, it makes $R_i$
+$k$-edge-connected before its call. Since $k\ge K/3$, the returned tree
+obeys
+\[
+ |\delta_{T_i}(S)|\le\frac Ck|\delta_{R_i}(S)|
+       \le\frac{3B}{K}|\delta_A(S)|,
+\]
+which proves the next instance of
+\eqref{eq:ta-fractional-residual}. Equation~\eqref{eq:ta-fractional-upper}
+then makes every $T_i$ at most $6B$-thin relative to $x$.
+The trees are edge-disjoint in $A$, and
+$m\ge K/(12B)$ because $K/(6B)\ge2$. Nonnegative costs therefore give
+\[
+ \min_{0\le i<m}c(T_i)
+       \le\frac{c(A)}m
+       \le24B\sum_{e\in E}c_ex_e.
+\]
+Select a least-cost $T_i$.
+
+In either case, a selected tree uses at most one copy of any parallel
+pair. Replace that copy by $e_p$. The resulting original edges still
+form a spanning tree, have the same cut loads and cost, and all have
+positive $x_e$. Different extracted trees may lift to the same original
+edge, which is harmless because only one tree is output.
+
+All pair sums, truncations, floors, and cost comparisons use exact
+rational or integer arithmetic of polynomial bit length; no common
+denominator is expanded into edge copies. The positive support is
+connected by the cut promise, so it contains at least $n-1$ distinct
+nonloop pairs. Thus even if $n$ is encoded in binary, it is bounded by
+the length of the explicit input. There are $O(n^2)$ calls on graphs
+with fewer than $n^4$ explicit edges and an $O(\log n)$-bit parameter
+$k$. Deleting labelled copies, summing and comparing tree costs, and
+lifting the selected tree are polynomial-bit operations. Very small
+positive coordinates may round to zero, but
+\eqref{eq:ta-fractional-lower} preserves connectivity. No division by
+$\sum_e c_ex_e$ occurs; if this sum is zero, $c(A)=0$ and the output
+cost is zero. This proves the stated bit bound and covers zero values.
+\end{proof}
+
+\paragraph{The historical thin-and-cheap formulation.}
+The author full manuscript of Asadpour, Goemans, M\k{a}dry, Oveis
+Gharan, and Saberi defines an $(\alpha,s)$-thin tree for a point $z$
+in a spanning-tree polytope by the all-cut bound
+$|\delta_T(S)|\le\alpha z(\delta(S))$ and the cost bound
+$c(T)\le s c(z)$, with $\alpha\ge1$. Its Conjecture~6.1 asks for
+absolute constants and a polynomial-time construction for every
+feasible Held--Karp solution
+\cite[author full manuscript, Definition~4.1 and Conjecture~6.1]{AsadpourEtAl2017}.
+
+For rational data on $n\ge2$ vertices in that paper's directed-metric
+setting, let $h$ be a feasible Held--Karp vector and use its normalized
+symmetrization
+\[
+ z_{\{u,v\}}=\frac{n-1}{n}(h_{uv}+h_{vu})
+\]
+from equation~(3.5) of the full manuscript. The feasibility calculation
+in the proof of its Lemma~3.1 puts $z$ in the corresponding spanning-tree
+polytope \cite[author full manuscript, equation~(3.5) and proof of Lemma~3.1]{AsadpourEtAl2017}.
+In particular, flow balance and the cut constraint give
+\[
+ z(\delta(S))=\frac{2(n-1)}n h(\delta^+(S))
+       \ge\frac{2(n-1)}n\ge1.
+\]
+For each support pair $p=\{u,v\}$, set
+$d_p=\min\{c_{uv},c_{vu}\}$, the cost of the cheaper of both
+orientations. Its induced fractional cost satisfies
+\[
+ c(z)=\sum_p d_pz_p\le\frac{n-1}{n}\sum_a c_a h_a.
+\]
+Apply Corollary~\ref{cor:ta-fractional-rounding} with $x=z$ and costs
+$d_p$. With the same cost function on the tree and the fractional
+point, the corollary gives $c(T)\le24B c(z)$ and the required all-cut
+bound. It therefore supplies the two $(24B,24B)$ inequalities on the
+undirected support, with deterministic polynomial-bit construction
+for rationally encoded data. The cheaper orientation of a selected
+pair need not have positive $h$-value; the support requirement is
+$z_p>0$. More generally,
+every rational point in a spanning-tree polytope satisfies the cut
+promise, since each constituent spanning tree meets every nontrivial
+cut. The bit guarantee here is not a claim for arbitrary real-oracle
+inputs.
+
+The earlier SODA version instead fixes an optimum Held--Karp solution
+and defines its cost bound as $c(T)\le s\,OPT_{\rm HK}$ in
+Definition~5.1; its Theorem~6.1 is the tour-augmentation theorem, not
+the full-manuscript conjecture
+\cite[Definition~5.1 and Theorem~6.1]{AsadpourEtAl2010}.
+Constant-factor approximation for ATSP was already established
+independently by Svensson, Tarnawski, and V\'egh and improved by Traub
+and Vygen \cite{SvenssonTarnawskiVegh2020,TraubVygen2022}.
+The consequence proved here concerns the underlying simultaneous
+rounding formulation; no new approximation-order claim is made.

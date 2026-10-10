@@ -1,0 +1,144 @@
+
+\ProvidesFileRCS{pgflibrarydatavisualization.polar.code.tex}
+
+\usepgfmodule{datavisualization}%
+
+
+
+
+\pgfooclass{polar transformer}
+{%
+
+  \attribute angle;%
+
+  \attribute radius;%
+
+  \attribute unit vector 0 degrees;%
+
+  \attribute unit vector 90 degrees;%
+
+
+
+  \method polar transformer(#1,#2,#3,#4) {
+    \pgfooset{angle}{#1}
+    \pgfooset{radius}{#2}
+    \pgfooset{unit vector 0 degrees}{#3}
+    \pgfooset{unit vector 90 degrees}{#4}
+  }%
+
+  \method default connects() {
+    \pgfoothis.get handle(\pgf@dv@me)
+    \pgfkeysvalueof{/pgf/data visualization/obj}.connect(\pgf@dv@me,transform,transform datapoint signal)
+    \pgfkeysvalueof{/pgf/data visualization/obj}.connect(\pgf@dv@me,path,path signal)
+    \pgfkeysvalueof{/pgf/data visualization/obj}.connect(\pgf@dv@me,direction,direction signal)
+  }%
+
+  \method get angle attribute(#1) {
+    \pgfooget{angle}{#1}
+  }%
+
+  \method get radius attribute(#1) {
+    \pgfooget{radius}{#1}
+  }%
+
+
+  \method transform() {
+    \pgfkeysgetvalue{/data point/\pgfoovalueof{angle}/const}\pgf@dv@angle%
+    \ifx\pgf@dv@angle\relax
+      \pgfkeysgetvalue{/data point/\pgfoovalueof{angle}}\pgf@dv@angle%
+    \fi
+    \ifx\pgf@dv@angle\relax\else%
+      \ifx\pgf@dv@angle\pgfutil@empty\else%
+        \pgfkeysgetvalue{/data point/\pgfoovalueof{radius}/const}\pgf@dv@radius%
+        \ifx\pgf@dv@radius\relax
+          \pgfkeysgetvalue{/data point/\pgfoovalueof{radius}}\pgf@dv@radius%
+        \fi
+        \ifx\pgf@dv@radius\pgfutil@empty\else%
+          \ifx\pgf@dv@radius\relax\else%
+            \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@angle}%
+            \pgfdvmathexitbyscientificformat{\pgf@dv@angle}{\pgf@dv@val}%
+            \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@radius}%
+            \pgfdvmathexitbyscientificformat{\pgf@dv@radius}{\pgf@dv@val}%
+            \pgfmathsincos{\pgf@dv@angle}%
+            \pgfmathmultiply{\pgfmathresultx}{\pgf@dv@radius}%
+            \let\pgf@dv@polar@temp=\pgfmathresult
+            \pgftransformshift{\pgfpointscale{\pgf@dv@polar@temp}{\pgfoovalueof{unit vector 0 degrees}}}%
+            \pgfmathmultiply{\pgfmathresulty}{\pgf@dv@radius}%
+            \let\pgf@dv@polar@temp=\pgfmathresult
+            \pgftransformshift{\pgfpointscale{\pgf@dv@polar@temp}{\pgfoovalueof{unit vector 90 degrees}}}%
+          \fi%
+        \fi%
+      \fi%
+    \fi%
+  }%
+
+
+
+
+  \attribute prev angle;%
+  \attribute prev radius;%
+
+  \method path(#1) {%
+    \ifpgfdvhandled%
+    \else%
+      \ifx#1\pgfdvpathlinetotoken
+        \pgfooget{prev radius}\pgf@dv@prev@rad
+        \pgfkeysgetvalue{/data point/\pgfoovalueof{radius}}\pgf@dv@current@rad
+        \ifx\pgf@dv@current@rad\relax
+        \else
+          \ifx\pgf@dv@current@rad\pgf@dv@prev@rad%
+            \pgfooget{prev angle}\pgf@dv@prev@angle
+            \pgfkeysgetvalue{/data point/\pgfoovalueof{angle}}\pgf@dv@current@angle
+            \ifx\pgf@dv@current@angle\relax
+            \else
+              \ifx\pgf@dv@current@angle\pgf@dv@prev@angle%
+              \else%
+                \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@prev@angle}%
+                \pgfdvmathexitbyscientificformat{\pgf@dv@prev@angle}{\pgf@dv@val}%
+                \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@prev@rad}%
+                \pgfdvmathexitbyscientificformat{\pgf@dv@prev@rad}{\pgf@dv@val}%
+                \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@current@angle}%
+                \pgfdvmathexitbyscientificformat{\pgf@dv@current@angle}{\pgf@dv@val}%
+                \pgfdvmathenter{\pgf@dv@val}{\pgf@dv@current@rad}%
+                \pgfdvmathexitbyscientificformat{\pgf@dv@current@rad}{\pgf@dv@val}%
+                \pgfpatharcaxes{\pgf@dv@prev@angle}{\pgf@dv@current@angle}
+                  {\pgfpointscale{\pgf@dv@current@rad}{\pgfoovalueof{unit vector 0 degrees}}}
+                  {\pgfpointscale{\pgf@dv@current@rad}{\pgfoovalueof{unit vector 90 degrees}}}%
+                \pgfdvhandledtrue%
+              \fi%
+            \fi%
+          \fi%
+        \fi%
+      \fi%
+    \fi%
+    \pgfooeset{prev angle}{\pgfkeysvalueof{/data point/\pgfoovalueof{angle}}}
+    \pgfooeset{prev radius}{\pgfkeysvalueof{/data point/\pgfoovalueof{radius}}}
+  }%
+
+  \method direction(#1) {%
+    \ifx#1\pgfdvdirectionfromtoken
+      \xdef\pgf@dv@polar@from@angle{\pgfkeysvalueof{/data point/\pgfoovalueof{angle}}}
+      \xdef\pgf@dv@polar@from@radius{\pgfkeysvalueof{/data point/\pgfoovalueof{radius}}}
+    \else\ifx#1\pgfdvdirectiontotoken%
+      \xdef\pgf@dv@polar@to@angle{\pgfkeysvalueof{/data point/\pgfoovalueof{angle}}}
+      \xdef\pgf@dv@polar@to@radius{\pgfkeysvalueof{/data point/\pgfoovalueof{radius}}}
+    \else%
+      \ifx\pgf@dv@polar@from@radius\pgf@dv@polar@to@radius%
+        \pgfdvmathenter{\pgf@dv@a}{\pgf@dv@polar@from@angle}%
+        \pgfdvmathenter{\pgf@dv@b}{\pgf@dv@polar@to@angle}%
+        \pgfdvmathifless{\pgf@dv@a}{\pgf@dv@b}{\def\pgf@dv@temp@sign{+}}{\def\pgf@dv@temp@sign{-}}%
+        \pgfkeysgetvalue{/data point/\pgfoovalueof{angle}}\pgf@temp%
+        \ifx\pgf@temp\relax%
+        \else%
+          \pgfdvmathenter{\pgf@dv@val}{\pgf@temp}%
+          \pgfdvmathexitbyscientificformat{\pgf@dv@polar@angle}{\pgf@dv@val}%
+          \pgf@process{\pgfpointpolar{\pgf@dv@polar@angle\pgf@dv@temp@sign90}{1pt}}%
+          \pgfdvhandledtrue%
+        \fi%
+      \fi%
+    \fi\fi%
+  }%
+}%
+
+
+\endinput

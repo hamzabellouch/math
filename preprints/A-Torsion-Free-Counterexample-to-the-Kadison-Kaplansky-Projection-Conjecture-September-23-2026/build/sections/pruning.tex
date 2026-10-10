@@ -1,0 +1,364 @@
+\section{Pruning and unique recovery of long paths}
+\label{prune:section}
+
+To pass from the two towers to one graph, we need both a small deletion
+fraction in every layer and long words that determine their paths.
+We first prove that a word recovers padded stream prefixes at interior
+positions in \(Y^\#\).  This does not yet identify the layer: the labels
+determine its sign and residue but need not determine its absolute value,
+and padding can conceal a shorter stream.  The subsequent deletions
+resolve this ambiguity, make the gated and auxiliary graphs agree, and
+remove short cyclic paths.
+
+A path in this section is a finite edge walk,
+possibly with repeated vertices.  Its radius at a specified position
+is the smaller of the numbers of edges available in the two directions
+from that position.  A nonbacktracking path never follows an edge
+immediately by its reverse.  A closed path is cyclically
+nonbacktracking when this also holds at its cyclic junction.
+
+\begin{lemma}[Recovery of stream prefixes]
+\label{prune:prefix-recovery}
+Suppose two nonbacktracking paths in \(Y^\#\) have the same oriented
+label word.  At corresponding \(A\)-positions of radius at least
+\(2j+1\), both padded streams agree through length \(r+sj\), for
+every \(j\geq0\).  At corresponding \(B\)-positions of radius at
+least \(2j\), both padded streams agree through length \(sj\), for
+every \(j\geq1\).  The compared positions need not be in the same
+layer.
+\end{lemma}
+
+\begin{proof}
+The orientation of a letter identifies the side of either endpoint.
+Reading its underlying positive label gives the family, the serial
+number and \(x=b\Vert x'\), and therefore both slots.  In particular,
+the same word identifies the same slot names, diagonal coefficients,
+spill maps, and family rules at corresponding positions.  It also
+identifies the signs and residues modulo \(K\) of the layer indices,
+although their absolute values may differ.
+
+At an interior position the two incident slots are distinct.  Otherwise
+the incoming and outgoing edges would be the unique edge at the same
+slot, so the path would backtrack.  Write their evaluations on a current
+block as
+\[
+ Q^a_h=v_h+\lambda_a u_h+S_a u_{h-1},\qquad
+ Q^b_h=v_h+\lambda_b u_h+S_b u_{h-1}.
+\]
+Here \(u_h,v_h\) are the full padded current blocks, multiplication
+uses their corresponding field, and the last terms are the spills
+from the preceding block, extended by zero as needed.  For the first
+block there is no preceding spill.  If the two evaluation blocks and
+the preceding input block have been recovered, subtracting gives
+\begin{equation}
+ (\lambda_a-\lambda_b)u_h
+   =Q^a_h-Q^b_h-(S_a-S_b)u_{h-1}.
+ \label{prune:block-inversion}
+\end{equation}
+The coefficient difference is nonzero and hence invertible.  Thus
+\(u_h\), followed by \(v_h\), is recovered.  Different spill
+lengths for the two incident slots do not affect this argument.
+
+Call the asserted \(A\)-statement at index \(j\) the assertion
+\(\mathcal A_j\), and the \(B\)-statement \(\mathcal B_j\).
+Interpret \(\mathcal B_0\) as the vacuous recovery of the empty
+prefix.  At radius one on side \(A\), the first \(r\) bits of each
+incident evaluation are present in its label \(x\), because
+\(p=r+\alpha\geq r\).  Equation~\eqref{prune:block-inversion}
+for the first block proves \(\mathcal A_0\).
+
+Suppose \(j\geq1\).  At a \(B\)-position of radius \(2j\), both
+neighbors satisfy \(\mathcal A_{j-1}\); centrally we already have
+\(\mathcal B_{j-1}\).  For either incident edge, the second equation
+of \eqref{tow:edge-equations} shows that to know \(Q_B\) through
+length \(sj\), beyond the label prefix \(x'\), it suffices to know
+the \(\mathcal J\)-output through length
+\[
+ sj-p'=r+s(j-1)-\beta\leq r+s(j-1).
+\]
+All source \(A\)-blocks involved are known in full at the neighbor.
+Every key for the transformation of \(A\)-block \(j-1\), or an
+earlier block, uses central \(B\)-blocks at most \(j-1\), together
+with earlier blocks of that neighbor's \(A\)-stream.  These are all
+known.  Consequently the indicated output prefix, including every
+gate decision, agrees in the two paths.  Both central evaluation
+prefixes therefore agree through \(sj\).  Their preceding spill
+inputs are already known by \(\mathcal B_{j-1}\), so
+\eqref{prune:block-inversion} recovers the next full \(B\)-block.
+This proves \(\mathcal B_j\).
+
+At an \(A\)-position of radius \(2j+1\), both neighbors satisfy
+\(\mathcal B_j\), and centrally we have
+\(\mathcal A_{j-1}\).  By the first equation of
+\eqref{tow:edge-equations}, the evaluation prefix through \(r+sj\)
+needs only the \(\mathcal F\)-output through
+\[
+ r+sj-p=sj-\alpha\leq sj.
+\]
+The required neighbor \(B\)-blocks through block \(j\) are fully
+known.  The keys for such a block use central \(A\)-blocks only
+through block \(j-1\), and preceding neighbor \(B\)-blocks.
+These again are known, so both evaluation prefixes agree.  Subtract
+the already known preceding spill and apply
+\eqref{prune:block-inversion}.  This proves
+\(\mathcal A_j\) and completes the alternating induction.
+
+This proof uses full padded blocks.  A permutation may mix all the
+bits of a block, but its entire source block is already known at the
+neighbor before it is used.  Inactive bits cause no difficulty because
+the equations are padded-stream equations.  When a rule lies beyond
+one of the compared paths' actual cutoffs, it is still the same
+family rule on both paths; equality of the preceding input blocks
+gives equality of its key and gate.  This is precisely why
+Lemma~\ref{prune:prefix-recovery} is proved in \(Y^\#\), with its
+family-wide gated rules.  The
+inequalities used above also include \(\alpha=0\), \(\beta=0\),
+and a final partial block of any length \(1\leq t\leq s\).
+\end{proof}
+
+\begin{corollary}[Few short cyclic paths at one layer]
+\label{prune:cycle-count}
+Fix a layer and a side.  A nonempty cyclically reduced oriented label
+word is the word of at most one based cyclically nonbacktracking
+closed path with its base on that layer and side.  Consequently the
+number of vertices of \(A_i\), or of \(B_i\), supporting such a
+closed path of length at most \(g_i\) is at most
+\[
+ \sum_{a=1}^{\lfloor g_i\rfloor}(2m_\ell)^a.
+\]
+For all sufficiently large \(\ell\), this is a fraction at most
+\(2^{-0.9H_i}\) of either vertex set, uniformly in \(i\).
+\end{corollary}
+
+\begin{proof}
+Repeat two closed paths with the same word arbitrarily many times
+in both directions.  Cyclic nonbacktracking ensures that every such
+repetition is nonbacktracking.  At corresponding base positions,
+Lemma~\ref{prune:prefix-recovery} recovers arbitrarily long prefixes.
+Since the layer and side are fixed, this eventually recovers all
+active coordinates of both vertices, making their base states equal.
+Foldedness then determines their entire based paths.  Conversely a
+cyclically nonbacktracking closed path has a cyclically reduced word:
+inverse successive letters, including at the cyclic junction, would
+force a backtrack by foldedness.
+
+There are at most \((2m_\ell)^a\) words of length \(a\); counting
+all words only enlarges the bound.  Both vertex-set sizes are at least
+\(2^{H_i}\), and \eqref{tow:alphabet} gives
+\[
+ \frac{\log_2(2m_\ell)}{100\log_2 d}<\frac1{20}
+\]
+for large \(\ell\).  If \(\lfloor g_i\rfloor\geq1\), the
+geometric sum is at most \(2(2m_\ell)^{g_i}\), so its fraction is
+at most \(2^{1-0.95H_i}\leq2^{-0.9H_i}\).  If the sum is empty
+the claim is immediate.  Since \(H_i\geq H_0\to\infty\), the
+threshold is uniform over all layers.
+\end{proof}
+
+We now specify the deleted sets.  They are sets of vertices of the
+common vertex set of \(Y^0\) and \(Y^\#\).
+
+\paragraph{Gate deletions.}
+At each vertex and each adjacent-pair slot evaluate the gate at that
+pair's own final block, whether or not the current auxiliary rule
+actually consults it.  Delete the vertex if any of these gates is
+closed.  The inputs before the last block are determined without
+using its current permutation, so this is a well-defined test on the
+slot state, identical for the gated and auxiliary prescriptions.
+
+At a fixed \(A\)-slot, conditional on \(x\), the coordinates
+\(u_A\) and the tail of \(Q_A\) are independent uniform bits,
+by the parametrization in Lemma~\ref{tow:matching-clusters}.
+The triangular equations turn them bijectively into the interleaved
+input \(u\)-values.  Thus all preceding input coordinates are
+independent uniform bits.  The same reasoning at a fixed \(B\)-slot
+uses \(x'\), its fixed bucket, \(u_B\), and the tail of \(Q_B\).
+In particular the four full \(s\)-blocks preceding the cutoff are
+jointly zero with probability exactly \(2^{-4s}\) at either slot.
+The union bound and the maximum degree \(6D\) show that these
+deletions have fraction at most
+\begin{equation}
+ \varepsilon_{\rm gate}=6D\,2^{-4s}.
+ \label{prune:gate-budget}
+\end{equation}
+
+On vertices surviving these deletions the induced graphs from
+\(Y^0\) and \(Y^\#\) are identical.  Indeed, from a surviving
+slot state its current final gate is open, so the two endpoint
+constructions agree.  All lower rules already agree.  This argument
+works from either side of an edge and proves equality of the induced
+edge sets, including multiplicities and labels.
+
+\paragraph{Separation of heights.}
+The next deletion distinguishes larger-layer vertices from the zero
+padding of smaller-layer vertices with the same sign and residue.
+For a vertex on either side at layer \(i\), consider every layer
+\(i'\) with
+\[
+ \operatorname{sgn}(i')=\operatorname{sgn}(i),\qquad
+ |i'|\equiv|i|\pmod K,\qquad |i'|<|i|.
+\]
+Put \(m=(|i|-|i'|)/K\geq1\) and
+\begin{equation}
+ q(i,i')=\min\{H_{i'},mK/2\}.
+ \label{prune:zero-window}
+\end{equation}
+Delete the vertex if all its own \(u\)-bits immediately after that
+side's cutoff at \(i'\), for these \(q(i,i')\) positions, are zero.
+This interval consists of active bits at \(i\), because on either
+side the length increases by exactly \(mK/2\) between these two
+layers.  Its zero probability under uniform vertex measure is
+\(2^{-q(i,i')}\).  No layers of distinct signs are tested, and
+zero has no smaller layer with its sign.
+
+The union bound gives, on every side and layer,
+\begin{equation}
+\begin{split}
+ \varepsilon_{\rm sep}
+ &\leq\sum_{m\geq1}2^{-mK/2}+\sum_{i'\in\mathbb Z}2^{-H_{i'}}\\
+ &=\frac{2^{-K/2}}{1-2^{-K/2}}+3\,2^{-H_0}.
+\end{split}
+\label{prune:separation-budget}
+\end{equation}
+Here \(2^{-\min(a,b)}\leq2^{-a}+2^{-b}\), and the second sum
+is evaluated using \(H_{i'}=H_0+|i'|\).  Thus the estimate stays
+uniform even when the larger layer has arbitrarily many smaller
+layers of its residue.
+
+\paragraph{Short-cycle deletions.}
+At layer \(i\), delete every vertex supporting a nonempty cyclically
+nonbacktracking closed path in \(Y^\#\) of length at most \(g_i\).
+By Corollary~\ref{prune:cycle-count}, the fraction deleted on either
+side is at most \(2^{-0.9H_i}\).  This test is performed in the
+already specified graph \(Y^\#\), so it does not depend circularly
+on the final induced graph.
+
+Let \(Y\) be the graph induced on the vertices surviving all three
+deletions.  It is an induced subgraph both of \(Y^0\) and of
+\(Y^\#\).  Combining the three budgets gives a uniform bound
+\begin{equation}
+\begin{split}
+ \varepsilon_\ell
+ &=6D\,2^{-4s}
+   +\frac{2^{-K/2}}{1-2^{-K/2}}
+   +3\,2^{-H_0}+2^{-0.9H_0}\longrightarrow0.
+\end{split}
+\label{prune:total-budget}
+\end{equation}
+For example, \(D2^{-4s}=2^{-32\ell}\).  Fractions here and below
+are always taken relative to the original sets \(A_i,B_i\), not
+relative to an already pruned set.
+
+\begin{proposition}[The tower properties]
+\label{prune:tower-properties}
+For all sufficiently large \(\ell\), the preceding choices give a
+graph \(Y^0\) on sets of sizes
+\(|A_i|=d2^{H_i}\) and \(|B_i|=2^{H_i}\), and its induced
+subgraph \(Y\), with these properties.
+\begin{enumerate}
+\item For every \(|i-k|\leq1\), the \(Y^0\)-block between
+\(A_i\) and \(B_k\) has degrees \(d,D_{ik}\) with
+\(D_{ik}=D2^{|i|-|k|}\).  Its counting incidence divided by
+\(\sqrt{dD_{ik}}\) maps normalized constants to normalized
+constants, as does its adjoint.  On their orthogonal complements its
+norm is at most \(1-\chi\), with the absolute constant \(\chi\)
+of Proposition~\ref{exp:realized-gap}.
+\item The fraction removed from any \(A_i\) or \(B_i\) is at
+most \(\varepsilon_\ell\) of \eqref{prune:total-budget}.
+\item The labels of \(Y\) are folded, with positive alphabet size
+at most \(m_\ell=O(d2^r(1+s)^2)\).
+\item Every nonbacktracking path in \(Y\) beginning at layer \(i\)
+and having length at least \(L_i\) is determined by its oriented
+word among all paths in \(Y\), including paths beginning in other
+layers.
+\item There is no nonempty cyclically nonbacktracking closed path
+in \(Y\), based at layer \(i\), of length at most \(g_i\).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Only the fourth item requires further proof.  The degree and norm
+claims are established in \eqref{tow:degrees} and
+Proposition~\ref{exp:realized-gap}.  For normalized counting
+constants, for example, the constant entry after applying normalized
+incidence is
+\(d/(\sqrt{dD_{ik}}\sqrt{|B_k|})=1/\sqrt{|A_i|}\),
+using \(d|A_i|=D_{ik}|B_k|\); the adjoint calculation is the same.
+The deletion and alphabet claims have already been proved.
+Any short cyclic path in \(Y\) is also one in \(Y^\#\), and its
+base vertex was deleted in the third step, proving the fifth item.
+
+Take a path beginning in layer \(i\), and compare it with a path
+having the same word.  By foldedness, any path with this word is also
+nonbacktracking.  It suffices to identify the segment of length
+\(N=\lceil L_i\rceil\) at the beginning of each path.  Choose a
+midpoint position, whose radius is at least \(\lfloor N/2\rfloor\),
+and let its layer on the first path be \(j\).  Every edge changes
+the layer by at most one, so
+\[
+ H_j\leq H_i+N.
+\]
+Lemma~\ref{prune:prefix-recovery} recovers both padded streams at
+that position through length at least
+\[
+ \frac{sN}{4}-2s
+ \geq\frac{25s}{\log_2d}H_i-2s
+ =62.5H_i-2s.
+\]
+Since \(H_i\geq H_0\) and
+\(N\leq100H_i/\log_2d+1\), this quantity is greater than
+\(2H_j\) for all sufficiently large \(\ell\), uniformly in \(i\).
+For side \(A\) the exact recovered length at radius \(R\) is
+\(r+s\lfloor(R-1)/2\rfloor\); on side \(B\) it is
+\(s\lfloor R/2\rfloor\).  These formulas give the displayed
+lower bound on both sides, including either parity of \(N\).
+
+The common incident labels force the two midpoint layers to have the
+same sign and residue modulo \(K\).  If the layer indices are equal,
+all active coordinates are recovered, since each has length at most
+\(H_j\), and the midpoint vertices coincide.
+Suppose instead they differ.  Write \(i_-\) and \(i_+\) for their
+indices ordered by absolute value, and put \(H_-=H_{i_-}\).
+Then \(H_-\leq H_j\) and \(|i_+|-|i_-|=mK\) for some
+\(m\geq1\).  If \(l_-\) is the smaller vertex's own
+\(u\)-length, the interval tested at the larger vertex in
+\eqref{prune:zero-window} ends no later than
+\[
+ l_-+\min\{H_-,mK/2\}\leq 2H_-\leq2H_j.
+\]
+The smaller vertex's padding is zero on this entire interval.
+Prefix recovery forces the larger vertex's active \(u\)-bits on
+the same interval to be zero.  It would therefore have been removed
+by the second deletion, a contradiction.  This reasoning also covers
+the case where the first path has the larger midpoint height.  The
+case of a zero midpoint index was already in the equal-layer case,
+since its sign is distinguished.
+
+Thus the midpoint vertices coincide in all cases.  Foldedness
+determines an edge uniquely from its initial vertex and its label;
+applying this forward and backward from the common midpoint identifies
+the whole two segments.  Continuing forward identifies any remaining
+part of the compared words.  This proves the fourth item.
+\end{proof}
+
+\begin{corollary}[Effect of deletion on constant spaces]
+\label{prune:constant-compression}
+Let \(\Pi\) be the orthogonal projection that retains the vertices
+of \(Y\) in the counting Hilbert space of the full tower, with any
+additional Hilbert-space tensor factor.  Let \(C\) be the subspace
+of vectors that are constant on each separate \(A_i\) and \(B_i\)
+in the vertex coordinate.  Then
+\[
+ \|(1-\Pi)|_C\|\leq\sqrt{\varepsilon_\ell}.
+\]
+In particular the same bound holds on every subspace of \(C\),
+uniformly in the additional tensor factor.
+\end{corollary}
+
+\begin{proof}
+On one normalized constant vector the squared mass removed is exactly
+the fraction of vertices removed from that set.  Distinct side and
+layer sets are orthogonal, so the squared losses add, and each is
+bounded by \(\varepsilon_\ell\) times the corresponding squared
+input norm.  Tensoring changes neither calculation.
+\end{proof}

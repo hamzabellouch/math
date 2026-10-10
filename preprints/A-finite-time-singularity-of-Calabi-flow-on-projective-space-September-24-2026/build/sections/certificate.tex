@@ -1,0 +1,701 @@
+\section{Certification of the finite shooting calculation}
+\label{cert:appendix}
+\label{sec:certificate}
+\label{cert:section}
+
+This Appendix proves the finite part of the shooting argument.  The calculation
+uses integer interval arithmetic, Taylor expansion on complex disks, and a
+separate estimate for the nonlinear dependence on the shooting parameters.
+Every terminating decimal in this Appendix denotes its exact rational value.
+
+\begin{proposition}[Finite shooting bounds]\label{cert:shoot}
+For every parameter \(z_*\in[-R,R]^2\), where \(R=5\cdot10^{-10}\), let
+\((k,d)\) be given by \eqref{prof:parameters}, and let \(p\) be the origin
+solution of \eqref{prof:ode} supplied by Lemma~\ref{prof:origin}.
+This solution extends to \(0\le s\le S_0=56\) and satisfies
+\[
+ 1+p(s)>0.
+\]
+For the coordinates of its jet relative to \(p_{\rm a}\), defined in
+\eqref{prof:coordinates}, one has
+\begin{equation}\label{cert:conclusion}
+ |q|\le .25R,\qquad
+ \big\|(\Re\xi,\Im\xi)-z_*\big\|_\infty\le .13R.
+\end{equation}
+\end{proposition}
+
+The proof compares the entire family of shots with a sequence of
+reference trajectories at the central parameter \(d=d_0\).  The state
+is \((p,p',p'',d)\), with \(d'=0\).  We divide \([1,56]\) into finitely
+many blocks.  On each block, the reference trajectory is the exact
+solution starting from a rounded three-component jet at its left
+endpoint.  At the right endpoint, an interval enclosure supplies the
+rounded starting jet for the next block.  Thus successive reference
+trajectories may have small jumps at block boundaries; their size is
+included in the error estimate.
+
+The interval calculation encloses the reference endpoint jets and
+the first-variation matrices of the four-component state across each
+block.  Products of these matrices give a linear prediction for the
+effect of the two shooting parameters through all blocks.  Rounding the reference jets
+and variation matrices introduces separate errors.  A perturbation
+estimate compares products of the rounded variation matrices with
+the exact transfers and bounds the propagation of those errors.
+The origin series supplies the initial central jet, its two parameter
+variations, and a bound for the nonlinear parameter remainder.
+
+It remains to compare these linear predictions with the actual
+solutions for every \(z_*\in[-R,R]^2\).  The only nonlinear term in the
+state equation depends on \(p\); its remainder after linearization
+is quadratic in the difference from the reference value.  A uniform
+bootstrap bounds this remainder using the certified positive lower
+bounds for \(1+p\) along the reference trajectories and the transfer estimates.
+It proves continuation and positivity for the whole shooting family and bounds its endpoint
+error.  Projecting the endpoint jets into the matching coordinates
+then gives \eqref{cert:conclusion}.
+
+We use the maximum norm on vectors and the induced maximum row-sum
+norm on matrices, including rectangular matrices.  For a
+\(4\times4\) matrix, its superscript \((3)\) denotes its leading
+\(3\times3\) block.  We first describe the interval arithmetic and
+the series recurrences, then justify their analytic enclosures and
+the separate nonlinear comparison.
+
+\subsection{Integer intervals and the two series recurrences}
+\label{cert:arithmetic}
+
+Put \(Q_{\rm int}=2^{256}\).  An integer pair \((a,b)\) represents the closed
+interval \([a/Q_{\rm int},b/Q_{\rm int}]\).  All arithmetic in
+\texttt{verification/certificate.py} is integer arithmetic.  Addition and
+multiplication by an integer are exact, with endpoint reversal for a negative
+multiplier.  For multiplication, let \(m\) and \(M\) be the minimum and maximum
+of the four products of integer endpoints.  The output pair is
+\[
+ \left(\left\lfloor\frac{m}{Q_{\rm int}}\right\rfloor,
+       \left\lceil\frac{M}{Q_{\rm int}}\right\rceil\right).
+\]
+For a same-sign interval \((a,b)\) excluding zero, the reciprocal pair is
+\[
+ \left(\left\lfloor\frac{Q_{\rm int}^2}{b}\right\rfloor,
+       \left\lceil\frac{Q_{\rm int}^2}{a}\right\rceil\right).
+\]
+These formulas are valid also for negative intervals.  Division by a positive
+integer rounds each endpoint outward in the same way.  Python's integer
+division is floor division, so the identity
+\(\lceil x\rceil=-\lfloor-x\rfloor\) implements the required upper roundings.
+In particular, \texttt{rat(a,b)} encloses the exact rational \(a/b\).
+The function \texttt{mag} bounds absolute value; the function \texttt{norm}
+bounds the matrix norm specified above.
+
+The operation \texttt{widen} enlarges an interval at each end by the upper
+endpoint of a nonnegative error allowance.  The operation \texttt{mid} instead
+selects the grid point
+\[
+ Q_{\rm int}^{-1}\left\lfloor\frac{a+b}{2}\right\rfloor.
+\]
+For an interval of real width \(w\), its distance from every enclosed number
+is at most \(w/2+Q_{\rm int}^{-1}\).  The origin and block estimates below
+explicitly charge this error; midpoint selection is never used as an
+enclosure operation.
+
+Here are the coefficient identities underlying the computation.
+If \(z(\theta)=\sum_{i\ge0}z_i\theta^i\) and
+\(b(\theta)=1/z(\theta)=\sum_{i\ge0}b_i\theta^i\), then
+\begin{equation}\label{cert:reciprocal}
+ b_0=z_0^{-1},\qquad
+ b_i=-z_0^{-1}\sum_{t=1}^i z_t b_{i-t}\quad(i\ge1).
+\end{equation}
+Writing a dot for any one parameter variation gives, for \(i\ge0\),
+\begin{equation}\label{cert:tangent-reciprocal}
+ \dot b_i=-z_0^{-1}
+ \left(\sum_{t=0}^i\dot z_t b_{i-t}
+             +\sum_{t=1}^i z_t\dot b_{i-t}\right).
+\end{equation}
+The second sum is empty at \(i=0\).  In the first sum the coefficient \(b_i\)
+has already been computed by \eqref{cert:reciprocal}.  This is exactly the
+ordering in \texttt{recip}; it includes the variation of the constant
+coefficient \(z_0\).
+
+At the origin, write \(r=s^{3/2}\) locally and
+\[
+ z=1+p=1+d+kr+\sum_{i\ge2}a_i r^i.
+\]
+Equation~\eqref{prof:ode} gives
+\begin{equation}\label{cert:origin-recurrence}
+ a_i=\frac{b_{i-2}-\mathbf1_{\{i=2\}}}
+ { (27/8)(i-1)(i+9)(i+10)},\qquad i\ge2,
+\end{equation}
+where now \(b_i\) are the coefficients of the reciprocal series in \(r\).
+The loop in \texttt{origin} computes \(a_2,\ldots,a_{60}\), together with
+their two variations under the parameter map \eqref{prof:parameters}.
+The weights for evaluation of \(p,p',p''\) at \(s=1\) are
+\[
+ 1,\qquad \frac{3i}{2},\qquad
+ \frac{3i}{2}\left(\frac{3i}{2}-1\right).
+\]
+The code subtracts the constant \(1\) from \(z\) only in the zeroth state
+entry, as required.
+
+For an ordinary Taylor step, let \(\ell=1/h\) be the block length,
+\(s_c\) the step's initial point, \(\theta=h(s-s_c)\), and
+\(\mathfrak r=hs_c+\theta\).  The equation for \(z=1+p\), with
+\(E=1+d\), is
+\begin{equation}\label{cert:scaled-ode}
+ 4\mathfrak r^3 z_{\theta\theta\theta}
+ +120\mathfrak r^2 z_{\theta\theta}
+ +751\mathfrak r z_\theta-1215(z-E)
+ =\frac{4}{h^3}\mathfrak r^3(z^{-1}-1).
+\end{equation}
+This identity also gives the four tangent equations upon differentiation.
+For completeness, put \(\mathfrak R=8hs_c\) and
+\(F_i=b_i-\mathbf1_{\{i=0\}}\), with negative-index coefficients zero.
+The scalar coefficient update used in \texttt{evolve} is
+\begin{align}
+ 4(i+1)(i+2)(i+3)\mathfrak R^3z_{i+3}
+ ={}&\frac4{h^3}\sum_{a=0}^3
+     c_a\mathfrak R^{3-a}F_{i-a}\notag\\
+ &-(96i+960)\mathfrak R^2(i+1)(i+2)z_{i+2}\notag\\
+ &-64\mathfrak R(i+1)
+       \bigl(12i(i-1)+240i+751\bigr)z_{i+1}\notag\\
+ &-512\bigl(4i(i-1)(i-2)+120i(i-1)+751i-1215\bigr)z_i\notag\\
+ &-1215\cdot512E\mathbf1_{\{i=0\}},
+ \qquad(c_0,c_1,c_2,c_3)=(1,24,192,512).
+ \label{cert:step-recurrence}
+\end{align}
+Indeed \(c_a\mathfrak R^{3-a}\) are the coefficients of
+\((\mathfrak R+8\theta)^3\).  The initial three coefficients are
+\(z_0,z_\theta(0),z_{\theta\theta}(0)/2\).
+For a tangent column one differentiates every term of
+\eqref{cert:step-recurrence}; the constant \(E\) has variation \(0,0,0,1\)
+in the four columns.  Thus the same update computes both state and tangent
+coefficients.  The values \(i=0,\ldots,43\) produce coefficients through
+degree \(46\).  Horner evaluation at \(\theta=1/8\), after the appropriate
+one or two differentiations, evaluates the three state entries through
+degrees \(46,45,44\), respectively.  The analytic justification for their
+common remainder allowance is given in Subsection~\ref{cert:disks}.
+
+\subsection{The complete error at the origin}\label{cert:origin-error}
+
+The parameter family of Lemma~\ref{prof:origin} is holomorphic on the
+complex polydisc
+\[
+ |k-k_0|\le .1,\qquad |d-d_0|\le .1,
+\]
+and its coefficients satisfy
+\begin{equation}\label{cert:origin-majorant}
+ \sum_{i\ge1}|a_i|3^i<.8,\qquad a_1=k.
+\end{equation}
+One can check the constants directly from
+\eqref{cert:origin-recurrence}: the nonfree denominators exceed \(440\),
+\(3|k|<.585\), and \(|1+d|>1.30\).  The majorant improves itself because
+\[
+ .585+\frac9{440}\left(1+\frac1{1.30-.8}\right)
+ =\frac{711}{1100}<.8.
+\]
+The reciprocal remains nonsingular throughout this construction.
+In particular the real solutions are positive up to \(s=1\).
+Also \(|d|<.501\), and \eqref{cert:origin-majorant} gives
+\[
+ |p(1)|<.501+\frac{.8}3<.768,\quad
+ |p'(1)|\le .8\max_{i\ge1}\frac{3i/2}{3^i}\le .4,\quad
+ |p''(1)|\le .8\max_{i\ge1}
+       \frac{(3i/2)(3i/2-1)}{3^i}<.534.
+\]
+In particular the uniform bound \(2\) for every jet entry is available on
+the parameter polydisc.
+
+Let
+\begin{equation}\label{cert:origin-tail}
+ E_{60}=.8\,\frac{(3\cdot61/2)^2}{3^{61}}
+       <5.267\cdot10^{-26}.
+\end{equation}
+The sequence \((3i/2)^2/3^i\) decreases for \(i\ge61\).
+Consequently \(E_{60}\) bounds the omitted tail of each of the three jet
+entries.  Cauchy's estimate in either parameter bounds the corresponding
+first derivative of this tail at the center by \(10E_{60}\).
+For the matrix in \eqref{prof:parameters}, the sum of the absolute values
+of all four entries, including the factor \(10^{-8}\), is
+\(.01169933\).  Thus the row norm of the omitted tail of the two
+\(z_*\)-variation columns is at most \(.12E_{60}\).
+
+Each of the two original parameter displacements has absolute value at most
+\(.011R\).  The multivariable Cauchy estimate, with
+\(t_*=.11R\), bounds the terms of total degree at least two in the parameter
+expansion of any jet entry by
+\begin{equation}\label{cert:parameter-tail}
+ E_{\rm par}
+ =2\sum_{j\ge2}(j+1)t_*^j
+ =2\bigl((1-t_*)^{-2}-1-2t_*\bigr)
+ <1.816\cdot10^{-20}.
+\end{equation}
+The factor \(j+1\) counts the monomials of total degree \(j\) in two
+parameters.
+
+The width assertion in \texttt{origin} bounds every computed state or
+variation interval by \(10^{-20}\).
+Let \(U_0\in\R^3\) be the three selected state midpoints.
+Let \(Z\) have their two selected variation columns in its first three
+rows, and in its fourth row the exact second row of the parameter map
+\eqref{prof:parameters}.  The code stores intervals containing that exact
+fourth row; its matrix estimates therefore apply to this choice of \(Z\).
+Combining the state midpoint error, the state and variation tails,
+the two variation midpoint errors, and \eqref{cert:parameter-tail}, gives
+\begin{align}
+ \left\|
+ \begin{pmatrix}p(1)\\p'(1)\\p''(1)\\d\end{pmatrix}
+ -\begin{pmatrix}U_0\\d_0\end{pmatrix}-Zz_*
+ \right\|_\infty
+ &\le 5\cdot10^{-21}+E_{60}+E_{\rm par}
+        +.12E_{60}R+10^{-20}R+\frac3{Q_{\rm int}}\notag\\
+ &<2.316\cdot10^{-20}<2\cdot10^{-19}.
+ \label{cert:initial-error}
+\end{align}
+The fourth component of the error is exactly zero.
+All uncertainty in the interval construction of the central rational
+parameters is already included in the width assertion.
+
+\subsection{Analytic continuation and Taylor remainder on a step}
+\label{cert:disks}
+
+The 288 blocks run from \(s=1\) to \(s=56\), with the following lengths:
+\[
+ \begin{array}{c|c|c}
+ \text{range}&\ell&\text{number of blocks}\\ \hline
+ {[1,2]}&1/32&32\\
+ {[2,4]}&1/16&32\\
+ {[4,8]}&1/8&32\\
+ {[8,56]}&1/4&192.
+ \end{array}
+\]
+Each block consists of eight Taylor steps of length \(\ell/8\).
+At every step start the interval assertions imply, for the exact reference
+state,
+\begin{equation}\label{cert:step-start}
+ -.76<p(0)<.4,\qquad |p_\theta(0)|<.06,\qquad
+ |p_{\theta\theta}(0)|<.01.
+\end{equation}
+Every entry in the first three rows of the four-column scaled variation
+matrix has modulus less than \(6\); its fourth row is \((0,0,0,1)\).
+The step schedule gives \(hs_c\ge32\).
+
+We now justify an analytic bound on the full complex disk
+\(|\theta|\le1/2\), using only these starting bounds.
+On a disk where \(|p(\theta)-p(0)|\le.1\), one has
+\[
+ |\mathfrak r|\ge31.5,\qquad |1+p|>.14,\qquad
+ |p|<.86,\qquad |p-d_0|<1.3.
+\]
+Let \(H_2\) be the supremum of \(|p_{\theta\theta}|\) on any smaller
+concentric disk.  Integrate the equation for \(p_{\theta\theta}\)
+along radial line segments and apply the integral Gronwall inequality.
+Since
+\[
+ \frac{30}{31.5}<.954,\qquad
+ \frac{B}{31.5^2}<.190,\qquad
+ \frac{|C|}{31.5^3}<.011,\qquad h^{-3}\le.015625,
+\]
+and \(|p_\theta|\le .06+H_2/2\), this gives
+\begin{equation}\label{cert:disk-h2}
+ H_2\le
+ e^{.954/2}\left[
+ .01+\frac12\left\{.190(.06+H_2/2)
+               +.011\cdot1.3+.015625\frac{.86}{.14}\right\}\right].
+\end{equation}
+The coefficient of \(H_2\) on the right is less than one.
+Solving this linear inequality yields \(H_2<.123602<.13\).
+Therefore
+\begin{equation}\label{cert:disk-displacement}
+ |p(\theta)-p(0)|\le .06/2+.13/8=.04625<.1.
+\end{equation}
+This strictly improves the bootstrap.  On every disk of radius at most
+\(1/2\), the state and its first two derivatives are bounded and both
+denominators \(\mathfrak r\) and \(1+p\) stay uniformly away from zero.
+The local holomorphic ODE theorem then continues the solution across any
+putative boundary of its disk of existence.  Uniqueness makes the
+continuations agree.  Thus the solution is holomorphic on a neighborhood
+of the closed disk of radius \(1/2\), with the displayed bounds.
+
+In the scaled state \((p,p_\theta,p_{\theta\theta},d)\), the Jacobian is
+\begin{equation}\label{cert:scaled-jacobian}
+ \mathcal J(\theta)=
+ \begin{pmatrix}
+ 0&1&0&0\\
+ 0&0&1&0\\
+ -C/\mathfrak r^3-h^{-3}/(1+p)^2&
+       -B/\mathfrak r^2&-30/\mathfrak r&C/\mathfrak r^3\\
+ 0&0&0&0
+ \end{pmatrix}.
+\end{equation}
+On the complex disk its norm is bounded by the maximum of \(1\) and
+\[
+ \frac{30}{31.5}+\frac{751/4}{31.5^2}
+       +\frac{1215/2}{31.5^3}+\frac{1/64}{.14^2}<2.1.
+\]
+Each actual variation column, with initial norm at most \(6\), consequently
+has norm at most \(6e^{2.1/2}<17.146<32\) throughout the disk.
+The state entries themselves also have modulus less than \(32\).
+These estimates apply to the actual block variation already propagated
+from the block's initial identity matrix; a new identity is not assumed
+at each substep.
+
+If a scalar holomorphic function is bounded by \(32\) on this disk,
+Cauchy's coefficient estimate gives a tail after degree \(44\), at
+\(\theta=1/8\), bounded by
+\begin{equation}\label{cert:step-tail}
+ 32\sum_{i\ge45}\left(\frac{1/8}{1/2}\right)^i
+ =\frac{128}{3}\,4^{-45}<48\,4^{-45}.
+\end{equation}
+Every state entry and every tangent entry is approximated to at least
+degree \(44\).  Hence the allowance \(48\,4^{-45}\) added by
+\texttt{evolve} encloses all their Taylor tails.  The interval recurrences
+then inductively enclose the exact reference solution and its exact
+first variation through all eight substeps.
+
+On a real substep, the sharper displacement bound is
+\begin{equation}\label{cert:real-step-displacement}
+ |p(\theta)-p(0)|
+ \le .06/8+\frac{.13}{2\cdot8^2}
+ =.008515625<.01.
+\end{equation}
+Accordingly, the smallest lower starting endpoint for \(1+p\), reduced
+by \((\lfloor Q_{\rm int}/100\rfloor+1)/Q_{\rm int}>.01\), is a valid
+lower bound \(m_j\) on the entire reference block.  This is the variable
+\texttt{mini} divided by \(Q_{\rm int}\).
+
+\subsection{The finite inequalities and their exact interpretation}
+\label{cert:ledger}
+
+Write the block endpoints as \(s_0=1,\ldots,s_N=56\), \(N=288\).
+On block \(j\), the reference solution has initial physical jet \(U_j\)
+and parameter \(d_0\); it is evolved exactly on that block.
+The rounded jet selected for the next block is \(U_{j+1}\).
+Let \(M_j\) be the exact \(4\times4\) transfer of the linearized
+four-component physical state along this reference block.
+
+The conversion from scaled derivatives to physical derivatives is essential.
+With
+\[
+ S_j=\diag(1,\ell_j,\ell_j^2,1),
+\]
+a scaled transfer \(T\) becomes \(S_j^{-1}TS_j\).
+Thus its entry in row \(a\), column \(b\), for \(a,b\in\{0,1,2\}\),
+is multiplied by \(h_j^a/h_j^b\); column \(3\) is multiplied by \(h_j^a\).
+The fourth row remains \((0,0,0,1)\).
+The code performs this conversion before asserting the widths.
+Consequently its assertions imply
+\begin{equation}\label{cert:local-errors}
+ \big\|U_{j+1}- (p_{\rm ref},p'_{\rm ref},p''_{\rm ref})
+                         (s_{j+1})\big\|_\infty<10^{-19},
+ \qquad
+ |(M_j-\widetilde M_j)_{ab}|<10^{-15},
+\end{equation}
+where \(\widetilde M_j\) is the selected matrix of transfer midpoints.
+The state and transfer widths are, respectively, less than
+\(10^{-19}\) and \(10^{-15}\); the stated looser midpoint bounds follow
+from the midpoint estimate in Subsection~\ref{cert:arithmetic}.
+All fourth-component errors in \eqref{cert:local-errors} are zero.
+
+Define the products of these point matrices by
+\[
+ \widetilde T_{i,j}=
+ \widetilde M_{i-1}\cdots\widetilde M_j\quad (i>j),
+ \qquad \widetilde T_{i,i}=I_4.
+\]
+The exact integer comparisons in \texttt{check} give
+\begin{align}
+ m_j&>.23,\qquad \|Z\|<.02,\notag\\
+ \max_{i\ge j}\|\widetilde T_{i,j}\|&\le8500,
+ &\max_i\sum_{j<i}\|\widetilde T_{i,j+1}^{(3)}\|&\le570000,\notag\\
+ \max_i\sum_{j<i}\frac{\ell_j}{m_j^3}
+                \|\widetilde T_{i,j+1}^{(3)}\|&\le246000,
+ &\max_i\|\widetilde T_{i,0}Z\|&\le2.7.
+ \label{cert:finite-products}
+\end{align}
+Here and below a maximum over endpoints includes endpoint \(0\);
+the assertion for it follows from \(\|Z\|<.02\).
+
+To explain the summation indices, for each endpoint \(i\) the inner loop
+starts with the identity and takes \(j=i-1,\ldots,0\).
+Immediately before multiplying by \(\widetilde M_j\), its current interval
+matrix encloses \(\widetilde T_{i,j+1}\).
+The update \texttt{T=mm(T,allm[j])} therefore produces the desired forward
+product in the correct order.  If \(r_j=Q_{\rm int}m_j\) and \(\mathfrak d\)
+is the integer interval bound for the leading \(3\times3\) norm, then
+\[
+ \frac{\mathfrak d Q_{\rm int}^{\,2}}{h_jr_j^3}
+ =\frac{\ell_j}{m_j^3}\frac{\mathfrak d}{Q_{\rm int}}.
+\]
+The expression used for \texttt{K} is its floor plus one, hence an upper
+bound even when the quotient is integral.  Thus the interval product
+arithmetic and the weighted sum both round in the required direction.
+
+Let \(P_{\rm a}(d)=(p_{\rm a},p'_{\rm a},p''_{\rm a})(56)\), and put
+\(Y=(\widetilde T_{N,0}Z)_{\mathrm{top}\,3}\).
+The final comparisons in \texttt{check} give
+\begin{align}
+ \|U_N-P_{\rm a}(d_0)\|_\infty&<.04R,&
+ \|\Lambda(U_N-P_{\rm a}(d_0))\|_\infty&<.006R,\notag\\
+ \|(\Lambda Y)_{1,\cdot}\|_{\rm row}&<.116,&
+ \|(\Lambda Y)_{\mathrm{bottom}\,2}-I_2\|&<.001.
+ \label{cert:finite-matching}
+\end{align}
+The jet factors used for the term \(d_m s^{-3m}\) are
+\(1,-3m,3m(3m+1)\), with denominators \(56^{3m}\),
+\(56^{3m+1}\), \(56^{3m+2}\), respectively.
+After multiplication by \(d_m\), these give its value and first two
+derivatives at \(s=56\).
+The index test in the last assertion subtracts the \(2\times2\) identity
+from the two nonreal-coordinate rows.
+
+The listed comparisons are finite integer statements: the displayed source
+constructs their operands and asserts them.  Subsection~\ref{cert:provenance} gives the command for checking them
+with assertions enabled.
+The preceding recurrence and disk arguments prove that these finite
+statements bound the specified analytic trajectories and variations.
+
+\subsection{Transfer errors and estimates within a block}
+\label{cert:transfer-errors}
+
+Let \(T_{i,j}=M_{i-1}\cdots M_j\) be the exact products.
+By \eqref{cert:local-errors},
+\(\|M_j-\widetilde M_j\|<4\cdot10^{-15}\).
+Expand a product of at most \(288\) factors, choosing the error factor at
+\(k\) positions.  Each intervening, possibly empty, product of approximate
+factors has norm at most \(8500\), by \eqref{cert:finite-products}.
+Summing the bounds for \(k\ge1\) gives
+\begin{equation}\label{cert:product-perturbation}
+ \|T_{i,j}-\widetilde T_{i,j}\|
+ \le8500\left[(1+4\cdot10^{-15}\cdot8500)^{288}-1\right]
+ <.001.
+\end{equation}
+In particular \(\|T_{i,j}\|<8501\).  Since the lengths of all the
+blocks sum to \(55\), \eqref{cert:finite-products} implies
+\begin{equation}\label{cert:exact-sums}
+ \max_i\sum_{j<i}\|T_{i,j+1}^{(3)}\|\le580000,\qquad
+ \max_i\sum_{j<i}\frac{\ell_j}{m_j^3}
+             \|T_{i,j+1}^{(3)}\|\le250000,
+\end{equation}
+using the elementary comparisons
+\[
+ 570000+288\cdot.001<580000,\qquad
+ 246000+\frac{55\cdot.001}{.23^3}<250000.
+\]
+Also
+\begin{equation}\label{cert:linear-size}
+ \|T_{i,0}Z\|\le2.7+.001\cdot.02<2.72.
+\end{equation}
+
+We need two estimates for transfers between any two ordered points of
+one reference block, including points in different Taylor substeps.
+The real scaled Jacobian \eqref{cert:scaled-jacobian} has norm at most
+\[
+ L_{\rm real}=
+ \max\left\{1,\frac{30}{32}+\frac{751/4}{32^2}
+                  +\frac{1215/2}{32^3}
+                  +\frac{1/64}{.23^2}\right\}.
+\]
+An interval of at most one block unit therefore has scaled transfer norm
+at most \(e^{L_{\rm real}}<4.3\).
+Let \(\Phi_j(s,t)\) denote its physical transfer.
+Conjugation by \(S_j\) does not increase either the first-row norm or the
+maximum norm of the third column: in the first row the scaling factors
+are \(1,\ell_j,\ell_j^2,1\), and in the third column they are
+\(\ell_j^2,\ell_j,1,\ell_j^2\).
+Thus, with \(e_3=(0,0,1,0)^t\),
+\begin{equation}\label{cert:partial-transfer}
+ \|(\Phi_j(s,t))_{1,\cdot}\|_{\rm row}\le4.3,\qquad
+ \|\Phi_j(s,t)e_3\|_\infty\le4.3
+ \quad(s_j\le t\le s\le s_{j+1}).
+\end{equation}
+Only these two parts of a physical transfer are needed.  Its full norm
+need not satisfy the same estimate.
+
+All exponential comparisons just used, and the one in
+\eqref{cert:disk-h2}, can be checked by rational arithmetic.
+For \(0\le x<82\), let
+\[
+ E_{80}(x)=\sum_{j=0}^{80}\frac{x^j}{j!}
+ +\frac{x^{81}}{81!}\frac1{1-x/82}.
+\]
+The positive exponential tail has successive ratios at most \(x/82\),
+so \(e^x\le E_{80}(x)\).
+Substituting the displayed rational values in this formula verifies all
+the strict numerical comparisons.  The supplementary
+\texttt{verification/arithmetic\_allowances.py} performs these rational
+checks, including \eqref{cert:initial-error},
+\eqref{cert:product-perturbation}, and the remaining comparisons below.
+
+\subsection{Uniform nonlinear error and closure of the bootstrap}
+\label{cert:nonlinear}
+
+Fix \(z_*\in[-R,R]^2\).  On each block compare its actual shot with the
+reference solution on that block, and write \(\delta p=p-p_{\rm ref}\).
+For the only nonlinear term in the physical third-component equation,
+\[
+ -\frac{p}{1+p}
+ +\frac{p_{\rm ref}}{1+p_{\rm ref}}
+ +\frac{\delta p}{(1+p_{\rm ref})^2}
+ =\frac{(\delta p)^2}{(1+p_{\rm ref})^2(1+p)}.
+\]
+It follows that the difference equation, beyond the reference
+linearization, has forcing \(e_3\mathcal N\), where
+\begin{equation}\label{cert:nonlinear-remainder}
+ |\mathcal N|=
+ \frac{|\delta p|^2}{|1+p_{\rm ref}|^2|1+p|}.
+\end{equation}
+The \(d\)-dependence is linear and is already included in the fourth
+variation component.
+
+Temporarily assume \(|\delta p|\le14R\) throughout the portions of the
+blocks reached so far.  Since \(m_j>.23\) and
+\(m_j/(m_j-14R)<1.001\), \eqref{cert:nonlinear-remainder} implies
+\[
+ |\mathcal N|\le\frac{1.001(14R)^2}{m_j^3}.
+\]
+The error accumulated by the end of block \(j\), before multiplication
+by subsequent complete-block transfers, has zero fourth component.
+Its norm is bounded by
+\[
+ 10^{-19}
+  +4.3\,\ell_j\frac{1.001(14R)^2}{m_j^3}.
+\]
+The first term is the reference jump
+\eqref{cert:local-errors}; the second follows by variation of constants
+and the third-column estimate in \eqref{cert:partial-transfer}.
+
+Define the endpoint error \(e_i\) by
+\[
+ \begin{pmatrix}p(s_i)\\p'(s_i)\\p''(s_i)\\d\end{pmatrix}
+ =\begin{pmatrix}U_i\\d_0\end{pmatrix}
+          +T_{i,0}Zz_*+e_i.
+\]
+Its fourth component is zero.  By \eqref{cert:initial-error},
+\eqref{cert:exact-sums}, and the preceding local error estimate,
+\begin{align}
+ \|e_i\|_\infty
+ &\le580000\cdot10^{-19}+8501\cdot(2\cdot10^{-19})
+       +4.3\cdot250000\cdot1.001(14R)^2\notag\\
+ &=.1055747504R<.11R.
+ \label{cert:endpoint-error}
+\end{align}
+For an interior point of a block, the first-row estimate in
+\eqref{cert:partial-transfer}, \eqref{cert:linear-size}, and the forcing
+estimate give
+\begin{align}
+ |\delta p|
+ &\le4.3(2.72+.11)R
+      +4.3\frac{1.001(14R)^2}{.23^3}\notag\\
+ &<12.169035R<14R.
+ \label{cert:bootstrap-improvement}
+\end{align}
+Here replacing the remaining block length by \(1\) is a harmless
+overestimate.  This improves the bootstrap strictly both at block starts
+and in block interiors, including the reference jumps.
+At \(s=1\) it starts from \(\|Z\|<.02\) and
+\eqref{cert:initial-error}.  Continuation over the finitely many blocks
+therefore proves \eqref{cert:endpoint-error} at every block endpoint.
+
+For clarity, existence is part of this continuation argument.
+As long as the bootstrap holds, \(1+p\ge .23-14R>0\).
+On the finite interval \(1\le s\le56\), the equations for \(p'\) and
+\(p''\) form a linear system with bounded coefficients and bounded forcing
+once \(p\) stays in this range.  Gronwall's inequality bounds these
+derivatives on every such interval.  Thus no other finite-time escape
+can interrupt continuation.  Positivity before \(s=1\) was established
+in Subsection~\ref{cert:origin-error}.  This proves the existence and
+positivity statements of Proposition~\ref{cert:shoot}.
+
+\subsection{Projection at the matching point}\label{cert:projection}
+
+Let \(\Gamma\) denote the exact real coordinate matrix of
+\eqref{prof:coordinates}.
+Lemma~\ref{prof:root-bounds} gives
+\[
+ |\Gamma_{ab}-\Lambda_{ab}|<.001,
+ \qquad
+ \|\Gamma_{1,\cdot}\|_{\rm row}<.92,\qquad
+ \|\Gamma_{a,\cdot}\|_{\rm row}<.68\quad(a=2,3).
+\]
+Thus \(\|\Gamma-\Lambda\|<.003\).
+The polynomial \(P_{\rm a}\) also satisfies
+\begin{equation}\label{cert:pa-variation}
+ \|P_{\rm a}(d)-P_{\rm a}(d_0)\|_\infty
+ \le .01|d-d_0|\le .01\cdot.011R;
+\end{equation}
+this follows by differentiating the four explicit coefficients in
+\eqref{prof:asymptotic-polynomial}, as detailed in the proof of
+Lemma~\ref{prof:tail-residual}.
+
+Set \(A_*=U_N-P_{\rm a}(d_0)\).
+The endpoint error and transfer error give
+\[
+ \begin{pmatrix}p\\p'\\p''\end{pmatrix}(56)-P_{\rm a}(d)
+ = A_*+Yz_*+\epsilon_*
+       -\bigl(P_{\rm a}(d)-P_{\rm a}(d_0)\bigr),
+ \qquad
+ \|\epsilon_*\|_\infty\le
+       \bigl(.11+.001\cdot.02\bigr)R.
+\]
+In fact \(\epsilon_*\) is the sum of the top three entries of \(e_N\)
+and \(((T_{N,0}-\widetilde T_{N,0})Zz_*)_{\mathrm{top}\,3}\).
+Apply one row of \(\Gamma\).
+The contribution of \(A_*\), using \eqref{cert:finite-matching}, is at
+most \((.006+.003\cdot.04)R\).
+For the first row the linear contribution is bounded by
+\((.116+.003\cdot2.7)R\).
+For row \(a=2,3\), after subtracting the corresponding coordinate of
+\(z_*\), it is bounded by \((.001+.003\cdot2.7)R\).
+The remaining contribution is bounded by the row norm of \(\Gamma\)
+times
+\[
+ \bigl(.11+.001\cdot.02+.01\cdot.011\bigr)R.
+\]
+Consequently, in units of \(R\), the two required estimates are
+\begin{align*}
+ |q|/R
+ &\le .006+.003\cdot.04+.116+.003\cdot2.7
+       +.92(.11+.001\cdot.02+.01\cdot.011)\\
+ &=.2315396<.25,\\
+ \big\|(\Re\xi,\Im\xi)-z_*\big\|_\infty/R
+ &\le .006+.003\cdot.04+.001+.003\cdot2.7
+       +.68(.11+.001\cdot.02+.01\cdot.011)\\
+ &=.0901084<.13.
+\end{align*}
+These are exact rational comparisons and establish
+\eqref{cert:conclusion}, completing the proof of
+Proposition~\ref{cert:shoot}.
+
+\subsection{Executable source and reproducibility}
+\label{cert:provenance}
+
+The complete source printed in Appendix~\ref{app:code} is
+\texttt{verification/certificate.py}, comprising \(6594\) UTF-8 bytes.
+Its SHA-256 digest is
+\begin{center}\small\ttfamily
+263389fd7217d84d0e5b66869797fc9f7998\\
+309d524a95f7ad7d3d0f538ea742
+\end{center}
+where the line break is for typesetting only.
+It uses no imported libraries, floating-point operations, external data,
+or platform-dependent numerical routines.  From the paper directory,
+the verification command is
+\begin{quote}\ttfamily
+python3 verification/certificate.py
+\end{quote}
+with Python assertions enabled (no \texttt{-O} or \texttt{-OO}, and no
+\texttt{PYTHONOPTIMIZE} setting that disables assertions).
+The program is silent when every assertion succeeds.
+
+The supplementary rational check
+\begin{quote}\ttfamily
+python3 verification/arithmetic\_allowances.py
+\end{quote}
+verifies the analytic allowances used above by exact fraction arithmetic;
+its decimal report is descriptive only.
+The optional script \texttt{verification/tail-check.py} checks the explicit
+root and tail estimates in Section~\ref{sec:profile} by exact rational
+arithmetic.
+The finite integer assertions, the analytic enclosure argument in
+Subsections~\ref{cert:origin-error}--\ref{cert:disks}, and the nonlinear
+argument in Subsections~\ref{cert:transfer-errors}--\ref{cert:projection}
+together prove the finite shooting proposition.

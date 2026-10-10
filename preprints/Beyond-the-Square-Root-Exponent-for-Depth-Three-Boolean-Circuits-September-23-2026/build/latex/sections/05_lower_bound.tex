@@ -1,0 +1,141 @@
+\section{The depth-three circuit lower bound}\label{sec:lower-bound}
+
+We now combine the two structural lemmas with the hard slices.
+The order of choices is useful: fix the proposed circuit exponent \(A\),
+then choose constants \(B,b\), and only then let the input length grow.
+All choices of parameter bits remain restrictions of the language already
+defined.
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+Proposition~\ref{prop:polytime} supplies the single polynomial-time
+machine.  Fix \(A>0\), and put
+\[
+\begin{gathered}
+ d=\floor{n/5},\qquad s=3A,\qquad B=64(s+1),\\
+ p=\frac{B}{\sqrt d},\qquad m_0=B\sqrt d,\qquad
+ k=\ceil{3(s+1)\sqrt d}.
+\end{gathered}
+\]
+All subsequent assertions hold for every sufficiently large \(n\),
+with the threshold allowed to depend on \(A\).
+In particular, \(0<p\le1/2\) and \(n\le9d\), so
+\begin{equation}\label{eq:circuit-size-scale}
+ 2^{A\sqrt n}\le2^{s\sqrt d}.
+\end{equation}
+
+\paragraph{Choose a constant target width.}
+Since \(k\le[3(s+1)+1]\sqrt d\) for \(d\ge1\), we have
+\[
+ \frac{2pk}{1-p}\le Q,\qquad
+ Q=4B[3(s+1)+1].
+\]
+Choose an integer \(b\ge1\), depending only on \(A\), so large that
+\begin{equation}\label{eq:factorial-tail-choice}
+ \sum_{\ell>b}\frac{Q^\ell}{\ell!}\le\frac12.
+\end{equation}
+Such a choice exists: once \(\ell+1\ge2Q\), successive terms have
+ratio at most \(1/2\), and the tails tend to zero.
+Using \(\binom{k}{\ell}\le k^\ell/\ell!\), the parameter of
+Lemma~\ref{lem:restriction} satisfies
+\begin{equation}\label{eq:theta-half}
+ \theta=\sum_{\ell=b+1}^k
+       \binom{k}{\ell}\left(\frac{2p}{1-p}\right)^\ell
+ \le\sum_{\ell>b}\frac{Q^\ell}{\ell!}\le\frac12.
+\end{equation}
+This is the only place where the desired circuit exponent affects the
+target width.
+
+\paragraph{Transfer correlation to width \(k\).}
+Fix a setting of the non-data bits supplied by
+Proposition~\ref{prop:good-slices}, and let \(g:\bits^d\to\{-1,1\}\)
+be the sign of that slice.
+Call a restriction good if it lies outside the failure event in
+\eqref{eq:good-slices}.  On such a restriction,
+\[
+ \corr_b(g_{T,\rho})
+ \le2^{-|T|/8}\le2^{-m_0/16}.
+\]
+The exceptional probability is at most \(4\cdot2^{-m_0/16}\).
+
+For any fixed \(H\in\mathcal C_k([d])\),
+Lemma~\ref{lem:restriction} gives a nonnegative \(W_H\) with
+\(\E W_H\le2\) and
+\(\abs{\E_z g_{T,\rho}H_{T,\rho}}\le W_H\corr_b(g_{T,\rho})\).
+On an exceptional restriction the same absolute correlation is at
+most one, since \(g\) is a sign and \(H\) is an indicator.
+Equation~\eqref{eq:restriction-expectation} therefore yields
+\begin{align}
+ \abs{\E_xg(x)H(x)}
+ &\le 2^{-m_0/16}\E[W_H\one_{\mathrm{good}}]
+        +\Pr[\mathrm{not\ good}]\notag\\
+ &\le6\cdot2^{-m_0/16}.
+ \label{eq:wide-correlation}
+\end{align}
+The good event and \(W_H\) need not be independent.
+Moreover, the setting of the non-data bits was fixed before \(H\)
+was chosen: the good event controls all width-\(b\) tests simultaneously,
+and the restriction lemma applies to each width-\(k\) test.
+Thus \eqref{eq:wide-correlation} holds for every such \(H\)
+for this one slice.
+
+The constant true test is a width-\(k\) CNF.  Applying
+\eqref{eq:wide-correlation} to it gives
+\(\abs{\E g}\le6\cdot2^{-m_0/16}\).
+The accepted set of the slice consequently has density
+\begin{equation}\label{eq:accepted-density}
+ \Pr[g=1]=\frac{1+\E g}{2}\ge\frac14
+\end{equation}
+for every sufficiently large \(n\).
+
+\paragraph{Remove wide bottom clauses and count every gate.}
+Suppose, for a contradiction, that the \(n\)-bit membership function
+has an OR--AND--OR circuit with \(S\le2^{A\sqrt n}\) total gates.
+Delete every gate with no directed path to the output, so every
+remaining middle gate feeds the top OR.
+Fix its non-data inputs to the setting just chosen.
+This does not increase its number of gates.
+There are at most \(S\) middle AND gates.  Each is the indicator
+of a CNF \(H\) whose clauses are the outputs of its distinct bottom
+OR gates, and hence it has at most \(S\) clauses.
+A bottom gate shared between several middle gates still supplies at
+most one clause to each; repeated wires can be removed.
+
+Normalize the clauses after the inputs are fixed.  A middle gate with a
+false clause computes zero and can be omitted.  For any remaining
+middle CNF \(H\), delete every clause of width greater than \(k\),
+and denote the resulting width-\(k\) CNF by \(H'\).
+Then \(H'\ge H\).  A normalized clause of width \(\ell>k\)
+is false on a fraction \(2^{-\ell}\le2^{-k}\) of the cube,
+so a union bound over its at most \(S\) deleted clauses gives
+\begin{equation}\label{eq:clause-truncation}
+ \E(H'-H)\le S2^{-k}.
+\end{equation}
+Every input accepted by \(H\) is accepted by the top OR, which computes
+the slice exactly.  Hence \(gH=H\) pointwise, and
+\begin{align}
+ \E H=\E(gH)
+ &\le \abs{\E(gH')}+\E(H'-H)\notag\\
+ &\le 6\cdot2^{-m_0/16}+S2^{-k}.
+ \label{eq:middle-gate-density}
+\end{align}
+Here \(\abs{g}=1\) bounds the truncation error, and
+\eqref{eq:wide-correlation} bounds the first term.
+
+The accepted set is the union of the sets accepted by the middle gates.
+Summing \eqref{eq:middle-gate-density} over at most \(S\) of them,
+and using \eqref{eq:circuit-size-scale}, gives
+\begin{align}
+ \Pr[g=1]
+ &\le6S2^{-m_0/16}+S^2 2^{-k}\notag\\
+ &\le6\cdot2^{-(3s+4)\sqrt d}
+           +2^{-(s+3)\sqrt d}\longrightarrow0.
+ \label{eq:final-contradiction}
+\end{align}
+Indeed, \(m_0/16=4(s+1)\sqrt d\) and
+\(k\ge3(s+1)\sqrt d\).
+This contradicts \eqref{eq:accepted-density}.
+For the fixed \(A\), every sufficiently large \(n\) therefore satisfies
+\(S_3(f_n)>2^{A\sqrt n}\).
+Since \(A>0\) was arbitrary and the language and its machine are fixed,
+Theorem~\ref{thm:main} follows.
+\end{proof}

@@ -1,0 +1,113 @@
+\section{Complexity in the full binary input length}
+\label{sec:complexity}
+
+We first bound the recursion independently of the cost of solving an
+ordinary mean-payoff game.  This separates the combinatorial reduction
+from the numerical subroutine and shows exactly where the full binary
+encoding enters the running time.
+
+\begin{proposition}[Cost of the reduction]
+\label{prop:reduction-cost}
+For an arena with $n\ge1$ vertices and complete binary input length $L$,
+the call $\Solve(G,(n,n))$ makes
+\[
+ 2^{O((\log_2(n+2))^2)}
+\]
+calls to the ordinary mean-payoff winning-set subroutine.  Each such
+call has an explicit input of length $(L+2)^{O(1)}$.  Apart from those
+subroutine calls, the computation takes
+\[
+ 2^{O((\log_2(n+2))^2)}(L+2)^{O(1)}
+\]
+bit operations.  All constants are absolute.
+\end{proposition}
+
+\begin{proof}
+Consider the tree of calls to $\Solve$, counting its immediate base
+cases as nodes.  Every child omits the minimum priority of its parent's
+input arena.  Thus a path has at most $n$ edges, independently of the
+numerical values of the priorities.
+
+Each node has at most one child with both size bounds unchanged.
+Every other child has one bound halved, with rounding down.  In either
+phase, a child is followed by a nonempty deletion unless that phase
+returns.  Each phase therefore makes at most $n+1$ child calls, giving
+at most
+\[
+ M=2(n+1)
+\]
+children with a halved bound at a node.  Along a path, either one of the
+two size bounds can be halved at most $1+\lfloor\log_2 n\rfloor$
+times before reaching zero, where the recursion stops.  Consequently,
+there are at most
+\[
+ h=2(1+\lfloor\log_2 n\rfloor)
+\]
+halving edges on any path.
+
+The resulting path count is the same combinatorial saving that
+underlies reduced-precision parity recursion~\cite{Parys2019}.
+For a path of length $\ell$ with $j$ halving edges, choose their
+positions and, at each one, the child index among at most $M$ halving
+children.  At every remaining position there is at most one available
+unchanged-bounds child.  This gives at most $\binom{\ell}{j}M^j$ paths
+of that type.  As each node is specified by its root-to-node path, the
+total number of calls $N_{\rm rec}$ satisfies
+\begin{align}
+\label{eq:recursion-count}
+ N_{\rm rec}
+ &\le \sum_{\ell=0}^{n}\sum_{j=0}^{\min(\ell,h)}
+          \binom{\ell}{j}M^j\\
+ &\le (n+1)(h+1)(nM)^h
+  =2^{O((\log_2(n+2))^2)}.\nonumber
+\end{align}
+The second inequality uses $\binom{\ell}{j}\le n^j$ and $nM\ge1$;
+it also covers $n=1$.
+
+We next count the nonrecursive work at a node.  A phase iteration that
+continues deletes at least one vertex.  The two phases together
+therefore make at most $n+2$ iterations, allowing one final return
+iteration for each phase.  In particular, they make $O(n+1)$ ordinary
+mean-payoff calls.  Attractor computations, construction of induced
+subarenas, scans for minimum priorities, and updates of the two size
+bounds all take polynomially many bit operations in $L+2$.  No step
+iterates through the integers between two successive priority values:
+minimum priorities and equality tests are computed directly from their
+binary encodings.
+
+All mean-payoff instances use induced subarenas of the original graph,
+with the weights $w(v,u)=r(v)$.  Renumbering retained vertices uses only
+polynomial space and time.  Even if the reward $r(v)$ is copied
+explicitly onto every retained outgoing edge, the total number of
+weight bits is at most the number of edges times the largest original
+reward bit length, hence polynomial in $L+2$.  The rest of each
+subroutine input is also polynomial in $L+2$.  This proves the claimed
+input-length bound without a dependence on the numerical magnitude
+of a reward.  Combining these per-node bounds with
+\eqref{eq:recursion-count} proves the proposition.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+The empty arena has an empty winning set and is handled immediately.
+For a nonempty arena, the output of $\Solve(G,(n,n))$ is exact by
+Theorem~\ref{thm:labels} and the winning-region argument at the end of
+Section~\ref{sec:algorithm}.
+
+Proposition~\ref{prop:mp-interface} implements each ordinary mean-payoff
+call of input length $L'$ in
+$2^{O((\log_2(L'+2))^2)}$ bit operations, uniformly and deterministically.
+By Proposition~\ref{prop:reduction-cost}, there is an absolute constant
+$a$ such that $L'\le(L+2)^a$ for every call, after increasing $a$ if
+necessary.  Its cost is therefore
+$2^{O((\log_2(L+2))^2)}$.  The number of calls and all remaining work
+have the same bound, since $n$ is polynomially bounded by the explicit
+input length.  Their product is again
+\[
+ 2^{O((\log_2(L+2))^2)}.
+\]
+All graph operations and recursion choices admit deterministic
+implementations, so the complete procedure has the stated uniform
+deterministic bit complexity.  In particular, the constants do not
+depend on the number of priorities or on the numerical sizes of the
+binary rewards and priorities.
+\end{proof}

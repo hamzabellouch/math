@@ -1,0 +1,503 @@
+
+\ProvidesFileRCS{pgfcoretransformations.code.tex}
+
+
+
+\newdimen\pgf@pt@x
+\newdimen\pgf@pt@y
+
+\newdimen\pgf@pt@temp
+
+\newif\ifpgf@pt@identity
+\pgf@pt@identitytrue
+
+\def\pgf@pt@aa{1.0} \def\pgf@pt@ab{0.0}
+\def\pgf@pt@ba{0.0} \def\pgf@pt@bb{1.0}
+
+
+
+
+\def\pgfgettransform#1{%
+  \edef#1{{\pgf@pt@aa}{\pgf@pt@ab}{\pgf@pt@ba}{\pgf@pt@bb}{\the\pgf@pt@x}{\the\pgf@pt@y}}%
+}
+
+\def\pgfgettransformentries#1#2#3#4#5#6{%
+  \edef#1{\pgf@pt@aa}%
+  \edef#2{\pgf@pt@ab}%
+  \edef#3{\pgf@pt@ba}%
+  \edef#4{\pgf@pt@bb}%
+  \edef#5{\the\pgf@pt@x}%
+  \edef#6{\the\pgf@pt@y}%
+}%
+\def\pgfsettransformentries#1#2#3#4#5#6{%
+  \pgfsettransform{{#1}{#2}{#3}{#4}{#5}{#6}}%
+}%
+
+
+\def\pgfsettransform#1{%
+  \edef\pgf@temp{#1}%
+  \expandafter\pgf@settransform\pgf@temp%
+}
+\def\pgf@settransform#1#2#3#4#5#6{%
+  \def\pgf@pt@aa{#1}%
+  \def\pgf@pt@ab{#2}%
+  \def\pgf@pt@ba{#3}%
+  \def\pgf@pt@bb{#4}%
+  \pgf@pt@x=#5%
+  \pgf@pt@y=#6%
+  \edef\pgf@idtest{#1,#2,#3,#4}%
+  \ifx\pgf@idtest\pgf@idmatrixtext%
+    \pgf@pt@identitytrue%
+  \else%
+    \pgf@pt@identityfalse%
+  \fi%
+}
+
+\def\pgf@idmatrixtext{1.0,0.0,0.0,1.0}
+\def\pgf@zerozerotext{0.0,0.0}
+\def\pgf@one@text{1.0}
+\def\pgf@zero@text{0.0}
+
+
+\def\pgf@pos@transform#1#2{%
+  \ifpgf@pt@identity%
+  \else%
+    \pgf@pt@temp=#1%
+    #1=\pgf@pt@aa#1%
+    \advance#1 by\pgf@pt@ba#2%
+    #2=\pgf@pt@bb#2%
+    \advance#2 by\pgf@pt@ab\pgf@pt@temp%
+  \fi%
+  \advance#1 by\pgf@pt@x%
+  \advance#2 by\pgf@pt@y%
+}
+\def\pgf@pos@transform@glob{%
+  \ifpgf@pt@identity%
+  \else%
+    \pgf@pt@temp=\pgf@x%
+    \global\pgf@x=\pgf@pt@aa\pgf@x%
+    \global\advance\pgf@x by\pgf@pt@ba\pgf@y%
+    \global\pgf@y=\pgf@pt@bb\pgf@y%
+    \global\advance\pgf@y by\pgf@pt@ab\pgf@pt@temp%
+  \fi%
+  \global\advance\pgf@x by\pgf@pt@x%
+  \global\advance\pgf@y by\pgf@pt@y%
+}
+
+
+
+\def\pgftransforminvert{%
+  \pgf@pt@x=-\pgf@pt@x
+  \pgf@pt@y=-\pgf@pt@y
+  \ifpgf@pt@identity%
+  \else%
+    \edef\pgf@zerotest{\pgf@pt@ab,\pgf@pt@ba}%
+    \ifx\pgf@zerotest\pgf@zerozerotext%
+      \pgfmathreciprocal@{\pgf@pt@aa}%
+      \let\pgf@pt@aa\pgfmathresult%
+      \pgfmathreciprocal@{\pgf@pt@bb}%
+      \let\pgf@pt@bb\pgfmathresult%
+    \else%
+      {%
+        \pgfutil@tempdima=\pgf@pt@aa pt%
+        \pgfutil@tempdima=\pgf@pt@bb\pgfutil@tempdima%
+        \pgfutil@tempdimb=\pgf@pt@ba pt%
+        \pgfutil@tempdimb=\pgf@pt@ab\pgfutil@tempdimb%
+        \advance\pgfutil@tempdima by -\pgfutil@tempdimb%
+        \pgfmathreciprocal@{\pgf@sys@tonumber{\pgfutil@tempdima}}%
+        \pgfutil@tempdima=\pgfmathresult pt%
+        \pgf@x=\pgf@pt@bb\pgfutil@tempdima%
+        \xdef\pgf@new@pt@aa{\pgf@sys@tonumber{\pgf@x}}%
+        \pgf@x=\pgf@pt@aa\pgfutil@tempdima%
+        \xdef\pgf@new@pt@bb{\pgf@sys@tonumber{\pgf@x}}%
+        \pgfutil@tempdima=-\pgfutil@tempdima%
+        \pgf@x=\pgf@pt@ba\pgfutil@tempdima%
+        \xdef\pgf@new@pt@ba{\pgf@sys@tonumber{\pgf@x}}%
+        \pgf@x=\pgf@pt@ab\pgfutil@tempdima%
+        \xdef\pgf@new@pt@ab{\pgf@sys@tonumber{\pgf@x}}%
+      }%
+      \let\pgf@pt@aa\pgf@new@pt@aa%
+      \let\pgf@pt@ab\pgf@new@pt@ab%
+      \let\pgf@pt@ba\pgf@new@pt@ba%
+      \let\pgf@pt@bb\pgf@new@pt@bb%
+    \fi%
+    \pgf@pt@temp=\pgf@pt@x%
+    \pgf@pt@x=\pgf@pt@aa\pgf@pt@x%
+    \advance\pgf@pt@x by\pgf@pt@ba\pgf@pt@y%
+    \pgf@pt@y=\pgf@pt@bb\pgf@pt@y%
+    \advance\pgf@pt@y by\pgf@pt@ab\pgf@pt@temp%
+  \fi%
+}
+
+
+
+
+
+\def\pgftransformcm#1#2#3#4#5{%
+  \edef\pgf@marshal{\noexpand\pgf@transformcm{#1}{#2}{#3}{#4}}%
+  \pgf@marshal{#5}%
+}
+\def\pgf@transformcm#1#2#3#4#5{%
+  {%
+    \pgf@process{#5}%
+    \pgf@xc=\pgf@x%
+    \pgf@yc=\pgf@y%
+    \pgfmathsetlength\pgf@x{#1}%
+    \pgfmathsetlength\pgf@y{#2}%
+    \pgf@xa=\pgf@pt@aa\pgf@x%
+    \advance\pgf@xa by \pgf@pt@ba\pgf@y%
+    \pgf@ya=\pgf@pt@ab\pgf@x%
+    \advance\pgf@ya by \pgf@pt@bb\pgf@y%
+    \pgfmathsetlength\pgf@x{#3}%
+    \pgfmathsetlength\pgf@y{#4}%
+    \pgf@xb=\pgf@pt@aa\pgf@x%
+    \advance\pgf@xb by \pgf@pt@ba\pgf@y%
+    \pgf@yb=\pgf@pt@ab\pgf@x%
+    \advance\pgf@yb by \pgf@pt@bb\pgf@y%
+    \pgf@x=\pgf@pt@aa\pgf@xc%
+    \advance\pgf@x by\pgf@pt@ba\pgf@yc%
+    \advance\pgf@x by\pgf@pt@x%
+    \pgf@y=\pgf@pt@ab\pgf@xc%
+    \advance\pgf@y by\pgf@pt@bb\pgf@yc%
+    \advance\pgf@y by\pgf@pt@y%
+    \global\pgf@x=\pgf@x%
+    \global\pgf@y=\pgf@y%
+    \xdef\pgf@tempaa{\pgf@sys@tonumber{\pgf@xa}}%
+    \xdef\pgf@tempab{\pgf@sys@tonumber{\pgf@ya}}%
+    \xdef\pgf@tempba{\pgf@sys@tonumber{\pgf@xb}}%
+    \xdef\pgf@tempbb{\pgf@sys@tonumber{\pgf@yb}}%
+  }%
+  \pgf@pt@x=\pgf@x%
+  \pgf@pt@y=\pgf@y%
+  \let\pgf@pt@aa=\pgf@tempaa%
+  \let\pgf@pt@ba=\pgf@tempba%
+  \let\pgf@pt@ab=\pgf@tempab%
+  \let\pgf@pt@bb=\pgf@tempbb%
+  \edef\pgf@idtest{\pgf@pt@aa,\pgf@pt@ba,\pgf@pt@ab,\pgf@pt@bb}%
+  \ifx\pgf@idtest\pgf@idmatrixtext%
+    \pgf@pt@identitytrue%
+  \else%
+    \pgf@pt@identityfalse%
+  \fi%
+}
+
+
+
+
+\def\pgftransformtriangle#1#2#3{%
+  \pgf@process{#2}%
+  \pgf@xa=\pgf@x%
+  \pgf@ya=\pgf@y%
+  \pgf@process{#3}%
+  \pgf@xb=\pgf@x%
+  \pgf@yb=\pgf@y%
+  \pgf@process{#1}%
+  \advance\pgf@xa by-\pgf@x%
+  \advance\pgf@ya by-\pgf@y%
+  \advance\pgf@xb by-\pgf@x%
+  \advance\pgf@yb by-\pgf@y%
+  \pgftransformcm%
+  {\pgf@sys@tonumber\pgf@xa}{\pgf@sys@tonumber\pgf@ya}%
+  {\pgf@sys@tonumber\pgf@xb}{\pgf@sys@tonumber\pgf@yb}%
+  {\pgfpoint{\pgf@x}{\pgf@y}}%
+}
+
+
+
+
+\def\pgftransformreset{%
+  \pgf@pt@x=0pt%
+  \pgf@pt@y=0pt%
+  \let\pgf@pt@aa\pgf@one@text%
+  \let\pgf@pt@ba\pgf@zero@text%
+  \let\pgf@pt@ab\pgf@zero@text%
+  \let\pgf@pt@bb\pgf@one@text%
+  \pgf@pt@identitytrue%
+}
+
+
+
+\def\pgftransformresetnontranslations{%
+  \let\pgf@pt@aa\pgf@one@text%
+  \let\pgf@pt@ba\pgf@zero@text%
+  \let\pgf@pt@ab\pgf@zero@text%
+  \let\pgf@pt@bb\pgf@one@text%
+  \pgf@pt@identitytrue%
+}
+
+
+
+
+
+\def\pgftransformshift#1{\pgftransformcm{1}{0}{0}{1}{#1}}
+\def\pgftransformxshift#1{\pgftransformcm{1}{0}{0}{1}{\pgfpoint{#1}{+0pt}}}
+\def\pgftransformyshift#1{\pgftransformcm{1}{0}{0}{1}{\pgfpoint{+0pt}{#1}}}
+
+
+
+
+
+\def\pgftransformscale#1{\pgftransformcm{#1}{0}{0}{#1}{\pgfpointorigin}}
+\def\pgftransformxscale#1{\pgftransformcm{#1}{0}{0}{1.0}{\pgfpointorigin}}
+\def\pgftransformyscale#1{\pgftransformcm{1.0}{0}{0}{#1}{\pgfpointorigin}}
+
+
+
+
+\def\pgftransformxslant#1{\pgftransformcm{1.0}{0}{#1}{1.0}{\pgfpointorigin}}
+\def\pgftransformyslant#1{\pgftransformcm{1.0}{#1}{0}{1.0}{\pgfpointorigin}}
+
+
+
+
+\def\pgftransformrotate#1{%
+  \pgfmathparse{#1}%
+  \let\pgftransform@angle=\pgfmathresult%
+  \pgfmathsin@{\pgftransform@angle}%
+  \let\pgftransform@sin=\pgfmathresult%
+  \pgfmathcos@{\pgftransform@angle}%
+  \let\pgftransform@cos=\pgfmathresult%
+  \pgf@x=\pgftransform@sin pt%
+  \pgf@xa=-\pgf@x%
+  \pgftransformcm{\pgftransform@cos}{\pgftransform@sin}{\pgf@sys@tonumber{\pgf@xa}}{\pgftransform@cos}{\pgfpointorigin}%
+}
+
+
+
+
+\newif\ifpgfslopedattime
+\newif\ifpgfallowupsidedownattime
+\newif\ifpgfresetnontranslationattime
+
+
+\def\pgftransformlineattime#1#2#3{%
+  \pgf@process{#2}%
+  \pgf@xb=\pgf@x%
+  \pgf@yb=\pgf@y%
+  \pgf@process{#3}%
+  \pgf@xc=\pgf@x%
+  \pgf@yc=\pgf@y%
+  \pgftransformshift{\pgfpointlineattime{#1}{\pgfqpoint{\pgf@xb}{\pgf@yb}}{\pgfqpoint{\pgf@xc}{\pgf@yc}}}%
+  \ifpgfresetnontranslationattime%
+    \pgftransformresetnontranslations%
+  \fi%
+  \ifpgfslopedattime%
+    \advance\pgf@xc by-\pgf@xb%
+    \advance\pgf@yc by-\pgf@yb%
+    \ifpgfallowupsidedownattime%
+    \else%
+      \ifdim\pgf@xc<0pt%
+        \pgf@xc=-\pgf@xc%
+        \pgf@yc=-\pgf@yc%
+      \fi%
+    \fi%
+    \pgf@x=\pgf@xc%
+    \pgf@y=\pgf@yc%
+    \pgfpointnormalised{}%
+    \pgf@ya=-\pgf@y%
+    \pgftransformcm%
+    {\pgf@sys@tonumber{\pgf@x}}{\pgf@sys@tonumber{\pgf@y}}%
+    {\pgf@sys@tonumber{\pgf@ya}}{\pgf@sys@tonumber{\pgf@x}}{\pgfpointorigin}%
+  \fi%
+}
+
+
+
+\def\pgftransformarcaxesattime#1#2#3#4#5#6{%
+  \pgfpointarcaxesattime{#1}{#2}{#3}{#4}{#5}{#6}%
+  \pgftransformshift{\pgfqpoint{\pgf@x}{\pgf@y}}%
+  \ifpgfresetnontranslationattime%
+    \pgftransformresetnontranslations%
+  \fi%
+  \ifpgfslopedattime%
+    \pgf@x=\pgf@xa%
+    \pgf@y=\pgf@ya%
+    \pgf@process{\pgfpointnormalised{}}%
+    \ifpgfallowupsidedownattime%
+    \else%
+      \ifdim\pgf@x<0pt%
+        \pgf@x=-\pgf@x%
+        \pgf@y=-\pgf@y%
+      \fi%
+    \fi%
+    \pgf@ya=-\pgf@y%
+    \pgftransformcm%
+    {\pgf@sys@tonumber{\pgf@x}}{\pgf@sys@tonumber{\pgf@y}}%
+    {\pgf@sys@tonumber{\pgf@ya}}{\pgf@sys@tonumber{\pgf@x}}{\pgfpointorigin}%
+  \fi%
+}
+
+
+
+
+\def\pgftransformcurveattime#1#2#3#4#5{%
+  \pgfpointcurveattime{#1}{#2}{#3}{#4}{#5}%
+  \pgftransformshift{\pgfqpoint{\pgf@x}{\pgf@y}}%
+  \ifpgfresetnontranslationattime%
+    \pgftransformresetnontranslations%
+  \fi%
+  \ifpgfslopedattime%
+    \pgf@x=\pgf@xa%
+    \pgf@y=\pgf@ya%
+    \advance\pgf@x by-\pgf@xb%
+    \advance\pgf@y by-\pgf@yb%
+    \ifpgfallowupsidedownattime%
+    \else%
+      \ifdim\pgf@x<0pt%
+        \pgf@x=-\pgf@x%
+        \pgf@y=-\pgf@y%
+      \fi%
+    \fi%
+    \pgfpointnormalised{}%
+    \pgf@ya=-\pgf@y%
+    \pgftransformcm%
+    {\pgf@sys@tonumber{\pgf@x}}{\pgf@sys@tonumber{\pgf@y}}%
+    {\pgf@sys@tonumber{\pgf@ya}}{\pgf@sys@tonumber{\pgf@x}}{\pgfpointorigin}%
+  \fi%
+}
+
+
+
+
+
+
+\def\pgftransformarrow#1#2{%
+  \pgf@process{#2}%
+  \pgftransformshift{}%
+  \pgf@xa=\pgf@x%
+  \pgf@ya=\pgf@y%
+  \pgf@process{#1}%
+  \advance\pgf@xa by-\pgf@x%
+  \advance\pgf@ya by-\pgf@y%
+  \pgf@x=\pgf@xa%
+  \pgf@y=\pgf@ya%
+  \pgfpointnormalised{}%
+  \pgf@ya=-\pgf@y%
+  \pgftransformcm%
+  {\pgf@sys@tonumber{\pgf@x}}{\pgf@sys@tonumber{\pgf@y}}%
+  {\pgf@sys@tonumber{\pgf@ya}}{\pgf@sys@tonumber{\pgf@x}}{\pgfqpoint{0pt}{0pt}}%
+}
+
+
+
+
+
+\def\pgftransformationadjustments{%
+  \ifpgf@pt@identity%
+    \let\pgfhorizontaltransformationadjustment\pgf@one@text%
+    \let\pgfverticaltransformationadjustment\pgf@one@text%
+  \else%
+    {%
+      \pgf@pt@x0pt%
+      \pgf@pt@y0pt%
+      \pgfpointtransformed{\pgfqpoint{1pt}{0pt}}%
+      \pgfmathveclen@{\pgf@sys@tonumber\pgf@x}{\pgf@sys@tonumber\pgf@y}%
+      \pgfmathreciprocal@{\pgfmathresult}%
+      \global\let\pgf@temp@hori\pgfmathresult
+      \pgfpointtransformed{\pgfqpoint{0pt}{1pt}}%
+      \pgfmathveclen@{\pgf@sys@tonumber\pgf@x}{\pgf@sys@tonumber\pgf@y}%
+      \pgfmathreciprocal@{\pgfmathresult}%
+      \global\let\pgf@temp@vert\pgfmathresult
+      \xdef\pgf@marshal@b{\def\noexpand\pgfverticaltransformationadjustment{\pgfmathresult}}
+    }%
+    \let\pgfhorizontaltransformationadjustment\pgf@temp@hori%
+    \let\pgfverticaltransformationadjustment\pgf@temp@vert%
+  \fi%
+}
+
+\let\pgfhorizontaltransformationadjustment\pgf@one@text
+\let\pgfverticaltransformationadjustment\pgf@one@text
+
+
+
+
+\def\pgflowlevelsynccm{%
+  \pgfsys@transformcm%
+  {\pgf@pt@aa}{\pgf@pt@ab}%
+  {\pgf@pt@ba}{\pgf@pt@bb}%
+  {\pgf@pt@x}{\pgf@pt@y}%
+  \pgftransformreset%
+  \pgf@relevantforpicturesizefalse%
+}
+
+
+
+
+\def\pgflowlevel#1{%
+  {%
+    \pgftransformreset%
+    #1%
+    \pgflowlevelsynccm%
+  }%
+  \pgf@relevantforpicturesizefalse%
+}
+
+\def\pgflowlevelscope#1{\pgfscope\pgflowlevel{#1}}
+\def\endpgflowlevelscope{\endpgfscope}
+
+\long\def\pgflowlevelobj#1#2{\pgfscope{\pgflowlevel{#1}#2}\endpgfscope}
+
+
+
+
+
+\def\pgfviewboxscope#1#2#3#4#5{%
+  {%
+    \pgf@process{#1}%
+    \pgf@pos@transform@glob
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \pgf@process{#2}%
+    \pgf@pos@transform@glob
+    \ifdim\pgf@x<\pgf@xa%
+      \pgf@xb\pgf@x%
+      \pgf@xc\pgf@xa%
+    \else%
+      \pgf@xb\pgf@xa%
+      \pgf@xc\pgf@x%
+    \fi%
+    \ifdim\pgf@y<\pgf@ya%
+      \pgf@yb\pgf@y%
+      \pgf@yc\pgf@ya%
+    \else%
+      \pgf@yb\pgf@ya%
+      \pgf@yc\pgf@y%
+    \fi%
+    \pgf@process{#3}%
+    \pgf@pos@transform@glob
+    \pgf@xa=\pgf@x%
+    \pgf@ya=\pgf@y%
+    \pgf@process{#4}%
+    \pgf@pos@transform@glob
+    \ifdim\pgf@x<\pgf@xa%
+    \else%
+      \pgfutil@tempdima\pgf@x
+      \pgf@x\pgf@xa%
+      \pgf@xa\pgfutil@tempdima%
+    \fi%
+    \ifdim\pgf@y<\pgf@ya%
+    \else%
+      \pgfutil@tempdima\pgf@y
+      \pgf@y\pgf@ya%
+      \pgf@ya\pgfutil@tempdima%
+    \fi%
+    \pgfusetype{.view}%
+    \edef\pgf@marshal{\expandafter\noexpand\csname pgfsys@viewbox#5\endcsname{\the\pgf@x}{\the\pgf@y}{\the\pgf@xa}{\the\pgf@ya}{\the\pgf@xb}{\the\pgf@yb}{\the\pgf@xc}{\the\pgf@yc}}%
+    \pgf@marshal%
+  }%
+  \pgf@relevantforpicturesizefalse%
+}
+
+\def\endpgfviewboxscope{\pgfsys@endviewbox}
+
+\let\startpgfviewboxscope=\pgfviewboxscope
+\let\stoppgfviewboxscope=\endpgfviewboxscope
+
+
+\let\pgfapproximatenonlineartranslation\relax
+\let\pgfapproximatenonlineartransformation\relax
+\def\pgftransformnonlinear#1{\pgferror{You need to say
+    \string\usepgfmodule{nonlineartransformations} to use nonlinear transformations}}
+
+
+\endinput

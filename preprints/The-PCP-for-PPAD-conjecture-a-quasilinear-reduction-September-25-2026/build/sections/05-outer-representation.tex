@@ -1,0 +1,696 @@
+\section{A locally evolving outer representation}\label{sec:outer-representation}
+
+We now combine the macrograph, the outer codes, and the certified programs
+into one representation. A long preparation is part of the represented
+path: its current position is recorded by a binary clock, while its scratch
+space is reused. Thus preparation time does not multiply the length of a
+represented vertex. The main additional requirement is that every retained
+certificate, including certificates introduced to verify other
+certificates, can change locally when a logical tape entry changes.
+
+All notation in this section belongs to the outer construction. In
+particular, $J$, $H$, and $\Gamma=\F_2^r\rtimes H$ are those of
+Section~\ref{sec:outer-codes}. We retain $M_o=2^r$, the tape length $h$,
+the four logical arrays $b$, and the persistent tuple $P(b)$ of
+Lemma~\ref{lem:outer-wiring}. The assigned degree $k_S$ of a primary
+$F_S$ counts its variable factor occurrences, and $d_2$ is the fixed upper
+bound on the number of factor occurrences. In particular,
+\[
+ r=O(\log N),\qquad M_o=O(N),\qquad |H|\leq r^9,
+ \qquad M_o>(8d_2+8)h.
+\]
+Every persistent program stage has a specified linear payload recipe in
+the primaries. This includes support masks, transforms, routing checks,
+remainder computations for inactive phases, and every matrix-valued
+reencoding intermediate. Its assigned degree is at most the maximum
+assigned degree of the primary inputs to that recipe.
+
+\subsection{Finite differences of the complete certificate tuple}
+
+Fix a start frame $c\in\{0,\ldots,4h-1\}$. The finite edit alphabet
+$\Sigma$ of Lemma~\ref{lem:macrograph} describes additive changes
+$h_\sigma(c)$ of the logical arrays. Enlarge this fixed alphabet by inverse
+edits and a zero edit if necessary. All addresses depend only on
+$(c,\sigma)$ and public routing data. The choice of the edit can depend on
+the critical logical bits; a recipe for a specified edit cannot.
+For a field-valued function $F$ define
+\[
+ \Delta_\sigma F(b)=F(b+h_\sigma(c))-F(b).
+\]
+This definition is made on arbitrary field arrays $b$, independently of
+whether they satisfy the macrograph conditions.
+
+For a variable singleton occurrence $a$, routing gives either no change or
+a change $\epsilon_{a,\sigma}L_{j_{a,\sigma}}(Z)$, where
+$\epsilon_{a,\sigma}\in\{-1,0,1\}$ and $j_{a,\sigma}<h$ are public at
+this frame. A default address is used when $\epsilon_{a,\sigma}=0$.
+Public factors have zero increment. If $S_{\rm var}$ is the set of
+variable \emph{occurrences} in $S$, distributivity gives
+\begin{equation}\label{oe:primary-difference}
+ \Delta_\sigma F_S
+ =\sum_{\varnothing\ne A\subseteq S_{\rm var}}
+     F_{S\setminus A}(b)
+     \prod_{a\in A}\epsilon_{a,\sigma}L_{j_{a,\sigma}}.
+\end{equation}
+Repeated occurrences are retained separately in this formula. Every
+primary on its right has assigned degree at most $k_S-1$. Multiplication
+by a specified Lagrange polynomial is the linear coefficient program of
+Lemma~\ref{op:scalar-programs}. The number of subsets in
+\eqref{oe:primary-difference} is bounded in terms of $d_2$ alone.
+Every ordinary polynomial product appearing here has degree at most
+$d_2(h-1)<M_o$; consequently its implementation by cyclic coefficient
+convolution has no wraparound error. All possible addresses and zero
+coefficients use a common padded program topology.
+
+\begin{lemma}[Closure under finite differences]\label{oe:derivative-closure}
+For every positive-degree persistent full slot $D$ and every
+$\sigma\in\Sigma$, one can allocate a finite certified full program whose
+output, in the same encoder type as $D$, is the increment of $D$ under
+$b\mapsto b+h_\sigma(c)$. One can do this simultaneously for every
+positive-degree full intermediate introduced by these programs, including
+all their verification intermediates. The resulting list has
+$\operatorname{poly}(r)$ slots and description bits. Every new slot has a
+specified linear recipe in persistent primaries of strictly smaller
+assigned degree than its parent target. All identities hold on arbitrary
+field arrays $b$.
+\end{lemma}
+
+\begin{proof}
+For a primary use \eqref{oe:primary-difference}. If $D$ is another
+persistent stage with linear payload recipe $\mathcal L_D$, apply
+$\mathcal L_D$ to the corresponding primary increments, replacing
+degree-zero primary increments by zero. At this fixed frame its
+coefficients, pulls, and encoder types are fixed. Hence
+\[
+ \mathcal L_D\bigl((F_S(b+h_\sigma(c)))_S\bigr)
+ -\mathcal L_D\bigl((F_S(b))_S\bigr)
+ =\mathcal L_D\bigl((\Delta_\sigma F_S(b))_S\bigr).
+\]
+The operations used in Section~\ref{sec:outer-programs} implement this
+identity at the payload level. In particular, multiplying a scalar slot
+by the public matrix $\rho_e(k)$ is linear in that scalar; changing one
+encoder axis or contracting matrix entries is also linear. These
+operations introduce no additional logical degree.
+
+Allocate full slots for every stage of each increment program, with new
+slots for its mixed and untwisted verification stages. An identity or zero
+stage may be inserted to give an output its required type. Order stages
+topologically, so that Lemma~\ref{lem:outer-fill} can initialize one full
+target using already completed parents. For every newly allocated stage,
+record the ancestor directed acyclic graph that expresses its payload in
+the persistent primaries. Its roots have degrees at most one less than
+those of the target whose increment is being computed. If its assigned
+degree is positive, apply the same construction to this new stage for
+every edit. This includes a stage introduced solely for verification: it
+will be retained at full preparation and therefore needs its own
+increment.
+
+Inlining here means substitution in a directed acyclic graph, with
+sharing retained within each target computation. If a primary is used
+many times, substitute its increment program once and fan out its result.
+Separate target computations may use fresh copies. Along any chain of
+newly generated targets the assigned degree drops by at least one.
+Therefore the construction stops after at most $d_2$ derivative tiers.
+At each tier the number of target graphs, their sizes, their ancestor
+descriptions, and their substitutions are bounded by a fixed polynomial
+in the preceding total description size and $r$. A fixed number of such
+polynomial expansions remains polynomial in $r$.
+
+The programs verify the computed increments by their own stage
+relations, starting from the lower-degree primaries. They do not test a
+finite-difference assertion about an otherwise unspecified witness.
+Neither their construction nor their identities use the final validity
+equations. This also ensures that increment recipes remain defined on
+field data produced by an edit that is not a legal macrograph move.
+\end{proof}
+
+\subsection{Public addresses, logical reads, and a reversible preparation}
+
+Public address tables need not admit succinct evaluation at a hidden
+frame $c$. We therefore represent the needed access explicitly. For each
+field entry $a(c)$ of the public data table, form the scalar payload
+\begin{equation}\label{oe:public-walsh-table}
+ V_a(x,u)=\sum_{0\leq c'<4h}a(c')(-1)^{x\cdot c'}.
+\end{equation}
+Integers in this display are identified with their $r$-bit vectors, and
+the coefficient table is zero outside $[0,4h)$. The payload is independent
+of $u$. Hardwire its full encoding at every publicly requested symbol
+position. The table includes operand addresses, rule types,
+terminal-comparison addresses, and choice-rule data for both directions,
+together with the
+permuted edit addresses of every factor type used by
+Lemma~\ref{oe:derivative-closure}. Addresses for inactive phases are
+included too. Strings and indices are split into field entries with fixed
+parsing conventions. There are only $\operatorname{poly}(r)$ entries per
+frame.
+
+The first preparation steps are an A-only public focus. For the bits of
+the repeated frame $c$, apply the mode selectors
+\[
+ \frac{I+(-1)^{c_i}R_{(e_i,1)}}2
+\]
+successively, implementing a nonfirst-bit pull by the fixed generators
+as in Section~\ref{sec:outer-programs}. Applied to
+\eqref{oe:public-walsh-table}, their completed output is
+$a(c)(-1)^{x\cdot c}$ on the systematic payload. Removing that known sign
+recovers $a(c)$ identically at every center. No recurrence using a
+table-dependent coefficient is active before the public focus is
+complete. Retain this focus until preparation has been reversed. On
+malformed data use fixed default field values, indices, and instructions;
+thus every local algorithm is total.
+
+Next, in the topological order of Lemma~\ref{oe:derivative-closure}, fill
+every transient full computation stage by Lemma~\ref{lem:outer-fill}.
+Previously completed targets remain full and their temporary fill scratch
+is empty. At every intermediate location check their direct full-operation
+relations; apply the two-buffer fill checks to the current target; and
+check zero in all still empty full targets and inactive scratch slots.
+The persistent tuple $P(b)$ is checked throughout. All these conditions
+are tested together at the same center.
+
+Finally prepare the critical logical reads. The persistent slot $U_D$
+provided by Lemma~\ref{lem:outer-wiring} has payload
+\[
+ U_D(x)=\sum_{j<h}(-1)^{x\cdot j}D_j.
+\]
+Its Walsh coefficient at address $j$ is $D_j$. Using the completed public
+address focus, build A-only selector stacks for the fixed list of
+critical roles needed by either the forward or reverse macro proposal
+and its existence flag. Unused roles use default addresses. Include
+enough roles for each logical array type; their number is constant.
+Build the identical focus stacks on the full increment outputs for
+$U_D$ for every $\sigma$. The recipe for $U_D$ uses just one degree-one
+singleton, so each increment input has assigned degree zero. At a fixed
+frame its entire focused stack is independent of $b$ as well.
+
+\begin{lemma}[Preparation and local evolution]\label{oe:preparation}
+There is an integer $J_{\max}\geq1$ and a canonical preparation indexed by
+$j=0,\ldots,J_{\max}$ with the following properties.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item At $j=0$ all frame-dependent full and A-only transient slots are
+zero. At $j=J_{\max}$ all full increment programs and critical focuses are
+complete, and every full-target fill buffer and orbit-focus buffer is
+zero.
+\item For every field array $b$ and frame $c$, every snapshot is uniquely
+specified. Its transition to the next or previous snapshot uses a fixed
+finite list of permutation-neighbors of each requested center.
+\item The number of steps is $J_{\max}=O(M_o\operatorname{poly}(r))$.
+The number of stored slots, the schedule description, and the work to
+interpret one microclock or perform one local transition are
+$\operatorname{poly}(r)$, including entry dimensions and bit lengths.
+\item At full preparation, applying an edit $h_\sigma(c)$ changes the
+entire retained tuple to its canonical value on $b+h_\sigma(c)$ by local
+addition of the stored increment outputs. The public focus is unchanged.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Concatenate the public focus, all full-target filling schedules, and the
+critical-read focuses. The stage lists for selectors and cutoffs have
+fixed padded lengths independent of their address values. The
+per-target mode schedule consists of $M_o$ iterations of fixed
+polylogarithmic sublength, together with its initial and final buffer
+steps. The exceptional first iteration and final erasure are specified
+separately. Thus a binary microclock can be interpreted by scanning the
+polynomial-in-$r$ list of program boundaries and performing arithmetic
+on $O(\log M_o+\log\operatorname{poly}(r))$ bits. The interpreter selects
+the current iteration, buffer, initialized prefix, and transition; it
+does not execute all preceding iterations. Distinct programs may use
+distinct scratch indices to keep their shapes and twists fixed.
+An idle preparation step supplies $J_{\max}\geq1$ if needed.
+
+For the last assertion, write $D_\sigma(b)$ for the stored full increment
+of a positive-degree full slot $D$. At the top perform, simultaneously,
+\begin{equation}\label{oe:simultaneous-edit}
+ D(b)\longmapsto D(b)+D_\sigma(b)
+             =D(b+h_\sigma(c))
+\end{equation}
+for every persistent and transient full computation slot. Equation
+\eqref{oe:simultaneous-edit} is valid in its own encoder because that
+encoder is linear. The increment slots themselves are included in this
+update whenever their assigned degree is positive; their required
+increments exist by Lemma~\ref{oe:derivative-closure}. Degree-zero slots
+do not change. All additions read the old tuple before writing the new
+one.
+
+The full-target temporary buffers are already empty. Public focus
+depends only on $c$ and remains fixed. Each main critical-read stack is a
+linear selector-and-pull program at fixed public addresses. Adding the
+matching focused increment stack therefore updates all its initialized
+stages to their new canonical values. Those increment stacks have degree
+zero and stay fixed. This verifies the assertion also for the retained
+A-only data. The preparation can now be erased in the reverse order,
+using exactly the same recipes on the new $b$ and unchanged frame.
+\end{proof}
+
+\subsection{The extended graph and its endpoint payload}
+
+Define an extended valid label to be
+\begin{equation}\label{oe:extended-label}
+ v=(c,b,\eta,j),\qquad
+ 0\leq c<4h,\quad \eta\in\{0,1\},\quad 0\leq j\leq J_{\max},
+\end{equation}
+where $b$ is a valid macrograph state at stage $c$ if $\eta=0$, and at
+stage $c+1\pmod{4h}$ if $\eta=1$. We call these modes pre and post,
+respectively. Its raw word $R_v$ contains, at every $k\in\Gamma$, all four
+parts of the persistent tuple $P(b)$, all full and A-only transient data
+in the canonical snapshot $(c,b,j)$, and a canonically encoded repeated
+copy of $(c,\eta,j)$ and its range information. Padding conventions will
+be fixed below.
+
+In pre mode increase $j$ until the top. At the top use the prepared
+critical reads to compute the macrograph's forward choice and existence
+flag. If the edge exists, perform \eqref{oe:simultaneous-edit}, leave
+$c,j$ fixed, and change the mode to post. In post mode decrease $j$ until
+zero, then perform
+\begin{equation}\label{oe:frame-advance}
+ (c,b,1,0)\longmapsto(c+1\bmod4h,b,0,0).
+\end{equation}
+The reverse rules use the reverse preparation transition, the reverse
+macro choice at the same start frame, and the inverse of
+\eqref{oe:frame-advance}. Both directions read their choice and flag
+before the top update. At a missing edge the corresponding proposed word
+is defined to be the current raw word and its flag is zero. This is a
+total proposal convention, not a graph self-edge. At a malformed input
+the local proposal and flag likewise have a fixed total default.
+
+For each valid macro vertex at stage $s$, the extended graph contains the
+directed path
+\begin{equation}\label{oe:replacement-path}
+ \begin{split}
+ (s-1,b,1,J_{\max})&\longrightarrow\cdots
+ \longrightarrow(s-1,b,1,0)\\
+ &\longrightarrow(s,b,0,0)
+ \longrightarrow\cdots\longrightarrow(s,b,0,J_{\max}),
+ \end{split}
+\end{equation}
+with frames taken modulo $4h$. Macro edges join the corresponding ends
+of these paths. Every internal edge changes the clock or mode, and every
+top edge changes mode, so none is a self-edge. The graph has indegree and
+outdegree at most one. Every label belongs to a path of positive length;
+there are no isolated vertices.
+
+Let $(s_*,b_*)$ be the public exceptional macro source of
+Lemma~\ref{lem:macrograph}. The unique exceptional extended source and
+its actual successor are
+\begin{equation}\label{oe:public-source}
+ v_*=(s_*-1,b_*,1,J_{\max}),\qquad
+ v_*^+=(s_*-1,b_*,1,J_{\max}-1).
+\end{equation}
+Their entire raw words are deterministically computable in
+$\operatorname{poly}(N)$ time. Indeed the macro source is public, all
+full encoders and program formulas are computable by global array
+algorithms, and even explicitly following this one preparation takes
+only polynomially many steps.
+
+An extended endpoint can occur only at a top label of
+\eqref{oe:replacement-path}. Map it to its macro vertex by retaining $b$
+and taking stage $c+\eta\pmod{4h}$. If it is not $v_*$, the endpoint
+decoder of Lemma~\ref{lem:macrograph} returns a nonzero string $y$ with
+$P(S(y))\ne y$ or $S(P(y))\ne y$. Thus the endpoint payload consists of
+the logical tapes and the repeated label; it does not require finding a
+history of the transient computation.
+
+\subsection{A packed tester for valid represented vertices}
+
+Let $\Pi$ contain identity, all forward and inverse A- and B-neighbor
+maps needed by the codes, the left $H$ generators used for payload
+independence, the right first-bit shifts and single-cycle rotations and
+their inverses, and the right $H$ generators used by scratch programs.
+Add the finitely many bounded compositions required by a primitive local
+expression. Its cardinality $q=|\Pi|$ is fixed independently of $N$.
+Arbitrary powers of a rotation or paths through $H$ are represented by
+successive stages; they do not add new query maps to this list. At every
+center the tester reads $W|_{\Pi(k)}$ and rejects if \emph{any} applicable
+condition below fails:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item canonical parsing, legal repeated clock, range checks, and zero
+padding;
+\item all full-slot local codes, A/B agreements, and systematic-payload
+duplication, including targets that are partial or inactive;
+\item all A-only local codes and A agreements, including inactive
+scratch;
+\item all structural persistent relations and the macro-validity
+conditions selected by $(c,\eta)$;
+\item every required current-snapshot relation: completed full-operation
+checks, the current partial-target comparison, initialized scratch-prefix
+recurrences in both buffers and all focuses, and inactive-zero checks.
+\end{enumerate}
+In particular, the tester does not choose one relation uniformly from a
+growing list. All relations share this fixed set of center permutations.
+Write $\operatorname{rej}(W)$ for its rejection probability at uniform
+$k\in\Gamma$, and use normalized whole-symbol distance
+\[
+ \dist(W,W')=\Pr_{k\in\Gamma}[W(k)\ne W'(k)].
+\]
+
+\begin{lemma}[Soundness of the valid-word tester]\label{oe:valid-testing}
+There are fixed constants $C_{\rm rep}<\infty$ and $g_{\rm rep}>0$
+such that, if $\operatorname{rej}(W)<g_{\rm rep}$, some valid extended
+label $v$ satisfies
+\[
+ \dist(W,R_v)\leq C_{\rm rep}\operatorname{rej}(W).
+\]
+The tester has perfect completeness. Conversely,
+$\operatorname{rej}(W)\leq q\dist(W,R_v)$ for every valid label $v$.
+Distinct valid labels have raw distance at least a fixed
+$\delta_{\rm raw}>0$.
+\end{lemma}
+
+\begin{proof}
+Put $\theta=\operatorname{rej}(W)$. The parsing, repetition, and full-code
+proximity conclusions of Theorem~\ref{thm:outer-codes} first change
+$O(\theta)$ centers to give legal constant clock data and exact full
+codewords. A corrected repeated clock of illegal range would cause
+rejection everywhere, so small enough $\theta$ rules it out. Exact
+one-axis distance then forces systematic-payload duplication in every
+full slot. Otherwise that one failed duplication relation already has a
+fixed positive rejection probability. Zeroing locally A-invalid scratch
+parts costs another $O(\theta)$ centers. A change on $z$ centers changes
+any simultaneous test on at most $qz$ centers; this estimate uses the
+common permutation list and does not depend on the number of slots.
+
+We next restore all scratch relative to these corrected full codewords
+and the corrected clock, before using any advertised full-operation
+identity. The reference for the public focus is the actual hardwired
+public word at the corrected frame. Treat its recurrences first. A later
+table-dependent recurrence is active only when this reference focus is
+complete and hence gives identical correct coefficients at every center.
+Each initial expression $X$ in a mode-fill program is A-coded from its
+exact full parents, even if those parents do not yet satisfy their
+advertised payload recipes. The critical and increment focuses also
+start from exact A-coded full words. Thus every required reference
+prefix is exactly A-coded.
+
+These are precisely the reference and ordering hypotheses of
+Lemma~\ref{op:scratch-restoration}. The preprocessing above changed only
+$O(\theta)$ sites, so the common query list bounds both the joint
+A-conflict fraction and the simultaneous recurrence-failure fraction of
+this one preprocessed word by $O(\theta)$. Apply the lemma to its entire
+scratch tuple, including inactive zeros. Its fixed-word induction keeps
+every prefix estimate $O(\theta)$ and makes only one final replacement.
+All scratch is therefore restored at cost $O(\theta)$, independently of
+the number of stages. No full-operation identity has been used to obtain
+this conclusion.
+
+Call the resulting tuple $\widetilde W$. Its remaining tests still fail
+with probability at most $C'\theta$ for a fixed $C'$. By
+Lemma~\ref{lem:outer-wiring}, either its persistent tuple is exactly
+$P(b)$ for logical bits $b$ valid at the selected macro stage, or a
+persistent relation fails with fixed positive probability. Choose
+$\theta$ below that gap divided by $C'$ to obtain the former alternative.
+Now follow the initialization order of the transient full targets.
+Completed targets with canonical parents are forced to their exact
+outputs by the shared-axis gap following Definition~\ref{op:full-operation}.
+For the current partial target, its required cutoff comparison has the
+same gap by Lemma~\ref{lem:outer-fill}. The cutoff scratch has already
+been restored: its completed value is precisely $P_{t'}X$. In the case
+that the target shares only the B axis with $X$, orbit invariance makes
+this completed reference B-coded. Only at this point is B-axis distance
+applied. No intermediate A-only scratch is assumed to be B-valid.
+Inactive full targets are forced to zero by full-word distance.
+
+There are only finitely many kinds of these gaps, uniformly in their
+stage indices, program lengths, and vector dimensions. Their minimum is
+positive. If any relation failed exactly on $\widetilde W$, it alone
+would give at least that gap in the packed test. Decrease $\theta$ once
+more to rule out every such failure. All full slots and restored scratch
+then have the unique canonical values of $(c,b,\eta,j)$. The total
+restoration cost is $C_{\rm rep}\theta$ for a fixed $C_{\rm rep}$.
+
+Canonical snapshots satisfy every test by their construction, proving
+perfect completeness. If a neighborhood avoids the disagreement set
+between $W$ and $R_v$, its test accepts; a union bound over $\Pi$ proves
+the converse. Finally, two labels with different repeated data differ
+at every center. If only their logical arrays differ, one logical
+singleton interpolant differs. Its full encoded difference is nonzero
+and has the fixed distance of Theorem~\ref{thm:outer-codes}, including the
+constant conversion between four-part and whole-symbol metrics. This
+gives $\delta_{\rm raw}>0$.
+\end{proof}
+
+\subsection{Full representation cost and a fixed local Boolean exponent}
+
+We record the size argument before choosing any correction accuracy or
+any number of Boolean ports. This order is needed later. All constants
+in the following count depend only on the fixed gate basis, $d_2$, and
+the already chosen outer code parameters.
+
+One-bit alignment takes $O(r)$ elementary rotations. A conjunction of
+bit conditions takes $O(r^2)$ primitive stages, and a carry or borrow
+shift takes $O(r^3)$. The Lagrange window product takes $O(r^4)$ stages.
+The other transforms and masks in Section~\ref{sec:outer-programs} fit
+within this last bound. There are $O(r)$ initial factor and row families:
+a fixed number of row lists, with $O(r)$ routing layers for each needed
+permutation and a bounded subset list for each monomial. Hence there are
+$O(r^5)$ persistent primitive stages. Storing their ancestor graphs,
+parent indices, types, and coefficient instructions is bounded, with
+ample slack, by $Cr^{20}$ description bits. Public indexed field data
+are counted separately as local constant words below; descriptors refer
+to their entries by indices, rather than copying an entire length-$h$
+array into a descriptor.
+
+Here is an explicit finite-depth bound for derivative expansion. Let $T$
+bound the complete current list of graph descriptions and subgraph
+descriptions, with each slot, parent occurrence, and instruction counted
+at least once. A target graph has at most $T$ nodes and at most $T$
+primary roots. Substitution at one root uses a bounded number of the
+$O(r^4)$ Lagrange programs. There are at most $T$ target graphs. Recording
+an ancestor subgraph for every newly introduced stage, retaining sharing
+within it and allowing fresh copies for separate targets, costs at most
+the square of the size of its target computation. Public address
+instructions and index encodings contribute fixed powers of $r$ and
+logarithms of these list lengths. The following deliberately loose bound
+therefore covers all these operations at one tier:
+\begin{equation}\label{oe:recipe-size-recurrence}
+ T_{a+1}\leq C r^{20}(T_a+1)^6,\qquad T_0\leq Cr^{20}.
+\end{equation}
+For example, the six factors allow a separate factor for choosing a
+target, traversing its graph, substituting its roots, and copying the
+ancestor descriptions, with two additional factors for indexing and
+duplication; the actual substitution keeps more sharing. If
+\begin{equation}\label{oe:recipe-exponent}
+ E_0=20,\qquad E_{a+1}=6E_a+20,\qquad E=E_{d_2},
+\end{equation}
+then all descriptions are $O(r^E)$. This recurrence is composed only
+$d_2$ times, by Lemma~\ref{oe:derivative-closure}.
+
+For each full target, a cutoff program uses at most $|H|$ group elements,
+$r$ prefix rectangles, $r$ selectors per rectangle, and $O(r)$ primitive
+alignment stages per selector. This is $O(r^{12})$ stages. For the orbit
+focus, there are at most $|H|$ frequencies and $|H|$ requested group
+indices. Even finding and storing a separate generator path of length
+$|H|$ for every such pull gives $|H|^3$ stages, in addition to the mode
+selectors. A bound $O(r^{30})$ covers both focus and cutoff work and the
+two buffers. An entry alphabet has dimension at most $|H|^2\leq r^{18}$,
+and a field entry uses $O(r)$ bits. Therefore
+\begin{equation}\label{oe:raw-size-bound}
+ \text{raw data, local public constants, and schedule metadata at one
+ center}\ \leq C r^{E+60}.
+\end{equation}
+This includes public-address focus, critical focus, all slot types and
+all four parts. The long sequence of $M_o$ cutoffs is represented by a
+clock and reusable buffers, not by $M_o$ copies of these data.
+
+Put $\ell_N=\lceil\log_2(N+2)\rceil$. Fix once an integer $C_L>E+100$
+and pad each raw symbol to
+\begin{equation}\label{oe:raw-length}
+ L=(\ell_N+C_{\rm base})^{C_L}.
+\end{equation}
+A fixed lower bound on $C_{\rm base}\geq1$ makes
+\eqref{oe:raw-size-bound} fit for every $N$. The unpadded construction is
+still parameterized by $r$ and the same slot schema. Increasing
+$C_{\rm base}$ later adds zero padding only. The raw word and all
+center-specific public descriptions have total length
+\begin{equation}\label{oe:total-raw-size}
+ |\Gamma|\operatorname{poly}(\ell_N)
+ =M_o|H|\operatorname{poly}(\ell_N)
+ =N\operatorname{poly}(\ell_N).
+\end{equation}
+This is a bound on the listed bits, including index and field
+representations, rather than just the number of slots.
+
+Every local test and proposal can now be implemented by a fixed
+polynomial-time bit algorithm on a bounded number of $L$-bit symbols.
+Parsing, loops over slots and the explicit group $H$, arithmetic in $J$,
+program interpretation, and multiplexing within a supplied
+polylogarithmic array use bounded nests of polynomially bounded loops.
+The largest local computation is the orbit-restricted parity solve of
+Lemma~\ref{lem:outer-fill}. Its dimension is at most
+\[
+ C|O|\,|H|\,\dim_J(U)\leq C|H|^4\leq CL^4.
+\]
+Its explicitly stored matrix has $O(L^9)$ bits if each field entry is
+bounded by $L$ bits. Gaussian elimination uses $O(L^{12})$ field
+operations, and elementary arithmetic and inversion have a schoolbook
+bound $O(L^4)$ in this generous bit-length allowance. Even accessing
+each entry by a linear scan through the matrix, and scanning the full
+slot and metadata lists, adds only fixed polynomial factors. All other
+displayed local operations have the same type of finite loop bound.
+No routine iterates through the $M_o$ cutoffs to answer one query.
+Choose an integer $a$ exceeding the sum of these fixed loop and
+arithmetic exponents. A standard direct time-unrolling of a deterministic
+bit computation of length $O(L^a)$ gives an acyclic bounded-fanin Boolean
+circuit of size $O(L^{2a+2})$: represent each configuration by its used
+tape cells and head indicators, and implement each next configuration
+by Boolean selection. Thus one fixed exponent $c_{\rm raw}$ bounds all
+raw local circuits. Its precise numerical value is immaterial; the
+displayed construction fixes it before correction rounds or port arities
+are selected.
+
+All lists and constants are uniformly constructible. Global algorithms
+enumerate the finite fields, groups, public routing tables, and full
+constant encodings, using the deterministic searches and linear algebra
+of Sections~\ref{sec:outer-codes} and~\ref{sec:outer-programs}. Their
+time is $\operatorname{poly}(N)$, though it need not be quasilinear.
+Input-dependent data without succinct evaluation at $c$ are accessed
+through \eqref{oe:public-walsh-table}; other public constants are
+hardwired only at the bounded, publicly specified neighbors of the
+requested center. There is no hidden access to an unrepresented
+length-$N$ array.
+
+\subsection{Correction and the complete outer interface}
+
+All full and scratch slots of $R_v$ satisfy their A constraints. Apply
+the joint A-axis corrector of Lemma~\ref{lem:outer-uncertainty} to all
+of them, together with majority correction of the repeated clock and
+canonical padding. The local decoder enumerates at most $2^d$ label
+subsets and solves the common scalar constraints componentwise. Since
+$d$ is fixed, this again has a fixed polynomial bound in $L$, independent
+of the number or dimensions of the packed slots. Enlarge $c_{\rm raw}$
+once to cover this one-round routine.
+
+Let $Q\geq2$ bound its neighborhood size and the sizes of the raw
+neighborhoods. For any fixed nonnegative integer $t$, unrolling $t$
+correction rounds followed by a raw local routine uses at most
+\begin{equation}\label{oe:fixed-interface-composition}
+ C(1+Q+\cdots+Q^t)=O(Q^t)
+\end{equation}
+copies of these same $L$-bit circuits. Their intermediate outputs still
+have length $L$. It follows that, for a constant $C_t$ depending on $t$,
+the composite circuit has size at most $C_tL^{c_{\rm raw}}$. Its ports
+are the finitely many compositions of the original permutations to depth
+at most $t$, followed by a raw neighborhood. The exponent is independent
+of $t$. A later increase of $C_{\rm base}$ changes only the linear work
+of checking and writing padding; it changes neither this exponent nor
+the number of ports. In particular, fixed multiplicative constants may
+be absorbed into a subsequent exponent allowance with slack by increasing
+$C_{\rm base}$ after all those constants have been fixed.
+
+\begin{theorem}[Outer representation interface]\label{thm:outer-representation}
+There are fixed positive constants $\delta_{\rm raw},\rho_{\rm raw}$,
+fixed integers $C_L,c_{\rm raw}$, and uniform deterministic algorithms
+with the following properties for every End-of-Line input of length $N$.
+They construct a directed graph of valid extended labels, represented by
+canonical words
+\[
+ R_v\in(\{0,1\}^L)^\Gamma,
+ \qquad |\Gamma|=N\operatorname{poly}(\ell_N),
+ \qquad L=(\ell_N+C_{\rm base})^{C_L},
+ \qquad \ell_N=\lceil\log_2(N+2)\rceil,
+\]
+where $C_{\rm base}$ may be any sufficiently large fixed integer.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item \textbf{Graph and endpoint data.} The graph has indegree and
+outdegree at most one, no self-edges, and no isolated vertices. It has the
+public distinguished source $v_*$ and actual successor $v_*^+$ in
+\eqref{oe:public-source}; their entire words are computable in
+$\operatorname{poly}(N)$ time. Every other endpoint is mapped in
+$\operatorname{poly}(N)$ time to a nonzero solution of the input
+End-of-Line instance. Every canonical word is computable from its valid
+label in polynomial time.
+\item \textbf{Distance and valid-word testing.} Distinct canonical words
+have normalized symbol distance at least $\delta_{\rm raw}$. A uniform
+center test has perfect completeness and uses only a fixed finite list
+$\Pi$ of permutation-neighbors, of cardinality $q$ independent of $N$.
+For every fixed $\alpha>0$ there is a fixed $\theta_\alpha>0$ such that
+\[
+ \operatorname{rej}(W)<\theta_\alpha
+ \quad\Longrightarrow\quad
+ \dist(W,R_v)<\alpha\quad\hbox{for some valid }v.
+\]
+Also $\operatorname{rej}(W)\leq q\dist(W,R_v)$ for every valid $v$.
+\item \textbf{Local proposals and flags.} At each requested center,
+total deterministic routines on $\Pi(k)$ compute a next or previous
+proposed symbol and an existence bit. On $R_v$ the bit is independent
+of the center and equals the actual edge-existence flag. If it is one,
+the proposed symbols form exactly the canonical neighboring word; if it
+is zero, the default proposal is $R_v$ itself.
+\item \textbf{Value-independent uncertainty correction.} There is a
+total local one-round corrector with a bounded permutation neighborhood.
+If $|U|/|\Gamma|\leq\rho_{\rm raw}$, it maps every word agreeing with
+$R_v$ outside $U$ to a word agreeing with $R_v$ outside a set $U^+$
+determined only by $U$, with $|U^+|\leq|U|/2$. Consequently $t$ rounds
+leave a prescribed uncertainty support of density at most
+$2^{-t}|U|/|\Gamma|$. The guarantee holds for arbitrary values on $U$.
+Different requested-center simulations may use different values there,
+provided repeated occurrences of a position are consistent within each
+individual cone.
+\item \textbf{Global recovery.} From any word within
+$\rho_{\rm raw}$ symbol distance of a valid word, a deterministic
+polynomial-time algorithm recovers its exact extended label and raw
+word. It then recovers the logical bits by systematic coefficient
+extraction and evaluation on the subgroup. In particular it extracts an
+End-of-Line answer whenever the recovered label is a nonexceptional
+endpoint.
+\item \textbf{Uniform cost and order of choices.} The total raw data and
+listed public descriptions have $N\operatorname{poly}(\ell_N)$ bits
+and are constructible in $\operatorname{poly}(N)$ time. Each raw local
+test, proposed symbol, flag, and one-round corrector has a Boolean
+circuit of size at most $CL^{c_{\rm raw}}$ on a fixed number of symbols.
+For each fixed $t$, correction for $t$ rounds followed by any such raw
+routine has size at most $C_tL^{c_{\rm raw}}$ and at most $O(Q^t)$
+symbol ports, with uniform construction for that $t$. The exponents
+$C_L,c_{\rm raw}$ are fixed before $t$ and any later port arity. Further
+fixed additive padding in $C_{\rm base}$ has only linear processing
+cost and does not change these exponents or arities.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+The graph and local evolution were established in
+Lemma~\ref{oe:preparation} and \eqref{oe:replacement-path}. The tester
+and distance are Lemma~\ref{oe:valid-testing}. For example, its constants
+allow
+\[
+ \theta_\alpha=
+ \min\{g_{\rm rep}/2,\alpha/(2C_{\rm rep})\}.
+\]
+All local proposals use the same primitive permutation list as the
+tester, enlarging it by a fixed number of maps if necessary.
+
+For the correction claim, let $d$ and $\delta_1$ be the outer A-code
+degree and distance. Choose $\rho_{\rm raw}$ smaller than both
+$\delta_{\rm raw}/3$ and $\delta_1/4$, and smaller than the fixed
+uncertainty radius in Lemma~\ref{lem:outer-uncertainty}. An admissible
+choice of $U^+$ is the set of centers having at least $(\delta_1/2)d$
+neighbors in $U$ in a forward or inverse A list. Off this set all row
+suggestions have fewer than half the local minimum distance in errors,
+so the joint decoder recovers the reference exactly; the clock majority
+and padding agree there too. If $u=|U|/|\Gamma|$, the spectral estimate
+from that lemma gives
+\[
+ \frac{|U^+|}{|\Gamma|}
+ \leq\frac{2\lambda^2u}{(\delta_1/2-u)^2}
+ \leq\frac u2.
+\]
+Neither this support nor the proof refers to the values inside $U$.
+For a requested-center cone with consistent repeated positions, extend
+its initially supplied values arbitrarily to the whole word, setting
+the reference outside $U$. The same support argument applies. This
+proves the assertion even when separate cones choose different
+extensions.
+
+After $O(\log|\Gamma|)$ synchronous global rounds the uncertainty set
+has cardinality less than one, giving exact recovery in polynomial
+time. From a recovered logical singleton slot, read its coefficient
+payload and evaluate the degree-$<h$ interpolant at $\omega^j$,
+$0\leq j<h$, to obtain the corresponding logical bits. The repeated
+clock gives $(c,\eta,j)$. The distance choice makes the promised
+reference unique. On inputs outside the recovery promise the algorithm
+has a total default; it may check the decoded label and its canonical
+word by the global polynomial-time algorithms. Finally,
+\eqref{oe:recipe-size-recurrence}--\eqref{oe:total-raw-size} and
+\eqref{oe:fixed-interface-composition} give all asserted cost and
+parameter-order statements.
+\end{proof}

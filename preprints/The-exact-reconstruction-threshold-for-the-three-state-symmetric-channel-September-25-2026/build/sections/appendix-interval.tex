@@ -1,0 +1,469 @@
+\section{Correctness of the interval certificate}
+\label{int:certificate}
+\label{int:appendix}
+
+This appendix explains the integer interval certificate for the strict
+positivity of the polynomial~\eqref{wei:polynomial}.  The coefficients are
+those in~\eqref{wei:coefficients}, with the matching parameter choices
+in~\eqref{wei:parameters}.  The certified domain consists of every probability
+vector on three states, every $\xi\in[3/100,1]$, and each of the three closed
+$a$ intervals
+\[
+ [0,190/1000],\qquad [190/1000,448/1000],\qquad
+ [448/1000,477/1000].
+\]
+The third interval uses the Poisson values $H=1/12$, $U=1/2$; the first
+two use $H=1/16$, $U=15/32$.  The source is supplied unchanged as
+\texttt{verification/interval.cpp}; see also
+Section~\ref{cert:interval}.  Assertions and signed 128-bit integer
+arithmetic are part of the certificate.  We first explain what its
+arithmetic computes and then why normal completion proves the claimed
+inequality over the entire domain.
+
+\subsection{Coordinates, formulas, and boundary extensions}
+\label{int:parametrization}
+
+The quantities being checked are invariant under permutation of the
+three coordinates.  After sorting a probability vector in decreasing
+order, it has the representation
+\begin{equation}
+ p=\frac{(1,q^{18},r^{18})}{Z},\qquad
+ Z=1+q^{18}+r^{18},\qquad 0\le r\le q\le1.
+ \label{int:coordinates}
+\end{equation}
+Indeed, the largest probability is positive; take the eighteenth roots
+of the other two probabilities divided by it.  The formulas below are
+valid on the larger square $0\le q,r\le1$, which will allow rectangular
+intervals that cross the diagonal $r=q$.
+
+Set $m_i=3p_i$ and $v_i=m_i-1$.  Then
+\[
+ v=\left(\frac3Z-1,\frac{3q^{18}}Z-1,
+                  \frac{3r^{18}}Z-1\right),\qquad
+ x=\frac16\sum_{i=1}^3v_i^2,\qquad y=\frac12v_1v_2v_3.
+\]
+In particular, $-1\le v_i\le2$ everywhere on the square.  For positive
+$q,r$, write $L_q=\log q$ and $L_r=\log r$.  The centered logarithms
+$u_i=\log m_i-\frac13\sum_j\log m_j$ are
+\[
+ (-6(L_q+L_r),\ 12L_q-6L_r,\ 12L_r-6L_q).
+\]
+Consequently the functions used in the weighted argument are exactly
+\begin{align}
+ G&=\frac{3q^6r^6}{Z},& T&=1-G,\notag\\
+ W&=\frac{216}{Z}q^6r^6(L_q^2+L_r^2-L_qL_r),\notag\\
+ Y&=\frac{648}{Z}q^6r^6
+    (2L_q^3+2L_r^3-3L_q^2L_r-3L_qL_r^2).
+ \label{int:weighted-functions}
+\end{align}
+These expressions explain the constants $216$ and $648$ in
+\texttt{coeff}.  The entries returned by \texttt{qt} are enclosures of
+$q^{18}$ and $q^6(\log q)^j$, $0\le j\le3$, together with their
+derivatives; the analogous entries are used for $r$.
+
+For the edge functions put
+\[
+ e_i=1-av_i,\qquad G_e=(e_1e_2e_3)^{1/3},\qquad
+ \mathcal L(t)=\begin{cases}-\log(1-t)/t,&t\ne0,\\1,&t=0.
+ \end{cases}
+\]
+Define
+\[
+ b_i=-v_i\mathcal L(av_i),\qquad
+ w_i=b_i-\frac13\sum_jb_j.
+\]
+For $a>0$, $b_i=\log(e_i)/a$, so the centered edge logarithms are
+$aw_i$.  Since $\sum_i v_i=0$,
+\[
+ G_e^3=1-3a^2x-2a^3y.
+\]
+Factoring $1-G_e^3$ gives the formulas used in the code:
+\begin{equation}
+ \widehat T=\frac{3x+2ay}{1+G_e+G_e^2},\qquad
+ \widehat W=\frac{G_e}{3}\sum_iw_i^2,\qquad
+ \widehat Y=aG_ew_1w_2w_3.
+ \label{int:edge-functions}
+\end{equation}
+Here $\widehat T=T_e/a^2$, $\widehat W=W_e/a^2$, and
+$\widehat Y=Y_e/a^2$ when $a>0$.  The last identity uses
+$\frac13\sum_iw_i^3=w_1w_2w_3$ for three centered coordinates.
+Thus the code variables \texttt{Te}, \texttt{We}, and \texttt{Ye} are
+the hatted quantities.  At $a=0$, the formulas give continuously
+\[
+ G_e=1,\qquad \widehat T=x,\qquad
+ \widehat W=2x,\qquad \widehat Y=0.
+\]
+There is no division by $a$ in the implemented expressions.  Substituting
+\eqref{int:weighted-functions} and~\eqref{int:edge-functions} into the
+four entries returned by \texttt{coeff} gives, term by term,
+$(D_0,D_1,D_2,D_3)$ in~\eqref{wei:coefficients}.  In the parameter
+structure, \texttt{del}, \texttt{ch}, and \texttt{cu} mean
+$\delta,H,U$, and the code forms $s_0=c_0+1/3$.
+
+All boundary probability vectors are included.  Each function
+$q^6(\log q)^j$, $0\le j\le3$, is assigned value zero at $q=0$.
+Its derivative for $q>0$ is
+\begin{equation}
+ 6q^5(\log q)^j+jq^5(\log q)^{j-1},
+ \label{int:log-product-derivative}
+\end{equation}
+where the second term is omitted when $j=0$.  Both the function and
+its derivative tend to zero at zero.  Thus the expressions have
+continuous first derivatives up to the boundary; when $qr=0$ they give
+$T=1$ and $W=Y=0$.  Since $Z\ge1$ and $e_i>0$ throughout the domain,
+all four $D_i$ have the same regularity, including at $a=0$.
+
+\subsection{Integer intervals and machine safety}
+\label{int:arithmetic}
+
+Let $S=2^{40}$.  An object \texttt{I} with integer endpoints $(l,h)$
+represents $[l/S,h/S]$.  The functions \texttt{unit} and
+\texttt{integer} represent a grid point and a small integer,
+respectively.  With positive denominator, \texttt{rat}$(b,c)$ represents
+\[
+ \left[\frac{\lfloor Sb/c\rfloor}{S},
+       \frac{\lceil Sb/c\rceil}{S}\right].
+\]
+The helpers \texttt{mf}$(b,c)$ and \texttt{floor\_div}$(b,c)$ compute
+the mathematical floors of $bc/S$ and $b/c$, also for negative
+numerators: the negative branch uses the negative of the corresponding
+positive ceiling.  Upper endpoints are obtained by negating a floor of
+a negated expression.  Addition and subtraction are exact on the
+grid.  Multiplication chooses the appropriate endpoint extrema in
+each sign case; when both intervals cross zero it takes the minimum
+of the two potentially negative products and the maximum of the two
+potentially positive products.  The square operation assigns lower
+endpoint zero when its input crosses zero.
+
+For a positive interval $[l/S,h/S]$, the reciprocal is enclosed by
+\[
+ \left[\frac{\lfloor S^2/h\rfloor}{S},
+       \frac{\lceil S^2/l\rceil}{S}\right].
+\]
+Negative reciprocals use odd symmetry.  An assertion excludes intervals
+containing zero.  Consequently all elementary interval operations
+contain their exact real counterparts.  Intersecting a value interval
+with a separately established range is also sound.  The two uses of
+this operation, \texttt{clip}, are the range $[-1,2]$ for $v_i$ and
+the logarithmic-product bounds proved below.
+
+These statements concern exact integer operations, so absence of
+overflow must be established before using their outputs.  Every
+potentially growing endpoint calculation is passed through
+\texttt{safe}, which asserts
+\[
+ -2^{62}<b<2^{62}
+\]
+before converting the signed 128-bit integer $b$ to a signed 64-bit
+endpoint.  Inductively, two input endpoints have product of magnitude
+less than $2^{124}$.  The product is formed after promoting to signed
+128 bits, and the rounding offset $S-1$ still leaves its magnitude
+below $2^{127}$.  Endpoint addition is also promoted before checking.
+Reciprocal numerators are $S^2=2^{80}$; adding the denominator minus
+one for upward rounding is safe.  Rational-construction numerators
+and denominators in the prescribed runs are small fixed integers.
+No unchecked negation or absolute value can encounter the minimum
+signed 64-bit integer, because endpoints have magnitude below $2^{62}$.
+
+The remaining raw integer expressions have separate small bounds.
+All box coordinates lie in $[0,S]$ in grid units, so midpoint sums
+are at most $2S$.  Cube-root search candidates are below $2S$,
+their endpoint sums are at most $4S$, and the two cube-comparison
+operands are below $8S^3=2^{123}$.  The fixed multiples of $S$, loop
+indices, and initial-grid numerators fit signed 64 bits.
+The unchecked visit counter is treated separately by the concrete
+sanitized executions recorded below; the depth bound alone does not
+keep its total number of increments within the signed 64-bit range.
+Logarithm scaling uses at most forty doublings on the actual
+arguments.  Thus a range assertion is never being asked to detect an
+overflow that has already occurred: oversized derivative or value
+enclosures stop at \texttt{safe} before narrowing.  All floating-point
+casts in this source occur in failure diagnostics, not in acceptance
+tests.
+
+\subsection{Logarithms, divided logarithms, and cube roots}
+\label{int:logs}
+
+The function \texttt{atanh2} evaluates the fifteen terms
+\[
+ 2\sum_{n=0}^{14}\frac{w^{2n+1}}{2n+1}
+\]
+by Horner's rule with outward interval operations.  For $|w|\le u<1$
+the absolute remainder is at most
+\[
+ \frac{2u^{31}}{31(1-u^2)}.
+\]
+The code asserts $|w|\le1/3+4/S<3/8$.  With $u=3/8$, the remainder
+bound, in grid units, is the exact rational number
+\begin{equation}
+ S\frac{2(3/8)^{31}}{31(1-(3/8)^2)}
+ =\frac{617673396283947}{119978708822917120}
+ <\frac1{100}<2.
+ \label{int:atanh-tail}
+\end{equation}
+The padding $[-2/S,2/S]$ therefore covers the omitted tail; all
+polynomial-evaluation errors are already covered by interval rounding.
+
+To enclose $\log(x/S)$ for a positive integer endpoint $x$,
+\texttt{ln} scales an interval containing $x/S$ by powers of two.
+If $m$ is the resulting interval and $k$ the accumulated exponent,
+then $x/S\in2^km$.  Multiplication by two is exact on this grid;
+halving, when used, rounds outwards.  The identities
+\[
+ \log t=2\operatorname{atanh}\frac{t-1}{t+1},\qquad
+ \log2=2\operatorname{atanh}\frac13
+\]
+give the enclosure after adding $k\log2$.  The domain assertion in
+\texttt{atanh2} checks the needed range even after rounding.  All
+positive arguments actually passed to \texttt{ln} are either coordinate
+endpoints in $[1/S,1]$, or endpoints of $1-av_i$ bounded away from
+zero, so the scaling loops terminate within the stated bounds.
+
+The divided logarithm has the integral and power-series representations
+\begin{equation}
+ \mathcal L(t)=\int_0^1\frac{ds}{1-st}
+             =\sum_{n=0}^{\infty}\frac{t^n}{n+1}
+ \quad (|t|<1).
+ \label{int:L-representation}
+\end{equation}
+For $|t|\le1/4$, \texttt{L\_endpoint} evaluates
+$\sum_{n=0}^{22}t^n/(n+1)$ and its derivative
+$\sum_{n=1}^{22}nt^{n-1}/(n+1)$ independently.  Bounding both
+coefficient sequences by one bounds their absolute tails by
+\begin{equation}
+ \frac{(1/4)^{23}}{1-1/4}=\frac1{48S},\qquad
+ \frac{(1/4)^{22}}{1-1/4}=\frac1{12S},
+ \label{int:L-tails}
+\end{equation}
+respectively.  Each receives padding $[-1/S,1/S]$.  Outside this
+small interval the exact identities
+\[
+ \mathcal L(t)=-\frac{\log(1-t)}t,\qquad
+ \mathcal L'(t)=\frac{(1-t)^{-1}-\mathcal L(t)}t
+\]
+use only nonzero denominators.  On the entire real domain $t<1$,
+differentiation of the integral representation gives
+\[
+ \mathcal L'(t)=\int_0^1\frac{s\,ds}{(1-st)^2}>0,\qquad
+ \mathcal L''(t)=2\int_0^1\frac{s^2\,ds}{(1-st)^3}>0.
+\]
+Thus both $\mathcal L$ and $\mathcal L'$ increase, including at negative
+arguments.  The lower enclosure at the left endpoint and upper
+enclosure at the right endpoint suffice to enclose each function
+on an interval.  This is precisely the rule used by \texttt{L}.
+
+For a nonnegative integer $x<8S$, \texttt{cb\_floor} uses binary
+search and the exact comparison
+\[
+ m^3\le xS^2
+\]
+to return $\lfloor S(x/S)^{1/3}\rfloor$.  Its initial search bracket
+$[0,2S]$ is valid by $x<8S$.  Applying this function to the two input
+endpoints, then increasing the upper result by one grid unit, encloses
+the cube root.  The derivative enclosure is obtained from
+$1/(3t^{2/3})$ using the already enclosed positive root.
+
+The outward rounding of an $a$ endpoint enlarges the prescribed bands
+by less than $1/S$, and never introduces negative $a$.  Hence throughout
+the actual boxes $a\le477/1000+1/S$.  Even the interval enclosures of
+$1-av_i$, after multiplication rounding and clipping $v_i$ to $[-1,2]$,
+have lower endpoint greater than $45/1000$ and upper endpoint less
+than $1478/1000$.  The successive product of the three factors has
+lower endpoint at least $(45/1000)^3-3/S>0$ and upper endpoint at most
+$(1478/1000)^3+3/S<8$.  These bounds justify the logarithm,
+divided-logarithm, reciprocal, and cube-root domains on every initial
+box and descendant.  The cube-root lower enclosure is positive as
+well, so its derivative reciprocal is valid.
+
+\subsection{Logarithmic products and derivative propagation}
+\label{int:derivatives}
+
+The zero endpoints in~\eqref{int:coordinates} are treated without
+evaluating their logarithms.  For $0<q\le1$, set $t=-\log q\ge0$.
+For integers $0\le j\le3$ and real $h\ge5$,
+\[
+ q^{h/2}|\log q|^j=e^{-ht/2}t^j\le1.
+\]
+For $j=0$ this is immediate.  For $j>0$ its maximum is
+$(2j/(he))^j\le1$, since $2j/h\le6/5<e$.
+It follows that
+\begin{equation}
+ |q^5(\log q)^j|\le q^{5/2}\le q^2,\qquad
+ |q^6(\log q)^j|\le q^3.
+ \label{int:qt-bound}
+\end{equation}
+For even $j$ the products are nonnegative, and for odd $j$ they are
+nonpositive.  These are the exact external ranges used by
+\texttt{qt\_direct} to intersect the power-and-logarithm enclosures.
+When the lower endpoint is zero, the same ranges directly supply
+an enclosure, with no logarithm call.  When the lower endpoint is
+positive, monotonicity of $\log$ supplies its interval, and intersecting
+its upper bound with $0$ is valid because $q\le1$.  The derivative
+returned for every logarithmic product is exactly the interval
+version of~\eqref{int:log-product-derivative}.  The derivative of
+$q^{18}$ is $18q^{17}$.  Cached enclosures depend only on the interval
+endpoints; \texttt{qt} puts their derivatives in the appropriate
+$q$ or $r$ gradient coordinate.
+
+An object \texttt{J} consists of a value interval and three derivative
+intervals, corresponding to $(q,r,a)$.  Constants have zero gradients
+and variables have the appropriate unit gradient.  Addition,
+multiplication, squares, and reciprocals apply the identities
+\[
+ \partial_i(fg)=f\,\partial_i g+g\,\partial_i f,\qquad
+ \partial_i(f^2)=2f\,\partial_i f,\qquad
+ \partial_i(f^{-1})=-f^{-2}\partial_i f.
+\]
+Cube roots and $\mathcal L$ use the derivative enclosures just proved
+and the chain rule.  Induction over these operations proves that the
+value and every first partial derivative of the actual formula are
+enclosed throughout the box.  Tightening a value enclosure by an
+external range does not replace the underlying function by a clipped
+function: its previously enclosed derivatives remain valid, and
+the tighter values can be used in subsequent product and chain rules.
+All these statements extend to zero coordinate endpoints by the
+continuous derivative extensions already established.
+
+\subsection{Bernstein coefficients and the acceptance test}
+\label{int:bernstein}
+
+For fixed $(q,r,a)$ write the polynomial as
+$P(\xi)=D_0+D_1\xi+D_2\xi^2+D_3\xi^3$.  On a subinterval
+$[l,h]$, substitute $\xi=l+(h-l)t$, $0\le t\le1$, and express $P$
+in the basis $\binom3j t^j(1-t)^{3-j}$.  The multipliers of $D_1,D_2,D_3$
+in the four coefficients are
+\begin{equation}
+ \begin{array}{c|ccc}
+ j& D_1&D_2&D_3\\ \hline
+ 0&l&l^2&l^3\\
+ 1&(2l+h)/3&l(l+2h)/3&l^2h\\
+ 2&(l+2h)/3&h(h+2l)/3&lh^2\\
+ 3&h&h^2&h^3
+ \end{array}
+ \label{int:bernstein-rows}
+\end{equation}
+and the multiplier of $D_0$ is always one.  Expanding the four
+basis polynomials verifies these identities.  All basis polynomials
+are nonnegative and their sum is one; strictly positive coefficients
+therefore imply $P(\xi)>0$ on the whole closed subinterval.
+
+The function \texttt{rows} uses successive intervals with endpoints
+\begin{equation}
+ \frac1{1000}(30,50,75,100,150,200,300,400,500,650,800,900,1000).
+ \label{int:xi-grid}
+\end{equation}
+These twelve intervals cover $[3/100,1]$ without gaps.  For each it
+stores the first three rows of~\eqref{int:bernstein-rows}; the fourth
+row equals the first row for the next interval.  It finally adds
+$(1,1,1)$.  Thus the $37$ stored rows account for all $48$ coefficients
+of the twelve cubic representations, including both extreme
+endpoints.  The row multipliers are themselves evaluated by rational
+interval arithmetic and have zero gradients with respect to
+$(q,r,a)$.
+
+Let $F$ denote one of these Bernstein coefficients on a box
+$B=\prod_{i=1}^3[l_i/S,h_i/S]$.  The interval calculation in
+\texttt{dot} encloses $F$ and all its first derivatives.  A positive
+lower endpoint immediately accepts this coefficient.  Otherwise
+define the grid midpoint and coordinate radii by
+\[
+ c_i=\frac{\lfloor(l_i+h_i)/2\rfloor}{S},\qquad
+ \rho_i=\frac{h_i-\lfloor(l_i+h_i)/2\rfloor}{S}.
+\]
+Nonnegative endpoints ensure that C++ integer division computes this
+floor; $\rho_i$ is the larger of the two distances to the endpoints.
+If $M_i$ is the maximum absolute endpoint of the derivative enclosure,
+in real units, then for every $z\in B$ the segment from $c$ to $z$
+lies in $B$ and
+\begin{equation}
+ F(z)\ge F(c)-\sum_{i=1}^3M_i\rho_i.
+ \label{int:mean-value}
+\end{equation}
+This follows by integrating the gradient along that segment, also
+when a coordinate endpoint is zero.  The code encloses $F(c)$ anew,
+rounds each product $M_i\rho_i$ upwards, and adds their integer
+upper endpoints with overflow checks.  Its strict comparison
+\texttt{value.v.l > total} is therefore sufficient for $F>0$
+throughout $B$.  A box is accepted only when every stored row passes
+one of these two tests.
+
+\subsection{Subdivision, coverage, and observed completion}
+\label{int:coverage}
+
+For a band $[a_-,a_+]$, the initial exact boxes before outward
+rounding are
+\begin{equation}
+ \left[\frac i{24},\frac{i+1}{24}\right]
+ \times\left[\frac j{24},\frac{j+1}{24}\right]
+ \times\left[a_-+\frac{k}{16}(a_+-a_-),
+              a_-+\frac{k+1}{16}(a_+-a_-)\right],
+ \label{int:initial-boxes}
+\end{equation}
+where $0\le i<24$, $0\le j\le i$, and $0\le k<16$.
+Every $(q,r)$ with $0\le r\le q\le1$ belongs to one of the displayed
+$q,r$ rectangles, including all grid boundaries.  There are
+$16\sum_{i=0}^{23}(i+1)=4800$ initial boxes per run.  Their endpoints
+are rounded outwards, so none of the required domain is lost.
+The extra points included by rounding are harmless, as are portions
+of diagonal rectangles with $r>q$: the same functions and derivative
+bounds are valid there.  The $a$ enlargement and all analytic domains
+were checked above.  Adjacent bands may use different parameters,
+since each certifies its own entire closed band.
+
+On entry, \texttt{visit} skips a box only if its lower $r$ endpoint
+exceeds its upper $q$ endpoint.  Such a box contains no point with
+$r\le q$.  If any coefficient fails both acceptance tests, the code
+chooses a coordinate with maximal recorded derivative-radius
+contribution and cuts at its grid midpoint.  The choice affects
+efficiency only.  The two closed children include the midpoint and
+their union is the parent.  If the chosen contribution is zero, the
+depth exceeds $80$, or the chosen grid radius is at most one, an
+assertion fails rather than accepting an unresolved box.
+
+Induction back up any normally completed recursion tree now proves
+that every required point in its root box has all Bernstein
+coefficients strictly positive.  The leaves either pass the sound
+acceptance tests or contain no required point.  Together with
+\eqref{int:initial-boxes}, \eqref{int:xi-grid}, and the sorted
+parametrization, normal completion of all three runs proves the
+pointwise inequality on the full stated domain.  This includes the
+uniform message, boundary probability vectors, $a=0$, all band
+endpoints, and all $\xi$ endpoints.  In particular there is no
+exception at the uniform message: there $P(\xi)=\delta\xi^2+
+U\delta\xi^3>0$.
+
+\label{int:execution}
+The unchanged source was replayed with GCC 13.3.0 on x86\_64 Linux,
+using assertions enabled.  From the package root the reproduction
+commands are
+\begin{verbatim}
+g++ -std=c++17 -O3 -UNDEBUG verification/interval.cpp \
+  -o /tmp/appendix_b
+/tmp/appendix_b 0
+/tmp/appendix_b 1
+/tmp/appendix_b 2
+\end{verbatim}
+Only the documented arguments $0,1,2$ are part of this protocol;
+the source does not validate other argument values.  Compiling with
+assertions disabled is not this certificate.  All three runs exited
+normally with status zero and the following visit counts:
+\[
+ \begin{array}{c|c|r}
+ \text{argument}&a\text{ interval}&\text{calls to \texttt{visit}}\\ \hline
+ 0&[0,190/1000]&414080\\
+ 1&[190/1000,448/1000]&756096\\
+ 2&[448/1000,477/1000]&1004426
+ \end{array}
+\]
+The counts include internal subdivision nodes and boxes skipped by
+the diagonal test. All three executions were also repeated on the
+unchanged source with \texttt{-O2 -UNDEBUG -fsanitize=undefined}
+and \texttt{-fno-sanitize-recover=undefined}. They completed with the
+same counts and no sanitizer diagnostics. This supplies the separate
+check of the unchecked \texttt{visits++} counter for these prescribed
+executions. The counts identify the finite completed executions;
+their correctness implication is the enclosure and coverage argument
+above, not a sample-based inference.  The source SHA-256 is
+\begin{verbatim}
+76d1443b1194597ee77749e8030c825f2b9aae46b5c172d9eccf0745078c28e3
+\end{verbatim}

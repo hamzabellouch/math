@@ -1,0 +1,283 @@
+\section{A planar processor that leaves room for a spatial clock}\label{bcs:expanded-section}
+The compact scalar-potential lift and the prefix lift spend the third coordinate on separating branches or compensating area change. For a stationary spatial suspension we instead need the entire instruction motion in a plane. We construct it by moving disjoint rectangles to well-separated temporary positions, changing their shapes there, and routing them to the targets. Input-dependent placement makes the initial particle fixed, so no one-time loader interrupts periodicity.
+
+Fix
+\[
+ c_L=(1/4,1/4),\quad c_R=(3/4,1/4),\quad
+ X_*=(1/4,1/4,1/4),\quad
+ \mathcal S=\{X\in\mathbb T^3:2/3<X_1<5/6\}.
+\]
+We use the circle interpretation of the first-coordinate interval.
+
+\subsection{A partial table with a recognizable inverse}
+This construction retains an ordinary partial instruction table: the machine halts when its state and scanned letter have no instruction. The optional one-sided-tape convention of Section~\ref{bcs:scalar-section} is retained by including its immutable end-marker in the work alphabet and keeping the prescribed boundary actions; the recorder preserves that track. Let $Q$ be the finite state set, $A$ the work alphabet, $q_0$ the initial state, and $E\subset Q\times A$ the set of defined instructions, and write $e=(q,a)\mapsto(q'_e,b_e,d_e)$. Let
+\[
+ H_0=\{\mathtt u,\mathtt P\}\sqcup\{\mathtt r_e:e\in E\},
+ \quad H_1=H_0\setminus\{\mathtt P\},\quad
+ \Gamma=A\times H_0\times\{0,1\}.
+\]
+The extra tracks record instructions and mark the place to which the recorder must return, following the history principle of Bennett~\cite{Bennett1973}. States are ${\sf Run}_q,{\sf Turn}_q,{\sf Back}_q,{\sf Stop}_q$ and ${\sf Mark}_e,{\sf Seek}_e$. Put
+\[
+ (\tau_{q,a},\beta_{q,a},\mu_{q,a})=
+ \begin{cases}({\sf Mark}_{(q,a)},b_{(q,a)},d_{(q,a)}),&(q,a)\in E,\\
+ ({\sf Stop}_q,a,0),&(q,a)\notin E.
+ \end{cases}
+\]
+At a checkpoint ${\sf Run}_q$ after $k$ ordinary steps, the intended invariant has frontier $F=2+k$ at least two cells to the right of the head, records in cells $2,\ldots,F-1$, blank history elsewhere except at the frontier, and all bits zero. Here a defined work instruction moves the head first; the next row marks that new position, scans right to append the record and advance the frontier, then returns to erase the mark. This order restores the updated head position at the next checkpoint, as the proof below shows.
+
+Use exactly the following seven rule families:
+\begin{equation}\label{bcs:expanded-table}
+\begin{array}{lll}
+ ({\sf Run}_q,(a,h,0))\mapsto(\tau_{q,a},(\beta_{q,a},h,0),\mu_{q,a}),&h\in H_1,\\
+ ({\sf Mark}_e,(a,h,0))\mapsto({\sf Seek}_e,(a,h,1),1),&h\in H_1,\\
+ ({\sf Seek}_e,(a,h,0))\mapsto({\sf Seek}_e,(a,h,0),1),&h\in H_1,\\
+ ({\sf Seek}_e,(a,\mathtt P,0))\mapsto({\sf Turn}_{q'_e},(a,\mathtt r_e,0),1),\\
+ ({\sf Turn}_q,(a,\mathtt u,0))\mapsto({\sf Back}_q,(a,\mathtt P,0),-1),\\
+ ({\sf Back}_q,(a,h,0))\mapsto({\sf Back}_q,(a,h,0),-1),&h\in H_1,\\
+ ({\sf Back}_q,(a,h,1))\mapsto({\sf Run}_q,(a,h,0),0),&h\in H_1.
+\end{array}
+\end{equation}
+There are no rules out of a stop state. Initially the work tape is the finite input with blanks elsewhere, the head is at zero, every bit is zero, and the history has $\mathtt P$ at cell $2$ and $\mathtt u$ everywhere else.
+
+\begin{lemma}\label{bcs:expanded-compiler}
+The initialized table reaches a stop state exactly when the ordinary partial-table machine halts. Otherwise it has defined transitions forever. On its full allowed domain, the destination state and full written symbol determine a unique incoming rule; the destination alone determines its displacement.
+\end{lemma}
+\begin{proof}
+At a checkpoint ${\sf Run}_q$ after $k$ ordinary steps, the state, head $i$, and work tape agree with the machine. The frontier is at $F=2+k$, records occupy $2,\ldots,F-1$, history is empty elsewhere, all bits are zero, and $i\le F-2$. A defined instruction first updates the work and moves to $i'=i+d_e\le F-1$. The mark row marks $i'$, the right scan reaches $F$, writes its record and moves to $F+1$. The turn row creates the new frontier and the backward scan finds the sole marked cell. Erasure restores the checkpoint invariant with $F$ increased by one. Each scan is finite. An undefined instruction enters a stop state by the first row, including at the initial configuration.
+
+Into ${\sf Mark}_e$, $e$ identifies the old state and work letter, and the written history letter distinguishes the variants. Into ${\sf Seek}_e$ the marked entry and unmarked loop both move right and have different written bits. Into ${\sf Turn}_q$ the record identifies $e$. Into ${\sf Back}_q$ both arrivals move left; entry writes the frontier whereas the loop does not. Into ${\sf Run}_q$ the erasure row is the only type, and the written work and history letters recover its read symbol. Into ${\sf Stop}_q$ the unchanged letter identifies the old pair and the displacement is zero. Undoing that displacement and replacing the uniquely recovered read symbol reconstructs the full predecessor tape.
+\end{proof}
+
+\subsection{Coding a fixed starting point}
+Give the $m=|\Gamma|$ letters odd digits $D(s)=1,3,\ldots,2m-1$ in base $B=2m+1$. Let
+\[
+ C(s_1s_2\cdots)=\sum_{j\ge1}D(s_j)B^{-j},\qquad
+ I_s=[D(s)/B,(D(s)+1)/B].
+\]
+A code lies strictly inside its first-letter interval, and successive stripping uniquely decodes it. The left and right tape lists have coordinates $\xi=C(s_{-1}s_{-2}\cdots)$ and $\eta=C(s_0s_1\cdots)$. For a rule $(\varsigma,s)\mapsto(\tau,s',d)$ write $\beta=(D(s')-D(s))/B$. Its normalized rectangles and maps are
+\begin{equation}\label{bcs:expanded-branches}
+\begin{array}{ccl}
+ d&\text{source}&(\xi,\eta)\longmapsto\\
+ 0&[0,1]\times I_s&(\xi,\eta+\beta),\\
+ 1&[0,1]\times I_s&((D(s')+\xi)/B,B\eta-D(s)),\\
+ -1&I_l\times I_s&(B\xi-D(l),(D(l)+\eta+\beta)/B),\quad l\in\Gamma.
+\end{array}
+\end{equation}
+The image rectangles are $[0,1]\times I_{s'}$, $I_{s'}\times[0,1]$, and $[0,1]\times(D(l)/B+B^{-1}I_{s'})$, respectively. The digit identities prove that these are the correct tape maps, with determinant one and positive diagonal part $\operatorname{diag}(B^{-d},B^d)$.
+
+Let $K$ be the number of states and $N$ the number of split branches. They are positive, even if $E$ is empty, because the run-to-stop rules exist. Set
+\[
+ r=[10^6(K+1)(N+1)(B+1)^2]^{-1}.
+\]
+Each state has a square $o_\varsigma+r[0,1]^2$, based near $c_R$ for stop states and near $c_L$ otherwise. If $(\xi_*,\eta_*)$ is the rational initial tape code, set
+$o_{{\sf Run}_{q_0}}=c_L-r(\xi_*,\eta_*)$.
+Enumerate the other states by $j=1,\ldots,K-1$ and set their origins to their cluster base plus $(0,3jr)$. These squares are separated by at least $r$ and lie within sup distance $(3K+1)r$ of their bases. The initial physical code is exactly $c_L$.
+
+Write the resulting physical affine branches $T_i:R_i\to R_i'$ with centers $p_i,p_i'$ and linear parts $\operatorname{diag}(\lambda_i,\lambda_i^{-1})$. Distinct sources are separated by at least $r/B^2$. Images have the same separation: in a target state the displacement is fixed and written symbols distinguish incoming rules, by Lemma~\ref{bcs:expanded-compiler}. For a left move, the two-digit target interval distinguishes $(l,s')$; its gaps are at least $B^{-2}$. This is a full-rectangle separation statement. At checkpoints, the record block length also recovers $k$, hence the frontier's absolute index $2+k$ and the absolute head position.
+
+\subsection{Routing full rectangles inside the plane}
+Area-preserving realization of symbolic rectangle maps is central to the generalized-shift construction of Cardona, Miranda, Peralta-Salas and Presas~\cite[Proposition~5.1]{CardonaMirandaPeraltaSalasPresas2021}. We give the full local construction needed here. Its quantitative collars and complete intermediate paths supply the later suspension and diffusion tests.
+\begin{lemma}\label{bcs:expanded-processor}
+There is an effective smooth planar Hamiltonian field $V(s,Y)$, period one in $s$ and zero near each integer phase, with support in $(1/8,7/8)^2$ and spatial mean zero, whose period map equals $T_i$ on each full $R_i$. All mixed derivatives have effective uniform bounds. A rectangle with a non-stop destination stays in $1/8<Y_1<3/8$ throughout its transition. The trajectory from $c_L$ enters $2/3<Y_1<5/6$ exactly when the machine halts, and a halting visit occurs at an integer phase.
+\end{lemma}
+\begin{proof}
+Put $A_0=100B^2$ and expand source centers about $c_L$ to $P_i=c_L+A_0(p_i-c_L)$. Expand each target center about its own cluster base $c$ to $P_i'=c+A_0(p_i'-c)$. Within each family expanded centers are separated by at least $100r$, and they remain within $1/1000$ of their cluster bases. Choose temporary centers
+$q_i=(1/4,3/4)+(0,100ir)$.
+They too have separation $100r$, remain within $1/1000$ of $(1/4,3/4)$, and are far from either cluster.
+
+Move the rectangles as
+\[
+ K_i(s)=c_i(s)+\operatorname{diag}(\theta_i(s),\theta_i(s)^{-1})(R_i-p_i).
+\]
+There are five operations: expand all source centers from $p_i$ to $P_i$ without changing shapes; move them one at a time to $q_i$; interpolate $\theta_i$ positively from $1$ to $\lambda_i$ there; move them one at a time to $P_i'$; and compress target centers about their cluster bases to $p_i'$. During the shape change each side length is monotone between its endpoint values and hence at most $r$.
+
+Figure~\ref{fig:planar-routing} separates the roles of these five operations and shows the clearance used in the single-center moves below.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=.88cm,y=.88cm,>=Latex,font=\small,
+  move/.style={thick,blue!65!black,->},
+  terminal/.style={thick,green!40!black,->},
+  body/.style={draw=blue!65!black,fill=blue!12},
+  held/.style={draw=black!65,fill=black!14}]
+\fill[blue!4] (0,0) rectangle (3.25,5.4);
+\draw[dashed,blue!35] (0,0)--(0,5.4) (3.25,0)--(3.25,5.4);
+\node[align=center] at (1.63,5.9) {non-stop routes remain in\\$1/8<Y_1<3/8$};
+\fill[green!8] (5.7,0) rectangle (7.65,5.4);
+\node[align=center] at (6.68,5.9) {observed strip\\$2/3<Y_1<5/6$};
+\draw[body] (2.25,.24) rectangle (2.57,.45);
+\node[below,align=center] at (2.41,.15) {source\\$p_i$};
+\draw[body] (2.35,1.0) rectangle (2.67,1.21);
+\node[right] at (2.75,1.10) {$P_i$};
+\draw[move] (2.44,.54)--(2.5,.91);
+\node[right] at (2.77,.63) {1};
+\draw[body] (.7,.24) rectangle (1.08,.42);
+\node[below,align=center] at (.89,.15) {target\\$p_i'$};
+\draw[body] (.58,1.0) rectangle (.96,1.18);
+\node[left] at (.5,1.09) {$P_i'$};
+\draw[move] (.78,.91)--(.88,.51);
+\node[left] at (.6,.63) {5};
+\draw[body] (1.90,4.32) rectangle (2.22,4.53);
+\draw[blue!65!black,dashed] (1.99,4.18) rectangle (2.13,4.67);
+\node[above] at (1.85,4.76) {$q_i$};
+\node[right] at (2.25,4.32) {3};
+\draw[held] (.52,4.32) rectangle (.82,4.54);
+\node[above] at (.67,4.75) {$q_j$};
+\draw[move] (2.51,1.32)--(2.51,3.8)--(2.18,4.12);
+\node[right] at (2.55,2.85) {2};
+\draw[held] (.61,1.85) rectangle (.91,2.05);
+\draw[densely dashed,black!65] (.25,1.46) rectangle (1.27,2.44);
+\node[left] at (.15,1.95) {$P_j'$};
+\draw[move] (1.87,4.24)--(.76,2.44)--(1.27,2.44)--(1.27,1.46)--(.76,1.46)--(.76,1.30);
+\node[right] at (1.37,1.95) {4};
+\draw[draw=green!40!black,fill=green!15] (2.66,4.84) rectangle (2.96,5.02);
+\node[right] at (3.0,4.93) {$q_k$};
+\draw[terminal] (3.0,4.76)--(6.70,1.36);
+\node[rotate=-35,fill=white,inner sep=1.3pt,text=green!35!black]
+  at (4.63,3.08) {4: a stop destination};
+\draw[draw=green!40!black,fill=green!15] (6.50,1.02) rectangle (6.88,1.20);
+\node[right] at (6.98,1.11) {$P_k'$};
+\draw[terminal] (6.70,.91)--(6.78,.52);
+\node[right] at (6.98,.65) {5};
+\draw[draw=green!40!black,fill=green!15] (6.59,.24) rectangle (6.97,.42);
+\node[below] at (6.78,.15) {$p_k'$};
+\node[align=left,anchor=north west,font=\footnotesize] at (0,-1.05)
+  {1: spread source centers\quad 2: move to temporary centers\\
+   3: change shape\quad 4: move to expanded targets\quad 5: compress target centers};
+\begin{scope}[shift={(9.25,1.6)},x=.58cm,y=.58cm]
+\node[align=center] at (1.2,6.8) {one held rectangle\\during a center move};
+\draw[densely dashed,black!65] (-1,-1) rectangle (3,3);
+\draw[held] (.75,.83) rectangle (1.25,1.17);
+\fill (1,1) circle (1.8pt);
+\node[right] at (1.36,1) {$o$};
+\draw[<->] (1,1.6)--(3,1.6);
+\node[above] at (2,1.6) {$4r$};
+\draw[move] (-2,4)--(-1,3)--(3,3)--(3,-1)--(4,-2);
+\draw[body] (2.76,.02) rectangle (3.24,.34);
+\draw[blue!65!black,dotted] (2.65,-.09) rectangle (3.35,.45);
+\fill[blue!65!black] (3,.18) circle (1.8pt);
+\node[right,align=left,font=\footnotesize] at (3.7,.18) {moving rectangle\\and its collar};
+\node[align=center,font=\footnotesize] at (1,-2.75)
+  {sup-norm obstacle};
+\end{scope}
+\end{tikzpicture}
+\caption{Planar routing, shown schematically with the small clusters and
+rectangles magnified. A branch first moves to a temporary center, changes
+shape there, and then moves to its target. A non-stop branch remains in the
+left column; a branch with a stop destination may reach the observed strip.
+The gray rectangle at $P_j'$ has already reached its expanded target and
+is held during operation 4. The right inset distinguishes the center's
+obstacle from the smaller held rectangle and the moving rectangle's collar.
+Source and target clusters
+may overlap, and routes used at different times may cross. The proof supplies
+the quantitative separation and the schedule of moves; no distances are to scale.}
+\label{fig:planar-routing}
+\end{figure}
+
+
+For a single-center move place a closed sup-norm square of radius $4r$ about each stationary center. These obstacles are disjoint: held centers belong to a temporary family and one expanded family, whose members have the stated separation. The endpoints avoid them. Start with the straight segment between the endpoints. Replace every portion inside an obstacle by the clockwise route along its boundary. The original crossing portions are disjoint by convexity; a detour meets no other obstacle because the squares are disjoint. Tangencies require no detour. This gives a finite rational polygonal path at sup distance at least $4r$ from each held center.
+
+The paths lie well within the unit chart. For a move from source to temporary center they stay near the column $Y_1=1/4$. A move from temporary center to a non-stop target has endpoints within $1/1000$ of this column; its straight segment cannot meet a right-cluster obstacle, and its detours remain within $1/1000+4r$ of the column. Thus its entire rectangle stays in $(1/8,3/8)$ in the first coordinate. Moves to stop targets may cross the observed strip, as they should.
+
+Divide $[0,1]$ into equal slots for all polygonal segments and each simultaneous expansion, shape change and compression. On each slot use the same smooth step $\zeta$ in its local time $\tau\in[0,1]$ for all interpolated quantities: a center moving from $a$ to $b$ follows $a+\zeta(\tau)(b-a)$, and each $\theta_i$ is interpolated with this step. In each simultaneous expansion or compression, center differences within a cluster are therefore multiplied by one common factor in $[1,A_0]$. These paths glue smoothly, and $\theta_i\ge B^{-1}$. Put $\varepsilon=r/(10B^2)$. The $\varepsilon$-enlargements of $K_i(s)$ remain disjoint. During source expansion, and during target compression within either cluster, a separating center difference is multiplied by a factor at least one while the rectangle sizes stay fixed.
+
+\begin{samepage}
+For targets in different clusters, both centers stay within sup distance $1/1000$ of their respective bases throughout compression. Their enlarged rectangles therefore have first-coordinate gap at least
+\[
+ 1/2-2/1000-r-2\varepsilon>0.49.
+\]
+\end{samepage}
+
+During routing the clearance $4r$ exceeds the sum of half-sides and collars; at temporary positions the separation is $100r$. They lie in $(1/8,7/8)^2$.
+
+Choose a smooth product cutoff $\chi_i(s,Y)$ equal to one on the $\varepsilon/2$ enlargement and zero outside the $\varepsilon$ enlargement. With $Z=Y-c_i$ and $a_i=\dot\theta_i/\theta_i$, define
+\[
+ \psi_i=\chi_i(\dot c_{i,1}Z_2-\dot c_{i,2}Z_1+a_iZ_1Z_2),
+ \qquad V=\sum_i(\partial_2\psi_i,-\partial_1\psi_i).
+\]
+On $K_i(s)$ this is exactly the affine velocity
+$\dot c_i+\operatorname{diag}(a_i,-a_i)(Y-c_i)$.
+Consequently the trajectory of every $Y_0\in R_i$ is
+$c_i(s)+\operatorname{diag}(\theta_i,\theta_i^{-1})(Y_0-p_i)$ and ends at $T_i(Y_0)$. Disjoint collars eliminate interference. The compactly supported stream functions make the field divergence free with zero mean. Their vanishing time collars give a smooth periodic extension.
+
+At integer phases the point from $c_L$ follows the table by induction. A stop code is near $c_R$ and lies in the strip; on a nonhalting run every destination is non-stop and the full continuous trajectory remains in the left column. Finally the finite rational geometry, positive denominator bound and explicit smooth cutoffs provide effective bounds at every derivative order, without executing the encoded machine.
+\end{proof}
+
+The same construction supplies the estimates needed for diffusion. Choose an effective integer $L\ge1$ bounding the first and second spatial derivative operator norms of $V$, and put $R=4^L$. If $\Psi_s$ is its flow from phase zero, then for $0\le s\le n$,
+\begin{equation}\label{bcs:expanded-variation}
+ \|D\Psi_s^{\pm1}\|_\infty\le e^{Ln}\le R^n,
+ \qquad \|D^2\Psi_s^{\pm1}\|_\infty\le nLe^{3Ln}\le nLR^{3n}.
+\end{equation}
+Indeed the first variation equation has coefficient norm at most $L$. The second has the same linear coefficient, zero initial data, and forcing at most $L$ times the square of the first variation; variation of constants gives the bound. The reversed-time field has the same spatial derivative bounds, proving the inverse estimates as well.
+
+\subsection{Periodic and eventually stationary forcing}
+\begin{proposition}\label{bcs:expanded-material}
+For each fixed computable $\nu>0$, the machine and input effectively determine a smooth period-one mean-zero force on $\mathbb T^3$, all of whose derivatives are bounded, such that the solution from zero velocity has its particle from $X_*$ enter $\mathcal S$ exactly when the machine halts. A separate choice of force is stationary for $t\ge1$, also with bounded derivatives and the same fixed event. Both constructions have pressure zero. The stationary choice has a generally nonzero mean force during startup.
+\end{proposition}
+\begin{proof}
+For the periodic choice take $U(t,X)=(V(t,(X_1,X_2)),0)$ and its residual. The phase collar makes $U(0)=0$. Its mean is zero, all derivatives are bounded, and the fixed particle has constant third coordinate $1/4$. Lemma~\ref{bcs:expanded-processor} proves the event; Lemma~\ref{lem:b-comparison} gives uniqueness. The optional torus projection may make this periodic force solenoidal, with its accompanying pressure change.
+
+Spatial suspension is the standard way to turn a periodic motion into an autonomous one; see Moore~\cite[Section~6]{Moore1991} and the geometric construction in \cite[Theorem~3.1]{CardonaMirandaPeraltaSalasPresas2021}. In the present flat coordinates the formula and its startup mean are explicit. For the stationary choice put
+\[
+ Z(X)=(V(X_3-1/4,(X_1,X_2)),1),\qquad U(t,X)=\sigma(t)Z(X).
+\]
+Periodicity in the phase makes $Z$ smooth on the torus, and its divergence is zero. Its residual is
+$\sigma'Z+\sigma^2(Z\cdot\nabla)Z-\nu\sigma\Delta Z$,
+which is stationary after time one. Set $s(t)=\int_0^t\sigma$. The particle's third coordinate is $1/4+s(t)$ modulo one, and its planar coordinates are $\Psi_{s(t)}(c_L)$. The clock is onto, so the same event equivalence follows. Here $\int Z=(0,0,1)$, hence
+\[
+ \int U=(0,0,\sigma(t)),\qquad \int f=(0,0,\sigma'(t)).
+\]
+The vertical startup acceleration therefore contributes the mean force shown above; after startup that mean is zero.
+\end{proof}
+
+\subsection{A velocity threshold for the same strip}\label{bcs:expanded-diffusion}
+The injection, stirring and waiting theorem in \cite[Theorem~3.1]{velocity2026} applies to this planar field. Each block injects a fresh narrow scalar bump near $c_L$, carries it through $n$ processor periods in a short physical interval, and then lets heat diffuse during a long wait. The short stirring time keeps the new bump close in height to its transported profile; its small mass and the waits keep old injections below the detection threshold. The scalar becomes the third velocity component, so a visit of a transported bump to the strip yields a velocity-field observation. We now state the exact substitution and the bounds supplied by that theorem.
+
+Take its initial point to be $c_L$, its observed planar set to be $E=\{2/3<Y_1<5/6\}$, and its constants to be $d=1/16$ and $C_H=10^8$. The field $V$ is Hamiltonian, smooth, period one, has zero phase collars and a fixed compact chart support. Lemma~\ref{bcs:expanded-processor} gives a terminal integer-phase visit, which is precisely the companion theorem's halting hypothesis; the constant $d$ controls the nonhalting separation below. In a nonhalting run the trajectory lies in $1/8<Y_1<3/8$, whose infimum circle distance from the observed arc is
+\[
+ \min\{2/3-3/8,\ 1+1/8-5/6\}=7/24>2d.
+\]
+Thus the whole nonhalting orbit has distance at least $7/24>2d$ from $E$. Equation~\eqref{bcs:expanded-variation} supplies the effective forward and inverse first and second derivative bounds. These verify every geometric hypothesis of the parameterized compact detector theorem.
+
+For specificity, its unit-viscosity construction uses $R=4^L$, a smooth bump $g$ supported in $[-1,1]^2$, equal to one near zero and between zero and one, and a bound $C\ge1$ on its first two derivative operator norms. All derivative norms here are Euclidean operator norms, as in the companion theorem. Its parameters here are
+\begin{align*}
+ b_n&=10^{-6}(2R)^{-n},&g_n(Y)&=g((Y-c_L)/b_n),\\
+ D_n&=2Cb_n^{-2}(1+nL)R^{3n},&\delta_n&=[100(1+D_n)]^{-1},\qquad t_n=2n.
+\end{align*}
+Here $D_n$ bounds the Laplacian of the bump after transport through at most $n$ periods; the choice of $\delta_n$ controls the accumulated diffusion error.
+If $V_0$ is one period extended by zero, the prescribed horizontal field and scalar source are
+\[
+ a(t,Y)=\sum_{n\ge1}\frac n{\delta_n}\sum_{j=0}^{n-1}
+ V_0\left(\frac{n(t-t_n-\delta_n)}{\delta_n}-j,Y\right),\qquad
+ h(t,Y)=\sum_{n\ge1}\delta_n^{-1}\sigma'((t-t_n)/\delta_n)g_n(Y).
+\]
+Let $F=a_t+(a\cdot\nabla)a-\Delta a$. The force is the precomputed pair $(F,h)$; the unknown transported scalar is absent from it. The theorem supplies the scalar $w$ solving $w_t+a\cdot\nabla w=\Delta w+h$, $w(0)=0$, and the velocity $(a,w)$ with pressure zero. In this specialization, the total injected mass is bounded by $M_0$, with
+\[
+ M_0=\sum_{n\ge1}4b_n^2<10^{-11},\qquad
+ 2\delta_nD_n<1/50<1/16,\qquad 2-2\delta_n>1.
+\]
+The companion theorem uses these inequalities with the off-diagonal heat bound $C_H=10^8$ at separation $1/16$. It proves an all-time velocity threshold, including the waits between bursts, rather than only a sampled-time statement.
+
+\begin{corollary}\label{bcs:expanded-eulerian}
+For fixed computable $\nu>0$, the machine and input effectively determine a smooth prescribed force on $[0,\infty)\times\mathbb T^3$, whose unique global smooth solution from zero velocity and with pressure zero satisfies
+\[
+ \exists t\ge0\ \exists X\in\mathcal S:\ u_3(t,X)>1/2
+ \quad\Longleftrightarrow\quad\text{the machine halts}.
+\]
+Uniqueness holds in the torus classical comparison class of Section~\ref{sec:analytic}: the velocity, its time derivative and spatial derivatives through order two are continuous on each finite closed cylinder, and the periodic pressure and its gradient are continuous, with mean-zero pressure normalization. No uniform large-time amplitude bound or mean-zero condition is asserted for this force.
+\end{corollary}
+\begin{proof}
+The verified substitution in \cite[Theorem~3.1]{velocity2026} gives the unit-viscosity assertion. For general viscosity set
+\[
+ U_\nu(t,Y,z)=(\nu a(\nu t,Y),w(\nu t,Y)),\qquad
+ f_\nu(t,Y,z)=(\nu^2F(\nu t,Y),\nu h(\nu t,Y)).
+\]
+Independence of $z$ makes each horizontal equation acquire factor $\nu^2$ and the scalar equation factor $\nu$. Thus the equations have viscosity $\nu$ and pressure zero, while the observed third component keeps threshold $1/2$. Finite-time smoothness, effectivity and uniqueness are exactly the conclusions of the invoked detector theorem and Lemma~\ref{lem:b-comparison}.
+\end{proof}
+
+\paragraph{The material event during the diffusion experiment.}
+The same force also retains the fixed material event from $X_*$. At unit viscosity, block $n$ advances the horizontal flow through $n$ full processor periods and each gap freezes the horizontal position. Let $S(t)$ be the cumulative processor time: it is zero before the first stirring interval, increases from $n(n-1)/2$ to $n(n+1)/2$ in block $n$, and is constant between stirring intervals. More explicitly, in the stirring interval of block $n$ put
+\[
+ \tau=\frac{n(t-t_n-\delta_n)}{\delta_n}\in[0,n],\qquad
+ S(t)=\frac{n(n-1)}2+\tau.
+\]
+The preceding cumulative phase is an integer. Periodicity gives $V(\tau,Y)=V(S(t),Y)$, so $a(t,Y)=S'(t)V(S(t),Y)$ inside each burst. During injections and waits, $a=0$ and $S$ is constant. The zero phase collars and continuity join these identities at the endpoints. Uniqueness therefore gives the horizontal trajectory $\Psi_{S(t)}(c_L)$, including partial bursts. The horizontal field is independent of the third coordinate, so the vertical motion driven by $w$ does not change this identity. The function $S$ is continuous, nondecreasing, finite at finite time, and unbounded. Lemma~\ref{bcs:expanded-processor} therefore proves entry into the original strip exactly on halting, including throughout the bursts and gaps. At viscosity $\nu$, use $S(\nu t)$. The scalar injections independently begin at $c_L$ and test successively longer prefixes; they do not reset the material trajectory.

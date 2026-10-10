@@ -1,0 +1,488 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{thm}{Theorem}
+
+\title{A latest-anchor induction with spectrally compact masks\\for worst-case trace reconstruction}
+\author{OpenAI}
+\date{}
+
+\emergencystretch=3em
+\allowdisplaybreaks
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We give an improved worst-case sample bound for reconstructing a string
+from independent deletion traces, with its length and retention
+probability known. For each fixed retention probability, the number of
+traces is quasipolynomial: the logarithm of the sample budget is
+$O((\log n)^3(1+\log\log(2n))^6)$. If the deletion probability is at most
+$n^{-\varepsilon}$ for fixed $\varepsilon>0$, polynomially many traces
+suffice. These bounds apply to binary strings and to strings of general
+symbols observed exactly. They concern sample complexity and do not
+assert an efficient reconstruction algorithm or matching optimality.
+\end{abstract}
+
+\section*{Bound and comparison}
+Consider the i.i.d.\ deletion channel on an unknown string $x$ of length $n$:
+a trace consists of the symbols retained, in order with no labels on their
+original positions, when each position is retained independently with
+probability $p$. Different traces are independent. The length and retention
+probability (and the channel model) are known to the reconstructor. All logarithms without
+specified base are natural. The standard worst-case reconstruction task is to
+recover the entire string with success probability at least $2/3$ for
+each possible $x$.
+\begin{thm}
+For integer $n\ge 2$ and $0<p\le1$, worst-case trace reconstruction of
+binary strings is possible in this channel with at most
+\[
+\exp\!\left(O\!\left(p^{-1}(\log n)^3(1+\log\log(2n))^6\right)\right)
+\]
+traces, with an absolute constant. Write $q=1-p$. More finely, when $q>0$, setting
+$\mathcal X=1+\log n/(1+\log(1/q))$, the logarithm of the required sample
+budget is at most
+\[
+ O\big(p^{-1}(\log n)\mathcal X^2 (1+\log\mathcal X)^6\big)
+\]
+with an absolute constant. In particular for fixed $\varepsilon>0$ and
+$0\le q\le n^{-\varepsilon}$ the number of traces can be polynomial in $n$
+(with parameters of the polynomial allowed to depend on $\varepsilon$).
+The same asymptotic bounds also suffice for
+strings with general symbols (assuming exact observation of retained symbols).
+This concerns sample complexity, not computational efficiency.
+\end{thm}
+
+This improves the order of the upper estimate with the parameter prescriptions
+of the quasipolynomial-bound proof of Burudgunte, Valiant and Wang \cite{BVW}
+(BVW). For clarity, their Theorem 43 statement uses an unspecified log-power
+$c$ and dependence $p^{-7/3}$ in the exponent. The proof in Section 8 uses
+$b_{\rm old}=\lceil\log_{1.1}\log_2 n\rceil$ as its depth bound,
+$p_{\rm base}=3^{-b_{\rm old}}\min(p,1/4)$, and a pair-test bound
+$4\tau_{\rm base}^{-2C^{b_{\rm old}}}$ (some $C\ge 1$), with
+$\log(1/\tau_{\rm base})$ given by a constant times
+$d_{\rm base}^{1/3}p_{\rm base}^{-1/3}$ for
+$d_{\rm base}=\max(p_{\rm base}^{-6},O(1))$. Thus even ignoring the
+$C^{b_{\rm old}}$ multiplier, the order from the inverse retention term of
+that estimate uses a log-power at least $(7/3)\log_{1.1}(3)>26$ for fixed $p$.
+Our improvement is relative to the proved quantitative estimate with those
+prescriptions, not a claim about all possible optimizations of BVW's approach.
+In particular our bound does not go below quasipolynomial order for fixed $0<p<1$.
+The method here is inspired by BVW's idea of testing phase relations via
+Fourier products; we give a different induction entirely on source-string
+generating functions, including a weighted, up-to-four-factor phase argument.
+
+We keep the period-avoiding-word idea from Chase's analysis and its relatives
+(see \cite{Chase,Rub}), using an exact contiguous pattern at the base. A new
+ingredient in the bound is to propagate additional low-dimensional factors
+with spectral compactification, enabling partial angle-budget relaxation
+during the induction before expanding at the last pivot. The polynomial bound
+for low deletion concerns sample complexity only; for polynomial-time bounds
+for the binary problem under e.g.\ deletion probability $q\le n^{-1/3-\varepsilon}$
+for fixed $\varepsilon>0$, see \cite{CDLS}.
+
+\section*{Gap probes with level masks}
+We first work with binary strings. Throughout assume the original length
+sufficiently large by an absolute constant. Smaller $n\ge2$ can be handled by
+collecting $\lceil p^{-n}\log 3\rceil$ traces to see one of full length with
+probability at least $2/3$; for bounded $n\ge2$ use $\log(1/p)\le1/p$ to absorb
+this budget. For $n=1$ separately $O(p^{-1})$ suffice. If $n\ge2$ and $p<1/n$ the
+full-length-trace strategy costs at most $\exp(O(p^{-1}\log n))$, since
+with $s=np\le1$, $n\log(1/p)=p^{-1}s(\log n+\log(1/s))$. Also if $n\ge2$ and
+$q=1-p<1/n$, then $p^n\ge(1-1/n)^n\ge1/4$,
+so a constant number of traces suffices via the same strategy. Hence for the rest
+write $q=1-p$ and suppose $p,q\ge1/n$.
+Prepend a known block of zeros of length equal to the original length to both candidates when comparing. Traces of the extended inputs can be simulated by prepending independently sampled deletion traces of the zero block. In the binary-case proof from here, \(n\) will now denote this doubled length so still \(p,q\ge1/n\).
+
+Fix any two distinct extended binary candidate strings \(x,y\) (sharing the known all-zero prefix), use \(0\)-based source indices, and write \(d\ge n/2\) for their first mismatch. Put
+\[
+\begin{split}
+\ell_*&=1+\log(1/q),\qquad b=\lceil\log_2(1+\log n/\ell_*)\rceil,\\
+M_h&=4^{b-h},\qquad L_h=2^{b-h}\ (0\le h\le b),\\
+D&=10^{14},\qquad \epsilon=10^{-5},\qquad a_0=\exp(-10^{16})/(D L_0),\\
+t_h&=a_{h+1}=D q L_h a_h^2\ (0\le h<b),\qquad P_0=\lceil 1/a_0\rceil,\\
+R_h&=D q(h+1)^2 M_h a_h^2,\qquad B_j=10^{100}\ell_*8^j(b+1)^3 .
+\end{split}
+\]
+All estimates below using big-O or little-o are uniform over the remaining
+parameters (including channel probabilities in the above range and induction
+levels); little-o refers to \(n\to\infty\), and in particular \(n\) may be
+taken larger than huge absolute constants throughout. We have \(b\ge1\);
+\(b\) need not tend to infinity, but \(\ell_*(2^b-1)\ge\log n\) gives
+\(\ell_*(b+1)\to\infty\), hence \(B_0\to\infty\), uniformly. Put \(v_h=D q L_h a_h\);
+then \(v_0=q e^{-10^{16}},\ v_{h+1}=v_h^2/2\), so \(v_h=2(v_0/2)^{2^h}\).
+Hence \(a_b n<.0001\), since
+\[
+ a_b=\frac{2}{D q}(q e^{-10^{16}}/2)^{2^b}
+ \le \exp(-10^{16})\exp[-\ell_*(2^b-1)].
+\]
+Moreover \(a_{h+1}/a_h=v_h\le v_0\ll .001\),
+\(\log(1/a_h)\le10^{18}(b+2^h)\ell_*\), and \(P_0=O(2^b)\)
+(in particular \(\log(2P_0)=O(b)\) independently of the size of \(\ell_*\)).
+
+A tuple probe of order \(k\ge1\) uses factors \(\chi_e(x_{i_e})\), \(e=1,\ldots,k\), where \(\chi_e:\{0,1\}\to\{0,1\}\), at strictly increasing selected indices \(i_1,\ldots,i_k\). Some edges \((i_e,i_{e+1})\) are designated exact, meaning the factor \(\mathbf{1}_{i_{e+1}-i_e=1}\) must also be inserted. All other edges are called loose and do not directly get additional factors. The block count \(A\) is 1 plus the number of loose edges. All chosen positions satisfying the exact constraints split into \(A\) contiguous blocks, not necessarily separated by gaps \(>1\).
+
+A probe at stage \(j\) also has finitely many admissible masks of levels \(h<j\) as factors; each level \(h\) mask is specified by \(r-1\) (with \(2\le r\le4\)) differences \(g_s=i_{b_s}-i_{c_s}\) for specified \(1\le c_s\le b_s\le k\), each nonnegative by the ordering (0 for a repeated endpoint). It has the form
+\[
+K(g)\prod_{s=1}^{r-1} e^{i\beta_s g_s},\qquad \beta_s\in\mathbb R,\quad |\beta_s|\le10^4 a_h .
+\]
+Here \(K\) may be complex, with two types of control on the nonnegative quadrant:
+\[
+\begin{gathered}
+ |K(g)|\le 2 e^{-\epsilon t_h\sum_s g_s},\qquad
+ K(g)=e^{-R_h\sum_s g_s}\int e^{i\xi\cdot g}\,\mu(d\xi),\\
+ |\xi|_\infty\le C R_h,\qquad \|\mu\|\le \exp(C (R_h/t_h) B_h).
+\end{gathered}
+\]
+The integral means that \(\mu\) is a complex measure supported in the stated real frequency cube, \(\|\cdot\|\) its total variation. Throughout \(C\) in these mask conditions denotes some sufficiently large universal constant; existence of such a constant follows below from all absolute constants in the construction, and the same one can be used for every stage. A difference \(g_s\) covers precisely the edges inside its interval and none if \(g_s=0\).
+
+Write \(W_x(i_1,\ldots,i_k)\) for the product of all bit-predicate, exact-gap and mask factors of a probe (including the phases with coefficients \(\beta_s\)). Its latest-anchor array and difference polynomial are
+\[
+ s_x(m)=\sum_{0\le i_1<\cdots<i_k<n:\ i_k=d+m} W_x(i_1,\ldots,i_k),
+\quad H(z)=\sum_m(s_x(m)-s_y(m)) z^m ,
+\]
+with \(s_y\) defined similarly and invalid latest positions giving zero. All negative-offset terms vanish in the difference: for \(m<0\) the summands query only indices \(<d\) (if valid). Thus \(H\) is a polynomial with no negative powers.
+
+Our induction goal at stage $j$ is the existence of some probe with
+\begin{itemize}
+\item \(1\le k\le 2P_0\cdot 4^j, 1\le A\le4^j\);
+\item At most \(4^{j-h-1}\) masks of each level \(h<j\); every loose edge is covered by at least one of their differences.
+\item For some real \(\theta\) with \(|\theta|\le5a_j\), \(|H(e^{-a_j+i\theta})|\ge e^{-B_j/f(\theta/a_j)}\), where \(f(u)=e^{u^2/20}\).
+\end{itemize}
+Stop as soon as \(a_j n\le .001\), certainly by \(j=b\). In particular the root parameter at stopping has much smaller attenuation than \(p\).
+
+Any probe satisfying the first two conditions has \(\sup_m |s_x(m)|,\,\sup_m |s_y(m)|\le Z_j\), where
+\[
+ Z_j=2^{4^j}\left(\frac{2}{\epsilon a_j}\right)^{4^j}.
+\]
+Indeed every loose edge receives decay \(e^{-\epsilon a_j\Delta}\) or better by coverage and \(t_h\ge a_j\); exact distances are fixed. Sum the loose distances independently in \(\{1,2,\ldots\}\) going backwards from the fixed latest position, use bounded bit predicates, and bound the sum of mask counts by \(4^j\). The logs of auxiliary magnitudes are tiny compared to the budget: for \(0\le j<b\),
+\[
+\begin{split}
+ \log Z_j+\log Z_{j+1} &+ \log(1/a_j)+\log(1/t_j)\\
+ &\le 10^{21}\ell_* 4^j(b+2^j) \le10^{-60} B_j,
+\end{split}
+\]
+by the formulas for \(Z_j,Z_{j+1}\) and the bound on \(\log(1/a_h)\).
+
+\section*{Separated-word base} Say a positive integer is a period of a word if symbols agree at all pairs of positions whose difference equals it. By the padding we have \(d\ge 2P_0\) for all sufficiently large \(n\). Let \(w'=x_{d-2P_0+1}\cdots x_{d-1}=y_{d-2P_0+1}\cdots y_{d-1}\). At least one of \(w'0,w'1\) has no period of length \(<P_0\). Indeed if both had such periods \(p_1,p_2\), then \(w'\) would have both periods, hence period \(\gcd(p_1,p_2)\) (by the Fine--Wilf phenomenon \cite{FW}). Indeed \(|w'|\ge p_1+p_2\); on positions \(1,\ldots,p_1+p_2\), cyclic addition of \(p_1\) preserves the symbol by either period \(p_1\) or (when wrapping around, moving by \(-p_2\)) period \(p_2\). This operation connects all positions in each residue class mod \(\gcd(p_1,p_2)\) there. Positions beyond this range can be related to ones within it by repeatedly subtracting \(p_1\). Positions \(2P_0-p_1\) and \(2P_0-p_2\) in \(w'\) -- numbered from 1 -- would agree, contradicting opposite required final bits. Choose such a period-avoiding extension \(w\in\{w'0,w'1\}\) and take the tuple with \(2P_0\) slots, all edges exact, no masks, and predicates testing the bits of \(w\). The indicators of occurrences ending at \(d\) differ. Occurrence endings in each individual string are \(P_0\)-separated, by the period condition. Hence up to sign,
+\[
+ H(z)=1-\eta z^u +\sum_{m\ge P_0} c_m z^m
+\]
+with \(1\le u<P_0,\ \eta\in\{0,1\},\ |c_m|\le1\), with arbitrary valid \(u\) if \(\eta=0\). Let \(v=10\log(P_0)/P_0\). At the positive real \(z=e^{-v}\), the first two terms have magnitude \(\ge1-e^{-v}\ge v/2\) and the remaining tail is \(\le e^{-vP_0}/(1-e^{-v})\le 2P_0^{-10}/v\le v/6\); thus \(|H(e^{-v})|\ge v/3\). On \(|z|=e^{-a_0}\), \(|H|\le 2/a_0\). The subharmonic Poisson inequality for \(\log|H|\) on this disk centered at 0, evaluated at \(e^{-v}\), gives
+\[
+ \max_{|\theta|\le a_0}|H(e^{-a_0+i\theta})|\ge
+ \exp(-O((v/a_0)\log(1/a_0))) .
+\]
+Indeed the harmonic weight of that arc is \(\gtrsim a_0/v\) by the Poisson kernel, since \(v\ge 2a_0, v<.01\); bound the log modulus by the arc maximum log on the arc and by \(\log(2/a_0)\) elsewhere. Boundary zeros cause no issue (e.g.\ apply the Poisson inequality first to the subharmonic regularization \(\log(|H|+\delta)\) for \(\delta>0\) then let \(\delta\downarrow0\)). Since \((v/a_0)\log(1/a_0)=O(b^2)=o(B_0)\), this gives the desired pivot.
+
+\section*{Weighted phase step} For the induction step (not yet at stopping) abbreviate \(a=a_j,\ t=a_{j+1},\ B=B_j,\ E=B/f(\theta/a_j)\); thus \(t/a\le.01\), \(a\le a_0\ll .001\), and during a step \(a>.001/n\). Use a polynomial-Gaussian mask
+\[
+ \sigma^2=2.4 B/t^2,\quad \ell=\lfloor10^{-10}E\rfloor,\quad
+ v(m)=e^{-y^2/2}\sum_{k=0}^{\ell}(y^2/2)^k/k!,\qquad y=m/\sigma .
+\]
+We have \(0\le v\le1\), and for \(0\le m\le3E/a\), \(1-v(m)\le e^{-2E}\): putting \(w=y^2/2\le2 E(t/a)^2\le2 E\exp(-2\cdot10^{16})\), the exponential Taylor remainder times \(e^{-w}\) is at most \((e w/(\ell+1))^{\ell+1}\) by the Taylor remainder formula and the factorial bound. Choose either \(c(s)=\operatorname{Re}s\) or \(c(s)=\operatorname{Im}s\), so that replacing \(s_x,s_y\) by \(c(s_x),c(s_y)\) retains pivot magnitude at least \(\frac12 e^{-E}\) (the original complex pivot is a sum of the two pivots, the latter times \(i\)). For every \(m\) with \(0\le d+m<n\) (including when an old-tuple sum is empty), form nonnegative arrays by the following formula, and set both arrays to zero elsewhere:
+\[
+f_x(m)=(2+c(s_x(m)/Z_j))v(m)/Y,\qquad f_y(m)=(2+c(s_y(m)/Z_j))v(m)/Y.
+\]
+Here \(Y=3\sum_{m\in\mathbb Z}v(m)\), so \(Y\ge3, \sum f_x,\sum f_y\le1\). We have \(\log Y\le10^{-8}E\) for all sufficiently large \(n\): split at \(|m|=H_*=\lceil1000B/t\rceil\), bound \(v\le1\) within and \(v(m)\le 2^\ell\exp[-m^2/(4\sigma^2)]\) outside by exponential series. This also shows the omitted tail beyond \(H_*\) has \(\ell_1\) norm \(<e^{-200 E}\) for \(f_x,f_y\), by \(\log(1/t)\le10^{-60}B,\ B\le4E,\ \log B=o(E)\) and a Gaussian tail sum estimate.
+
+The polynomial \(J(z)=\sum_m(f_x(m)-f_y(m))z^m\) has \(\sup_{|z|=1}|J|\le2\) and at the pivot radius the unmasked difference of real projections loses at most \(o(e^{-E})\) by masking, using \(1-v(m)\le e^{-2E}\) on \(0\le m\le3E/a\), the exponential damping beyond, and \(|s_x|,|s_y|\le Z_j\) with \(\log Z_j+\log(1/a)\le 10^{-60} B\). Thus \(|J(e^{-a+i\theta})|\ge e^{-1.0005E}\) after division by \(Z_j Y\). Its truncation \(J_\diamond\) to \(|m|\le H_*\) has \(|J_\diamond(e^{-a+i\theta})|\ge e^{-1.0006E}\) by the same exponential damping or the tail bound since all negative powers vanish. The grid below keeps the full arrays; truncation of the difference polynomial is only used for controlling a deficit.
+
+\textbf{Phase test on the arc.} Put \(N=\lceil (1000B/t)^6\rceil,\ h=2\pi/(Na),\ v_0^*=\theta/a\), \(\gamma=\lfloor 10^4/h\rfloor\), \(F(l)=\sum_m f_x(m)e^{2\pi i lm/N},\ G(l)=\sum_m f_y(m)e^{2\pi i lm/N}\). We claim, putting \(\Lambda=e^{-6B}\), that for some \(r\in\{2,3,4\}\) there are integers \(l_i\), \(i=1,\ldots,r\) (allowing repeats), with \(|l_i|\le\gamma\) and ordinary, unwrapped sum satisfying \(|\sum_{i=1}^r l_i|\le1\), for which
+\[
+ \left|\prod_i F(l_i)-\prod_i G(l_i)\right|>\Lambda.
+\]
+Use grid weights \(k_l=h/(\pi(1+(lh-v_0^*)^2))\) for \(|l|\le\gamma\), zero elsewhere. With \(m_l=\max(|F(l)|,|G(l)|)\le1\), define
+\[
+ g_l=\min(50,E^{-1}\log(1/m_l)),\quad q_l=\min(50,E^{-1}\log(2 m_l/|F(l)-G(l)|)).
+\]
+Set \(g_l=50\) when \(m_l=0\), and \(q_l=50\) when the denominator vanishes. Thus \(g_l,q_l\) are nonnegative and symmetric by reality, with
+\[
+ \mathcal G:=\sum_l k_l g_l,\qquad Q:=\sum_l k_l q_l,\qquad \mathcal G+Q\le1.003.
+\]
+Indeed \(g_l+q_l\le\min(100,\log(2/|J(e^{ialh})|)/E)\le\min(100,\log(3/|J_\diamond(e^{ialh})|)/E)\) for all large \(n\): when the latter capped upper bound from \(J_\diamond\) does not give 100 use \(|J_\diamond(e^{ialh})|\ge 3 e^{-100E}\) and \(\sup_{|z|=1}|J_\diamond-J|\le 2e^{-200E}\). The Poisson inequality applied at the truncated pivot bounds the continuous integral of this last capped upper bound on \([-10^4,10^4]\) against \(dx/(\pi(1+(x-v_0^*)^2))\) by \(1.0025\) since the Poisson density on the unit circle at angle \(ax\), times \(a\), is at least \((1-2a)/(\pi(1+(x-v_0^*)^2))\), the truncated circle supremum is \(\le2\), and the full-circle deficit is nonnegative; also \(10^4 a<\pi\). Indeed the Poisson density in the rescaled variable \(x\) is
+\[
+ \frac{a(1-e^{-2a})}
+ {2\pi((1-e^{-a})^2+2e^{-a}(1-\cos(a x-\theta)))}
+ \ge \frac{1-2a}{\pi(1+(x-v_0^*)^2)}.
+\]
+Logarithmic zeros cause no issue by regularization as in the base. For discretization, uniformly for thresholds in \([0,100)\) the strict upper level set of the cap on this interval is a union of \(O(H_*)\) intervals by counting zeros of squared modulus of the truncated polynomial minus a constant (the constant-modulus case is immediate). The smooth-kernel integral and grid sum differ by \(O(H_* h)=o(1)\), uniformly by bounded variation and bounded supremum. Apply layer cake.
+
+For the rest of the phase proof, \(h\) denotes the grid mesh above and \(j\) when indexing edge separations or references denotes a nonnegative shift, not the induction stage. Take parameters from the following table by rounding \(|v_0^*|\) up to the next positive integer \(w\) (allow equality, with \(0\mapsto1\)). Here \(S\) is a real interval radius parameter and \(M,J_*\) are conservative lower bounds:
+\[
+\begin{array}{c|ccc}
+w&S&M&J_*\\\hline
+1&1.5&.419&.524\\
+2&2.1&.357&.453\\
+3&2.8&.297&.380\\
+4&3.6&.246&.335\\
+5&4.4&.208&.292
+\end{array}
+\]
+The simple estimates used below are
+\[
+\begin{gathered}
+ M< \tfrac12-\tfrac2\pi \arctan(\exp(-\pi/S))-.0002,\\
+ J_* < \tfrac1\pi(\arctan(S+w)+\arctan(S-w))-.0002,\\
+ T_{\rm lim}(v):=6 f(v)-.1,\\
+ T_{\rm lim}(w-1)> \max\left\{2.006/M,\,1.005/(J_*-(1+2J_*/M)^2 M/16)\right\}
+\end{gathered}
+\]
+with positive denominator. For example, these rational bounds may be checked without sensitive numerical evaluations as follows. Use \(3.14159<\pi<3.14160\); replace \(\exp(-\pi/S)\) by the upper bound \(1/\sum_{i=0}^{12}(3.14159/S)^i/i!\). Write \(\arctan(S+w)=\pi/2-\arctan(1/(S+w))\). The remaining arctangent arguments have modulus at most \(.6\) and evaluating \(\sum_{i=0}^6(-1)^i x^{2i+1}/(2i+1)\) incurs error at most \(.6^{15}/15\). Lower bound \(\exp(u)\) in \(f(w-1)\) by \(1+u+u^2/2\). More explicitly these substitutions (taking the worst endpoints when dividing by a $\pi$ interval) yield respectively lower bounds on the first two right sides and upper bounds on the maximum on the last right side as follows:
+\[
+\begin{array}{c|ccc}
+w &\text{first lower}&\text{second lower}&\text{last upper}\\\hline
+1&.4217&.5262&4.96\\
+2&.3594&.4553&5.79\\
+3&.2993&.3825&6.94\\
+4&.2478&.3370&8.26\\
+5&.2098&.2940&9.71
+\end{array}
+\]
+Here the last column just uses the rational $M,J_*$ in the parameter table and rounds up.
+
+We record why these capture the two relevant masses. First, for every integer \(1\le j\le S/h\), every (binary or fractional) vertex cover on \([-\gamma,\gamma]\cap\mathbb Z\) of all edges \((l,l+j)\) in this interval has total \(k_l\) weight at least \(M\), uniformly for large \(n\). To see this extend the weights to the untruncated Cauchy kernel \(h K_{\rm Cau}(lh-v_0^*)\), \(K_{\rm Cau}(x)=1/[\pi(1+x^2)]\), and extend the cover by weight 1 at all vertices outside the interval (cost \(<.0001\) for large \(n\), by e.g. the tail bound and \(O(h)\) Riemann error). A fractional cover means vertex numbers in \([0,1]\) with endpoint sums \(\ge1\); on each residue chain mod \(j\) these can be rounded to a random binary cover preserving expected weight (select where the vertex number is at least its threshold), by a uniform threshold \(U_0\in[0,1]\) at even vertices (center counted as even in each chain) and threshold \(1-U_0\) at odd vertices (use non-strict comparison). In each chain take a central vertex \(l\) nearest to \(v_0^*/h\). All weights are nonincreasing outward on each of its two arms. For binary covers the minimum weight is the lesser of the two alternating parity cover weights: if center is omitted, both first neighbors are forced, then pair disjoint edges at offsets \((2,3),(4,5),\ldots\) on each arm require at least the odd weights there; if center is included, edges \((1,2),(3,4),\ldots\) on each arm require the even weights. This reasoning works for the infinite chain by summability.
+
+Put \(d'=jh\), \(x=lh-v_0^*\) for the central vertex chosen with \(-d'/2\le x<d'/2\). Even parity has total weight \(h\Xi(x)\) where
+\[
+\Xi(x)=\sum_{\nu\in\mathbb Z} K_{\rm Cau}(x+2\nu d') = \frac1{2d'}\left(1+2\sum_{m\ge1}e^{-m\pi/d'}\cos(m\pi x/d')\right),
+\]
+by the Fourier transform of the Cauchy kernel (the absolutely convergent Fourier series obtained by computing coefficients of the continuous periodic sum termwise; $\int K_{\rm Cau}(x)e^{i\xi x}\,dx=e^{-|\xi|}$ over the real line, e.g.\ for $\xi>0$ by a semicircle contour closed above with residue at $i$, similarly by symmetry and continuity otherwise). Odd parity similarly has weight \(h\Xi(x+d')\). The latter is no larger since summing the geometric Fourier series gives \(\Xi(x)=(1-r_0^2)/(2d'(1+r_0^2-2r_0\cos(\pi x/d')))\) with \(r_0=e^{-\pi/d'}\). Summing odd parity masses over the \(j\) central representatives gives up to \(O(h)\) error the integral
+\[
+\int_{-d'/2}^{d'/2}\Xi(x+d')\,dx =\tfrac12-\tfrac2\pi\arctan(e^{-\pi/d'}),
+\]
+where the identity follows by integrating the series. The error is uniform: the variation of \(x\mapsto\Xi(x+d')\) on this interval is at most \(\int_{\mathbb R}|K_{\rm Cau}'|\); the representatives are one per subinterval in the equal partition of mesh \(h\). This parity mass is minimized at the largest possible \(d'\), yielding the cover bound after the tail subtraction. Second, \(\sum_{|l|\le S/h}k_l>J_*\) directly by Riemann-summing the integral on \([-S,S]\), centered at \(v_0^*\), whose translated Cauchy mass there is minimized at the furthest center \(\pm w\).
+
+Write now \(R=\mathcal G/M\), \(T_0=T_{\rm lim}(v_0^*)\ge T_{\rm lim}(w-1)\), so \(2R<T_0\). There exists an integer \(s\) with \(|s|\le S/h\) and both
+\[
+ 2R+q_s<T_0,\qquad 2g_s+q_s<T_0.
+\]
+Otherwise on this interval \(q_s\ge (T_0-2R)\max(0,1-2g_s/T_0)\). Hence \(Q\ge(T_0-2\mathcal G/M)(J_*-2\mathcal G/T_0)\), giving by quadratic minimization
+\[
+ \mathcal G+Q\ge T_0[J_*-(1+2J_*/M)^2 M/16]>1.004
+\]
+(a contradiction). Here and below \(T_0<50\) since \(|v_0^*|\le5\). By symmetry choose this witness \(s\ge0\). For each integer \(0\le j\le s\) choose a reference pair \((e_j,e_j+j)\) in the large arc grid with sum of \(g\)-deficits at its endpoints at most \(R\). Indeed if the minimum sum on such edges at \(j\ge1\) is \(R'>R\), the clipped deficits \(\min(1,g_l/R')\) give a fractional cover costing at most \(\mathcal G/R'<M\). For \(j=0\) simply minimize \(2g_l\) and use the total kernel mass \(>.999\) together with \(M<.499\).
+
+Suppose the claim fails for contradiction. The failed pairs \((l,-l)\) bound the modulus difference at every endpoint or witness \(l\) by \(\Lambda/m_l\), since they bound the difference of squares by \(\Lambda\). At all these indices \(2g_l<T_0\) by construction, so \(m_l=e^{-g_l E}\) with both magnitudes at least \(m_l/2\) for large \(n\). Write \(U(l)=\arg F(l)-\arg G(l)\) modulo \(2\pi\) there and at their negatives (using odd symmetry). Set \(d_j=U(e_j+j)-U(e_j)\); \(d_0=0\). For integers $1\le j\le s$, the failed quadruple product at frequencies \((e_j+j,-e_j,-e_{j-1}-j+1,e_{j-1})\) (sum 1) bounds the distance of \(d_j-d_{j-1}\) to zero mod \(2\pi\) by \(100\Lambda e^{2R E}\): both products have magnitude at least \(e^{-2RE}/16\) so their angles are this close (modulo $2\pi$; in general the angle distance of two numbers differing by at most $\Lambda$ and both of modulus at least $v>0$ is at most $\pi\Lambda/v$ by normalization and the chord bound). Hence \(|d_s|\le 100N\Lambda e^{2R E}\) modulo \(2\pi\). Similarly the triple with frequencies \((e_s+s,-e_s,-s)\) gives \(|U(s)-d_s|\le100\Lambda e^{(R+g_s)E}\) modulo \(2\pi\). But \(R+g_s+q_s\le\max(2R+q_s,2g_s+q_s)<T_0\). Therefore
+\[
+ |F(s)-G(s)|/m_s\le \Lambda/m_s^2 +100\Lambda[e^{(R+g_s)E}+N e^{2R E}]<e^{-q_s E}
+\]
+using \(\log N\le 10^{-8} E\) for sufficiently large \(n\), from \(\log(1/t)\le10^{-60} B\), \(\log B=o(E)\) and the formula for \(T_0\). This contradicts uncapped \(q_s<T_0<50\). The claim follows.
+
+\section*{Shuffle and center-mask transfer} The claim gives \(r\in\{2,3,4\}\) and angles \(\theta_s\) with
+\[
+ |\theta_s|\le10^4 a,\quad |\sum_{s=1}^r\theta_s|\le2\pi/N<.01t,
+\]
+with product discrepancy \(>\Lambda\). Expand the products. Each array copy is a combination of a constant latest valid probe (one wildcard, value 1), the stage-\(j\) probe, and its complex conjugate (including any mask factors), all with scalar coefficients of modulus \(\le1\) from the floor, \(Y,Z_j\) and projection. Each copy also carries the Gaussian-polynomial mask \(v(m_s)\) and phase \(e^{i\theta_s m_s}\). Group the expansion both by factor types per tuple and by the total weak ordering of all selected source positions in all copies, including all equality ties (same source index) as part of the ordering. The number \(P\) of nonempty order categories (also counting component types) satisfies \(\log P=o(B)\) uniformly. To see this, take only assignments already satisfying all exact adjacencies within copies. They consist of at most \(4^{j+1}\) ordered-within-copy contiguous blocks. Specify the weak order of all block starting positions with equality ties included, costing at most \(m!\,2^m\) for \(m\le4^{j+1}\) blocks. After sorting starts and breaking start ties by a fixed label order for counting, process blocks in that order; a new start is either beyond the maximum end index of all prior blocks, or specify its offset from that maximum. The latter offset has magnitude at most \(k-1\) since the new start never precedes the start of the prior block attaining that maximum (of length at most \(k\)). This determines the full total weak position order (lengths known); whenever a start lies beyond the maximum end, its cluster lies strictly after all prior blocks. We only use this encoding to count, not to impose extra distance constraints on a class. There are at most \(81(4k+1)^{4^{j+1}}\) additional specifications including factor types. Thus \(\log P=O(4^j\log(4k+4^{j+1}+2))=O(4^j b)=o(B)\), including the case \(k=1\).
+
+Fix any resulting category. All its exact adjacency constraints act across adjacent distinct slots of the merged sorted order, since an old exact edge spanning an intervening distinct slot would make the category empty. Collect them as exact edges of the merged tuple and designate its remaining edges loose. All assignments of remaining distinct slots satisfying the merged exact constraints and strict increase give precisely the assignments in the category (ordering and equalities incorporate every constraint from distinct copies). The merged order \(k'\le4k\); its block count is at most the sum of old block counts because each old block stays within a single merged block, and each resulting block contains at least one old block. Tie bit-predicates are multiplied. Retain all old mask factors, unchanged including their interval endpoints (and conjugations under prior projection; conjugate measures just negate frequencies and conjugate the scalars). They preserve their level bounds and each creates at most 4 copies here. The wildcard component has no old masks.
+
+Choose a component whose latest selected index is last in the fixed category (break ties deterministically); relabel as \(s=r\). Denote the overall latest offset by \(Y_0=m_r\), set \(g_r=0,\ g_s=Y_0-m_s\ge0\) for \(s<r\), and \(\bar g=\sum_s g_s/r,\ \mathcal{Q}(g)=\sum_{s=1}^r(g_s-\bar g)^2\). Each old frequency phase gives
+\[
+ \prod_s e^{i\theta_s m_s}=e^{i(\sum_s\theta_s)Y_0}\prod_{s<r}e^{-i\theta_s g_s}.
+\]
+We will attach a level-\(j\) mask with the \(r-1\) differences \(g_s\), possibly including some identically zero. Then every loose merged edge is covered either by an inherited or the new mask. Indeed consider a copy with a slot at the left endpoint of a loose edge. If it is that copy's latest slot, it is not the overall latest and contributes a new covering interval. If it is not latest, the copy has a consecutive pair straddling the edge (i.e. across a merged adjacent slot pair, with copy slots at or before the left and at or after the right respectively). This pair was loose (else merged edge exact or impossible) and hence some old mask covers it.
+
+\textbf{Center Fourier expansion.} For fixed real \(g\) (free coordinates \(g_s,\,s<r\), always appending \(g_r=0\)) use Fourier inversion momentarily varying \(Y_0\) as a real variable:
+\[
+ W_g(Y_0):=e^{t Y_0}\prod_{s=1}^r v(Y_0-g_s) = e^{1.203 B}\int_{\mathbb R} e^{i\omega Y_0} K(g,\omega)\,\nu(d\omega),
+\]
+where \(\omega\) ranges over the real line and \(\nu\) is the centered Gaussian probability with variance \(r/((1-\zeta)\sigma^2)\), \(\zeta=10^{-5}\). Here \(K(g,\omega)=e^{-1.203B}\widehat W_g(\omega)/(d\nu/d\omega)\) with convention \(\widehat W_g(\omega)=(2\pi)^{-1}\int W_g(Y_0)e^{-i\omega Y_0}dY_0\). Constants use \(\sigma^2=2.4 B/t^2\) as above. For all \(\omega\in\mathbb R\), \(g_s\ge0\), one has
+\[
+ |K(g,\omega)|\le e^{-\epsilon t\sum_s g_s}.
+ \tag{1}
+\]
+To verify, scale \(z=(Y_0-\bar g)\sqrt r/\sigma,\ \rho=t\sigma/\sqrt r,\ u'=\omega\sigma/\sqrt r,\ p_\ell(x)=\sum_{k=0}^{\ell}(x^2/2)^k/k!\), \(d_s=(g_s-\bar g)/\sigma\). Shift the \(z\) contour by \(-i u'\), justified by the polynomial times Gaussian decay. This gives, with the normalization for \(du'\) instead of \(d\omega\) (equivalently multiply the actual \(\widehat W\) by \(\sqrt r/\sigma\)),
+\[
+ (2\pi)^{-1/2}
+ e^{(t-i\omega)\bar g-\mathcal{Q}(g)/(2\sigma^2)+\rho^2/2-(u')^2/2-i\rho u'}
+ \ \mathbb E_{X\sim\mathcal N(\rho,1)}
+ \prod_s p_\ell((X-i u')/\sqrt r-d_s).
+ \tag{2}
+\]
+The scaled formula (2) continues to complex \(g\) (or defines an entire continuation), with \(g_r=0\) and quadratic form \(\mathcal{Q}\) still using squares, not absolute squares. For real \(g\), \(\sum_s|(X-i u')/\sqrt r-d_s|^2=X^2+(u')^2+\mathcal{Q}(g)/\sigma^2\). Bound the product of polynomials by \(\zeta^{-r\ell}\) times the exponential of \(\zeta/2\) times this sum, then integrate \(X\). The ratio of \(|\widehat W_g(\omega)|\) to the Gaussian density at \(\omega\) is at most
+\[
+ \frac{\zeta^{-r\ell}}{1-\zeta}
+ \exp\!\left[t\bar g-(1-\zeta)\frac{\mathcal{Q}(g)}{2\sigma^2}
+            +\frac{2.4B}{2r(1-\zeta)}\right].
+ \tag{3}
+\]
+Now \(\mathcal{Q}(g)\ge r\bar g^2/(r-1)\), since \(g_r=0\). Thus
+\[
+ t\bar g+\epsilon t \sum_s g_s-(1-\zeta)\frac{\mathcal{Q}(g)}{2\sigma^2}
+ \ \le\ \frac{(1+r\epsilon)^2(2.4 B)(r-1)}{2(1-\zeta)r}.
+\]
+The right side plus \(2.4B/(2r(1-\zeta))\) and \(\log[\zeta^{-r\ell}/(1-\zeta)]\) is \(<1.203B\) for all sufficiently large \(B\), proving (1).
+
+Writing \(\theta_{\rm sum}=\sum_s\theta_s\), each fixed-\(\omega\) discrepancy contribution after this expansion compares unnormalized merged sums with new outer factor \(e^{-t Y_0+i(\omega+\theta_{\rm sum})Y_0}\), the \(r-1\) phases \(e^{-i\theta_sg_s}\), and \(K(g,\omega)\). Its modulus is at most \(2Z_{j+1}/(1-e^{-t})\le e^{10^{-8} B}\) for large \(n\), apart from the exterior \(e^{1.203B}\) factor. Indeed every merged loose edge has the stated coverage and (1) applies, even if \(K\) is not yet an admissible final-frequency-representable mask; bit factors, old masks and the strict ordered position sum therefore obey the same fixed-latest bound as before. Latest \(Y_0<0\) terms cancel exactly, leaving only \(Y_0\ge0\) and thus a geometric sum from the outer radial damping.
+
+Uniformly over categories the part where \(|\omega+\theta_{\rm sum}|>5t\) then contributes at most
+\[
+ \exp(1.2031B)\cdot 2\exp[-(4.99)^2(1-\zeta)2.4 B/8] = o(e^{-6 B})
+\]
+still true after multiplication by \(P\). We will replace \(K(g,\omega)\) for retained \(\omega\) by an admissible \(K^{\rm c}(g,\omega)\) satisfying on \(g_s\ge0\)
+\[
+ |K-K^{\rm c}|\le e^{-20 B} e^{-\epsilon t \sum_s g_s}.
+ \tag{4}
+\]
+The constants here and in admissibility are absolute, uniform on \(|\omega|\le5.01t\), for all stages if \(n\) sufficiently large. The replacement below can be taken measurably in \(\omega\). The resulting replacement error is at most \(\exp(1.2031B-20 B+o(B))\) over all categories by the same coverage and discrepancy-cancellation bound.
+
+Given these estimates, suppose for contradiction every merged category with a retained \(\omega\), using \(K^{\rm c}\), fails the next target. Let \(u=(\omega+\theta_{\rm sum})/t\) and \(v=\omega/t\), so \(|u-v|<.01,\ |u|\le5\). The retained discrepancy integrated for any category is then bounded by \(e^{1.203 B}\) times the integral on this interval of \(\exp(-8 B / f(u))\) under \(\nu\). The density in \(v\) is at most \(C\sqrt{B}\exp[-.3(1-\zeta)v^2 B]\). For these \(u,v\),
+\[
+ 8/f(u)+.3(1-\zeta)v^2
+ \ge 7.8\exp(-.05 u^2)+.3u^2-.04 > 7.4 ,
+\]
+since the minimum of \(7.8e^{-x}+6x\) over \(x\ge0\) is \(6(1+\log(1.3))>7.5\). Hence even after integration and multiplication by \(P\) and adding tails and (4) errors we would get full product discrepancy \(o(e^{-6B})\), contradiction. This proves existence of the required next pivot using the admissible masks if (4) holds.
+
+\section*{Radial compactification proving (4)} Fix \(|\omega|\le 5.01t\) and suppress it in \(K(g,\omega)\). Put \(R=R_j\), so \(R/t=(j+1)^2\,M_j/L_j\ge1\). Take \(H_0\) a sufficiently large fixed absolute constant (unrelated to the polynomial \(H\)), \(W=H_0 B/t,\ \tau^2=W/R\), and
+\[
+ U(x)=\frac1{\tau\sqrt{2\pi}}\int_{-W}^W e^{-(x-v)^2/(2\tau^2)}\,dv .
+\]
+For sufficiently large fixed \(H_0\),
+\[
+ \left|K(g)-K(g)\prod_{s<r}U(g_s)\right|
+ \le \tfrac14 e^{-20 B} e^{-\epsilon t\sum_s g_s}\qquad(g_s\ge0).
+ \tag{5}
+\]
+If all \(0\le g_s\le W/2\), use \(1-U(g_s)\le 2e^{-W^2/(8\tau^2)}=2e^{-RW/8}\) and (1). Otherwise some \(g_s>W/2\); then \(\mathcal{Q}(g)\ge W^2/(4r)\) by \(g_r=0\) and Cauchy (in fact \(\mathcal{Q}(g)\ge |g|_2^2/r\) on these \(r-1\) free coordinates). In (3) expend half the negative quadratic on \(t\bar g+\epsilon t\sum g_s\) by completing the square as above (cost \(O(B)\)), leaving decay \(\exp(-c W^2/\sigma^2)\); use \(0\le U\le1\). This yields (5) since \(R W\ge H_0 B\) and \(W^2/\sigma^2=(H_0^2/2.4) B\).
+
+Consider the entire function of \(d'=r-1\) variables
+\[
+ \mathcal J(g)=e^{R\sum_s g_s} K(g)\prod_{s<r}U(g_s)
+\]
+and its inverse-transform density \(\widehat{\mathcal J}(\lambda)=(2\pi)^{-d'}\int_{\mathbb R^{d'}} \mathcal J(g)e^{-i\lambda\cdot g}\,d g\). There are absolute \(C_2,C_3\), allowed to depend on \(H_0\), such that
+\[
+ \int|\widehat{\mathcal J}(\lambda)|d\lambda\le \exp(C_2 RW),\qquad
+ \int_{|\lambda|_\infty>C_3 R}|\widehat{\mathcal J}(\lambda)|d\lambda \le \tfrac14 e^{-20 B}.
+ \tag{6}
+\]
+Here and in the following estimates \(s\) index sums may include the coordinate \(g_r=0\). To check this explicitly, from the entire formula (2) valid for \(g=x-i y\) (here \(x,y\in\mathbb R^{d'}\) are real vectors unrelated to the source strings, with zero appended as last coordinate in \(s\) sums), using \(|\omega|\le5.01t\), one obtains
+\[
+ |K(x-i y)|\le \exp(C_4 B+C_4 t\textstyle\sum_{s<r}(|x_s|+|y_s|)+C_4|y|_2^2/\sigma^2)
+\]
+with an absolute \(C_4\). Indeed \(\Re \mathcal{Q}(x-i y)=\mathcal{Q}(x)-\mathcal{Q}(y)\), and
+\[
+ \sum_s |(X-i u')/\sqrt r-(x_s-i y_s-\bar x+i\bar y)/\sigma|^2
+ = X^2+(u')^2 + [\mathcal{Q}(x)+\mathcal{Q}(y)]/\sigma^2 .
+\]
+Thus the real polynomial-exponential bound used in (3) applies with an extra \(C_4 \mathcal{Q}(y)/\sigma^2\) and \(C_4 t\sum|y_s|\) in the log, and with the favorable \(-(1-\zeta)\mathcal{Q}(x)/(2\sigma^2)\) dropped. Also
+\[
+ |U(x_s-i y_s)|\le
+ \frac{2W}{\tau\sqrt{2\pi}}\exp\!\left[\frac{y_s^2-\max(|x_s|-W,0)^2}{2\tau^2}\right].
+\]
+Hence shifting \(g=x-i y\) in \(\widehat{\mathcal J}(\lambda)\), for fixed \(y\), is justified by Gaussian tail decay in every real direction (iterated contour shifts and absolute convergence). Bounding the \(x\) integrals by splitting each at \(|x_s|=W\), or just using \(\max(|x_s|-W,0)^2\ge x_s^2/2 - W^2\) and completing squares, yields
+\[
+ |\widehat{\mathcal J}(\lambda)|\le \tau^{d'}\exp[C_5 RW + C_5 |y|_2^2/\tau^2-\lambda\cdot y]
+\]
+for some absolute \(C_5\). Here \(t\le R,\ R^2\tau^2=RW,\ W/\tau=\sqrt{RW}\), and \(\tau^2/\sigma^2\le H_0/2.4\); extra polynomial prefactors in \(W/\tau\) are absorbed into \(\exp(C_5 RW)\), while \(C_4 t\sum|y_s|\) is absorbed by both positive terms via Young's inequality. With \(y=\tau^2\lambda/(2C_5)\) the Gaussian envelope in \(\lambda\) proves (6) by Gaussian tail integration (take sufficiently large constants in (6)) and \(RW\ge H_0 B\). Finally define
+\[
+ K^{\rm c}(g)= e^{-R\sum_sg_s}\!\int_{|\lambda|_\infty\le C_3 R} e^{i\lambda\cdot g}\widehat{\mathcal J}(\lambda)\,d\lambda .
+\]
+Here the formula depends measurably on \(\omega\), e.g.\ by continuity of the integrals on the indicated frequency range with the above Gaussian domination. Fourier inversion (both the continuous function \(\mathcal J\) on real \(g\) and its transform are integrable), (5) and (6) yield (4) (as \(R\ge t\)). Also (1), (4) show the required quadrant modulus bound for \(K^{\rm c}\); (6) gives the complex-measure representation with \(C\) enlarged absolutely since \(RW=H_0(R/t)B\). This finishes the inductive construction.
+
+\section*{Selection and interpolation at the stopping stage} Now \(a_j n\le .001\), \(j\le b\), and write \(z_0=e^{-a_j+i\theta}\) for the last pivot. Expand all the retained masks by their compact representations. The total variation of the product measure is at most
+\[
+ \exp(C\sum_{h<j} 4^{j-h-1}(R_h/t_h) B_h)
+ \le \exp(O(\ell_*8^b(b+1)^6)).
+ \tag{7}
+\]
+Indeed \(R_h/t_h=(h+1)^2 2^{b-h}\), \(B_h=10^{100}\ell_*8^h(b+1)^3\). At each set of frequencies in this product integral the difference contribution is still bounded as a finite sum, so by the large pivot discrepancy and (7) some frequency choice has the resulting unintegrated discrepancy of magnitude \(\ge \exp(-O(\ell_*8^b(b+1)^6))\). Fix it. A mask now contributes the product over its differences of numbers
+\(\exp[-R_h g_s+i(\beta_s+\xi_s)g_s]\) with \(|\xi_s|\le C R_h,\ |\beta_s|\le10^4 a_h\). Each \(g_s\) is a sum of consecutive gap distances in the merged tuple. Assign these factors edgewise, dropping factors on exact edges since they are scalars of modulus \(\le1\) (and nonzero) there. Thus there is a pure product probe with the same bit predicates and exact constraints, unnormalized, whose loose-edge parameters \(z^*=\exp(-\eta+i\varphi)\) now obey
+\[
+ \kappa(z^*):=\Re\frac{1+z^*}{1-z^*}=\frac{1-|z^*|^2}{|1-z^*|^2}\ \ge c_0 q>0
+ \tag{8}
+\]
+for an absolute constant \(c_0\le1\). In fact for each such edge let the sums over its covering differences be taken with multiplicity. Then \(\eta=\sum R_h>0\) by coverage. The frequency perturbations sum to at most \(C\eta\) in absolute value. The sum of the \(\beta_s\)'s has square bounded by
+\[
+ \eta\sum_{\rm coverings}\frac{(10^4 a_h)^2}{R_h}
+ \le C_6(\eta/q)\sum_{h\ge0}\frac{1}{(h+1)^2} = O(\eta/q),
+\]
+using at most \(3\cdot4^{j-h-1}\le M_h\) coverings per level \(h\). Hence when \(\eta\le1\), \(1-|z^*|^2=1-e^{-2\eta}\ge(1-e^{-2})\eta\) and \(|1-z^*|^2\le C_7\eta/q\) by \(|\varphi|=O(\sqrt{\eta/q})+O(\eta)\). When \(\eta>1\), (8) follows from \(|1-z^*|\le2,\ 1-|z^*|^2\ge1-e^{-2}\). For the root \(z_0\) itself one has \(\kappa(z_0)\ge 4/p\): use \(p\ge1/n,\ 0<a_j\le.001/n,\ |\theta|\le5 a_j\) to get \(|1-z_0|\le6a_j,\ 1-|z_0|^2\ge a_j\), giving \(\kappa(z_0)\ge1/(36a_j)>4/p\).
+
+We move all loose-edge arguments further into the retention disk and also interpolate the exact constraints by the same analytic parameter. Let \(S=4/(p c_0)\) and \(\varsigma\) now denote a complex variable on the strip \(1/2\le\Re\varsigma\le S\). For each loose edge \(e\), let \(\alpha_e+i\delta_e=(1+z_e^*)/(1-z_e^*)\); for each exact edge set its target \(z_e^*=0\), so \(\alpha_e=1,\delta_e=0\). Define
+\[
+ z_e(\varsigma)=\frac{\alpha_e\varsigma+i\delta_e-1}{\alpha_e\varsigma+i\delta_e+1}
+\]
+so \(z_e(1)=z_e^*\), \(\kappa(z_e(\varsigma))=\alpha_e\Re\varsigma\). Use \(K_{\rm ex}=k-A\) for the number of exact edges in the selected tuple of order \(k\), with \(A\) blocks. Let \(G(\varsigma)\) be its difference sum at \(z_0\) with all exact-edge selectors on gap distance \(\Delta\) replaced by \(z_e(\varsigma)^{\Delta-1}\) (including \(0^0=1\)), loose edges using \(z_e(\varsigma)^\Delta\), and normalize the entire sum by \(n^{-A}(1+\varsigma)^{-2K_{\rm ex}}\). All negative latest-offset terms cancel. On this strip the analytic function \(G\) is bounded by 2: for every exact edge sum over \(\Delta\ge1\) with geometric bound \(1/(1-|z_e|)\), where \(1-|z_e|^2=4\Re\varsigma/|1+\varsigma|^2\) (since \(\alpha=1,\delta=0\)); this costs at most 1 per exact edge against the normalization \(|1+\varsigma|^{-2}\). For other edges use at most \(n\) choices per gap and similarly \(n\) choices for the latest (cancellation if latest before \(d\)); their factors have modulus at most 1. At \(\varsigma=1\) we have
+\[
+ \log |G(1)|\ge -A\log n-2K_{\rm ex}\log 2-O(\ell_*8^b(b+1)^6)
+             = -O(\ell_*8^b(b+1)^6).
+\]
+Here \(k\le2P_0\,4^b=O(8^b)\), \(A\le4^b\), \(\log n\le\ell_*2^b\). Hadamard's three-lines theorem on \(\Re\varsigma\in[1/2,S]\) gives some \(\varsigma\) on \(\Re\varsigma=S\) with
+\[
+ |G(\varsigma)|\ge \exp(-O(p^{-1}\ell_*8^b(b+1)^6)).
+ \tag{9}
+\]
+Indeed the right-line weight at 1 is \((1/2)/(S-1/2)\). All constructions up to now may depend on the given pair but the implied constants are absolute (if needed take a point within a factor 2 of the right-line supremum). To recall the strip argument: take positive numbers bounding the suprema on both lines strictly from above, divide the analytic function by the exponential of the complex affine interpolant of the logs of these two numbers, and apply the maximum principle to the quotient times \(\exp(\delta\varsigma^2)\), for \(\delta>0\), on increasingly tall rectangles in the strip. The horizontal-side bound tends to 0 by boundedness and the damping, and on the vertical sides the extra factor has modulus at most \(\exp(\delta S^2)\). Letting \(\delta\downarrow0\) and then taking limits of the two bounds proves log-convex interpolation of the suprema.
+
+For this line \(\kappa(z_e(\varsigma))\ge 4q/p\) by (8) and \(\kappa(0)=1\), so \(z_0 z_e(\varsigma)\) and \(z_0\) lie in the closed disk of center \(q=1-p\), radius \(p\). To see the product, for any two inputs \(u,v\) strictly in the unit disk, with \(\kappa(u),\kappa(v)>0\),
+\[
+ \frac{|1-u v|^2}{1-|u v|^2}
+ \le \frac{|1-u|^2}{1-|u|^2}+\frac{|1-v|^2}{1-|v|^2}
+\]
+by \(1-uv=(1-u)+u(1-v)\) and Cauchy--Schwarz. Hence for the product \(y_e=z_0 z_e(\varsigma)\) this ratio is at most \(p/(2q)\). Also
+\[
+ p^2-|y_e-q|^2=p(1-|y_e|^2)-q|1-y_e|^2
+ \ge \frac p2(1-|z_e|^2).
+\]
+The root disk inclusion follows similarly. Put \(\lambda_e=(y_e-q)/p,\lambda_0=(z_0-q)/p\) indexing edges here by \(e=1,\ldots,k-1\). They have modulus \(\le1\), and \(1-|\lambda_e|\ge (1-|z_e|^2)/(4p)\).
+
+On a trace \(U\) of the extended input consider
+\[
+ T(U)=n^{-A}(1+\varsigma)^{-2K_{\rm ex}}
+ \sum_{0\le s_1<\cdots<s_k<|U|}
+  \lambda_0^{s_1}\prod_{e=1}^{k-1}\lambda_e^{s_{e+1}-s_e-1}
+  \prod_{e=1}^k\chi_e(U_{s_e}).
+\]
+It is bounded by 1 using geometric sums over the exact-edge gaps: each has \((1-|z_e|^2)|1+\varsigma|^2=4 S\), so contributes at most \(p/S\) after its share of normalization. The loose edges and the latest cost at most \(n^A\). As usual a zeroth power here is 1 even for base 0. The loose \(z_e(\varsigma)\) are nonzero at the chosen right-line point, since otherwise every term in \(G(\varsigma)\) has a loose factor \(z_e(\varsigma)^\Delta=0\), contradicting (9). Conditioning on survival of the source bits at each tuple's positions, the counts before and between them have independent binomial laws, so
+\[
+ \mathbb E_x T-\mathbb E_y T =
+ p^k z_0^{d-k+1}\Big(\prod_{e:\ \rm loose} z_e(\varsigma)^{-1}\Big)\,G(\varsigma),
+\]
+using \(z_0^{i_1}\prod_{e=1}^{k-1}(z_0 z_e)^{i_{e+1}-i_e-1}=z_0^{i_k-k+1}\prod_e z_e^{i_{e+1}-i_e-1}\). Therefore using \(d-k+1\le n,\ a_j n\le.001,\ \log(1/p)\le1/p\), the discrepancy magnitude by (9) is \(\ge\exp(-O(p^{-1}\ell_*8^b(b+1)^6))\). A bounded rotated real-part comparison thus distinguishes this pair (average over traces and threshold halfway between expectations) with error \(\le e^{-2n}\) by Hoeffding's inequality \cite{Hoeffding} using \(\exp(O(p^{-1}\ell_*8^b(b+1)^6+\log n))\) traces, uniformly over pairs. Use all pair comparisons on the same traces; with high probability the true extended input wins against all \(<2^n\) challengers by union bound ($2^n e^{-2n}<1/3$) and so can be identified as the unique candidate winning against all competitors (output any default on failure; restrict to extended inputs with the known zero prefix and then discard it in the output). Equivalently, the expectation gap of a bounded rotated real test implies a gap at least half as large for an indicator by total variation, without explicitly locating these particular complex parameters. For instance the binary pair indicator attaining total variation on padded traces can just compare subsequence embedding counts for the two candidates: each trace word's probability is its embedding count times the same length-dependent factor for either candidate. Sampling the needed padded traces only uses the original traces and independent randomness. The comparisons can depend on the candidates and known parameters, not on the hidden truth. This information-theoretic union argument has no assertion of efficiency and does not rely on computational checking or search as a proof. With \(\mathcal X\) defined as in the theorem but using the doubled length \(n\),
+we have \(2^b\le2\mathcal X\) and \(\ell_*\mathcal X=\ell_*+\log n\le1+2\log n\)
+since \(q\ge1/n\). Thus the sample exponent is at most
+\(O(p^{-1}(\log n)\mathcal X^2(1+\log \mathcal X)^6)\), and switching in
+this estimate back to the original length rather than its double changes it
+by at most an absolute factor. This is at most
+\(O(p^{-1}(\log n)^3(1+\log\log(2n))^6)\) using original-length notation.
+In original-length notation, if \(q\le n^{-\varepsilon}\), \(\varepsilon>0\) fixed, then either \(q=0\)
+(trivial) or \(\mathcal X\le1+1/\varepsilon\);
+also \(p\) is bounded below for large \(n\); hence polynomial samples suffice.
+
+\section*{Extension to general symbols} For clarity use $n$
+here for the original length. Collect $\lceil p^{-1}\log(12n)\rceil$
+preliminary samples; except with probability at most $1/12$ by a union
+bound, every source symbol is in the observed set $\mathcal S$, and
+$|\mathcal S|\le n$ always. Given success, on independent fresh traces
+run tests for pairs in $\mathcal S^n$, mapping symbols for each pair to bits by
+the indicator of one of the distinct symbols at its first differing position,
+then using the binary pair argument (including padding as needed) for the two
+projected candidates. For large $n$, $p,1-p\ge1/n$ the Hoeffding sample size can
+be multiplied by $O(\log n)$ for tail $\le e^{-3n\log n}$ per pair and a
+union bound over rivals. Output a candidate winning all its comparisons or
+declare failure if there is none. The increase does not affect the stated asymptotic
+budget. The bounded-size or $\min(p,1-p)<1/n$ cases can again directly use the
+whole-trace strategy instead. This extension also concerns sample complexity
+only.
+
+\begin{thebibliography}{9}
+\bibitem{BVW}
+A.~Burudgunte, P.~Valiant and H.~Wang, Quasipolynomial Trace Reconstruction, arXiv:2607.04073v1.
+\bibitem{Chase}
+Z.~Chase, New upper bounds for trace reconstruction, arXiv:2009.03296.
+\bibitem{CDLS}
+X.~Chen, A.~De, C.~H.~Lee, R.~A.~Servedio and S.~Sinha,
+Polynomial-time trace reconstruction in the low deletion rate regime,
+ITCS 2021.
+\bibitem{FW}
+N.~J. Fine and H.~S. Wilf, Uniqueness theorems for periodic functions, \emph{Proc.\ AMS} 16 (1965), 109--114.
+\bibitem{Hoeffding}
+W.~Hoeffding,
+Probability inequalities for sums of bounded random variables.
+\emph{Journal of the American Statistical Association} 58 (1963), 13--30.
+\bibitem{Rub}
+I.~Rubinstein, Average-Case to (shifted) Worst-Case Reduction for the Trace Reconstruction Problem, arXiv:2207.11489.
+\end{thebibliography}
+\end{document}

@@ -1,0 +1,379 @@
+\section{A logarithmic oracle lower bound}
+\label{sec:lower}
+
+The lower bound already holds for centered Gaussian targets, whose
+minimizer is known. The obstruction is therefore present in the same
+oracle model as the upper bound. We adapt the Gaussian block-Krylov
+strategy of
+\citet[Section~5.3.3, Lemma~39 and Theorem~45]{chewi2023lower},
+which already yields logarithmic dependence on dimension at fixed
+condition number. We give a complete argument for the spectral interval
+$[1,2]$ and total-variation accuracy $1/10$ used here, covering arbitrary
+measurable adaptive algorithms and unrestricted real computation.
+
+\begin{theorem}\label{thm:lower}
+There are absolute constants $c>0$ and $d_0$ such that $Q(d)\ge c\log d$
+for every $d\ge d_0$. This bound holds even when the inputs are restricted
+to potentials $V(x)=x^TAx/2$ with $I\preceq A\preceq2I$.
+The query cap is imposed on every execution, and the algorithm may use
+arbitrary private randomness independent of its input.
+\end{theorem}
+
+For these potentials the gradient reply is $Ax$, and the value
+$x^TAx/2$ is already determined by the query and its gradient reply.
+Thus an exact value-and-gradient query is equivalent to one query to
+$x\mapsto Ax$. Each potential belongs to $\mathcal V_d$, has minimizer
+$0$, and has target $N(0,A^{-1})$.
+
+The proof has three steps. First, deferred revelation of a random
+rotation represents any output in a Gaussian block-Krylov span, including
+outputs outside the span of the actual queries and replies. Second, a
+cosine statistic is small uniformly on this enlarged random span.
+Finally, the same statistic has a large bias under the target Gaussian,
+which separates the two joint experiments in total variation. These
+steps use no result from the sampling upper bound.
+
+\subsection{Adaptive queries and unrevealed rotations}
+
+We first record a representation of an arbitrary algorithm's output.
+The auxiliary Gaussian vectors in this representation are independent of
+one another, but need not be independent of the input matrix.
+
+\begin{lemma}[Deferred rotation]\label{lem:deferred-haar}
+Let $\Lambda$ be a fixed real diagonal $d\times d$ matrix, let $O$ be
+Haar distributed on the orthogonal group, and set $A=O\Lambda O^T$.
+Consider any measurable randomized algorithm, with private randomness
+independent of $O$, making at most $q$ adaptive queries to the map $x\mapsto Ax$, where $2q+1<d$, and producing an output
+$X\in\R^d$. There is an extension of this experiment carrying independent
+standard Gaussian vectors $g_1,\ldots,g_{q+1}\in\R^d$ such that
+\begin{equation}\label{eq:krylov-span}
+ O^TX\in\operatorname{span}
+ \{\Lambda^j g_i:1\le i\le q+1,\ 0\le j\le q\}
+ \qquad\text{almost surely}.
+\end{equation}
+The joint law of the original variables, including the algorithm's
+randomness and $O$, is unchanged. The vectors $g_i$ need not be
+independent of $O$ or of $A$.
+\end{lemma}
+
+\begin{proof}
+Include all the algorithm's randomness, including any randomness used at
+output, in a private seed independent of $O$. Fix this seed for the
+moment. Pad executions with zero queries so that there are exactly $q$
+query slots.
+
+We use the following conditional property of Haar measure. For a fixed
+restriction $T:E\to W$ of an orthogonal map, the conditional law of its
+remaining restriction is uniform among isometries from $E^\perp$ to
+$W^\perp$. For a specified unit vector in either complement, its partner
+is uniform on the unit sphere of the other complement. After revealing
+that pair, the map between the smaller complements is again uniform.
+This follows from invariance under the orthogonal transformations fixing
+$E$ and $W$ pointwise. Applying this rule successively also permits each
+specified direction to be a measurable function of the already revealed
+data.
+
+All conditional laws below are laws of finite-dimensional data after the
+seed has been fixed. To represent the subspaces and partial isometries
+measurably, apply Gram--Schmidt to the revealed vectors in their order of
+appearance, discard zero residuals, and complete a basis by scanning the
+standard coordinate vectors in order. These operations are Borel on
+each rank stratum. Thus regular conditional laws and the successive
+Gaussian draws can be chosen as measurable kernels; no continuity of
+the algorithm's query maps is required.
+
+Initially $E=W=\{0\}$. After each reply, reveal the restriction
+$T=O|_E$, where $E$ is the span of the eigenframe coordinates of all
+queries and replies so far, and $W=OE$ is their span in the original
+coordinates. Our conditional invariant is that the unrevealed map is
+Haar on the two complements, given the full latent history: the seed,
+the transcript, this restriction, and all auxiliary variables constructed
+so far.
+
+Let $x$ be the next query, which is fixed given that history. Write
+$x=x_W+x_\perp$ according to $W\oplus W^\perp$. The preimage of $x_W$
+is known. If $x_\perp\ne0$, put
+\[
+ w=\frac{x_\perp}{|x_\perp|},\qquad v=O^Tw\in E^\perp.
+\]
+Conditionally on the history, $v$ is uniform on the complementary unit
+sphere. Let $h$ be a standard Gaussian vector in $E$, and let $a$ have
+the distribution of the Euclidean norm of a standard Gaussian in
+$\R^{d-\dim E}$. Draw $h$ and $a$ independently of one another and of
+the unrevealed map, conditional on the history, and define
+\[
+                         g_i=h+av.
+\]
+The Gaussian polar decomposition shows that $g_i$ is a standard Gaussian
+in $\R^d$ conditional on the entire previous history. Moreover, $a>0$ almost surely, so
+$v=(g_i-h)/a\in E+\operatorname{span}\{g_i\}$. Reveal $Ov=w$ and extend $T$ to
+$E+\operatorname{span}\{v\}$. Conditioning on the full vector $g_i$
+does not reveal any further part of $O$: its parallel component $h$
+and complementary radius $a$ are independent auxiliary variables, and
+its normalized complementary component is precisely $v$. Thus the
+conditional Haar invariant persists. If $x_\perp=0$, instead draw a fresh
+independent standard Gaussian $g_i$ and make no extension at this step.
+
+In either case the query preimage $u=O^Tx$ is now known and lies in the
+old space $E+\operatorname{span}\{g_i\}$. Its reply has preimage
+$\Lambda u$. Project $\Lambda u$ onto the enlarged eigenframe space.
+The image of this projection is known. If the residual is nonzero,
+reveal the image under $O$ of its unit direction and extend the
+isometry once more. This is the other form of the same Haar-revelation
+rule: the direction in the eigenframe is fixed by the current history,
+and its image is uniform in the unrevealed complementary sphere. The
+resulting reply is exactly $Ax$, and the conditional invariant is
+preserved.
+
+Every $g_i$ has conditional law $N(0,I_d)$ given all earlier Gaussian
+vectors and the earlier history. Consequently these vectors are
+independent. To check the polynomial degrees, let $E_i$ be the revealed
+eigenframe space after reply $i$. Induction gives
+\[
+ E_i\subseteq\operatorname{span}
+ \{\Lambda^j g_a:1\le a\le i,\ 0\le j\le i\}.
+\]
+Indeed, the new query preimage is in $E_{i-1}+\operatorname{span}\{g_i\}$,
+and adjoining its reply applies $\Lambda$ once. All old directions
+remain in the indicated larger span.
+
+Finally treat the algorithm's output as one more query direction, with
+no reply: repeat the preimage construction using $g_{q+1}$. This gives
+$O^TX\in E_q+\operatorname{span}\{g_{q+1}\}$, proving
+\eqref{eq:krylov-span}. At most two dimensions were exposed per oracle
+query and one for the output, so the assumed dimension inequality
+ensures that every required complement is available. The construction
+started with the genuine Haar input and never altered it. Its added
+variables are obtained by measurable kernels from the original variables
+and independent auxiliary draws. The construction therefore applies
+jointly measurably for the fixed-seed algorithms; integrating over the
+original independent seed proves the assertion for randomized algorithms.
+\end{proof}
+
+\subsection{A statistic invisible on the block span}
+
+For the rest of the section define
+\begin{equation}\label{eq:lower-spectrum}
+ \theta_k=\frac{(k-1/2)\pi}{d},\qquad
+ \lambda_k=\frac{3+\cos\theta_k}{2},\qquad
+ \Lambda=\operatorname{diag}(\lambda_1,\ldots,\lambda_d),
+ \quad 1\le k\le d.
+\end{equation}
+All eigenvalues lie strictly between $1$ and $2$. For an integer $q\ge0$
+put
+\[
+ n=2q+1,\qquad p_k=\cos(n\theta_k),\qquad
+ D_p=\operatorname{diag}(p_1,\ldots,p_d).
+\]
+The frequency $n$ exceeds twice the polynomial degree in
+\eqref{eq:krylov-span}. This makes the quadratic form $u^TD_pu$ small
+simultaneously for all vectors in that random span.
+
+\begin{lemma}\label{lem:lower-span-statistic}
+Suppose $4q+1<2d$, and let $g_1,\ldots,g_{q+1}$ be independent standard
+Gaussian vectors. Set
+\[
+ \mathcal K_q=\operatorname{span}
+ \{\Lambda^j g_i:1\le i\le q+1,\ 0\le j\le q\},\qquad
+ \tau_d=\frac{40(q+1)^2}{\sqrt d}.
+\]
+If $\tau_d\le1/2$, then, with probability at least $0.99$,
+\begin{equation}\label{eq:lower-uniform-statistic}
+ |u^TD_pu|\le2\tau_d|u|^2
+ \qquad\text{for every }u\in\mathcal K_q.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Let $m=(q+1)^2$ and form a $d\times m$ matrix $B$, whose columns are
+indexed by $(i,j)$ with $1\le i\le q+1$ and $0\le j\le q$, by
+\[
+ B_{k,ij}=d^{-1/2}(g_i)_k c_j\cos(j\theta_k),
+ \qquad c_0=1,\quad c_j=\sqrt2\quad(j\ge1).
+\]
+The functions $\cos(j\theta)$ are degree-$j$ polynomials in
+$\cos\theta$ with nonzero leading coefficients. Since
+$\cos\theta_k=2\lambda_k-3$, the range of $B$ is precisely
+$\mathcal K_q$.
+
+Discrete cosine orthogonality gives
+\begin{equation}\label{eq:lower-gram-means}
+                  \E B^TB=I_m,\qquad \E B^TD_pB=0.
+\end{equation}
+For completeness, the equally spaced half-grid satisfies
+\begin{equation}\label{eq:lower-cosine-sum}
+ \sum_{k=1}^d\cos(\ell\theta_k)
+ =\frac{\sin(\ell\pi)}{2\sin(\ell\pi/(2d))}=0,
+ \qquad 1\le\ell<2d,\quad \ell\in\mathbb Z.
+\end{equation}
+Here the finite cosine sum follows by summing a geometric progression,
+and its denominator is nonzero in the indicated range.
+Expand products of two cosines for the first identity in
+\eqref{eq:lower-gram-means}. For the second, expand the product of
+three cosines with frequencies $n,j,j'$. Its frequencies are nonzero
+because $n>j+j'$, and have absolute value at most $4q+1<2d$.
+Different Gaussian blocks have zero cross means in both cases.
+
+An entry of either Gram matrix is a sum of independent row terms.
+The deterministic coefficient in each term has absolute value at most
+$2/d$, and the variance of a product of two standard Gaussian entries
+is at most $2$. Thus every entry has variance at most $8/d$, and
+\[
+ \E\bigl[\|B^TB-I_m\|_{\HS}^2+
+               \|B^TD_pB\|_{\HS}^2\bigr]
+ \le\frac{16m^2}{d}.
+\]
+By Markov's inequality,
+\[
+ \P\!\left(\|B^TB-I_m\|_{\HS}^2+
+                 \|B^TD_pB\|_{\HS}^2>\tau_d^2\right)
+ \le\frac{16m^2/d}{1600m^2/d}=0.01.
+\]
+Since $\|C\|_{\op}\le\|C\|_{\HS}$, outside this event both operator
+norms are at most $40m/\sqrt d=\tau_d$. Whenever these bounds hold, for every
+$a\in\R^m$,
+\[
+ |Ba|^2\ge(1-\tau_d)|a|^2\ge\tfrac12|a|^2,
+ \qquad |(Ba)^TD_p(Ba)|\le\tau_d|a|^2.
+\]
+These inequalities imply \eqref{eq:lower-uniform-statistic} on the
+entire range of $B$.
+\end{proof}
+
+The uniformity in this lemma is essential: the output's coefficients in
+the block span can depend arbitrarily on the whole transcript. No
+independence between these coefficients, the input rotation, and the
+Gaussian vectors is required.
+
+\subsection{Separation from the target Gaussian}
+
+An ideal target has a detectable bias at the same frequency. Write
+\[
+                         \varrho=3-\sqrt8\in(0,1).
+\]
+The geometric-series formula gives the absolutely convergent identity
+\begin{equation}\label{eq:lower-fourier}
+ \frac{2}{3+\cos\theta}
+ =\frac1{\sqrt2}
+   \left(1+2\sum_{j\ge1}(-\varrho)^j\cos(j\theta)\right).
+\end{equation}
+Indeed, the series in parentheses sums to
+$(1-\varrho^2)/(1+2\varrho\cos\theta+\varrho^2)$, and
+$1+\varrho^2=6\varrho$ and $1-\varrho^2=4\sqrt2\,\varrho$.
+
+\begin{lemma}\label{lem:lower-target-statistic}
+Let $U\sim N(0,\Lambda^{-1})$, with $\Lambda$ from
+\eqref{eq:lower-spectrum}, and suppose $n=2q+1<d$. Then
+\begin{align}
+ \mu_{d,q}:=\E[U^TD_pU]
+ &=\frac d{\sqrt2}(-\varrho)^n+R_{d,q},
+ & |R_{d,q}|&\le
+   \frac{\sqrt2\,d\,\varrho^{2d-n}}{1-\varrho},
+ \label{eq:lower-target-mean}\\
+ \Var(U^TD_pU)&\le2d,
+ & \E|U|^2&\le d,\qquad \Var(|U|^2)\le2d.
+ \label{eq:lower-target-variance}
+\end{align}
+\end{lemma}
+
+\begin{proof}
+Independence of the coordinates gives
+$\mu_{d,q}=\sum_k p_k/\lambda_k$. Substitute
+\eqref{eq:lower-fourier}. The constant term vanishes by
+\eqref{eq:lower-cosine-sum}. For $1\le j<2d-n$, use
+\[
+ \cos(n\theta_k)\cos(j\theta_k)
+ =\tfrac12\cos((n-j)\theta_k)+\tfrac12\cos((n+j)\theta_k).
+\]
+If $j\ne n$, both frequencies have nonzero absolute value below $2d$,
+so their sums vanish. If $j=n$, the constant term contributes $d/2$
+and the frequency $2n<2d$ contributes zero. Thus only $j=n$ contributes
+in this range. Each remaining cosine product has
+absolute sum at most $d$, so summing the geometric tail proves
+\eqref{eq:lower-target-mean}. Finally, a centered normal variable with
+variance $v$ satisfies $\Var(U_k^2)=2v^2$. Since
+$|p_k|\le1$ and $\lambda_k\ge1$, summing these coordinate variances
+proves \eqref{eq:lower-target-variance}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:lower}]
+Take $A=O\Lambda O^T$ with $O$ Haar and $\Lambda$ as in
+\eqref{eq:lower-spectrum}. The reduction at the start of the section identifies an exact
+value-and-gradient algorithm on $V_A(x)=x^TAx/2$ with an algorithm
+querying $x\mapsto Ax$, with the same query cap and output law.
+
+Fix any algorithm using at most $q$ queries on every execution, where
+\[
+ 0\le q\le c_0\log d,\qquad
+ c_0=\frac1{16\log(1/\varrho)}.
+\]
+All dimension restrictions in Lemmas~\ref{lem:deferred-haar},
+\ref{lem:lower-span-statistic}, and \ref{lem:lower-target-statistic}
+hold for sufficiently large $d$, uniformly over these $q$.
+Let $\P_{\mathrm{alg}}$ be the joint law of the Haar rotation and the
+algorithm's output on this input. Define the event on pairs $(O,x)$
+\begin{equation}\label{eq:lower-separating-event}
+ \mathcal E_{d,q}=
+ \left\{(O,x): |O^Tx|^2\le2d,\quad
+       \left|(O^Tx)^TD_p(O^Tx)\right|>
+                         160(q+1)^2\sqrt d\right\}.
+\end{equation}
+This event is measurable. It is also determined by $(A,x)$: if $T_n$
+is the polynomial defined by $T_n(\cos\theta)=\cos(n\theta)$, then
+$OD_pO^T=T_n(2A-3I)$. We retain $O$ in the notation to use eigenframe
+coordinates throughout the comparison.
+
+Apply Lemma~\ref{lem:deferred-haar} to the algorithm's output and then
+Lemma~\ref{lem:lower-span-statistic} to its auxiliary Gaussian vectors.
+On the latter lemma's event, the norm condition in
+\eqref{eq:lower-separating-event} forces the quadratic form to be at
+most $2\tau_d(2d)=160(q+1)^2\sqrt d$. Hence
+\begin{equation}\label{eq:lower-algorithm-event}
+                       \P_{\mathrm{alg}}(\mathcal E_{d,q})\le0.01.
+\end{equation}
+
+For the target joint law $\P_{\mathrm{target}}$, sample $O$ from the same
+prior and then $X$ from $N(0,O\Lambda^{-1}O^T)$. Conditional on $O$, the vector
+$U=O^TX$ has law $N(0,\Lambda^{-1})$. Our choice of $c_0$ gives
+\[
+ \varrho^{2q+1}\ge\varrho d^{-1/8},\qquad
+ \frac{d\varrho^{2q+1}}{(q+1)^2\sqrt d}
+ \ge\frac{\varrho d^{3/8}}{(1+c_0\log d)^2}\longrightarrow\infty.
+\]
+The remainder in \eqref{eq:lower-target-mean} satisfies
+\[
+ \frac{|R_{d,q}|}{d\varrho^n/\sqrt2}
+ \le\frac{2\varrho^{2d-2n}}{1-\varrho}\longrightarrow0
+\]
+uniformly, since $n\le1+2c_0\log d$. Thus it is negligible relative
+to the leading term. In particular,
+with $T_{d,q}=160(q+1)^2\sqrt d$, we have
+$|\mu_{d,q}|>T_{d,q}$ for large $d$, and
+\[
+ \P_{\mathrm{target}}(\mathcal E_{d,q}^c)
+ \le\frac2d+
+       \frac{2d}{(|\mu_{d,q}|-T_{d,q})^2}=o(1)
+\]
+uniformly, by Lemma~\ref{lem:lower-target-statistic} and Chebyshev's
+inequality. Thus the probabilities of $\mathcal E_{d,q}$ under the
+two joint experiments differ by at least $0.99-o(1)$.
+
+To compare these joint laws with the required guarantee on each fixed
+input, let $K_O$ denote the algorithm's output law on $A=O\Lambda O^T$
+and let $G_O=N(0,A^{-1})$. For a measurable joint event $\mathcal E$,
+write $\mathcal E_O=\{x:(O,x)\in\mathcal E\}$. Both laws use the same
+Haar prior, so
+\begin{align*}
+ \left|\P_{\mathrm{alg}}(\mathcal E)
+       -\P_{\mathrm{target}}(\mathcal E)\right|
+ &=\left|\int\bigl[K_O(\mathcal E_O)-G_O(\mathcal E_O)\bigr]
+                   \,d\operatorname{Haar}(O)\right|\\
+ &\le\int\|K_O-G_O\|_{\TV}\,d\operatorname{Haar}(O).
+\end{align*}
+The pointwise sampling guarantee would bound the last integral by
+$1/10$. The event used to disprove that guarantee is a test of the joint
+laws; the algorithm need not know or compute it.
+This is impossible for \eqref{eq:lower-separating-event}. Therefore no
+such algorithm with $q\le c_0\log d$ can meet the required accuracy for
+all inputs. Decreasing the constant if necessary proves the theorem.
+\end{proof}

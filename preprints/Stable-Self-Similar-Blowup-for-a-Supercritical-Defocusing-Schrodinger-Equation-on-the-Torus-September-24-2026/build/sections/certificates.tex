@@ -1,0 +1,429 @@
+\section{Exact finite arithmetic}\label{cert:arithmetic}
+
+This appendix specifies the finite calculations used in
+Proposition~\ref{free:main}.  They involve integers and rational numbers
+only.  The accompanying file
+\texttt{verification/}\allowbreak\texttt{certificates/}\allowbreak\texttt{exact\_verifier.py}
+implements the recipes below using the Python standard library; its
+deterministic output is
+\texttt{verification/}\allowbreak\texttt{certificates/}\allowbreak\texttt{RESULTS.json}.  In particular,
+neither special-function evaluation nor a floating-point root finder is
+used to decide any inequality.  The mathematical identities that permit
+coefficient truncation are proved in Lemma~\ref{free:boundary} and below.
+
+Reproduction commands and the exact input and artifact bindings are in
+\texttt{README.md} and
+\texttt{verification/}\allowbreak\texttt{certificates/}\allowbreak\texttt{README.md}, supplied with the
+manuscript. The verifier checks the finite comparisons below. Their
+connection to the profile degree and spectral count is established by
+the analytic arguments of Section~\ref{sec:free}.
+
+\subsection{Coefficient enclosures}
+
+For a complex polynomial $X$, write $|X|_1$ for the polynomial whose
+$j$th coefficient is $|\operatorname{Re}X_j|+|\operatorname{Im}X_j|$.
+An enclosure $[X;e]$, with nonnegative real coefficients $e_j$, means
+that the actual $j$th coefficient differs from $X_j$ by a complex number
+of $\ell^1$ norm at most $e_j$.  Addition adds the errors; negation,
+conjugation, and reflection of the variable preserve their absolute
+bounds.  Polynomial multiplication uses convolution and the rule
+\begin{equation}\label{cert:product-rule}
+ [X;e][Y;f]=[XY;\ e(|Y|_1+f)+|X|_1f].
+\end{equation}
+This follows by expanding $(X+\varepsilon)(Y+\zeta)-XY$ and using
+$|zw|_1\le|z|_1|w|_1$ coefficientwise before convolution.
+The program stores a coefficient as the triple
+$(\operatorname{Re}X_j,\operatorname{Im}X_j,e_j)$.
+
+For the boundary and exterior tests set
+\begin{equation}\label{cert:integer-box}
+ H_0=10^8,\qquad B=33477607,\qquad S=270506819,
+ \qquad |H_0b-B|<2,\quad |H_0Z-S|<2.
+\end{equation}
+The disk \eqref{free:disk} lies strictly inside this box: substitution of
+its rational center shows
+$|H_0b_*-B|+H_0\delta<2$ and
+$|H_0Z_*-S|+H_0\delta<2$.  Repeated occurrences of an uncertain
+coefficient may be bounded independently in
+\eqref{cert:product-rule}; this enlarges the enclosure.  The polynomial
+identities used to discard coefficients concern the coherent family
+with the same actual $b,Z$ in every occurrence, and do not rely on
+independent error variables satisfying those identities.
+
+\subsection{The left boundary forms}\label{cert:boundary}
+
+Take $K=8$ and $0\le\ell\le3$.  Every quantity in the following
+recursion is a polynomial in the real variable $v$.  Use the central
+values
+\[
+ t_n=H_0(\ell/2+n-1/32)+i(H_0v-B),\quad
+ M=H_0(\ell+5),\quad s=iS,\quad d_n=t_n-M.
+\]
+Give the constant coefficient of $t_n,d_n,s$ error $2$, and every
+other input coefficient error zero.  Starting from row vectors
+$x=(1,0)$, $y=(0,1)$, do, for $n=0,\ldots,7$,
+\begin{equation}\label{cert:forward-recipe}
+ x_{\rm new}=t_nx+sy,\qquad
+ y_{\rm new}=d_ny-x_{\rm new},\qquad (x,y)\leftarrow(x_{\rm new},y_{\rm new}).
+\end{equation}
+Define the sesquilinear expression
+\[
+ \begin{gathered}
+ h(a,b',c,d)=M\overline a c+s(\overline a d-\overline{b'}c),
+ \\
+ A=h(x_0,y_0,x_0,y_0),\quad
+ D=h(x_1,y_1,x_1,y_1),\quad
+ C=h(x_0,y_0,x_1,y_1).
+ \end{gathered}
+\]
+For any polynomial let $f^\#(v)=\overline{f(-v)}$, entrywise on
+coefficients.  Replace each of $A,D,C$ by its sum with its sharp,
+and form $AD-C\overline C$.  Relative to
+\eqref{free:boundary-form}, this simply scales each forward matrix by
+$H_0$ and the cone matrix by $H_0$, so the determinant is multiplied
+by the positive constant $H_0^{4K+2}$.
+
+Lemma~\ref{free:boundary} proves that the actual determinant is real,
+even, and of degree at most 30 throughout the parameter box.  Retain
+its even real coefficient enclosures and write it as
+$D_\ell(w)=\sum_{j=0}^{15}D_jw^j$, where $w=v^2$.
+There is no inference from small computed high coefficients here:
+their vanishing follows from the structural proof.  The program also
+checks the central vanishings as a consistency check.
+
+For each of
+\begin{equation}\label{cert:substitutions}
+ (U,V,J)=(0,1,1),\quad(1,10,1),\quad(10,1,0),
+\end{equation}
+compute the coefficient enclosures of
+\begin{equation}\label{cert:transformed-polynomial}
+ (1+Jw)^{15}D_\ell\left(\frac{U+Vw}{1+Jw}\right)
+ =\sum_{j=0}^{15}D_j(U+Vw)^j(1+Jw)^{15-j}.
+\end{equation}
+For example, a multiplication-only implementation starts $Q=0$, $E=1$
+and, for $j=15,\ldots,0$, replaces
+$Q\leftarrow Q(U+Vw)+ED_j$, $E\leftarrow E(1+Jw)$.
+If $[X;e]$ is the resulting enclosure, the minima over coefficients
+$0\le j\le15$ of $\lfloor\operatorname{Re}X_j/(1+e_j)\rfloor$ are
+\begin{equation}\label{cert:boundary-table}
+ \begin{array}{c|rrr}
+ \ell&(0,1,1)&(1,10,1)&(10,1,0)\\\hline
+ 0&63&60&94\\
+ 1&21&178&199\\
+ 2&4&13&323\\
+ 3&1115&173&298
+ \end{array}.
+\end{equation}
+Every entry is positive, hence every actual coefficient in
+\eqref{cert:transformed-polynomial} is strictly positive.  The three
+maps $(U+Vw)/(1+Jw)$ for $w\ge0$ cover $[0,1)$, $[1,10)$, and
+$[10,\infty)$, respectively.  The clearing factors are positive.
+Thus $D_\ell(v^2)>0$ for every real $v$.  This is precisely the
+determinant inequality used to make the boundary form positive
+definite in Lemma~\ref{free:boundary}.
+
+\subsection{Rational separators and winding}\label{cert:winding}
+
+The count uses no interval errors once the zero-tail parameters have
+been moved to $(B/H_0,S/H_0)$.  Start $x=0$, $y=1$ as polynomials in
+$X$.  For $n=7,\ldots,0$ set
+\[
+ t=H_0(X-1/32+\ell/2+n)-iB,
+ \qquad
+ (x,y)\leftarrow
+ \big((t-H_0(\ell+5)-iS)x-iSy,\ t(x+y)\big),
+\]
+using the old pair on the right.  If $p_j$ denotes
+\begin{equation}\label{cert:p-coefficients}
+ p_j=\operatorname{Im}\sum_{k=0}^j x_k\overline{y_{j-k}},
+\end{equation}
+then $P_\ell(X)=\sum p_jX^j$ is the polynomial of
+Lemma~\ref{free:winding}, up to a positive common scaling.
+Its degree is 15 and $p_{15}=-8SH_0^{15}$; $p_{16}=0$.
+The two axis polynomials are therefore
+\[
+ \mathcal R_\ell(w)=\sum_{j=0}^7(-1)^jp_{2j}w^j,
+ \qquad
+ \mathcal I_\ell(w)=\sum_{j=0}^7(-1)^jp_{2j+1}w^j.
+\]
+
+Evaluate both at $w=(q/100)^2$, taking endpoints $q=0,7500$
+and the following intermediate lists:
+\[
+\begin{array}{c|l}
+ \ell&q\\\hline
+ 0&45,90,145,220,315,450,635,920,1780,3100\\
+ 1&30,68,116,173,250,350,485,680,1005,1880,3210\\
+ 2&51,78,94,121,165,218,278,369,490,720,1080,1930,3340\\
+ 3&57,95,122,157,205,265,333,431,559,784,1148,2020,3521
+\end{array}
+\]
+In the order including endpoints, the signs follow the repeating
+cycle $++,-+,--,+-$, starting at $-+$ in row zero, $++$ in row one,
+and $--$ in rows two and three.  At the two negative arguments
+$w=-(q/100)^2$, $q=50,200$, rows zero and one have signs $++,--$,
+in that order.
+
+Here is an integer-only recipe for every sign, including a relative
+margin against cancellation in the sum.  For coordinate $c=0,1$ and
+argument $w=\varepsilon(q/100)^2$, $\varepsilon\in\{1,-1\}$, set
+\[
+ d_j=p_{2j+c}100^{14-2j}(-\varepsilon q^2)^j,
+ \qquad j=0,\ldots,7.
+\]
+The sign of $\sum d_j$ is the required sign.  For its specified sign
+$e\in\{1,-1\}$, the minimum, over all tests in that row, of
+\[
+ \left\lfloor\frac{10^4e\sum d_j}{\sum|d_j|}\right\rfloor
+\]
+is respectively
+\begin{equation}\label{cert:separator-margins}
+ 583,\qquad432,\qquad80,\qquad68.
+\end{equation}
+These strictly positive integer margins verify all stated signs.
+The sign changes give $5,6,7,7$ positive root brackets for
+$\mathcal R_\ell$ and $6,6,7,7$ for $\mathcal I_\ell$.
+After the stated negative brackets are included, both have seven
+distinct brackets.  The degree bounds then prove simplicity and
+exhaustion.  Lemma~\ref{free:winding} gives the argument change and
+its orientation, converting this finite sign table into the matching
+counts $2,1,0,0$.
+
+\subsection{The high angular multiplier}\label{cert:high-angular}
+
+The path constants in Lemma~\ref{free:high-angular} are bounded using
+only the rational endpoint values $\cos\vartheta_0=99/101$ and
+$\sin\vartheta_0=20/101$, and monotonicity of sine and cosine on the
+initial arc.  For example,
+\[
+ \sin(2\vartheta_0)<.4,\quad \cos(2\vartheta_0)>.92,
+ \quad \cos\vartheta_0>.98,
+ \quad N\le.04-2.70\cdot.92=-2.444.
+\]
+Thus $L'>.98-4(-2.444)>10.7$.  The lower bound on the arc potential
+after dropping its nonnegative terms is
+\[
+ -3-1/32+.3(10.7)=143/800>0.
+\]
+At the join, substitute
+$u=10/101$, $v=Z+1/101$ in the formulas for $L,N$.
+The disk bounds give $1.13<L<1.19$, so the jump lower bound is
+\[
+ -1.5-.3(1.19)+2.444=587/1000>0.
+\]
+On the ray, $u$ and $L$ have slope $99/101\in(.98,.981)$
+and $v$ has slope $20/101<.20$; these prove every affine bound used
+in \eqref{free:high-polynomial}.  Also $M/2-Z\ge9/2-Z_*-\delta>0$.
+
+For transparency, let $P(t)$ be exactly the rational polynomial in
+\eqref{free:high-polynomial} and put
+\[
+ Q(t)=2+t(33-72.2t+44.8t^2)+t^4(17.9-4.61t+.54t^2).
+\]
+The seven coefficients of $P-Q$, in ascending order, are
+\begin{equation}\label{cert:high-difference}
+ \begin{split}
+ &\frac{142518401}{500000000},\quad
+ \frac{325932989}{1000000000},\quad
+ \frac{15777215591}{200000000000},\quad
+ \frac{8728703679}{200000000000},\\
+ &\frac{34209914771}{800000000000},\quad
+ \frac{16113799}{3125000000},\quad
+ \frac{60018849}{40000000000}.
+ \end{split}
+\end{equation}
+They are strictly positive.  The two quadratic terms in $Q$ have
+positive leading coefficient and discriminants
+\[
+ (72.2)^2-4(33)(44.8)=-17519/25,\qquad
+ (4.61)^2-4(17.9)(.54)=-174119/10000.
+\]
+Thus $P>Q>0$ for $t\ge0$.  The denominator $L_0d_0(1+1.5t)^2$
+is positive there.  These comparisons supply exactly the potential
+positivity needed in the multiplier identity.
+
+\subsection{The profile product and degree margin}\label{cert:profile}
+
+This calculation uses exact complex rational scalars and ordinary
+$2\times2$ matrix multiplication.  For an exact complex matrix $F$,
+$|F|_1$ means entrywise complex $\ell^1$ norm.  Initialize
+$U=I$, $X=Y=E=0$.  For $n=33,\ldots,0$ set
+\[
+ \begin{gathered}
+ t=n-ib_*,\quad
+ F=\begin{pmatrix}t-5-iZ_*&-iZ_*\\t&t\end{pmatrix},\\
+ G=-i\begin{pmatrix}1&0\\1&1\end{pmatrix},\quad
+ H_1=-i\begin{pmatrix}1&1\\0&0\end{pmatrix},\quad N=|G|_1+|H_1|_1,
+ \end{gathered}
+\]
+and replace the four matrices simultaneously by
+\begin{equation}\label{cert:profile-recipe}
+ \frac1{n+1}\left(
+ FU,\quad GU+FX,\quad H_1U+FY,\quad
+ (|F|_1+\delta N)E+N(|X|_1+|Y|_1)\right).
+\end{equation}
+Then $U=U_0$, $X=X_0$, $Y=Y_0$ in
+Lemma~\ref{free:profile-degree}, while the nonnegative real matrix
+$\delta^2E$ bounds the entrywise complex $\ell^1$ error of the
+linear approximation.  Indeed multiplying a current error by the
+perturbed factor costs $(|F|_1+\delta N)E$; the product of the two
+linear perturbations costs $N(|X|_1+|Y|_1)$ after division by
+$\delta^2$.  This proves the majorant recurrence, including all
+higher order terms.
+
+With $m_0=U_{01}$, the comparisons in
+\eqref{free:profile-enclosures} are checked by ordinary rational
+division, or by squaring positive modulus bounds.  For example
+$9<|m_0|<10$ means $81<|m_0|^2<100$.  The determinant of a backward
+factor is $t(t-5)$, independent of $Z$, so a rational upper bound for
+$|\det L|^2$ throughout the disk is
+\begin{equation}\label{cert:profile-determinant}
+ \frac{\displaystyle\prod_{n=0}^{33}
+ (n^2+(b_*+\delta)^2)((n-5)^2+(b_*+\delta)^2)}{(34!)^4}.
+\end{equation}
+Comparison with $(6.2\cdot10^{-12})^2|m_0|^4$ proves the last
+inequality of \eqref{free:profile-enclosures}.
+
+Here are all the additional comparisons and the formulas propagating
+them to the analytic quotient.  Put
+\[
+ x=X_{11}/m_0,\qquad y=Y_{11}/m_0,\qquad u=U_{00}/m_0,
+ \qquad \kappa=(.048)^2.
+\]
+The exact rational calculations give
+\begin{gather}
+ |x|^2>\kappa,\qquad
+ (|x|^2-\kappa)(|y|^2-\kappa)
+       >(\operatorname{Re}(\overline xy))^2,\notag\\
+ |1-iZ_*u/5|>2.34,\qquad |u|<3.18,\qquad
+ |x|<.159,\qquad |y|<.124.\label{cert:profile-extra}
+\end{gather}
+The first line is Sylvester's criterion for the Gram matrix of the
+real-linear map $(\eta,\zeta)\mapsto\eta x+\zeta y$, minus
+$\kappa I$, to be positive definite.  It proves minimum stretch
+greater than $.048$.  The rectangles in
+\eqref{free:profile-enclosures} also show
+$\operatorname{Re}x\operatorname{Im}y-\operatorname{Im}x\operatorname{Re}y<0$.
+
+To make the error propagation fully reproducible, define the positive
+rationals
+\begin{align*}
+ \chi&=40\delta+50000\delta^2,\\
+ v_1&=(1+(Z_*+\delta)/5)\chi+3.18\delta/5,\\
+ v_2&=(Z_*+\delta)\chi/5+3.18\delta/5,\\
+ \gamma&=2.34-3.18Z_*/5-v_1-v_2.
+\end{align*}
+The entrywise change of $L/m_0$ from $U/m_0$ is less than $\chi$.
+The quantities $v_1$ and $v_2$ bound the change in the two terms of
+the denominator gap, respectively.  Exact comparison gives
+\[
+ \gamma>.6,\qquad \chi<5\cdot10^{-7},
+\]
+which proves \eqref{free:denominator-gap}.  In particular all divisions
+used in the quotient estimate have already been justified.
+Set
+\begin{align}\label{cert:ratio-errors}
+ e_{\rm jet}&=
+ \frac{10^{-12}+50000\delta^2+(.283\delta)\chi}{1-\chi},\notag\\
+ e_{\rm tail}&=
+ \frac{(2(Z_*+\delta)/5)(6.2\cdot10^{-12})}{.6(1-\chi)}.
+\end{align}
+The first bounds the distance of $L_{11}/L_{01}$ from the linear map:
+its numerator accounts for $U_{11}$, the quadratic remainder, and
+the change of denominator.  The second is the determinant estimate
+for the tail-ratio correction in Lemma~\ref{free:profile-degree}.
+The remaining comparisons are
+\begin{equation}\label{cert:degree-comparisons}
+ e_{\rm jet}+e_{\rm tail}<2.5\cdot10^{-11},\qquad
+ .283\delta+2.5\cdot10^{-11}<3\cdot10^{-9},\qquad
+ .048\delta>2.5\cdot10^{-11}.
+\end{equation}
+Together with \eqref{cert:integer-box}, these are the complete finite
+comparisons behind the disk estimate and nonzero degree.  The actual
+boundary margin is greater than
+$4.8\cdot10^{-10}-2.5\cdot10^{-11}=4.55\cdot10^{-10}$.
+The verifier emits every comparison separately and also emits the
+rational values of $e_{\rm jet}+e_{\rm tail}$ and $\gamma$.
+
+\subsection{Exterior positivity and its degree cancellations}\label{cert:exterior}
+
+Here $M=5$, $t_n=n-ib$, $d_n=t_n-5$, $s=iz$ and $K=5$ in
+the unscaled forward recurrence.  We first justify the degree bounds
+used in the arithmetic.  Write $T^{(n)}$ for the product of its first
+$n$ factors.  For $n\ge1$ its column zero has degree at most $n-1$
+in $z$, and column one has degree at most $n$.  Their leading terms are
+\begin{equation}\label{cert:exterior-leading}
+ T^{(n)}_{\cdot0}=-b a_nz^{n-1}\binom{1}{-1}
+     +O(z^{n-2}),\qquad
+ T^{(n)}_{\cdot1}=a_nz^n\binom{1}{-1}+O(z^{n-1}),
+ \quad a_n=i(-i)^{n-1}.
+\end{equation}
+For $n=1$ the first column is exactly $-ib(1,-1)^t$, so the
+remainder in that first assertion is zero.  Induction follows by
+retaining the $z$ part
+$\left(\begin{smallmatrix}0&i\\0&-i\end{smallmatrix}\right)$
+of the next factor; its action on $(1,-1)^t$ is multiplication by
+$-i$.
+
+Let $x,y$ be the rows after $n$ factors and $y^{\rm old}$ the second
+row after $n-1$.  The recurrence gives
+$y=d_{n-1}y^{\rm old}-x$.  Thus
+\begin{equation}\label{cert:last-row-cancellation}
+ \overline{x_i}y_j-\overline{y_i}x_j
+ =d_{n-1}\overline{x_i}y_j^{\rm old}
+  -\overline{d_{n-1}}\overline{y_i^{\rm old}}x_j.
+\end{equation}
+In the Hermitian form
+$M\overline{x_i}x_j+iz(\overline{x_i}y_j-\overline{y_i}x_j)$,
+this proves degree at most $2n$ in its last diagonal entry $d$,
+and at most $2n-1$ in its entry $c$ with indices $(1,0)$.
+For the additional cancellation take $n\ge2$, as is the case for
+$K=5$.  By
+\eqref{cert:exterior-leading}, the leading coefficient of
+$\overline{x_1}x_0$ is real, namely $-b$.  The coefficient of
+$z^{2n-2}$ on the right of
+\eqref{cert:last-row-cancellation} for $(i,j)=(1,0)$ is
+$2ib\operatorname{Re}d_{n-1}$, which is purely imaginary.
+Multiplication by $iz$ makes its highest coefficient real as well.
+Consequently $\operatorname{Im}c$ has degree at most $2n-2$.
+At $n=5$ the bounds are therefore
+\begin{equation}\label{cert:exterior-degrees}
+ \deg d\le10,\qquad \deg c\le9,\qquad
+ \deg\operatorname{Im}c\le8.
+\end{equation}
+These are identities for every real $b$, and translating $z$ preserves
+them.  In particular, discarded error bounds above these degrees do
+not represent actual uncertainty in a nonzero coefficient.
+
+For the finite tests put $z=z_1+v$, $v\ge0$, with $z_1=2.704$ or
+$3$, and repeat \eqref{cert:forward-recipe} five times with
+\[
+ M=5H_0,\qquad t_n=H_0n-iB,\qquad d_n=t_n-M,
+ \qquad s=iH_0(z_1+v).
+\]
+Only the constant coefficients of $t_n,d_n$ have error $2$; $s$ is
+exact.  Form $d=h(x_1,y_1,x_1,y_1)$ and
+$c=h(x_1,y_1,x_0,y_0)$ by the same recipe as above.  These are
+$H_0^{11}$ times the unscaled entries.  The three tests, including
+their truncation degrees and interval-ratio minima, are
+\begin{equation}\label{cert:exterior-table}
+\begin{array}{c|l|c|r}
+ z_1&\text{polynomial}&\text{degree}&
+ \min\lfloor\operatorname{Re}X_j/(1+e_j)\rfloor\\\hline
+ 2.704&\operatorname{Re}d&10&288247\\
+ 2.704&43\operatorname{Re}d+
+ 1000(\operatorname{Re}c-1130H_0^{11}(z_1+v))&10&17080\\
+ 3&-\operatorname{Im}c-1130H_0^{11}(z_1+v)&8&31628
+\end{array}
+\end{equation}
+Every actual coefficient is positive, so these polynomials are
+strictly positive for $v\ge0$.  Dividing the second by
+$1000H_0^{11}$ gives $.043d+\operatorname{Re}c-1130z>0$ in
+unscaled notation; the other two give the remaining form inequalities.
+Finally $0<b<.335$ throughout the disk, and the exact comparison
+\begin{equation}\label{cert:exterior-determinant}
+ \prod_{n=0}^4(n^2+.335^2)((n-5)^2+.335^2)<1130^2
+\end{equation}
+implies $|\det T|<1130$.  This completes the finite verification of
+\eqref{free:exterior-forms} and all numerical assertions used in
+Section~\ref{sec:free}.

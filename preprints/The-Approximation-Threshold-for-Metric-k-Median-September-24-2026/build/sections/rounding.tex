@@ -1,0 +1,871 @@
+\section{Tapered iterative rounding}\label{sec:rounding}
+
+This section rounds a sufficiently fine grid solution.  The graph used for
+rounding gives every active copy one unit of possible incoming erasers.
+Its distance-dependent taper makes the opening that accompanies an erasure
+comparable to the client's surviving candidates.  A potential that retains
+some cheap candidates after an opening converts this comparison into an
+application of Theorem~\ref{thm:finite-inequality}.
+
+\begin{theorem}[Rounding a grid solution]\label{thm:grid-rounding}
+For every fixed $\tau>0$ and all sufficiently large constant integers
+$\Delta$, put $g=1/\Delta$.  Suppose a finite rational metric instance has openings
+$\widetilde y_i\in[0,1]\cap g\mathbb Z$ of total mass $M\ge1$.
+For a client $j$, let $V_{j,0}$ be the cost of its nearest unit of this mass.
+There is a constant $C=C(\tau,\Delta)$ and a randomized algorithm of
+expected polynomial running time that outputs a set $O$ of facilities with
+\[
+ |O|\le M+C,
+ \qquad
+ \E d(j,O)\le(1+2/e+\tau)V_{j,0}\quad\text{for every client }j.
+\]
+All parameters and the additive constant are independent of the instance.
+In particular, an initial mass at most $k+c_0$, for a fixed constant
+$c_0$, gives at most $k+c_0+C$ facilities.
+The deterministic implementation of the resulting total-cost guarantee
+is given in Section~\ref{sec:derandomization}.
+\end{theorem}
+
+We prove the theorem using the functions $A,P,B,m$ defined in the preceding
+section.  Thus $B(x)=2P(x)=A'(x)$ and
+$m(x)=A(x)-1-xB(x)$.  We use, in particular,
+\begin{equation}\label{eq:rnd-function-identities}
+ \begin{gathered}
+ 0<B(x)\le1,\qquad B(x)\ge2P(1)>0,\qquad m(x)\ge0,\\
+ (1+x)A(x)+xB(x)-1=3x\qquad(0\le x\le1).
+ \end{gathered}
+\end{equation}
+The identities and derivative bounds used below follow directly from
+the defining integrals.  Constants implicit in $O_\Delta(\cdot)$ may
+depend on $\Delta$, but not on the instance, the round, or the subsequent
+heavy-source threshold.
+
+\subsection{The graph and the physical process}
+
+The source-opening and neighbor-erasure operation follows the framework
+of Byrka et al.~\cite[Definitions~3.2 and~5.1]{ByrkaEtAl2026}.
+We specify the graph, taper, and batches here because their precise
+properties will be used in the sub-two drift analysis.
+
+Represent each opening by active copies of mass $g$, grouped by facility.
+Each group has at most $\Delta$ active copies.  Co-located facilities
+introduced by earlier splitting may remain distinct groups throughout
+the process; they can be merged in the output. A group always means one
+such labeled facility group, rather than an entire zero-distance class.
+An integral group has exactly $\Delta$ copies.
+
+Fix a small time step $\ell>0$ and a large time horizon $\Lambda$.
+There are $T=\lceil\Lambda/\ell\rceil$ rounds.  At the start of round
+$r\in\{0,\ldots,T-1\}$ let $\xi=r\ell$ and $x=e^{-\xi}$.
+For that round choose a fixed rational number $\widehat P$ satisfying
+\begin{equation}\label{eq:rnd-taper-approximation}
+ 0<\widehat P\le\tfrac12,
+ \qquad |\widehat P-P(x)|\le\zeta,
+ \qquad 0<\zeta<\tfrac14.
+\end{equation}
+The finitely many rational approximations may be fixed in advance.
+The analytic value $x$ is used only in the analysis.
+
+For each active target copy $i$, independently of the other targets
+conditional on the current state, choose a set $\mathcal H_i$ of exactly
+$\Delta$ active source copies.  If the colocated active mass is below one,
+choose $N_i>0$ minimally so that
+\begin{equation}\label{eq:rnd-edge-marginals}
+ q_{hi}=\min\left\{1,\frac{(1-d(i,h)/N_i)_+}{\widehat P}\right\},
+ \qquad \sum_h gq_{hi}=1,
+\end{equation}
+and give $\mathcal H_i$ these marginals.  Such a radius exists: the sum
+is continuous and nondecreasing in the positive radius, starts below
+one, and reaches the total active mass at a finite radius.  This last
+observation also handles total active mass exactly one.  The equation
+is piecewise linear in $1/N_i$.  Fixed-sum rounding realizes the
+marginals since their unscaled sum is the integer $\Delta$.
+
+If the colocated active mass is already at least one, set $N_i=0$ and
+choose $\Delta$ colocated copies, including every active copy in the
+target's own group.  Any fixed such choice suffices in this case; denote
+its marginals by $q_{hi}$ as well.  In either case every own-group copy
+belongs to $\mathcal H_i$ with certainty, and
+\begin{equation}\label{eq:rnd-taper-comparison}
+ \begin{aligned}
+  N_i(1-\widehat Pq_{hi})&\le d(i,h)&&\text{if }q_{hi}<1,\\
+  d(i,h)&\le N_i(1-\widehat Pq_{hi})&&\text{if }q_{hi}>0.
+ \end{aligned}
+\end{equation}
+For $N_i>0$ these statements follow from the three cases of the clipped
+linear formula; for $N_i=0$ all sources of positive marginal are
+colocated.  Define the out-set of source $h$ by
+\[
+ E_h=\{i:h\in\mathcal H_i\}.
+\]
+A full update at $h$ erases $E_h$ and opens the facility of $h$.
+
+We use balanced and biased unbalanced batches, with forced openings for
+large updates, as in the approach of Byrka et
+al.~\cite[Algorithms~4--5 and Section~5.4]{ByrkaEtAl2026}.
+The exact batch and chunk rules below are part of our construction.
+To implement many updates while controlling the total opening mass, put
+\[
+ u_h=1-g|E_h|,
+ \qquad
+ \mathcal Z=\{h:u_h=0\},\quad
+ \mathcal P=\{h:u_h>0\},\quad
+ \mathcal N=\{h:u_h<0\}.
+\]
+Every target has $\Delta$ incoming sources, so $\sum_hu_h=0$.  Write
+\begin{equation}\label{eq:rnd-balance-size}
+ A_* =\sum_{h\in\mathcal P}u_h
+     =\sum_{h\in\mathcal N}|u_h|,
+ \qquad
+ |\mathcal P\cup\mathcal N|\le 2A_*/g.
+\end{equation}
+The last inequality uses that each nonzero $u_h$ is a nonzero multiple
+of $g$.  Choose a further small constant $b_*>0$, to be fixed last, and put
+\[
+ B_* =\max\{1,b_*A_*\}.
+\]
+A source is \emph{heavy} if $g|E_h|>B_*$.  Force open the facilities of
+all heavy sources, whether or not any random update is triggered.
+
+All random choices and erasure sets in a round refer to its pre-round
+graph and active copies.  Set $p_*=2\ell g$, and fix a small bias
+$0<\phi\le1$.  Flip an independent fair coin to choose one of the following
+two types of round.
+\begin{enumerate}
+\item In a balanced round, propose each $h\in\mathcal Z$ independently
+with probability $p_*$.  Select a proposed source only if no other
+proposed source has an out-set intersecting its out-set.
+\item In an unbalanced round, select sources of $\mathcal P$
+independently with probability $p_*$, and nonheavy sources of
+$\mathcal N$ independently with probability $p_*(1+\phi)$.
+For each heavy source, partition its out-set into chunks of mass at
+most $B_*+1$ and trigger each chunk independently with probability
+$p_*(1+\phi)$.  A triggered chunk erases just that chunk; its source
+facility is already included among the forced openings.
+\end{enumerate}
+All probabilities are at most one for the parameter choices below.
+Take the union of the selected full out-sets and triggered chunks and
+erase it.  Then reset each forced or selected facility to $\Delta$
+active copies.  Copies removed by either erasure or reset are distinct
+from the regenerated copies.
+
+Two invariants are useful.  First, an integral target group's own
+$\Delta$ copies exhaust each of its incoming sets.  Therefore an
+erasure of an integral group is caused by one of its own sources; that
+source either is selected or is heavy.  The group is reset in either
+case.  Thus integral facilities persist, including when other facilities
+are colocated with them.  Second, every erasure has an associated
+selected or forced opening.  Hence total active mass always stays at
+least one.  The construction of the next round's graph is consequently
+well defined.
+
+\subsection{The opening-count bound}
+
+We first bound the number of facilities independently of connection cost.
+The next lemma controls the total active mass with high probability;
+completion will later turn that mass bound into a facility-count bound.
+
+\begin{lemma}[Constant additive count]\label{lem:rnd-count}
+Fix $g,\phi,\ell,T$ as above, with $\ell$ sufficiently small as a
+function of $\Delta$ and $\phi$.  For every fixed $\eta>0$, one can
+choose $b_*>0$ and a constant $C$ such that the final active mass is at
+most $M+C$ with probability at least $1-\eta$.  The bound holds
+uniformly over all starting states of total mass $M$.
+\end{lemma}
+
+\begin{proof}
+Condition on the entire pre-round state and its realized graph.
+Write $A=A_*$, $B=B_*$, $p=p_*$, and $m_h=g|E_h|$ for this proof.
+If $n$ is the number of active copies, then $\sum_hm_h=n$.
+Each source in the zero class has $m_h=1$, so removing that class gives
+\[
+ \sum_{h\in\mathcal P\cup\mathcal N}m_h
+ =|\mathcal P\cup\mathcal N|.
+\]
+Every heavy source lies in $\mathcal N$ because $B\ge1$.  If $H$ is
+their number, then
+\begin{equation}\label{eq:rnd-heavy-count}
+ H\le\frac{|\mathcal P\cup\mathcal N|}{B}
+ \le\frac{2A}{g\max\{1,b_*A\}}
+ \le\frac{2}{gb_*}.
+\end{equation}
+Thus forced resets add at most a constant mass.  If $A=0$, there are
+no heavy sources and the same conclusions hold directly.
+
+In a balanced round, the selected erasure sets are disjoint and each
+has mass one.  Opening one facility for each selected source adds at
+most one unit per set, so there is no mass increase except the forced
+allowance.
+
+For an unbalanced round index the ordinary selections and heavy
+chunks by actions $e$.  Let $I_e$ be the trigger indicator, $S_e$ its
+erased set, $m_e=g|S_e|$, and $a_e=1$ for an ordinary selection or $0$
+for a chunk.  Resetting facilities adds at most one unit per ordinary
+selection in addition to the forced allowance. More explicitly, the
+change in active mass is at most
+\[
+ H+\sum_e a_e I_e
+   -g\left|\bigcup_{e:I_e=1}S_e\right|.
+\]
+The union is a set of pre-round copy identities. A reset may remove
+additional old copies outside this union, which only decreases the
+change. Counting a selected or forced group more than once likewise
+only enlarges the upper bound. Truncated inclusion--exclusion bounds
+the erased union from below. Consequently the mass increase, apart
+from forcing, is at most
+\begin{equation}\label{eq:rnd-count-statistic}
+ Z_* =\sum_e I_e(a_e-m_e)
+       +\sum_{e<f}g|S_e\cap S_f|I_eI_f.
+\end{equation}
+This remains an upper bound when several selected copies have the
+same facility or when a selected facility was also forced.
+
+Chunking preserves total erasure mass.  There are
+$|\mathcal P\cup\mathcal N|-H$ ordinary actions, and hence
+\begin{equation}\label{eq:rnd-action-total}
+ \sum_e(m_e+a_e)
+ =2|\mathcal P\cup\mathcal N|-H\le4A/g.
+\end{equation}
+The expectation of the linear part of \eqref{eq:rnd-count-statistic}
+is exactly
+\[
+ pA-p(1+\phi)A-p(1+\phi)H\le-p\phi A.
+\]
+The last term pays for the absence of a new opening in a chunk action.
+Each target belongs to at most $\Delta$ action sets, even after
+chunking.  Therefore
+\[
+ \sum_{e<f}g|S_e\cap S_f|
+ \le\frac{\Delta-1}{2}\sum_em_e.
+\]
+Independence of the indicators bounds the overlap expectation by
+$O(p^2\Delta A/g)$.  Since $p=2\ell g$, taking $\ell$ small enough
+relative to $\phi$ and $\Delta$ gives
+\begin{equation}\label{eq:rnd-count-mean}
+ \E Z_*\le-p\phi A/2.
+\end{equation}
+
+Flipping coordinate $I_e$ changes $Z_*$ in absolute value by at most
+$a_e+\Delta m_e$.  The Efron--Stein independent-coordinate variance inequality
+\cite[Section~2.2, Proposition~1]{BBLM2005}, the bound
+$a_e+m_e\le B+2$, and \eqref{eq:rnd-action-total} give
+\begin{equation}\label{eq:rnd-count-variance}
+ \Var Z_*
+ \le O(p\Delta^2)\sum_e(a_e+m_e)^2
+ \le O(p\Delta^2)(B+2)A/g.
+\end{equation}
+If $A>1/b_*$, then $B=b_*A>1$.  Combining
+\eqref{eq:rnd-count-mean} and \eqref{eq:rnd-count-variance} yields
+\begin{equation}\label{eq:rnd-count-failure}
+ \Prob(Z_*>0)
+ \le O\!\left(\frac{\Delta^2b_*}{p\phi^2g}\right).
+\end{equation}
+If instead $A\le1/b_*$, there are at most $2/(gb_*)$ ordinary
+sources in the nonzero classes.  The actual positive mass change is
+then bounded deterministically by this constant plus the forced
+allowance; a deterministic bound on the quadratic statistic is
+unnecessary.
+
+Choose $b_*$ sufficiently small that the union bound for
+\eqref{eq:rnd-count-failure} over the $T$ rounds is at most $\eta$.
+On the complementary event the total increase is at most, for example,
+$4T/(gb_*)$.  This proves the lemma with a constant $C$.
+The proof was conditional on every state and graph, so the same union
+bound applies to the adaptive sequence of rounds.
+\end{proof}
+
+For later use, the mean and variance of $Z_*$ depend only on indicator
+moments through degree four, since $Z_*$ is a quadratic polynomial.
+The probability bounds for balanced selections below need only
+first and second moments of their proposal indicators.  These are
+the moment requirements used in Section~\ref{sec:derandomization}.
+
+\subsection{A persistent backup and final completion}
+
+We next establish a persistent bound on each client's eventual
+connection distance, including trajectories on which none of its assigned
+copies opens. This is the backup-and-completion role in iterative
+rounding~\cite[Section~3.3 and Lemmas~6.3 and~6.5]{ByrkaEtAl2026};
+the following argument proves the bound for our tapered graph and reset
+rule.
+
+Fix a client for the remainder of the analysis.  Let $S_0$ be the
+$\Delta$ copies in its initial nearest unit, chosen using any fixed
+tie-breaking rule.  Write $d_i$ for its distance to copy $i$,
+\[
+ V_0=\sum_{i\in S_0}gd_i,
+ \qquad R=\max_{i\in S_0}d_i.
+\]
+In particular $R\le\Delta V_0$.
+
+\begin{lemma}[Backup and completion]\label{lem:rnd-completion}
+Once a copy of $S_0$ is physically removed, an integral facility within
+distance $5R$ of the client exists and persists to the end.
+At the end of the process one can retain all integral facilities and
+open further facilities, using no more than the total final active
+mass, so that every client is connected within its own distance $5R$.
+\end{lemma}
+
+\begin{proof}
+Consider the round of the first physical removal from $S_0$.  Just
+before that round all of $S_0$ is still active.  For $i,t\in S_0$,
+$d(i,t)\le d_i+d_t\le2R$.  At radius $2R/(1-\widehat P)$, the
+$\Delta$ copies of $S_0$ all have incoming marginal one for target
+$i$.  Minimality of the taper radius gives
+\[
+ N_i\le2R/(1-\widehat P)\le4R.
+\]
+If $R=0$, the zero-radius rule gives the same conclusion directly.
+An erasing source $h$ has $d(i,h)\le N_i$ by
+\eqref{eq:rnd-taper-comparison}, and hence $d_h\le5R$.
+Its facility is either selected or forced open.  A removal by reset
+of $i$'s own group instead opens a facility within $R$.
+The persistence invariant proves the first assertion.
+
+At the end, consider the clients not already served within $5R$ by
+an integral facility.  The first assertion implies that every such
+client still has all its original $S_0$ copies.  Its radius-$R$
+neighborhood of active copies therefore has mass at least one.
+That neighborhood contains no integral group, since such a group
+would itself provide the required connection.
+
+Process these neighborhoods in nondecreasing order of their radii.
+Accept a neighborhood if it is disjoint from all previously accepted
+ones and open any facility in each accepted neighborhood.  These
+disjoint neighborhoods each contain at least one unit of mass and
+contain no integral group.  Their openings, together with the retained
+integral groups, therefore fit within the final active mass.
+If a radius-$R$ neighborhood was skipped, it meets an accepted
+radius-$R'$ neighborhood with $R'\le R$.  Through an intersection
+point, the distance to the accepted neighborhood's chosen facility
+is at most $R+2R'\le3R$.  This proves the asserted $5R$ bound for
+every client, also when some radii are zero.
+\end{proof}
+
+At any intermediate time define $b$ to be the distance from the fixed
+client to its nearest integral facility, capped at $5R$; when no
+integral facility exists use $b=5R$.  By persistence and
+Lemma~\ref{lem:rnd-completion}, the eventual completed solution has
+connection distance at most $b$ at every time on the trajectory.
+The cap need not already be attained by an open facility.  It is a
+valid bound on the eventual connection because completion supplies
+$5R$ on every trajectory.  The quantity $b$ never increases.
+
+\subsection{The potential and its single-action bounds}
+
+For analysis only, track an alive set $S\subseteq S_0$ of original
+copies.  A physically removed copy leaves $S$ permanently, even when
+its facility is reset with regenerated copies.  We also permit the
+additional discards specified below.  Put
+\[
+ y=g|S|,\qquad V=\sum_{i\in S}gd_i.
+\]
+At elapsed time $\xi$, with $x=e^{-\xi}$, define
+\begin{equation}\label{eq:rnd-potential}
+ f=aV+(1-y)b,
+ \qquad
+ a=A(x)+B(x)(y-x)=1+m(x)+B(x)y.
+\end{equation}
+The coefficient $a$ is the value at $y$ of the tangent line to the
+concave function $A$ at $x$; $x$ is a deterministic clock, while $y$
+is the realized alive mass. Its affine dependence on $y$ makes the
+erasure correction quadratic in removed mass and cost, so the graph
+average of the ideal bound below requires only first and second edge
+moments.
+In particular $a\ge1$.  The initial potential is
+\begin{equation}\label{eq:rnd-initial-potential}
+ f_0=A(1)V_0=(1+2/e)V_0.
+\end{equation}
+If $C_j$ denotes the actual connection distance in the completed
+output, the preceding cap property gives
+\begin{equation}\label{eq:rnd-terminal-correction}
+ C_j-f_T\le y_Tb_T-a_TV_T\le5Ry_T.
+\end{equation}
+The potential and every single-action bound below are $O(R)$ uniformly
+over time: $V\le R$, $0\le y\le1$, $b\le5R$, and $a$ is bounded.
+
+We first freeze time and the graph.  Write $B=B(x)$ and
+$b_h=\min\{b,d_h\}$.  For a source $h\notin S$, let
+\[
+ \delta_h=g|E_h\cap S|,
+ \qquad Y_h=\sum_{i\in E_h\cap S}gd_i.
+\]
+If only this full source update affects $S$, its removal changes the
+coefficient to $a-B\delta_h$ and makes the new cap at most $b_h$.
+Its potential change is consequently at most
+\begin{align*}
+ &(a-B\delta_h)(V-Y_h)+(1-y+\delta_h)b_h-f\\
+ &\quad=\delta_hb_h-aY_h-B\delta_h(V-Y_h)
+          +(1-y)(b_h-b)\\
+ &\quad\le\delta_hb_h-aY_h-B\delta_h(V-Y_h).
+\end{align*}
+The same statement holds when $h$ is not alive but its group contains
+alive copies: all those copies belong to $E_h$ by the own-group edges,
+so its reset creates no unaccounted removal.
+
+If an alive source $h\in S$ opens, retain among the physical survivors
+only copies satisfying $ad_i<d_h$.  If their mass and cost are $y',V'$,
+their new coefficient is at most $a$ and their new cap is at most
+$d_h$.  Therefore
+\[
+ f'\le aV'+(1-y')d_h
+ =d_h-\sum_{\substack{i\in S\\h\notin\mathcal H_i}}
+            g(d_h-ad_i)_+.
+\]
+Copies satisfying equality can be discarded without changing this
+bound. Figure~\ref{fig:survivors} separates physical erasure from these
+additional analysis discards. This continuation after an opening
+supplies the subtraction that will enter
+Theorem~\ref{thm:finite-inequality}.
+
+\input{figures/survivors}
+
+The ideal first-order bound, assigning rate $g$ to each full source
+update, is thus
+\begin{equation}\label{eq:rnd-ideal-generator}
+\begin{aligned}
+ \mathcal B={}&
+ \sum_{h\in S}g\left[
+ d_h-\sum_{\substack{i\in S\\h\notin\mathcal H_i}}
+                  g(d_h-ad_i)_+-f\right]\\
+ &+\sum_{h\notin S}g\left[
+ \delta_hb_h-aY_h-B\delta_h(V-Y_h)\right].
+\end{aligned}
+\end{equation}
+At a fixed alive set and cap, the time derivative is
+\begin{equation}\label{eq:rnd-time-derivative}
+ \dot f=-x(y-x)B'(x)V.
+\end{equation}
+Indeed the derivative of $A(x)+B(x)(y-x)$ with respect to $x$ is
+$B'(x)(y-x)$.
+
+\subsection{From the physical batch to the ideal bound}
+
+For the actual analysis update, first account for forced openings by
+removing from $S$ all copies whose groups are forced and updating the
+cap.  Then apply the round's erasures and resets.  If a source that
+was alive after force removals but before these erasures was selected,
+choose one such source $h$ and discard every remaining copy with
+$ad_i\ge d_h$, using the pre-round value of $a$.  This is purely an
+analysis rule and need not be computed by the algorithm.
+
+\begin{lemma}[Conditional batch drift]\label{lem:rnd-batch}
+For every pre-round history and every realized graph, the physical
+round, the above alive-set update, and the time advance satisfy
+\begin{equation}\label{eq:rnd-batch-drift}
+ \E[f_{r+1}-f_r\mid\text{history, graph}]
+ \le\ell(\dot f+\mathcal B)
+       +O_\Delta\bigl((\phi+\ell)\ell R\bigr).
+\end{equation}
+Here $\mathcal B$ is computed from that graph and the original
+pre-round alive set.  The constants and the required upper bound on
+$\ell$ are uniform in $b_*$.
+\end{lemma}
+
+\begin{proof}
+First suppose no group containing an alive copy is forced.  Call an
+action relevant if its ordinary source is in $S$, or its ordinary
+out-set or heavy chunk meets $S$.  There are at most
+$\Delta^2+\Delta$ relevant actions: each of at most $\Delta$ alive
+targets has $\Delta$ incoming sources.  Own-group edges ensure that
+this list also includes every ordinary reset that can affect $S$.
+
+A balanced source has an out-set of exactly $\Delta$ copies.  Every
+one of those copies belongs to at most $\Delta$ source out-sets, so
+the number $c_h$ of potentially conflicting balanced proposals is at
+most $\Delta^2$.  Including the type coin, its selection marginal is
+\[
+ \tfrac12p_*(1-p_*)^{c_h}
+ =\ell g\bigl(1+O_\Delta(\ell)\bigr).
+\]
+An unbalanced ordinary or chunk action has marginal $\ell g$ or
+$(1+\phi)\ell g$.  Any two distinct actions have joint probability
+$O(\ell^2g^2)$; actions of opposite types have joint probability zero.
+These estimates do not assert independence of balanced selections
+after conflict filtering.
+
+If no relevant action occurs, only the cap can improve, so the
+frozen-time potential cannot increase.  If exactly one relevant
+ordinary action occurs, its change is bounded by the appropriate
+single-source expression in \eqref{eq:rnd-ideal-generator}.
+Unrelated selections or forced openings can only lower its cap and
+do not invalidate that upper bound.  The probability of two or more
+relevant actions is $O_\Delta(\ell^2)$, and all possible potentials
+and individual bounds have magnitude $O(R)$.  Replacing isolated-action
+probabilities by marginals and their marginals by $\ell g$ therefore
+costs $O_\Delta((\phi+\ell)\ell R)$.
+
+For a heavy source outside $S$, its forced facility makes the cap at
+most $b_h$ even when only one of its chunks triggers.  Force accounting
+can be done before erasure accounting because no forced group in the
+present case meets $S$; it only improves the cap.  Write
+$\delta_c,Y_c$ for the alive mass and cost removed by chunk $c$ of
+this source, and $\delta=\sum_c\delta_c$, $Y=\sum_cY_c$.  Its summed
+single-chunk bounds satisfy
+\begin{align*}
+ \sum_c[\delta_cb_h-aY_c-B\delta_c(V-Y_c)]
+ &=\delta b_h-aY-B\delta V+B\sum_c\delta_cY_c\\
+ &\le\delta b_h-aY-B\delta(V-Y).
+\end{align*}
+All cross terms omitted in the last step are nonnegative.  Consequently
+the chunk bounds are dominated by the full-source term used in
+$\mathcal B$.
+
+The functions in the potential have uniformly bounded derivatives.
+The chance that a relevant action changes $S$ is $O_\Delta(\ell)$;
+changes of the cap alone do not affect \eqref{eq:rnd-time-derivative}.
+Advancing time thus adds at most
+$\ell\dot f+O_\Delta(\ell^2R)$.  This proves the lemma when no alive
+group is forced.
+
+Now suppose that forcing does remove alive copies.  Let their total
+mass and cost be $\delta\ge g$ and $Y$, and let $b'\le b$ be the
+cap after force accounting.  Every removed copy is in an opened
+facility, so $Y\ge\delta b'$.  At frozen time, the resulting decrease
+is at least
+\begin{align}
+ f-f'
+ &\ge(a-1)Y+B\delta(V-Y)+(1-y)(b-b')\notag\\
+ &\ge BgV+(1-y)(b-b').\label{eq:rnd-force-savings}
+\end{align}
+For the second line, use $a-1=m+By$, $m\ge0$, and
+$y\ge\delta\ge g$.  At least one removed alive copy has distance
+at most $V/g$, so $b'\le V/g$.  With
+\[
+ Q=V+(1-y)b,\qquad D=(1-y)(b-b'),
+\]
+we obtain
+\[
+ \begin{gathered}
+ Q\le(1+1/g)V+D,\qquad BgV+D\ge c_\Delta Q,\\
+ c_\Delta=\min\left\{1,\frac{2P(1)g}{1+1/g}\right\}>0.
+ \end{gathered}
+\]
+Thus forcing supplies a fixed fraction of $Q$ as free savings.
+
+After force accounting, the remaining alive cost is at most $V$ and
+the cap is at most $V/g$.  Any further frozen-time increase has
+magnitude $O_\Delta(V)$, and a change to the alive set still has
+probability $O_\Delta(\ell)$.  If the alive set does not change, the
+cap only improves.  Subsequent actions and time advance therefore
+have expected increase at most $O_\Delta(\ell Q)$.
+
+For comparison with the pre-force ideal expression, we also have
+\begin{equation}\label{eq:rnd-force-generator-size}
+ |\dot f|+|\mathcal B|\le O_\Delta(Q).
+\end{equation}
+For inside sources, $d_h\le V/g$.  If $y<1$, the grid gives
+$1-y\ge g$, so an external cap charge is bounded using $b\le Q/g$.
+If $y=1$, the alive set itself is a full unit; its maximum distance
+is at most $V/g$.  The radius argument from
+Lemma~\ref{lem:rnd-completion} then bounds any source erasing an alive
+copy within $5V/g$ of the client.  Only $O_\Delta(1)$ sources have
+nonzero contributions.  These observations prove
+\eqref{eq:rnd-force-generator-size}.
+
+Choose $\ell$ sufficiently small in terms of these constants and
+$c_\Delta$.  The savings in \eqref{eq:rnd-force-savings} absorb both
+the subsequent expected increase and the possible negative quantity
+$\ell(\dot f+\mathcal B)$.  This proves
+\eqref{eq:rnd-batch-drift} also in the forced case, without an
+additional error term.  If $Q=0$, all the quantities in this
+comparison vanish, so no division by $Q$ is needed.  More explicitly,
+if $V=0$ then $b'=0$, and the force savings remove $(1-y)b$; when
+also $y=1$, relevant source distances and all generator terms are
+zero.  The argument is uniform in the later choice of $b_*$.
+\end{proof}
+
+The order of conditioning in Lemma~\ref{lem:rnd-batch} is essential.
+Whether a group is forced depends on the graph.  We have proved the
+drift comparison for \emph{every} realized graph, in both force cases;
+we will now average that comparison over the original graph law,
+without conditioning the law on a forcing event.
+
+\subsection{Averaging the graph and applying the finite inequality}
+
+The physical batch has now been compared with the ideal generator for
+every realized graph. We average that generator using edge marginals and
+cross-target second moments, then verify the hypotheses of the abstract
+finite comparison inequality. The resulting bound is the cost estimate
+that will be summed over rounds.
+
+\begin{lemma}[Averaged ideal drift]\label{lem:rnd-average}
+Conditional on the pre-round history, the ideal expression satisfies
+\begin{equation}\label{eq:rnd-average-drift}
+ \dot f+\E_{\mathrm{graph}}\mathcal B
+ \le BgV+12\zeta V.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The pre-round quantities $S,y,V,b,x$ are fixed throughout this proof.
+Define
+\begin{equation}\label{eq:rnd-graph-statistics}
+ \begin{aligned}
+ w_i&=\sum_{t\in S}gq_{ti},\\
+ K_{it}&=\sum_{h\notin S}gq_{hi}q_{ht},\\
+ s_i&=\frac{\sum_{h\notin S}gq_{hi}^2}{1-w_i}
+       \quad\text{if }w_i<1,
+       \qquad s_i=0\quad\text{if }w_i=1.
+ \end{aligned}
+\end{equation}
+We have $0\le w_i\le y\le1$ and $0\le s_i\le1$.
+The inequality $2uv\le u^2+v^2$ gives
+\begin{equation}\label{eq:rnd-kernel-bound}
+ K_{it}\le\tfrac12\bigl[s_i(1-w_i)+s_t(1-w_t)\bigr].
+\end{equation}
+No symmetry of the directed marginals $q_{hi}$ is assumed.
+
+To average the positive quadratic erasure term, put
+$X_{hi}=\ind_{\{h\in\mathcal H_i\}}$.  Choices for distinct targets
+are independent.  Expanding the two removed quantities consequently
+gives the exact formula
+\begin{align}
+ \E_{\mathrm{graph}}\sum_{h\notin S}g\delta_hY_h
+ &=\sum_{i,t\in S}g^2K_{it}d_t
+   +\sum_{i\in S}g^2d_i\sum_{h\notin S}gq_{hi}(1-q_{hi})\notag\\
+ &\le\sum_{i,t\in S}g^2K_{it}d_t+gV.
+ \label{eq:rnd-diagonal-correction}
+\end{align}
+Here $\sum_hgq_{hi}=1$ bounds the diagonal correction.
+
+For the cap contribution, the external incoming mass at $i$ is
+$1-w_i=(1-y)+(y-w_i)$.  Split it in these proportions.  On its first
+part use $b_h\le b$, and on its second part use, whenever $q_{hi}>0$,
+\[
+ b_h\le d_h\le d_i+d(i,h)
+       \le d_i+(1-\widehat Pq_{hi})N_i.
+\]
+This yields
+\begin{equation}\label{eq:rnd-backup-average}
+ \sum_{h\notin S}gq_{hi}b_h
+ \le(1-y)b+(y-w_i)\bigl[d_i+(1-\widehat Ps_i)N_i\bigr].
+\end{equation}
+If $w_i=1$, then $y=1$ and both sides are zero, so the convention
+for $s_i$ requires no division in that case.
+
+For completeness, averaging \eqref{eq:rnd-ideal-generator} before
+using the cap bound gives, apart from the additive term $BgV$,
+\begin{align*}
+ &[1-(1+y)a-By]V-y(1-y)b\\
+ &\quad+\sum_{i\in S}g\sum_{h\notin S}gq_{hi}b_h
+       +a\sum_{i\in S}gw_id_i+BV\sum_{i\in S}gw_i
+       +B\sum_{i,t\in S}g^2K_{it}d_t\\
+ &\quad-\sum_{i,t\in S}g^2(1-q_{ti})(d_t-ad_i)_+.
+\end{align*}
+The first term of \eqref{eq:rnd-backup-average}, summed over $i$,
+cancels $-y(1-y)b$.  The coefficient of $V$ after adding
+\eqref{eq:rnd-time-derivative} simplifies using
+\begin{equation}\label{eq:rnd-coefficient-identity}
+ (1+y)a+yB+x(y-x)B'-1=3y+B(y-x)^2.
+\end{equation}
+Indeed \eqref{eq:rnd-function-identities} and its derivative give
+\[
+ (1+x)A+xB-1=3x,
+ \qquad A+(2+x)B+xB'=3.
+\]
+Expanding the left side of \eqref{eq:rnd-coefficient-identity} in
+$y-x$ has these as its constant and linear coefficients, and has
+quadratic coefficient $B$.
+
+It follows that $\dot f+\E_{\mathrm{graph}}\mathcal B-BgV$ is at most
+\begin{equation}\label{eq:rnd-expanded-drift}
+\begin{aligned}
+ &-[3y+B(y-x)^2]V\\
+ &\quad+\sum_{i\in S}g\Bigg\{
+ (y-w_i)\bigl[d_i+(1-\widehat Ps_i)N_i\bigr]+aw_id_i
+       +BVw_i+B\sum_{t\in S}gK_{it}d_t\\
+ &\hspace{43mm}
+       -\sum_{t\in S}g(1-q_{ti})(d_t-ad_i)_+\Bigg\}.
+\end{aligned}
+\end{equation}
+
+If $y=0$, the ideal generator and time derivative are zero.  If
+$y>0$ but $V=0$, then every $d_i$ with $i\in S$ is zero.  For any
+$i\in S$ with $N_i>0$, all alive sources are colocated with $i$, so
+$q_{ti}=1$ for every $t\in S$ and $w_i=y$.  If $N_i=0$, its radius
+term already vanishes.  Every term of
+\eqref{eq:rnd-expanded-drift} is then zero.  Thus the lemma holds
+in these degenerate cases without normalization.
+
+Assume now $V>0$, and set
+\begin{equation}\label{eq:rnd-normalization}
+ \mu=V/y,\qquad
+ D_i=d_i/\mu,\qquad
+ r_i=w_i/y,\qquad
+ R_i=(1-2\zeta)N_i/\mu,\qquad C_i=1-Ps_i.
+\end{equation}
+Give each index $i\in S$ probability $g/y$.  Expectations over these
+indices, written $\E_i$ and $\E_t$, satisfy
+$\E_iD_i=1$ and $r_i=\E_tq_{ti}$.
+For $q=q_{ti}<1$, the taper approximation implies
+\[
+ (1-2\zeta)(1-Pq)\le1-\widehat Pq,
+\]
+because the difference is at least
+$2\zeta(1-Pq)-\zeta q\ge2\zeta(1-q)\ge0$.
+The triangle inequality and \eqref{eq:rnd-taper-comparison} give
+\begin{equation}\label{eq:rnd-normalized-comparison}
+ R_i(1-Pq_{ti})\le D_i+D_t\qquad(q_{ti}<1).
+\end{equation}
+These are precisely the radius hypotheses of
+Theorem~\ref{thm:finite-inequality}.
+
+The error in changing the taper coefficient is controlled without
+any bound on individual normalized radii.  Multiply the first
+inequality in \eqref{eq:rnd-taper-comparison} by
+$(g/y)(1-q_{ti})$, sum over $t\in S$, and use
+$1-\widehat Pq_{ti}\ge1/2$ and $d(i,t)\le d_i+d_t$.  This proves
+\begin{equation}\label{eq:rnd-radius-error-control}
+ (1-r_i)N_i/\mu\le2(D_i+1).
+\end{equation}
+Since
+\[
+ 0\le(1-\widehat Ps_i)-(1-2\zeta)(1-Ps_i)\le3\zeta,
+\]
+the replacement of
+$(1-r_i)(1-\widehat Ps_i)N_i/\mu$ by
+$C_i(1-r_i)R_i$ costs at most $6\zeta(D_i+1)$, whose expectation
+is at most $12\zeta$.
+
+Divide \eqref{eq:rnd-expanded-drift} by $yV=y^2\mu$ and put
+$\Theta=P(y-x)^2/y$.  By \eqref{eq:rnd-kernel-bound}, the normalized
+kernel term is at most
+\[
+ B\E_{i,t}K_{it}D_t
+ \le P\E_i\bigl[s_i(1-yr_i)(1+D_i)\bigr].
+\]
+After the radius replacement, the entire normalized expression is
+therefore at most
+\begin{align*}
+ -3-2\Theta+\E_i\Big[&
+ (1-r_i)(D_i+C_iR_i)+ar_iD_i+2Pyr_i\\
+ &+Ps_i(1-yr_i)(1+D_i)
+ -\E_t(1-q_{ti})(D_t-aD_i)_+\Big]+12\zeta.
+\end{align*}
+Using $a=1+m+2Py$ and $\E_iD_i=1$, this is exactly
+\begin{align*}
+ \E_i\Big[&C_i(1-r_i)R_i
+ +r_i\{mD_i+(2-s_i)Py(D_i+1)\}-C_i(D_i+1)\\
+ &-\E_t(1-q_{ti})(D_t-(1+m+2Py)D_i)_+\Big]
+ -2\Theta+12\zeta.
+\end{align*}
+Theorem~\ref{thm:finite-inequality} bounds the expectation by
+$2\Theta$.  Multiplication by $yV$, with $y\le1$, proves
+\[
+ \dot f+\E_{\mathrm{graph}}\mathcal B
+ \le BgV+12\zeta yV\le BgV+12\zeta V,
+\]
+as claimed.
+\end{proof}
+
+\subsection{Survival, accumulated error, and parameter choices}
+
+\begin{lemma}[Decay of the alive mass]\label{lem:rnd-survival}
+For sufficiently small $\ell$ depending only on $\Delta$, every
+client's analysis process satisfies
+\begin{equation}\label{eq:rnd-survival}
+ \E y_T\le(1-\ell/2)^T\le e^{-\Lambda/2}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Condition on a history, a graph, and a currently alive target.
+If its group is forced, the original target identity is removed
+certainly.  Otherwise its $\Delta$ incoming source copies correspond
+to $\Delta$ distinct possible actions: each ordinary source gives
+its selection action, and each heavy source gives the unique chunk
+containing this target.  The marginal and pair estimates in the
+proof of Lemma~\ref{lem:rnd-batch} give an erasure probability at least
+\[
+ \Delta\ell g\bigl(1-O_\Delta(\ell)\bigr)
+       -O(\Delta^2\ell^2g^2)\ge\ell/2.
+\]
+Here the lower bound is the union bound with pair intersections
+subtracted.  A simultaneous reset does not restore the original
+copy identity, and additional analysis discards only reduce survival.
+The conditional expected surviving mass is thus at most
+$(1-\ell/2)y$.  Iteration, starting from $y_0=1$, and $T\ell\ge\Lambda$
+prove the lemma.
+\end{proof}
+
+We finish the proof of Theorem~\ref{thm:grid-rounding}.
+First run the process without rejecting count failures, and complete
+every output by Lemma~\ref{lem:rnd-completion}.  Average
+Lemma~\ref{lem:rnd-batch} over the graph and use
+Lemma~\ref{lem:rnd-average}.  Since $V\le V_0$, $B\le1$, and
+$R\le\Delta V_0$, summing over $T$ rounds gives
+\[
+ \E f_T\le
+ \left[1+2/e+(\Lambda+1)
+       \{g+12\zeta+C_\Delta\Delta(\phi+\ell)\}\right]V_0
+\]
+for a constant $C_\Delta$, provided $\ell\le1$.
+Equations~\eqref{eq:rnd-terminal-correction} and
+\eqref{eq:rnd-survival} consequently imply the unconditional estimate
+\begin{equation}\label{eq:rnd-total-error}
+ \E C_j\le
+ \left[1+2/e+5\Delta e^{-\Lambda/2}
+       +(\Lambda+1)\{g+12\zeta+C_\Delta\Delta(\phi+\ell)\}\right]V_0.
+\end{equation}
+All these estimates also apply when $V_0=0$: then $R=0$, the completed
+connection cost is zero, and no normalization by $V_0$ is used.
+
+Here is an explicit order of choices that avoids circular dependence.
+It suffices to consider $0<\tau\le1$.
+\begin{enumerate}
+\item Choose a sufficiently large constant integer $\Delta$ and put
+$g=1/\Delta$.  For each such choice take, for example,
+\[
+ \Lambda=\left\lceil2\log(40\Delta/\tau)\right\rceil+1.
+\]
+Then $5\Delta e^{-\Lambda/2}\le\tau/8$.  Taking $\Delta$ sufficiently
+large also makes $(\Lambda+1)g\le\tau/8$, since
+$g\log(1/g)\longrightarrow0$.  Any additional upper bound on $g$
+required by the preparation stage may be imposed at the same time.
+\item With $\Delta,\Lambda$ fixed, choose a small positive rational
+$\zeta$ so that $12(\Lambda+1)\zeta\le\tau/8$.
+Next choose a small positive rational $\phi$, and then a small positive
+rational $\ell$, so that
+\[
+ C_\Delta\Delta(\Lambda+1)(\phi+\ell)\le\tau/8.
+\]
+Require in addition every upper bound on $\ell$ used in the count,
+batch, and survival lemmas, and $p_*(1+\phi)\le1$.
+The batch constants are uniform in the remaining threshold $b_*$,
+so these requirements can be imposed before choosing that threshold.
+This fixes the constant number of rounds $T=\lceil\Lambda/\ell\rceil$.
+\item Put $\alpha=1+2/e$ and choose a fixed
+$0<\eta\le\tau/(4(\alpha+\tau))$.
+Finally choose rational $b_*>0$ as in Lemma~\ref{lem:rnd-count} so
+that the final mass is at most $M+C$ with probability at least
+$1-\eta$.
+\end{enumerate}
+The unconditional cost in \eqref{eq:rnd-total-error} is then at most
+$(\alpha+\tau/2)V_0$ for every client.  Repeat the entire process on
+failure of the final mass test.  The accepted output is the
+unconditional output conditioned on that test, whose success
+probability is at least $1-\eta$.  Since connection costs are
+nonnegative,
+\[
+ \E[C_j\mid\text{mass test succeeds}]
+ \le\frac{\alpha+\tau/2}{1-\eta}V_0
+ \le(\alpha+\tau)V_0.
+\]
+Completion uses at most the final active mass, so an accepted output
+has at most $M+C$ facilities.  This proves the count and cost assertions
+of Theorem~\ref{thm:grid-rounding}.
+
+For fixed accuracy all parameters are instance-independent constants.
+The number of current facilities never exceeds the number in the
+split input, and every group has at most $\Delta$ active copies.
+The graph, its marginals, a fixed-sum rounding, the action sets,
+their intersections, and the greedy completion can therefore be
+computed in polynomial time.  The radius equations and all physical
+probabilities are rational; the approximations in
+\eqref{eq:rnd-taper-approximation} are fixed constants.  Only the
+analysis uses the transcendental functions or alive-set discards.
+The expected number of repetitions is at most $1/(1-\eta)$, giving
+expected polynomial running time.  Section~\ref{sec:derandomization}
+replaces the local random choices by polynomial-size lists and obtains
+a deterministic output with the corresponding total-cost bound.

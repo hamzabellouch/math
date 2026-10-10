@@ -1,0 +1,541 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathpazo}
+\usepackage{courier}
+\usepackage[margin=1.02in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{microtype}
+\usepackage{needspace}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\usepackage[nameinlink,capitalise,noabbrev]{cleveref}
+\newcommand{\doi}[1]{doi: \href{https://doi.org/#1}{\nolinkurl{#1}}}
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\pdfsuppressptexinfo=15
+\pdfglyphtounicode{parenleftbig}{0028 FE01}
+\pdfglyphtounicode{parenrightbig}{0029 FE01}
+\pdfglyphtounicode{braceleftBigg}{007B FE04}
+\pdfglyphtounicode{uniondisplay}{22C3 FE02}
+\pdfglyphtounicode{hatwide}{02C6 FE01}
+\pdfglyphtounicode{tildewide}{02DC FE01}
+\pdfgentounicode=1
+\hypersetup{pdftitle={A Polynomial-Time Algorithm for Three-Machine Unit-Job Scheduling},pdfauthor={OpenAI}}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\emergencystretch}{2em}
+\setlist[enumerate]{itemsep=3pt,topsep=5pt}
+\setlist[itemize]{itemsep=3pt,topsep=5pt}
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\F}{\mathcal F}
+\newcommand{\K}{\mathbf K}
+\newcommand{\Qual}{\mathcal Q}
+\newcommand{\key}{\operatorname{key}}
+\newcommand{\rk}{\lambda}
+\newcommand{\wP}[1]{\widehat P_{#1}}
+\newcommand{\wD}[1]{\widehat D_{#1}}
+\newcommand{\A}{\mathsf A}
+\newcommand{\dotcup}{\mathbin{\dot\cup}}
+\newcommand{\poly}{\operatorname{poly}}
+\newcommand{\YES}{\mathsf{YES}}
+\newcommand{\NO}{\mathsf{NO}}
+\newcommand{\low}{\mathsf{low}}
+\newcommand{\high}{\mathsf{high}}
+\newcommand{\same}{\mathsf{same}}
+\newcommand{\switch}{\mathsf{switch}}
+
+\title{A Polynomial-Time Algorithm for Three-Machine\\
+Unit-Job Scheduling}
+\author{OpenAI}
+\date{September 24, 2026}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+We give a uniform deterministic polynomial-time algorithm for scheduling
+unit-length jobs with arbitrary precedence constraints on three identical
+parallel machines. The algorithm constructs a schedule of minimum makespan
+and decides exactly whether all jobs can finish by a specified deadline.
+The proof reorganizes feasible schedules
+into intervals whose job sets have descriptions of bounded size.
+A dynamic program searches a family containing polynomially many such
+descriptions. Global boundary conditions and simplification of inherited
+information keep the descriptions bounded throughout the decomposition.
+\end{abstract}
+
+\section{Introduction}\label{sec:introduction}
+
+A precedence-constrained schedule must respect two kinds of restrictions:
+jobs related by precedence must run in order, while unrelated jobs compete
+for the available machines. Even when every job takes one unit of time, the
+interaction between these restrictions is subtle. The two-processor case
+was treated by Fujii, Kasami, and Ninomiya
+\citep{FujiiKasamiNinomiya1969,FujiiKasamiNinomiya1971Erratum}, and
+Coffman and Graham gave an optimal list-scheduling algorithm
+\citep{CG1972}. Allowing the number of machines to be part of the input
+yields an NP-complete problem \citep[Theorem~1]{Ullman1975}.
+The fixed-three decision problem appears as OPEN8 in Appendix~A13 of
+Garey and Johnson \citep{GJ1979} and has remained a central complexity
+question in scheduling \citep{NSW2025}.
+
+We consider the following precise decision problem. The input is an
+explicitly listed directed acyclic graph \(G=(V,E)\), with
+\(V=\{1,\ldots,n\}\), and an integer \(T\) satisfying \(1\le T\le n\).
+Every vertex is a nonpreemptive job of processing time one. The question
+is whether there is a function
+\[
+ \tau:V\longrightarrow\{1,\ldots,T\}
+\]
+such that each value is taken at most three times and
+\(\tau(u)<\tau(v)\) for every \((u,v)\in E\).
+There are no release dates, communication delays, eligibility restrictions,
+or additional resources.
+Slot \(t\) means execution during \([t-1,t)\), and the makespan is
+the last completion time. Allowing nonnegative real start times would
+not improve the optimum: fix the machine assignment and within-machine
+order of a feasible schedule. The graph augmented by machine-order arcs
+is acyclic, as witnessed by the original schedule. In a topological order
+of this graph, set each start time to the maximum of zero and its
+predecessors' completion times. Induction gives integer start times,
+and no completion time increases.
+The standard notation for the problem is
+\(P3\mid\mathrm{prec},p_j=1\mid C_{\max}\)
+\citep{GrahamLawlerLenstraRinnooyKan1979}.
+
+\begin{samepage}
+\begin{theorem}\label{thm:main}
+Let an explicitly listed finite directed acyclic graph specify the
+precedence constraints on \(n\ge1\) nonpreemptive unit-length jobs
+on three identical machines. There is a uniform deterministic algorithm
+that constructs a feasible schedule of minimum makespan.
+Given also an integer deadline \(1\le T\le n\), it decides feasibility
+exactly and returns a schedule whenever the answer is affirmative.
+Both tasks can be performed in
+\(O((L+2)^{150020})\) steps on a deterministic multitape Turing machine,
+where \(L\) is the total binary input length.
+\end{theorem}
+\end{samepage}
+
+The theorem resolves the polynomial-time side of this three-machine
+complexity question. Its scope is the explicit model just stated.
+The polynomial supplied by the proof has a very large constant exponent;
+no practical running-time claim is made.
+
+\paragraph{Prior work and the point of departure.}
+Structural restrictions on precedence yield important intermediate
+results. Garey, Johnson, Tarjan, and Yannakakis gave a linear-time
+algorithm on three processors for opposing forests, which are disjoint
+unions of an in-forest and an out-forest
+\citep[Section~4]{GareyJohnsonTarjanYannakakis1983}.
+Dolev and Warmuth obtained a running time
+\(O(n^{h(m-1)+1})\) when the precedence graph has height \(h\), measured
+in arcs, and at most \(m\) processors are available in each slot
+\citep[Theorem~3]{DW1984}. The available number may vary over time.
+This is polynomial when both \(h\) and \(m\) are fixed.
+Their normalized optimal schedules, called zero-adjusted, have a slot
+whose at most \(m-1\) jobs with successors determine the prefix and the
+remaining subproblem, the latter up to isomorphism. When the graph has positive
+height, both recursive pieces have smaller height
+\citep[Theorem~2]{DW1984}.
+
+Nederlof, Swennenhuis, and Węgrzycki developed this structural approach
+into an exact algorithm with running
+time \((1+n/m)^{O(\sqrt{nm})}\) for \(n\) jobs on \(m\) machines, hence
+\(2^{O(\sqrt n\log n)}\) for three machines
+\citep[Theorem~1.1]{NSW2025}.
+Their decomposition at selected slots and memoization of subproblems
+described by source and sink sets already control the number of
+subproblems despite potentially linear recursion depth
+\citep[Sections~5--6]{NSW2025}. Their proper-decomposition
+theorem assumes at most \(m\) sources
+\citep[Definition~1 and Theorem~3.1]{NSW2025}; their full algorithm
+handles arbitrary precedence graphs. The marked intervals below build on
+this decomposition viewpoint. We prove the required separator statements
+and bound the size of each global interval description directly; the
+polynomial bound does not follow by specializing their subexponential bound.
+
+Approximation algorithms also revealed useful recursive structure.
+For fixed machine count and fixed \(\varepsilon>0\), Levey and Rothvoß
+obtained a \((1+\varepsilon)\)-approximation using linear programming
+(LP) hierarchies
+\citep{LeveyRothvoss2016}; Garg improved the running time to
+quasipolynomial \citep{Garg2018}. Li replaced LP conditioning by
+combinatorial guesses and obtained the bound
+\(n^{O((m^4/\varepsilon^3)(\log\log n)^3)}\) \citep{Li2021}.
+Das and Wiese later gave a simpler combinatorial quasipolynomial-time
+approximation scheme \citep{DasWiese2022}.
+These works give a related perspective on the recursive structure of
+nearly optimal schedules. The exact separator and global-description
+statements used here are established separately.
+
+\paragraph{Why a finite search can suffice.}
+After adding isolated jobs, we may assume that every slot contains three
+jobs. If selected slots are removed from a feasible schedule, the remaining
+open gaps can be scheduled independently: reordering the jobs of one gap
+does not change their temporal relation to any exterior job. This suggests
+a recursive search whose subproblems are the sets of jobs in those gaps.
+The obstacle is their number. Naming a gap by its two boundary triples
+does not by itself determine its job set, and repeatedly intersecting
+descriptions inherited from its ancestors can require an unbounded formula.
+
+We prove that every feasible instance has a recursive decomposition in
+which each gap is described \emph{globally}, as a subset of all jobs, by a
+Boolean formula of bounded size. The permitted tests are precedence to or
+from a triple of jobs, membership in that triple, and rank thresholds in
+a fixed linear extension or its reverse. The bound is independent of the
+depth of the decomposition. There are therefore only polynomially many
+sets that the algorithm must consider. Compatible selected triples connect
+smaller accepted gap sets, and their concatenation gives the schedule.
+
+The structural proof chooses lexicographically minimal schedules only as
+existence witnesses; the algorithm enumerates the descriptions instead of
+computing those witnesses. Fix a priority order extending precedence,
+and call its current initial segment low and the remaining jobs high.
+A selected slot separates this cutoff when every earlier high job is a
+precedence predecessor of a job in that slot, and every later low job is
+a precedence successor of one. In a normalized interval, we promote
+jobs one at a time from high to low and move a separator forward. Each pair
+of successive selected slots separates one common cutoff: each low job
+in the intervening gap has a predecessor in its left slot, and each high
+job has a successor in its right slot.
+
+The two sides of a center slot are treated by the same construction:
+for one side we reverse both time and precedence. To describe a gap
+without remembering all its ancestors, we maintain a short list of sets
+closed under taking successors in the current direction. A boundary slot limits the number of new list entries that can
+survive. A global boundary condition excludes distant jobs, while an
+exchange condition keeps that control valid after later reorderings.
+At a change of direction, a paired form of the inherited entries lets us
+replace their history by a bounded formula. The distinction between
+agreement inside a known interval and a description valid on all jobs is
+what makes this last step necessary.
+
+\paragraph{Organization.}
+\Cref{sec:preliminaries,sec:algorithm} specify a finite description family
+and the uniform algorithm. \Cref{sec:separators} supplies common cutoffs,
+and \Cref{sec:construction} uses them to form smaller child intervals.
+\Cref{sec:lists} bounds inherited predicate information;
+\Cref{sec:boundary} proves the global boundary invariants.
+\Cref{sec:descriptions} describes whole intervals and marked
+splits by bounded formulas, completing the hierarchy proof.
+\Cref{sec:complexity} gives the explicit running-time bound.
+
+\section{Full schedules, frames, and descriptions}\label{sec:preliminaries}
+
+We write \(x\prec y\) if there is a directed path of positive length
+from \(x\) to \(y\). Transitive reachability can be computed in polynomial
+time. All restrictions of the precedence order below mean restrictions of
+this transitive order, including when a path in the original graph uses
+vertices outside the restricted set.
+
+\subsection{Padding and interval reorderings}
+
+If \(n>3T\), reject. Otherwise add \(3T-n\) isolated jobs and let \(J\)
+be the resulting set, with \(N=|J|=3T\).
+A \emph{full schedule} of a set \(W\subseteq J\) is an ordered sequence
+of antichain triples partitioning \(W\), respecting \(\prec\).
+Its length is necessarily \(|W|/3\). The empty set has the empty full
+schedule.
+
+\begin{lemma}\label{lem:padding}
+The original deadline is feasible if and only if \(J\) has a full schedule.
+The padded instance has polynomial size in the stated input encoding.
+\end{lemma}
+\begin{proof}
+A schedule of the original jobs leaves exactly \(3T-n\) vacant positions
+among the three machines and \(T\) slots. Fill them with the isolated jobs.
+Conversely, delete the isolated jobs from a full schedule.
+Since \(T\le n\) and the vertices are explicitly listed, \(N=3T\le3n\)
+is polynomially bounded.
+\end{proof}
+
+A schedule's slots will also denote their job triples. An \emph{open
+interval} \((a,b)\) consists of all slots strictly between two boundary
+slots; we use the same symbol \(W\) for that interval's job set.
+Virtual boundaries before the first and after the last slot are allowed.
+
+\begin{lemma}\label{lem:reorder}
+Replacing the schedule inside an open interval by any full schedule of
+its job set preserves feasibility of the complete schedule.
+\end{lemma}
+\begin{proof}
+All exterior jobs are either before the entire interval or after it.
+Their order relative to every interior job is unchanged. Interior
+precedences hold by the assumed feasibility of the replacement.
+\end{proof}
+
+\subsection{The two frames}
+
+Fix a linear extension of the order on \(J\), with rank
+\(\rk:J\to\{1,\ldots,N\}\). A deterministic choice is obtained by
+successively removing a minimal job, breaking ties by its identifier.
+We also use the reversed order, reversed time, and reversed linear
+extension. These are our two \emph{frames}. The two ranks of a job sum
+to \(N+1\). Unless a frame is specified otherwise, all time comparisons,
+precedence relations, and ranks in an argument belong to its working frame.
+
+For an actual slot \(a\), identified with its job triple, define global cones
+\[
+ D_a=\{x\in J:\exists y\in a,\ y\prec x\},
+ \qquad
+ P_a=\{x\in J:\exists y\in a,\ x\prec y\},
+ \qquad
+ \wD a=D_a\cup a,\quad \wP a=P_a\cup a .
+\]
+At the left sentinel take \(D_a=\wD a=J\) and
+\(P_a=\wP a=\varnothing\). At the right sentinel use the opposite
+convention. Reversal exchanges \(D\) and \(P\), and exchanges their
+weak versions. In a fixed frame the \(D\)-cones and weak \(D\)-cones are
+upward closed, whereas the \(P\)-cones and weak \(P\)-cones are downward
+closed.
+
+Cone membership always concerns the whole poset \(J\), even when a formula
+is evaluated on an interval. A job that is temporally earlier than a block
+need not be a predecessor of that block.
+
+\subsection{A fixed finite family}
+
+Let \(\F\) be the family of subsets of \(J\) described by Boolean formulas
+with at most \(K=10000\) leaves. Leaves are the following atomic tests or
+their negations:
+\begin{itemize}
+ \item true and false;
+ \item rank thresholds \(\rk\le k\) and \(\rk\ge k\), with
+ \(0\le k\le N+1\), in either frame;
+ \item membership in a triple of jobs, or in any of its four cones
+ \(P,D,\widehat P,\widehat D\), in either frame.
+\end{itemize}
+Internal nodes are binary conjunctions and disjunctions. Negating a formula
+does not increase its number of leaves: apply De Morgan's laws and push
+negations to the leaves. Sentinel tests are constants.
+We distinguish a \emph{global description} \(W=F\), with \(F\in\F\),
+from a \emph{relative description} \(L=W\cap F\).
+
+\begin{lemma}\label{lem:family}
+The family \(\F\) can be generated deterministically in polynomial time
+and represented by \(N\)-bit vectors.
+\end{lemma}
+\begin{proof}
+There are \(O(N^3)\) atomic tests. The number of binary tree shapes and
+connective assignments with at most \(K\) leaves is a constant depending
+only on \(K\). Labelling the leaves therefore gives \(O(N^{3K})\)
+formulas, with a constant implicit factor. Compute their truth sets after
+precomputing reachability, then deduplicate by comparing the bit vectors
+pairwise. This is a deterministic finite procedure with polynomial cost.
+\end{proof}
+
+\section{The algorithm and its structural certificate}\label{sec:algorithm}
+
+The algorithm accepts or rejects each \(W\in\F\), in increasing order
+of cardinality. Write \(\A(W)\) for its acceptance value, and regard
+\(\A(U)\) as false when \(U\notin\F\).
+Set \(\A(\varnothing)\) to true, and reject sets whose sizes are not
+divisible by three.
+
+For each remaining nonempty \(W\), form states
+\[
+ (L,Z,R),\qquad W=L\dotcup Z\dotcup R,
+\]
+where \(Z\) is an antichain triple and \(L=W\cap F\) for some \(F\in\F\).
+Keep a state only if the displayed order of its three parts is
+\emph{compatible}: no job in a later part precedes a job in an earlier
+part. This test uses the transitive order on \(J\).
+Declare the state initial when \(\A(L)\) is true and final when
+\(\A(R)\) is true. Add an edge
+\[
+ (L,Z,R)\longrightarrow(L',Z',R')
+\]
+exactly when
+\begin{equation}
+ L\cup Z\subseteq L',
+ \qquad
+ \A\bigl(L'\setminus(L\cup Z)\bigr)=\mathrm{true}.
+ \label{eq:transition}
+\end{equation}
+All acceptance values consulted concern smaller sets.
+Set \(\A(W)\) to true if an initial state reaches a final state,
+allowing a path consisting of a single state.
+Return \(\YES\) precisely when \(\A(J)\) is true.
+
+\begin{proposition}\label{prop:algorithm}
+This is a uniform deterministic polynomial-time algorithm. Every set it
+accepts has a full schedule, which the algorithm can explicitly return.
+With \(K=10000\), its deadline decision and schedule construction take
+\(O((L+2)^{150020})\) deterministic multitape steps.
+\end{proposition}
+\begin{proof}
+For soundness, consider a path with triples \(Z_1,\ldots,Z_k\) and
+left sets \(L_1,\ldots,L_k\). Put
+\[
+ A_0=L_1,\qquad
+ A_i=L_{i+1}\setminus(L_i\cup Z_i)\ (1\le i<k),\qquad
+ A_k=R_k.
+\]
+The inclusions in \eqref{eq:transition} give the ordered disjoint partition
+\begin{equation}
+ W=A_0\dotcup Z_1\dotcup A_1\dotcup\cdots
+       \dotcup Z_k\dotcup A_k.
+ \label{eq:partition}
+\end{equation}
+Every \(A_i\) is smaller than \(W\) and was already accepted. By induction
+it has a full schedule. Every two distinct pieces in \eqref{eq:partition}
+are separated by a selected state, with the earlier piece in its left
+part or triple and the later piece in its triple or right part.
+Compatibility of that state excludes a backward precedence between
+the pieces. Concatenating their schedules with the selected triples is
+therefore a full schedule of \(W\).
+
+To produce that schedule, record a predecessor whenever a state is
+first reached, with initial states distinguished as roots. Trace back
+from a reached final state and use the partition \eqref{eq:partition}.
+Along every transition \(|L|\) increases by at least three, so an
+accepting path has at most \(N/3\) triples. Retrieve the already stored
+schedules of its smaller gap sets and concatenate them with those
+triples. Store this one explicit schedule for \(W\), avoiding any
+repeated recursive expansion.
+
+There are only polynomially many formula instances, sets, states,
+and state pairs because the leaf allowance $K$ is fixed. Sequential scans
+of their bit-vector records therefore give a uniform polynomial-time
+implementation. \Cref{sec:complexity} gives the explicit multitape
+accounting, including the scans and copying needed for reconstruction,
+and proves the stated exponent.
+\end{proof}
+
+The completeness certificate uses only intervals, their marked triples,
+and descriptions; it imposes no bound on the number of levels.
+
+\Needspace{3\baselineskip}
+\begin{definition}\label{def:hierarchy}
+A \emph{bounded-description hierarchy} for a feasible \(J\) has the whole
+schedule as its root interval. At a nonempty node \(W\), one may first
+replace its schedule by a full schedule of the same job set. One then
+marks at least one actual slot; the nonempty open gaps between successive
+marks and the two boundaries become its children. Different children may
+be developed with separate copies of their witnessing exterior schedules.
+The following descriptions are required:
+\begin{enumerate}[label=(\roman*)]
+ \item every node job set belongs to \(\F\);
+ \item for every marked triple, its earlier jobs within the node have a
+ relative description \(W\cap F\), with \(F\in\F\), in original time.
+\end{enumerate}
+\end{definition}
+
+\begin{lemma}\label{lem:hierarchy-dp}
+If a feasible \(J\) has a bounded-description hierarchy, the algorithm
+accepts \(J\).
+\end{lemma}
+\begin{proof}
+Induct on node size. Its marks give compatible states in chronological
+order by property (ii). Their end gaps and transition gaps are empty
+or are its children, belong to \(\F\), and are strictly smaller because
+there is an actual mark. They have already been accepted by induction.
+The states consequently give an initial-to-final path.
+The root belongs to \(\F\) because its predicate is true.
+\end{proof}
+
+We prove the following structural assertion in
+\Cref{sec:separators,sec:construction,sec:lists,sec:boundary,sec:descriptions}.
+The considerably larger allowance \(K=10000\) avoids dependence on tight
+constant bookkeeping.
+
+\begin{theorem}\label{thm:structure}
+Every feasible full three-machine schedule has a bounded-description
+hierarchy. In fact, the global node predicates and relative split
+predicates needed in the hierarchy have fewer than \(500\) leaves.
+\end{theorem}
+
+\begin{proof}[Proof of \Cref{thm:main}, assuming \Cref{thm:structure}]
+Apply \Cref{lem:padding,prop:algorithm,lem:hierarchy-dp,thm:structure}.
+The algorithm is sound on every enumerated set and complete at \(J\).
+For makespan minimization, test all deadlines \(1,\ldots,n\) and take
+the smallest feasible one. A topological ordering gives a feasible
+schedule of length at most \(n\), so this search succeeds.
+Return the stored full schedule for its padded instance and delete the
+isolated padding jobs. Assign the at most three remaining jobs in each
+slot to distinct machines. The schedule has optimum makespan by the
+choice of deadline. The bound in \Cref{prop:algorithm} already allows
+all these deadline trials.
+\end{proof}
+
+\input{separators}
+\input{construction}
+\input{lists}
+\input{boundary}
+\input{descriptions}
+\section{Running time in the explicit input model}\label{sec:complexity}
+
+The preceding structural proof establishes completeness of the finite
+search. We now give the detailed deterministic multitape accounting
+promised in \Cref{prop:algorithm}. Its purpose is to make the
+polynomial-time assertion uniform; the structural argument does not
+require efficient normalization of a schedule or a small recursion depth.
+
+\begin{proof}[Running-time bound in \Cref{prop:algorithm}]
+First specify a conservative implementation using sequential scans.
+Write \(B=C_KN^{3K}\) for an upper bound on the number of enumerated
+formulas, where \(C_K\) depends only on the fixed \(K\).
+There are at most \(B\) distinct sets and at most \(S=BN^3\)
+candidate states for each \(W\).
+Store their bit vectors, reachability marks, and predecessor record
+numbers on work tapes. Each state record uses \(O_K(N)\) bits:
+its indices require only \(O_K(\log N)\) bits.
+Store an explicit full schedule with each previously accepted set.
+This table uses \(O_K(BN^2)\) bits, since a schedule lists at most
+\(N\) job identifiers and their slots.
+
+A complete scan to fetch or update a state record costs
+\(O_K(SN)=O_K(BN^4)\) steps. A lookup in the acceptance table by
+comparing all bit vectors costs \(O_K(BN^2)\) steps.
+Even checking all required precedence relations by repeated scans of
+the \(N\)-by-\(N\) reachability table costs at most \(O(N^4)\).
+Thus one ordered state-pair test and reachability update costs
+\(O_K(BN^4)\) steps, without constant-time random access.
+Starting from the initial states, make at most \(S\) passes over all
+ordered pairs, marking a target when its source is marked and
+\eqref{eq:transition} holds. These passes find every reachable state.
+For all sets together their cost is at most
+\[
+ O_K\bigl(BS^3BN^4\bigr)
+ =O_K(B^5N^{13})
+ =O_K(N^{15K+13}).
+\]
+Generating, evaluating, and deduplicating formulas by scans costs at
+most \(O_K(B^2N^4)\); reachability preprocessing, state construction,
+and table initialization also fit within the displayed bound.
+The subscript \(K\) denotes a constant fixed independently of the input.
+Since \(N\le3n\) and the vertices are explicitly listed, the looser
+bound \(O((L+2)^{150020})\) covers input processing and even all
+\(n\) deadline trials needed for optimization.
+\end{proof}
+
+\begin{remark}\label{rem:compact}
+For the deadline feasibility decision, the same preprocessing can handle
+an encoding that specifies an enormous number of isolated vertices only
+through a binary value of \(n\).
+After checking \(n\le3T\), let \(d\) be the number of vertices appearing
+in edges. If \(T\ge d\), accept: schedule those \(d\) vertices sequentially
+in topological order and fill free positions with the isolated vertices.
+Otherwise \(N=3T<3d\le6|E|\), so expansion is polynomial. This extra
+branch is not needed for the explicit encoding in \Cref{thm:main}.
+\end{remark}
+
+\input{conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

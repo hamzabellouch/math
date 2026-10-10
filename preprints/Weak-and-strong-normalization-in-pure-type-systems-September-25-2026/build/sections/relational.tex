@@ -1,0 +1,1473 @@
+\section{Relational coding of the diagonal argument}
+\label{rel-section}
+
+We continue with the fixed labelled wrappers, their data cancellation law
+(Lemma~\ref{lem:enc-data-cancellation}), and their predicate evaluation laws
+\eqref{chan-predicate-evaluation} and \eqref{chan-x-evaluation}.
+In particular, for either of the
+predicate spaces under consideration,
+\[
+ \operatorname{pred}(y.\Phi)@w
+       \ \leftrightarrow\ \Phi[\operatorname{Round}w/y].
+\]
+Until a specialization is explicitly made, \(A:s\) and \(m:M(A)\) are
+open data parameters.  Write \(L=L(A)\).  The variables \(y,z,w,a\)
+range over \(L\), \(P,P'\) over \(\mathsf P_L\), \(x,x'\) over \(X\),
+and \(i,i'\) over \(\mathsf P_X\).  The spaces \(V,X,\mathsf P_X\)
+are independent of \(A,m\).  All displayed quantifiers use the fixed
+direct-vertex annotations: \(j\) for \(L,X\) and \(h\) for
+\(\mathsf P_L,\mathsf P_X\).  The other parameters are parameters of
+term builders, not additional logical quantifiers.
+
+The operations \(\mathsf{pl}\), \(\mathsf{All}\), \(\mathsf{Ex}\),
+\(\mathsf{Gd}\), \(\operatorname{to}\), and
+\(\operatorname{back}\) have the typed expansions already constructed.
+For clarity, when a proof below says that specified proofs yield a
+formula by \(\mathsf{pl}\), that formula is its target.  Quantifiers
+are treated as propositional atoms until explicitly introduced or
+instantiated.  An existential is eliminated only into the displayed
+target, which is independent of its locally opened witnesses.
+
+Our goal is a proof of the terminal formula $F_b$ in the ambient labelled
+context. First we construct relations and probes for open parameters
+$A,m$. Next we choose $A_0,m_0$ and prove admissibility. At that
+specialization, three tagged copies turn the query formulas into class
+and pairing laws. Section~\ref{rel-diagonal} then uses these laws to
+construct the terminal proof.
+
+\subsection{Generic relations and probes}
+
+\begin{definition}[Admissible queries and observational equivalence]
+\label{rel-admissible}
+Define
+\[
+\begin{aligned}
+ P\approx P'&=\forall y.\,(P@y\leftrightarrow P'@y),\\
+ i\approx i'&=\forall x.\,(i@x\leftrightarrow i'@x),\\
+ \operatorname{Adm}
+   &=\neg D(m)\land
+       \bigwedge_{t\ {\rm structural}}\forall P,P'.\,
+       \bigl(P\approx P'\Rightarrow
+          (\operatorname{qry}_t(m,P)\leftrightarrow
+           \operatorname{qry}_t(m,P'))\bigr),\\
+ \operatorname{Good}(P)
+   &=\bigl(\forall y.\,(P@y\leftrightarrow
+                     P@\operatorname{Round}y)\bigr)
+           \land\operatorname{qry}_G(m,P),\\
+ y\sim z&=\forall P.\,
+       \bigl(\operatorname{Good}(P)\Rightarrow
+                      (P@y\leftrightarrow P@z)\bigr).
+\end{aligned}
+\]
+The finite Boolean operations have fixed bracketing.  From
+\(ad:\operatorname{Adm}\) obtain \(d_m:\neg D(m)\) by projection.
+For each structural \(t\), projection followed by two instantiations
+and application defines
+\[
+ \operatorname{qr}_t(e):
+ \operatorname{qry}_t(m,P)\leftrightarrow
+ \operatorname{qry}_t(m,P')
+ \qquad(e:P\approx P').
+\]
+\end{definition}
+
+\begin{lemma}[Equivalence and rounding]
+\label{rel-equivalence}
+The relation \(\sim\) has reflexivity, symmetry, and transitivity
+builders.  There is a builder
+\(\operatorname{RoundRel}(y):y\sim\operatorname{Round}y\).
+For \(e:a\sim a'\) and \(f:c\sim c'\) there is a builder
+\[
+ \operatorname{cong}(e,f):
+       (a\sim c)\leftrightarrow(a'\sim c').
+\]
+These builders require no admissibility assumption.
+\end{lemma}
+\begin{proof}
+Reflexivity is
+\(\Lambda P.\lambda^*h.\mathsf{pl}_{P@y\leftrightarrow P@y}()\).
+For symmetry, under \(e:y\sim z\), introduce \(P,h\), instantiate
+\(e[P]\cdot h\), and apply \(\mathsf{pl}\) to reverse its
+biconditional.  For transitivity, under
+\(e:y\sim z\) and \(f:z\sim w\), introduce \(P,h\) and apply
+\(\mathsf{pl}_{P@y\leftrightarrow P@w}\) to
+\(e[P]\cdot h,f[P]\cdot h\).
+For rounding introduce \(P,h\), project
+\(\forall w.(P@w\leftrightarrow P@\operatorname{Round}w)\)
+from \(h:\operatorname{Good}(P)\), and instantiate it at \(y\).
+Write these builders as \(\operatorname{refl}\),
+\(\operatorname{sym}\), and \(\operatorname{trans}\).
+The two components of the last biconditional are
+\[
+\begin{aligned}
+ &\lambda^*u.\operatorname{trans}
+       (\operatorname{sym}(e),\operatorname{trans}(u,f)),\\
+ &\lambda^*u.\operatorname{trans}
+       (e,\operatorname{trans}(u,\operatorname{sym}(f))).
+\end{aligned}
+\]
+In the first line \(u:a\sim c\), and in the second
+\(u:a'\sim c'\), so the endpoints are respectively
+\(a'\sim c'\) and \(a\sim c\).
+\end{proof}
+
+\begin{definition}[Class, union, and pairing predicates]
+\label{rel-pair-definition}
+Put
+\[
+\begin{aligned}
+ c_y&=\operatorname{pred}(w.w\sim y),\\
+ u_{yz}&=\operatorname{pred}(w.(w\sim y)\lor(w\sim z)),\\
+ \operatorname{Is}_t(y)&=\operatorname{qry}_{C_t}(m,c_y)
+                         &&(t=0,\ell,r),\\
+ T_t(y,z)&=\operatorname{Is}_0(y)\land
+             \operatorname{Is}_t(z)\land
+             \operatorname{qry}_{E_t}(m,u_{yz})
+                         &&(t=\ell,r),\\
+ \operatorname{form}(P,a,z)
+       &=\bigl(\exists y.\,(T_\ell(y,z)\land P@y)\bigr)
+                         \lor T_r(a,z),\\
+ \operatorname{Pair}(P,a)&=
+             \operatorname{pred}(z.\operatorname{form}(P,a,z)).
+\end{aligned}
+\]
+These are data definitions, independent of any proof of
+\(\operatorname{Adm}\).
+\end{definition}
+
+\begin{lemma}[Congruence of the relational predicates]
+\label{rel-pair-congruence}
+There are unrounded evaluation proofs
+\[
+ c_y@w\leftrightarrow(w\sim y),\qquad
+ u_{yz}@w\leftrightarrow((w\sim y)\lor(w\sim z)).
+\]
+Equivalent parameters give \(c_y\approx c_{y'}\) and
+\(u_{yz}\approx u_{y'z'}\).  Under \(ad:\operatorname{Adm}\),
+the predicates \(\operatorname{Is}_t,T_t\) respect \(\sim\).
+Moreover, still under \(ad\), and under \(P\approx P'\),
+\(a\sim a'\), and \(z\sim z'\)
+there are proofs of
+\[
+ \operatorname{form}(P,a,z)\leftrightarrow
+       \operatorname{form}(P',a',z'),
+\]
+and, under the first two of these assumptions, of
+\(\operatorname{Pair}(P,a)\approx\operatorname{Pair}(P',a')\).
+In particular, under \(ad\) there is
+\[
+ \operatorname{pv}(P,a,z):
+  \operatorname{Pair}(P,a)@z
+       \leftrightarrow\operatorname{form}(P,a,z).
+\]
+\end{lemma}
+\begin{proof}
+Predicate evaluation first gives
+\[
+ c_y@w\leftrightarrow(\operatorname{Round}w\sim y).
+\]
+Apply relation congruence with
+\(\operatorname{RoundRel}(w)\) and \(\operatorname{refl}(y)\);
+propositional chaining gives the first displayed evaluation.
+For the union do this separately for \(y\) and \(z\), then chain
+their disjunctions.  For \(e:y\sim y'\), congruence with
+\(\operatorname{refl}(w),e\), together with the two class
+evaluations, gives \(c_y@w\leftrightarrow c_{y'}@w\).
+Introduce \(w\) to obtain the class comparison.  For the union
+use the two parameter congruences inside the disjunction before
+introducing \(w\).
+
+Apply \(\operatorname{qr}_{C_t}\) to the class comparison to
+obtain the \(\operatorname{Is}_t\) comparison.  For \(T_t\),
+combine the two resulting \(\operatorname{Is}\) comparisons and
+\(\operatorname{qr}_{E_t}\) applied to the union comparison.
+For \(\operatorname{form}\), fix \(y\).  The \(T_\ell\)
+comparison with its first argument unchanged, together with
+\((P\approx P')[y]\), gives
+\[
+ (T_\ell(y,z)\land P@y)\leftrightarrow
+           (T_\ell(y,z')\land P'@y).
+\]
+Apply \(\mathsf{Ex}_y\), then combine its result with the
+\(T_r(a,z)\leftrightarrow T_r(a',z')\) comparison by
+\(\mathsf{pl}\).  Predicate evaluation for \(\operatorname{Pair}\)
+has right side
+\(\operatorname{form}(P,a,\operatorname{Round}z)\).
+The just-proved form congruence, with \(P,a\) unchanged and
+\(\operatorname{RoundRel}(z)\), gives \(\operatorname{pv}\).
+Finally fix \(z\), combine both \(\operatorname{pv}\) proofs
+with form congruence at unchanged \(z\), and introduce \(z\).
+\end{proof}
+
+\begin{definition}[Lifts and uniform probes]
+\label{rel-lifts}
+Define data, still with open \(A,m\), by
+\[
+\begin{aligned}
+ \operatorname{Part}(v)&=\operatorname{pred}(y.v\diamond_m y),\\
+ \operatorname{sb}(v,m,a)&=\operatorname{qry}_R
+                    (m,\operatorname{Pair}(\operatorname{Part}(v),a)),\\
+ \operatorname{lift}_m(a)&=\operatorname{mk}_X(v.\operatorname{sb}(v,m,a)).
+\end{aligned}
+\]
+For \(i:\mathsf P_X\), define \(z_i:V\) by the following data
+lambda.  At \(z:Z\), pack along the even path \(g\to J\) the
+data function
+\[
+ \lambda^{\mathsf d,\mathsf d}w:
+             \operatorname{Single}(z^\downarrow).
+ \operatorname{send}_n
+    \bigl(\operatorname{Access}
+          (w;o,y.i@\operatorname{lift}_o(y))\bigr),
+\]
+where all channel types and the lift in its body use
+\(A=z^\downarrow\).  This defines the body of
+\(\lambda^{\mathsf d,\mathsf d}z:Z.\,\cdots\).
+The variable \(o\) is the data parameter supplied by
+\(\operatorname{Access}\).  Thus \(z_i\) has no free \(A,m\).
+Put
+\[
+\begin{aligned}
+ \operatorname{le}(i,x)&=[x z_i],\\
+ x\simeq x'&=\forall i.\,(\operatorname{le}(i,x)\leftrightarrow \operatorname{le}(i,x')),\\
+ \operatorname{Valid}(x)&=\forall i,i'.\,
+       \bigl(i\approx i'\Rightarrow
+                    (\operatorname{le}(i,x)\leftrightarrow \operatorname{le}(i',x))\bigr),\\
+ \operatorname{Ext}(i)&=\forall x,x'.\,
+       \bigl(x\simeq x'\Rightarrow(i@x\leftrightarrow i@x')\bigr),\\
+ \operatorname{Resp}(v)&=\forall y,z.\,
+       \bigl(y\sim z\Rightarrow
+                    (v\diamond_m y\leftrightarrow v\diamond_m z)\bigr).
+\end{aligned}
+\]
+\end{definition}
+
+\begin{lemma}[Evaluation, validity, and response]
+\label{rel-lift-properties}
+The relation \(\simeq\) is an equivalence relation, with the
+congruence builder of Lemma~\ref{rel-equivalence}, and
+\[
+ \operatorname{RoundRel}_X(x):x\simeq\operatorname{Round}_Xx.
+\]
+Data cancellation supplies
+\[
+ \operatorname{LP}(i,a):
+       \operatorname{le}(i,\operatorname{lift}_m a)\leftrightarrow \operatorname{sb}(z_i,m,a).
+\]
+Under \(ad:\operatorname{Adm}\) there are builders
+\begin{align}
+ z_i\diamond_m y&\leftrightarrow
+             i@\operatorname{lift}_m(\operatorname{Round}y),
+                  \label{rel-probe-rounded}\\
+ \operatorname{LC}(e)&:
+       \operatorname{lift}_m(a)\simeq\operatorname{lift}_m(a')
+                    \qquad(e:a\sim a'), \label{rel-lift-congruence}\\
+ &\operatorname{Valid}(\operatorname{lift}_m a). \label{rel-lift-valid}
+\end{align}
+If also \(ex:\operatorname{Ext}(i)\), then
+\begin{equation}
+ z_i\diamond_m y\leftrightarrow i@\operatorname{lift}_m y
+ \quad\hbox{and}\quad \operatorname{Resp}(z_i).
+ \label{rel-probe-exact}
+\end{equation}
+If \(h:\operatorname{Resp}(v)\), then
+\begin{equation}
+ \operatorname{Part}(v)@y\leftrightarrow v\diamond_m y.
+ \label{rel-part-exact}
+\end{equation}
+\end{lemma}
+\begin{proof}
+For \(\simeq\), introduce \(i\) and use propositional
+reflexivity, symmetry, or transitivity of the instantiated
+biconditionals.  Its congruence builder is the pair displayed
+in Lemma~\ref{rel-equivalence}, with the relation replaced by
+\(\simeq\).  Primitive \(X\)-evaluation is preserved by
+\(\operatorname{Round}_X\).  Apply this preservation at \(z_i\)
+and introduce \(i\) to obtain \(\operatorname{RoundRel}_X\).
+Cancellation of \(\operatorname{mk}_X\) gives \(\operatorname{LP}\)
+at the exact input \(z_i\).
+
+For \eqref{rel-probe-rounded}, the application \(z_iA^\uparrow\)
+beta-reduces to the same pack and data lambda at \(A\), since
+\((A^\uparrow)^\downarrow=_\beta A\) and the wrapper choices
+are fixed.  The pack/use cancellation leaves the read of that
+function applied to \(\operatorname{Bundle}(m,y)\).
+After its raw beta contraction, read/send cancellation leaves
+\[
+ \operatorname{Access}
+   (\operatorname{Bundle}(m,y);o,w.i@\operatorname{lift}_o(w)).
+\]
+The Access builder, applied to \(d_m\), compares this with
+\(i@\operatorname{lift}_m(\operatorname{Round}y)\).
+Chain these three biconditionals by \(\mathsf{pl}\).
+
+To obtain \(\operatorname{LC}(e)\), introduce \(i\).
+Pair congruence applied to the reflexive comparison of
+\(\operatorname{Part}(z_i)\) and to \(e\), followed by
+\(\operatorname{qr}_R\), compares \(\operatorname{sb}(z_i,m,a)\) and
+\(\operatorname{sb}(z_i,m,a')\).  Combine it with the two \(\operatorname{LP}\)
+proofs and introduce \(i\).
+
+For validity introduce \(i,i'\) and \(e:i\approx i'\).
+There is a comparison
+\(\operatorname{Part}(z_i)\approx\operatorname{Part}(z_{i'})\):
+at \(y\), predicate evaluation gives the two expressions
+\(z_i\diamond_m\operatorname{Round}y\) and
+\(z_{i'}\diamond_m\operatorname{Round}y\).
+Apply \eqref{rel-probe-rounded} at precisely
+\(\operatorname{Round}y\), and use
+\[
+ e[\operatorname{lift}_m
+               (\operatorname{Round}(\operatorname{Round}y))].
+\]
+These proofs propositionally entail the required evaluation
+comparison; introduce \(y\).  Apply Pair congruence with \(a\)
+unchanged, then \(\operatorname{qr}_R\), and finally the two
+\(\operatorname{LP}\) proofs.  Introducing \(i,i',e\) proves
+\eqref{rel-lift-valid}.
+
+For \eqref{rel-probe-exact}, apply \(ex\) at
+\(\operatorname{lift}_m y,\operatorname{lift}_m(\operatorname{Round}y)\)
+to \(\operatorname{LC}(\operatorname{RoundRel}(y))\).
+Combine its result with \eqref{rel-probe-rounded}.  Under
+\(e:y\sim z\), apply \(ex\) at the two lifts to
+\(\operatorname{LC}(e)\), and combine this with the exact
+probe evaluations at \(y,z\).  Introducing \(y,z,e\) proves
+\(\operatorname{Resp}(z_i)\).
+Finally predicate evaluation gives
+\(\operatorname{Part}(v)@y\leftrightarrow
+v\diamond_m\operatorname{Round}y\).
+Combine it with \(h[y][\operatorname{Round}y]\cdot
+\operatorname{RoundRel}(y)\) to obtain \eqref{rel-part-exact}.
+\end{proof}
+
+\subsection{The laws needed for the diagonal argument}
+\label{rel-target-laws}
+
+The relations and uniform probes are now defined.  Before choosing
+$A$ and $m$, we identify the laws their specialization must provide.
+For $i:\mathsf P_X$, define
+\begin{equation}
+ \operatorname{Ind}(i)=
+ \forall x:X.\bigl(\operatorname{Valid}(x)\Rightarrow
+       (\operatorname{le}(i,x)\Rightarrow i@x)\bigr).
+ \label{rel-ind-definition}
+\end{equation}
+This formula says that $i$ contains every valid $x$ for which
+$\operatorname{le}(i,x)$ holds.  The name records its role in the
+well-foundedness diagonal; it does not assume a pre-existing order on $X$.
+
+We shall construct data operations $x\mapsto\delta x:X$ and
+$i\mapsto Si:\mathsf P_X$, and a data term
+$\operatorname{WF}:X$.  Their required properties are
+\begin{align*}
+ &\operatorname{Valid}(\delta x),\qquad
+                    \operatorname{Valid}(\operatorname{WF}),\\
+ &\operatorname{Ext}(i)\ \Longrightarrow\
+     \operatorname{Ext}(Si)\ \text{ and }\
+                  (Si@x\leftrightarrow i@\delta x),\\
+ &\operatorname{Ext}(i),\ \operatorname{Valid}(x)
+       \ \Longrightarrow\
+       \bigl(\operatorname{le}(i,\delta x)
+                      \leftrightarrow\operatorname{le}(Si,x)\bigr),\\
+ &\operatorname{Ext}(i)\ \Longrightarrow\
+       \bigl(\operatorname{le}(i,\operatorname{WF})
+                              \leftrightarrow\operatorname{Ind}(Si)\bigr).
+\end{align*}
+Here the outer implication signs describe proof builders with the
+displayed inputs, as elsewhere in the construction.  We also require
+$x\simeq x'$ to imply $\delta x\simeq\delta x'$.
+The logical binders introduced in the final diagonal proof range only
+over $X$ or $\mathsf P_X$; it also uses the previously proved laws at
+their original domains.
+
+These laws already explain the intended role of $\operatorname{WF}$.
+For an extensional $i$, a proof of $\operatorname{Ind}(i)$ gives a
+proof of $\operatorname{Ind}(Si)$: apply the proof of
+$\operatorname{Ind}(i)$ at
+the valid point $\delta x$, using the predecessor comparison to turn
+$\operatorname{le}(Si,x)$ into $\operatorname{le}(i,\delta x)$.
+The shift evaluation then gives the required conclusion $Si@x$.
+The last displayed law then gives
+$\operatorname{le}(i,\operatorname{WF})$, so validity of
+$\operatorname{WF}$ gives $i@\operatorname{WF}$.  Section~\ref{rel-diagonal}
+uses this consequence with a specified negative predicate to derive
+$\bot$; it will prove the construction with every guard in place.
+
+To obtain the predecessor comparison, we will encode three distinguishable
+copies of $X$ in $L$.  The class and edge queries will identify the
+corresponding elements of those copies.  Observations of the pairing
+predicate on one copy will be equivalent to the evaluations of the
+represented predicate; observations on another will identify the point
+of evaluation up to $\simeq$.  The $R$ query can then express
+$\operatorname{le}$ at that point.  Its validity guard is essential:
+it permits transport between the corresponding
+$\operatorname{le}$ formulas for the represented and original predicates.
+The next two subsections build
+these copies and queries before the guarded diagonal uses them.
+
+\subsection{Three tagged copies and one admissible parameter}
+
+The types $V,X,\mathsf P_X$ and the probes $z_i$ were constructed
+uniformly, before any choice of $A,m$.  We now use them to choose
+$A_0$ and then $m_0$.  The observations defining $m_0$ may use those
+already constructed probes; they never use $m_0$ itself.  This order
+will allow us to prove admissibility after defining the data term.
+
+We now choose a fixed \(A_0:s\).  Choose the secondary path
+\(k\to d\), inside \(C\), so that its concatenation with the
+previously fixed \(d\to k\) has even parity and at least four
+negative edges, and put \(A_0=W_{k\to d}(V)\).
+For completeness, in a component with an odd closed walk a
+detour changes the parity if necessary; in a component with a
+consistent two-coloring the return paths already have matching
+parities.  A closed detour through an internal negative exists
+by strong connectivity.  Inserting it twice preserves parity
+and increases the number of negatives.  Repeating this insertion
+gives the claimed choice.
+
+Split the resulting wrapper from \(V\) to \(B(A_0)\) into
+four odd segments \(\rho_1,\ldots,\rho_4\).  This is possible
+by cutting after the first, second, and third negative;
+the remaining number of negatives is odd.  Let \(T_0=V\) and
+\(T_a=W_{\rho_a}(T_{a-1})\), so \(T_4=B(A_0)\).
+The fixed odd path \(k\to j\), denoted \(\rho_5\) here, gives
+\(T_5=L(A_0)\).  The first odd wrapper defines
+\[
+ y_1(x)=\operatorname{mk}_{\rho_1}(v.[xv]):T_1.
+\]
+Use the double-embedding construction of Definition~\ref{chan-double}
+and Lemma~\ref{chan-double-laws} on \((\rho_2,\rho_3)\)
+and on \((\rho_4,\rho_5)\).  Denote their signed embeddings
+by \(E^{(1)}_\epsilon:T_1\to T_3\) and
+\(E^{(2)}_\epsilon:T_3\to T_5\), their bit observations by
+\(B_1,B_2\), and their recovery formula builders by
+\(\mathcal R_1,\mathcal R_2\).  These are notation for the
+previous data macros, not logical function spaces.
+Fix distinct strings, for example
+\[
+ (b_1(0),b_2(0))=(0,0),\quad
+ (b_1(\ell),b_2(\ell))=(1,0),\quad
+ (b_1(r),b_2(r))=(0,1),
+\]
+and define
+\[
+\begin{aligned}
+ x^t&=E^{(2)}_{b_2(t)}(E^{(1)}_{b_1(t)}(y_1(x))),\\
+ H_2(y)&=B_2(y),\\
+ H_1(y)&=\mathcal R_2(y;c.B_1(c)),\\
+ O_i(y)&=\mathcal R_2
+       (y;c.\mathcal R_1(c;u.\langle u,z_i\rangle_{\rho_1})).
+\end{aligned}
+\]
+Here \(\langle u,z_i\rangle_{\rho_1}\) uses the first odd
+wrapper, whose input type is \(V\).
+
+\begin{lemma}[Tagged observations]
+\label{rel-tags}
+For \(t=0,\ell,r\) there are proofs of the signed bits
+\(H_a(x^t)\) if \(b_a(t)=1\), and \(\neg H_a(x^t)\) if
+\(b_a(t)=0\), and proofs
+\[
+ O_i(x^t)\leftrightarrow \operatorname{le}(i,x).
+\]
+Each \(H_a\) and \(O_i\) is invariant, by biconditional, under
+\(y\mapsto\operatorname{Round}y\).
+Define
+\[
+ \operatorname{Ae}(y,z)=
+   \bigwedge_{a=1,2}(H_a(y)\leftrightarrow H_a(z))
+    \land\bigl(\forall i.\,(O_i(y)\leftrightarrow O_i(z))\bigr).
+\]
+Then \(\operatorname{Ae}\) is an equivalence relation and
+there is \(\operatorname{AeRound}(y):
+\operatorname{Ae}(y,\operatorname{Round}y)\).
+For each tag \(t\), its restriction compares exactly \(\simeq\):
+\[
+ \operatorname{Ae}(x^t,x'^{\,t})\leftrightarrow x\simeq x'.
+\]
+For distinct tags \(t,u\) there is a proof of
+\(\neg\operatorname{Ae}(x^t,x'^{\,u})\).
+\end{lemma}
+\begin{proof}
+The two double-embedding builders give their signed bits and
+recover each callback at its exact input.  Apply them successively
+to \(B_1\) and to \(u\mapsto\langle u,z_i\rangle_{\rho_1}\).
+For the latter, first-wrapper cancellation gives
+\(\langle y_1(x),z_i\rangle_{\rho_1}\leftrightarrow[xz_i]\).
+Propositional chaining gives all the asserted canonical
+evaluations.  For a general \(y\), the outer bit and every
+outer recovery are Boolean combinations of primitive
+\(L\)-evaluations at arguments independent of \(y\).
+Primitive Round preservation at those arguments, followed
+by \(\mathsf{pl}\), therefore gives each invariance proof.
+
+Reflexivity of \(\operatorname{Ae}\) pairs the propositional
+bit reflexivities with
+\(\Lambda i.\mathsf{pl}_{O_i(y)\leftrightarrow O_i(y)}()\).
+For symmetry, project both bit comparisons and the observation
+universal, reverse the former by \(\mathsf{pl}\), instantiate
+the latter at \(i\), reverse it, and introduce \(i\).
+For transitivity perform these projections on both premises,
+compose the bit comparisons, and at each \(i\) compose the
+two observation comparisons before introducing \(i\).
+Reassemble the conjunctions by \(\mathsf{pl}\).
+The invariance proofs supply the two bit components of
+\(\operatorname{AeRound}\) and, after introduction of \(i\),
+its observation component.  The congruence builder for
+\(\operatorname{Ae}\) is the explicit two-component
+transitivity construction of Lemma~\ref{rel-equivalence}.
+
+Given \(e:x\simeq x'\), the canonical signed bits imply
+the two same-tag bit comparisons.  At \(i\), combine \(e[i]\)
+with both canonical \(O_i\) evaluations, then introduce \(i\).
+This proves \(\operatorname{Ae}(x^t,x'^{\,t})\).
+Conversely project its observation universal, instantiate at
+\(i\), and chain the two canonical evaluations to obtain
+\(\operatorname{le}(i,x)\leftrightarrow \operatorname{le}(i,x')\); introduce \(i\).
+For \(t\ne u\), choose a coordinate where their fixed strings
+differ.  The two signed-bit proofs contradict the comparison
+at that coordinate projected from an assumed
+\(\operatorname{Ae}(x^t,x'^{\,u})\).
+Abstract that assumption to obtain the negation.
+\end{proof}
+
+\begin{definition}[The specialized query object]
+\label{rel-specialized-object}
+At \(A_0\), for \(P:\mathsf P_L\), define
+\[
+\begin{aligned}
+ \mathcal P_G(P)&=\forall y,z.\,
+  \bigl(\operatorname{Ae}(y,z)\Rightarrow(P@y\leftrightarrow P@z)\bigr),\\
+ \mathcal P_{C_t}(P)&=\exists x.\forall w.\,
+                    (P@w\leftrightarrow\operatorname{Ae}(w,x^t)),\\
+ \mathcal P_{E_t}(P)&=\exists x.\forall w.\,
+       \bigl(P@w\leftrightarrow
+        (\operatorname{Ae}(w,x^0)\lor\operatorname{Ae}(w,x^t))\bigr),\\
+ i_P&=\operatorname{pred}_X(x.P@(x^\ell)),\\
+ \mathcal P_R(P)&=\operatorname{Ext}(i_P)\Rightarrow
+     \forall x.\bigl(\operatorname{Valid}(x)\Rightarrow
+                    (P@(x^r)\Rightarrow \operatorname{le}(i_P,x))\bigr).
+\end{aligned}
+\]
+Here \(C_t\) has \(t=0,\ell,r\) and \(E_t\) has \(t=\ell,r\).
+Define
+\[
+ m_0=\operatorname{mk}_M
+   \left(bp.\bigvee_{t\ {\rm structural}}
+       \bigl(\operatorname{Mark}_t(bp)\land
+                       \mathcal P_t(\operatorname{Dec}(bp))\bigr)\right).
+\]
+The formulas \(\mathcal P_t\) use \(z_i\), tags, and observations
+already defined independently of \(m_0\); this is a data term
+with no recursive occurrence of itself.
+\end{definition}
+
+\begin{lemma}[Respect and admissibility]
+\label{rel-query-realization}
+For \(d:i\approx i'\) there is a builder
+\[
+ \operatorname{ExtC}(d):
+       \operatorname{Ext}(i)\leftrightarrow\operatorname{Ext}(i').
+\]
+For \(e:P\approx P'\), every structural \(t\) has a builder
+\(\mathcal P_t(P)\leftrightarrow\mathcal P_t(P')\).
+Consequently there are proofs
+\[
+ q_t(P):\operatorname{qry}_t(m_0,P)\leftrightarrow\mathcal P_t(P)
+ \quad(t\ {\rm structural}),\qquad
+ ad:\operatorname{Adm}\big|_{A=A_0,m=m_0}.
+\]
+\end{lemma}
+\begin{proof}
+Under \(x,x'\), the evaluations \(d[x],d[x']\) propositionally
+entail
+\[
+ (x\simeq x'\Rightarrow(i@x\leftrightarrow i@x'))
+ \leftrightarrow
+ (x\simeq x'\Rightarrow(i'@x\leftrightarrow i'@x')).
+\]
+Apply \(\mathsf{All}_{x,x'}\) to obtain
+\(\operatorname{ExtC}(d)\).
+
+For \(G\), under \(y,z\), apply \(\mathsf{pl}\) to
+\(e[y],e[z]\) with target the comparison of the two implications
+whose common antecedent is \(\operatorname{Ae}(y,z)\);
+then apply \(\mathsf{All}_{y,z}\).
+For \(C_t\), under \(x,w\), the proof \(e[w]\) compares
+\[
+ P@w\leftrightarrow\operatorname{Ae}(w,x^t)
+ \quad\hbox{with}\quad
+ P'@w\leftrightarrow\operatorname{Ae}(w,x^t).
+\]
+Apply \(\mathsf{All}_w\) and then \(\mathsf{Ex}_x\).
+For \(E_t\), use exactly the same two typed operations, with
+their common right side now
+\(\operatorname{Ae}(w,x^0)\lor\operatorname{Ae}(w,x^t)\).
+
+For \(R\), predicate evaluation at \(x\) for \(i_P,i_{P'}\)
+has right sides
+\[
+ P@((\operatorname{Round}_Xx)^\ell)
+ \quad\hbox{and}\quad P'@((\operatorname{Round}_Xx)^\ell).
+\]
+Combine these evaluations with
+\(e[(\operatorname{Round}_Xx)^\ell]\) and introduce \(x\),
+obtaining \(d:i_P\approx i_{P'}\).
+The proof \(\operatorname{ExtC}(d)\) compares the two
+antecedents of \(\mathcal P_R\).
+Under \(x,v:\operatorname{Valid}(x)\), combine
+\[
+ e[x^r],\qquad v[i_P][i_{P'}]\cdot d
+\]
+with target
+\[
+ (P@(x^r)\Rightarrow \operatorname{le}(i_P,x))
+   \leftrightarrow(P'@(x^r)\Rightarrow \operatorname{le}(i_{P'},x)).
+\]
+Apply \(\mathsf{Gd}_{v:\operatorname{Valid}(x)}\), then
+\(\mathsf{All}_x\).  This compares the consequents of
+\(\mathcal P_R\).  Combine it propositionally with
+\(\operatorname{ExtC}(d)\).  In particular, the change of
+predicate in \(le\) has used its explicit validity guard.
+
+Data cancellation at \(\operatorname{Enc}_t(P)\) compares
+\(\operatorname{qry}_t(m_0,P)\) with the defining disjunction
+evaluated there.  The signed marker proofs eliminate every
+disjunct except \(t\), and give a comparison with
+\(\mathcal P_t(\operatorname{Dec}(\operatorname{Enc}_t(P)))\).
+Introduce \(y\) in the decoder evaluation comparison to get
+\[
+ \operatorname{Dec}(\operatorname{Enc}_t(P))\approx P.
+\]
+Use the property-respect builder just proved and chain to
+obtain \(q_t(P)\).  Cancellation at \(bp_\bot\) and the
+negations of all its structural markers give \(\neg D(m_0)\).
+For each structural \(t\), form
+\[
+ \Lambda P,P'.\lambda^*e.\,
+ \mathsf{pl}\bigl(q_t(P),q_t(P'),
+                      \text{property-respect}_t(e)\bigr)
+\]
+with target
+\(\operatorname{qry}_t(m_0,P)\leftrightarrow
+\operatorname{qry}_t(m_0,P')\).
+Together with \(\neg D(m_0)\), these are exactly the
+conjuncts of the displayed admissibility formula.
+\end{proof}
+
+From this point onward \(A=A_0\), \(m=m_0\), and \(ad\) is
+the proof just constructed.
+
+\subsection{Pairing laws at the fixed specialization}
+
+\begin{lemma}[The coded equivalence is the observation equivalence]
+\label{rel-observation-equivalence}
+There are proofs
+\[
+ \operatorname{GA}(P):
+       \operatorname{Good}(P)\leftrightarrow\mathcal P_G(P),
+ \qquad
+ \operatorname{SA}(y,z):
+       (y\sim z)\leftrightarrow\operatorname{Ae}(y,z).
+\]
+For each \(t\), there are builders
+\[
+ \operatorname{Tag}_t(e):x^t\sim x'^{\,t}
+                  \quad(e:x\simeq x'),\qquad
+ \operatorname{TagBack}_t(f):x\simeq x'
+                  \quad(f:x^t\sim x'^{\,t}).
+\]
+For \(t\ne u\) there is
+\(\operatorname{diff}_{t,u}:\neg(x^t\sim x'^{\,u})\).
+\end{lemma}
+\begin{proof}
+The proof \(q_G(P)\) identifies the second conjunct of
+\(\operatorname{Good}(P)\).  Its property implies the first:
+the builder
+\[
+ \lambda^*g.\Lambda y.\,
+      g[y][\operatorname{Round}y]\cdot\operatorname{AeRound}(y)
+\]
+has that implication as type.  Combining these by
+\(\mathsf{pl}\) gives \(\operatorname{GA}(P)\).
+
+For an observation \(\Phi\) equal to \(H_1,H_2\), or \(O_i\)
+with \(i\) temporarily free, put
+\(P_\Phi=\operatorname{pred}(w.\Phi(w))\).
+Predicate evaluation and Round invariance give, at every \(u\),
+an evaluation proof \(P_\Phi@u\leftrightarrow\Phi(u)\).
+Under \(a:\operatorname{Ae}(u,w)\), project the relevant bit
+comparison, or project and instantiate its observation
+universal at the free \(i\).  Combine it with the two evaluations
+to get \(P_\Phi@u\leftrightarrow P_\Phi@w\).
+Introducing \(u,w,a\) proves \(\mathcal P_G(P_\Phi)\);
+apply \(\operatorname{back}(\operatorname{GA}(P_\Phi),-)\)
+to get \(\operatorname{Good}(P_\Phi)\).
+
+Under \(e:y\sim z\), the proof
+\(e[P_\Phi]\cdot\operatorname{Good}(P_\Phi)\), combined
+with the two evaluations, gives \(\Phi(y)\leftrightarrow\Phi(z)\).
+Take the two bit instances.  For \(O_i\), introduce \(i\)
+after obtaining this comparison.  Their conjunction proves
+\(\operatorname{Ae}(y,z)\).  Conversely, under
+\(a:\operatorname{Ae}(y,z)\), the term
+\[
+ \Lambda P.\lambda^*g.\,
+       \bigl(\operatorname{to}(\operatorname{GA}(P),g)\bigr)
+                       [y][z]\cdot a
+\]
+proves \(y\sim z\).  Abstract the two premises and pair the
+directions to obtain \(\operatorname{SA}\).
+
+Given \(e:x\simeq x'\), use the same-tag direction of
+Lemma~\ref{rel-tags}, then \(\operatorname{back}(\operatorname{SA},-)\).
+Given \(f:x^t\sim x'^{\,t}\), use
+\(\operatorname{to}(\operatorname{SA},f)\) and the reverse
+same-tag direction.  For distinct tags, introduce
+\(f:x^t\sim x'^{\,u}\), map it forward through
+\(\operatorname{SA}\), and apply the negation from
+Lemma~\ref{rel-tags}.  These define the three asserted builders.
+\end{proof}
+
+\begin{lemma}[Class and edge witnesses]
+\label{rel-witnesses}
+For \(t=0,\ell,r\) there is a proof
+\[
+ \operatorname{Is}_t(y)\leftrightarrow
+                         \exists x.\,(y\sim x^t).
+\]
+For \(t=\ell,r\) there is a proof
+\[
+ T_t(y,z)\leftrightarrow
+             \exists x.\,((y\sim x^0)\land(z\sim x^t)).
+\]
+\end{lemma}
+\begin{proof}
+For the first forward implication, take
+\(h:\operatorname{Is}_t(y)\), apply
+\(\operatorname{to}(q_{C_t}(c_y),h)\), and open the result
+as \(x,p\), where
+\[
+ p:\forall w.\,(c_y@w\leftrightarrow\operatorname{Ae}(w,x^t)).
+\]
+The class evaluation and reflexivity prove \(c_y@y\).
+Apply \(p[y]\) forward and \(\operatorname{SA}(y,x^t)\)
+backward to obtain \(y\sim x^t\).  Witness the opened \(x\)
+in the target existential.  The target contains no free
+occurrence of either local witness.
+For the reverse, open \(x,e:y\sim x^t\).
+At \(w\), the class evaluation, congruence with
+\(\operatorname{refl}(w),e\), and
+\(\operatorname{SA}(w,x^t)\) yield
+\(c_y@w\leftrightarrow\operatorname{Ae}(w,x^t)\).
+Introduce \(w\), witness \(x\) in \(\mathcal P_{C_t}(c_y)\),
+and apply \(q_{C_t}(c_y)\) backward.
+
+For the edge forward implication, take \(h:T_t(y,z)\).
+Project both \(\operatorname{Is}\) conjuncts and its query.
+Use the first equivalence and open their witnesses as
+\[
+ a,e_a:y\sim a^0,\qquad
+ b',e_{b'}:z\sim b'^{\,t}.
+\]
+Map the query forward through \(q_{E_t}(u_{yz})\) and
+open its witness as \(x,p\), with
+\[
+ p:\forall w.\,
+   \bigl(u_{yz}@w\leftrightarrow
+    (\operatorname{Ae}(w,x^0)\lor\operatorname{Ae}(w,x^t))\bigr).
+\]
+The union evaluation and reflexivity prove \(u_{yz}@y\)
+and \(u_{yz}@z\).  Apply \(p\) at each of these points and
+the comparisons \(\operatorname{SA}\); the resulting proofs
+have types
+\[
+ (y\sim x^0)\lor(y\sim x^t),\qquad
+ (z\sim x^0)\lor(z\sim x^t).
+\]
+The term
+\[
+ \lambda^*f.\operatorname{diff}_{0,t}\cdot
+        \operatorname{trans}(\operatorname{sym}(e_a),f)
+\]
+negates \(y\sim x^t\).  The corresponding term
+\[
+ \lambda^*f.\operatorname{diff}_{t,0}\cdot
+        \operatorname{trans}(\operatorname{sym}(e_{b'}),f)
+\]
+negates \(z\sim x^0\).  Propositional elimination gives
+\(y\sim x^0\) and \(z\sim x^t\); pair them and witness \(x\).
+All three openings have the original target existential.
+
+For the reverse, open \(x,e\) and project
+\(e_0:y\sim x^0\), \(e_t:z\sim x^t\).
+Witness \(x\) with \(e_0\) or \(e_t\) in the first
+equivalence backward to obtain the two \(\operatorname{Is}\)
+conjuncts.  At \(w\), the union evaluation and congruences
+along \(e_0,e_t\) compare \(u_{yz}@w\) with
+\((w\sim x^0)\lor(w\sim x^t)\).  Use the two
+\(\operatorname{SA}\) proofs and introduce \(w\), obtaining
+the property required for the witness \(x\) in
+\(\mathcal P_{E_t}(u_{yz})\).  Apply \(q_{E_t}(u_{yz})\)
+backward and conjoin the three results.
+\end{proof}
+
+\begin{lemma}[The two pairing laws]
+\label{rel-pair-laws}
+Under \(h:\operatorname{Resp}(v)\), let
+\(P_x=\operatorname{Pair}(\operatorname{Part}(v),x^0)\).
+For every \(x':X\) there are proofs
+\begin{align}
+ P_x@(x'^{\,\ell})&\leftrightarrow
+                         v\diamond_m(x'^{\,0}), \label{rel-pair-left}\\
+ P_x@(x'^{\,r})&\leftrightarrow x\simeq x'. \label{rel-pair-right}
+\end{align}
+\end{lemma}
+\begin{proof}
+For \eqref{rel-pair-left} forward, first negate
+\(T_r(x^0,x'^{\,\ell})\).  Given such a proof, map it
+forward through Lemma~\ref{rel-witnesses} and open its
+witness \(u\) into \(\bot\).  Its second conjunct is
+\(x'^{\,\ell}\sim u^r\), contradicted by
+\(\operatorname{diff}_{\ell,r}\).
+Given \(p:P_x@(x'^{\,\ell})\), use
+\(\operatorname{pv}\) and this negation to extract
+\[
+ \exists y.\,
+       (T_\ell(y,x'^{\,\ell})\land\operatorname{Part}(v)@y).
+\]
+Open it as \(y,q\), and open the edge witness from the
+first conjunct as \(u,q_0,q_\ell\), where
+\[
+ q_0:y\sim u^0,\qquad q_\ell:x'^{\,\ell}\sim u^\ell.
+\]
+The proof \(\operatorname{TagBack}_\ell(q_\ell)\) is
+\(x'\simeq u\).  Symmetrize it and apply
+\(\operatorname{Tag}_0\), then compose with \(q_0\),
+to get \(e:y\sim x'^{\,0}\).
+From the second conjunct of \(q\), the unrounded Part
+evaluation gives \(v\diamond_m y\).
+Apply \(h[y][x'^{\,0}]\cdot e\) forward to obtain the
+target \(v\diamond_m(x'^{\,0})\).  Each opening uses this
+fixed target.
+
+For the left reverse implication, a proof of
+\(v\diamond_m(x'^{\,0})\) gives
+\(\operatorname{Part}(v)@(x'^{\,0})\) by
+\eqref{rel-part-exact} backward.  Witness \(x'\) with
+the two reflexivities in the edge equivalence backward
+to get \(T_\ell(x'^{\,0},x'^{\,\ell})\).
+Pair these, witness \(y=x'^{\,0}\), inject the resulting
+existential into \(\operatorname{form}\), and apply
+\(\operatorname{pv}\) backward.
+
+For \eqref{rel-pair-right} forward, negate
+\(\exists y.(T_\ell(y,x'^{\,r})\land\operatorname{Part}(v)@y)\).
+Open an assumed existential into \(\bot\), open its
+\(T_\ell\) witness, and contradict its second conjunct
+\(x'^{\,r}\sim u^\ell\) with \(\operatorname{diff}_{r,\ell}\).
+Thus \(\operatorname{pv}\) maps a proof of
+\(P_x@(x'^{\,r})\) to \(T_r(x^0,x'^{\,r})\).
+Open its witness \(u\), with
+\(x^0\sim u^0\) and \(x'^{\,r}\sim u^r\).
+The two same-tag converses give \(x\simeq u\) and
+\(x'\simeq u\).  Compose the first with the symmetry of
+the second to prove \(x\simeq x'\).
+For the reverse, given \(e:x\simeq x'\), witness \(x\)
+in the edge equivalence with reflexivity at \(x^0\) and
+\(\operatorname{Tag}_r(\operatorname{sym}(e)):
+x'^{\,r}\sim x^r\).  This gives \(T_r(x^0,x'^{\,r})\);
+inject it into \(\operatorname{form}\), then apply
+\(\operatorname{pv}\) backward.
+Abstract each input proof and pair the two directions.
+\end{proof}
+
+\section{The guarded diagonal argument}
+\label{rel-diagonal}
+
+The pairing laws are now available at the fixed specialization. We use
+them to compare a probe with a predicate on $X$, and then derive a proof
+of $F_b$.
+
+The construction below adapts the well-foundedness paradox of Hurkens
+\cite{Hurkens1995}, as presented by Geuvers~\cite[Section~2]{Geuvers2007}.
+We prove each identity with the validity and extensionality hypotheses
+required by the present encoding.
+
+We retain the specialization $A=A_0$, $m=m_0$ and the constructed
+proof $ad:\operatorname{Adm}$.  Thus every relation and every occurrence
+of $\diamond_m$ below uses this fixed specialization.  We use the Pair
+laws of Lemma~\ref{rel-pair-laws}, the query comparison $q_R$, and the
+previously constructed lift and tag builders.  All displayed proof
+builders are in the labelled fragment.  In particular, $\Lambda$ and
+$\lambda^*$ denote the established logical introduction rules, and
+$\mathsf{pl}_F$ denotes the established propositional proof builder
+with target formula $F$.  Its use to construct a biconditional supplies
+both implication directions; it never replaces a data expression by
+a logically equivalent expression.  The data parameters $v:V$ used
+below are open parameters, not additional logical quantifier domains.
+
+\begin{lemma}[The predicate represented by a response]
+\label{rel-response-predicate}
+For every data parameter $v:V$, define
+\[
+ i_v=\operatorname{pred}_X(x'.\,v\diamond_m(x'^{\,0}))
+       :\mathsf P_X.
+\]
+This data definition requires no proof hypothesis.  Given
+$h:\operatorname{Resp}(v)$, there are builders
+\[
+ E_h(x):i_v@x\leftrightarrow v\diamond_m(x^0),
+ \qquad ex_v:\operatorname{Ext}(i_v).
+\]
+Moreover, for $x:X$ and $u:\operatorname{Valid}(x)$, there is a builder
+\begin{equation}
+ \operatorname{SB}(v,h,x,u):
+ \operatorname{sb}(v,m,x^0)\leftrightarrow
+                         \operatorname{le}(i_v,x).
+ \label{rel-sb-law}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The predicate evaluation law gives
+\[
+ i_v@x\leftrightarrow
+      v\diamond_m((\operatorname{Round}_Xx)^0).
+\]
+On the other hand,
+\[
+ h[x^0][(\operatorname{Round}_Xx)^0]\cdot
+       \operatorname{Tag}_0(\operatorname{RoundRel}_X(x))
+ :v\diamond_m(x^0)\leftrightarrow
+      v\diamond_m((\operatorname{Round}_Xx)^0).
+\]
+Applying $\mathsf{pl}$ to these two biconditionals at the stated
+target gives $E_h(x)$.  For $e:x\simeq x'$, put
+\[
+ ex_v=\Lambda x,x'.\lambda^*e.\,
+ \mathsf{pl}_{\,i_v@x\leftrightarrow i_v@x'}
+ \bigl(E_h(x),E_h(x'),
+       h[x^0][x'^{\,0}]\cdot\operatorname{Tag}_0(e)\bigr).
+\]
+The final premise has type
+$v\diamond_m(x^0)\leftrightarrow v\diamond_m(x'^{\,0})$,
+so this is a proof of $\operatorname{Ext}(i_v)$.
+
+Fix $x:X$ and write
+\[
+ P_x=\operatorname{Pair}(\operatorname{Part}(v),x^0),
+ \qquad
+ i_{P_x}=\operatorname{pred}_X(x'.\,P_x@(x'^{\,\ell})).
+\]
+The Pair laws, under the present hypothesis $h$, supply
+\begin{align*}
+ L_h(x')&:P_x@(x'^{\,\ell})
+                  \leftrightarrow v\diamond_m(x'^{\,0}),\\
+ R_h(x')&:P_x@(x'^{\,r})\leftrightarrow x\simeq x'.
+\end{align*}
+At an arbitrary $x':X$, denote the two predicate evaluation proofs by
+\begin{align*}
+ r_{P_x}(x')&:i_{P_x}@x'
+              \leftrightarrow P_x@((\operatorname{Round}_Xx')^\ell),\\
+ r_v(x')&:i_v@x'
+              \leftrightarrow v\diamond_m((\operatorname{Round}_Xx')^0).
+\end{align*}
+Using $L_h(\operatorname{Round}_Xx')$ between them gives
+\[
+ d=\Lambda x'.\,
+      \mathsf{pl}_{\,i_{P_x}@x'\leftrightarrow i_v@x'}
+      (r_{P_x}(x'),r_v(x'),
+       L_h(\operatorname{Round}_Xx'))
+      :i_{P_x}\approx i_v.
+\]
+Consequently
+\[
+ ex_P=\operatorname{back}(\operatorname{ExtC}(d),ex_v)
+       :\operatorname{Ext}(i_{P_x}).
+\]
+
+We first construct both directions of
+\begin{equation}
+ \mathcal P_R(P_x)\leftrightarrow\operatorname{le}(i_v,x),
+ \label{rel-r-property-law}
+\end{equation}
+where, by the definition of $\mathcal P_R$,
+\[
+ \mathcal P_R(P_x)=\operatorname{Ext}(i_{P_x})\Rightarrow
+ \forall x':X.\bigl(\operatorname{Valid}(x')\Rightarrow
+ (P_x@(x'^{\,r})\Rightarrow\operatorname{le}(i_{P_x},x'))\bigr).
+\]
+For the forward direction, assume $g:\mathcal P_R(P_x)$ and put
+\[
+ p_x=\operatorname{back}(R_h(x),\operatorname{refl}(x))
+           :P_x@(x^r).
+\]
+Then
+\[
+ (g\cdot ex_P)[x]\cdot u\cdot p_x
+      :\operatorname{le}(i_{P_x},x),
+ \qquad
+ u[i_{P_x}][i_v]\cdot d:
+      \operatorname{le}(i_{P_x},x)\leftrightarrow
+      \operatorname{le}(i_v,x).
+\]
+Thus the forward builder is
+\[
+ \lambda^*g.\,
+ \operatorname{to}\bigl(u[i_{P_x}][i_v]\cdot d,
+                      (g\cdot ex_P)[x]\cdot u\cdot p_x\bigr).
+\]
+For the reverse direction, assume $l:\operatorname{le}(i_v,x)$.
+Introduce $ex':\operatorname{Ext}(i_{P_x})$, $x':X$,
+$u':\operatorname{Valid}(x')$, and $p:P_x@(x'^{\,r})$.
+The proof $ex'$ need not be used.  Set
+\[
+ e=\operatorname{to}(R_h(x'),p):x\simeq x'.
+\]
+Here $e[i_v]:\operatorname{le}(i_v,x)\leftrightarrow
+\operatorname{le}(i_v,x')$, whereas
+\[
+ u'[i_{P_x}][i_v]\cdot d:
+ \operatorname{le}(i_{P_x},x')\leftrightarrow
+ \operatorname{le}(i_v,x').
+\]
+The required proof of $\operatorname{le}(i_{P_x},x')$ is therefore
+\[
+ \operatorname{back}\bigl(u'[i_{P_x}][i_v]\cdot d,
+                         \operatorname{to}(e[i_v],l)\bigr).
+\]
+Abstracting, in order, over $p,u',x',ex',l$ gives the reverse
+direction of \eqref{rel-r-property-law}; pairing the directions gives
+the displayed biconditional.
+
+Finally, by definition,
+$\operatorname{sb}(v,m,x^0)=\operatorname{qry}_R(m,P_x)$.
+The query comparison is
+\[
+ q_R(P_x):\operatorname{qry}_R(m,P_x)
+                         \leftrightarrow\mathcal P_R(P_x).
+\]
+Composing its forward direction with the forward direction of
+\eqref{rel-r-property-law}, and composing the two reverse directions
+in the reverse order, gives \eqref{rel-sb-law}.
+\end{proof}
+
+\begin{lemma}[The shift and its predecessor comparison]
+\label{rel-shift}
+Define the data operations
+\[
+ \delta x=\operatorname{lift}_m(x^0):X,
+ \qquad
+ Si=\operatorname{pred}_X(x.\,i@\delta x):\mathsf P_X.
+\]
+For every $x:X$ there is a proof
+$V_\delta(x):\operatorname{Valid}(\delta x)$, and for
+$e:x\simeq x'$ there is a proof
+$\operatorname{DeltaC}(e):\delta x\simeq\delta x'$.
+For $ex:\operatorname{Ext}(i)$ there are builders
+\begin{align}
+ s_{ex}(x)&:Si@x\leftrightarrow i@\delta x,
+                                    \label{rel-shift-evaluation}\\
+ \operatorname{ExtS}(i,ex)&:\operatorname{Ext}(Si),
+                                    \label{rel-shift-extensionality}\\
+ d_s&:i_{z_i}\approx Si.             \label{rel-shift-comparison}
+\end{align}
+For the additional input $u:\operatorname{Valid}(x)$ there is a builder
+\begin{equation}
+ a_{ex,u}:\operatorname{le}(i,\delta x)
+                    \leftrightarrow\operatorname{le}(Si,x).
+ \label{rel-shift-predecessor}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The established validity proof for a lift, applied to $x^0$, is
+$V_\delta(x)$.  Congruence is the composite
+\[
+ \operatorname{DeltaC}(e)
+       =\operatorname{LC}(\operatorname{Tag}_0(e)).
+\]
+Neither construction requires $x$ to be valid or any predicate to
+be extensional.
+
+The predicate evaluation law gives
+$Si@x\leftrightarrow i@\delta(\operatorname{Round}_Xx)$.
+The proof
+\[
+ ex[\delta x][\delta(\operatorname{Round}_Xx)]\cdot
+      \operatorname{DeltaC}(\operatorname{RoundRel}_X(x))
+ :i@\delta x\leftrightarrow
+      i@\delta(\operatorname{Round}_Xx)
+\]
+and that evaluation give $s_{ex}(x)$ by $\mathsf{pl}$ at the target
+in \eqref{rel-shift-evaluation}.  Set
+\[
+ \operatorname{ExtS}(i,ex)=
+ \Lambda x,x'.\lambda^*e.\,
+ \mathsf{pl}_{\,Si@x\leftrightarrow Si@x'}
+ \bigl(s_{ex}(x),s_{ex}(x'),
+       ex[\delta x][\delta x']\cdot\operatorname{DeltaC}(e)\bigr).
+\]
+This has the type in \eqref{rel-shift-extensionality}.
+
+From $ex$, the earlier response builder gives
+$h_i:\operatorname{Resp}(z_i)$, and the earlier exact evaluation
+gives, for every $y:L$, a proof
+\[
+ Z_{ex}(y):z_i\diamond_m y\leftrightarrow
+                i@\operatorname{lift}_m(y).
+\]
+In particular, at $y=x^0$ the right-hand side is $i@\delta x$.
+Together with $E_{h_i}(x)$ and $s_{ex}(x)$ this gives
+\[
+ d_s=\Lambda x.\,
+ \mathsf{pl}_{\,i_{z_i}@x\leftrightarrow Si@x}
+ \bigl(E_{h_i}(x),Z_{ex}(x^0),s_{ex}(x)\bigr).
+\]
+
+Now assume $u:\operatorname{Valid}(x)$.  The three available
+biconditionals, with their exact endpoints, are
+\begin{align*}
+ \operatorname{LP}(i,x^0)&:
+ \operatorname{le}(i,\delta x)
+       \leftrightarrow\operatorname{sb}(z_i,m,x^0),\\
+ \operatorname{SB}(z_i,h_i,x,u)&:
+ \operatorname{sb}(z_i,m,x^0)
+       \leftrightarrow\operatorname{le}(i_{z_i},x),\\
+ u[i_{z_i}][Si]\cdot d_s&:
+ \operatorname{le}(i_{z_i},x)
+       \leftrightarrow\operatorname{le}(Si,x).
+\end{align*}
+The forward direction of $a_{ex,u}$ is
+\[
+ \lambda^*t.\,
+ \operatorname{to}\bigl(u[i_{z_i}][Si]\cdot d_s,
+  \operatorname{to}\bigl(\operatorname{SB}(z_i,h_i,x,u),
+   \operatorname{to}(\operatorname{LP}(i,x^0),t)\bigr)\bigr).
+\]
+Its reverse direction is
+\[
+ \lambda^*t.\,
+ \operatorname{back}\bigl(\operatorname{LP}(i,x^0),
+  \operatorname{back}\bigl(\operatorname{SB}(z_i,h_i,x,u),
+   \operatorname{back}(u[i_{z_i}][Si]\cdot d_s,t)\bigr)\bigr).
+\]
+Pairing them proves \eqref{rel-shift-predecessor}.  The only use of
+$u$ is in the response comparison and in transport at the fixed
+argument $x$; no unconditional replacement of $i_{z_i}$ by $Si$
+inside $\operatorname{le}$ has been made.
+\end{proof}
+
+\begin{lemma}[Induction respects predicate equivalence]
+\label{rel-ind-congruence}
+For $d:i\approx i'$ there is a builder
+\[
+ \operatorname{IndC}(d):
+       \operatorname{Ind}(i)\leftrightarrow\operatorname{Ind}(i').
+\]
+This builder needs no extensionality hypothesis on either predicate.
+\end{lemma}
+
+\begin{proof}
+For $x:X$ and $u:\operatorname{Valid}(x)$ put
+\[
+ c_u=u[i][i']\cdot d:
+       \operatorname{le}(i,x)\leftrightarrow\operatorname{le}(i',x).
+\]
+The two directions, paired in the displayed order, are
+\begin{align*}
+ &\lambda^*l.\Lambda x.\lambda^*u.\lambda^*t'.\,
+    \operatorname{to}\bigl(d[x],
+       l[x]\cdot u\cdot\operatorname{back}(c_u,t')\bigr),\\
+ &\lambda^*l'.\Lambda x.\lambda^*u.\lambda^*t.\,
+    \operatorname{back}\bigl(d[x],
+       l'[x]\cdot u\cdot\operatorname{to}(c_u,t)\bigr).
+\end{align*}
+In the first line $l:\operatorname{Ind}(i)$ and
+$t':\operatorname{le}(i',x)$; in the second
+$l':\operatorname{Ind}(i')$ and $t:\operatorname{le}(i,x)$.
+Thus every application has the exact antecedent required by
+\eqref{rel-ind-definition}.
+\end{proof}
+
+\begin{lemma}[A valid induction object]
+\label{rel-wf}
+Define, without proof hypotheses,
+\[
+ \operatorname{WF}=\operatorname{mk}_X(v.\,\operatorname{Ind}(i_v)):X.
+\]
+There is a proof $V_{\operatorname{WF}}:
+\operatorname{Valid}(\operatorname{WF})$.  For
+$ex:\operatorname{Ext}(i)$ there is a builder
+\begin{equation}
+ w_{ex}:\operatorname{le}(i,\operatorname{WF})
+                       \leftrightarrow\operatorname{Ind}(Si).
+ \label{rel-wf-evaluation}
+\end{equation}
+Finally, from $i:\mathsf P_X$, $ex:\operatorname{Ext}(i)$ and
+$l:\operatorname{Ind}(i)$ there is a builder
+\begin{equation}
+ b(i,ex,l):i@\operatorname{WF}.
+ \label{rel-induction-builder}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Since $\operatorname{le}(i,\operatorname{WF})=[\operatorname{WF}z_i]$,
+the data cancellation law gives, for every $i$, a proof
+\[
+ F(i):\operatorname{le}(i,\operatorname{WF})
+                   \leftrightarrow\operatorname{Ind}(i_{z_i}).
+\]
+This evaluation uses neither $\operatorname{Resp}(z_i)$ nor
+$\operatorname{Ext}(i)$.
+
+To prove validity, take arbitrary $i,i':\mathsf P_X$ and
+$d:i\approx i'$.  We construct
+\[
+ D(d):i_{z_i}\approx i_{z_{i'}}
+\]
+without introducing extensionality assumptions.  At $x:X$ put
+$t=(\operatorname{Round}_Xx)^0:L$.  The predicate evaluation law
+and the earlier rounded evaluation of $z_i$ give the following
+chain of biconditionals:
+\[
+ i_{z_i}@x
+ \ \leftrightarrow\ z_i\diamond_m t
+ \ \leftrightarrow\ i@\operatorname{lift}_m(\operatorname{Round}t)
+ \ \leftrightarrow\ i'@\operatorname{lift}_m(\operatorname{Round}t)
+ \ \leftrightarrow\ z_{i'}\diamond_m t
+ \ \leftrightarrow\ i_{z_{i'}}@x.
+\]
+The middle comparison is exactly
+$d[\operatorname{lift}_m(\operatorname{Round}t)]$.
+The other four comparisons are the two predicate evaluations and
+the two rounded evaluations.  Applying $\mathsf{pl}$ to those five
+proofs at target $i_{z_i}@x\leftrightarrow i_{z_{i'}}@x$, then
+abstracting over $x$, constructs $D(d)$.  Therefore
+\[
+ V_{\operatorname{WF}}=
+ \Lambda i,i'.\lambda^*d.\,
+ \mathsf{pl}_{\,\operatorname{le}(i,\operatorname{WF})
+                   \leftrightarrow
+                   \operatorname{le}(i',\operatorname{WF})}
+ \bigl(F(i),F(i'),\operatorname{IndC}(D(d))\bigr).
+\]
+
+Now assume $ex:\operatorname{Ext}(i)$.  The proof $d_s$ from
+\eqref{rel-shift-comparison} and Lemma~\ref{rel-ind-congruence} give
+\[
+ \operatorname{IndC}(d_s):
+          \operatorname{Ind}(i_{z_i})\leftrightarrow\operatorname{Ind}(Si).
+\]
+The forward and reverse directions of $w_{ex}$ are, respectively,
+\begin{align*}
+ &\lambda^*t.\,
+   \operatorname{to}(\operatorname{IndC}(d_s),
+                     \operatorname{to}(F(i),t)),\\
+ &\lambda^*l_S.\,
+   \operatorname{back}(F(i),
+                       \operatorname{back}(\operatorname{IndC}(d_s),l_S)).
+\end{align*}
+Their pair proves \eqref{rel-wf-evaluation}.
+
+For the final assertion, fix $l:\operatorname{Ind}(i)$.  We first
+construct $l_S:\operatorname{Ind}(Si)$.  Under $x:X$,
+$u:\operatorname{Valid}(x)$ and $t:\operatorname{le}(Si,x)$,
+the proof $\operatorname{back}(a_{ex,u},t)$ has type
+$\operatorname{le}(i,\delta x)$.  Since
+$V_\delta(x):\operatorname{Valid}(\delta x)$, it follows that
+\[
+ l[\delta x]\cdot V_\delta(x)\cdot
+                   \operatorname{back}(a_{ex,u},t):i@\delta x.
+\]
+Applying the reverse direction of $s_{ex}(x)$ gives $Si@x$.
+Thus the required builder is
+\[
+ l_S=\Lambda x.\lambda^*u.\lambda^*t.\,
+ \operatorname{back}\bigl(s_{ex}(x),
+       l[\delta x]\cdot V_\delta(x)\cdot
+                   \operatorname{back}(a_{ex,u},t)\bigr).
+\]
+Since $\operatorname{back}(w_{ex},l_S)$ has type
+$\operatorname{le}(i,\operatorname{WF})$, define
+\[
+ b(i,ex,l)=
+ l[\operatorname{WF}]\cdot V_{\operatorname{WF}}\cdot
+                      \operatorname{back}(w_{ex},l_S).
+\]
+Its type is $i@\operatorname{WF}$, as required.
+\end{proof}
+
+\begin{proposition}[The diagonal contradiction]
+\label{rel-contradiction}
+The specialized relational construction yields a proof of
+$\bot=F_b$ in the ambient labelled context.
+\end{proposition}
+
+\begin{proof}
+Define the data formula and data predicate
+\begin{align*}
+ Q(x)&=\forall i:\mathsf P_X.\bigl(\operatorname{Ext}(i)
+           \Rightarrow(\operatorname{le}(i,x)\Rightarrow i@\delta x)\bigr),\\
+ j_*&=\operatorname{pred}_X(x.\,\neg Q(x)):\mathsf P_X.
+\end{align*}
+Neither definition uses proof variables.
+
+First we construct
+\[
+ \operatorname{QC}(e):Q(x)\leftrightarrow Q(x')
+ \qquad(e:x\simeq x').
+\]
+For any $i:\mathsf P_X$ and $ex:\operatorname{Ext}(i)$, put
+\[
+ c_{ex,e}=ex[\delta x][\delta x']\cdot\operatorname{DeltaC}(e)
+               :i@\delta x\leftrightarrow i@\delta x'.
+\]
+The forward direction of $\operatorname{QC}(e)$ is
+\[
+ \lambda^*q.\Lambda i.\lambda^*ex.\lambda^*t'.\,
+ \operatorname{to}\bigl(c_{ex,e},
+       q[i]\cdot ex\cdot\operatorname{back}(e[i],t')\bigr),
+\]
+where $q:Q(x)$ and $t':\operatorname{le}(i,x')$.
+Its reverse direction is
+\[
+ \lambda^*q'.\Lambda i.\lambda^*ex.\lambda^*t.\,
+ \operatorname{back}\bigl(c_{ex,e},
+       q'[i]\cdot ex\cdot\operatorname{to}(e[i],t)\bigr),
+\]
+where $q':Q(x')$ and $t:\operatorname{le}(i,x)$.
+Pairing these terms gives the asserted congruence.
+
+The predicate evaluation law supplies
+$j_*@x\leftrightarrow\neg Q(\operatorname{Round}_Xx)$.
+Using $\operatorname{QC}(\operatorname{RoundRel}_X(x))$ and
+$\mathsf{pl}$ with that evaluation yields
+\begin{equation}
+ n(x):j_*@x\leftrightarrow\neg Q(x).
+ \label{rel-negative-evaluation}
+\end{equation}
+The extensionality builder is
+\[
+ ex_*=
+ \Lambda x,x'.\lambda^*e.\,
+ \mathsf{pl}_{\,j_*@x\leftrightarrow j_*@x'}
+       \bigl(n(x),n(x'),\operatorname{QC}(e)\bigr)
+       :\operatorname{Ext}(j_*).
+\]
+In both uses of $\mathsf{pl}$ the passage from a biconditional
+between the $Q$-formulas to the corresponding negated formulas is
+propositional; no predicate is substituted inside data.
+
+We next construct $l_*:\operatorname{Ind}(j_*)$.
+Introduce $x:X$, $u:\operatorname{Valid}(x)$ and
+$t:\operatorname{le}(j_*,x)$.  To obtain $j_*@x$, it suffices,
+by the reverse direction of $n(x)$, to obtain $\neg Q(x)$.
+Under the further assumption $q:Q(x)$ we have
+\[
+ q[j_*]\cdot ex_*\cdot t:j_*@\delta x,
+\]
+and hence
+\begin{equation}
+ n_\delta=
+ \operatorname{to}\bigl(n(\delta x),q[j_*]\cdot ex_*\cdot t\bigr)
+                  :\neg Q(\delta x).
+ \label{rel-negative-shift}
+\end{equation}
+To construct the opposite formula $Q(\delta x)$, take arbitrary
+$i:\mathsf P_X$, $ex:\operatorname{Ext}(i)$ and
+$t':\operatorname{le}(i,\delta x)$.  At this point
+$a_{ex,u}$ uses the original proof $u:\operatorname{Valid}(x)$.
+Its forward direction gives
+\[
+ \operatorname{to}(a_{ex,u},t'):\operatorname{le}(Si,x).
+\]
+Because $\operatorname{ExtS}(i,ex):\operatorname{Ext}(Si)$,
+we may instantiate $q$ at $Si$ to obtain
+\[
+ q[Si]\cdot\operatorname{ExtS}(i,ex)\cdot
+           \operatorname{to}(a_{ex,u},t'):Si@\delta x.
+\]
+The forward direction of $s_{ex}(\delta x)$ turns this into
+$i@\delta(\delta x)$.  Therefore
+\begin{equation}
+ \begin{split}
+ p_\delta={}&\Lambda i.\lambda^*ex.\lambda^*t'.\,
+ \operatorname{to}\bigl(s_{ex}(\delta x),\\[-2pt]
+ &\hspace{35mm}
+ q[Si]\cdot\operatorname{ExtS}(i,ex)\cdot
+                   \operatorname{to}(a_{ex,u},t')\bigr)
+       :Q(\delta x).
+ \end{split}
+ \label{rel-positive-shift}
+\end{equation}
+Combining \eqref{rel-negative-shift} and \eqref{rel-positive-shift}
+gives $n_\delta\cdot p_\delta:\bot$.  With these local terms
+inlined in their indicated context, define
+\[
+ l_*=
+ \Lambda x.\lambda^*u.\lambda^*t.\,
+ \operatorname{back}\bigl(n(x),
+                  \lambda^*q.\,n_\delta\cdot p_\delta\bigr).
+\]
+Its body has type $j_*@x$, so
+$l_*:\operatorname{Ind}(j_*)$.
+
+Finally construct $q_0:Q(\operatorname{WF})$.  Under arbitrary
+$i:\mathsf P_X$, $ex:\operatorname{Ext}(i)$ and
+$t:\operatorname{le}(i,\operatorname{WF})$, the forward direction
+of $w_{ex}$ gives $\operatorname{Ind}(Si)$.  Applying the induction
+builder to the predicate $Si$ therefore gives
+\[
+ b\bigl(Si,\operatorname{ExtS}(i,ex),
+                 \operatorname{to}(w_{ex},t)\bigr):Si@\operatorname{WF}.
+\]
+Here the builder $b$ is instantiated at $Si$, while the displayed
+$w_{ex}$ and the following $s_{ex}$ are the builders for the
+original predicate $i$.  Thus
+\[
+ q_0=\Lambda i.\lambda^*ex.\lambda^*t.\,
+ \operatorname{to}\bigl(s_{ex}(\operatorname{WF}),
+       b(Si,\operatorname{ExtS}(i,ex),
+                        \operatorname{to}(w_{ex},t))\bigr)
+       :Q(\operatorname{WF}).
+\]
+On the other hand,
+$b(j_*,ex_*,l_*):j_*@\operatorname{WF}$, and hence
+\[
+ \operatorname{to}\bigl(n(\operatorname{WF}),
+                      b(j_*,ex_*,l_*)\bigr)
+                  :\neg Q(\operatorname{WF}).
+\]
+The required ambient proof is therefore
+\[
+ \operatorname{to}\bigl(n(\operatorname{WF}),
+                      b(j_*,ex_*,l_*)\bigr)\cdot q_0:\bot.
+\]
+\end{proof}
+
+\begin{remark}[Dependencies and discharged assumptions]
+\label{rel-diagonal-dependencies}
+At the fixed specialization, $i_v$ is defined before its
+response and extensionality proofs; $\delta$ and $S$ are data
+definitions independent of those proofs; $\operatorname{WF}$ uses
+the already defined $i_v$ and $\operatorname{Ind}$; and $Q,j_*$ use
+only the previously defined data operations.  In particular,
+$\operatorname{WF}$ is defined even when $v$ is not responsive.
+Its validity proof uses rounded evaluations and does not assume
+extensionality of the predicates it quantifies over.
+
+The inputs $h,ex,u$ occur only in proof builders.  Every use of
+\eqref{rel-sb-law} or \eqref{rel-shift-predecessor} supplies the
+stated response, extensionality and validity inputs.  Every logical
+quantifier introduced by the displayed tail builders ranges over
+$X$ or $\mathsf P_X$ with its fixed direct-domain annotation.
+After inlining the local builders,
+the proof of Proposition~\ref{rel-contradiction} has no free proof
+or data assumptions beyond the ambient context: $A_0,m_0,ad$ are
+the earlier constructed specialization, and every introduced
+logical assumption has been abstracted or supplied as an argument.
+\end{remark}

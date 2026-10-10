@@ -1,0 +1,107 @@
+\section{Forced occurrence counts}\label{sec:counts}
+
+Delete the empty string, duplicates, and every input string contained in another input string. This preserves the set of common superstrings and its optimum. If nothing remains, output the empty string. Henceforth the remaining instance is nonempty. Let $\Sigma$ be its alphabet and let $V$ be the set of its distinct substrings, including the empty word $\eps$. Thus $V$ is closed under taking substrings, $\len V=O(L^2)$, and every required string is maximal under extension in $V$.
+
+For a finite string $s$, indices start at zero. Write $s[i:j)$ for its substring on the indicated half-open interval. A \emph{periodic text} is a map $A:\ZZ\to\Sigma$ with $A(i+p)=A(i)$ for some positive integer $p$. The period need not be least unless this is specified.
+
+\subsection{Blocking an occurrence}
+
+Fix a text $A$ and a nonempty $s$ such that $A[0:\len s)=s$. For $r\in V$, let $b_{A,s}(r)$ be the number of integers $j$ with
+\[
+1\le j,\qquad j+\len s\le\len r-1,
+\]
+for which $r[j:j+\len s)=s$ and
+\begin{align}
+r(h)&=A(h-j) &&(1\le h\le\len r-2),\label{eq:block-interior}\\
+r(0)&\ne A(-j),\qquad
+r(\len r-1)\ne A(\len r-1-j).\label{eq:block-ends}
+\end{align}
+The word $r$ consists of a matching interval bracketed by one mismatching letter on each side of the specified $s$. Define the linear functional
+\begin{equation}\label{eq:block-functional}
+B_A(s;m)=\sum_{r\in V\setminus\{\eps\}}b_{A,s}(r)m(r).
+\end{equation}
+Only words with $\len r\ge\len s+2$ contribute.
+
+If an occurrence of $s$ in a finite word $T$ is aligned with $A$, its nearest mismatch on each side, when both exist, determines a unique bracketing word $r$. Call the occurrence \emph{blocked} if this word belongs to $V$, and \emph{unblocked} otherwise. In particular, an occurrence with no mismatch on one side is unblocked. When $N_T(r)$ denotes the number of occurrences of $r$ in $T$, uniqueness of the nearest mismatches gives
+\begin{equation}\label{eq:block-count}
+B_A(s;N_T)=\#\{\text{blocked occurrences of }s\text{ in }T\}
+\le N_T(s).
+\end{equation}
+The multiplicity in $b_{A,s}(r)$ is necessary: a single occurrence of $r$ may bracket several distinct occurrences of $s$.
+
+\subsection{The rules}
+
+Construct nonnegative integers $m(s)$ for $s\in V\setminus\{\eps\}$ in decreasing order of length. Missing words have count zero. At each $s$, take the smallest integer satisfying
+\begin{equation}\label{eq:extension-rules}
+m(s)\ge\sum_{c\in\Sigma}m(cs),\qquad
+m(s)\ge\sum_{c\in\Sigma}m(sc),
+\end{equation}
+and $m(s)\ge1$ if $s$ is required. Impose also the following rules for every period-$p$ text $A$, every $v=A[0:\len v)\in V$, and every nonempty prefix $w$ of $v$ with $\len v=\len w+kp$, $k\ge1$:
+\begin{equation}\label{eq:period-rule}
+m(v)>B_A(v;m)
+\quad\Longrightarrow\quad
+m(w)\ge B_A(w;m)+k+1.
+\end{equation}
+All quantities constraining $m(w)$ have already been determined: $v$ is longer than $w$, and every term of either blocking functional is longer than its inner word. Thus these are explicit lower bounds in a descending recursion.
+
+The apparent range over periodic texts is finite for this purpose. In a rule, $p<\len v$, and $A$ is determined by the first $p$ letters of $v$. One may enumerate $v$, $p$, and $k$, check that repetition of the first $p$ letters agrees with $v$, and retain the admissible rules. This includes nonleast periods.
+
+\begin{lemma}[Occurrence lower bound]\label{lem:counts}
+For every common superstring $T$ and every nonempty $s\in V$,
+\[
+m(s)\le N_T(s).
+\]
+Consequently, for
+\begin{equation}\label{eq:W}
+W=\sum_{c\in\Sigma}m(c),
+\end{equation}
+we have $W\le\OPT(\mathcal S)$ and $m(s)\le L$.
+\end{lemma}
+
+\begin{proof}
+Fix $T$ and abbreviate $N_T$ to $N$. Induct on decreasing word length. The counts $N$ satisfy \eqref{eq:extension-rules}: occurrences with different preceding letters are disjoint, as are those with different following letters. They also satisfy the requirement for input strings.
+
+Consider a rule \eqref{eq:period-rule} constraining $m(w)$ whose trigger holds. If $N(v)>B_A(v;N)$, choose an unblocked occurrence of $v$. It contains occurrences of $w$ at offsets $0,p,\ldots,kp$. Each is unblocked. Indeed, because $v$ matches $A$ and the offsets are multiples of $p$, a nearest mismatch bracketing one of these shorter occurrences must lie outside $v$. A blocking word in $V$ for it would therefore also block the chosen occurrence of $v$. The $k+1$ shorter occurrences are distinct, so \eqref{eq:block-count} and induction give
+\[
+N(w)\ge B_A(w;N)+k+1\ge B_A(w;m)+k+1.
+\]
+
+In the other case, \eqref{eq:block-count} implies
+\[
+B_A(v;N)=N(v)\ge m(v)>B_A(v;m).
+\]
+Every difference $N(r)-m(r)$ in this blocking sum is nonnegative by induction. Some contributing word $r$ therefore has $N(r)-m(r)\ge1$. Choose one of its counted placements of $v$. The $k+1$ period-spaced prefixes $w$ within that placement give distinct counted placements of $w$ in the same $r$. Hence $b_{A,w}(r)\ge k+1$. All other terms in the difference of blocking sums are nonnegative, and therefore
+\[
+N(w)\ge B_A(w;N)\ge B_A(w;m)+k+1.
+\]
+Every lower bound used to define $m(w)$ is thus at most $N(w)$, completing the induction.
+
+For an optimal $T$, summing over one-letter words gives $W\le\len T$. For a concatenation of the inputs, $N_T(s)\le\len T\le L$, giving the second assertion.
+\end{proof}
+
+\subsection{The balanced base graph}
+
+The \emph{hierarchical graph} on $V$ has, for each nonempty $s$, an up edge $\pref(s)\to s$ and a down edge $s\to\suf(s)$, where $\pref$ deletes the last letter and $\suf$ deletes the first. The up edge has cost one and the down edge cost zero. Golovnev, Kulikov, and Mihajlin introduced a hierarchical graph for bounded-length inputs~\cite{golovnev2014}; the all-substrings form and these edge costs appear in the Collapsing framework~\cite[Section~2.2]{collapsing2020}. We give every graph property needed here directly.
+
+Give the two edges at $s$ multiplicities
+\begin{equation}\label{eq:base-multiplicities}
+u(s)=m(s)-\sum_c m(cs),\qquad
+d(s)=m(s)-\sum_c m(sc),
+\end{equation}
+respectively. Write $G$ for the resulting directed multigraph, omitting unused edges and vertices.
+
+\begin{lemma}\label{lem:base}
+The graph $G$ is balanced, contains every required string as a used vertex, and has $W$ up edges and $W$ down edges, counted with multiplicity.
+\end{lemma}
+
+\begin{proof}
+The multiplicities are nonnegative by \eqref{eq:extension-rules}. At a nonempty $s$, the incoming and outgoing degrees are, respectively,
+\[
+u(s)+\sum_c d(cs),\qquad d(s)+\sum_c u(sc),
+\]
+and both simplify to $m(s)-\sum_{c,d}m(csd)$. Balance at $\eps$ follows by summing degrees over the other vertices. Telescoping \eqref{eq:base-multiplicities} over all nonempty words gives $\sum_s u(s)=\sum_s d(s)=\sum_c m(c)=W$. Finally, a remaining required string has no proper extension in $V$, so both its edge multiplicities equal its positive count.
+\end{proof}
+
+For example, suppose the only required word is $a^h$, with $h\ge2$. The extension inequalities alone allow $m(a^j)=1$ for $1\le j\le h$. Their base graph is only the two-edge walk between $a^{h-1}$ and $a^h$, with cost $1$. In the constant text $a$, every blocking functional is zero. Applying the period-one rule to $v=a^h$ and $w=a^j$ forces $m(a^j)\ge h-j+1$ for $1\le j<h$; the terminal requirement gives the same bound for $j=h$. The occurrence lower bound gives equality. The resulting graph contains both directions of the entire path from $\eps$ to $a^h$, and $W=h$. Thus the periodicity rules record the repeated letters that the extension inequalities alone miss.
+
+We retain all base edges throughout. Adding closed walks preserves balance. To prove \Cref{thm:main}, it remains to connect every component of $G$ to $\eps$ at additional up cost at most $W$.

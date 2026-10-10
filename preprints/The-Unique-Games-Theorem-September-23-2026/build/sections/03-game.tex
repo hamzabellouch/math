@@ -1,0 +1,361 @@
+\section{The outer questions and the permutation test}
+\label{sec:game}
+
+We now use the latent gadget to construct a permutation instance.  Its
+vertices encode affine tables on tuples of parity equations.  We identify
+two tables exactly when they induce the same affine map on the same retained
+coordinates, including the same intercept.  This common representation will
+allow us to compare an equation tuple with a sparsely projected tuple in
+Section~\ref{sec:matrix}.
+
+\subsection{Weighted parity equations and distinct positions}
+
+A \emph{weighted parity instance} consists of a finite variable set
+\(\mathcal X\), a finite nonempty set \(\mathcal E\) of equation
+occurrences, and positive rational weights \(\omega_e\) summing to one.
+An occurrence is an ordered equation
+\[
+ x_{v_{e,1}}+x_{v_{e,2}}+x_{v_{e,3}}=b_e,
+ \qquad b_e\in\F_2.
+\]
+Its value is the weighted fraction of equations satisfied, and
+\(\OPT(\mathcal E)\) denotes the maximum value.  Different occurrences
+have different IDs even if their ordered equations coincide.
+
+\begin{theorem}[Weighted parity gap]
+\label{thm:parity}
+For every fixed rational \(\xi>0\), there is a deterministic
+polynomial-time reduction from Boolean satisfiability to weighted parity
+instances, with binary-encoded rational weights, such that
+\[
+ \begin{array}{ll}
+ \textup{YES:}&\OPT(\mathcal E)\ge 1-\xi,\\
+ \textup{NO:}&\OPT(\mathcal E)\le \frac12+\xi.
+ \end{array}
+\]
+The running-time polynomial may depend on \(\xi\).
+\end{theorem}
+
+This is the gap consequence of H\aa stad's construction in
+\cite[Theorem~5.4 and its proof]{Hastad01}.  More specifically, the proof
+uses a fixed dyadic verifier error \(\delta>0\), gives completeness
+\(1-\delta\) and soundness \((1+\delta)/2\), and enumerates verifier
+choices as equations with their rational probabilities as weights.
+Choosing \(\delta\le\xi\) gives the displayed statement.  The
+enumeration is a deterministic reduction; the verifier's random choices
+describe the resulting weighted instance.
+
+\begin{lemma}[Making positions distinct]
+\label{lem:distinct-parity}
+From a weighted parity instance \(\mathcal E\) one can deterministically
+construct, in polynomial time, an instance \(\mathcal E'\) in which the
+three variable IDs of every occurrence are distinct.  Its weights are
+positive rationals of polynomial bit length, and
+\[
+ \OPT(\mathcal E')\ge\OPT(\mathcal E),
+ \qquad
+ \OPT(\mathcal E')
+ \le \frac{1+\OPT(\mathcal E)}2+\frac3{100}.
+\]
+In particular, Theorem~\ref{thm:parity} with \(\xi<1/100\), followed by
+this preprocessing, gives completeness at least \(1-\xi\) and NO
+optimum at most \(4/5\).
+\end{lemma}
+
+\begin{proof}
+Replace each variable \(v\) by one hundred clones \((v,c)\),
+\(c\in[100]\).  For each original occurrence, choose its three clones
+uniformly subject to choosing distinct clones whenever positions have
+the same underlying variable.  List all the resulting occurrences and
+give them the corresponding conditional weights.  There are at most
+\(100^3\) choices per original occurrence.  Giving all clones their
+original variable's label proves the completeness assertion.
+
+For the upper bound fix arbitrary clone labels, and let
+\[
+ t_v=\frac1{100}\sum_{c=1}^{100}(-1)^{x_{(v,c)}}.
+\]
+First choose clones independently, without conditioning on distinctness.
+The satisfaction probability of occurrence \(e\) is
+\[
+ \frac{1+(-1)^{b_e}t_{v_{e,1}}t_{v_{e,2}}t_{v_{e,3}}}{2}.
+\]
+Round each bias to a majority label, resolving zero biases arbitrarily.
+For every equation violated by this rounded assignment, the signed
+product in the numerator is nonpositive, so its satisfaction probability
+is at most \(1/2\).  The other equations have probability at most one.
+The weighted mean is therefore at most
+\((1+\OPT(\mathcal E))/2\).  The probability of a forbidden collision
+among the independently chosen clones is at most \(3/100\), by a union
+bound over the three pairs of positions.  Conditioning on its complement
+changes the expectation of any \([0,1]\)-valued function by at most
+\(3/100\).  This proves the bound.  All conditional probabilities have
+constant-size denominators apart from their original occurrence weights.
+\end{proof}
+
+For the rest of the construction, \(\mathcal E\) denotes the
+preprocessed instance, so every equation has three distinct variable
+IDs.  Its \emph{ordinary equation-versus-variable game} samples
+\(e\) according to \(\omega\) and \(j\) uniformly from \([3]\).
+The first prover receives the occurrence ID \(e\) and answers with a
+satisfying triple for that equation; the second receives the variable ID
+\(v_{e,j}\) and answers with a bit.  Acceptance means equality at
+position \(j\).  Because the IDs within an equation are distinct,
+the question pair determines the projection constraint.
+
+For any second-prover strategy, its bits constitute a global assignment.
+On an equation violated by that assignment, every valid first-prover
+answer disagrees in at least one position.  Hence this ordinary
+projection game, denoted \(G_{\mathcal E}\), satisfies
+\begin{equation}
+ \val(G_{\mathcal E})
+ \le 1-\frac{1-\OPT(\mathcal E)}3
+ \le \frac{14}{15}
+ \quad\text{if }\OPT(\mathcal E)\le\frac45.
+ \label{eq:base-game-gap}
+\end{equation}
+The answer alphabets have sizes four and two, respectively.
+
+\subsection{Tuples, local answer copies, and homogeneous coordinates}
+
+Fix a positive integer \(k\).  An equation question
+\(U=(e_1,\ldots,e_k)\) is sampled from \(\omega^{\otimes k}\), with
+replacement.  Its answer space is the product of the \(k\) affine
+solution planes.  Blocks always use local copies: even if the same
+equation or variable ID appears in several blocks, their local answers
+are separate coordinates.
+
+For a parameter \(0<\beta<1\), independently in every block either
+retain the equation, with probability \(1-\beta\), or retain just the
+variable ID at a uniformly chosen position, with probability \(\beta\).
+The resulting question is denoted \(O\), and \(\pi\) is the
+coordinate projection from answers on \(U\) to answers on \(O\).
+The question \(O\) records an equation ID or a variable ID at every
+ordered block position.  A singleton block accepts either bit.
+
+Represent an equation answer by its first two bits \((x_i,y_i)\);
+the third is \(b_{e_i}+x_i+y_i\).  A singleton is represented by its
+actual bit.  Add a common homogeneous coordinate \(t_0\).  Thus
+\[
+ L_U=\F_2^{1+2k},\qquad m=1+2k,
+\]
+and \(L_O\) has one homogeneous coordinate, two coordinates for each
+retained equation, and one for each singleton.  In either space, vectors
+whose first coordinate is one are exactly valid answers.  Write
+\(e_0^\top\) for the functional reading that coordinate.
+
+The affine projection \(\pi\) extends to a linear surjection
+\(\bar\pi:L_U\to L_O\) preserving \(t_0\).  On retained equation
+blocks it is the identity, and on a block projected to a singleton its
+coordinate is
+\begin{equation}
+ \begin{cases}
+ x_i,&\text{position }1,\\
+ y_i,&\text{position }2,\\
+ b_{e_i}t_0+x_i+y_i,&\text{position }3.
+ \end{cases}
+ \label{eq:outer-projection}
+\end{equation}
+We call every map obtained by these blockwise choices a \emph{permitted
+projection}; this class of maps is independent of \(\beta\).
+Surjectivity follows by fixing \(t_0\) and choosing coordinates
+independently in each block.  We use the same conventions for questions
+with some blocks omitted.
+
+\subsection{Exact table keys and folding}
+
+The identification of tables across projected questions follows the
+virtual-table approach of Khot--Safra~\cite[Section~1.1]{KS13}.
+We first express each table on the coordinates through which it factors.
+This will give the same representation to a projected table and its
+pullback.
+
+Fix latent data \((\mathcal V,K,C,\mu)\) from
+Lemma~\ref{lem:latent}, where \(K=\F_2^\ell\), and fix a linear
+complement \(\mathcal V=K\oplus W\).  A \emph{table} on a question
+\(Q\) is an affine map from its answer space to \(\mathcal V\), or
+equivalently its unique linear extension
+\(P\in\Hom(L_Q,\mathcal V)\).  Here \(Q\) may be an equation
+question or one of its permitted projections, and the same definition
+applies to a question with omitted blocks.  Write \(c\) for the
+coefficient of the homogeneous coordinate \(t_0\) in \(P\).
+
+In an equation block, inspect the rank of its slope map
+\(\F_2^2\to\mathcal V\), whose contribution we write as
+\(a_i x_i+d_i y_i\).  If its rank is two, retain the equation
+occurrence and this contribution.  If its rank is zero, omit the block.
+In the remaining case the rank is one, so the coefficients have exactly
+one of the forms
+\[
+ (a_i,d_i)=(v,0),\quad (0,v),\quad (v,v),
+ \qquad v\ne0.
+\]
+These forms retain only the variable at position one, two, or three,
+respectively, with contribution \(v z_i\) in its actual bit \(z_i\).
+For the third form,
+\[
+ v(x_i+y_i)=v z_i+b_{e_i}v t_0,
+ \qquad z_i=b_{e_i}t_0+x_i+y_i,
+\]
+so this replacement also adds \(b_{e_i}v\) to the homogeneous
+intercept.  In a singleton block, retain its variable ID and its original
+contribution exactly when its slope is nonzero; otherwise omit the block.
+
+The retained blocks form the \emph{support} of \((Q,P)\).  They keep
+their indices in \([k]\), their equation/variable tags, and their IDs.
+A retained equation keeps its ordered first two coordinates, and a retained
+singleton uses its actual-bit coordinate.  Thus repeated IDs in different
+blocks still have separate local coordinates.  The support may be empty;
+its homogeneous coordinate remains in every case.
+
+Let \(J_3\) be the set of equation blocks reduced to their third bit,
+and write \(v_i\) for the nonzero slope in such a block.  The
+\emph{reduced table} \(\widetilde P\) on the support has the retained
+block contributions specified above and homogeneous intercept
+\begin{equation}
+ \widetilde c=c+\sum_{i\in J_3} b_{e_i}v_i.
+ \label{eq:reduced-table-intercept}
+\end{equation}
+To check the complete table, let \(L_{\rm supp}\) be the homogeneous
+answer space of the support and let
+\(\rho_{Q,P}:L_Q\to L_{\rm supp}\) retain \(t_0\) and the
+specified block coordinates.  It is the identity on retained equations
+and on retained singleton blocks already present in \(Q\), uses the
+corresponding actual-bit coordinate from
+Equation~\eqref{eq:outer-projection} on a reduced equation, and discards
+omitted blocks.  Choosing the coordinates independently in each
+block shows that \(\rho_{Q,P}\) is surjective.  The block identities
+and Equation~\eqref{eq:reduced-table-intercept} give
+\[
+ P=\widetilde P\rho_{Q,P}.
+\]
+Surjectivity makes \(\widetilde P\) the unique linear map with this
+factorization.  We define the \emph{key} of \((Q,P)\) to be its
+support together with this entire reduced table.  Thus two tables have
+the same key exactly when their retained coordinates agree, with the same
+positions, tags, and IDs, and their induced affine maps agree on those
+coordinates, including their intercepts.
+
+We next check compatibility with every permitted projection
+\(\bar\pi:L_U\to L_O\).  Let
+\(P'\in\Hom(L_O,\mathcal V)\).  An equation retained in \(O\)
+has the same contribution in \(P'\) and its pullback \(P'\bar\pi\),
+so its reduction is identical.  A singleton of slope zero disappears on
+both sides.  A singleton of nonzero slope \(v\) pulls back to the
+corresponding one of the three rank-one patterns above, which reduces to
+the same variable ID at the same block position.  For a third-position
+singleton, the pullback adds \(b_{e_i}v\) to the intercept, and its
+reduction adds \(b_{e_i}v\) once more.  The two terms cancel over
+\(\F_2\).  All other intercept corrections come from retained equation
+blocks and are identical on the two sides.  The supports and complete
+reduced tables therefore agree: \((U,P'\bar\pi)\) and \((O,P')\)
+have the same key.
+
+Define the key universe to consist of the keys of all tables on equation
+questions \(U\in\mathcal E^k\).  The compatibility just proved shows
+that the key of every table on a permitted projected question already
+belongs to this universe, by pullback from any compatible \(U\).
+
+We now apply the folding principle of Bellare, Goldreich, and
+Sudan~\cite[Section~3.3]{BGS98}: values on one representative determine
+the values on its translates.  Adding a constant \(h\in K\) to a key
+means adding \(h\) to its reduced intercept, leaving its support and
+slopes fixed.  This is realized by replacing a presenting table \(P\)
+with \(P+h e_0^\top\), so it preserves the key universe.  The action
+is free because the key records the intercept.  A vertex of our
+permutation instance is an orbit of this action, represented by its unique
+key whose reduced intercept has zero \(K\) component.
+
+For a table \(P\) on an equation question or a permitted projected
+question \(Q\), let \(c(Q,P)\in K\) be the \(K\) component of
+its key's reduced intercept.  Let \(v(Q,P)\) denote the orbit vertex
+represented by the key obtained after removing this component.
+A labeling \(\lambda\) of the vertices defines the restored table answer
+\[
+ F_Q(P)=\lambda(v(Q,P))+c(Q,P).
+\]
+Adding a constant changes only the removed component, so
+\begin{equation}
+ F_Q(P+h e_0^\top)=F_Q(P)+h
+ \qquad(h\in K).
+ \label{eq:table-folding}
+\end{equation}
+Tables with the same key have the same representative and removed
+component.  The pullback compatibility therefore gives, for every
+permitted \(U,O,\bar\pi\) and every table \(P'\) on \(O\),
+\begin{equation}
+ F_U(P'\bar\pi)=F_O(P').
+ \label{eq:key-sharing}
+\end{equation}
+Projected questions thus use answers determined by the same vertex
+labeling, without an additional consistency test.
+
+\subsection{The latent matrix test and completeness}
+
+The permutation instance, denoted \(\mathcal G\), samples independently
+\[
+ U\sim\omega^{\otimes k},\qquad
+ P\text{ uniform in }\Hom(L_U,\mathcal V),\qquad
+ a\sim\mu,\qquad l\text{ uniform in }\F_2^m,
+\]
+and checks
+\begin{equation}
+ F_U(P)=F_U(P+a l^\top).
+ \label{eq:matrix-test}
+\end{equation}
+Here \(a l^\top\) denotes the map \(z\mapsto a(l^\top z)\).
+Each sample specifies an edge between the two key-orbit vertices.  If
+their restored offsets are \(c_0,c_1\), its constraint is the
+permutation
+\[
+ \lambda(v_1)=\lambda(v_0)+c_0+c_1
+\]
+of the fixed alphabet \(K\).  Edge occurrences have their sampling
+probabilities as weights.  At this stage loops and repeated edges are
+allowed.  The sparse projection experiment involving \(O\) is used to
+analyze these same vertex labels; it is not an additional test in
+\(\mathcal G\).
+
+\begin{lemma}[Completeness of the outer matrix test]
+\label{lem:outer-completeness}
+If \(\mathcal E\) has an assignment of value at least \(1-\xi\), and
+the latent map satisfies
+\[
+ \Pr_{x\text{ uniform in }\mathcal V,\ a\sim\mu}
+       [C(x+a)\ne C(x)]\le p_*,
+\]
+then
+\[
+ \val(\mathcal G)\ge 1-k\xi-\frac{p_*}{2}.
+\]
+\end{lemma}
+
+\begin{proof}
+Fix the near-satisfying global bit assignment.  Give every reduced
+support a valid answer as follows.  At a singleton use its global bit.
+At a retained equation use its first two global bits and set the third
+to the unique value satisfying the equation.  These choices depend only
+on the support, including its occurrence IDs, and therefore define an
+answer for every exact key independently of its origin.
+
+At an orbit representative, evaluate its reduced table on this answer
+and apply \(C\).  This defines a vertex labeling.  The equivariance of
+\(C\) under \(K\) implies that its restored answer is evaluation of
+the actual reduced table followed by \(C\), in agreement with
+Equation~\eqref{eq:table-folding}.
+
+With probability at least \(1-k\xi\), every equation in \(U\) is
+satisfied by the global assignment.  On such a tuple, the support
+answers used for \emph{every} table are projections of the same full
+answer \(z_U\in L_U\), whose first coordinate is one.  Consequently
+the two sides of Equation~\eqref{eq:matrix-test} are
+\[
+ C(Pz_U)\quad\text{and}\quad
+ C(Pz_U+a(l^\top z_U)).
+\]
+Since \(z_U\ne0\), the vector \(Pz_U\) is uniform in
+\(\mathcal V\), independently of \(a,l\), and \(l^\top z_U\) is
+an independent fair bit.  The test therefore fails with probability at
+most \(p_*/2\) on these tuples.  Adding the probability of a tuple
+containing an unsatisfied equation proves the bound.
+\end{proof}

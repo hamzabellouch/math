@@ -1,0 +1,148 @@
+\section{The transition model and resource parameters}\label{sec:model}
+
+We first express acceptance probability as a finite matrix inverse.
+Time labels make the transition matrix nilpotent; keeping the complete
+configuration at each vertex gives local access in both directions.
+The construction will use the resulting probability vector at every
+configuration, as well as its value at the designated start.
+
+A matrix indexed by a finite set $V$ is \emph{strictly forward} if
+there is an integer time attached to every vertex and every nonzero
+entry goes to a strictly later time. It is \emph{substochastic} if its
+entries are nonnegative and each row sums to at most one. An edge is
+specified by a vertex and a port from a fixed finite set. A \emph{paired}
+edge operation returns the other endpoint together with its inverse
+port; applying the inverse operation restores the first endpoint.
+Absent ports are explicitly recognized.
+
+\begin{lemma}[Configuration reduction]\label{lem:model-reduction}
+Fix a polynomial-time randomized machine using $O(\log(n+2))$ work
+space. On an input of length $n$ one can specify, uniformly in
+logarithmic space, a polynomial-size vertex set $V_0$, a strictly
+forward substochastic matrix $S$, a vector
+$e\in\{0,1\}^{V_0}$, and a start vertex $x_0$ with the following
+properties.
+\begin{enumerate}
+\item The incoming and outgoing port degrees of $S$ are bounded by
+constants depending only on the machine. Port validity, edge weights,
+and pairing are computable in logarithmic space.
+\item The vector $p_0=(I-S)^{-1}e$ is well defined and belongs to
+$[0,1]^{V_0}$.
+\item The coordinate $p_0(x_0)$ is the acceptance probability of
+the machine.
+\end{enumerate}
+In particular, an $\RL$ computation gives the promise
+$p_0(x_0)=0$ or $p_0(x_0)\ge1/2$.
+\end{lemma}
+
+\begin{proof}
+Let $T(n)$ be a fixed polynomial upper bound on the running time.
+A vertex records a time in $\{0,\ldots,T(n)\}$, the finite control,
+all input and work head positions, and the contents of a sufficiently
+large box of $O(\log(n+2))$ work cells. Take elementary machine steps
+with fixed dyadic coin probabilities. A transition advances the time
+by one. Invalid configurations or moves leaving the box have no
+corresponding transition. The box is chosen large enough that this
+never affects a computation from the specified start.
+
+Each elementary step has constantly many successor choices.
+To find predecessors, guess the old finite control, locally overwritten
+symbols, head movements, and coin choice, then check that the forward
+step gives the specified configuration. There are constantly many such
+guesses. Combine transitions with the same ordered pair of endpoints
+by adding their probabilities. Order the distinct successors and
+predecessors by their configuration encodings; their positions give
+paired ports for the resulting matrix entries. These lists have
+constant length, so duplicate removal, summed weights, and the inverse
+port are computed in logarithmic space by local enumeration. This
+base computation makes no recursive graph queries. All records use
+$O(\log(n+2))$ bits, and the read-only input can be consulted during
+these checks.
+
+All input-head coordinates in the vertex universe are restricted to a
+fixed polynomial interval containing the positions reachable within
+$T(n)$ local steps from their specified initial positions. Configurations
+and predecessor candidates outside that interval are invalid. To obtain
+a simulated head's scanned symbol, compare its stored coordinate with
+the input boundaries, supply any required endmarker or off-data blank
+according to the source tape convention, and otherwise scan the real
+endmarked input to the designated position using a logarithmic-space
+counter. A position forbidden by the source tape convention remains
+invalid. The physical scan stays between the real endmarkers, even when
+a valid simulated coordinate is outside the data. This routine makes
+no recursive graph query.
+
+An already halted computation keeps its complete tape and head data
+while its time advances. In particular, halted configurations are not
+merged into a single vertex. Let $e$ be one precisely at accepting
+configurations at time $T(n)$, and zero elsewhere. Final-time rows
+have no outgoing transitions. Thus $S$ is strictly forward and
+substochastic, and it is nilpotent. Its inverse expression is the finite
+sum
+\[
+(I-S)^{-1}e=\sum_{j=0}^{T(n)}S^je.
+\]
+Starting from any valid configuration, at most one reward can be
+collected, at final time. The sum is therefore a probability in
+$[0,1]$. At $x_0$ it is exactly the machine's acceptance probability.
+\end{proof}
+
+The coordinatewise bound on $p_0$ will be used after weighted projections
+to larger vertex sets.  It holds at every configuration, independently
+of the acceptance probability at the designated start.  Thus the matrix
+construction and the probability approximation below apply to arbitrary
+randomized computations satisfying the resource bounds.
+
+\paragraph{Size convention.}
+Fix an integer parameter $B$, a power of two, comparable with
+$\log_2(n+2)$ and at least a sufficiently large fixed constant.
+For example, take the least power of two at least the maximum of that
+constant and $\lceil\log_2(n+2)\rceil$.  This choice is computable in
+logarithmic space and includes all bounded input lengths in the same
+construction. All constants throughout the
+construction are independent of the input; they may depend on the fixed
+machine and, for fixed inverse-polynomial accuracy, its fixed exponent.
+The uniform precision parameter of Theorem~\ref{thm:probability} is
+handled separately by padding. The number of stages is $L=O(B)$. At stage $l$, a vertex has
+a base identifier followed by $l$ symbols from a fixed radix $D_0$.
+The radix will be selected by the hierarchy. Encode each base vertex by
+a fixed-width radix-$D_0$ word and prepend the digit $1$; unused base
+words are invalid. Appending one copy digit at each stage gives
+injective numerical identifiers even across different stage lengths.
+Indeed, a base width $w$ places stage-$l$ identifiers in
+$[D_0^{w+l},2D_0^{w+l})$, and these intervals are disjoint.
+Appending a fixed suffix is an affine map on identifiers.
+
+Every stage has size at most a common bound
+\[
+N=2^{C_NB}.
+\]
+We may increase the fixed constant $C_N$ as needed. This is a bound on
+one stage, not a claim that there are only $N$ pairs of vertices.
+Integrated entry errors below carry a factor $1/N$ while summing over
+both endpoints.
+
+Fix integers $H\ge4$ and $2\le h_0<H$, and put
+\[
+b_k=2^{-Hk}\qquad(k\ge0).
+\]
+These are the nominal sampling rates. Stage $l$ will have density
+$f=b_l$. The stochastic tables will use rates from this same grid
+for their source and terminal retention tests. The error power in
+the later analysis is always $s=8$.
+
+\paragraph{Uniform constants and finite ranges.}
+All thresholds needed by the algorithm can be chosen rational, with
+fixed gaps, and all discrete constants can be chosen integer. We
+first prove estimates with constants uniform in the ambient finite
+universe. The sampling construction applies to every finite range of
+identifiers and rates once its prime field is sufficiently large.
+The hierarchy uses $O(B)$ copy digits and rates with $k=O(B)$;
+Section~\ref{subsec:final-constants} will verify this rate bound also
+for the recursive estimator and give a compatible order of constant
+choices.
+
+We can then take the prime field to have size $2^{O(B)}$, with its
+exponent chosen after these constants. Its elements and all identifiers
+occupy $O(B)$ bits. Increasing that exponent does not change the
+probabilistic constants proved in the next section.

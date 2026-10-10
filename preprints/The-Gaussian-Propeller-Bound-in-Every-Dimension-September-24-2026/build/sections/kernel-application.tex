@@ -1,0 +1,506 @@
+\section{A kernel-clustering application}\label{kc:section}
+
+\subsection{The objective and the approximation threshold}
+
+This application uses Theorem~\ref{thm:main},
+the kernel-clustering results of Khot and Naor, and the companion paper
+\emph{The Unique Games Theorem}. None of these complexity arguments is used
+in the proof of the Gaussian inequality.
+
+Fix an integer \(k\ge3\). An input is an explicitly represented rational
+symmetric matrix \(A=(a_{pq})_{p,q=1}^N\) satisfying
+\(A\succeq0\) and \(A\one=0\). The latter is the centering condition;
+for a positive semidefinite matrix it is equivalent to
+\(\sum_{p,q}a_{pq}=0\). For a map \(\sigma:[N]\to[k]\), define
+\begin{equation}\label{kc:value}
+ \val_A(\sigma)=\sum_{p,q=1}^N a_{pq}\one_{\{\sigma(p)=\sigma(q)\}},
+ \qquad
+ \Clust(A\mid I_k)=\max_{\sigma:[N]\to[k]}\val_A(\sigma).
+\end{equation}
+Here \([m]=\{1,\ldots,m\}\), and \(I_k\) is the \(k\)-by-\(k\)
+identity target matrix. The sum is over ordered pairs and includes the
+diagonal. Equivalently, it is
+\(\sum_{i=1}^k\sum_{p,q\in S_i}a_{pq}\) for the cells
+\(S_i=\sigma^{-1}(i)\); empty cells are allowed. There is no
+normalization by cell cardinalities. Each objective value is nonnegative,
+since it is a sum of quadratic forms \(\one_{S_i}^{\mathsf T}A\one_{S_i}\).
+
+A deterministic approximation with \emph{loss factor} \(\alpha\ge1\)
+returns an assignment of value at least
+\(\Clust(A\mid I_k)/\alpha\). An expected approximation has the same
+inequality with the returned value replaced by its expectation.
+Put
+\[
+ c_*=\frac9{8\pi},
+ \qquad
+ \alpha_k=\frac{1-1/k}{c_*}
+          =\frac{8\pi}{9}\left(1-\frac1k\right).
+\]
+
+\paragraph{The matching rounding constant.}
+Khot and Naor's approximation theorem
+\cite[Theorem~2.1]{KhotNaor}
+gives the expected rounding bound
+\[
+ \E\val_A(\sigma)\ge\frac{\Clust(A\mid I_k)}{\alpha_k}
+\]
+on the inputs in \eqref{kc:value}. This is their endpoint analytic
+guarantee using an optimal semidefinite relaxation and ideal Gaussian
+sampling. We quote this rounding guarantee separately from the
+rational-input hardness statement below; an exact finite-bit
+implementation at the endpoint is not asserted here.
+
+\begin{theorem}[Kernel-clustering hardness]\label{kc:main}
+For each fixed \(k\ge3\) and every fixed
+\(1\le\alpha<\alpha_k\), it is NP-hard, given a rational symmetric
+matrix \(A\succeq0\) with \(A\one=0\) and the identity-target
+objective \eqref{kc:value}, to find
+\(\sigma:[N]\to[k]\) such that
+\[
+ \val_A(\sigma)\ge\Clust(A\mid I_k)/\alpha.
+\]
+In particular, such a deterministic polynomial-time approximation
+would imply \(\mathrm P=\mathrm{NP}\).
+\end{theorem}
+
+We prove the hardness statement below. It concerns strict improvement
+over \(\alpha_k\), not hardness at the endpoint.
+
+For the more general objective $\sum_{p,q}a_{pq}b_{\sigma(p)\sigma(q)}$
+with a fixed positive semidefinite target matrix $B=(b_{ij})_{i,j=1}^k$,
+Khot and Naor later characterized the Unique Games hardness threshold
+for approximating the optimal clustering value through geometric and
+Gaussian partition parameters
+\cite[Theorem~1.1]{KhotNaorSharp}. Here the target is $I_k$, and the
+Gaussian constant is supplied by Theorem~\ref{thm:main}.
+
+\subsection{The two external hardness inputs}
+
+The Gaussian parameter in Khot and Naor's theorem is
+\[
+ C_k:=\sup_{(B_1,\ldots,B_k)}
+ \sum_{i=1}^k
+ \left\|\int_{B_i}x\,d\gamma_{k-1}(x)\right\|^2.
+\]
+The supremum ranges over measurable partitions of \(\R^{k-1}\),
+with empty cells allowed. Since \(k\ge3\),
+Theorem~\ref{thm:main} and the attaining example in
+Section~\ref{sec:example} give
+\begin{equation}\label{kc:gaussian-constant}
+ C_k=c_*.
+\end{equation}
+
+We first specify the discrete analytic input. Let \(\Omega=[k]\) have
+uniform probability measure. Choose a real orthonormal basis
+\(b_0,b_1,\ldots,b_{k-1}\) of functions on \(\Omega\), with \(b_0=1\).
+For \(r\in\N\) and \(\nu\in\{0,\ldots,k-1\}^r\), write
+\[
+ b_\nu(x)=\prod_{j=1}^r b_{\nu_j}(x_j),
+ \qquad
+ |\nu|=\bigl|\{j:\nu_j\ne0\}\bigr|.
+\]
+Every \(h:\Omega^r\to\R\) has expansion
+\(h=\sum_\nu\widehat h(\nu)b_\nu\), with coefficients computed using
+uniform probability measure. For real \(D\ge0\), set
+\begin{equation}\label{kc:influence}
+ \Inf_j^{\le D}(h)=
+ \sum_{\substack{|\nu|\le D\\\nu_j\ne0}}\widehat h(\nu)^2.
+\end{equation}
+Thus a nonintegral cutoff is interpreted by the displayed inequality
+on the integer \(|\nu|\). Let \(P_1\) be orthogonal projection onto
+the span of \(b_\nu\) with \(|\nu|=1\), and, for
+\(f=(f_1,\ldots,f_k)\), put
+\[
+ \OBJ(f)=\sum_{i=1}^k\|P_1f_i\|_2^2.
+\]
+All \(L_2\) norms in this section use uniform probability measure.
+Define the closed simplex with slack by
+\[
+ \Delta_k=\{u\in\R^k:u_i\ge0,\ \sum_{i=1}^k u_i\le1\}.
+\]
+
+\begin{theorem}[Khot--Naor low-influence bound]\label{kc:kn-input}
+For fixed \(k\) and every \(\eta>0\), there exists \(0<\tau_0<1/2\),
+independent of \(r\), such that every \(r\in\N\) and every
+\(f:\Omega^r\to\Delta_k\) satisfying
+\[
+ \Inf_j^{\le\log(1/\tau_0)}(f_i)\le\tau_0
+ \quad(i\in[k],\ j\in[r])
+\]
+obey \(\OBJ(f)\le C_k+\eta\).
+\end{theorem}
+
+This is \cite[Theorem~3.8]{KhotNaor}, with the same uniform product
+measure, Fourier degree, simplex, and Gaussian normalization. Its proof
+uses the invariance principle of Mossel, O'Donnell, and
+Oleszkiewicz~\cite{MOO} to compare low-influence functions on product
+spaces with their Gaussian counterparts.
+The restriction \(\tau_0<1/2\) is harmless: decreasing the threshold
+and increasing the degree cutoff strengthen the hypotheses.
+Choose a rational \(0<\tau<\min\{\tau_0,1/2\}\) and set
+\begin{equation}\label{kc:cutoff}
+ D=\max\{1,\lceil\log(1/\tau)\rceil\}.
+\end{equation}
+Monotonicity of \eqref{kc:influence} in the cutoff gives the useful
+contrapositive
+\begin{equation}\label{kc:contrapositive}
+ \OBJ(f)>C_k+\eta
+ \quad\Longrightarrow\quad
+ \Inf_j^{\le D}(f_i)>\tau
+ \text{ for some }i\in[k],\ j\in[r].
+\end{equation}
+Indeed, if every influence at cutoff \(D\) were at most \(\tau\),
+every influence at the original cutoff would be at most \(\tau_0\).
+
+The second input is the following exact interface of
+\cite[Theorem~1.1]{UniqueGamesTheorem}.
+
+\begin{theorem}[Unique Games input]\label{kc:ug-input}
+For every fixed \(\varepsilon,\delta\in(0,1/2)\), there are an
+integer \(s\ge1\) and a deterministic polynomial-time reduction
+from \(\mathrm{3SAT}\) to explicit unweighted simple bipartite
+Unique Games instances over \(\mathbb F_2^s\). If the formula is
+satisfiable the game has a labeling satisfying at least
+\(1-\varepsilon\) of its edges; if it is unsatisfiable every
+labeling satisfies at most \(\delta\) of its edges. The edge set
+is nonempty and each constraint is a translation of the alphabet.
+The alphabet size and the polynomial's degree and constants depend
+only on \(\varepsilon,\delta\).
+\end{theorem}
+
+Only ordinary satisfied-edge fractions are asserted here. We will
+use neither regularity nor the stronger condition that almost every
+left vertex has all its incident constraints satisfied.
+
+\subsection{A rational centered positive semidefinite matrix}
+
+Let \(G=(V,W,E)\) be a game supplied by
+Theorem~\ref{kc:ug-input}, and enumerate its alphabet as
+\([r]\), where \(r=2^s\). Reorient constraints if necessary so that
+the permutation \(\pi_{vw}:[r]\to[r]\) attached to \(vw\in E\)
+is satisfied precisely when
+\[
+ \ell(v)=\pi_{vw}(\ell(w)).
+\]
+Translations are permutations, so this changes no game value.
+Delete isolated vertices, put \(M=|E|\), and write
+\[
+ d_v=|N(v)|,\qquad \mu(v)=\frac{d_v}{M}\quad(v\in V).
+\]
+Choosing \(v\) with probability \(\mu(v)\), then a uniform
+\(w\in N(v)\), chooses an edge uniformly.
+
+To fix the permutation convention, for a permutation \(\pi\) define
+\[
+ (R_\pi x)_a=x_{\pi(a)}\quad(a\in[r]).
+\]
+For a scalar table \(h:W\times\Omega^r\to\R\), define
+\begin{equation}\label{kc:averaging}
+ (T_vh)(x)=\frac1{d_v}
+       \sum_{w\in N(v)}h(w,R_{\pi_{vw}}x),
+ \qquad
+ Q(h)=\sum_{v\in V}\mu(v)\|P_1T_vh\|_2^2 .
+\end{equation}
+The output matrix will represent \(Q\) in the ordinary,
+unnormalized Euclidean coordinates of the table \(h\).
+
+\begin{lemma}\label{kc:matrix}
+For fixed \(k,r\), one can construct in deterministic polynomial
+time a rational symmetric matrix \(A\), indexed by
+\(W\times\Omega^r\), such that
+\[
+ h^{\mathsf T}Ah=Q(h),\qquad A\succeq0,\qquad A\one=0 .
+\]
+For every \(\sigma:W\times\Omega^r\to[k]\), if
+\(F_i(w,x)=\one_{\{\sigma(w,x)=i\}}\), then
+\begin{equation}\label{kc:objective-identity}
+ \val_A(\sigma)=
+ \sum_{v\in V}\mu(v)\OBJ(F_v),\qquad
+ F_v=(T_vF_1,\ldots,T_vF_k):\Omega^r\to\Delta_k.
+\end{equation}
+All output assignment values lie in \([0,1]\).
+\end{lemma}
+
+\begin{proof}
+Put \(q=k^r\). The projection \(P_1\), written as a matrix acting
+on the counting-coordinate vector \((h(x))_{x\in\Omega^r}\), is
+\begin{equation}\label{kc:projection-matrix}
+ (P_1)_{x,y}=\frac1q
+       \sum_{j=1}^r\bigl(k\one_{\{x_j=y_j\}}-1\bigr).
+\end{equation}
+To see this, the centered subspaces of functions of distinct
+individual coordinates are mutually orthogonal. Hence
+\[
+ (P_1h)(x)=
+ \sum_{j=1}^r\bigl(\E[h(X)\mid X_j=x_j]-\E h(X)\bigr),
+\]
+which is \eqref{kc:projection-matrix}.
+This matrix is rational, symmetric and idempotent.
+The counting-coordinate matrix of \(T_v\) has entries
+\[
+ (T_v)_{x,(w,y)}
+ =\frac1{d_v}\one_{\{w\in N(v)\}}
+           \one_{\{y=R_{\pi_{vw}}x\}} .
+\]
+Define
+\begin{equation}\label{kc:matrix-formula}
+ A=\frac1q\sum_{v\in V}\mu(v)T_v^{\mathsf T}P_1T_v.
+\end{equation}
+There are two factors \(q^{-1}\): one in
+\eqref{kc:projection-matrix}, and one outside the sum in
+\eqref{kc:matrix-formula} because \(L_2\) uses probability
+measure. Symmetry and \(P_1^2=P_1\) give
+\[
+ h^{\mathsf T}Ah
+ =\sum_v\mu(v)\frac1q\|P_1T_vh\|_{\ell_2}^2=Q(h)\ge0.
+\]
+Also \(T_v\one=\one\) and \(P_1\one=0\), so
+\eqref{kc:matrix-formula} gives \(A\one=0\).
+
+There are \(N=|W|k^r\) output indices. For fixed \(k,r\) this is
+polynomial in the explicit game size, and the dense matrix can be
+computed by rational arithmetic in polynomial time. Its entries
+are sums of terms with denominators dividing
+\(M d_v q^2\). A common denominator divides
+\(M q^2\prod_{v\in V}d_v\), whose bit length is
+\(O(\log M+\sum_v\log d_v+\log q)\), and the numerators also
+have polynomial bit length. No irrational Fourier basis needs
+to be constructed.
+
+By definition of the ordered sum,
+\(\val_A(\sigma)=\sum_iF_i^{\mathsf T}AF_i\); inserting
+\eqref{kc:averaging} proves \eqref{kc:objective-identity}.
+Every \(F_v(x)\) is an average of coordinate unit vectors, so
+its entries are nonnegative and sum to one. Parseval and
+orthogonal projection give
+\begin{equation}\label{kc:objective-bound}
+ 0\le\OBJ(F_v)
+ \le\sum_{i=1}^k\|F_{v,i}\|_2^2
+ \le\E\sum_{i=1}^k F_{v,i}=1.
+\end{equation}
+Since \(\sum_v\mu(v)=1\), the last claim follows.
+\end{proof}
+
+\subsection{Completeness and weighted decoding}
+
+The next two lemmas compare ordinary edge-value completeness and
+soundness with the kernel objective. They adapt the
+Khot--Naor reduction \cite[Section~3.3]{KhotNaor} to the precise
+input of Theorem~\ref{kc:ug-input}.
+
+\begin{lemma}[Completeness]\label{kc:completeness}
+If a labeling of \(G\) satisfies at least \(1-\varepsilon\) of
+its edges, then the matrix of Lemma~\ref{kc:matrix} satisfies
+\[
+ \Clust(A\mid I_k)\ge
+       \left(1-\frac1k\right)(1-\varepsilon)^2.
+\]
+\end{lemma}
+\begin{proof}
+Use a witnessing labeling \(\ell\) to set
+\(\sigma(w,x)=x_{\ell(w)}\).
+For \(j\in[r]\), let \(D_j(x)=e_{x_j}\), where
+\(e_1,\ldots,e_k\) are the coordinate unit vectors in \(\R^k\).
+With
+\[
+ p_{v,j}=
+ \Pr_{w\in N(v)}\{\pi_{vw}(\ell(w))=j\},
+\]
+the chosen permutation convention gives
+\(F_v=\sum_{j=1}^r p_{v,j}D_j\).
+For each \(i\), the level-one part of the \(i\)-th component of
+\(D_j\) is \(\one_{\{x_j=i\}}-1/k\). These parts for different
+\(j\)'s are orthogonal. Moreover,
+\[
+ \sum_{i=1}^k
+ \E\bigl(\one_{\{X_j=i\}}-1/k\bigr)^2=1-\frac1k.
+\]
+It follows that
+\[
+ \OBJ(F_v)=
+ \left(1-\frac1k\right)\sum_{j=1}^r p_{v,j}^2
+ \ge \left(1-\frac1k\right)p_{v,\ell(v)}^2.
+\]
+The weighted mean \(\E_{v\sim\mu}p_{v,\ell(v)}\) is exactly
+the satisfied-edge fraction of \(\ell\), and is therefore at
+least \(1-\varepsilon\). Jensen's inequality and
+\eqref{kc:objective-identity} prove the claim.
+\end{proof}
+
+\begin{lemma}[Soundness]\label{kc:soundness}
+Fix \(\eta>0\) with \(C_k+2\eta<1\), and choose
+\(\tau,D\) as in \eqref{kc:cutoff} for this \(\eta\).
+If every labeling of \(G\) satisfies at most \(\delta\) of its
+edges, where
+\begin{equation}\label{kc:delta}
+ 0<\delta<\frac{\eta\tau^2}{4kD},
+\end{equation}
+then
+\(\Clust(A\mid I_k)\le C_k+2\eta\).
+\end{lemma}
+\begin{proof}
+Suppose an assignment \(\sigma\) gives a larger value, and use
+the functions in Lemma~\ref{kc:matrix}.
+Let
+\[
+ V_{\mathrm{good}}=
+       \{v:\OBJ(F_v)>C_k+\eta\}.
+\]
+If its \(\mu\)-mass is \(\beta\), then
+\eqref{kc:objective-bound} gives
+\[
+ \sum_v\mu(v)\OBJ(F_v)
+ \le\beta+(1-\beta)(C_k+\eta)
+ \le C_k+\eta+\beta.
+\]
+The assumed objective therefore forces \(\beta>\eta\).
+
+For every \(v\in V_{\mathrm{good}}\),
+\eqref{kc:contrapositive} supplies
+\(i_v\in[k]\) and \(j_v\in[r]\) with
+\(\Inf_{j_v}^{\le D}(F_{v,i_v})>\tau\).
+Taking the squared norm of the relevant Fourier coefficients
+in the neighbor average, and using convexity, gives
+\begin{equation}\label{kc:influence-average}
+ \Inf_{j_v}^{\le D}(F_{v,i_v})
+ \le \frac1{d_v}\sum_{w\in N(v)}
+       \Inf_{\pi_{vw}^{-1}(j_v)}^{\le D}(F_{i_v}(w,\cdot)).
+\end{equation}
+The inverse permutation in this formula follows directly from
+\((R_\pi x)_a=x_{\pi(a)}\): the Fourier indices involving
+left coordinate \(j_v\) come from right coordinate
+\(\pi^{-1}(j_v)\).
+Every influence on the right belongs to \([0,1]\), by
+Parseval and \(0\le F_i(w,\cdot)\le1\).
+An average exceeding \(\tau\) has more than a \(\tau/2\)
+fraction of its entries at least \(\tau/2\):
+otherwise its average is at most
+\(\tau/2+(\tau/2)\cdot1\le\tau\).
+
+For each \(w\in W\), form the finite label list
+\[
+ L(w)=
+ \{a\in[r]:\Inf_a^{\le D}(F_i(w,\cdot))\ge\tau/2
+                      \text{ for some }i\in[k]\}.
+\]
+For every scalar \(h\), counting how often a Fourier coefficient
+contributes gives
+\[
+ \sum_{a=1}^r\Inf_a^{\le D}(h)
+ =\sum_{|\nu|\le D}|\nu|\,\widehat h(\nu)^2
+ \le D\|h\|_2^2.
+\]
+Consequently
+\begin{equation}\label{kc:list-size}
+ |L(w)|\frac{\tau}{2}
+ \le\sum_{i=1}^k\sum_{a=1}^r
+            \Inf_a^{\le D}(F_i(w,\cdot))
+ \le kD,
+ \qquad |L(w)|\le\frac{2kD}{\tau}.
+\end{equation}
+
+Label a good \(v\) by \(j_v\), and other left vertices arbitrarily.
+Independently label each right vertex uniformly from \(L(w)\)
+when this list is nonempty, and arbitrarily otherwise.
+For a good \(v\), more than a \(\tau/2\) fraction of its
+neighbors have \(\pi_{vw}^{-1}(j_v)\in L(w)\), by
+\eqref{kc:influence-average}. On each such edge the random label
+at \(w\) satisfies the constraint with probability at least
+\(\tau/(2kD)\), by \eqref{kc:list-size}.
+The expected fraction of satisfied edges is therefore greater than
+\[
+ \eta\cdot\frac{\tau}{2}\cdot\frac{\tau}{2kD}
+   =\frac{\eta\tau^2}{4kD}.
+\]
+Here the weights \(\mu(v)=d_v/M\) ensure that this is the
+uniform-edge fraction. Some deterministic labeling attains at
+least its expectation, contradicting \eqref{kc:delta}.
+\end{proof}
+
+\subsection{Completing the reduction}
+
+\begin{proof}[Proof of the hardness assertion in Theorem~\ref{kc:main}]
+Fix \(k\ge3\) and \(1\le\alpha<\alpha_k\).
+First choose rational \(\varepsilon,\eta>0\) sufficiently small
+that \(\varepsilon<1/2\), \(c_*+2\eta<1\), and
+\begin{equation}\label{kc:separated-gap}
+ \alpha<
+ \frac{(1-1/k)(1-\varepsilon)^2}{c_*+2\eta}.
+\end{equation}
+Next choose \(\tau,D\) from Theorem~\ref{kc:kn-input} and
+\eqref{kc:cutoff}; these depend on \(k,\eta\), not the game size.
+Choose a rational
+\[
+ 0<\delta<
+ \min\left\{\frac12,\frac{\eta\tau^2}{4kD}\right\}.
+\]
+Apply Theorem~\ref{kc:ug-input} with these fixed errors.
+Only at this stage is the fixed alphabet size \(r=2^s\)
+determined. In particular \(k^r\) is a constant with respect to
+the input formula size, although no uniform bound polynomial in
+the error reciprocals is asserted.
+
+Compose that deterministic reduction with Lemma~\ref{kc:matrix}.
+Lemmas~\ref{kc:completeness} and \ref{kc:soundness}, together with
+\eqref{kc:gaussian-constant}, give the gap
+\[
+ \begin{aligned}
+ \varphi\text{ satisfiable}
+ &\ \Longrightarrow\
+ \Clust(A_\varphi\mid I_k)\ge
+       H:=(1-1/k)(1-\varepsilon)^2,\\
+ \varphi\text{ unsatisfiable}
+ &\ \Longrightarrow\
+ \Clust(A_\varphi\mid I_k)\le
+       S:=c_*+2\eta .
+ \end{aligned}
+\]
+The output is a rational symmetric centered PSD matrix with
+polynomial dimension and bit length. By \eqref{kc:separated-gap},
+\(S<H/\alpha\). Choose a fixed rational
+\(\theta\) strictly between these numbers.
+A deterministic loss-factor-\(\alpha\) algorithm produces value
+greater than \(\theta\) on satisfiable formulas; every assignment
+has value less than \(\theta\) on unsatisfiable formulas.
+The returned value is an exactly computable rational number.
+This would decide \(\mathrm{3SAT}\) in polynomial time.
+Thus achieving the stated factor is NP-hard.
+\end{proof}
+
+\begin{remark}[Randomized guarantees]\label{kc:randomized}
+The quoted Khot--Naor rounding guarantee is in expectation.
+The deterministic hardness conclusion of Theorem~\ref{kc:main} does
+not use \(\mathrm P\ne\mathrm{NP}\) to exclude randomized
+algorithms. More precisely, a polynomial-time randomized algorithm
+whose expected value is at least \(\Clust(A\mid I_k)/\alpha\)
+for some fixed \(\alpha<\alpha_k\) would place
+\(\mathrm{3SAT}\) in \(\mathrm{RP}\).
+Indeed, on the reduction instances its returned value \(X\) lies
+in \([0,1]\). In the satisfiable case \(\E X\ge H/\alpha>\theta\);
+therefore
+\[
+ \Pr\{X>\theta\}\ge
+ \frac{H/\alpha-\theta}{1-\theta}>0.
+\]
+This is a fixed positive constant. In the unsatisfiable case
+\(X\le S<\theta\) always. A fixed number of repetitions gives
+one-sided success probability at least \(1/2\).
+\end{remark}
+
+\begin{remark}[Inputs to the application]\label{kc:dependencies}
+The Gaussian proof supplies only \eqref{kc:gaussian-constant}.
+Khot and Naor supply the expected rounding guarantee
+\cite[Theorem~2.1]{KhotNaor} and the analytic
+low-influence bound \cite[Theorem~3.8]{KhotNaor}.
+Their reduction in Section~3.3 is the model for
+Lemmas~\ref{kc:matrix}--\ref{kc:soundness}; the degree weights and
+the squared completeness loss explicitly accommodate the ordinary
+edge-value, possibly nonregular instances from
+\cite[Theorem~1.1]{UniqueGamesTheorem}.
+No stronger Unique Games promise is assumed.
+The separate Unique Games theorem is a formal dependency only
+of this hardness application. The algorithmic endpoint is quoted
+in its ideal rounding formulation; this section supplies no
+finite-precision endpoint implementation.
+\end{remark}
+

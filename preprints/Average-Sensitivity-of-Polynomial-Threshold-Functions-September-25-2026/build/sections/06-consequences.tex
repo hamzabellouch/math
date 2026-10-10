@@ -1,0 +1,183 @@
+\section{Noise sensitivity and agnostic learning}\label{sec:consequences}
+
+The influence bound has two consequences that are independent of the
+weighted grading used to prove it. A random-bucketing construction
+transfers the bound from one-bit changes to independent noise.
+Smoothing by this noise then gives low-degree polynomial approximants,
+which yield an agnostic learner by $L_1$ regression.
+
+\subsection{Noise sensitivity}
+
+For $0\le\eta\le1/2$, define the noise sensitivity
+$\operatorname{NS}_{\eta}(f)=\Prb\{f(X)\ne f(Y)\}$, where $X$ is uniform
+on the cube and $Y$ is obtained by flipping each coordinate of $X$
+independently with probability $\eta$.
+
+\begin{corollary}[Boolean noise sensitivity]\label{cor:noise-sensitivity}
+Let $n\ge1$ and $d\ge0$ be integers. If $f=\sgn(p)$ on
+$\{-1,1\}^n$ for a real polynomial $p$ of degree at most $d$, with
+$\sgn(0)=1$, then
+\[
+ \operatorname{NS}_{\eta}(f)\le C d\sqrt\eta
+ \qquad(0<\eta\le1/2),
+\]
+where $C$ is an absolute constant.
+\end{corollary}
+
+\begin{proof}
+Constants have zero noise sensitivity. For an integer $q\ge2$, use the
+random-bucketing reduction of Diakonikolas, Raghavendra, Servedio, and
+Tan~\cite[Section~7.1, equation~(14)]{DRST2014}: choose independent uniform
+signs $a_i$ and independent uniform buckets $b(i)\in\{1,\ldots,q\}$,
+and set
+\[
+ g(z)=f(a_1z_{b(1)},\ldots,a_nz_{b(n)}),
+ \qquad z\in\{-1,1\}^q.
+\]
+Multilinearizing the substituted polynomial preserves its cube values,
+including zeros, and gives degree at most $\min(d,q)$.
+Theorem~\ref{thm:main} therefore gives $I(g)\le8d\sqrt q$; a constant
+substitution contributes zero.
+
+Independently choose uniform $z\in\{-1,1\}^q$ and $J\in\{1,\ldots,q\}$.
+Put $X_i=a_i z_{b(i)}$ and
+$Y_i=X_i(-1)^{\mathbf1_{\{b(i)=J\}}}$.
+Conditional on $J$, the flip indicators are independent Bernoulli
+variables of parameter $1/q$, and their joint law does not depend on $J$.
+Conditional on $b,J,z$, the random signs make $X$ uniform, so $X$ is
+independent of the flip vector. Thus $(X,Y)$ has exactly the
+noise law at rate $1/q$. Since replacing $z$ by $z^{\oplus J}$ produces
+$Y$, averaging first over $z,J$ gives
+\[
+ \operatorname{NS}_{1/q}(f)=\frac{\E_{a,b}I(g)}q
+ \le\frac{8d}{\sqrt q}.
+\]
+
+For the rest of this section, Fourier coefficients and $L_1,L_2$ norms
+are normalized by uniform probability on the cube. In particular,
+$\widehat f(S)=\E[f(X)\chi_S(X)]$ and
+\[
+ \operatorname{NS}_{\eta}(f)
+ =\frac12\sum_{S\subseteq[n]}
+ \bigl(1-(1-2\eta)^{|S|}\bigr)\widehat f(S)^2.
+\]
+This expression is nondecreasing for $0\le\eta\le1/2$.
+Taking $q=\lfloor1/\eta\rfloor$, so that
+$\eta\le1/q\le1/2$ and $q\ge1/(2\eta)$, proves the claim with
+$C=8\sqrt2$.
+\end{proof}
+
+For comparison, Kane proved an absolute $O(d\sqrt\varepsilon)$ noise
+sensitivity bound for degree-$d$ polynomial threshold functions under
+standard Gaussian noise~\cite[Theorem~1]{Kane2011}.
+Here $0<\varepsilon\le1$, and the input pair is
+$X$ and $(1-\varepsilon)X+\sqrt{2\varepsilon-\varepsilon^2}\,Z$,
+with $X,Z$ independent standard Gaussian vectors.
+His proof counts sign changes along Gaussian rotations.
+Corollary~\ref{cor:noise-sensitivity} gives the same dependence on degree
+and noise rate for independent coordinate flips on the Boolean cube.
+
+\subsection{Agnostic learning}
+
+In agnostic learning the labels may be arbitrary: the objective is to
+predict nearly as well as the best function in a specified class.
+We use the $L_1$ polynomial regression method of Kalai, Klivans,
+Mansour, and Servedio~\cite{KKMS2008}, which was applied to polynomial
+threshold functions in~\cite[Section~8]{DRST2014}.
+
+\begin{corollary}[Uniform-marginal agnostic learning]\label{cor:agnostic-learning}
+Let $n,d\ge1$ be integers, and let $\mathcal C_{n,d}$ be the class of
+functions $\sgn(p)$ on $\{-1,1\}^n$ with $\deg p\le d$.
+Let $D$ be any distribution on $\{-1,1\}^n\times\{-1,1\}$ whose first
+marginal is uniform, and set
+\[
+ \mathrm{OPT}=\min_{f\in\mathcal C_{n,d}}\Prb_{(X,Y)\sim D}\{f(X)\ne Y\}.
+\]
+There is an absolute constant $A$ such that, for $0<\alpha,\delta<1$,
+a learner using independent labeled samples from $D$ returns, with
+probability at least $1-\delta$, a Boolean hypothesis $h$ satisfying
+\[
+ \Prb_{(X,Y)\sim D}\{h(X)\ne Y\}\le\mathrm{OPT}+\alpha.
+\]
+Its running time and sample size are polynomial in
+$(n+1)^k$, $1/\alpha$, and $\log(1/\delta)$, where
+\[
+ k=\min\left\{n,\left\lceil A d^2\alpha^{-2}\log(4/\alpha)\right\rceil\right\}.
+\]
+The labels are unrestricted, and $h$ need not belong to $\mathcal C_{n,d}$.
+\end{corollary}
+
+\begin{proof}
+We first construct an $L_1$ approximant to each $f\in\mathcal C_{n,d}$.
+For $0<\eta<1/2$ and $\rho=1-2\eta$, the noise operator is
+\[
+ T_\rho f=\sum_{S\subseteq[n]}\rho^{|S|}\widehat f(S)\chi_S.
+\]
+Equivalently, $T_\rho f(x)$ is the expected value of $f$ after independent
+noise of rate $\eta$ is applied to $x$. Since $f$ is Boolean and
+$T_\rho f$ takes values in $[-1,1]$,
+$|f-T_\rho f|=1-fT_\rho f$ pointwise. Corollary~\ref{cor:noise-sensitivity}
+therefore gives, with $C=8\sqrt2$,
+\[
+ \norm{f-T_\rho f}_1=2\operatorname{NS}_\eta(f)\le2Cd\sqrt\eta.
+\]
+Take $\eta=(\alpha/(8Cd))^2$ and
+$K=\lceil\log(4/\alpha)/(2\eta)\rceil$.
+Let $q$ be the Fourier truncation of $T_\rho f$ to degrees at most
+$\min(K,n)$. If $K<n$, Parseval's identity gives
+\[
+ \norm{T_\rho f-q}_1\le\norm{T_\rho f-q}_2
+ \le\rho^{K+1}\le e^{-2\eta(K+1)}\le\alpha/4;
+\]
+if $K\ge n$, the truncation error is zero.
+The first error is also at most $\alpha/4$, so
+\begin{equation}\label{eq:learning-approximation}
+ \norm{f-q}_1\le\alpha/2.
+\end{equation}
+Taking $A=32C^2$ makes $\min(K,n)=k$ in the statement.
+
+For completeness, we explain how this direct $L_1$ estimate enters the
+regression argument of~\cite[proof of Theorem~5]{KKMS2008}.
+Use the $M=\sum_{j=0}^k\binom nj\le(n+1)^k$ characters of degree at
+most $k$ as features. On a training sample $Z$ of size $m$, fit a
+polynomial $P$ in these features by minimizing empirical absolute loss,
+then choose $t\in[-1,1]$ to minimize the empirical error of
+$h=\sgn(P-t)$. The fit is a linear program, and the threshold is found by
+sorting the fitted values. Write $\widehat{\E}_Z$ and
+$\widehat{\operatorname{err}}_Z$ for empirical means and errors.
+A uniformly random threshold has error at most half the absolute loss,
+so the minimizing threshold satisfies
+\[
+ \widehat{\operatorname{err}}_Z(h)
+ \le\tfrac12\widehat{\E}_Z|Y-P(X)|
+ \le\tfrac12\widehat{\E}_Z|Y-q(X)|.
+\]
+Choose an optimal $f\in\mathcal C_{n,d}$ and its fixed approximant $q$.
+The triangle inequality and \eqref{eq:learning-approximation} imply
+$\E_Z\widehat{\operatorname{err}}_Z(h)\le\mathrm{OPT}+\alpha/4$.
+These hypotheses are halfspaces in the $M$ character features, so their
+VC dimension is at most $M+1$.
+The usual expected uniform generalization bound, as used
+in~\cite[proof of Theorem~5]{KKMS2008}, makes
+$\E_Z\operatorname{err}_D(h)\le\mathrm{OPT}+3\alpha/8$
+for $m$ polynomial in $M$ and $1/\alpha$.
+
+Apply Markov's inequality to the nonnegative random variable
+$\operatorname{err}_D(h)$. Since $\mathrm{OPT}\le1$ and $\alpha<1$,
+\[
+ \Prb_Z\{\operatorname{err}_D(h)>\mathrm{OPT}+\alpha/2\}
+ \le\frac{\mathrm{OPT}+3\alpha/8}{\mathrm{OPT}+\alpha/2}
+ \le1-\alpha/12.
+\]
+Thus one trial succeeds with probability at least $\alpha/12$.
+Repeat independently
+$r=\lceil(12/\alpha)\log(2/\delta)\rceil$ times.
+With probability at least $1-\delta/2$, one candidate has this error.
+On an independent validation sample of size
+$\lceil8\alpha^{-2}\log(4r/\delta)\rceil$, Hoeffding's inequality and a
+union bound estimate all $r$ errors within $\alpha/4$, except with
+probability $\delta/2$. Selecting the best validation score therefore
+gives error at most $\mathrm{OPT}+\alpha$. All the training,
+regression, repetition and validation costs have the stated polynomial
+bounds.
+\end{proof}

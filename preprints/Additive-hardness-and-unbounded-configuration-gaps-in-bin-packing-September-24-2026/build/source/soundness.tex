@@ -1,0 +1,363 @@
+\section{Extracting a small vertex cover}\label{sec:soundness}
+
+\begin{proposition}[Soundness]\label{prop:soundness}
+If the instance of Theorem~\ref{thm:reduction} packs into at most
+\(B+c\) bins, then its input graph has a vertex cover of size at most
+\(k+\rho n\).
+\end{proposition}
+
+We first use deadline prefixes to force coverage at every test point.
+The competing trees then force a large global allocation on one side
+of each vertex. Repeated edge jobs turn the plus allocations into a
+vertex cover, whose size is bounded by the global item inventories.
+
+Fix such a packing throughout this section.  By
+Lemma~\ref{lem:good-anchors}, at most \(3K\) anchors of any fixed label
+fail to belong to good tuples.  This bound applies to every subset of
+that label's anchors, including any chosen collection of deadlines or
+keys.  Summing over labels gives a bound of \(3nK\) when needed.
+
+Let \(\mathcal M_v\) be the set of good \(\mathrm M\) tuples of label
+\(v\).  Each has a row baseline \(b\), a completion coordinate \(h\le b\),
+and the associated coverage interval \([h,b)\).
+Write \(x_v^+\) and \(x_v^-\) for the numbers of these tuples using,
+respectively, a length-one \(\Up\) or \(\Um\) item.  Distinct tuples
+use distinct items, so the inventories give
+\begin{equation}\label{eq:sound-global-budgets}
+ \sum_v x_v^+\le dk,\qquad
+ \sum_v x_v^-\le d(n-k),\qquad
+ \sum_v(x_v^++x_v^-)\le dn.
+\end{equation}
+All interval counts below include multiplicities of tuples.
+
+\subsection{Coverage and a forced side}
+
+For a real point \(a\), define
+\[
+ A_v(a)=\#\{M\in\mathcal M_v:b(M)\le a\},\qquad
+ C_v(a)=\#\{M\in\mathcal M_v:h(M)\le a\},
+\]
+and let \(I_v(a)\) count the intervals of \(\mathcal M_v\) containing
+\(a\).  Because \(h\le b\), the identity
+\(\ind\{h\le a\}=\ind\{b\le a\}+\ind\{h\le a<b\}\)
+holds even at tied endpoints.  Consequently
+\begin{equation}\label{eq:sound-prefix-decomposition}
+ C_v(a)=A_v(a)+I_v(a).
+\end{equation}
+The function \(B_v(a)\) remains the original baseline prefix used to
+define the deadlines; it need not equal \(A_v(a)\) in this packing.
+
+\begin{lemma}[Coverage at every test point]\label{lem:coverage}
+For every label \(v\) and every point \(a\) in one of its half-open
+test intervals,
+\begin{equation}\label{eq:sound-test-coverage}
+ I_v(a)\ge d-6K.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+There are exactly \(B_v(a)+d\) deadlines at most \(a\).
+At least \(B_v(a)+d-3K\) of their anchors are good.
+Their distinct \(\mathrm M\) matches have \(h\le z\le a\) by
+Lemma~\ref{lem:good-feasibility}, giving
+\begin{equation}\label{eq:sound-completion-prefix}
+ C_v(a)\ge B_v(a)+d-3K.
+\end{equation}
+The deadline formula uses the half-open test convention: moving
+\(d\) copies from a right endpoint \(r_0\) to a left endpoint
+\(\ell_0\) changes the prefix by
+\(d(\ind\{\ell_0\le a\}-\ind\{r_0\le a\})
+=d\ind\{\ell_0\le a<r_0\}\).
+
+Let \(N'\) be the number of positions in \(\mathcal R_v\) with
+\(b_r\le a\).  There are \(2dN'\) actual \(\Srow\) rows at those
+positions and \(dN'\) keys there.  At least \(dN'-3K\) of these keys
+have good \(\mathrm G\) matches.  The row-order conclusion of
+Lemma~\ref{lem:good-feasibility} places all their rows in this same
+baseline prefix.  Since these are distinct rows, at most
+\[
+ 2dN'-(dN'-3K)=dN'+3K
+\]
+of the prefix's \(\Srow\) rows can occur in good \(\mathrm M\)
+tuples.  This inequality is valid also when \(dN'-3K<0\).
+Other uses of prefix rows only reduce the number available.
+The \(\Tp,\Tm\) rows contribute at most their entire original
+baseline prefix.  Since \(B_v(a)\) includes exactly \(dN'\)
+hypothetical job baselines, we obtain
+\begin{equation}\label{eq:sound-baseline-prefix}
+ A_v(a)\le B_v(a)+3K.
+\end{equation}
+Subtracting Equation~\eqref{eq:sound-baseline-prefix} from
+Equation~\eqref{eq:sound-completion-prefix} and using
+Equation~\eqref{eq:sound-prefix-decomposition} proves the claim.
+\end{proof}
+
+\begin{lemma}[A large count on one side]\label{lem:side-choice}
+Every vertex \(v\) satisfies
+\begin{equation}\label{eq:sound-side-choice}
+ x_v^+\ge d-6K\qquad\text{or}\qquad x_v^-\ge d-6K.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+A length-one global item can contribute coverage only on its own
+side.  Indeed, a minus row has baseline at least \(4\), is not short,
+and has completion at least \(4-1-\lambda_1>1\).
+Every plus row, including each \(\Srow\) row, has baseline at most
+\(1\), so its interval cannot cover a minus test point.
+
+Choose one interior point in each tree leaf cell.  A tuple whose
+global and local lengths are both zero has an empty interval unless
+its row is short.  In the latter case its interval is exactly its
+job test interval, which is disjoint from all leaf cells.
+For a tuple with global length zero and positive local length
+\(\lambda_\ell\), the interval length is at most
+\[
+ \lambda_\ell+\Delta\le \frac{11}{10}\lambda_\ell<3\lambda_\ell.
+\]
+By Lemma~\ref{lem:geometry}, it therefore meets at most one closed
+depth-\(\ell\) cell across the two trees.  If there is such a cell,
+mark its tree vertex.  In particular, if the interval covers a
+chosen leaf point, that point belongs to its depth-\(\ell\)
+ancestor cell; the marked vertex is this ancestor.
+This reasoning depends on the interval's length, regardless of
+the row's baseline or depth.
+
+Make these marks for all global-zero, positive-local tuples of
+label \(v\), merging repeated marks at the same tree vertex.
+At depth \(\ell\), the number of marks across both trees is at most
+the number of used length-\(\lambda_\ell\) local items, hence at
+most \(p_\ell\).  All marks are at positive depths.  The retained
+depths in Lemma~\ref{lem:competing-trees} ensure that every leaf has
+the ancestor used above.
+
+If both counts in Equation~\eqref{eq:sound-side-choice} were less
+than \(d-6K\), Lemma~\ref{lem:coverage} would force every chosen
+leaf point to be covered by some global-zero, positive-local tuple.
+The marks would then hit every root-to-leaf path in both trees,
+contrary to the combined-quota obstruction of
+Lemma~\ref{lem:competing-trees}.
+\end{proof}
+
+\subsection{Job positions and displaced rows}
+
+The forced side at each vertex does not yet ensure that every graph
+edge is covered. We must connect the plus allocation to the incident
+jobs. A key may use an earlier row, so this connection requires an
+explicit count of displaced rows rather than an assumption of
+position-by-position matching.
+
+For each label \(v\), exclude a position \(r\in\mathcal R_v\)
+if its closed job cell \([b_r-\Delta,b_r]\) meets a coverage interval
+from a good \(\mathrm M\) tuple of that label with global length zero
+and positive local length.  This definition uses closed cells;
+the tested coverage intervals remain half-open.
+Such a tuple's interval has length at most
+\(\lambda_1+\Delta<g-\Delta\), by
+Lemma~\ref{lem:geometry}.  Distinct job cells have gap at least
+\(g-\Delta\), so the interval meets at most one of them.
+There are at most \(P\) positive local items of label \(v\).
+Thus at most \(P\) positions are excluded in all of
+\(\mathcal R_v\), and each incident edge retains at least \(R-P\)
+nonexcluded positions.
+
+For \(r\in\mathcal R_v\), let \(L_{v,r}\) be the number of good
+\(\mathrm G\) tuples whose key is at \(r\) and whose row is a long
+row of that same position.
+
+\begin{lemma}[Long matches at a nonexcluded job]\label{lem:job-matches}
+Every nonexcluded position \(r\in\mathcal R_v\) satisfies
+\begin{equation}\label{eq:sound-long-matches}
+ L_{v,r}\ge d-x_v^+-9K.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Test at the interior point \(a=b_r-\Delta/2\).
+Since position gaps are at least \(g>\Delta\), the job baselines
+at most \(a\) are exactly those at positions strictly earlier than
+\(r\).  Let \(N'\) count those positions, and let \(\xi\) count
+the good tuples whose key is at \(r\) and whose row is from a
+strictly earlier position.
+
+The good keys at earlier positions consume at least \(dN'-3K\)
+distinct rows from the earlier prefix, by the same order argument
+as in Lemma~\ref{lem:coverage}.  The \(\xi\) current-key matches
+consume an additional \(\xi\) rows from that prefix: their keys
+are distinct from the earlier keys, and a packing cannot use one
+row in two tuples.  Among its \(2dN'\) rows, at most
+\(dN'+3K-\xi\) can therefore appear in good \(\mathrm M\) tuples.
+Including the original tree-row prefix gives the strengthened bound
+\begin{equation}\label{eq:sound-displaced-prefix}
+ A_v(a)\le B_v(a)+3K-\xi.
+\end{equation}
+
+Let \(u\) count the short rows of the current position \(r\) used
+in good \(\mathrm M\) tuples.  Every interval covering \(a\)
+is accounted for as follows:
+\begin{itemize}
+ \item Tuples with global length one contribute at most \(x_v^+\)
+ in total, since minus tuples cannot reach this plus-side point.
+ \item A global-zero tuple with positive local length contributes
+ nothing, since the position was not excluded.
+ \item With both lengths zero, a tree row or a long job row has
+ an empty interval.  A short row covers only its own job interval,
+ so it can cover \(a\) only at the current position.
+\end{itemize}
+It follows that
+\begin{equation}\label{eq:sound-job-coverage-upper}
+ I_v(a)\le x_v^++u.
+\end{equation}
+A current short row with global length one may be counted in
+both \(x_v^+\) and \(u\); this only enlarges the upper bound.
+
+Combine Equations~\eqref{eq:sound-prefix-decomposition},
+\eqref{eq:sound-completion-prefix},
+\eqref{eq:sound-displaced-prefix}, and
+\eqref{eq:sound-job-coverage-upper} to obtain
+\[
+ B_v(a)+d-3K
+ \le B_v(a)+3K-\xi+x_v^++u.
+\]
+Equivalently,
+\begin{equation}\label{eq:sound-xi-correction}
+ u-\xi\ge d-x_v^+-6K.
+\end{equation}
+Here the same \(3K\) loss controls the entire earlier-key prefix;
+it is not incurred separately at its positions.
+
+At least \(d-3K\) keys at \(r\) are in good tuples.
+Exactly \(\xi\) of the good matches use earlier rows, and the
+row-order restriction forces every other good match to use a row
+at \(r\).  At most \(d-u\) of the short rows there are available
+to these matches, because \(u\) have already been used in good
+\(\mathrm M\) tuples.  Any other use of a short row only lowers
+this availability.  Hence
+\[
+ L_{v,r}\ge d-3K-\xi-(d-u)
+          =u-\xi-3K
+          \ge d-x_v^+-9K,
+\]
+as required.
+\end{proof}
+
+\subsection{Edge capacity and the threshold cover}
+
+\begin{lemma}[The threshold set covers every edge]\label{lem:edge-cover}
+The set
+\[
+ C=\{v:x_v^+>d/8\}
+\]
+is a vertex cover.
+\end{lemma}
+
+\begin{proof}
+Fix an edge index \(e\), with endpoints \(v_1,v_2\).
+There are exactly \(2dR(e-1)\)
+\(\Waux\) items belonging to earlier edges, counting both permits
+and nonpermits.  This equals the total number of earlier-edge
+keys over all labels, since each edge has two endpoints.
+At least \(2dR(e-1)-3nK\) of those keys are in good tuples.
+By the edge-order conclusion of Lemma~\ref{lem:good-feasibility},
+each consumes a distinct \(\Waux\) item from the earlier-edge
+inventory.  At most \(3nK\) earlier-edge items therefore remain
+for all other uses, including good matches of keys on edge \(e\).
+This is one global loss bound, independent of the number of
+earlier edges.  Uses in other tuples only reduce the remaining
+supply.
+
+In an exact-position long match to a key on edge \(e\), the
+\(\mathrm G\) inequality becomes
+\[
+ \beta_f-\beta_e+\Delta\ind\{\text{nonpermit}\}\le0,
+\]
+where \(f\) is the edge of its \(\Waux\) item.
+Lemma~\ref{lem:good-feasibility} gives \(f\le e\);
+if \(f=e\), the item must be a permit.  Thus every match counted
+by \(L_{v,(e,j)}\) uses either one of the \(dR\) edge-\(e\)
+permits or an earlier-edge item.  Summing over both endpoints
+and all positions gives
+\begin{equation}\label{eq:sound-edge-capacity}
+ \sum_{v\in\{v_1,v_2\}}\sum_{j=1}^R L_{v,(e,j)}
+ \le dR+3nK.
+\end{equation}
+
+Suppose that both endpoints were outside \(C\), so that their
+plus counts were at most \(d/8\).
+By \(d\ge72K\) and Lemma~\ref{lem:job-matches}, each nonexcluded
+position at either endpoint would have
+\[
+ L_{v,(e,j)}\ge d-\frac d8-9K\ge\frac{3d}{4}.
+\]
+There are at least \(R-P\) such positions at each endpoint.
+Their total demand would therefore be at least
+\(2(R-P)(3d/4)\).  Its excess over the upper bound in
+Equation~\eqref{eq:sound-edge-capacity} is strictly positive:
+\begin{align*}
+ 2(R-P)\frac{3d}{4}-(dR+3nK)
+ &=\frac d2(R-3P)-3nK\\
+ &=\frac{97d}{2}P+(50d-3)nK+50d>0,
+\end{align*}
+using \(R=100(P+nK+1)\) and \(d\ge1\).
+This contradiction proves that every edge meets \(C\).
+\end{proof}
+
+\begin{lemma}[Cardinality of the extracted cover]\label{lem:cover-size}
+The set \(C\) in Lemma~\ref{lem:edge-cover} satisfies
+\[
+ |C|\le \frac{dk}{d-6K}+\frac{48Kn}{d}
+      \le k+\frac{60Kn}{d}
+      \le k+\rho n.
+\]
+\end{lemma}
+
+\begin{proof}
+Let
+\[
+ V_+=\{v:x_v^+\ge d-6K\}.
+\]
+Since \(d\ge72K\), we have \(d-6K>d/8\), so \(V_+\subseteq C\).
+The plus-item budget in Equation~\eqref{eq:sound-global-budgets}
+gives
+\begin{equation}\label{eq:sound-large-plus-count}
+ |V_+|\le\frac{dk}{d-6K}.
+\end{equation}
+
+For each vertex in \(V_+\), charge its plus count; for every
+other vertex, charge its minus count.
+Lemma~\ref{lem:side-choice} makes each of these charges at least
+\(d-6K\).  Exactly one side is charged at each vertex, even if
+both sides have large counts.  The total charges are therefore
+at least \(n(d-6K)\), while the total of all counts is at most
+\(dn\).  Every plus count outside \(V_+\) is uncharged, so
+\begin{equation}\label{eq:sound-residual-plus}
+ \sum_{v\notin V_+}x_v^+\le dn-n(d-6K)=6Kn.
+\end{equation}
+Each vertex of \(C\setminus V_+\) contributes more than \(d/8\)
+to this sum.  The resulting weak bound, valid also when that
+set is empty, is
+\[
+ |C\setminus V_+|\le\frac{48Kn}{d}.
+\]
+Together with Equation~\eqref{eq:sound-large-plus-count}, this
+proves the first asserted inequality.  For the second, use
+\(k\le n\) and \(d\ge12K\) to bound
+\[
+ \frac{dk}{d-6K}-k
+ =\frac{6Kk}{d-6K}\le\frac{12Kn}{d}.
+\]
+The final inequality follows from \(d\ge120K/\rho\).
+\end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:soundness}]
+Starting from the given packing, Lemma~\ref{lem:edge-cover}
+produces the cover \(C\), and Lemma~\ref{lem:cover-size}
+bounds its cardinality by \(k+\rho n\).
+All deductions used only the stipulated item inventories,
+the good-tuple properties, and the prescribed parameters,
+so they apply to every packing into at most \(B+c\) bins.
+\end{proof}
+
+The polynomial construction in Section~\ref{sec:instance}, integral
+completeness in Proposition~\ref{prop:completeness}, and the preceding
+soundness proof together establish Theorem~\ref{thm:reduction}.

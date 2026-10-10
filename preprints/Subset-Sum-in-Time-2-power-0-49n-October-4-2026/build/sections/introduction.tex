@@ -1,0 +1,234 @@
+\section{Introduction}\label{sec:introduction}
+
+An instance of \emph{Subset Sum}, with $n\ge2$, consists of positive integers
+$a_1,\ldots,a_n$ and a nonnegative integer $t$.  The question is whether
+there is a set $I\subseteq[n]=\{1,\ldots,n\}$ with
+$\sum_{i\in I}a_i=t$.  Equal input integers are allowed, and the empty
+subset is allowed.  We measure the exponential part of the running time
+in the number $n$ of input integers, rather than in their total encoding
+length.
+
+Subset Sum is one of the foundational NP-complete problems, appearing
+as Knapsack in Karp's list~\cite{Karp1972}.  Its simple formulation has
+made it a basic problem in exact exponential-time algorithms and
+cryptanalysis.  The meet-in-the-middle algorithm of Horowitz and
+Sahni~\cite{HorowitzSahni1974} divides the input into two parts, lists
+their subset sums, and searches for complementary sums.  This gives
+the familiar $2^{n/2}$ time scale.  Schroeppel and
+Shamir~\cite{SchroeppelShamir1981} preserved that time scale while
+reducing the space exponent to $1/4$.  More recently, Chen, Jin,
+Randolph, and Servedio~\cite{CJRS2023} obtained a randomized worst-case running
+time $O(2^{n/2}n^{-\gamma})$ for a constant $\gamma>0.5023$ in word-RAM
+and circuit-RAM models with polynomial word length.  A fixed reduction
+of the exponential rate below $1/2$ is a different objective from
+such polynomial-factor savings.  We
+establish that improvement, with ordinary $O(2^{0.49n})$ running time,
+in the precise model below.
+
+\subsection{Model and main result}
+
+Let
+\[
+ b=\max\left\{1,\left\lceil
+       \log_2\bigl(1+\max\{t,a_1,\ldots,a_n\}\bigr)
+                         \right\rceil\right\}
+\]
+be the maximum bit length of the input integers and target.
+The machine is a word RAM with word length
+\begin{equation}\label{eq:word-length}
+ w=\left\lceil4\bigl(n+b+\log_2(n+2)\bigr)\right\rceil.
+\end{equation}
+Each input integer occupies one word in read-only random-access
+memory.  Unit-cost operations are word reads and writes, indirect
+addressing, comparisons, addition, subtraction, multiplication,
+integer quotient and remainder with a nonzero divisor, bitwise Boolean
+operations, and shifts.  Each operation has a constant number of
+$w$-bit inputs and outputs.  Arithmetic exceeding these limits is
+implemented by multiple word operations and charged accordingly.
+A fresh independent uniform $w$-bit random word costs one operation.
+Randomness is one-way: an earlier random word can be reused only if it
+has been retained in writable memory.  There is no random oracle,
+uncharged external storage, or separate workspace bound.
+
+The algorithm must be a single finite program for all $n$ and $b$,
+without advice or externally supplied tables depending on $n$ or the
+input.  All preprocessing, table construction, input accesses, and
+random sampling are included in its running time.
+
+\begin{theorem}\label{thm:main}
+There is a uniform randomized classical algorithm $\mathcal A$ for
+Subset Sum with the following properties in the word-RAM model
+\eqref{eq:word-length}.
+For every input with $n\ge2$, the algorithm halts on every execution
+and outputs the correct answer with probability at least $2/3$.
+For every fixed positive integer $c$, there are constants $C_c>0$
+and $N_c\ge2$ such that every input with $n\ge N_c$ and $b\le n^c$
+is processed, on every outcome of the random choices, in at most
+\[
+                         C_c\,2^{0.49n}
+\]
+word operations.  The program is not given $c$ and does not depend
+on $c$.
+\end{theorem}
+
+The probability in the theorem is over the algorithm's internal
+random words, for each fixed input.  In particular, no distributional
+assumption is made on the input integers.  The running-time bound
+applies even to executions on which the answer is incorrect.
+Our intermediate bound has the form
+$2^{0.489995n}\operatorname{poly}(n+b+2)$; the strict exponent slack
+absorbs the polynomial factor separately for every fixed $c$.
+
+\subsection{Related approaches}
+
+Two other directions explain both the progress on Subset Sum and the
+difficulty of a worst-case improvement in $n$.  Pseudopolynomial
+algorithms measure their complexity in the numerical target $t$.
+Bellman's dynamic-programming approach~\cite{Bellman1957} yields
+$O(nt)$ time.  Koiliaris and Xu~\cite{KoiliarisXu2017} improved this
+bound deterministically, and Bringmann~\cite{Bringmann2017} obtained
+a randomized $\widetilde O(n+t)$ algorithm.  Chan~\cite{Chan2026}
+subsequently obtained a deterministic near-linear pseudopolynomial
+algorithm.  These bounds are particularly effective for small targets;
+polynomial \emph{bit length}, however, permits much larger targets.
+Here and in historical comparisons, $\widetilde O$ suppresses
+polylogarithmic factors.
+
+Representation methods provide a different kind of saving.  The
+method introduced by Howgrave-Graham and Joux~\cite{HGJ2010}, and
+developed by Becker, Coron, and Joux~\cite{BCJ2011}, represents one
+solution by many pairs of partial objects and then searches a filtered
+fraction of those representations.  Their improvements concern
+random instances, not a guarantee for every input.  Austrin, Kaski,
+Koivisto, and Nederlof~\cite{AKKN2016} developed algorithms exploiting
+input blocks with many distinct sums through representations, or
+blocks with few distinct sums through faster enumeration of those
+sums.  Nederlof and
+W\k{e}grzycki~\cite{NederlofWegrzycki2021} used related ideas to improve
+the space bound below the Schroeppel--Shamir exponent.
+
+Related work concerns \emph{Subset Balancing}: given integers $v_i$
+and a fixed finite coefficient set $C\subset\mathbb Z$, find a nonzero
+$x\in C^n$ satisfying $\sum_i v_ix_i=0$.
+Randolph and W\k{e}grzycki~\cite{RandolphWegrzycki2026} give worst-case
+exponent savings for several coefficient sets, though not for ordinary
+Subset Sum.  Their compatibility certificates recover valid
+representation pairs without inspecting all invalid pairs.
+Our alias extraction uses the representation and distinct-sum
+perspective for a different task: listing modular false positives so
+that their contributions can be removed from an estimated checksum.
+
+\subsection{Proof overview}
+
+The proof separates two complementary tasks:
+estimating a modular target bin and identifying the false positives
+created by the modulus.  First, random tie-breaking weights transform
+the original problem into polynomially many targets for new positive
+integer weights $c_1,\ldots,c_n$.  The isolation lemma of Mulmuley,
+Vazirani, and Vazirani~\cite{MVV1987} ensures that, with high constant
+probability, some transformed target has exactly one solution whenever
+the original instance is positive.  A preliminary meet-in-the-middle
+test handles inputs whose partial subset sums have sufficiently small
+support.  Both reductions are developed in Section~\ref{sec:setup}.
+
+For a prime $P$, write $e_P(x)=\exp(2\pi\mathrm i x/P)$.
+With independent uniform residues
+$\phi_1,\ldots,\phi_n$ modulo $P$, assign a subset $I$ the phase
+\[
+ \chi(I)=e_P\left(\sum_{i\in I}\phi_i\right).
+\]
+For each transformed target $t'$, a subset is an \emph{alias} if its
+sum is $t'$ modulo $P$ but not over the integers.  The identity
+\begin{equation}\label{eq:overview-subtraction}
+ \sum_{\sum_{i\in I}c_i=t'}\chi(I)
+  =\sum_{\sum_{i\in I}c_i\equiv t'\pmod P}\chi(I)
+     -\sum_{\substack{I\text{ an alias}\\\text{for }t'}}\chi(I)
+\end{equation}
+is the organizing principle.  On a negative instance the left side is
+zero for every transformed target; an isolated positive target leaves
+a single phase of modulus one.  The two sums on the right can be much
+larger, so their difference must be recovered to small \emph{absolute}
+error.  A relative approximation to the modular sum would not suffice.
+We choose a random prime modulus larger than the desired running time,
+so neither scanning all residues nor evaluating every Fourier frequency
+is affordable.  We estimate the modular sum and subtract the phases of
+a complete list of aliases.
+
+\paragraph{A checksum without a full Fourier transform.}
+Writing $V_{t'}$ for the modular sum in
+\eqref{eq:overview-subtraction}, Fourier inversion gives
+\[
+ V_{t'}=\frac1P\sum_{k=0}^{P-1}J_{t'}(k),
+ \qquad
+ J_{t'}(k)=e_P(-kt')\prod_{i=1}^n
+                         \bigl(1+e_P(\phi_i+kc_i)\bigr).
+\]
+For each fixed $k$, independent uniform phases give
+$\mathbb E_\phi|J_{t'}(k)|^2=2^n$.  Thus the elementary second-moment
+bound for uniform frequency sampling does not give the required
+running time.
+For a chosen digit base $L$, writing $k=hL+l$ expresses the phase
+vector $(\phi_i+kc_i)_i$ as the difference between
+$(\phi_i+hLc_i)_i$ and $(-lc_i)_i$, all modulo $P$.
+These high- and low-digit vectors form two lists.  The filters must
+keep the stored lists short, cover every frequency, and control the
+second moment of the resulting estimate.  A table specifies
+random coordinate shifts, with some coordinates ignored; a sum of
+logarithmic density scores tests each vector against the table.
+A \emph{match} consists of a table and a digit pair whose two vectors
+both pass.  This two-sided organization is related to asymmetric
+locality-sensitive filtering~\cite{Christiani2017}.
+
+To analyze coverage of a fixed digit pair, we temporarily change the
+random-shift law at each coordinate.  Three bounded functions record
+the two resulting mean scores and the likelihood-ratio cost of that change.
+A \emph{pattern} consists of coarse averages of these functions on
+coordinate blocks; the tests are chosen separately for each pattern.
+Grouping coordinates into blocks makes the number of patterns and the
+cost of generating block tables subexponential.  Comparing this auxiliary
+law with the actual table law shows that, with high probability, every
+frequency appears in a match for its own pattern.
+Two fixed inequalities for circle densities control the second
+moment.  Section~\ref{sec:filtering} states these inequalities, and
+Appendix~\ref{app:numerical} proves them with rational enclosures and
+analytic quadrature bounds.
+
+Patterns with a sufficiently small high-probability bound on their
+total match count are summed directly.  For the other patterns, the
+algorithm samples matches and
+divides by the number of matches representing the sampled frequency.
+This is the inverse-coverage correction familiar from union-size
+estimation~\cite{KLM1989}, applied here to a complex weighted sum.
+Theorem~\ref{thm:checksum} proves the resulting absolute-error estimate
+for arbitrary input residues, independently of the distinct-sum
+condition used in alias recovery.  Random phases make the coordinates
+independent at each fixed frequency, even though the original input
+is arbitrary.  The second-moment calculation uses the original phase
+law, not the law conditioned on successful filtering.
+
+\paragraph{Extracting only aliases.}
+The second procedure, in Section~\ref{sec:aliases}, gives each subset
+many representations by two records.  After randomly complementing
+some subset-indicator variables, choose a shared coordinate block and
+partition its complement into a left and a right side.  Each record
+consists of a subset of its side together with a \emph{mask}, a subset
+of the shared block.  Disjoint masks give an actual subset;
+overlapping masks count their common coordinates twice in the sum of
+the record weights.  A small auxiliary modulus reduces the record
+lists.  The analysis proves a dichotomy: either the preliminary
+distinct-sum test succeeds with high probability, or enough
+representations survive to recover every alias with high probability.
+The enumeration omits every pair satisfying the corresponding exact
+integer equation, including pairs with overlapping masks.  This
+omission is crucial: each remaining pair has a nonzero integer
+discrepancy, so a random-prime divisor bound controls the number of
+pairs that pass the main modulus.  Disjoint masks are checked only
+after this bounded enumeration.
+
+Once the reconstructed left side of \eqref{eq:overview-subtraction}
+has error less than $1/4$, comparison with the threshold $1/2$
+separates an empty bin from an isolated one.  Thus isolation removes any need for a separate
+anti-concentration theorem for sums of phases.
+Section~\ref{sec:implementation} assembles the procedures and proves
+Theorem~\ref{thm:main}, including finite-precision arithmetic, capped
+random sampling, and a running-time bound on every execution.

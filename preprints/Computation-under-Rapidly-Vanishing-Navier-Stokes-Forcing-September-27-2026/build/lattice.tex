@@ -1,0 +1,383 @@
+\section{Periodic lattice memory on the torus}
+\label{sec:lattice}
+
+We now store successive configurations in a single torus coordinate.
+The earlier records remain in that coordinate, but a residue calculation
+removes them when the next transition is read.  A second coordinate
+records whether the current state is halting.  Both the new record and
+the halting signal become much smaller at each step.  This separation of
+scales will make every derivative of the velocity and force decay faster
+than every inverse power of time. The positional stack operations belong
+to the generalized-shift approach \cite{Moore}; the residue arithmetic
+and smooth realization are proved below.
+
+The planar motion used for this purpose need not preserve area.  We
+first construct and verify that motion.  A third component will then
+cancel its divergence while leaving the coding plane invariant.
+
+\begin{theorem}[Periodic lattice memory]\label{thm:lattice}
+Fix a computable viscosity $\nu>0$.  A finite deterministic machine and
+a finite input effectively determine a smooth force $g$ on the unit
+flat torus $\T^3=(\R/\mathbb Z)^3$ with zero spatial mean.  The
+Navier--Stokes equations with force $g$ and zero initial velocity have
+a smooth solution $(U,0)$ with zero spatial mean.  Its particle from
+\[
+ a_*=(1/4,1/2,1/2)
+\]
+enters the fixed open set
+\[
+ O=\{x\in\T^3:1/2<x_1<1\pmod 1\}
+\]
+at some finite time if and only if the machine halts on that input.
+For every pair of nonnegative integers $r,J$ and every spatial
+multi-index $\alpha$, there is an effective constant $C_{r,\alpha,J}$
+such that
+\begin{equation}\label{eq:lattice-rapid}
+ \|\partial_t^r\partial_x^\alpha U(t)\|_\infty
+ +\|\partial_t^r\partial_x^\alpha g(t)\|_\infty
+ \le C_{r,\alpha,J}(1+t)^{-J},\qquad t\ge0.
+\end{equation}
+There is also an effective smooth mean-zero solenoidal force $f$
+with the same bounds and exactly the same velocity and material event.
+It is $f=g-\nabla\phi$, with pressure $-\phi$, where $\phi$ is the
+mean-zero periodic solution of $\Delta\phi=\operatorname{div}g$.
+
+For either force, uniqueness holds among periodic classical solutions
+for which the velocity, its time derivative and its spatial derivatives
+through order two, and the pressure and its spatial gradient, are
+continuous on every $[0,T]\times\T^3$.  Pressure is normalized to have
+zero spatial mean.
+\end{theorem}
+
+\subsection{Reading a configuration from an integer residue}
+
+Normalize a missing instruction by entering a fresh halting state without
+moving or changing the scanned symbol. To retain absolute
+tape position as well as the contents relative to the head, add a
+read-only bit track with a unique marked bit at the initial origin.
+Transitions preserve the bit and ignore it when choosing an instruction.
+The resulting alphabet is denoted by $\Gamma$, its all-blank symbol by
+$\square$, its state set by $Q$, and its finite initial word by $\omega$.
+The word contains the marked origin even when the original input is
+empty.  This modification preserves halting.
+
+Choose $b=\max(2,|\Gamma|,|Q|)$.  Give the symbols distinct digits in
+$\{0,\ldots,b-1\}$, assigning zero to $\square$, and number the states
+from zero.  After $n$ transitions, put
+\[
+ d_n=|\omega|+1+2n,\qquad p_n=2d_n+1,\qquad P_n=b^{p_n}.
+\]
+The nearest $d_n$ cells to the left of the head form a stack with
+integer code $L$; the nearest $d_n$ cells starting at the head form a
+stack with code $R$.  In each stack the nearest cell is the least
+significant base-$b$ digit.  All cells outside these two stacks are
+blank: a head travels at most one cell per transition, whereas the
+available width grows by two.  If the state number is $s$, the complete
+configuration therefore has the code
+\begin{equation}\label{eq:lattice-code}
+ c_n=L+b^{d_n}R+b^{2d_n}s,\qquad 0\le c_n<P_n.
+\end{equation}
+The slot number $n$ specifies the stack width.  The origin bit determines
+the head's absolute position, so the code loses no tape information.
+
+We must prescribe the field at every spatial address, rather than only
+at addresses visited by this computation.  For an arbitrary integer
+$j$, let $[j]_q$ denote its least nonnegative residue modulo the positive
+integer $q$.  Extract
+\[
+ \begin{split}
+ c&=[j]_{P_n},\\
+ L&=[c]_{b^{d_n}},\qquad
+ R=\bigl[\lfloor c/b^{d_n}\rfloor\bigr]_{b^{d_n}},\\
+ s&=\lfloor c/b^{2d_n}\rfloor,\qquad
+ l=[L]_b,\quad a=[R]_b.
+ \end{split}
+\]
+Define $h_n(j)=1$ if $s$ is a halting-state index, and $h_n(j)=0$
+otherwise.  If $s$ is a valid nonhalting state and $a$ a valid symbol,
+look up the single instruction $(s,a)\mapsto(s',a',m)$, where
+$m\in\{-1,0,1\}$.  Set
+\begin{equation}\label{eq:lattice-transition}
+ \begin{split}
+ (L',R')&=
+ \begin{cases}
+ (a'+bL,(R-a)/b),&m=1,\\
+ ((L-l)/b,l+ba'+b(R-a)),&m=-1,\\
+ (L,R-a+a'),&m=0,
+ \end{cases}\\
+ F_n(j)&=L'+b^{d_{n+1}}R'+b^{2d_{n+1}}s'.
+ \end{split}
+\end{equation}
+In every other case define $F_n(j)=0$.  Digits away from the scanned
+cell need not be checked for membership in the alphabet.
+
+\begin{lemma}\label{lem:lattice-address}
+The functions $F_n,h_n$ on $\mathbb Z$ are $P_n$-periodic,
+$h_n\in\{0,1\}$, and $0\le F_n<P_{n+1}$ at every address.
+If $c_n$ is a true nonhalting configuration and
+$j\equiv c_n\pmod {P_n}$, then $F_n(j)=c_{n+1}$.
+\end{lemma}
+\begin{proof}
+All extracted data depend only on $[j]_{P_n}$.  In each nonzero branch,
+$0\le L',R'<b^{d_n+1}$.  For the left move, the only less immediate
+bound follows from
+\[
+ R-a\le b^{d_n}-b,\qquad l,a'\le b-1,
+\]
+which give $l+ba'+b(R-a)\le b^{d_n+1}-1$.  The right and stationary
+branches satisfy the same bounds directly.  Since $d_{n+1}=d_n+2$
+and $0\le s'<b$, the output fits in the three fields of the next code.
+The formulas are precisely the stack operations for a tape transition.
+In particular, after a left move the new right stack consists of the
+old left top, the symbol just written, and the old right tail.  This is
+$l+ba'+b(R-a)$; the last term has two digit shifts because $R-a$
+already contains one factor of $b$.  The two new blank places suffice
+for every branch.
+\end{proof}
+
+\subsection{Scales that retain old records without reading them}
+
+Suppose a real coordinate stores a partial history as
+$y_*+\sum_{k=0}^n\epsilon_kc_k$, with $y_*=1/2$.
+To recover $c_n$, we want every earlier summand, after division by
+$\epsilon_n$, to be an integer multiple of $P_n$.  We also want the
+next displacement to be much smaller than $\epsilon_n$, so a smooth
+selector will read the same integer throughout that displacement.
+The following explicit scales meet both requirements:
+\begin{equation}\label{eq:lattice-scales}
+ K_n=(p_0+10)2^{n(n+1)},\qquad
+ \epsilon_n=b^{-K_n},\qquad
+ \beta_0=1/4,\quad \beta_n=\epsilon_n\quad(n\ge1).
+\end{equation}
+The numbers $\beta_n$ give the distance of a nonhalting signal from
+the boundary $x_1=1/2$. The separate choice $\beta_0=1/4$ fixes the
+initial first coordinate at $1/4$, independently of the input; later
+distances use the shrinking memory scales. Its contribution to the
+first transition is a single finite-time term in the decay estimates.
+
+\begin{lemma}\label{lem:lattice-scales}
+For $n\ge0$,
+\begin{align}
+ P_n&\mid\epsilon_n^{-1},&
+ P_n&\mid\epsilon_k/\epsilon_n\quad(0\le k<n),
+ \label{eq:lattice-divisibility}\\
+ P_{n+1}\epsilon_{n+1}
+ &\le\epsilon_n^{\,2^{2n+2}-1}
+ \le\epsilon_n^3<\epsilon_n/4.
+ \label{eq:lattice-plateau-bound}
+\end{align}
+Moreover, $\beta_n$ decreases strictly and $\epsilon_n\le2^{-n}$.
+\end{lemma}
+\begin{proof}
+Here $p_n=p_0+4n$ and $K_{n+1}=2^{2n+2}K_n$.
+Induction gives $K_n\ge p_{n+1}$, starting with
+$K_0=p_0+10\ge p_0+4$.  Thus $K_n\ge p_n$ and, for $k<n$,
+\[
+ K_n-K_k\ge K_n-K_{n-1}\ge3K_{n-1}\ge p_n.
+\]
+These inequalities prove the two divisibilities, since all quantities
+are powers of the same integer $b$.  Also
+\[
+ b^{p_{n+1}-K_{n+1}}
+ \le b^{K_n-2^{2n+2}K_n}
+ =\epsilon_n^{\,2^{2n+2}-1}.
+\]
+The remaining assertions follow from $b\ge2$, $K_0\ge13$ and the
+strict growth of $K_n$.
+\end{proof}
+
+We have now specified the finite rule table and the scale arithmetic.
+The next step makes the residue calculation into a smooth field whose
+actual particle follows the whole stored history.
+
+\subsection{Smooth selectors and the complete particle path}
+
+Fix an effective smooth nondecreasing function $\sigma$ with
+$\sigma(t)=0$ for $t\le1/3$ and $\sigma(t)=1$ for $t\ge2/3$.
+Take $\sigma(t)=H(3t-1)$ with the function $H$ fixed in
+Section~\ref{sec:analytic}.
+Choose an effective smooth bump $\psi$ that is one on $[-1/4,1/4]$
+and zero outside $[-3/8,3/8]$.  Products of translates and rescalings
+of $H$ supply such a bump.  These functions and their derivatives have
+effective bounds; flatness at the endpoints follows from the
+exponential factor in $\rho$.
+
+For $j\in\mathbb Z$, define a bump centered at the $j$th point of
+the scale-$n$ lattice by
+\[
+ J_{n,j}(y)=\psi\bigl((y-y_*)/\epsilon_n-j\bigr).
+\]
+Their supports are pairwise disjoint.  In planar coordinates
+$\xi=(\xi_1,\xi_2)$, prescribe the loading field and the $n$th
+transition field by
+\begin{align}
+ v_{\rm in}(t,\xi)&=\sigma'(t)(0,\epsilon_0c_0),
+ \label{eq:lattice-loader}\\
+ v_n(t,\xi)&=\sigma'(t-1-n)
+ \begin{pmatrix}
+  \beta_n-\beta_{n+1}
+     +2\beta_{n+1}\displaystyle\sum_{j\in\mathbb Z}h_n(j)J_{n,j}(\xi_2)\\
+  \epsilon_{n+1}\displaystyle\sum_{j\in\mathbb Z}F_n(j)J_{n,j}(\xi_2)
+ \end{pmatrix},
+ \label{eq:lattice-slot}\\
+ v&=v_{\rm in}+\sum_{n\ge0}v_n.
+ \label{eq:lattice-planar-field}
+\end{align}
+The field is independent of $\xi_1$.  Translation of $\xi_2$ by
+one shifts the lattice index by $\epsilon_n^{-1}$, a multiple of
+$P_n$ by Lemma~\ref{lem:lattice-scales}.  The coefficients therefore
+repeat, and $v$ is a field on $\T^2$.  Only the loader acts during
+$[0,1]$, and only $v_n$ acts during $[1+n,2+n]$.  The fixed zero
+collars of the pulses make their sum smooth, including at every slot
+boundary and at time zero.
+
+Let $Y(t)$ be the real-coordinate lift of its particle starting at
+$(1/4,y_*)$.  The loader leaves the first coordinate unchanged and
+ends at
+\[
+ Y(1)=(1/4,y_*+\epsilon_0c_0).
+\]
+We claim that, at $t_n=1+n$ and up to the first halting configuration,
+\begin{equation}\label{eq:lattice-history}
+ Y_1(t_n)=1/2-\beta_n,\qquad
+ Y_2(t_n)=y_*+\sum_{k=0}^n\epsilon_kc_k.
+\end{equation}
+The claim holds for $n=0$.  Assuming it at $n$, put
+\[
+ j_*=(Y_2(t_n)-y_*)/\epsilon_n.
+\]
+This is an integer, and \eqref{eq:lattice-divisibility} gives
+$j_*\equiv c_n\pmod {P_n}$.  Changing the lift of $Y_2$ by an
+integer changes $j_*$ by a multiple of $P_n$, so the decoded instruction
+is intrinsic to the torus.
+
+Throughout this slot the actual trajectory is
+\begin{align}
+ Y_2(t_n+\tau)&=Y_2(t_n)+\sigma(\tau)\epsilon_{n+1}F_n(j_*),
+ \label{eq:lattice-path-y}\\
+ Y_1(t_n+\tau)&=Y_1(t_n)+\sigma(\tau)
+  \bigl(\beta_n-\beta_{n+1}+2\beta_{n+1}h_n(j_*)\bigr),
+ \quad 0\le\tau\le1.
+ \label{eq:lattice-path-x}
+\end{align}
+Indeed, Lemma~\ref{lem:lattice-address} and
+\eqref{eq:lattice-plateau-bound} bound the second-coordinate
+displacement by $\epsilon_n/4$.  The proposed curve stays on the
+plateau $J_{n,j_*}=1$, where every other bump vanishes.  Differentiating
+\eqref{eq:lattice-path-y}--\eqref{eq:lattice-path-x} therefore gives
+exactly \eqref{eq:lattice-slot}.  Spatial smoothness and ODE uniqueness
+identify it with the actual particle.
+
+At a nonhalting configuration, Lemma~\ref{lem:lattice-address} gives
+$F_n(j_*)=c_{n+1}$ and $h_n(j_*)=0$.  The endpoint is thus the next
+history in \eqref{eq:lattice-history}.  Throughout that slot the first
+coordinate lies between $1/2-\beta_n$ and $1/2-\beta_{n+1}$, both
+strictly below $1/2$.  At a halting configuration $h_n(j_*)=1$, and
+the first-coordinate endpoint is instead
+\[
+ Y_1(t_n+1)=1/2+\beta_{n+1}\in(1/2,1).
+\]
+This also handles an initially halted input, whose signal appears in
+the first slot after loading.  There is no first-coordinate wrap before
+the first detection.  Consequently the open event has the required
+equivalence at all real times, not just at integer endpoints.
+
+\subsection{Rapid bounds and the incompressible lift}
+
+The stored history grows, but neither its length nor the number of
+lattice cells enters a derivative bound.  At each spatial point at most
+one bump in \eqref{eq:lattice-slot} is nonzero.  For $|\alpha|=k$,
+all time orders $r$, and $n\ge0$, the coefficient bounds give
+\begin{equation}\label{eq:lattice-slot-bound}
+ \|\partial_t^r\partial_\xi^\alpha v_n\|_\infty
+ \le C_{r,k}\left(\mathbf 1_{k=0}\beta_n
+       +P_{n+1}\epsilon_{n+1}\epsilon_n^{-k}\right).
+\end{equation}
+The constant drift disappears after a spatial derivative; each derivative
+of a bump costs one factor of $\epsilon_n^{-1}$.  For
+$n\ge\max(1,k)$, \eqref{eq:lattice-plateau-bound} bounds the
+right-hand side by $C'_{r,k}\epsilon_n$.  Since
+$\epsilon_n\le2^{-n}$ and $1+t\le n+3$ on the $n$th slot,
+every polynomial time weight is bounded.  The finitely many earlier
+slots and the loader contribute finite effective constants.  Thus $v$
+satisfies all the mixed rapid bounds in \eqref{eq:lattice-rapid}.
+
+Choose an effective smooth periodic function $\eta$ on $\T$ with
+$\eta(1/2)=0$ and $\eta'(1/2)=1$.  One explicit choice is
+$(z-1/2)$ times a smooth cutoff supported in
+$(1/2-3/16,1/2+3/16)$ and equal to one near $1/2$, extended periodically.
+Define on $\T^3$
+\begin{equation}\label{eq:lattice-lift}
+ U(t,\xi,z)=
+ \bigl(\eta'(z)v_1(t,\xi),\eta'(z)v_2(t,\xi),
+       -\eta(z)\operatorname{div}_\xi v(t,\xi)\bigr).
+\end{equation}
+The two divergence terms cancel.  The first two components have zero
+mean because $\int_\T\eta'=0$, and the third has zero mean because
+$\int_{\T^2}\operatorname{div}_\xi v=0$.  On the plane $z=1/2$,
+the velocity is exactly $(v,0)$, so the plane is invariant and the
+particle from $a_*$ is $(Y(t),1/2)$ modulo integers.  This proves that
+the fluid lift preserves the event already verified.
+
+The lift costs at most one planar derivative of $v$.  Consequently $U$
+obeys all the rapid estimates, is zero initially, and has bounded
+gradient on each finite time interval.  Put
+\begin{equation}\label{eq:lattice-residual}
+ g=\partial_tU+(U\cdot\nabla)U-\nu\Delta U.
+\end{equation}
+This is the residual-realization construction of
+Lemma~\ref{lem:realization}: a prescribed smooth divergence-free
+velocity from rest solves the forced equation with this force and
+pressure zero.  Here $g$ has zero mean, since its time-derivative
+and Laplacian terms integrate to zero and
+$(U\cdot\nabla)U=\operatorname{div}(U\otimes U)$.
+Product differentiation proves every rapid bound for $g$.  More
+explicitly, a derivative of spatial order $k$ of the residual uses
+planar derivatives through order $k+3$ and one additional time
+derivative, all supplied by \eqref{eq:lattice-slot-bound}.
+
+The field $U$ satisfies the periodic classical hypotheses of
+Lemma~\ref{lem:realization}. That lemma gives the stated uniqueness
+class, the mean-zero pressure normalization, and the unique global
+material flow.
+
+\subsection{Effective evaluation and solenoidal forcing}
+
+The formulas specify all instructions without generating the distinguished
+execution.  Given a computable time, a rational enclosure selects
+finitely many possible pulse slots.  Within a selected slot, enclose
+a real lift of the second coordinate in a rational interval of length
+at most $\epsilon_n/2$.  Include every lattice center whose bump
+support meets that interval.  The number of candidates is uniformly
+bounded, and every omitted term vanishes.  Summing these candidates
+avoids deciding whether a computable real lies exactly on a cell
+boundary.  Each coefficient requires integer arithmetic and one lookup
+in the finite transition table.  Only the loading code $c_0$ uses the
+input contents; the later fields use the table and the transformed
+input length.
+
+The cutoff formulas have effective derivative bounds, and
+\eqref{eq:lattice-slot-bound} supplies an effective tail estimate.
+For any fixed $J$, an upper bound on $(n+3)^J2^{-n}$ is computable,
+for example by checking finitely many terms until its successive ratio
+is bounded by a fixed number below one.  Values of the fields, residual,
+and every requested derivative can therefore be evaluated to arbitrary
+rational error.  If $\nu$ is an arbitrary fixed positive real instead,
+the same algebraic formulas hold, with numerical evaluation relative
+to that parameter.
+
+Finally apply Lemma~\ref{lem:projection} to $g$. We have proved its
+zero spatial mean and effective estimates at every mixed order and
+every temporal weight. Thus the mean-zero solution of
+$\Delta\phi=\operatorname{div}g$ gives the effective solenoidal force
+\[
+ f=g-\nabla\phi,\qquad p=-\phi.
+\]
+Equation~\eqref{eq:projection} specifies its coefficients, and the
+weighted conclusion of the lemma gives \eqref{eq:lattice-rapid}.
+The pressure sign preserves $-\nabla p+f=g$, hence precisely the
+same velocity and particle event. A competitor for $f$ with pressure
+$q$ becomes a competitor for $g$ with pressure $q+\phi$, in the same
+normalized classical class. This also proves the projected uniqueness
+and completes Theorem~\ref{thm:lattice}.
+

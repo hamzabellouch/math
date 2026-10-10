@@ -1,0 +1,332 @@
+\section{Finite computations and split expressions}\label{alg:section}
+
+The language problem will be represented by a finite computation. This
+section supplies three interfaces for manipulating it: an expression
+identity that propagates an update through episodes, a Boolean operation
+that removes an affine correction, and a finite table that allows one
+unknown coordinate. Each interface will be used twice, with different
+state spaces. The related split and recovery constructions in
+\cite[Section~2]{HeightThirteen,HeightFour} explain the method; the exact
+statements and proofs needed here are included below.
+
+\subsection{Monoid values and deterministic updates}
+
+If $\Sigma=\emptyset$, its only languages are $0$ and $1$, both of
+height zero. Assume henceforth that $\Sigma$ is nonempty, and fix a
+morphism
+\[
+                         T:\Sigma^*\longrightarrow M
+\]
+into a finite monoid $M$. For a deterministic finite automaton, take $M$
+to be the finite monoid of state transformations induced by words,
+including the identity transformation. Its accepted language is a finite
+union of fibers of $T$. Thus it suffices to construct a height-three
+expression for each fiber of every such morphism.
+
+Letters occupy intervals $[a,a+1)$ with integer endpoints. For an
+available interval $[a,b)$, $a\le b$, write $T_{a,b}$ for its monoid
+value, with $T_{a,a}=1_M$. Products are in reading order:
+\[
+                         T_{a,c}=T_{a,b}T_{b,c}.
+\]
+Let $V=\mathbf F_2^M$ have basis $(e_m)_{m\in M}$. Each $d\in M$ acts
+linearly on the right by $e_m d=e_{md}$. This is the linearized right regular action
+\cite[Section~3.1]{AMSV2009}. It is faithful because
+$e_{1_M}d=e_d$ identifies $d$. Vectors are written on the left of their
+linear maps, so $vLA$ means first apply $L$, then $A$. We will also use
+$U=V\oplus\mathbf F_2$; the additional coordinate will turn affine maps
+on $V$ into linear maps on $U$. All vector spaces below are finite.
+
+Put $N_M=|M|!$. Finiteness gives
+\begin{equation}\label{alg:power-periodicity}
+          c^{i+N_M}=c^i\qquad(c\in M,\ i\ge |M|).
+\end{equation}
+Indeed two of $c^0,\ldots,c^{|M|}$ agree, say $c^a=c^b$ with
+$0\le a<b\le |M|$. Powers are then periodic from exponent $a$, with
+period $b-a$, which divides $N_M$. This includes $|M|=1$.
+
+A \emph{prefix code} is a set $E\subseteq\Sigma^+$ containing no
+proper-prefix pair. Its members will be called \emph{episodes}. Every
+word in $E^*$ has a unique factorization into episodes: the first factors
+of two proposed factorizations are comparable by the prefix relation and
+therefore equal, after which induction applies. The empty word has the
+empty factorization.
+
+For $D\subseteq E$, assign to each $e\in D$ a deterministic total map
+$G_e:S\to S$ on a fixed finite state set $S$. On $w=e_1\cdots e_r$,
+let $G_w$ apply the updates in reading order; $G_\eps$ is the identity.
+The \emph{graph language} from $x$ to $y$ on $D^*$ is
+\[
+                       \{w\in D^*:G_w(x)=y\}.
+\]
+The indicated domain is part of this definition. The update is determined
+by the episode itself, independently of choices made by an expression
+that tests its graph.
+
+Finite intersections can be expressed using union and complement and do
+not increase generalized star height. A finite language has height zero:
+write its words as concatenations of letters, use $1$ for $\eps$, and
+take a finite union. Auxiliary finite indices below are never input
+letters.
+
+\subsection{The split identity}
+
+The next lemma separates two obligations. Every successful split must
+transmit the correct state and consume exactly one episode. Existence
+of a split is required only outside the domain that is to be skipped.
+
+\begin{lemma}[Split identity]\label{alg:split}
+Let $D'\subseteq D\subseteq E$, where $E$ is a prefix code, and give
+each $e\in D$ a deterministic total update $G_e$ of a finite set $S$.
+Suppose languages $P_x,Q_y\subseteq\Sigma^*$, $x,y\in S$, satisfy:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item If $w\in D^*$ has a prefix $uv$ with $u\in P_x$ and $v\in Q_y$,
+then $w$ has a first episode $e$, $uv=e$, and $G_e(x)=y$.
+\item For every $e\in D\setminus D'$ and every $x\in S$,
+$e\in P_xQ_{G_e(x)}$.
+\end{enumerate}
+Let $W_{x,y}$ be the graph languages for these same updates on $(D')^*$.
+Then the graph language from $x$ to $y$ on $D^*$ is
+\begin{equation}\label{alg:split-formula}
+\begin{split}
+D^*\cap\Bigg[W_{x,y}\ \cup\ &
+ \left(\bigcup_{i\in S}W_{x,i}P_i\right)
+ \left(\bigcup_{j,i\in S}Q_jW_{j,i}P_i\right)^*\\[-2pt]
+ &\hspace{24mm}\cdot
+ \left(\bigcup_{l\in S}Q_lW_{l,y}\right)\Bigg].
+\end{split}
+\end{equation}
+If $D$, all $P_x$, and all $Q_y$ have height at most one, while all
+$W_{x,y}$ have height at most $H\ge0$, the resulting graph languages
+have height at most $\max\{2,1+H\}$.
+\end{lemma}
+
+\begin{proof}
+Fix a word in the right-hand side. Its membership in $D^*$ fixes the
+ambient episode factorization, but does not by itself align an arbitrary
+interior factor with that factorization. We establish alignment in order,
+starting at the beginning of the word.
+
+The first $W$-factor begins at a true boundary. Since its words are in
+$(D')^*$, its own first episode and the ambient first episode are prefix
+comparable. Both belong to the prefix code $E$, so they are equal.
+Repeating this argument shows that the whole $W$-factor consumes complete
+ambient episodes, and its endpoint is another true boundary. Its graph
+indices describe their actual composite update.
+
+Now consider an accepted factorization through the second term of
+\eqref{alg:split-formula}. The concatenation of the first $P$-factor and
+the following $Q$-factor begins at the true boundary just established.
+Condition~\textup{(i)} says that their concatenation is exactly the next
+episode and takes the indicated input state to the indicated output.
+The next $W$-factor starts at that episode's true endpoint, so the same
+prefix-code argument applies again. Alternating these two steps through
+the factorization establishes every boundary and propagates every state.
+Only this induction licenses alignment; no assertion about a general
+interior factor in $E^*$ is needed. A zero-fold middle star leaves one
+$P,Q$ pair, to which the same argument applies. The first term $W_{x,y}$
+already records the desired composite on its domain.
+
+For the reverse inclusion, follow the actual computation on a word of
+$D^*$. Use condition~\textup{(ii)} to split each episode outside $D'$,
+and group every intervening run of episodes from $D'$ into a $W$-factor
+with its actual endpoint states. These choices form the second term in
+\eqref{alg:split-formula}. If there is no episode outside $D'$, the word
+belongs to $W_{x,y}$. This includes the empty word. Empty domains are
+therefore allowed; if $S$ is empty there are no indexed assertions.
+
+The height estimate can be read directly from the expression. The factor
+$D^*$ has height at most two. Each factor inside the middle star has
+height at most $\max\{1,H\}$, and starring it gives at most
+$1+\max\{1,H\}$. Unions, concatenations, and the outer intersection
+preserve the maximum of their argument heights. Thus the bound is
+$\max\{2,1+H\}$.
+\end{proof}
+
+When $D'=\emptyset$, the skip language $W_{x,y}$ is $1$ for $x=y$
+and $0$ otherwise. Its height is zero, so this case of the lemma has
+height bound two. Notice also that condition~\textup{(i)} rules out a
+successful pair on the empty word. Independent choices in $P_x$ and
+$Q_y$ must satisfy it even when their proposed metadata disagree.
+
+\subsection{Removing affine corrections}
+
+We will deliberately alter an episode's translation term to make its
+split possible. The following identity explains why this is harmless.
+The output on zero isolates the translation of a whole composite, even
+when none of its linear factors is invertible. The two computations must
+be required on the same word, which is why the expression uses an
+intersection.
+
+\begin{lemma}[Boolean affine recovery]\label{alg:affine-recovery}
+Let $S$ be a finite vector space and let the episode updates on
+$D\subseteq E$ be
+\[
+                          G_e(v)=vL_e+b_e,
+\]
+with $L_e\in\operatorname{End}_{\rm lin}(S)$ and $b_e\in S$ determined
+by $e$. If $R_{x,z}$ are the graph languages of their composites on
+$D^*$, then the graph language for the product of their linear parts,
+from $x$ to $y$, is
+\begin{equation}\label{alg:linear-recovery-formula}
+                  \bigcup_{b\in S}
+                         \bigl(R_{x,y+b}\cap R_{0,b}\bigr).
+\end{equation}
+A common height bound for the $R_{x,z}$ is preserved.
+\end{lemma}
+
+\begin{proof}
+Composition in reading order obeys
+$(vL+b)A+c=vLA+(bA+c)$. Induction, starting from the identity on the
+empty word, therefore writes each word's composite as $v\mapsto vL+b$,
+where $L$ is precisely the product of its episode linear parts.
+For that word, the output at zero is $b$, and the output at $x$ is
+$y+b$ exactly when $xL=y$. Requiring both facts on the word gives the
+intersection in \eqref{alg:linear-recovery-formula}; taking the union
+allows every possible translation $b$. These are finite Boolean
+operations, so they preserve the asserted height bound.
+\end{proof}
+
+\begin{lemma}[Homogeneous lift]\label{alg:homogeneous-lift}
+For a finite vector space $S$ over a finite field $\mathbf F$, the map
+$F(v)=vL+b$ has the linear lift on $S\oplus\mathbf F$
+\begin{equation}\label{alg:lift-formula}
+                     \widehat F(v,c)=(vL+cb,c).
+\end{equation}
+Products of these lifts are the lifts of the corresponding composites
+in reading order. In particular, graph languages for products of the
+lifts give those of the affine composites by using inputs $(v,1)$
+and outputs $(y,1)$, without increasing height.
+\end{lemma}
+
+\begin{proof}
+The displayed map is linear in $(v,c)$. For
+$F(v)=vL+b$ followed by $G(v)=vA+d$, the two lifted maps give
+\[
+            (v,c)\longmapsto(vLA+c(bA+d),c),
+\]
+which is the lift of their affine composite. Induction proves the
+product assertion; the slice $c=1$ proves the graph assertion. The
+empty product is the identity in both spaces. No invertibility is
+required. We will use this with $S=V$, $\mathbf F=\mathbf F_2$, and
+$S\oplus\mathbf F=U$.
+\end{proof}
+
+\subsection{A shift table that hides one entry}
+
+A cut can leave one interval product unreadable by either factor. We
+will replace the demand to know that product by a finite certificate that
+checks all of its possible values. To make such a certificate available,
+we need a deterministic affine correction with a constant coordinate
+line through every tuple, for every input state.
+
+The order of quantifiers matters: the length is selected first, uniformly
+in the table of linear maps; a correction is then fixed for each table;
+only afterward may a tuple and input state select a successful coordinate.
+The product-action version in \cite[Lemma~2.3]{HeightFour} motivates this
+step, but an arbitrary table is needed for the second split below.
+
+\begin{lemma}[Shift table]\label{alg:shift-table}
+For every nonempty finite set $A$ and every finite vector space $S$
+there is an integer $l\ge1$, depending only on $|A|$ and $|S|$, with
+the following property. For every function
+\[
+                    f:A^l\longrightarrow
+                                    \operatorname{End}_{\rm lin}(S)
+\]
+there is a function $\beta_f:A^l\to S$ such that, for every
+$\mathbf a=(a_1,\ldots,a_l)\in A^l$ and $x\in S$, there is an
+$i\in\{1,\ldots,l\}$ for which
+\begin{equation}\label{alg:shift-constancy}
+ b\longmapsto x f(a_1,\ldots,a_{i-1},b,a_{i+1},\ldots,a_l)
+       +\beta_f(a_1,\ldots,a_{i-1},b,a_{i+1},\ldots,a_l)
+\end{equation}
+is constant on $A$. The integer $l$ is uniform over $f$, and
+$\beta_f$ is independent of $x$.
+\end{lemma}
+
+\begin{proof}
+Put $a=|A|$ and $q=|S|$. If $a=1$ or $q=1$, take $l=1$ and
+$\beta_f=0$; every required function is constant. Assume $a,q>1$.
+For an integer $l$ to be chosen, choose independent uniform vectors
+$\beta(\mathbf c)\in S$ at all cells $\mathbf c\in A^l$. Fix any
+table $f$. For each $x\in S$ and $\mathbf a\in A^l$, let
+$\mathcal B_{x,\mathbf a}$ be the event that none of the $l$
+coordinate lines through $\mathbf a$ has the asserted constancy.
+
+Condition on the value of $\beta(\mathbf a)$. For a specified line,
+constancy forces exactly one value of $\beta$ at each of its other
+$a-1$ cells, regardless of $f$. The line therefore succeeds with
+probability $q^{1-a}$. Different lines share only their central cell,
+so these successes are conditionally independent. The conditional
+failure probability is independent of the central value, giving
+\[
+                    \Pr(\mathcal B_{x,\mathbf a})
+                          =(1-q^{1-a})^l=:p_l.
+\]
+
+This event depends only on random values at Hamming distance at most
+one from $\mathbf a$, where Hamming distance counts unequal entries.
+Events with centers at distance greater than two use disjoint random
+variables. Hence each event is independent of the joint family of all
+such distant events. A dependency neighborhood has size at most
+\begin{equation}\label{alg:dependency-bound}
+ q\left(1+l(a-1)+\binom l2(a-1)^2\right)-1
+              \ \le\ D_l:=q(1+la+l^2a^2).
+\end{equation}
+The factor $q$ includes every possible input vector at each center.
+
+We use the following form of the finite dependency argument of
+Erd\H{o}s and Lov\'asz~\cite[Section~2]{ErdosLovasz1975} and include its proof. Suppose each event of a finite family
+is independent of the joint family of its nonneighbors, has at most
+$D$ neighbors, and has probability at most $s(1-s)^D$, where
+$0<s<1$. Then the probability that all the events fail to occur is
+positive. Here is the conditional-probability argument, to make the
+precise independence requirement explicit.
+
+Induct on the size of a set of other events being conditioned not to
+occur. Along with positivity of these conditioning events, prove that
+the conditional probability of any remaining event is at most $s$.
+For an empty set this follows from the assumed bound. Positivity for
+a set of size $k$ follows by deleting one event and using the bound
+for a conditioning set of size $k-1$. To prove the conditional bound
+at size $k$, split the conditioning set into the neighbors $J_1$ and
+nonneighbors $J_0$ of the event $B$ under consideration. If $J_1$ is
+empty, joint independence gives its unconditional probability. Otherwise,
+writing $C_i$ for simultaneous nonoccurrence of $J_i$, we have
+\[
+ \Pr(B\mid C_0\cap C_1)
+ \le \frac{\Pr(B\mid C_0)}{\Pr(C_1\mid C_0)}
+ \le \frac{\Pr(B)}{(1-s)^{|J_1|}}
+ \le s.
+\]
+For the denominator, expose the events in $J_1$ one at a time; every
+conditioning set then has size at most $k-1$, so the induction bounds
+each nonoccurrence probability below by $1-s$. The numerator uses
+joint independence from $J_0$. This completes the induction, and
+successive conditioning gives positive probability of full avoidance.
+
+Apply this estimate with $D=D_l$ and
+$s=1/(2(D_l+1))$. Bernoulli's inequality gives
+\[
+ (1-s)^{D_l}\ge1-D_ls\ge\tfrac12,
+ \qquad s(1-s)^{D_l}\ge\frac1{4(D_l+1)}.
+\]
+The probability $p_l$ decays exponentially in $l$, whereas $D_l$
+grows quadratically. Choose $l$ so that
+$p_l\le1/(4(D_l+1))$. This choice depends only on $a,q$, and works
+for every table $f$. Avoidance of all $\mathcal B_{x,\mathbf a}$
+supplies the required $\beta_f$ simultaneously for all cells and
+input vectors.
+\end{proof}
+
+Fix one successful $\beta_f$ for each of the finitely many possible
+functions $f$ at these dimensions. The resulting map
+$x\mapsto xf(\mathbf a)+\beta_f(\mathbf a)$ is now determined by the
+tuple and table, before any splitting choices are made. A prefix can
+certify its output using the other entries by checking every replacement
+for the omitted coordinate. The lemma promises a usable coordinate for
+each actual input, not one coordinate usable for all inputs at once.
+Nor does it restrict $f$ to tables obtained from feasible word prefixes.
+This unrestricted table domain will be essential when a suffix computes
+hypothetical prefix values in Section~\ref{inner:section}.

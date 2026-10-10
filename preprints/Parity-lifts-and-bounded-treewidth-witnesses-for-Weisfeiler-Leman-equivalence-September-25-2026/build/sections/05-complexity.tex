@@ -1,0 +1,247 @@
+\section{The ETH lower bound}
+\label{sec:complexity}
+
+The parity reduction is unconditional. To obtain its complexity
+consequences we first control domain sizes, then account for the
+sparsification and graph-construction costs before choosing the dimension.
+We use the width-three case of the sparsification lemma
+\citep[Corollary~1, p.~523]{IPZ2001}.
+Here clauses have at most three literals, and \(|F|\) denotes the explicit
+encoding length of a formula \(F\).
+
+\begin{lemma}[Sparsification]
+\label{lem:sparsification}
+For every \(\epsilon>0\) there are a constant \(C_\epsilon\ge1\) and a
+deterministic algorithm that expresses any \(3\)-CNF \(F\) on \(N\ge1\)
+variables as a disjunction of at most \(2^{\epsilon N}\) \(3\)-CNFs on
+the same variables, each with at most \(C_\epsilon N\) clauses.
+The running time is \(2^{\epsilon N}\operatorname{poly}(|F|)\).
+For positive rational \(\epsilon\), the procedure and a valid density
+bound can be chosen effectively.
+\end{lemma}
+
+The lemma is the imported sparsification theorem, not a consequence of
+the parity construction. In its constructive set-system proof, the
+universe consists of the \(2N\) literals: choosing rate \(\epsilon/2\)
+there gives the displayed variable-based rate \(\epsilon\). The integer
+threshold choice and fixed branching procedure provide the effective
+rational-rate selection used below~\citep[pp.~520--523]{IPZ2001}.
+
+The stated input-length bound allows an initial polynomial-time
+normalization: rename variables and remove tautologies and repeated
+clauses. There are only \(O(N^3)\) distinct clauses of width at most three,
+so the normalized encoding has length polynomial in \(N\).
+
+\begin{lemma}[Grouping sparse clauses]
+\label{lem:sat-choice}
+A \(3\)-CNF with \(m\) clauses yields a simultaneous-choice instance with
+\(t\) domains, each domain and pair-label set having size at most
+\[
+A=2^{3\lceil m/t\rceil}.
+\]
+A simultaneous choice exists if and only if the formula is satisfiable.
+\end{lemma}
+\begin{proof}
+Partition the clauses into \(t\) groups of size at most \(\lceil m/t\rceil\).
+Let \(V_i\) be the variables in group \(i\), and let \(D_i\) contain exactly
+the assignments on \(V_i\) satisfying that group. Set
+\[
+L_{ij}=\{0,1\}^{V_i\cap V_j},
+\qquad
+\lambda_{ij}^i(d)=d|_{V_i\cap V_j},
+\qquad
+\lambda_{ij}^j(d)=d|_{V_i\cap V_j}.
+\]
+Each scope has size at most \(3\lceil m/t\rceil\), proving the bounds.
+Pairwise agreement assigns every shared variable one value, so the
+choices join to an assignment satisfying all clauses; unused variables
+are free. Conversely, restrict a satisfying assignment to each scope.
+An empty group has its unique empty assignment, an unsatisfiable group
+has empty domain, and an empty overlap has one label, the empty
+assignment. Thus these cases require no exception.
+\end{proof}
+
+Apply Theorem~\ref{thm:choice-reduction} with \(t=k+1\) for the
+joint convention, or \(t=k\) for separate coordinate multisets.
+For a sparse formula with \(m\le CN\), recall that
+\[
+M_t=\sum_{a\in V(T)}2^{\deg_T(a)-1}=2^{O(k^2)}.
+\]
+There are at most \(A\) vertices in each base fiber, and precisely
+\(2^{\deg_T(a)-1}\) tags per vertex of type \(a\). The two output graphs
+therefore have a common order satisfying
+\begin{equation}
+n\le M_t\,2^{3\lceil m/t\rceil}
+   \le b_k\,2^{3CN/t},\qquad b_k=8M_t.
+\label{eq:output-size}
+\end{equation}
+These are explicit graphs. Enumerate the scope and overlap assignments,
+retain the satisfying domain assignments, and enumerate the parity
+tags. A scan of all vertex pairs then writes both adjacency matrices:
+each entry is determined by restrictions of assignments and a comparison
+of tag bits. The vertex records have length \(O(N+k^2)\), so a direct
+multitape implementation takes at most
+\begin{equation}
+b'_k\,(N+|F|)^{d}\,2^{B_0 CN/t},
+\qquad B_0=6,
+\label{eq:construction-time}
+\end{equation}
+for an absolute \(d\) and a constant \(b'_k\) depending only on \(k\).
+Indeed, squaring the assignment bound gives
+\(2^{6\lceil m/t\rceil}\le64\,2^{6CN/t}\).
+A fixed-power tape simulation only changes the absolute constant \(B_0\).
+
+\begin{proof}[Proof of Theorem~\ref{thm:eth}]
+Use positive-rate ETH \citep{IP2001}: for some \(\delta>0\), no
+deterministic \(3\)-SAT algorithm runs in
+\(2^{\delta N}\operatorname{poly}(|F|)\) time.
+Choose \(\epsilon<\delta/4\), and fix \(C=C_\epsilon\) from
+Lemma~\ref{lem:sparsification}.
+For the Turing-machine model set \(q=1\). More generally, suppose the
+chosen machine model has a simulation taking at most
+\(A_k(T+\ell+1)^q\) steps, where \(q\ge1\) is fixed by the model,
+independently of the simulated program and \(k\).
+Here \(T\) is the program's running time and \(\ell\) its input length;
+\(A_k\) may depend on the chosen fixed program and \(k\). Choose
+\[
+c=\frac{\delta}{24Cq},
+\qquad
+K\ge4,\qquad
+K>\frac{4C\max\{B_0,6q\}}{\delta}.
+\]
+
+Fix any \(k\ge K\) and suppose a solver takes \(O(n^{ck})\) time.
+Hardcode this solver and \(k\) into a \(3\)-SAT algorithm.
+Sparsify the input, form the graph pair for every sparse disjunct, and
+accept exactly when at least one pair is inequivalent.
+Lemmas~\ref{lem:sparsification} and~\ref{lem:sat-choice}, together with
+Theorem~\ref{thm:choice-reduction}, prove correctness.
+
+The matrix input has length \(\ell=O(n^2)\), so the simulated solver
+takes \(O_k(n^{qck}+n^{2q}+1)\) time. Both terms matter, even when
+\(ck<2\). By \eqref{eq:output-size} and \eqref{eq:construction-time},
+the total time is bounded, up to polynomial input factors and
+fixed-\(k\) constants, by
+\[
+2^{\epsilon N}
+\left(
+  2^{B_0 CN/t}
+ +2^{6qCN/t}
+ +2^{3CqckN/t}
+\right).
+\]
+Since \(t\ge k\), the first two inner rates are below \(\delta/4\),
+and the third is at most \(\delta/8\).
+The resulting rate is below \(\delta/2\), contradicting ETH.
+The solver's description, its running-time constant, \(A_k\), \(b_k\),
+and the eventual threshold in \(N\) may all depend on this fixed \(k\);
+\(c\) and \(K\) do not. Thus the contradiction applies to every fixed
+\(k\ge K\), without a uniform way of selecting the alleged solvers.
+\end{proof}
+
+\begin{remark}[Small dimensions on matrix inputs]
+On a comparison of two edgeless \(n\)-vertex graphs, a deterministic algorithm must
+inspect every potential edge: changing an unseen edge in one graph
+destroys equivalence, by degrees for ordinary \(1\)-WL and by atomic
+tuple types for \(k\ge2\). This gives an \(\Omega(n^2)\) bit-query bound.
+Decreasing \(c\) so that \(ck<2\) for the finitely many
+\(2\le k<K\) therefore includes those dimensions for both tuple
+conventions. Ordinary neighbor color refinement at dimension one is
+covered separately by the degree argument. The literal one-coordinate
+replacement rules above, whose atomic types see no edges, are not this
+ordinary \(1\)-WL convention.
+\end{remark}
+
+\subsection{The uniform subexponential formulation}
+\label{sec:uniformity}
+
+The conclusion under an assumption that only excludes a single uniform
+subexponential \(3\)-SAT algorithm is explicitly uniform.
+Here a uniform WL algorithm takes \(k\) and the two graphs as input.
+
+\begin{proposition}[Uniform lower bound]
+\label{prop:uniform}
+If no deterministic \(3\)-SAT algorithm has running time
+\(2^{o(N)}\operatorname{poly}(|F|)\), there is no uniform deterministic algorithm for
+\(k\)-WL equivalence with running time \(f(k)n^{g(k)}\), where
+\(g(k)/k\to0\).
+\end{proposition}
+\begin{proof}
+The constructive sparsification proof chooses integer thresholds by
+a computable search from any positive rational rate and then runs a
+fixed branching procedure \citep[pp.~520--523]{IPZ2001}.
+We may therefore fix an effectively indexed family \(S_j\) with rate
+\(1/j\) and sparsity constant \(C_j\), for \(j\ge1\).
+
+Suppose the uniform WL algorithm exists. We obtain one subexponential
+solver by racing all fixed parameter choices, so no effective rate of
+convergence for \(g(k)/k\) is needed. One fixed Turing machine
+\(U(j,k,F)\) runs \(S_j\), constructs the graph pairs, and calls that
+algorithm. For every fixed \(j\ge1\) and \(k\ge4\), its full running time
+has the form
+\[
+T_{j,k}(F)\le A_{j,k}N^{d_j}2^{\rho_{j,k}N},
+\qquad
+\rho_{j,k}=\frac1j+
+ \max\left\{\frac{B_0C_j}{t},\frac{3C_jg(k)}{t}\right\},
+\]
+after normalization. Parameter initialization and graph output are
+included in \(T_{j,k}\).
+
+Run doubling rounds \(R=1,2,4,\ldots\). In each round simulate \(U(j,k,F)\)
+from scratch for at most \(R\) steps for every \(1\le j\le R\) and
+\(4\le k\le R\), stopping at the first completed decision.
+All these computations are correct. If \(L\) is the normalized input
+length, a fixed tape simulator costs at most
+\(O((R+L+1)^3)\) per trial, including input copying and resetting the
+at most \(O(L+R)\) touched cells. There are at most \(R^2\) trials.
+Consequently the single resulting machine has running time
+\[
+D(F)\le C_U\bigl(T_{j,k}(F)+L+j+k+4\bigr)^5
+\]
+for every fixed pair, with an absolute power and a constant \(C_U\)
+independent of that pair.
+
+Given \(\eta>0\), first fix \(j\) with \(1/j<\eta/20\).
+Then fix \(k\) so that both terms in the maximum defining
+\(\rho_{j,k}\) are below \(\eta/20\).
+This is possible since \(t\ge k\) and \(g(k)/k\to0\).
+Thus \(\rho_{j,k}<\eta/10\); the fifth-power bound is
+\(2^{\eta N}\) for all sufficiently large \(N\), after absorbing its
+fixed constants and polynomial factors. The same pair works at all
+these lengths. The machine need not recognize a good pair or know a
+convergence modulus for \(g(k)/k\).
+For precision, normalize first to a canonical formula on its occurring
+variables. If none occur, decide the resulting constant formula
+directly, without invoking sparsification or the racing machine.
+Otherwise, if their number is \(1\le N'\le N\), its length is polynomial
+in \(N'\). For every desired rate the same fixed pair bounds all
+sufficiently large \(N'\); the finitely many canonical formulas with
+smaller \(N'\) have a common finite maximum running time. Thus the
+normalized solver has a uniform \(2^{o(N)}\) bound even when the original
+encoding names many unused variables. Parsing and normalization cost
+one fixed polynomial in the original input length, so the complete
+algorithm contradicts the assumed uniform subexponential lower bound.
+\end{proof}
+
+The same model qualification applies: simulation replaces \(g(k)\) by
+at most \(\max\{qg(k),2q\}+1=o(k)\) when \(q\) is fixed.
+For this uniform transfer, the simulation must itself be uniform in \(k\).
+An ineffective family of separately supplied fixed-\(k\) solvers would
+not define \(U\); Proposition~\ref{prop:uniform} makes no assertion
+about such a family under its weaker premise.
+
+Given two \(n\)-vertex graphs, consider deciding whether their
+\(k\)-tuple color histograms agree after two joint rounds, or after
+one separate round, starting from atomic types. This includes separate
+runs with common color names and pure-tuple comparison in the
+disjoint-union run. On the graph pairs produced by the reduction,
+Theorem~\ref{thm:choice-reduction} gives equality at every round when
+there is no successful choice, and inequality by the specified round
+when a choice exists. The inequality persists because each update
+retains the old color. Thus the reductions proving
+Theorem~\ref{thm:eth} and Proposition~\ref{prop:uniform} give the same
+deterministic time exclusions for these fixed-round decisions, with
+their respective hypotheses and parameter ranges. The difficulty is
+already present in comparing these early histograms; it does not require
+many rounds of stabilization.

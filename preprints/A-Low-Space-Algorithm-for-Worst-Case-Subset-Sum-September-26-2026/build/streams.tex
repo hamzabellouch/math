@@ -1,0 +1,157 @@
+\subsection{Sorted modular pair streams}
+\label{sec:streams}
+
+A stream will enumerate a Cartesian product while retaining only its
+smaller input arrays. An item consists of its actual, possibly signed,
+weight and a constant number of index masks. Write $\omega(a)$ for
+the actual integer weight of an item $a$. Repeated occurrences
+remain separate even if all their fields agree. Each item occupies
+constantly many words; array indices have $O(n)$ bits. We assume that
+weights, moduli, keys, and indices fit in the stated constant-word
+representation. Section~\ref{sec:implementation} verifies these
+conditions for all uses below.
+
+This is the sorted pair-sum method associated with Schroeppel and
+Shamir~\cite{SS81}; see also the explicit four-list description in
+Nederlof and W\k{e}grzycki~\cite[full version, Lemmas~3.3 and~A.1]{NW21}.
+We give the modular ordering and stopped-execution argument locally,
+since those details determine the cost of regenerating a dictionary.
+A generator's mutable state identifies its next occurrence and can be
+copied while sharing its immutable input arrays.
+
+\begin{lemma}[Filtered streams and tie joins]
+\label{lem:streams}
+Let $A_1,A_2$ be stored constant-word item arrays whose indices have
+$O(n)$ bits. Let $p\mid P$ be positive integers, and let $c,v$ be
+specified integer residues. Assume that the data occupy constantly
+many words each and that arithmetic, comparisons, and indexed access
+on them take $O(1)$ word operations in the stated model. The pairs $(a,b)\in A_1\times A_2$
+whose actual weights sum to $c\pmod p$ can be streamed in
+nondecreasing order of either
+\[
+ (\omega(a)+\omega(b))\bmod P
+ \quad\text{or}\quad
+ (v-\omega(a)-\omega(b))\bmod P,
+\]
+where all residues are normalized to $\{0,\ldots,P-1\}$.
+Initialization costs $O(n(|A_1|+|A_2|+1))$ word operations, each
+subsequent advance costs $O(n)$, and the state together with the
+input arrays uses $O(|A_1|+|A_2|+1)$ words.
+
+Consider two such streams of lengths $N_1,N_2$, with combined states
+and arrays of at most $S$ words. If their equal-key Cartesian
+products contain $Z$ pairs in all, they can report all these pairs
+using $O(S+B)$ words and, apart from initialization and the work
+performed on reported pairs,
+\begin{equation}
+\label{eq:tie-cost}
+ O\left(B+n(N_1+N_2+Z)+\frac SB Z\right)
+\end{equation}
+operations. Here $B\ge1$ is an integer buffer capacity. In
+particular, if $S\le\poly(n)B$, the bound is
+$\poly(n)(B+N_1+N_2+Z)$. The same upper bounds hold for an execution
+stopped partway, with $Z$ still counting \emph{all potential} matches.
+No coprimality assumption is needed.
+\end{lemma}
+
+\begin{proof}
+First sort $A_2$ lexicographically by its residue modulo $p$ and
+then its residue modulo $P$. For a fixed $a\in A_1$, binary
+search finds the contiguous slice with residue
+$c-\omega(a)\pmod p$. This slice contains exactly the eligible
+partners of $a$, and is ordered by their $P$-residues, including
+repetitions. Omit the row if the slice is empty.
+
+For a direct key, put $r=\omega(a)\bmod P$. Start at the first
+entry of the slice whose residue is at least $P-r$; if there is
+none, start at the beginning. Traverse forward cyclically for exactly
+the slice length. The entries at or above the pivot give the wrapped
+values $r+(\omega(b)\bmod P)-P$ first, followed by the unwrapped
+values $r+(\omega(b)\bmod P)$.
+Both portions are nondecreasing and the former values are smaller
+than the latter. This includes $r=0$, when the pivot search simply
+returns the beginning.
+
+For a complementary key put $K=(v-\omega(a))\bmod P$.
+Start at the last entry whose residue is at most $K$; if there is
+none, start at the last entry of the slice. Traverse in reverse
+cyclic order for exactly one slice length. Residues at most $K$
+produce the values $K-(\omega(b)\bmod P)$ in nondecreasing
+order. The residues above $K$ follow and produce the larger values
+$K-(\omega(b)\bmod P)+P$, also in nondecreasing order.
+Choosing the first pivot in the direct case and the last pivot in
+the complementary case preserves every repeated residue.
+
+Merge the rows with a min-heap having at most one current pair per
+item of $A_1$. A row stores its slice endpoints, current position,
+and remaining length; a heap entry has constantly many words.
+Comparison sorting, binary searches, and heap operations have depth
+$O(n)$ because array indices have $O(n)$ bits. This proves the
+initialization, advance, and state bounds. The construction permits
+repeated prime factors and other common factors. Empty input arrays
+give an empty stream.
+
+To join two streams, advance past unequal keys until an equal key is
+found. For that key, read up to $B$ second-stream items into a reusable
+buffer. If this exhausts the second tie group, pair its buffered items
+with each consecutive first-stream item of the key. No generator state
+is copied in this case. Reuse the buffer by its current length, without
+clearing $B$ positions for a short group.
+
+If the second tie group is longer, save the mutable second-generator
+state immediately after the first $B$ items. The snapshot includes
+its current lookahead item, heap, row cursors, and control state, but
+shares its immutable arrays. For each first-stream item of the key,
+report its pairs with the buffer, restore the saved state when needed,
+and replay the remaining suffix. After the final replay the second
+stream is already beyond the tie group.
+
+A save or restore costs $O(S)$. It is made only for a first item
+having at least $B$ potential partners; at most a constant number of
+such operations per first item is required. Their total cost is
+therefore $O(SZ/B)$. Replayed advances are charged to matching pairs;
+other advances are charged to the original stream lengths. The
+$O(n)$ cost per advance and the optional $O(B)$ initial buffer
+allocation give~\eqref{eq:tie-cost}. If processing stops immediately
+after a snapshot or restore, the same charge remains valid because
+$Z$ counts potential pairs, including pairs not reached. One snapshot,
+the buffer, and the two generators give the space bound.
+\end{proof}
+
+An actual-weight stream needs no modular pivots. Sort the second array
+by actual weight, add each first-array weight to that sorted row, and
+heap-merge the rows. Reading this ordered stream while remembering
+only the last weight counts its distinct values without storing the
+Cartesian product. This will let the representation trial measure a
+block's deficiency exactly from two small half-block lists.
+
+\subsection{Bounded dictionaries}
+
+Streaming saves space only if we also control what is retained.
+For deterministic deduplication, use a binary trie on a fixed-width
+signed actual weight, followed by the relevant mask bits when a mask
+is part of the key. Give zero its canonical nonnegative sign. In our
+applications the complete key has $O(u)$ bits. Searching or inserting
+it takes $O(u)$ operations and introduces at most $O(u)$ nodes,
+with constantly many words per node.
+
+Keep a separate append-only array of the distinct entries if subsequent
+array access is needed. A duplicate changes neither the array length
+nor its mathematical content. On finding a new key that would increase
+the array beyond capacity $C$, report overflow. Even if nodes for this
+first rejected key have been allocated, the trie has at most
+$O(u(C+1))$ nodes. All nodes, addresses, and appended records count as
+workspace. A weight-only dictionary is appropriate for disjoint
+compression blocks; a weight--mask dictionary will be required when
+compatibility depends on shared indices.
+
+For the concrete implementations below, raw list generation can be
+done in $O(n^2)$ operations per item, sorting and heap work in $O(n)$
+per item or advance, and dictionary operations in $O(u)$ per key.
+Whenever the combined stream storage is $O(B)$, the term depending
+on $Z$ in~\eqref{eq:tie-cost} is $O(nZ)$, before the separately
+charged processing of those matches. The buffer and stream-length
+terms remain separate. These explicit
+degrees will be used when the task costs are bounded. The argument
+does not assign a cost merely from the number of distinct entries
+eventually retained.

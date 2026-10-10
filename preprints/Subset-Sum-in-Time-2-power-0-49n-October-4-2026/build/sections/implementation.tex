@@ -1,0 +1,344 @@
+\section{The algorithm and its finite implementation}
+\label{sec:implementation}
+
+We now combine the two modular procedures.  Their roles are complementary:
+the checksum counts every subset in a modular bin, whereas the extraction
+procedure identifies exactly the terms that do not belong to the integer
+bin.  We first describe the resulting decision rule, then supply the finite
+arithmetic and bounded sampling needed to prove Theorem~\ref{thm:main} in
+the stated machine model.
+
+\subsection{Subtracting aliases}
+
+Choose a fixed sufficiently large integer $n_*$, whose requirements will be
+specified below.  If $n<n_*$ or the bit-length guard
+\eqref{eq:bit-guard} fails, use exact meet-in-the-middle on the original
+instance.  Otherwise choose the tie weights and form $c_i,t_s$ as in
+\eqref{eq:transformed}.  Run the preliminary procedure of
+Proposition~\ref{prop:preliminary}.  Return its answer if it decides the
+instance; its outcome \textsc{Continue} means only that we proceed to the
+following steps.
+
+Run the alias procedure of Theorem~\ref{thm:aliases} to choose the large
+prime $P$ and obtain its alias lists.  Write $\mathcal A_s$ for its
+deduplicated set of aliases for target $t_s$.  Every retained subset is checked using the
+original transformed integers, so even on an unsuccessful extraction run
+the set $\mathcal A_s$ contains only genuine aliases.  On a successful run
+it contains all of them.  Next draw and retain the phases
+$\phi_1,\ldots,\phi_n$ used in Theorem~\ref{thm:checksum}, and compute its
+estimates $\widehat V_{t_s\bmod P}$ for all target residues.  Repeated
+residues can share an estimate.  For each $s$, form the finite-precision
+quantity
+\begin{equation}
+ \widehat B_s
+ =\widehat V_{t_s\bmod P}
+  -\sum_{I\in\mathcal A_s}
+       e_P\left(\sum_{i\in I}\phi_i\right).
+ \label{eq:subtract-aliases}
+\end{equation}
+Each phase in this subtraction is evaluated from the retained integer
+residues $\phi_i$; it is not resampled.  Deduplication is by the binary
+subset itself, separately for each $s$, not by its sum or phase.
+
+Output \textsc{Yes} if $|\widehat B_s|\ge 1/2$ for some $s$, and
+\textsc{No} otherwise.  Since the computed real and imaginary parts are
+dyadic rationals, this test is implemented exactly by comparing the sum of
+their squares with $1/4$.  Any failure declared by a capped main procedure
+or a main-procedure random sampler results in \textsc{No}.  This convention
+does not apply to the preliminary outcome \textsc{Continue}.
+
+The cancellation behind this decision rule is exact before numerical
+rounding.  When extraction is complete,
+\begin{equation}
+ V_{t_s\bmod P}
+ -\sum_{I\in\mathcal A_s}e_P\left(\sum_{i\in I}\phi_i\right)
+ = B_s,
+ \qquad
+ B_s:=\sum_{\substack{I\subseteq[n]\\\sum_{i\in I}c_i=t_s}}
+             e_P\left(\sum_{i\in I}\phi_i\right).
+ \label{eq:exact-bin-checksum}
+\end{equation}
+In particular, an empty exact bin has $B_s=0$, and a bin containing one
+subset has $|B_s|=1$, for every choice of phases.  Thus isolation, rather
+than an anti-concentration estimate for a many-term sum, is what turns
+checksum estimation into a decision algorithm.
+
+\subsection{Finite arithmetic and bounded sampling}
+\label{sec:finite-arithmetic}
+
+The preceding sections describe finite combinatorial constructions, but
+their analyses use exact uniform draws and exact complex values.  We now
+implement both without unbounded running times or real-arithmetic
+instructions.  All constants below are fixed independently of the input
+and of the exponent $c$ in the polynomial-bit convention.
+
+\paragraph{Integer data and implicit indices.}
+The input integers, transformed sums, targets, and signed record weights
+have $O(b+\log(n+2))$ bits.  Masks have $n$ bits, and the residues, digit
+indices, block-table indices, and their tuples have polynomially many
+bits in $n$.  Arithmetic on these objects is performed with ordinary
+multiword integer algorithms.  For example, shift-and-add multiplication
+and binary long division use a polynomial number of bit operations in
+their operand lengths, and each bit operation is simulated by a constant
+number of allowed word operations.  Signs are stored separately.
+
+There is one useful distinction between a stored list and its implicit
+Cartesian products.  In a sampled checksum pattern let
+$E_\pi^{\rm hi},E_\pi^{\rm lo}$ be the numbers of emitted high and low
+entries; retain the notation $L_\pi$ for the number of matches.  The entry
+caps imply on every execution, not only on the good event, that
+\begin{equation}
+ L_\pi\le E_\pi^{\rm hi}E_\pi^{\rm lo}
+ \le 2^{2\lceil(\tau+20\eps)n\rceil}.
+ \label{eq:implicit-match-bitlength}
+\end{equation}
+Thus the possibly much larger match set is counted and indexed with
+$O(n)$-bit integers.  The group counts, prefix sums, and blockwise
+multiplicities in \eqref{eq:checksum-match-count} and
+\eqref{eq:checksum-multiplicity} therefore require only polynomial
+arithmetic per operation.  Those constructions index matches without
+an array indexed by all matches or by all $P$ residues.
+
+The list generators in Sections~\ref{sec:checksum} and~\ref{sec:aliases}
+emit records one at a time and check their caps before the next write.
+The alias exclusion uses binary searches rather than a scan of the
+forbidden interval, as proved in Section~\ref{sec:aliases}.
+Merge sorting uses at most a constant multiple of the stored records as
+temporary storage, with polynomial arithmetic per comparison.
+The distinct-sum preliminary procedure
+can merge a list with its translate, discarding duplicates while emitting
+the next list; its temporary length is at most a constant multiple of the
+cap.
+
+\paragraph{Uniform draws with a deterministic time limit.}
+A fair bit is obtained, for example, from the low bit of a fresh random
+word.  To draw uniformly from $\{0,\ldots,q-1\}$, draw
+$\lceil\log q\rceil$ independent bits and reject if their integer value
+is at least $q$; for $q=1$ return zero without drawing.  Each proposal is
+accepted with probability greater than $1/2$.  Stop with failure after
+$n^3$ rejected proposals.  Before that failure this is exactly the usual
+uniform sampler, and the probability of failure at any given call is at
+most $2^{-n^3}$.  This implements random indices, residues, and a rational
+Bernoulli probability $p/q$ by testing a uniform index against $p$.
+Uniform subsets of prescribed size are obtained by the first positions
+of a permutation generated by successive uniform choices among the
+remaining positions.  The independent flip bits need no rejection.
+
+For a prime in $[2^h,2^{h+1})$, draw uniform integers in this interval and
+test each for primality, stopping at the first prime.  Try at most $n^3$
+candidates.  Conditional on a prime being found, it is uniform among the
+primes of the interval.  The prime interval estimate used in
+Lemma~\ref{lem:prime-collision} gives an acceptance probability at least
+$c_0/n$ for a fixed $c_0>0$ at the two prime scales used here.  Thus failure
+has probability at most $\exp(-c_0n^2)$.  An exact test suffices: divide
+successively by the integers from $2$ through the integer square root of
+the candidate, with no divisor found if and only if it is prime.  The
+integer square root is found by binary search.  For the
+large prime this takes at most
+$2^{\eta n/2+O(1)}\poly(n)$ operations per candidate; the smaller prime
+tests are cheaper.  The number of prime calls is polynomial in $n$.
+
+Couple these samplers to ideal unlimited rejection samplers by using the
+same fresh bits until a cap is reached.  There are at most $2^{O(n)}$
+ordinary sampling calls on any capped execution and polynomially many
+prime calls.  These upper bounds depend on $n$ and the capped combinatorial
+loops, not on $b$; larger input integers increase the deterministic
+arithmetic cost per operation.  The probability that the finite
+and ideal executions ever differ is therefore
+\begin{equation}
+ 2^{O(n)}2^{-n^3}+\poly(n)\exp(-c_0n^2)=o(1).
+ \label{eq:sampling-coupling}
+\end{equation}
+The bound also holds for calls chosen adaptively, since each new call has
+the stated failure bound conditional on its preceding history.  One-way
+randomness causes no difficulty: retain phases and block-table labels
+when the algorithm needs them again, and discard other random words
+after use.  No earlier random bit is subsequently requested from an
+external source.
+
+\paragraph{Complex evaluations and summation.}
+\label{par:complex-evaluations}
+The fixed-accuracy tests of Sections~\ref{sec:filtering}
+and~\ref{sec:checksum} use the same deterministic rational approximations
+at every occurrence.  Their comparison results, including equality at a
+threshold, are therefore reproducible.  They are distinct from the more
+accurate evaluations of the checksum itself.
+
+For those evaluations, first reduce a phase exponent modulo $P$.  Compute
+each resulting unit complex number to absolute error at most
+$2^{-2n^2}$, with dyadic real and imaginary parts.  All of this is rational
+arithmetic of polynomial bit complexity.  For completeness,
+\[
+ \frac\pi4=\arctan(1/2)+\arctan(1/3)
+\]
+computes $\pi$ by alternating power series whose remainders decrease
+geometrically.  After the angle is reduced to $[0,2\pi]$, the sine and
+cosine Taylor series approximate it to $q$ bits with $O(q+1)$ terms:
+their remainders are bounded by $7^{r+1}/(r+1)!$, which is less than
+$2^{-q}$ for $r$ a sufficiently large constant multiple of $q+1$.
+Computing a few additional bits bounds the effect of the angle error and
+the final dyadic rounding.  Exact rational evaluation of these truncated
+series uses polynomially many bits and operations; even multiplying all
+the $O(n)$ dyadic factors without intermediate rounding remains within
+a polynomial bit bound.
+
+To make the error accounting explicit, put $\delta=2^{-2n^2}$.
+The checksum term has $n$ factors of modulus at most $2$ and one leading
+unit phase.  Approximating each to error $\delta$ and telescoping the
+product gives error at most
+$(n+1)\delta(2+\delta)^n=2^{-2n^2+O(n)}$.  The exact rational weights in
+the estimator, including $L_\pi/(P\mu_\pi(k))$, have numerator
+and denominator of $O(n)$ bits on every execution that reaches this
+calculation, by \eqref{eq:implicit-match-bitlength}; sampled matches
+always have positive multiplicity.  Their magnitudes are at most
+$2^{O(n)}$.  The number of evaluated terms and all absolute sum bounds
+are also $2^{O(n)}$, uniformly over the capped histories.
+
+Round each weighted contribution to a common dyadic grid with $n^2$
+fractional bits before adding it.  This avoids multiplying unrelated
+denominators during summation.  Exact addition of the resulting dyadics
+requires only $n^2+O(n)$ bits, and the total evaluation and rounding error
+is at most
+\begin{equation}
+ 2^{-n^2+O(n)}=o(1).
+ \label{eq:finite-evaluation-error}
+\end{equation}
+Division by the power-of-two sample count $N$ preserves the dyadic
+representation and adds only $O(n)$ fractional bits.
+Choose $n_*$ so that the error in \eqref{eq:finite-evaluation-error} is
+at most the $1/16$ arithmetic allowance
+already included in the $1/8$ error bound of
+Theorem~\ref{thm:checksum}.
+The same construction applies to the direct alias sums in
+\eqref{eq:subtract-aliases}.  Only polynomially many capped lists can
+contribute retained aliases, so their total number is $2^{O(n)}$ even on
+an unsuccessful extraction run.  Deduplication can only decrease this
+number.  Increase $n_*$ so that the extra error in each direct alias sum
+is at most $1/16$.  Together with the $1/8$ checksum accuracy of
+Theorem~\ref{thm:checksum}, this leaves
+\begin{equation}
+ \max_s|\widehat B_s-B_s|<\frac14
+ \label{eq:residual-accuracy}
+\end{equation}
+whenever extraction and checksum estimation succeed.
+
+\subsection{Correctness and the uniform running-time bound}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+First consider an input above the fixed cutoff that satisfies
+\eqref{eq:bit-guard}.  Fix any outcome of the tie weights, and hence all
+the integers $c_i,t_s$.  The proof divides according to the expectation
+of the deficiency on a uniform half; the algorithm never evaluates this
+expectation.
+
+If $\E d(V)>0.01004n$, Proposition~\ref{prop:preliminary} returns an
+exact decision except with probability $o(1)$.  If instead
+\eqref{eq:low-deficiency} holds, Theorem~\ref{thm:aliases} gives complete
+alias extraction with probability $1-o(1)$.  Conditional on each fixed
+$P$ and transformed instance, Theorem~\ref{thm:checksum} supplies all
+checksum estimates with probability $1-o(1)$, uniformly in those data.
+The additional sampling loss is $o(1)$ by
+\eqref{eq:sampling-coupling}.  These statements do not condition on the
+preliminary outcome \textsc{Continue}.  Equivalently, draw the independent
+main-procedure randomness even when the preliminary procedure decides
+and would not use it.  On the event that the main procedure is successful,
+every preliminary continuation is safe, whereas an earlier exact answer
+is already correct.  This establishes the required composition without
+changing the probability laws in either component theorem.
+Thus, for each fixed choice of tie weights, except with probability
+$o(1)$ the algorithm either returns the preliminary exact answer or
+uses complete aliases and accurate checksums in its final decision.
+
+For a \textsc{No} instance every transformed exact bin is empty, by
+Lemma~\ref{lem:isolation}.  On the event just described, if the
+preliminary procedure has not already answered, then
+\eqref{eq:residual-accuracy} forces every test to return
+\textsc{No}.  For a \textsc{Yes} instance, isolation fails with probability
+at most $1/12$.  When it succeeds, some transformed exact bin contains
+one subset.  Equations~\eqref{eq:exact-bin-checksum}
+and~\eqref{eq:residual-accuracy} give $|\widehat B_s|>3/4$ for that bin,
+and the algorithm returns \textsc{Yes}.  All the preceding $o(1)$ bounds
+are uniform over the guarded inputs and over the fixed tie weights.
+Choose the single constant $n_*$ sufficiently large that their total
+contribution is at most $1/12$.  The success probability is then at least
+$1-1/12-1/12=5/6$, and in particular at least $2/3$.
+This cutoff is effective and independent of $b$ and $c$.  The fixed
+filtering functions have explicit derivative bounds and positive lower
+bounds for their denominators, so the finite-circle approximation has an
+effective Riemann-sum error bound.  The remaining requirements use the
+displayed tail estimates, positive exponent gaps, and the explicit prime
+density bound of Lemma~\ref{lem:prime-collision}.  Taking a larger fixed
+integer meets all of them simultaneously.
+
+We next bound work on every random execution, including executions that
+abort.  The preliminary list cap has exponent $0.489985$.  The alias
+lists and enumerated pairs have exponent $\tau=0.48996$, with
+polynomially many repetitions.  The checksum bound is
+\[
+ 2^{(\tau+20\eps)n+O(\sqrt n)}\poly(n).
+\]
+The term $O(\sqrt n)$ includes the number of patterns, block-table work,
+and direct multiplicity computations.  Bounded rejection sampling and
+finite arithmetic multiply these costs by a fixed polynomial in
+$n+b+2$.  Trial division has exponent at most
+$\eta/2=0.25886$ and polynomially many calls, so it is smaller.  Since
+$\tau+20\eps=0.4899602<0.489995$ and
+$0.489985<0.489995$, increasing the fixed cutoff once more gives fixed
+constants $K_0,K$ such that the total work is at most
+\begin{equation}
+ K_0\,2^{0.489995n}(n+b+2)^K
+ \label{eq:all-history-time}
+\end{equation}
+on every guarded execution.  Input reads, generation of the fixed
+approximation meshes, sorting, storage writes, and all random draws are
+included.  In particular, no tables depending on $n$ are supplied to the
+program in advance.
+
+This operation bound also proves addressability without treating a
+multiword integer as a unit-cost value.  Allocate a new word only when it
+is written; the number of allocated words cannot exceed
+\eqref{eq:all-history-time}.  Its logarithm is at most
+\[
+ 0.489995n+K\log(n+b+2)+O(1).
+\]
+For sufficiently large $n$, uniformly for every $b\ge1$, the last two
+terms are at most $n+b+2$, because $\log x/x\to0$ uniformly for
+$x\ge n+3$.  The resulting bound is smaller than
+$w=\lceil4(n+b+\log(n+2))\rceil$.  Every memory address therefore fits
+in a word.  A polynomial-bit arithmetic operand is stored as as many
+words as necessary, and all operations on those words have already been
+charged.
+
+It remains to explain the fallback and the quantifiers.  The program can
+find $b$ by scanning the input and counting the bits of its largest
+integer using shifts, at polynomial cost in $n+b+2$.  The guard is an
+integer comparison: $b^{100000}\le2^n$ is equivalent to
+\eqref{eq:bit-guard}.  The cutoff is tested first, and a comparison with
+this fixed integer may be implemented in finite control.  On a failed
+guard or below $n_*$, divide the input
+into two halves, enumerate all their subset sums, sort one list, and
+search for a complementary sum for each element of the other.  This
+includes the empty subsets, is exact on every input, and uses
+$2^{n/2}\poly(n+b+2)$ operations.  Each original subset sum has at most
+$b+\lceil\log(n+1)\rceil$ bits, so it fits in a word.  The two lists,
+their sorting buffers, and their indices need only
+$O(2^{\lceil n/2\rceil})$ one-word records; a direct mergesort implementation
+fits the specified address space for every $n\ge2$.  No high-precision
+complex arithmetic is used in this fallback.  For $n\ge n_*$, the
+polynomial storage used by the guard itself fits by the same
+$\log(n+b+2)=o(n+b)$ bound as above.  Thus the program terminates and is
+correct on inputs outside the asymptotic guarded range as well.
+
+Finally fix any positive integer $c$.  For all sufficiently large $n$,
+every $b\le n^c$ satisfies the guard and $n\ge n_*$.  Substituting this
+inequality in \eqref{eq:all-history-time} gives
+\[
+ K_0\,2^{0.489995n}(n+n^c+2)^K
+ =O_c(2^{0.49n}),
+\]
+because the fixed positive gap $0.49-0.489995=0.000005$ absorbs every
+fixed polynomial.  The constants in this final comparison may depend
+on $c$, but the program, its cutoffs, its numerical coefficients, and
+all its sampling rules do not.  This is exactly the uniform
+polynomial-bit quantification of Theorem~\ref{thm:main}.
+\end{proof}

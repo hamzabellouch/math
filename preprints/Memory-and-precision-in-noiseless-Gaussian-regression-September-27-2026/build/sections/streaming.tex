@@ -1,0 +1,340 @@
+\section{From one block to a finite stream}\label{h:stream:section}
+
+The block estimate applies to the success function obtained by starting
+the learner from a specified state. We first construct these fresh
+continuations and show that a block has only a bounded number of possible
+destinations. This count will let us propagate the local bound
+\eqref{h:local:bound} backward through the stream.
+
+For now fix the shared rule seed and suppose that all finite transition
+and stopping kernels are Borel and defined at every input pair. Future
+rows and fresh random choices are independent of the past. We take the
+action at the horizon to be terminal from every state.
+Section~\ref{h:stream:reduction} justifies these conventions for the full randomized,
+completed-measurable model of Definition~\ref{h:model}, without changing
+its prior expected terminal score.
+
+\subsection{Fresh continuations and local destinations}
+
+Write $Q_t$ for the set of persistent states at sample index $t$, with
+$|Q_t|\le2^M$. For each terminal state $w\in Q_k$, write
+$\mathsf Q_{k,w}$ for its output probability law on $S^{d-1}$;
+with the seed fixed, this law depends only on $k,w$.
+Fix a Borel terminal score
+$\ell:S^{d-1}\times S^{d-1}\to[0,1]$. Starting from a specified
+state $u\in Q_t$ before its sample-free stopping check, define
+$h_{t,u}(s)$ to be the expected terminal score
+$\mathbb E[\ell(s,\widehat s)]$ with signal $s$ and fresh future
+samples and randomness. This definition also applies to states the
+original run never reaches.
+
+A block from index $t$ to index $t+m$ includes the stopping check at
+its entrance. An active exit is cut before the check at $t+m$, which
+the continuation performs. A terminal tag produced by the last
+transition has already stopped at $t+m$. These phase conventions use
+only the state and the index.
+
+\begin{lemma}[The destinations of a block]\label{h:stream:categories}
+For a fixed-seed Borel learner with the state sets, output laws, and
+phase convention just specified, and the Borel terminal score $\ell$, let
+$0\le t<T$, $u\in Q_t$, and $1\le m\le T-t$. There are an integer
+\begin{equation}\label{h:stream:destinations}
+ 1\le N\le(m+2)2^M,
+\end{equation}
+Borel routing functions
+$g_j:\mathbb R^{m\times d}\times\mathbb R^m\to[0,1]$ with
+$\sum_jg_j\le1$, and Borel functions
+$h_j:S^{d-1}\to[0,1]$ such that, for every $s\in S^{d-1}$,
+\begin{equation}\label{h:stream:category-representation}
+ h_{t,u}(s)=\sum_{j=1}^N h_j(s)
+       \int g_j(A,As)\,d\gamma_m(A).
+\end{equation}
+Here $\gamma_m$ is the law of an $m$-by-$d$ standard Gaussian matrix.
+Each destination is either a terminal state $w\in Q_k$ at an index
+$k\in\{t,\ldots,t+m\}$, with score function
+\[
+ h^{\mathrm{out}}_{k,w}(s)
+ =\int_{S^{d-1}}\ell(s,v)\,\mathsf Q_{k,w}(dv),
+\]
+or a continuing state $w\in Q_{t+m}$ before its stopping check, with
+score function $h_{t+m,w}(s)$. The terminal output law
+$\mathsf Q_{k,w}$ depends only on its state and index. The value
+$g_j(A,b)$ is the probability of destination $j$ when the block data
+are $(A,b)$.
+\end{lemma}
+
+\begin{proof}
+The everywhere-defined kernels and the forced terminal action at $T$
+give a finite scored experiment from every specified state. Its score
+function is Borel in the signal. Indeed, the map
+$(s,x)\mapsto(x,\langle x,s\rangle)$ is continuous, and each path
+probability is a finite product of Borel coordinate probabilities.
+Summing over the finitely many paths and integrating against the fixed
+laws of future rows preserves Borel measurability. The same argument
+applied to $\ell(s,v)$ and each fixed output law shows that
+$h^{\mathrm{out}}_{k,w}$ is Borel. The integration fact follows first
+for indicators of rectangles and then for nonnegative Borel functions
+by the monotone class theorem and monotone convergence; see also the
+composition of kernels in \cite[Section~2.3]{GagnePanangaden2023}.
+
+Pre-generate all $m$ rows of the block, including those after an early
+stop. At each $k=t,\ldots,t+m-1$, perform the sample-free stopping
+check and, if still active, process the next pair through the transition
+to $k+1$. A terminal tag from that transition stops at $k+1$.
+An active exit from the final transition is passed to the continuation
+before the stopping check at $t+m$, so that check is performed exactly
+once. If $t+m=T$, the continuation performs the forced terminal action.
+
+A terminal destination records its local stopping offset
+$i\in\{0,\ldots,m\}$ and its terminal state in $Q_{t+i}$.
+The offset $i=0$ includes an immediate stop, and $i=m$ can arise
+from the last transition. A transition tag and a sample-free stop at
+the same state and index have the same output law, so their outcomes
+can be merged. Continuing destinations form one additional copy of
+$Q_{t+m}$, distinguished from the terminal destinations at that index.
+Consequently the number of destinations is at most
+\[
+ \sum_{i=0}^m|Q_{t+i}|+|Q_{t+m}|\le(m+2)2^M.
+\]
+The block's entrance index is fixed, so local offsets determine all
+absolute stopping indices; the count has no factor depending on $T$.
+
+For arbitrary data $(A,b)$, each destination probability $g_j(A,b)$
+is a finite sum over paths of products of Borel coordinate
+probabilities. It is therefore Borel. The probabilities are
+nonnegative and sum to one when all destinations are included.
+A path that stops early is simply independent of the unused rows.
+After a continuing destination is fixed, independent future rows and
+fresh choices give its prescribed continuation score. After a terminal
+destination is fixed, the prescribed output law gives its terminal
+score. Conditioning first on the block data and then on its destination
+proves \eqref{h:stream:category-representation}. Because the kernels
+are defined everywhere, this equality holds for every signal and every
+starting state, rather than only at states reached by the original run.
+\end{proof}
+
+The angular and chordal success scores are, respectively,
+\[
+ \ell(s,v)=\mathbf 1_{\{\arccos\langle s,v\rangle\le\epsilon\}},
+ \qquad
+ \ell(s,v)=\mathbf 1_{\{\|s-v\|\le\epsilon\}}.
+\]
+Both are Borel. The backward induction below uses the angular score.
+
+\subsection{Borel versions and the original randomized experiment}
+\label{h:stream:reduction}
+
+The fresh continuations require kernels defined even at inputs and
+states absent from the original run. The model permits transition
+coordinates measurable in a completed sigma field. Under a dominated
+fresh-pair law, these coordinates admit everywhere-defined Borel
+versions that preserve the prior experiment. The following statement
+keeps the prior general for the later cube application.
+
+
+\begin{lemma}[Borel versions under a dominated sample law]
+\label{h:stream:borel}
+Let $d\ge2$, let $\pi$ be a Borel probability measure on $S^{d-1}$,
+and let $X\sim\gamma_1=N(0,I_d)$ be independent of $S\sim\pi$.
+Suppose that
+\begin{equation}\label{h:stream:pair-domination}
+ \mathcal L(X,\langle X,S\rangle)\ll
+ \lambda,\qquad \lambda(dx,dy)=\gamma_1(dx)\,dy
+\end{equation}
+on $\mathbb R^d\times\mathbb R$.
+Fix an integer horizon $T\ge0$ and finite state sets at every sample
+index. For each state and index, suppose every coordinate of the
+finite vector of transition and stopping probabilities is measurable
+in the $\lambda$-completion of the Borel sigma field. A terminal output
+law is a Borel probability measure on $S^{d-1}$ indexed only by its
+terminal state and stopping index. Decisions made without a new sample
+also depend only on the state and index.
+
+There are everywhere-defined Borel transition and stopping kernels,
+with the same state sets and terminal output laws, whose $\pi$-prior
+joint law of the signal, state path, stopping index and output is the
+same as for the original rules. The domination
+\eqref{h:stream:pair-domination} holds when $\pi=\sigma$ is uniform
+spherical probability, for every $d\ge2$.
+\end{lemma}
+
+\begin{proof}
+We first construct versions for a fixed set of rules. If
+$f:\mathbb R^d\times\mathbb R\to[0,1]$ is measurable in the
+$\lambda$-completion, each dyadic superlevel set
+$\{f\ge k2^{-n}\}$, $1\le k\le2^n$, agrees with a Borel set outside
+a Borel $\lambda$-null set, by the description of completion in
+Tao~\cite[Exercise~1.4.26]{TaoMeasure2011}. Replace these superlevel sets by their
+Borel representatives in
+\[
+ f_n=2^{-n}\sum_{k=1}^{2^n}\mathbf 1_{\{f\ge k2^{-n}\}}.
+\]
+The resulting Borel functions have a Borel $\limsup$ equal to $f$
+outside the union of the countably many null sets, since $f_n\to f$.
+Thus each coordinate of each finite kernel has a Borel version.
+For one state and index, choose all of its coordinate versions
+simultaneously. The Borel set on which the resulting vector is not
+nonnegative with sum one is null; on this set replace the vector by a
+fixed point mass. The result is a Borel probability vector at every
+sample pair. There are finitely many coordinates, states and indices,
+so one Borel $\lambda$-null set $Z$ contains every pair where any
+coordinate was changed. Sample-free decisions and terminal output
+laws require no such modification.
+
+Pre-generate all $T$ input rows, including rows after an early stop.
+Every pair $(X_t,\langle X_t,S\rangle)$ has the marginal law in
+\eqref{h:stream:pair-domination}, so
+\[
+ \mathbb P\{(X_t,\langle X_t,S\rangle)\in Z\}=0.
+\]
+For a state $u$ chosen from earlier observations, the event that the
+learner is in $u$ before sample $t$ and this pair lies in $Z$ is a
+subset of the displayed null event. We do not need a density for a
+sample conditioned on a particular state. A finite union over $t$
+shows that no changed pair is visited almost surely. Couple the
+original and modified finite choices by the same uniform random
+numbers. Starting from the same initial state, induction makes their
+states and stopping decisions equal almost surely. At an equal
+terminal state and index the output laws are identical, so use their
+diagonal coupling. This proves the asserted joint-law equality. When
+$T=0$ there is no sample pair to modify and the same conclusion is
+immediate.
+
+It remains to check the spherical prior. Conditional on a nonzero
+$X=x$, rotate coordinates so that $x/\|x\|$ is the first coordinate
+vector. Write a uniform sphere point as $G/\|G\|$ for a standard
+Gaussian vector $G=(G_1,G_\perp)$. When $d\ge2$,
+$R=\|G_\perp\|>0$ almost surely and is independent of $G_1$.
+For each fixed $R>0$, the map
+\[
+ g\longmapsto \frac{g}{\sqrt{g^2+R^2}}
+\]
+is a smooth strictly increasing bijection from $\mathbb R$ to
+$(-1,1)$ with nonzero derivative. The image of the Gaussian law of
+$G_1$ therefore has a Lebesgue density. Mixing over $R$ and then
+multiplying by $\|x\|$ shows that $\langle x,S\rangle$ is absolutely
+continuous for every $x\ne0$. The point $x=0$ has $\gamma_1$-measure
+zero. Fubini's theorem applied to the sections of a
+$\lambda$-null Borel set now proves
+\eqref{h:stream:pair-domination}.
+\end{proof}
+
+The equality in Lemma~\ref{h:stream:borel} concerns the experiment under
+the chosen prior. It need not preserve behavior at every exceptional
+individual signal. In particular, an every-signal success premise will
+be averaged over the prior before versions are chosen.
+
+We now return to the model's original jointly measurable randomized
+experiment. Fix any Borel prior $\pi$ satisfying
+\eqref{h:stream:pair-domination}, and draw the signal from $\pi$
+independently of the rows and the model's data-independent randomness.
+The preceding lemma supplies the domination condition for the
+uniform-sphere prior. Write $W$ for the shared rule seed, taking $W$ constant
+when no seed is used, and $I$ for its initial state. The observable
+signal, rows, state path, stopping index, and output take values in
+standard Borel spaces. For a Borel terminal score $\ell$, its original
+conditional expectation is a measurable function of $W$ and integrates
+to the mixed expected score. Since $(I,W)$ is jointly independent of the signal and all
+pre-generated rows, conditional on almost every $W=w$ those inputs
+retain their joint law and $I$ is independent of them. The dependence
+allowed between $I$ and $W$ does not affect this conclusion.
+
+Fix such a seed value for which the model's per-seed kernel hypotheses
+also hold. Lemma~\ref{h:stream:borel}
+replaces its completed transition and stopping coordinates by
+everywhere-defined Borel kernels while preserving the original
+conditional $\pi$-prior law. Keep its terminal output laws. At index $T$,
+force the sample-free action to stop at every state, retaining each
+prescribed state/index output law. Assign a fixed unit output only where
+no law was specified, a case absent from original terminating paths.
+This does not change the original conditional
+experiment, which already stops by $T$. It makes the horizon convention
+in the continuation construction valid even at states absent from that
+experiment.
+
+The preceding continuation lemma now applies to this fixed-seed Borel
+learner with any Borel terminal score $\ell$. A numerical score bound
+uniform over its initial states can be averaged against the conditional
+law of $I$. If the bound is also uniform in the fixed seed, the final
+seed average uses the original conditional expected scores. Borel
+versions may be chosen separately for each seed; no jointly measurable
+choice of these replacements is required.
+
+\subsection{The quantitative success bound}
+
+We apply the block bound to the fresh continuations just constructed.
+At every step, all terminal destinations have the original terminal
+local bound, and all continuing destinations have the inductive bound
+at that boundary. The following statement records the resulting
+finite-horizon estimate before we extract the sample lower bound.
+
+\begin{proposition}[Success after a bounded number of samples]
+\label{h:stream:success}
+There are absolute constants $C,d_0>0$ with the following property.
+For $d\ge d_0$, every learner in the stated finite-state model with
+$M\ge0$ bits and an integer deterministic horizon $T\ge0$ has, for
+$S\sim\sigma$ independent of its fresh Gaussian rows,
+\begin{equation}\label{h:stream:success-bound}
+ \mathbb P\{\arccos\langle\widehat s,S\rangle\le\epsilon\}
+ \le
+ \min\left\{1,
+ \left[2\epsilon\exp\!\left(
+ C\left(1+\frac{M}{d^2}\right)
+ \left\lceil\frac{T}{q}\right\rceil\right)\right]^a
+ \right\},
+\end{equation}
+where $0<\epsilon\le1/10$ and
+$a=(d-1)/2$, $q=\lfloor(d-1)/8\rfloor$ as in
+\eqref{h:local:parameters}. The probability includes data-independent
+initialization, the shared seed, and fresh random choices.
+\end{proposition}
+
+\begin{proof}
+Use the angular score in Lemma~\ref{h:stream:categories}. Fix a seed
+and a prior-preserving Borel replacement as in
+Section~\ref{h:stream:reduction}, with prior $\sigma$.
+If $T=0$, its output is a signal-independent mixture of terminal laws.
+Lemma~\ref{h:local:caps} gives local mass at scale $\epsilon$.
+The radius-two ball about a sphere point covers $S^{d-1}$, so total
+success is at most $(2\epsilon)^a$, as required when
+$\lceil T/q\rceil=0$. We may now suppose $T\ge1$.
+
+Increase the absolute threshold $d_0$ so that
+$q\ge2$, $q\ge d/16$, and $a\ge d/3$. Partition the $T$ sample
+indices into $B=\lceil T/q\rceil$ consecutive nonempty blocks, each
+of length at most $q$. At the final boundary every continuation is
+a terminal output function and obeys \eqref{h:local:bound} at scale
+$\epsilon$. Suppose that at the end of one block, all continuing
+functions obey that bound at a common scale $R\ge\epsilon$. Its
+terminal destinations also obey the bound at scale $R$, by
+Lemma~\ref{h:local:caps} and monotonicity in the scale.
+
+For a block of length $m\le q$, Lemma~\ref{h:stream:categories}
+places every preceding continuation in the form required by
+Lemma~\ref{h:block:bound}, with
+$N\le(m+2)2^M\le(q+2)2^M$. That block lemma multiplies the scale
+by at most
+\[
+ \exp(C_0d/a)N^{1/(aq)}
+\]
+for an absolute $C_0$. Its logarithm is at most
+\begin{equation}\label{h:stream:multiplier}
+ \frac{C_0d}{a}+
+ \frac{M\log2+\log(q+2)}{aq}
+ \le C\left(1+\frac{M}{d^2}\right)=:\Lambda,
+\end{equation}
+where $d/a\le3$, $1/(aq)\le48/d^2$, and
+$\log(q+2)/(aq)\le48\log(d+2)/d^2$ allow an absolute $C$.
+Backward induction gives \eqref{h:local:bound} at scale
+$R=\epsilon e^{\Lambda B}$ for every initial state. Averaging over
+the conditional initial-state law preserves this bound, because that
+law is independent of the signal and rows. Taking the radius-two ball
+gives total success at most $(2\epsilon e^{\Lambda B})^a$, and a
+probability is also at most one.
+
+By the reduction in Section~\ref{h:stream:reduction}, this is a
+uniform bound on the original conditional success probabilities for
+almost every seed. Averaging them proves
+\eqref{h:stream:success-bound}; no joint choice of the Borel
+replacements is used.
+\end{proof}

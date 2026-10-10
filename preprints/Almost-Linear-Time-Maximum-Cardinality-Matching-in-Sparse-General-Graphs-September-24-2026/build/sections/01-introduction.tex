@@ -1,0 +1,289 @@
+\section{Introduction}\label{sec:introduction}
+
+A matching in a graph is a set of edges with pairwise disjoint endpoints.
+The maximum-cardinality matching problem asks for such a set with the largest
+possible number of edges. We prove an almost-linear bound in the adjacency-list
+input size for general graphs, with explicit output and a single uniform algorithm.
+The running-time guarantee includes every unsuccessful random computation,
+all finite-precision work, and all input and output costs.
+
+\subsection{Statement and computational model}
+
+The input is a simple undirected unweighted graph $G=([n],E)$, where $n\ge1$
+and $m=|E|$. It is given by an array of adjacency-list boundaries and two
+neighbor occurrences per edge. Labels and indices use $O(\log(n+2))$ bits.
+The lists may have any valid order. Isolated vertices count toward $n$, and
+the graph need not be connected. Write $p=n+m$, which is within a constant
+factor of the number of input word records, and write $\nu(G)$ for the maximum
+matching size.
+
+We use a classical randomized word-RAM whose word length is
+\[
+                     w=\lceil c_0\log_2(n+2)\rceil,
+\]
+for a fixed constant $c_0\ge2$ chosen with the algorithm. Unit-cost instructions
+are word reads and writes, comparison, addition, subtraction, multiplication
+modulo $2^w$, integer quotient and remainder with nonzero divisor, Boolean
+operations, and shifts by fewer than $w$ positions. Each independent fair
+random bit costs one instruction. Longer arithmetic uses charged multiword
+implementations. Allocation, initialization, data movement, preprocessing,
+and output writing are included. There is no oracle or nonuniform advice.
+Since $n\le p\le n^2$ for a simple graph, the word length is also
+$\Theta(\log(p+2))$.
+
+\begin{theorem}[Exact matching in almost-linear input-size time]\label{thm:main}
+There are a single uniform randomized word-RAM algorithm, fixed constants
+$c_0\ge2$ and $C\ge1$, and a nonincreasing function
+$\eta:\mathbb N_{\ge1}\to\mathbb R_{\ge0}$ with $\eta(q)\to0$ as
+$q\to\infty$ such that the following holds.
+For every input graph $G=([n],E)$ with $m=|E|$ and $p=n+m$, the algorithm
+halts on every computation path in at most
+\[
+                          C p^{1+\eta(p)}
+\]
+instructions. With probability at least $2/3$ it outputs an explicit list of
+edges of a matching of size $\nu(G)$.
+\end{theorem}
+
+For every fixed integer $\kappa\ge1$, this gives
+$C_\kappa n^{1+\eta(n)}$ instructions on graphs with $m\le\kappa n$, for
+some constant $C_\kappa$. The same algorithm and exponent envelope work for
+all $\kappa$, which need not be supplied as an input. At the dense extreme
+$m=\Theta(n^2)$, the bound is $n^{2+o(1)}$.
+
+A perfect matching is not promised. In particular, the perfect-matching
+procedure for graphs of maximum degree three will be used only after
+reductions that preserve explicit witnesses. A separate algorithm for each fixed exponent slack
+would also be insufficient; Section~\ref{sec:uniformization} constructs the
+single finite program and the common envelope in Theorem~\ref{thm:main}.
+
+A reduction also gives an almost-linear bound for prescribed vertex degrees. Given an
+integer $f(v)$ with $0\le f(v)\le\deg_G(v)$ for every vertex $v$, an
+\emph{$f$-factor} is a spanning subgraph $([n],F)$ with
+$\deg_F(v)=f(v)$ for every $v$. Corollary~\ref{cor:f-factor} gives one
+uniform randomized algorithm that decides whether an $f$-factor exists and
+returns its edge list when it does, with success probability at least $2/3$
+and $(n+m)^{1+o(1)}$ instructions on every computation path. The degree
+prescription is an array of one-word integers. Section~\ref{sec:f-factors}
+gives the witness-preserving reduction with only logarithmic expansion in
+the number of edge incidences.
+
+\subsection{Context and significance}
+
+The structure of matchings has long connected combinatorial existence
+criteria with efficient construction. Hall's theorem characterizes when
+a family of sets has distinct representatives~\cite{Hall1935}, and Tutte's
+perfect-matching theorem identifies the obstruction caused by odd
+components~\cite{Tutte1947}. Berge's augmenting-path criterion turns
+maximum cardinality into a question about alternating
+paths~\cite{Berge1957}. Edmonds made this approach algorithmic in general
+graphs through blossom contraction and expansion~\cite{EdmondsPaths}.
+His matching-polytope theorem gives a complementary explanation of the
+odd-set constraints~\cite{EdmondsPolytope}: vertex-degree inequalities
+alone allow, for example, value $1/2$ on each edge of a triangle.
+
+Tutte's short proof of the factor theorem reduces prescribed-degree
+$f$-factors to perfect matchings~\cite{Tutte1954Factor}. The reduction in
+Section~\ref{sec:f-factors} follows this incidence-port approach, replacing
+the local complete connections to auxiliary vertices by the rearrangeable
+networks used in Section~\ref{sec:uniformization}. This controls the size of
+the perfect-matching instance even when a host vertex has high degree.
+There are also direct algorithms: Gabow finds a maximum-cardinality edge
+set subject to $\deg_F(v)\le f(v)$ in $O(n^{2/3}m)$ time on simple
+graphs~\cite[Theorem~4.1]{Gabow2025FMatching}. After linear-time input
+processing, including removal of zero-demand vertices, this gives an
+$O(n+n^{2/3}m)$ factor test: an $f$-factor exists exactly when the returned
+set has $2|F|=\sum_v f(v)$.
+
+Batching shortest augmenting paths led to the bipartite algorithms of
+Hopcroft and Karp~\cite{HopcroftKarp1973} and, independently,
+Karzanov~\cite{Karzanov1973Representatives}, and to the Micali--Vazirani
+algorithm for general graphs~\cite{MicaliVazirani,MicaliVaziraniAnalysis}.
+The latter has running time $O(m\sqrt n)$ on a RAM; reading the explicit
+input and removing isolates gives the convenient universal bound
+$O(n+m\sqrt n)$. This is $O_\kappa(n^{3/2})$ when $m\le\kappa n$.
+Gabow and Tarjan developed a different route through weighted
+scaling~\cite{GabowTarjan1991}, and Gabow later gave a direct
+weighted-search formulation at the same cardinality bound~\cite{Gabow2017}.
+On very dense graphs, Goldberg and Karzanov improve the combinatorial bound to
+$O(n+m\sqrt n\log(n^2/m)/\log n)$ by combining skew-symmetric flow
+with graph compression~\cite[Theorem~10.3]{GoldbergKarzanov2004}.
+The weighted problem has its own sequence of improvements: the scaling
+algorithm of Duan, Pettie, and Su finds an exact maximum-weight matching in
+$O(m\sqrt n\log(nW))$ time for integer weights of magnitude at most
+$W$~\cite{DuanPettieSu2018}, with logarithms bounded below by a constant.
+
+Algebraic methods offer another important approach. Random evaluation
+of the Tutte matrix connects matching to linear algebra~\cite{Lovasz1979}.
+Mucha and Sankowski, and subsequently Harvey, obtained randomized
+algorithms that construct maximum matchings at the matrix-multiplication
+time scale, conventionally written $O(n^\omega)$
+field operations~\cite{MuchaSankowski2004,Harvey2009}.
+These algorithms already recover explicit witnesses and can work over
+finite fields of polynomial size. Their matrix-multiplication bound is
+most competitive on dense graphs. Theorem~\ref{thm:main} instead gives an
+almost-linear bound in the explicit input size throughout the range of
+densities, including $n^{2+o(1)}$ at the dense extreme.
+
+For bipartite matching, the unit-capacity flow formulation permits
+continuous optimization to accelerate exact search. M\k{a}dry's
+electrical-flow interior-point method~\cite{Madry2013CentralPath} and
+the moderately dense algorithm of van den Brand
+et al.~\cite{vanDenBrandEtAl2020BipartiteMatching} were intermediate
+advances. The almost-linear exact integral-flow algorithms of Chen
+et al.~\cite{FlowRandomized} and van den Brand
+et al.~\cite{FlowDeterministic} then yield almost-linear exact bipartite
+matching. General graphs require additional control of odd blocks.
+Here that control is provided by the matching state and its local
+projections. The deterministic flow theorem is used through the
+explicit static interface in Lemma~\ref{lem:integral-flow}.
+
+The proof combines several established ideas with interfaces tailored
+to that state. Its constructive factor-critical blocks belong to the
+contraction-and-expansion tradition, while Hall's theorem underlies
+the reassignment of their exposed vertices. The multiscale allocation
+and debt bounds are proved directly. The routing helper uses the
+cut-matching structure of Khandekar, Rao, and
+Vazirani~\cite{KhandekarRaoVazirani2006}, together with concentration
+and conductance estimates~\cite{TroppBernstein,SinclairJerrum1989}.
+Its recursive virtual graphs follow the hierarchical random-walk
+embeddings of Ghaffari, Kuhn, and Su~\cite[Section~3.1.2]{GhaffariKuhnSu2017}.
+Here the sampled support and the substituted routes must also preserve
+supplied resource loads, with their full construction costs charged.
+
+The use of approximate minimum-ratio circulations as optimization
+directions has its modern antecedent in the almost-linear flow
+framework~\cite{FlowRandomized,FlowDeterministic}. Chen et al.
+prove a deterministic \emph{fully dynamic} approximate
+minimum-ratio-cycle theorem with flat forest
+representations~\cite[Definition~2.3 and Theorem~3.5]{IncrementalGraphs}.
+Our routing hierarchy is related to the origin-aware construction of
+Rozho\v{n} et al.~\cite{MinorAggregateRouting}; the finite forest family
+and associated cycle extraction adapt the construction in
+\cite[Section~4.5]{IncrementalGraphs}. The preallocated forest copies used
+to lift recursive paths follow Kyng, Meierhans, and Probst
+Gutenberg~\cite[Section~3.3, Lemma~3.21 and Algorithm~5]{KyngMeierhansProbstGutenberg2023FlatForest}.
+Sections~\ref{sec:engine} and~\ref{sec:backend-updates} specify how retained
+mapped edges preserve accumulated coordinate changes and absolute motion
+through these representation updates. The recent distance-oracle
+approach of Kyng et al.~\cite{MinRatioDistanceOracles2026} provides
+another development of this method. Sections~\ref{sec:backend-quality}
+and~\ref{sec:backend-updates} supply the complete backend used here,
+including its adaptive guarantees, explicit changes of representation,
+stable edge-copy lifetimes, and bounds on traversal length before
+cancellation. Those guarantees are the inputs to our priced-step
+analysis.
+
+\subsection{Main ideas and organization}
+
+The central subproblem is to find a perfect matching in a graph of maximum
+degree three.  Section~\ref{sec:uniformization} reduces exact cardinality
+queries to this subproblem while retaining the original edge identifiers,
+so that every successful answer can be decoded into a matching of the
+input graph.
+
+The perfect-matching procedure maintains a current matching through a
+partition of the vertices.  Its odd blocks, called \emph{bins}, come with
+internal matchings after any prescribed vertex is left exposed.
+Some outside singleton vertices, called \emph{rows}, are assigned along
+original edges to distinct bins.  Each assigned bin matches its exposed
+vertex to its row; an unassigned bin contributes one unmatched vertex.
+The remaining vertices are stored as matched pairs, apart from unmatched
+vertices set aside during repairs.  This representation permits a change
+of exposure without immediately expanding a nested block.
+
+The difficulty is to repair this representation after structural changes
+without repeatedly scanning all its odd blocks. A \emph{ledger} allocates
+a fixed amount from each row among its neighboring bins. The difference
+between a bin's capacity and its allocated load is its residual. Several
+ledgers impose residual margins proportional to bin size; a nonnegative
+\emph{debt} allows a margin to fail temporarily. At each settled state,
+the lowest ledger has no debt and certifies a strict Hall surplus for
+every nonempty set of bins. The highest ledger carries a logarithmic
+objective that must admit progress when a perfect matching exists and no
+structural operation is available.
+
+The intermediate ledgers turn that progress into affordable repairs. A
+repair is an exact flow problem on row--bin incidences, initially explored
+only at bins whose debt is substantial relative to their size. An
+unexplored boundary bin temporarily accepts an optimistic amount of flow.
+If enough arrives, the algorithm explores that bin and permanently locks
+in an absorbed amount proportional to its size. The total available flow
+is bounded by the starting debt, so these locks bound the number of
+physical vertices examined. If the requested residual margin is
+infeasible, the repair instead removes a set of bins. The gap between
+adjacent margins makes this removal decrease debt in every preserved
+coarser ledger by an amount proportional to the removed size. Thus debt
+pays both for local exploration and for removing blocks from the state.
+The logarithmic optimization uses exact
+conservation throughout; integral cut inequalities turn a point whose
+total bound violation is below one into a certificate of exact
+feasibility.  A final local cut also recovers the entire residual
+source-reachable set needed by the matching repair.
+
+Both the matching objective and these local flow tests use the same
+\emph{priced-step} interface.  It searches for a circulation direction
+with sufficient objective increase relative to its weighted length.
+When it accepts such a direction, it takes a small exact dyadic step.  The direction is represented by
+individual edges and paths in a changing forest, so a long path need not
+be expanded for every step.  The implementation separately records
+signed coordinate changes and absolute motion.  The latter counts
+repeated traversals before cancellation and controls when a coordinate
+must be read and repriced.
+
+The cycle data structure supplying this interface is constructed in
+full.  A static routing sparsifier first provides short routes whose
+total use of specified resources is bounded.  During an interval of
+updates, a frozen collection of forests then decomposes every current
+circulation into local correction cycles and a circulation in one
+smaller graph.  A hierarchy of routing snapshots limits the number of
+new representative edges added to that graph.  Finally, prebuilt copies
+of the paths represented by its edges lift its forest back to the
+current graph.  When recursive occurrences change at otherwise unaffected
+child labels, these copies retain their identities. This preserves the exact
+accumulated values used by the priced-step implementation; replacing an affected copy first transfers its saved history.
+
+Let $S$ be a power-of-two upper bound on the number of vertices in the
+reduced graph. For each sufficiently large fixed parameter $a$, these
+ingredients yield time $S^{1+O(1/a)+o_a(1)}$ for a subcubic
+perfect-matching test. The coefficient
+hidden in $O(1/a)$ is absolute. Logarithmic powers may depend on the fixed
+parameter. Deterministic prerequisite failures suspend a parameter branch;
+exhausted random retries terminate its test with a possibly erroneous
+negative answer. This distinction permits an every-path asymptotic bound.
+Finally, instruction-level dovetailing with summable error budgets turns all
+fixed-parameter guarantees into Theorem~\ref{thm:main}, without a convergence
+rate or an input-dependent table of thresholds.
+
+Sections~\ref{sec:matching-state} and~\ref{sec:projection-analysis} develop
+the matching algorithm assuming the priced-step interface.
+Section~\ref{sec:engine} proves that interface from the flat-cycle backend.
+Section~\ref{sec:routing-helper} gives the static helper, and
+Sections~\ref{sec:backend-quality} and~\ref{sec:backend-updates} prove
+the backend's quality and implementation guarantees.
+Section~\ref{sec:uniformization} completes the reductions and the uniform
+finite-word implementation.
+Section~\ref{sec:f-factors} applies the resulting matching algorithm to
+prescribed-degree factors through a linearithmic-size reduction.
+
+The principal interfaces and their proof dependencies are summarized below.
+\begin{center}
+\begin{tabular}{@{}p{.22\textwidth}p{.73\textwidth}@{}}
+\toprule
+Result & Role in the proof \\
+\midrule
+Theorem~\ref{thm:subcubic} & Fixed-parameter subcubic perfect-matching search;
+  Sections~\ref{sec:matching-state}--\ref{sec:projection-analysis} use
+  Lemma~\ref{lem:priced-steps}. \\[3pt]
+Lemma~\ref{lem:priced-steps} & Priced logarithmic steps;
+  Section~\ref{sec:engine} proves the interface from
+  Lemma~\ref{lem:flat-cycle}. \\[3pt]
+Lemma~\ref{lem:flat-cycle} & Flat-cycle backend;
+  Sections~\ref{sec:backend-quality}--\ref{sec:backend-updates} construct it
+  using the static routing helper, Lemma~\ref{lem:routing-helper}. \\[3pt]
+Theorem~\ref{thm:main} & Explicit maximum matching with one input-size exponent
+  envelope; Section~\ref{sec:uniformization} applies the witness reductions
+  and instruction-level schedule to Theorem~\ref{thm:subcubic}. \\
+\bottomrule
+\end{tabular}
+\end{center}

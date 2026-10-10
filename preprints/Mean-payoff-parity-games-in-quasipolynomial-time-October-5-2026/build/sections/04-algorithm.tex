@@ -1,0 +1,215 @@
+\section{Recursion with bounded-dominion guarantees}
+\label{sec:algorithm}
+
+The structural results of the preceding section let us adapt the
+reduced-precision recursion for parity games of Parys~\cite{Parys2019}.
+The recursive output is a partition into two labels.  At intermediate
+calls, its guarantee concerns only dominions below prescribed size
+bounds.  Keeping this distinction explicit is essential: a vertex
+labelled for a player need not yet be a winning vertex for that player.
+
+\providecommand{\Solve}{\operatorname{Solve}}
+\providecommand{\Phase}{\operatorname{Phase}}
+Let $n$ be the number of vertices of the original arena.  For a subarena
+$H$ and a pair of integer bounds
+$\mathbf b=(b_{\Max},b_{\Min})\in\{0,\ldots,n\}^2$, the procedure
+$\Solve(H,\mathbf b)$ returns a partition
+$(\Lambda_{\Max},\Lambda_{\Min})$ of $H$.  We will prove that, for each
+$J\in\{\Max,\Min\}$,
+\begin{equation}
+\label{eq:label-guarantee}
+ D\text{ is a $J$-dominion in $H$ and }|D|\le b_J
+ \quad\Longrightarrow\quad D\subseteq\Lambda_J.
+\end{equation}
+The call with both bounds equal to $n$ will therefore identify the
+winning regions exactly.  Smaller bounds allow the recursion to make
+most of its calls with one bound halved.
+
+\subsection{The procedure}
+
+There are three immediate cases.  If $H=\varnothing$, return two empty
+sets.  If $b_{\Max}=0$, label every vertex $\Min$; this convention also
+covers the case in which both bounds are zero.  If $b_{\Max}>0$ and
+$b_{\Min}=0$, label every vertex $\Max$.
+
+In all remaining cases, define
+\[
+ d=\min_{v\in H}p(v),\qquad
+ P=\begin{cases}\Max,&d\text{ even},\\ \Min,&d\text{ odd},\end{cases}
+ \qquad Q\ne P,
+\]
+where $Q$ is the other player.  Write
+\[
+ b=b_Q,\qquad b'=\lfloor b/2\rfloor,
+ \qquad b^-_P=b_P,\quad b^-_Q=b',
+\]
+so that $\mathbf b^-$ is obtained from $\mathbf b$ by halving the
+$Q$-bound.  The values $d,P,Q,\mathbf b,\mathbf b^-$ remain fixed until
+this call returns.  The arena $U$, initially equal to $H$, changes by
+deletions.  For each of its current values put
+\begin{equation}
+\label{eq:current-residual}
+ S_U=\{v\in U:p(v)=d\},\qquad
+ R_U=U\setminus\Attr_P^U(S_U).
+\end{equation}
+In particular, $R_U=U$ if $S_U=\varnothing$.
+
+The subroutine of Proposition~\ref{prop:mp-interface} computes
+$U_{\mathrm{mp}}(U)$, the ordinary mean-payoff winning set of $\Max$
+in $U$.  We next define a local procedure $\Phase(U)$, which uses the
+fixed parameters of its enclosing call and returns a subset of its
+input arena.
+
+\begin{quote}
+\textbf{Procedure $\Phase(U)$.}
+While $U\ne\varnothing$, perform the following steps.
+\begin{enumerate}
+\item If $d$ is even, compute $X=U\setminus U_{\mathrm{mp}}(U)$.
+      If $X\ne\varnothing$, replace
+      $U$ by $U\setminus\Attr_Q^U(X)$ and restart the while loop.
+\item Form $R_U$ using~\eqref{eq:current-residual}.  Call
+      $\Solve(R_U,\mathbf b^-)$, and let $C$ be its $Q$-labelled set.
+      If $C=\varnothing$, return the current $U$.
+\item Replace $U$ by $U\setminus\Attr_Q^U(C)$ and restart the while loop.
+\end{enumerate}
+If the while loop ends because $U=\varnothing$, return $\varnothing$.
+\end{quote}
+
+The enclosing call uses two reduced phases separated by a single call
+with unchanged bounds. The first phase rules out small $Q$-dominions
+in $R_U$. If a $Q$-dominion of size at most $b$ still survives in $U$,
+Lemma~\ref{lem:extract} consequently supplies more than $b'$ of its
+vertices in a $Q$-dominion of $R_U$. The intervening unchanged-bounds
+call deletes those vertices. At most $b'$ vertices of the original
+dominion then remain, which is why one final reduced phase suffices.
+
+\noindent\begin{minipage}{\linewidth}
+The precise procedure for $\Solve(H,\mathbf b)$ is:
+\begin{enumerate}
+\renewcommand{\labelenumi}{\textnormal{(\roman{enumi})}}
+\item Set $U=H$, and then replace $U$ by $\Phase(U)$.
+\item If $U\ne\varnothing$, form $R_U$ and make the single call
+      $\Solve(R_U,\mathbf b)$ with both bounds unchanged.  Let $C$ be its
+      $Q$-labelled set, and replace $U$ by
+      $U\setminus\Attr_Q^U(C)$.
+\item Replace $U$ by $\Phase(U)$ once more.
+\item Return $\Lambda_P=U$ and $\Lambda_Q=H\setminus U$.
+\end{enumerate}
+\end{minipage}\par\medskip
+Calling the phase on the empty arena has no effect.  Every deletion is
+an attractor deletion, so every restriction used here is an arena by
+the attractor-complement property in Section~\ref{sec:arenas}.
+
+We now prove the claimed removal of $Q$-dominions together with the
+preservation of $P$-dominions.
+
+\subsection{Termination and correctness}
+
+\begin{theorem}[Bounded-dominion guarantee]
+\label{thm:labels}
+For every subarena $H$ of the original game and every
+$\mathbf b\in\{0,\ldots,n\}^2$, the procedure
+$\Solve(H,\mathbf b)$ terminates and returns a partition satisfying
+\eqref{eq:label-guarantee} for both players.
+\end{theorem}
+
+\begin{proof}
+We induct on the number of distinct priorities in $H$.  The empty-arena
+and zero-bound cases terminate immediately and have the stated
+guarantee: the only dominion subject to a zero size bound is empty, and
+the other player receives the whole arena.
+
+Consider a call with $H\ne\varnothing$ and both bounds positive.  Its
+fixed value $d$ occurs in $H$.  Every child arena $R_U$ excludes all
+vertices of priority $d$ and is a subset of $H$.  It therefore has
+strictly fewer distinct priorities than $H$, so the induction hypothesis
+applies to every child.  This remains true if $d$ has disappeared from
+$U$ before the child is formed: the strict decrease is relative to the
+parent's input $H$, even when $R_U=U$.  Each continuation of a phase loop
+deletes a nonempty set.  Thus its children terminate by induction, its
+loop can continue at most $|H|$ times, and the enclosing call terminates.
+
+\emph{Preservation of $P$-dominions.}
+Fix a $P$-dominion $D$ in $H$ with $|D|\le b_P$.  We show that every
+deletion leaves all of $D$ in the current arena and preserves it there
+as a $P$-dominion.  Suppose this holds immediately before a deletion.
+For a deletion in the mean-payoff step, $P=\Max$.  A winning strategy
+that stays in $D$ also wins for mean payoff alone in $U$, so
+$D\cap X=\varnothing$.  Since $D$ is closed at $Q$'s vertices,
+Lemma~\ref{lem:arena-facts} shows that
+$\Attr_Q^U(X)$ misses $D$ and preserves its dominion property in the
+residual arena.
+
+For a deletion obtained from a recursive call, the restriction $R_U$
+is closed at $P$'s vertices.  The same lemma therefore makes
+$D\cap R_U$ a $P$-dominion in $R_U$.  Its size is at most $b_P$, and
+both kinds of child call retain this bound for $P$.  By the induction
+hypothesis, the child labels every vertex of $D\cap R_U$ for $P$.
+Its $Q$-labelled set $C\subseteq R_U$ is consequently disjoint from
+$D$.  Again $\Attr_Q^U(C)$ misses $D$ and preserves it as a dominion.
+This argument applies to deletions in either phase and in the
+unchanged-bounds stage.  Hence $D$ lies in the returned set $\Lambda_P$.
+In particular, this reasoning uses only the child's guarantee on small
+dominions; it does not require that every vertex of $C$ actually be
+winning for $Q$.
+
+\emph{Removal of $Q$-dominions.}
+Fix a $Q$-dominion $D$ in $H$ with $|D|\le b$.  Every current arena is
+obtained from the preceding one by removing a $Q$-attractor.  Each such
+restriction is closed at $Q$'s vertices.  Applying the intersection
+part of Lemma~\ref{lem:arena-facts} after each deletion gives
+\begin{equation}
+\label{eq:surviving-q-dominion}
+ D\cap U\text{ is a $Q$-dominion in the current arena }U.
+\end{equation}
+Unlike the preceding preservation argument, this assertion allows some
+vertices of $D$ to have been deleted.
+
+Suppose a phase returns a nonempty arena $U$.  It did so because its
+last reduced-bound child returned no $Q$-labelled vertices.  The
+induction hypothesis then implies that
+\begin{equation}
+\label{eq:phase-end}
+ R_U\text{ contains no nonempty $Q$-dominion of size at most }b'.
+\end{equation}
+Moreover, when $d$ is even, the mean-payoff step immediately before
+that child certified $U_{\mathrm{mp}}(U)=U$.  Thus, at a nonempty phase
+return, all hypotheses of Lemma~\ref{lem:extract} hold in $U$: every priority
+is at least $d$, and the required mean-payoff condition holds when $d$
+is even.  No occurrence of priority $d$ in the current $U$ is required.
+
+Let $U_1$ be the arena returned by the first phase.  If $D\cap U_1$
+is nonempty, it is a $Q$-dominion there by
+\eqref{eq:surviving-q-dominion}.  Lemma~\ref{lem:extract} gives a
+nonempty $Q$-dominion $E$ of the game on $R_{U_1}$ such that
+\[
+ E\subseteq D\cap U_1,\qquad b'<|E|\le b.
+\]
+Here the strict lower bound follows from~\eqref{eq:phase-end}.
+The unchanged-bounds child has $Q$-bound $b$, so it labels all of $E$
+for $Q$.  Its subsequent attractor deletion therefore removes at least
+$b'+1$ vertices of $D$, leaving at most
+$|D|-(b'+1)\le b-b'-1\le b'$ vertices.  If $D\cap U_1$ was
+already empty, no vertices of $D$ remain.  Thus, in either case, the
+arena $U$ at the start of the final phase satisfies
+\begin{equation}
+\label{eq:half-remainder}
+ |D\cap U|\le b'.
+\end{equation}
+
+Let $U_2$ be the arena returned by the final phase.  If $D\cap U_2$
+were nonempty, it would be a $Q$-dominion in $U_2$ of size at most $b'$
+by~\eqref{eq:surviving-q-dominion} and~\eqref{eq:half-remainder}.
+Applying Lemma~\ref{lem:extract} once more would produce a nonempty
+$Q$-dominion in $R_{U_2}$ of size at most $b'$, contradicting
+\eqref{eq:phase-end}.  Therefore $D\cap U_2=\varnothing$, and every
+vertex of $D$ receives label $Q$.  The two arguments prove the
+induction step for both players.
+\end{proof}
+
+To solve the original arena $G$, call $\Solve(G,(n,n))$ and return its
+$\Max$-labelled set.  By Theorem~\ref{thm:determinacy}, the two winning
+regions partition $G$, and the winning-region observation in
+Section~\ref{sec:arenas} makes each a dominion.  Their sizes are at most
+$n$, so Theorem~\ref{thm:labels} labels both regions correctly.  It remains to
+bound the cost of computing this partition.

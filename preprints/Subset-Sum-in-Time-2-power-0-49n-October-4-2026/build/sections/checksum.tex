@@ -1,0 +1,561 @@
+\section{Estimating a modular checksum}
+\label{sec:checksum}
+
+We now estimate a sum over a modular subset-sum bin without enumerating
+that bin or all Fourier frequencies.  The input residues are arbitrary.
+Random phases, rather than a distributional assumption on the input,
+will make the moment bounds of Section~\ref{sec:filtering} applicable.
+
+Write $e_P(j)=\exp(2\pi i j/P)$.  For residues
+$b_1,\ldots,b_n\in\Z/P\Z$, independent uniform phases
+$\phi_1,\ldots,\phi_n\in\Z/P\Z$, and a target residue $\rho$, define
+\begin{equation}
+ V_\rho=
+ \sum_{\substack{I\subseteq[n]\\\sum_{i\in I}b_i=\rho\pmod P}}
+ e_P\!\left(\sum_{i\in I}\phi_i\right).
+ \label{eq:checksum-definition}
+\end{equation}
+The phases will be retained so that individual subset contributions can
+subsequently be subtracted from this estimate.
+
+\begin{theorem}[Modular checksum estimator]
+\label{thm:checksum}
+Fix a constant $d>0$.  There is a uniform randomized procedure with the
+following guarantee for all sufficiently large $n$.  Its inputs are an
+integer $P$ with $|\log P-\eta n|\le2$, arbitrary residues
+$b_1,\ldots,b_n$ modulo $P$, and a list $\mathcal T$ of at most $n^d$
+target residues.  It draws and retains independent uniform phases
+$\phi_1,\ldots,\phi_n$ and either reports failure or returns estimates
+$\widehat V_\rho$ for all $\rho\in\mathcal T$.  With probability
+$1-o(1)$ it does not fail and
+\[
+ |\widehat V_\rho-V_\rho|\le\frac18
+ \qquad\text{for every }\rho\in\mathcal T.
+\]
+The $o(1)$ is uniform in $P$, the input residues, and the target list.
+On every random execution the procedure takes at most
+\begin{equation}
+ 2^{(\tau+20\eps)n+O(\sqrt n)}\poly(n+|\mathcal T|)
+ \label{eq:checksum-time}
+\end{equation}
+word operations.  No primality assumption on $P$ is needed.
+\end{theorem}
+
+The proof has three parts.  We cover every frequency using products of
+small random tables, while keeping the two lists of table entries short.
+We then count and sample the resulting matches without expanding all
+table products.  Finally, inverse-multiplicity weighting and the
+filtering inequalities give an exponentially small mean squared error.
+
+\subsection{Frequency patterns and block tables}
+
+Character orthogonality gives the exact identity
+\begin{equation}
+ V_\rho=\frac1P\sum_{k=0}^{P-1}J_\rho(k),\qquad
+ J_\rho(k)=e_P(-k\rho)\prod_{i=1}^n(1+e_P(x_i(k))),\qquad
+ x_i(k)=\phi_i+kb_i\pmod P.
+ \label{eq:checksum-fourier}
+\end{equation}
+Indeed, expanding the product leaves one term for every subset, and its
+average character is one exactly when its sum is $\rho$ modulo $P$.
+In particular,
+\begin{equation}
+ |J_\rho(k)|^2=\prod_{i=1}^n M(x_i(k))^2,
+ \label{eq:checksum-amplitude}
+\end{equation}
+where residues are identified with their angles in the finite circle.
+All functions in this section are the finite-circle functions of
+Lemma~\ref{lemma:finite-filtering}, with their finite normalizations.
+
+Partition $[n]$ deterministically into $q=\Theta(\sqrt n)$ blocks
+$B_1,\ldots,B_q$ of sizes $d_j=\Theta(\sqrt n)$.  A frequency's
+\emph{pattern} records, for each block, rational approximations
+$D_j,A_j,E_j$ to the block averages of $D,A,E$ at its coordinates
+$x_i(k)$, each with error at most $\eps$.  We choose these approximations
+so that
+\begin{equation}
+ D_j\ge0,\qquad A_j\le D_j,\qquad E_j\le D_j.
+ \label{eq:checksum-pattern-order}
+\end{equation}
+Here and throughout, the approximation rule is fixed and deterministic.
+For example, approximate each average to error $\eps/8$, round its
+upper endpoint upward for $D_j$, and round its lower endpoint downward
+for $A_j,E_j$, on a rational grid of step at most $\eps/4$.
+The exact inequalities $D\ge0,D\ge A,D\ge E$ then imply
+\eqref{eq:checksum-pattern-order}.  Uniform boundedness of these
+functions puts all the rounded values in a fixed finite grid.
+Lemma~\ref{lemma:finite-filtering} computes these approximations in
+polynomial time per frequency, without summing over $P$ points.
+Fix likewise deterministic approximations to the individual scores
+$\log f_*,\log g_*$ with error at most $\eps$.
+
+Let $\mathcal P$ be the collection of all blockwise grid triples
+satisfying \eqref{eq:checksum-pattern-order}, including patterns that
+no frequency attains.  Its size is
+\begin{equation}
+ Q_n:=|\mathcal P|=2^{O(\sqrt n)}.
+ \label{eq:checksum-pattern-count}
+\end{equation}
+We enumerate this collection, not the $P$ frequency assignments.
+The collection and its grid indices are fixed independently of the
+phases; only a frequency's membership in a pattern depends on them.
+Fix $\pi\in\mathcal P$ and put
+\[
+ (D_\pi,A_\pi,E_\pi)
+   =\frac1n\sum_{j=1}^q d_j(D_j,A_j,E_j),\qquad
+ U_\pi=A_\pi+E_\pi-D_\pi,\qquad
+ W_\pi=2D_\pi-A_\pi-E_\pi.
+\]
+For the moment let $0<\alpha\le1$ and $0\le H_\pi\le\eta$
+be rational parameters.  The parameter $\alpha$ is the probability of
+testing a coordinate, and $H_\pi$ determines the relative lengths of
+the two digit lists.  After defining
+the tests and their entries, we choose them to keep both lists short.
+Choose the integer base
+$B_\pi=2^{\lceil(\eta-H_\pi)n\rceil}$ and use the digit ranges
+\[
+ 0\le h<\lceil P/B_\pi\rceil,
+ \qquad 0\le\ell<B_\pi.
+\]
+Their vectors have coordinates
+\[
+ y_i(h)=\phi_i+hB_\pi b_i\pmod P,
+ \qquad z_i(\ell)=-\ell b_i\pmod P.
+\]
+The pair $(h,\ell)$ represents $k=hB_\pi+\ell$ uniquely, and
+$y_i(h)-z_i(\ell)=x_i(k)$.  Pairs representing $k\ge P$ will be
+discarded only when contributions are evaluated.  The high and low
+digit ranges have sizes $2^{H_\pi n+O(1)}$ and
+$2^{(\eta-H_\pi)n+O(1)}$, respectively; together they represent
+$2^{\eta n+O(1)}$ pairs.
+
+We test each digit vector separately against random block tables.
+This organization is an asymmetric filtering construction; related
+filter frameworks also distinguish the two marginal acceptance
+probabilities from their joint acceptance probability
+\cite{Christiani2017}.  The estimates required here are proved below.
+For each block $B_j$, generate
+\begin{equation}
+ R_j=2^{\lceil(\alpha D_j+4\eps)d_j\rceil}
+ \label{eq:checksum-table-count}
+\end{equation}
+independent tables.  At each coordinate of a table independently, its
+label is $*$ with probability $1-\alpha$ and otherwise a uniform
+$\theta\in\Z/P\Z$ with probability $\alpha$.  Tables in distinct
+blocks and patterns are independent, and all are independent of the
+phases.  Distinct table indices are retained even when their labels
+coincide.
+
+A label $*$ gives score zero on either side.  A non-$*$ label $\theta$
+gives the high and low scores
+\[
+ \log f_*(y_i(h)-\theta),\qquad
+ \log g_*(z_i(\ell)-\theta),
+\]
+respectively.  Use the fixed approximations to these scores when
+testing a vector.  It passes a block table if its average approximate
+score is at least $\alpha A_j-3\eps$ on the high side, or at least
+$\alpha E_j-3\eps$ on the low side.
+A \emph{whole table} is a tuple of one table index from each block.
+A vector passes it when it passes all its block tables.  A table
+\emph{entry} is a digit index and a whole table it passes.  A
+\emph{match} is a high entry and a low entry with the same whole table.
+Write $L_\pi$ for the number of matches.  These definitions do not
+restrict the represented frequency to have pattern $\pi$.
+
+\subsection{Coverage and list sizes}
+
+The parameters must ensure both that each frequency has a match and
+that its two lists of entries can be constructed within the time bound.
+The estimates below give the leading exponents for the expected entry
+counts as
+\[
+ H_\pi+\alpha(D_\pi-A_\pi),\qquad
+ \eta-H_\pi+\alpha(D_\pi-E_\pi),
+\]
+apart from $O(\eps)$ rounding slack and subexponential factors.  The
+digit ranges contribute $H_\pi$ and $\eta-H_\pi$; the number of tables
+and the score thresholds contribute the remaining terms.  Their sum
+is $\eta+\alpha W_\pi$, so both exponents can be at most $\tau$
+exactly when $\alpha W_\pi\le2\tau-\eta=\Gamma$.
+Choose the largest $\alpha\in(0,1]$ satisfying this inequality, and
+make the high-side exponent equal to $\tau$:
+\begin{equation}
+ \alpha_\pi=
+ \begin{cases}1,&W_\pi\le\Gamma,\\
+ \Gamma/W_\pi,&W_\pi>\Gamma,
+ \end{cases}
+ \qquad H_\pi=\tau-\alpha_\pi(D_\pi-A_\pi).
+ \label{eq:checksum-alpha}
+\end{equation}
+Use these parameters in the construction, abbreviating
+$\alpha=\alpha_\pi$.  Since
+$D_\pi-A_\pi,D_\pi-E_\pi\ge0$ and $\alpha W_\pi\le\Gamma$,
+\begin{equation}
+ \Delta\le H_\pi\le\tau,
+ \qquad
+ \eta-H_\pi+\alpha(D_\pi-E_\pi)
+   =\Delta+\alpha W_\pi\le\tau.
+ \label{eq:checksum-digit-balance}
+\end{equation}
+In particular both digit ranges have size at most
+$2^{\tau n+O(1)}$.  We now prove the coverage and size estimates for
+this choice.
+
+\begin{lemma}[Coverage and sizes]
+\label{lemma:checksum-tables}
+For the preceding random construction, the following statements hold.
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item Conditional on arbitrary phases, the probability that some
+$k<P$ has no match in its own pattern is $o(1)$, uniformly in the
+phases and residues.
+\item In each fixed pattern, the expected number of entries on either
+side is at most $2^{(\tau+8\eps)n+O(\sqrt n)}$, and
+\begin{equation}
+ \E L_\pi\le
+ 2^{(\eta-\alpha U_\pi+12\eps)n+O(\sqrt n)}.
+ \label{eq:checksum-match-expectation}
+\end{equation}
+The entry estimates hold conditional on the phases.  The match
+estimate averages over both phases and tables.
+\item With probability $1-o(1)$, all frequencies are covered in their
+own patterns and, in every pattern, both entry counts are at most
+$2^{(\tau+14\eps)n}$ and
+\begin{equation}
+ L_\pi\le2^{(\eta-\alpha U_\pi+18\eps)n}.
+ \label{eq:checksum-match-good}
+\end{equation}
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+First fix the phases, $k<P$, its pattern, and one block.  We lower-bound
+the chance that one block table accepts both digits representing $k$.
+Change the label law as follows: retain the probability of $*$, but
+conditional on a non-$*$ label give $w=z_i-\theta$ density $K_{x_i(k)}$
+relative to the uniform finite-circle law.  Under this new law the
+expected high score, low score, and base-two log likelihood ratio
+against the original law are, respectively,
+\[
+ \alpha A(x_i(k)),\qquad \alpha E(x_i(k)),\qquad
+ \alpha D(x_i(k)).
+\]
+Indeed, a non-$*$ label has likelihood ratio $K_{x_i(k)}(w)$ and
+$y_i-\theta=x_i(k)+w$.  The coordinate variables remain independent.
+Their absolute values are bounded by a fixed constant, uniformly in
+$P,k,\alpha$.  Chebyshev's inequality and a union bound therefore show
+that, for sufficiently large block size, all three block averages
+are within $\eps$ of their means with probability at least $1/2$
+under the new law.
+
+On this event the approximate score averages are at least
+$\alpha A_j-3\eps$ and $\alpha E_j-3\eps$: the mean approximation,
+the deviation, and the score approximation cost at most $\eps$ each.
+The likelihood ratio of the entire block is at most
+$2^{(\alpha D_j+2\eps)d_j}$.  Changing back to the original law gives
+\begin{equation}
+ \Prob(\text{one block table accepts both digits})
+ \ge\frac12\,2^{-(\alpha D_j+2\eps)d_j}.
+ \label{eq:checksum-coverage-probability}
+\end{equation}
+Thus the chance that none of its $R_j$ tables accepts both is at most
+$\exp(-2^{2\eps d_j-1})$.  Union over the $q$ blocks and the $P$
+frequencies is still $o(1)$ because $d_j=\Theta(\sqrt n)$.
+If each block has an accepting table, their tuple is a match.  This
+proves~\textup{(i)}.
+
+For the size estimates, the number of whole tables is at most
+\begin{equation}
+ \prod_jR_j\le2^{(\alpha D_\pi+4\eps)n+q}.
+ \label{eq:checksum-whole-table-count}
+\end{equation}
+For any fixed vector and fixed whole-table index tuple, let $S$ be its
+total exact score.  Normalization of $f_*$ or $g_*$ and independence
+of the labels give $\E 2^S=1$, including the $*$ option.
+Passing the tests requires $S\ge(\alpha A_\pi-4\eps)n$ on the high
+side, or $S\ge(\alpha E_\pi-4\eps)n$ on the low side.
+Markov's inequality, the digit counts, and
+\eqref{eq:checksum-whole-table-count} bound the expected entry counts by
+\begin{align*}
+ 2^{(H_\pi+\alpha(D_\pi-A_\pi)+8\eps)n+O(\sqrt n)}
+   &=2^{(\tau+8\eps)n+O(\sqrt n)},\\
+ 2^{(\eta-H_\pi+\alpha(D_\pi-E_\pi)+8\eps)n+O(\sqrt n)}
+   &\le2^{(\tau+8\eps)n+O(\sqrt n)}.
+\end{align*}
+No independence between distinct whole tables is used.
+
+For a fixed digit pair and table-index tuple, let $S_h,S_\ell$ be the
+two total exact scores.  This time
+\begin{equation}
+ \E_{\phi,\text{tables}}2^{S_h+S_\ell}=1.
+ \label{eq:checksum-joint-moment}
+\end{equation}
+To see this, first condition on all labels.  At every non-$*$
+coordinate the independent uniform phase makes $y_i-\theta$ uniform,
+so averaging its $f_*$ factor gives one.  Averaging the remaining
+$g_*$ factors over the table shifts also gives one.
+A match requires
+$S_h+S_\ell\ge(\alpha(A_\pi+E_\pi)-8\eps)n$.
+Markov's inequality, the $2^{\eta n+O(1)}$ digit pairs, and
+\eqref{eq:checksum-whole-table-count} prove
+\eqref{eq:checksum-match-expectation}.
+It is essential here that all digit pairs are counted, before checking
+their patterns; the phases in \eqref{eq:checksum-joint-moment} have
+their original independent uniform law.
+
+Finally, each bound in~\textup{(iii)} has a factor
+$2^{6\eps n-O(\sqrt n)}$ of slack over its expectation.
+Markov's inequality and a union bound over
+$Q_n=2^{O(\sqrt n)}$ patterns give simultaneous size bounds with
+probability $1-o(1)$.  Combine these with~\textup{(i)}.
+\end{proof}
+
+\subsection{Constructing and sampling the matches}
+
+The preceding bounds would not be useful if finding the table entries
+required visiting every whole table.  We instead construct the lists
+block by block.  For each digit vector, test it against the $R_j$ tables
+of every block and record its passing index sets.  If any set is empty,
+the vector produces no entries.  Otherwise, emit the Cartesian product
+of these sets, with the digit index attached to each tuple.
+Since all $D_j$ are uniformly bounded,
+\[
+ \sum_jR_j=2^{O(\sqrt n)}\poly(n).
+\]
+Consequently the work per digit, apart from emitted entries, is
+$2^{O(\sqrt n)}\poly(n)$; a nested counter emits each tuple with
+polynomial overhead.  Coincident vectors still retain their different
+digit indices.
+
+Sort both entry lists lexicographically by table-index tuple.  If the
+high and low group lengths for a tuple are $a_\nu,b_\nu$, then
+\begin{equation}
+ L_\pi=\sum_\nu a_\nu b_\nu.
+ \label{eq:checksum-match-count}
+\end{equation}
+Prefix sums of these products allow a uniformly random match to be
+chosen without enumerating them: choose a uniform integer below
+$L_\pi$, locate its group by binary search, and use quotient and
+remainder to select one entry on each side.  A zero product contributes
+no interval.  The same groups also allow sequential match enumeration.
+
+For any represented frequency $k=hB_\pi+\ell$, define
+$\mu_\pi(k)$ to be its number of matches in this pattern procedure.
+Its digits are unique, so
+\begin{equation}
+ \mu_\pi(k)=\prod_{j=1}^q
+ \bigl|\{r\in[R_j]:\text{block table }r
+       \text{ accepts both }y(h)\text{ and }z(\ell)\}\bigr|.
+ \label{eq:checksum-multiplicity}
+\end{equation}
+We compute this integer directly by retesting the stored block tables,
+in $2^{O(\sqrt n)}\poly(n)$ time.  Repeated table labels are counted
+with their distinct indices, exactly as in the lists.
+The very same deterministic score approximations are used in list
+construction and multiplicity computation.  Thus the identity is
+exact, not approximate.  Whenever a match is sampled or enumerated,
+its multiplicity is positive, even on outcomes where coverage fails.
+
+These operations never scan the frequency range or the set of whole
+tables.  They also permit an immediate cap: abort before either entry
+list exceeds
+\begin{equation}
+ C_n=2^{\lceil(\tau+20\eps)n\rceil}
+ \label{eq:checksum-cap}
+\end{equation}
+entries.  Once the lists exist, $L_\pi\le C_n^2$ on every execution,
+so the exact match count and its prefix sums have $O(n)$ bits.
+Large match counts therefore do not force large enumerations.
+
+\subsection{Direct summation and importance sampling}
+
+Let $\mathcal G$ denote the event in
+Lemma~\ref{lemma:checksum-tables}\textup{(iii)}.  We first analyze
+exact arithmetic and ideal discrete uniform draws.  Entry and
+enumeration caps will be imposed after this analysis; on $\mathcal G$
+they do not interrupt it.
+
+For each pattern define its exact contribution
+\[
+ v_{\pi,\rho}=\frac1P
+   \sum_{\substack{k<P\\\text{pattern}(k)=\pi}}J_\rho(k).
+\]
+If $\alpha U_\pi\ge\Delta$, enumerate every match and give it
+contribution zero unless $k<P$ and its deterministic pattern is
+$\pi$.  For a retained match use
+\begin{equation}
+ \frac{J_\rho(k)}{P\mu_\pi(k)}.
+ \label{eq:checksum-direct-weight}
+\end{equation}
+On $\mathcal G$, every frequency of this pattern is present, and its
+$\mu_\pi(k)$ contributions sum to $J_\rho(k)/P$.
+Also \eqref{eq:checksum-match-good} gives
+$L_\pi\le2^{(\tau+18\eps)n}$ in this case.  We cap this enumeration
+at $C_n$, aborting before visiting a further match.
+
+If $\alpha U_\pi<\Delta$, take
+$N=2^{\lceil\tau n\rceil}$ independent uniform matches with replacement.
+When $L_\pi=0$, return zero for this pattern.  Otherwise, average the
+sample values
+\begin{equation}
+ X_{\pi,\rho}=
+ \begin{cases}
+ \displaystyle\frac{L_\pi}{P\mu_\pi(k)}J_\rho(k),
+      &k<P\text{ and }\text{pattern}(k)=\pi,\\[2mm]
+ 0,&\text{otherwise}.
+ \end{cases}
+ \label{eq:checksum-sample-weight}
+\end{equation}
+The inverse-multiplicity correction is the usual principle of counting
+each object once across overlapping representations
+\cite[Section~5]{KLM1989}.  Here the summands are complex and
+we need an absolute error bound, so we give the relevant calculation.
+Conditional on phases and tables in $\mathcal G$, a frequency of this
+pattern is sampled with probability $\mu_\pi(k)/L_\pi$.  Hence the
+sample mean is unbiased for $v_{\pi,\rho}$ and its mean squared error
+is at most
+\begin{equation}
+ \frac1N\,\frac{L_\pi}{P^2}
+ \sum_{\substack{k<P\\\text{pattern}(k)=\pi}}|J_\rho(k)|^2.
+ \label{eq:checksum-conditional-variance}
+\end{equation}
+Indeed, its second moment before averaging is the same sum with an
+additional factor $1/\mu_\pi(k)\le1$, and independent complex sample
+errors have zero cross terms.  If $L_\pi=0$, coverage implies that
+there are no frequencies of this pattern, so the zero estimate is exact.
+
+It remains to show that \eqref{eq:checksum-conditional-variance} is
+small.  The phases have been conditioned on in that formula; they must
+not now be treated as independent under the conditional law of
+$\mathcal G$.  Instead, we bound the formula times
+$\mathbf1_{\mathcal G}$ pointwise and only then take expectation under
+the original phase law.
+
+For a frequency of pattern $\pi$, let $\bar u,\bar v$ be the coordinate
+averages of $u,v$ at $x_i(k)$.  The pattern errors imply
+\begin{equation}
+ |U_\pi-\bar u|\le3\eps,
+ \qquad |W_\pi-\bar v|\le4\eps.
+ \label{eq:checksum-profile-errors}
+\end{equation}
+There are two cases within the sampling branch.  When
+$W_\pi\le\Gamma$, $\alpha=1$ and $U_\pi<\Delta$.  Thus
+\begin{equation}
+ -\alpha U_\pi
+ \le-\Delta+8.5(\Delta-\bar u)+30\eps.
+ \label{eq:checksum-domination-one}
+\end{equation}
+For example, writing $\delta=\Delta-U_\pi>0$, the right side minus
+the left side is at least $7.5\delta+(30-25.5)\eps$.
+When $W_\pi>\Gamma$, we have $\alpha aW_\pi=\Delta$, and the sampling
+condition implies $aW_\pi-U_\pi>0$.  Since $\alpha\le1<8.3$,
+\begin{align}
+ -\alpha U_\pi
+ &=-\Delta+\alpha(aW_\pi-U_\pi)\notag\\
+ &\le-\Delta+8.3(a\bar v-\bar u)+30\eps.
+ \label{eq:checksum-domination-two}
+\end{align}
+Here the rounding loss is at most $8.3(4a+3)\eps<30\eps$.
+
+Set
+\[
+ R_1(x)=8.5(\Delta-u(x)),\qquad
+ R_2(x)=8.3(av(x)-u(x)).
+\]
+For a fixed sampled pattern, let $r=1$ or $2$ according to the preceding
+case.  Combining \eqref{eq:checksum-match-good},
+\eqref{eq:checksum-amplitude}, and
+\eqref{eq:checksum-domination-one} or
+\eqref{eq:checksum-domination-two} gives, for every $k<P$,
+\begin{equation}
+ \mathbf1_{\mathcal G}\mathbf1_{\{\text{pattern}(k)=\pi\}}
+ L_\pi|J_\rho(k)|^2
+ \le2^{(\eta-\Delta+48\eps)n}
+       \prod_{i=1}^n\bigl(M(x_i(k))^2\,2^{R_r(x_i(k))}\bigr).
+ \label{eq:checksum-unconditional-domination}
+\end{equation}
+The nonnegative right side no longer restricts the pattern or the good
+event.  At each fixed $k$, under the original law the $x_i(k)$ are
+independent uniform residues, regardless of the values of $b_i$.
+Lemma~\ref{lemma:finite-filtering} therefore bounds the expected
+product by $2^{0.5169n}$.
+
+Let $E_{\pi,\rho}$ be the error of this pattern's ideal estimate.
+Taking conditional expectation over its samples first in
+\eqref{eq:checksum-conditional-variance}, and then using
+\eqref{eq:checksum-unconditional-domination}, yields
+\begin{align}
+ \E\bigl[\mathbf1_{\mathcal G}|E_{\pi,\rho}|^2\bigr]
+ &\le\frac{2^{(\eta-\Delta+48\eps+0.5169)n}}{NP}\notag\\
+ &=2^{(-\tau-\Delta+0.5169+48\eps)n+O(1)}
+ \le2^{-0.0007n}
+ \label{eq:checksum-error-exponent}
+\end{align}
+for sufficiently large $n$.  The exponent before the $O(1)$ term is
+$-0.00081952$.  Directly summed patterns have zero error on
+$\mathcal G$.  Cauchy--Schwarz gives
+\[
+ \E\!\left[\mathbf1_{\mathcal G}
+       \left|\sum_{\pi\in\mathcal P}E_{\pi,\rho}\right|^2\right]
+ \le Q_n^2\,2^{-0.0007n}.
+\]
+Markov's inequality and a union bound over $\mathcal T$ now show that,
+with probability $1-o(1)$, $\mathcal G$ holds and every total ideal
+estimate has absolute error at most $1/16$.  The subexponential number
+of patterns and the polynomial number of targets are both absorbed by
+the negative linear exponent.  This conclusion uses no independence
+between pattern errors or between target estimates.
+
+\subsection{Resource and precision bounds}
+
+We finish the proof of Theorem~\ref{thm:checksum} by making the
+preceding procedure bounded on all histories.  Generate block tables
+and digit entries as described, aborting at the entry cap
+\eqref{eq:checksum-cap}.  For a direct pattern, abort at the same cap
+on enumerated matches.  Sampled patterns use exactly $N$ match draws,
+or return zero when there is no match.  The event $\mathcal G$ implies
+that none of these caps is reached.  On any other history, the caps
+still bound the work.
+
+Each grid value has a fixed rational denominator.  Thus the weighted
+averages and $\alpha$ have numerators and denominators of $O(\log n)$
+bits, even for unattained patterns.  The ceilings in the digit and
+table counts are computed exactly by rational arithmetic.
+For each pattern, digit processing costs
+$2^{\tau n+O(\sqrt n)}\poly(n)$ before the emitted entries.
+Sorting, prefix sums, and random indexing have polynomial cost per
+entry or sample.  Each valid contribution requires at most
+$2^{O(\sqrt n)}\poly(n)$ work for its multiplicity, and a polynomial
+factor for the target list.  All tuple keys, match counts, and
+multiplicities have $O(n)$ bits: for multiplicities use
+\eqref{eq:checksum-whole-table-count}, and for match counts on retained
+lists use $L_\pi\le C_n^2$.
+Multiplication by the $Q_n$ patterns gives
+\eqref{eq:checksum-time}.
+
+The coarse fixed approximations in pattern and acceptance tests define
+the lists themselves; they need not be refined later.  The complex
+contributions require greater accuracy.  On every nonaborted history
+there are only $2^{O(n)}\poly(|\mathcal T|)$ of them, each formed from
+at most $n+1$ factors of modulus at most two.  The rational weights in
+\eqref{eq:checksum-direct-weight} and
+\eqref{eq:checksum-sample-weight} have $O(n)$-bit numerators and
+denominators and magnitude at most $2^{O(n)}$.
+Section~\ref{sec:finite-arithmetic}, under
+\emph{Complex evaluations and summation}, implements precisely such
+sums by evaluating each phase to error $2^{-2n^2}$ and rounding each
+contribution to $n^2$ fractional bits on a common dyadic grid.  Its
+total error here is
+$2^{-n^2+O(n)}\poly(|\mathcal T|)=o(1)$, hence less than $1/16$
+for sufficiently large $n$, with polynomial work per contribution.
+
+The rational probabilities in the label choices, finite uniform draws,
+and phase evaluations admit bounded implementations on the specified
+word RAM; Section~\ref{sec:implementation} gives these implementations
+and their coupling to the ideal draws.  Their additional abort
+probability is $o(1)$, and their cost is polynomial per operation just
+counted.  The retained phases and block labels are ordinary writable
+data; the procedure requires no access to unstored randomness.
+The ideal error bound $1/16$, the arithmetic error $1/16$, and the
+vanishing probabilities of cap or sampling failure prove
+Theorem~\ref{thm:checksum}.

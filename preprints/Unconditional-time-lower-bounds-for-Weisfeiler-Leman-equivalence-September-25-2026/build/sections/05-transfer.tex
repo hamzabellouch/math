@@ -1,0 +1,292 @@
+\section{Quantitative transfer and the time lower bound}
+\label{trans:section}
+
+We combine the preceding constructions with the diagonal language, retaining
+enough slack to handle explicit inputs and simulation overhead. The final
+step also excludes algorithms that are unusually fast at isolated input
+sizes.
+
+Padding alone does not prove this conclusion: a reduction that selects
+one order for each word length could miss all of an algorithm's fast
+orders. Instead, the same fixed auxiliary program will try every order
+in an interval. A single fast order then works for every word of that
+length, because the candidate's running time is a worst-case bound over
+all graph pairs of that order.
+
+Fix a sufficiently large parameter $k$. Set $K=k+1$ and $r=k$ for the joint
+replacement convention, or $K=k$ and $r=k-1$ for the separate-multiset
+convention. Thus $K=r+1$ in either case. Throughout this section put
+\begin{equation}
+\label{trans:parameters}
+  s=\left\lfloor\frac{r}{1000}\right\rfloor,
+  \qquad
+  p=\left\lfloor\frac{s}{1000}\right\rfloor,
+  \qquad
+  c_0=10^{-9}.
+\end{equation}
+All machines, alphabets, and constants depending on these parameters are
+fixed as the input length grows. In particular, no uniformity in $k$ is
+required of a proposed equivalence algorithm.
+
+\subsection{Hard instances at every prescribed size in an interval}
+
+For an integer $m\ge 2$, write
+\begin{equation}
+\label{trans:interval}
+  I_m=\{n\in\N:m^{20}\le n<(m+1)^{20}\}.
+\end{equation}
+Let $H_s$ and $M_s$ be the language and its one-tape decider supplied by
+Theorem~\ref{diag:language}.
+
+\begin{lemma}
+\label{trans:instances}
+For every sufficiently large fixed $r$, there is an integer $m_0(r)$ with
+the following property. Given a word $w$ of length $m\ge m_0(r)$ and any
+$n\in I_m$, one can construct two simple uncolored $n$-vertex graphs
+$G_{w,n}$ and $G'_{w,n}$ such that
+\begin{equation}
+\label{trans:polarity}
+  w\in H_s
+  \quad\Longleftrightarrow\quad
+  G_{w,n}\not\equiv_{k\text{-}\WL}G'_{w,n}.
+\end{equation}
+Both graphs are connected and have diameter at most two. Their explicit
+adjacency matrices can be constructed in $O_r(n^4)$ multitape time.
+\end{lemma}
+
+\begin{proof}
+For $s\ge1$, Theorem~\ref{diag:language} bounds the running time of $M_s$
+on length-$m$ inputs by $C'_s m^{20s}$, for a constant $C'_s$. Put
+$d=\lfloor r/3\rfloor$. For sufficiently large $r$,
+\[
+  20s\le\frac{r}{50}<d,
+  \qquad
+  20s<r-d.
+\]
+Consequently, for all sufficiently large $m$, uniformly over words of
+length $m$, a running-time bound $T_0(m)$ for $M_s$ satisfies
+\[
+  T_0(m)<m^d-1,
+  \qquad
+  2T_0(m)+m+2<m^{r-d}.
+\]
+The computation construction of Theorem~\ref{circ:computation}, the graph
+reduction of Theorem~\ref{comp:reduction}, and
+Lemma~\ref{game:wl} therefore give graph pairs with the polarity in
+\eqref{trans:polarity}. Their common unpadded order is at most $C_r m^6$.
+The constant includes the dependence on the fixed machine $M_s$.
+
+For all sufficiently large $m$, this order is at most $m^{20}$. The
+padding assertion in Theorem~\ref{comp:reduction} reaches each prescribed
+order $n\in I_m$ while preserving equivalence and the diameter bound.
+Lemma~\ref{circ:construction} gives the asserted explicit construction
+time. Choosing $m_0(r)$ to satisfy these finitely many eventual conditions
+completes the proof.
+\end{proof}
+
+\subsection{A cutoff procedure with absolute simulation exponents}
+
+The machine models matter only through a polynomial simulation bound whose
+exponent is independent of $k$ and of the candidate algorithm. In the RAM
+case we use the stated sequential model: a fixed finite program, a bounded
+number of memory accesses per instruction, $O(\log(n+2))$-bit addresses and
+words, and fixed instructions computable in time polynomial in the word
+length. Constants and the degree of this last polynomial may depend on the
+fixed program. The input consists of explicit graph matrices, with an
+ordinary finite encoding of their order. For a fixed RAM program $A$,
+the order encoding and the two row-major adjacency bit strings are stored
+directly in a fixed packed or unpacked layout of $O_A(n^2)$ input words.
+Every other memory cell initially has a fixed default value. The layout
+is uniform in $n$ and the input bits and can be written from the matrices
+in $O_A(n^3)$ multitape time.
+
+\begin{lemma}
+\label{trans:cutoff}
+There is an absolute constant $D$ with the following property. Fix a
+sufficiently large $r$, with $s,p$ as in \eqref{trans:parameters}, and a
+correct deterministic equivalence decider $A$ in either stated model.
+There is a correct one-tape decider $B$ for $H_s$ that, on every sufficiently
+long word $w$ of length $m$, first tries the pairs of
+Lemma~\ref{trans:instances} for all $n\in I_m$, allowing at most $m^p$
+steps of $A$ on each pair. It returns the first completed answer, with
+reversed polarity, or falls back to $M_s$ if no trial completes. The
+one-tape time used before fallback, or before returning a completed answer,
+is at most
+\begin{equation}
+\label{trans:cutoff-cost}
+  O_{A,r}\bigl(m^{D+50p}\bigr).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The procedure handles lengths below $m_0(r)$ directly with $M_s$. At larger
+lengths it generates and tests the padded instances one at a time, starting
+each simulation from the initial configuration of $A$. Since $A$ is correct,
+every completed answer has the polarity specified in
+\eqref{trans:polarity}. If all simulations reach their cutoffs, $M_s$
+supplies the answer. Thus the procedure always decides $H_s$ correctly.
+Its finite program may hardwire $r$, $p$, and $m_0(r)$.
+
+We first implement the procedure on a fixed number of tapes. Let $t=m^p$
+be the cutoff for one trial. Constructing the input pair costs $O_r(n^4)$
+time. A multitape candidate can then be simulated directly on work tapes
+with a cutoff counter. For completeness, the following more generous
+bound also covers the RAM case:
+\begin{equation}
+\label{trans:one-trial}
+  O_{A,r}\bigl((n^3+t+2)^6\bigr)
+\end{equation}
+multitape steps suffice for one cutoff simulation, including initialization
+and counter maintenance.
+
+To see this for the RAM, store a list of initialized or subsequently
+touched memory cells. If $S$ denotes their maximum number during the trial,
+then
+$S=O_A(n^2+t+1)$, since the input is explicit and each instruction accesses
+only boundedly many cells.
+Each address and stored value has $O_A(\log(n+2))$ bits. An unlisted address
+represents an untouched cell in its default initial state. Full scans of
+the list suffice for reads and writes; the whole address space is never
+allocated. If $t$ exceeds the number of available addresses, repeated
+accesses do not enlarge this list; the displayed estimate remains an
+upper bound.
+
+Every fixed instruction can be evaluated by a fixed bit computation in
+$(\log(n+2))^{O_A(1)}$ time. Using full scans and even unnecessarily slow
+copies of the stored list, one simulated step costs at most
+\[
+  O_A\bigl(S^2(\log(n+2))^{q_A}\bigr)
+\]
+for some fixed exponent $q_A$. For every fixed $q_A$,
+$(\log(n+2))^{q_A}\le n$ for all sufficiently large $n$. The total for
+$t$ simulated steps is consequently bounded by
+\[
+  O_A(tS^2n)
+  \;=\;O_A\bigl(t(n^2+t+1)^2n\bigr)
+  \;=\;O_A\bigl((n^3+t+2)^4\bigr).
+\]
+Initializing the explicit input list costs at most $O_A(n^3)$. The cutoff
+counter has $O_p(\log(m+2))=O_p(\log(n+2))$ bits and adds at most
+$O_p(t\log(n+2))$ time. These costs all fit in
+\eqref{trans:one-trial}. Thus even an arbitrarily large but fixed
+word-operation exponent affects only the starting size and the
+multiplicative constant, not the absolute exponent in that bound.
+
+There are $O(m^{20})$ trials, and every $n\in I_m$ is $O(m^{20})$.
+Thus, for $p\ge1$, the total multitape cost before fallback is at most
+\begin{align*}
+  O_{A,r}\left(
+    m^{20}\left[m^{80}+(m^{60}+m^p+2)^6\right]
+  \right)
+  &=O_{A,r}\bigl(m^{380+6p}\bigr).
+\end{align*}
+The counters enumerating the interval and the bookkeeping for trials fit
+in this bound. Applying the one-tape simulation of
+Lemma~\ref{diag:simulation} gives
+$O_{A,r}(m^{760+12p})$ time for this stage. The simulation is by online
+marked-track sweeps, so its quadratic bound applies to the prefix before
+fallback as well as to a complete computation. Increasing a fixed absolute
+constant $D$ if necessary gives \eqref{trans:cutoff-cost}. The constants
+in the $O_{A,r}$ notation may depend on $A$ and $r$, but $D$ and the
+coefficient $50$ do not.
+\end{proof}
+
+\subsection{Proof of the lower bound}
+
+\begin{proof}[Proof of Theorem~\ref{thm:main}]
+The parameters in \eqref{trans:parameters} satisfy, for all sufficiently
+large $k$,
+\begin{equation}
+\label{trans:gaps}
+  D+50p<s,
+  \qquad
+  20c_0 k<p.
+\end{equation}
+Indeed $p\le s/1000$, whereas
+$p\ge r/10^6-1.001$, and $r$ is either $k$ or $k-1$. The first inequality
+follows as $s$ tends to infinity; the second follows from
+$20c_0=2\cdot10^{-8}<10^{-6}$.
+
+Fix such a $k$. We prove the stronger promised version: assume that $A$
+is required to halt and decide correctly only on pairs of simple connected
+uncolored graphs of diameter at most two, and let $T_A(n)$ be its maximum
+running time over pairs in this class with $n$ vertices in each graph.
+Every trial of Lemma~\ref{trans:cutoff} belongs to this class by
+Lemma~\ref{trans:instances}. Its construction and correctness proof
+therefore still give a fixed one-tape decider $B$ for $H_s$, without any
+assumption on the behavior of $A$ outside the promised class.
+
+The second strict gap in \eqref{trans:gaps} implies that, for all
+sufficiently large $m$ and every $n\in I_m$,
+\begin{equation}
+\label{trans:upper-endpoint}
+  n^{c_0 k}
+  \le (m+1)^{20c_0 k}
+  =m^{20c_0 k}(1+1/m)^{20c_0 k}
+  \le m^p.
+\end{equation}
+Here $k$ is fixed, and the positive exponent gap
+$p-20c_0k$ absorbs the bounded factor $(1+1/m)^{20c_0k}$. This also accounts
+for the upper endpoint of $I_m$.
+
+Suppose some $n\in I_m$ satisfies
+\begin{equation}
+\label{trans:fast-size}
+  T_A(n)<n^{c_0 k}.
+\end{equation}
+For every word $w$ of length $m$, its padded reduction instance at this
+same $n$ is an input on which $A$ completes within the cutoff $m^p$.
+Consequently $B$ returns before fallback on \emph{every} word of length
+$m$, whether it finishes on this trial or on an earlier one. Its worst-case
+time at that length is therefore
+\[
+  O_{A,r}\bigl(m^{D+50p}\bigr)<m^s
+\]
+for all sufficiently large $m$, by the first strict gap in
+\eqref{trans:gaps}.
+
+This contradicts Theorem~\ref{diag:language} applied to $B$, which requires
+worst-case time greater than $m^s$ at every sufficiently large length.
+Choose one threshold $M=M(A,k)$ beyond all starting lengths used above,
+including the diagonal lower-bound threshold for $B$ and the length needed
+to absorb the constant in \eqref{trans:cutoff-cost}. Then no
+$m\ge M$ admits any $n\in I_m$ satisfying \eqref{trans:fast-size}.
+
+The intervals $I_m$ partition all integers at least $M^{20}$. It follows
+that
+\[
+  T_A(n)\ge n^{c_0 k}
+  \qquad\text{for every integer }n\ge M^{20}.
+\]
+Taking $c=c_0$ proves the claimed eventual lower bound. No monotonicity of
+$T_A$ is assumed: trying the complete interval is what excludes isolated
+fast input sizes. The threshold may depend on the fixed algorithm and
+parameter, while the exponent constant is absolute.
+The unrestricted worst-case time is at least this restricted maximum, so
+the same lower bound also holds without a promise on the input graphs.
+\end{proof}
+
+\begin{remark}
+\label{trans:small-parameters}
+For unrestricted graph inputs represented by explicit adjacency matrices,
+one may also include the finitely many smaller positive values of $k$ by
+decreasing the absolute constant $c$. Here $k=1$ means ordinary color
+refinement. Every such equivalence
+test distinguishes two empty graphs from an empty graph paired with a
+one-edge graph. On the empty input a deterministic algorithm must inspect
+at least one matrix entry for every possible hidden undirected edge of
+the second graph. Otherwise adding that edge leaves its execution
+unchanged. This gives $\Omega(n^2)$ inspected bits, or
+$\Omega_A(n^2/\log(n+2))$ steps with logarithmic-word access, and in
+particular an eventual lower bound of $n$. Choosing $c$ smaller than the
+reciprocal of the finite parameter threshold handles those remaining
+values. This observation depends on the matrix representation and on
+allowing unrestricted graph inputs. It does not assert the promised-class
+extension for small $k$ and is separate from the large-$k$ reduction.
+\end{remark}
+
+The argument concerns uniform deterministic machines in the stated
+sequential models. It makes no assertion about randomized algorithms,
+advice depending on the input length, or unit-cost operations on unbounded
+words. Its lower bound is on arbitrary equivalence deciders, with no
+requirement that they execute the WL refinement procedure.

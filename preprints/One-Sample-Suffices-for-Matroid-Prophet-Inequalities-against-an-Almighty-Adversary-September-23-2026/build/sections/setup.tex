@@ -1,0 +1,102 @@
+\section{A fixed-vector formulation}\label{sec:setup}
+
+Throughout, $M=(E,\mathcal I)$ is a finite labeled matroid. For $X\subseteq E$,
+its rank $\rk(X)$ is the maximum size of an independent subset of $X$, and
+$\cl(X)=\{e\in E:\rk(X\cup\{e\})=\rk(X)\}$ is its closure.
+A flat equals its closure; $X$ spans $A$ when $A\subseteq\cl(X)$.
+Write $L=\cl(\varnothing)$ for the set of loops, and put
+\[
+ \rk(A\mid P)=\rk(A\cup P)-\rk(P),\qquad
+ \OPT_M(w)=\max_{I\in\mathcal I}\sum_{e\in I}w_e.
+\]
+Inside a closure, a rank argument, or a map on flats, a sum of sets denotes
+their union. A set is independent over $P$ if its conditional rank over $P$
+equals its cardinality. We fix a total order on the labels once and for all.
+
+We first consider a deterministic nonnegative weight vector $w$ that is
+initially hidden. Before arrivals, a rule draws a mask $B_0\subseteq E$
+independently of $w$ and learns $w$ on $B_0$. It must reject every label in
+$B_0$. On other labels it learns the weight at arrival. The mask may be a
+function of the rule's complete initial random seed $R$. Let
+$A(w,R,\pi)$ denote its accepted set under permutation $\pi$.
+
+\begin{proposition}\label{prop:hidden}
+There is a measurable rule in the fixed-vector formulation that is feasible for every
+realization and every permutation, and for every $w\in[0,\infty)^E$ satisfies
+\begin{equation}\label{eq:hidden-guarantee}
+ \Ex_R\left[\min_{\pi}\sum_{e\in A(w,R,\pi)}w_e\right]
+ \ge 2^{-293}\OPT_M(w).
+\end{equation}
+Its revealed mask is selected before any weights are seen.
+\end{proposition}
+
+The minimum in \eqref{eq:hidden-guarantee} is inside the expectation.
+In particular, an adversary may choose a different order for each seed.
+All estimates below are for a fixed $M,w$; we suppress these deterministic
+objects in conditional expectations.
+
+Using samples on a sacrificed observation set and realized values on its
+complement is the simulation underlying the limited-information reduction
+of Azar, Kleinberg, and Weinberg~\cite[Section 3]{AKW14}. Related
+sample/value symmetries appear in the paired-draw analyses of
+Rubinstein, Wang, and Weinberg~\cite[Section 3]{RWW20} and Caramanis
+et al.~\cite[Sections 2 and 6]{CDF22}. Here the mask may depend on the
+entire seed, and the transfer must preserve the minimum inside the
+expectation. We verify these requirements directly.
+
+\begin{lemma}[One-sample simulation]\label{lem:simulation}
+A measurable fixed-vector rule satisfying \eqref{eq:hidden-guarantee} yields
+a measurable one-sample rule with the same competitive ratio against the
+adversary of Theorem~\ref{thm:main}.
+\end{lemma}
+\begin{proof}
+Draw its entire seed independently of the sample and value vectors $S,V$.
+For analysis, define
+\[
+ w_e^{\mathrm{glue}}=
+ \begin{cases}S_e,&e\in B_0(R),\\ V_e,&e\notin B_0(R).\end{cases}
+\]
+Given any seed, the choices of which copies to use are fixed. The mutual
+independence and matching laws of $S_e,V_e$ imply
+\[
+ \mathcal L(w^{\mathrm{glue}}\mid R)
+       =\bigotimes_{e\in E}D_e.
+\]
+Thus $w^{\mathrm{glue}}$ is independent of the complete seed and has the
+law of $V$. Implement the fixed-vector rule using $S_e$ only on its revealed
+mask and $V_e$ elsewhere when a label arrives. Ignore unused samples and
+reject revealed labels without using their online values. For every fixed
+$S,V,R$ and every permutation, induction on arrivals shows that this
+execution has exactly the accepted set $A(w^{\mathrm{glue}},R,\pi)$;
+each accepted weight is its actual online value.
+
+Consequently, for any adversarial choice of $\pi$, including one depending
+on all the unused samples and values, its reward is at least
+$\min_{\pi'}\sum_{e\in A(w^{\mathrm{glue}},R,\pi')}w_e^{\mathrm{glue}}$.
+Integrate \eqref{eq:hidden-guarantee} using independence of the glued vector
+and seed. This gives the desired inequality. Nonnegative integration is
+valid without further moment assumptions, and feasibility bounds the
+reward by $\OPT_M(V)$, whose expectation is finite.
+\end{proof}
+
+\subsection{Elementary matroid facts}
+
+The independent sets contain $\varnothing$, are closed under subsets, and
+satisfy augmentation: for $I,J\in\mathcal I$ with $|I|<|J|$, some
+$e\in J\setminus I$ has $I\cup\{e\}\in\mathcal I$.
+A basis of a set $X$ is a maximal independent subset of $X$.
+We use only rank and closure, so the argument applies to nonrepresentable
+matroids as well. The augmentation axiom implies that all maximal
+independent subsets of a given set have the same size, and that independent
+sets extend to bases of larger sets. Rank is submodular:
+\begin{equation}\label{eq:rank-submodular}
+ \rk(A)+\rk(B)\ge\rk(A\cup B)+\rk(A\cap B).
+\end{equation}
+Indeed, extend a basis of $A\cap B$ to one of $A$, then to one of $A\cup B$
+using elements of $B\setminus A$. The initial intersection basis together
+with these last elements is independent in $B$, which proves the inequality.
+It follows that $\rk(Z\mid P)$ decreases when $P$ grows. Closure is increasing
+and idempotent, and adjoining spanned elements changes neither rank nor
+closure. In particular, scanning a set and greedily accepting elements that
+increase rank over a fixed base $P$ selects an independent set over $P$
+of size $\rk(Z\mid P)$ and spans all of $Z$ over $P$.

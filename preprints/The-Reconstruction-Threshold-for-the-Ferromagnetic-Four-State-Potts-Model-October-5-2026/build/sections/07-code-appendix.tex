@@ -1,0 +1,135 @@
+\section{Exact implementation and complete verifiers}\label{app:verifiers}
+
+This appendix identifies the array operations with the certificates of
+Section~\ref{sec:polynomial-certificates} and bounds the auxiliary
+fixed-width arithmetic.  The complete source listings follow these
+implementation details.  The command lines and expected C++ output are
+given in Section~\ref{sec:finite-verification}.
+
+\subsection{Exact coefficient arithmetic}\label{app:implementation}
+
+The C++ type \texttt{P} represents a rational coefficient matrix of bidegree
+$(r,r)$ by an integer array and a common positive denominator.  Its entries
+are indexed by $\mathcal I_r$ in descending lexicographic order.  Integer
+numerators and denominators use \texttt{boost::multiprecision::cpp\_int}.
+The routine \texttt{ones(r)} constructs $W_r$; multiplication is ordinary
+coefficient convolution, and \texttt{lift} raises both degrees by multiplying
+by $W_1$.  Addition first lifts to a common degree and then uses a common
+denominator.  Thus signs are tested on integer numerators, without a
+floating-point tolerance.
+
+We explain the correspondence between the remaining routines and the
+mathematical certificates; this also fixes the normalizations in the
+listing.  Initially the coordinates of every vertex are stored as integers
+at scale
+\begin{equation}\label{eq:vertex-scale}
+ \kappa=12\cdot2^{24}.
+\end{equation}
+Removing the factor $2^{24}$ leaves the denominator 12 for the individual
+coordinates.  The coefficients of $U_v$ are
+$4(a_i)_v(b_j)_{\pi(v)}$; their initialization removes $2^{48}$ and uses
+denominator 144.  The routine \texttt{inv} forms the nine invariant
+polynomials in their stated order.  The routine \texttt{dot} forms a linear
+combination divided by 1000 and homogenizes lower-degree terms with its
+third argument.  With that argument equal to the homogeneous one it gives
+$H(p)$, $F(p)$, or $G(p)$; with that argument equal to $z$ it gives
+$z^6H(U/z)$.
+
+There is one useful economy in constructing $K$.  A polynomial depending
+only on $X$ is nevertheless stored with both degrees equal, so it has the
+form $f(X)(\sum_jY_j)^r$.  Its column indexed by $(r,0,0,0)$ contains exactly
+the coefficients of $f$.  Taking this column and the analogous row of a
+polynomial depending only on $Y$ gives the outer product used by
+\texttt{tensor}.  The factor 24 in \texttt{make} then gives exactly the $K$
+of \eqref{eq:rational-K}.  The array \texttt{t} is the Type T polynomial;
+it is constructed once and thereafter restricted by midpoint substitution.
+The arrays \texttt{N} and \texttt{D} store $N_\pi$ and $z_\pi$, respectively,
+for the 24 permutations in lexicographic order.
+
+The Type P interpolation uses ordinary matrix multiplication.  The matrix
+\texttt{ev(r,3)} has entries $I^J$, where $I\in\mathcal I_3$ indexes a
+node and $J\in\mathcal I_r$ indexes a monomial.  Consequently the two-sided
+evaluation \texttt{act} must be divided by $3^{2r}$.  The listing includes
+this factor explicitly, using 9 when $r=1$.  The routine \texttt{inverse}
+constructs, rather than numerically inverts, the cardinal polynomials
+in \eqref{eq:interpolation-polynomial}.  It expands their homogeneous
+linear factors $3X_h-m\sum_iX_i$, stores their coefficients multiplied by
+960, and divides by the factorial denominators.  Two-sided interpolation
+therefore requires division by $960^2$.
+
+After the node values of $N_\pi/z_\pi^k$ have been truncated toward zero in
+multiples of $M^{-1}$, \texttt{testP} constructs the interpolant $J_\pi$.
+Its subtraction \texttt{o=b-o} implicitly lifts $N_\pi$ by $W_2$, and hence
+constructs precisely $O_\pi=W_2N_\pi-z_\pi^kJ_\pi$.
+The array \texttt{w} is $Q_\pi=z_\pi^kW_3$.  For each negative coefficient
+of $O_\pi$, the program asserts that the corresponding coefficient of
+$Q_\pi$ is positive.  A violation aborts the verification rather than
+merely rejecting that cell; no such violation occurs in the completed
+runs.  It then computes the integer ceiling in
+\eqref{eq:remainder-correction}, by positive integer division, and retains
+the largest value.  The final test is exactly the coefficient test of
+Lemma~\ref{lem:type-p}.
+
+Finally, \texttt{sub} implements \eqref{eq:midpoint-substitution} with
+$2^r$ cleared.  Its integer multiplier is
+\begin{equation}\label{eq:cleared-substitution}
+ C_t=2^{r-I_i-t}\binom{I_j}{t},\qquad
+ C_{t+1}=\frac{C_t(I_j-t)}{2(t+1)}.
+\end{equation}
+Here $r-I_i-t\ge0$ for every used term, so the indicated division is exact.
+The resulting matrix denominator is multiplied by $2^r$.
+
+\subsection{Bounds for fixed-width arithmetic}
+
+Only indices, counters, vertex coordinates, and small combinatorial factors use
+fixed-width integer types.  Take \texttt{int} to have at least 32 bits and
+\texttt{long long} to have at least 64 bits.  The following bounds cover
+every such operation in the listing.
+
+All polynomial matrices in the C++ verifier have bidegree at most 11.
+Thus there are at most $\binom{14}{3}=364$ indices in one dimension and
+$132\,496$ entries in a matrix.  The depth limit 24 allows at most
+$2^{25}-1$ visited cells, so the counters for visited cells and terminal
+cells also fit a 32-bit signed integer.  The largest factorial initialized is
+$19!=121\,645\,100\,408\,832\,000<2^{63}$, and products of factorials
+appearing in a multinomial denominator do not exceed this bound.  The
+largest multinomial coefficient through degree 11 is $92\,400$, whose
+square is $8\,537\,760\,000<2^{63}$.
+
+Each scaled vertex coordinate belongs to $[0,\kappa]$.  Initial products
+are bounded by $4\kappa^2$, and even the conservative bound
+\[
+ 64\kappa^2
+ =2\,594\,073\,385\,365\,405\,696<2^{63}
+\]
+covers the weighted squared edge distances.  The initial coordinates are
+multiples of $2^{24}$, so all midpoint coordinates are integers through
+depth 24.  A point of $\mathcal S$ has fourth coordinate at most $1/4$, with
+equality only at $\unif$.  Thus the test that a stored fourth coordinate is
+$\kappa/4$ detects a uniform vertex exactly.
+
+The multipliers in \eqref{eq:cleared-substitution}, including the
+intermediate numerator of the recurrence, are bounded by
+$11\cdot2^{11}\binom{11}{5}<2^{24}$.  The evaluation matrices contain
+integers at most $3^6$, and the cardinal-polynomial construction uses only
+three linear factors starting from 960.  Even bounding the sum of absolute
+coefficients at each multiplication by a factor 8 gives
+$960\cdot8^3<2^{19}$.  All products with polynomial coefficients are already
+operations on unlimited integers.  These bounds exclude fixed-width
+overflow; in particular, the exact sign tests do not rely on floating-point
+arithmetic or machine rounding.
+
+\subsection{Rational sign certificates}
+\begingroup
+\interlinepenalty=10000
+\lstinputlisting[language=C++,basicstyle=\ttfamily\scriptsize,
+  columns=fullflexible,keepspaces=true,breaklines=true,
+  showstringspaces=false,numbers=left,numberstyle=\tiny,
+  numbersep=6pt,tabsize=4]{../verification/checks/certificate.cpp}
+\endgroup
+
+\subsection{Scalar coefficients and symmetry}
+\lstinputlisting[language=Python,basicstyle=\ttfamily\scriptsize,
+  columns=fullflexible,keepspaces=true,breaklines=true,
+  showstringspaces=false,numbers=left,numberstyle=\tiny,
+  numbersep=6pt,tabsize=4]{../verification/checks/small_polynomials.py}

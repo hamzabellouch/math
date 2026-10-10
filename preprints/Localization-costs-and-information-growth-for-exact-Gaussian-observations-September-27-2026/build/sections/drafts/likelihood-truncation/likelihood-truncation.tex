@@ -1,0 +1,712 @@
+\section{Likelihood truncation and selected dyadic cells}
+\label{sec:l-likelihood-truncation}
+
+This section gives a forward proof of the precision lower bound using a
+cube chart of the sphere.  At a fixed incoming state, the likelihood
+of a block-ending state at a signal is the probability that the fresh
+block ends in that state when the signal is fixed.  A block may
+concentrate the conditional signal law, but a Gaussian projection
+estimate limits the increase in a typical state likelihood.  We then select a dyadic cell
+for analysis and condition on the event that this cell was selected.
+The cost of that conditioning and the depth of the cell enter one
+density bound.  Iterating the bound prevents a small number of blocks
+from localizing the signal to the accuracy required by the output.
+
+The use of high Gaussian projection moments has a methodological
+precedent in Sharan, Sidford, and Valiant
+\cite[Section~7, Lemma~12]{SSV2019}.  We prove the exact-label estimate
+used here, including its dependence on the mass of a restricted set.
+The lower bound in this section starts from success for every signal:
+that hypothesis supplies both the cube-prior average used by the
+forward argument and the uniform-sphere average used at constant
+accuracy.
+
+\subsection{The learner, the cube prior, and measurable rules}
+\label{subsec:l-lt-model}
+
+We use the finite-state learner of Section~\ref{l:model}, including
+its jointly measurable experiment, joint independence of the shared
+rule seed and initialization from the signal and rows, and permitted
+per-seed completed-measurability.  The deterministic horizon is
+\(T\ge0\), and the output uses the terminal state, stopping index,
+and fresh randomness.
+
+\begin{theorem}[Precision lower bound from likelihood truncation]
+\label{thm:l-lt-precision}
+Let $M(d)=o(d^2)$ be a nonnegative integer-valued memory bound, and let
+$0<\epsilon(d)\le1/10$.  Suppose a family of learners in the model
+above satisfies
+\[
+ \mathbb P\!\left\{\arccos\langle\widehat s,s\rangle
+              \le\epsilon(d)\right\}\ge\frac23
+ \qquad\text{for every }s\in S^{d-1}.
+\]
+There is an absolute $c>0$ such that, for all sufficiently large $d$,
+\[
+ T(d)\ge c\,d\log_2\frac1{\epsilon(d)}.
+\]
+The eventual dimension threshold may depend on the memory sequence.
+\end{theorem}
+
+Put $p=d-1$ and consider the normalized cube law
+\begin{equation}\label{l:lt:chart}
+ Q_*=\left[-\frac1{2\sqrt p},\frac1{2\sqrt p}\right)^p,\qquad
+ \mu=\operatorname{Unif}(Q_*),\qquad
+ s(z)=\bigl(z,\sqrt{1-\|z\|^2}\bigr).
+\end{equation}
+The parameter law has density \(p^{p/2}\) on the cube.  This is the
+cube chart of Lemma~\ref{ld:cube-geometry}, with \(n\) renamed \(p\).
+That lemma proves that \(s\) is \(2\)-Lipschitz and, for every fixed
+unit output \(v\),
+\begin{equation}\label{l:lt:output-mass}
+ \mu\{z:\arccos\langle v,s(z)\rangle\le\epsilon\}
+ \le\bigl(\sqrt{2\pi e}\,\epsilon\bigr)^p\le(5\epsilon)^p.
+\end{equation}
+Write \(V_h\) for the volume of the unit ball in \(\mathbb R^h\).
+The same Gaussian-integral proof gives
+\(V_h\le(\sqrt{2\pi e}/\sqrt h)^h<(5/\sqrt h)^h\), which will also
+be used below.
+
+The following reduction puts the learner in the form required by the
+block argument.  It makes the order of the two operations explicit:
+first fix the shared rule-selection randomness, then choose Borel
+versions for the resulting cube-prior experiment.
+
+\begin{lemma}[A deterministic Borel learner for the cube experiment]
+\label{lem:l-lt-borel}
+Fix $d\ge2$, $M$, and a finite horizon $T$.  If a learner in the stated
+model has average success at least $2/3$ under \eqref{l:lt:chart}, then
+there is a deterministic learner with Borel transition and stopping
+rules, the same state and horizon bounds, and a fixed unit output at
+each terminal state/index label, whose average success under that prior
+is at least $3/5$.
+\end{lemma}
+\begin{proof}
+Choose a shared-seed value with conditional cube-prior success greater
+than \(3/5\).  The joint experiment in Section~\ref{l:model} makes this
+conditioning meaningful, and the conditional initial-state law remains
+independent of the signal and rows.  The derivative of the chart has
+the identity in its first \(p\) rows, so Lemma~\ref{l:prior-ac} proves
+absolute continuity of its one-pair law.  Lemma~\ref{l:borel} therefore
+provides everywhere Borel finite kernels preserving this fixed-seed
+cube-prior joint law of the signal, path, stopping index, and output.
+
+Use the finite-randomness reduction following that lemma.  Sample the
+conditional initial state, independent uniforms for all finite choices
+indexed by state and index (including an input-free index-zero stopping
+choice), and one output from each terminal state/index law.  These
+finitely many choices are independent of the inputs.  Fixing a
+realization by averaging retains cube-prior success at least \(3/5\).
+The resulting state rules are Borel, and the state and horizon bounds
+are unchanged.
+\end{proof}
+
+\subsection{The projection estimate inside a regular cell}
+\label{subsec:l-lt-projection}
+
+We next control one block, starting from a parameter law with a bound
+on concentration at every smaller dyadic scale.  For sufficiently
+large $d$, set
+\begin{equation}\label{l:lt:parameters}
+ n=\lfloor d/32\rfloor,\qquad
+ k=\lfloor d/8\rfloor,\qquad
+ \lambda=p/2,\qquad Q=\lambda-k,\qquad \alpha=\frac nQ.
+\end{equation}
+Here $n$ is the number of rows in a block and $k$ is the moment order.
+For example, $d\ge64$ ensures $n\ge1$, $k\ge2$,
+$Q\ge d/3$, and $\alpha\le1/4$.
+
+Subdivide $Q_*$ dyadically in every coordinate, using half-open cells
+so that every parameter belongs to one cell at each depth.  A cell
+$C$ at depth $l$ has side length $R/\sqrt p$, where $R=2^{-l}$.
+A descendant at relative depth $j$ is a depth-$l+j$ cell inside $C$.
+Call a Borel probability measure $P$ supported in $C$ regular when
+\begin{equation}\label{l:lt:regular}
+ P(V)\le2^d2^{-\lambda j}
+ \quad\text{for every descendant $V$ at relative depth $j\ge0$}.
+\end{equation}
+
+We need a projection estimate that retains the probability of a
+restricted parameter set.  In the likelihood cutoff, this set will
+consist of signals for which a particular state is unusually likely.
+The factor $\rho^{1-\alpha}$ below lets the small mass $\rho$ of
+that set survive both the projection and the choice of a state.
+
+\begin{lemma}[Restricted mass and exact projection moments]
+\label{lem:l-lt-projection}
+There are absolute constants $C_0,C_1,C_2\ge1$ such that the following
+holds with \eqref{l:lt:parameters} for all sufficiently large $d$.
+Let $P$ be regular in a cell $C$ of scale $R$.  For every
+$x\in\mathbb R^d$, $u>0$, and affine subspace $H\subseteq\mathbb R^d$
+of dimension at most $k$,
+\begin{align}
+ P\{z:s(z)\in B(x,u)\}
+ &\le C_0^d(u/R)^\lambda, \label{l:lt:ball}\\
+ P\{z:\operatorname{dist}(s(z),H)\le u\}
+ &\le(C_1u/R)^Q. \label{l:lt:tube}
+\end{align}
+For a Borel set $E\subseteq C$ of mass $\rho=P(E)>0$,
+\begin{equation}\label{l:lt:inverse}
+ \int_E\operatorname{dist}(s(z),H)^{-n}\,dP(z)
+ \le C_2^dR^{-n}\rho^{1-\alpha}.
+\end{equation}
+
+Let $\gamma_{n,d}$ denote standard Gaussian probability on
+$\mathbb R^{n\times d}$ and put
+$\beta(dA,dy)=\gamma_{n,d}(dA)\,dy$.  For $\eta>0$, let
+$\varphi_\eta$ be the centered Gaussian density on $\mathbb R^n$ with
+covariance $\eta^2I_n$, and define
+\[
+ J_\eta(A,y)=\int_E\varphi_\eta(y-As(z))\,dP(z).
+\]
+Then
+\begin{equation}\label{l:lt:moment}
+ \int J_\eta^k\,d\beta
+ \le \bigl(C_2^dR^{-n}\bigr)^{k-1}
+       \rho^{\,1+(k-1)(1-\alpha)}.
+\end{equation}
+For every Borel joint set $B\subseteq
+\mathbb R^{n\times d}\times\mathbb R^n$ with $\beta(B)<\infty$,
+the exact observations satisfy
+\begin{equation}\label{l:lt:exact-set}
+ \mathbb P_{z\sim P,\,A\sim\gamma_{n,d}}
+       \{z\in E,\ (A,As(z))\in B\}
+ \le \beta(B)^{1-1/k}
+       \bigl(C_2^dR^{-n}\bigr)^{1-1/k}\rho^{1-\alpha}.
+\end{equation}
+The same assertions involving $E$ are trivial when $\rho=0$.
+\end{lemma}
+\begin{proof}
+For $0<u<R$, choose an integer $j\ge1$ with
+$R2^{-j}\le u<2R2^{-j}$, and write $\delta=R2^{-j}$.
+Project $B(x,u)$ onto the first $p$ coordinates.  Each relative-depth
+$j$ cell meeting the projected ball has diameter $\delta$, so the
+union of those cells lies in a ball of radius $u+\delta<3\delta$.
+The cells have disjoint interiors and volume
+$(\delta/\sqrt p)^p$.  The unit-ball estimate used in
+\eqref{l:lt:output-mass} bounds their number by
+\[
+ \frac{V_p(3\delta)^p}{(\delta/\sqrt p)^p}\le15^p.
+\]
+Using \eqref{l:lt:regular} for each cell gives
+$P\{s(z)\in B(x,u)\}\le15^p2^d2^{-\lambda j}$.
+Since $2^{-j}\le u/R$, this proves \eqref{l:lt:ball} after choosing
+$C_0$ absolutely.  For $u\ge R$ the bound follows from $P(C)=1$.
+
+Let $s_0$ be the lift of the center of $C$.  The cell has Euclidean
+radius $R/2$ in parameter space, so the Lipschitz bound implies
+$\|s(z)-s_0\|\le R\le2R$ for $z\in C$.  Orthogonal projection onto
+$H$ is nonexpansive.  Thus the projections of all these lifted points
+lie in the radius-$2R$ ball in $H$ about the projection of $s_0$.
+Disjoint ball packing covers that ball by at most
+$(1+4R/u)^k$ balls of radius $u$.  A point at distance at most $u$
+from $H$ whose projection lies in one of these balls is within $2u$
+of its center.  For $u\le R$, applying \eqref{l:lt:ball} to the cover
+gives
+\[
+ P\{\operatorname{dist}(s(z),H)\le u\}
+ \le (1+4R/u)^k C_0^d(2u/R)^\lambda
+ \le C^d(u/R)^{\lambda-k}.
+\]
+Here and below $C$ denotes an absolute constant that may increase.
+The identity
+$Q=(d-1)/2-\lfloor d/8\rfloor\ge d/3$ for large $d$ lets us absorb
+$C^d$ into $C_1^Q$.  For $u>R$, enlarge $C_1$ so that the right side
+is at least one.  This proves \eqref{l:lt:tube}.  In particular every
+affine subspace of the stated dimension has $P$-mass zero, by letting
+$u$ decrease to zero.
+
+To prove \eqref{l:lt:inverse}, apply the layer-cake formula to
+$(\operatorname{dist}(s(z),H)/R)^{-n}\mathbf 1_E$.  At height $t>0$
+its tail has mass at most
+$\min\{\rho,C_1^Qt^{-Q/n}\}$.  With
+$t_0=C_1^n\rho^{-n/Q}$,
+\begin{align*}
+ \int_0^\infty\min\{\rho,C_1^Qt^{-Q/n}\}\,dt
+ &\le \rho t_0+C_1^Q\int_{t_0}^\infty t^{-Q/n}\,dt\\
+ &=\frac{C_1^n}{1-\alpha}\rho^{1-\alpha}.
+\end{align*}
+Because $\alpha\le1/4$ and $n\le d$, an absolute $C_2$ bounds the
+prefactor by $C_2^d$.  Restoring $R^{-n}$ proves the assertion.
+
+We turn from affine distances to the projection moment.  Tonelli's
+theorem expands $\int J_\eta^k\,d\beta$ over
+$z_1,\ldots,z_k\in E$.  Write $s_i=s(z_i)$.  For fixed $A$ and this
+tuple, integration of
+$\prod_{i=1}^k\varphi_\eta(y-As_i)$ over the common label $y$ is the
+density at zero of the $k-1$ differences from the first of the
+independently mollified labels $As_i+\eta Z_i$.  After averaging over
+$A$, the differences are centered Gaussian, independently across
+rows, with per-row covariance
+\begin{equation}\label{l:lt:covariance}
+ G+\eta^2(I+\mathbf1\mathbf1^{\mathsf T}),\qquad
+ G=\bigl(\langle s_i-s_1,s_j-s_1\rangle\bigr)_{i,j=2}^k.
+\end{equation}
+Their density at zero is
+\[
+ (2\pi)^{-n(k-1)/2}
+ \det\!\left(G+\eta^2(I+\mathbf1\mathbf1^{\mathsf T})\right)^{-n/2}
+ \le \det(G)^{-n/2},
+\]
+where the upper bound is interpreted as infinity when $G$ is
+singular.  For nonsingular $G$, the inequality follows by factoring
+$G^{1/2}$ and observing that all eigenvalues of
+$I+\eta^2G^{-1/2}(I+\mathbf1\mathbf1^{\mathsf T})G^{-1/2}$
+are at least one.  Gram--Schmidt gives
+\[
+ \det(G)^{-n/2}
+ =\prod_{i=2}^k
+   \operatorname{dist}\bigl(s_i,
+      \operatorname{aff}(s_1,\ldots,s_{i-1})\bigr)^{-n}.
+\]
+The affine spaces here have dimension at most $k-2$.  The null-mass
+consequence of \eqref{l:lt:tube}, applied successively, shows that
+degenerate tuples have product $P$-measure zero.  Integrate the last
+display from $z_k$ down to $z_2$ using \eqref{l:lt:inverse}, then
+integrate $z_1$ with mass $\rho$.  The result is
+\[
+ \rho\bigl(C_2^dR^{-n}\rho^{1-\alpha}\bigr)^{k-1},
+\]
+which is \eqref{l:lt:moment}.
+
+H\"older's inequality now bounds the mollified measure of $B$ by
+\[
+ \beta(B)^{1-1/k}
+ \bigl(C_2^dR^{-n}\bigr)^{1-1/k}
+ \rho^{\,1-\alpha+\alpha/k}.
+\]
+Since $\rho\le1$, this implies the weaker power of $\rho$ in
+\eqref{l:lt:exact-set}.  For an open $B$, couple the mollified labels
+as $As(z)+\eta Z$ using one independent standard Gaussian $Z$.
+As $\eta$ decreases to zero, membership of $(A,As(z))$ in $B$
+implies eventual membership of the approximants.  Fatou's lemma
+therefore passes the same bound to the exact observation measure.
+The Gaussian--Lebesgue measure $\beta$ is a locally finite regular
+Borel measure on the Euclidean joint space.  Its outer regularity
+extends the bound from open sets to every Borel $B$ of finite measure.
+In particular the exact measure vanishes on $\beta$-null sets, so the
+same bound extends to the completion of $\beta$ as well.  The mollifier
+was used only in this calculation; the observation in
+\eqref{l:lt:exact-set} is the exact label.
+\end{proof}
+
+We now apply the exact-set estimate to the signals for which one
+state's likelihood exceeds a multiple of its marginal probability.
+The proof restricts labels to a ball about the projected cell center.
+The resulting sets of observations producing different states are
+disjoint, and their total reference volume will control the sum over states.
+
+\begin{lemma}[A regular-cell likelihood cutoff]
+\label{lem:l-lt-likelihood}
+There are absolute $a,c_1>0$ and a dimension threshold such that the
+following holds.  Let $P$ be regular in a cell $C$, let
+$A\sim\gamma_{n,d}$ be independent of $z\sim P$, and let
+\[
+ W=f(A,As(z))
+\]
+for a Borel map $f$ with at most $N$ values.  Suppose
+$N^{1/k}\le2^d$, and set
+\[
+ q_w(z)=\mathbb P_A\{f(A,As(z))=w\},\qquad
+ b_w=\int q_w\,dP.
+\]
+Then
+\begin{equation}\label{l:lt:likelihood-tail}
+ \mathbb P\{q_W(z)>2^{ad}b_W\}\le2^{-c_1d}.
+\end{equation}
+\end{lemma}
+\begin{proof}
+The functions $q_w$ are Borel by integration of the Borel routing
+indicators.  For $b_w>0$ define
+$E_w=\{z:q_w(z)>2^{ad}b_w\}$.  Markov's inequality gives
+$P(E_w)\le2^{-ad}$.  A state with $b_w=0$ is reached with probability
+zero and contributes nothing.
+
+Retain the lift $s_0$ of the center of $C$ used in the preceding
+proof.  Conditional on $z$, the vector $A(s(z)-s_0)$ is distributed
+as $\|s(z)-s_0\|Z$ for a standard Gaussian $Z\in\mathbb R^n$.
+Because $\|s(z)-s_0\|\le2R$,
+\begin{equation}\label{l:lt:label-tail}
+ \mathbb P\{\|As(z)-As_0\|>4R\sqrt n\}
+ \le \mathbb P\{\|Z\|^2>4n\}
+ \le 2^{n/2}e^{-n}.
+\end{equation}
+The last inequality uses
+$\mathbb E e^{\|Z\|^2/4}=2^{n/2}$.  Since $n\ge d/64$ for large
+$d$, the right side is exponentially small in $d$.
+
+Define the joint domain
+\[
+ \mathcal D=\{(A,y):\|y-As_0\|\le4R\sqrt n\}
+\]
+and let $B_w=\mathcal D\cap f^{-1}(\{w\})$.  These Borel sets are
+disjoint, and the volume bound gives
+\[
+ \sum_w\beta(B_w)\le\beta(\mathcal D)
+ =V_n(4R\sqrt n)^n\le(20R)^n.
+\]
+Apply \eqref{l:lt:exact-set} to $E_w$ and $B_w$, and sum over $w$.
+H\"older's inequality on the finite state set yields
+\begin{align}
+ \sum_w\mathbb P\{z\in E_w,(A,As(z))\in B_w\}
+ &\le \bigl(C_2^dR^{-n}\bigr)^{1-1/k}
+       2^{-ad(1-\alpha)}
+       N^{1/k}\left(\sum_w\beta(B_w)\right)^{1-1/k}\notag\\
+ &\le C_4^dN^{1/k}2^{-ad(1-\alpha)}
+ \label{l:lt:width-tail}
+\end{align}
+for an absolute $C_4\ge1$.  The powers of $R$ cancel exactly.
+Since $1-\alpha\ge3/4$ and $N^{1/k}\le2^d$, choose $a$ so that
+$3a/4\ge\log_2 C_4+3$.  The last display is then at most $2^{-2d}$.
+Adding \eqref{l:lt:label-tail} and reducing an absolute $c_1>0$ if
+necessary proves \eqref{l:lt:likelihood-tail} for large $d$.
+\end{proof}
+
+\begin{remark}
+The projection estimate also verifies the cube-prior absolute
+continuity used in Lemma~\ref{lem:l-lt-borel}.  At the root,
+$\mu(V)=2^{-pj}$ for a depth-$j$ cell, so $\mu$ is regular.
+Taking $P=\mu$ and $E=Q_*$ in \eqref{l:lt:exact-set} shows that the
+exact joint block law is absolutely continuous with respect to
+$\beta$.  For the one-pair reference measure
+$\lambda_d(dx,dy)=\gamma_d(dx)\,dy$ from Section~\ref{l:model},
+the inverse image of a $\lambda_d$-null set under one-row projection
+is $\beta$-null by the product structure and $\sigma$-finiteness.
+The one-pair marginal is therefore absolutely continuous as well.
+\end{remark}
+
+\subsection{Restoring regularity by a selection event}
+\label{subsec:l-lt-selection}
+
+Fix a deterministic Borel learner, padded to $m$ blocks of $n$ rows.
+At each block boundary let its state alphabet have size at most $N$,
+with $N^{1/k}\le2^d$.  A halted path keeps a tag recording its terminal
+state and index; the quantitative application below supplies this
+padding.  For a fixed starting state, the next boundary state is a
+Borel function of the whole exact block $(A,As(z))$.  Trailing rows
+after a halt are generated and ignored.
+
+For the proof only, a history records the boundary states, selected
+dyadic cells, and survival of the deletions defined below.  At time
+$t$ it is an event determined by the parameter and the first $t$
+blocks.  We condition only on histories of positive probability.
+Future rows remain independent standard Gaussian rows conditional on
+such a history and the parameter, since those rows are independent of
+the parameter and all preceding blocks.
+
+Let $\mu_C$ be uniform probability on a cell $C$, and put
+$D=a+2$, with $a$ from Lemma~\ref{lem:l-lt-likelihood}.  We will keep
+the following two properties after $t$ blocks: the history fixes a
+cell $C$ of depth $l$, its parameter law $P$ is regular in $C$, and
+\begin{equation}\label{l:lt:density-depth}
+ P\le K\mu_C,\qquad K=2^{Ddt-(p-\lambda)l}.
+\end{equation}
+The measure inequality means that it holds on every Borel set.
+Initially $C=Q_*$, $P=\mu$, $t=l=0$, so both properties hold.
+
+\begin{lemma}[One block and one selected cell]
+\label{lem:l-lt-selection-step}
+Suppose a positive-probability history after $t$ blocks has a fixed
+state and a conditional law satisfying \eqref{l:lt:regular} and
+\eqref{l:lt:density-depth} in a cell $C$ of depth $l$.  One can
+discard conditional probability at most
+\begin{equation}\label{l:lt:one-step-deletion}
+ 3\cdot2^{-c_1d}+(\lfloor J_t\rfloor+1)2^{-d},
+ \qquad
+ J_t=\frac{ad+1+Ddt}{p-\lambda},
+\end{equation}
+and partition the remaining outcomes into finitely many
+positive-probability histories satisfying both properties at time
+$t+1$.
+\end{lemma}
+\begin{proof}
+Run the fresh next block, and let
+$\mathcal E=\{q_W(z)>2^{ad}b_W\}$ be the event in
+\eqref{l:lt:likelihood-tail}.  Write
+$\delta=\mathbb P(\mathcal E)\le2^{-c_1d}$.  Discard $\mathcal E$.
+For $b_w>0$, let
+$r_w=\mathbb P(\mathcal E^c\mid W=w)$, and also discard every state
+with $r_w<1/2$.  The mass of these states is at most $2\delta$:
+\[
+ \sum_{w:r_w<1/2}b_w
+ \le2\sum_{w:r_w<1/2}\mathbb P(\mathcal E\cap\{W=w\})
+ \le2\delta.
+\]
+The two deletions therefore cost at most $3\delta$.
+
+For a remaining state $w$, condition on $W=w$ and $\mathcal E^c$.
+Its parameter law $P'$ is given by
+\[
+ P'(B)=\frac1{b_wr_w}
+ \int_B \mathbf1_{\{q_w(z)\le2^{ad}b_w\}}q_w(z)\,dP(z)
+\]
+for Borel $B$.  Since $r_w\ge1/2$,
+\begin{equation}\label{l:lt:posterior-inflation}
+ P'\le2^{ad+1}P\le2^{ad+1}K\mu_C.
+\end{equation}
+
+For $z\in C$, let $U_j(z)$ be the cell containing $z$ at relative
+depth $j$.  Select the least $j\ge0$ maximizing the score
+\begin{equation}\label{l:lt:score}
+ 2^{\lambda j}P'(U_j(z)).
+\end{equation}
+The score at $j=0$ is one.  Since
+$\mu_C(U_j(z))=2^{-pj}$, \eqref{l:lt:posterior-inflation} gives
+\[
+ 2^{\lambda j}P'(U_j(z))
+ \le2^{ad+1}K2^{-(p-\lambda)j}
+ \le2^{ad+1+Ddt-(p-\lambda)j}.
+\]
+This upper bound tends to zero.  Thus the maximum is attained, and
+every selected depth is at most $J_t$, since a selected score is at
+least one.  The least-maximizer rule is unambiguous.  It is Borel:
+there are finitely many possible depths, the cell at each depth is a
+Borel function of $z$, and each score is a fixed number on that cell.
+
+For each possible selected cell $U$, define the actual selection event
+\begin{equation}\label{l:lt:selection-event}
+ F_U=\{z:\text{the rule in \eqref{l:lt:score} selects }U\}\subseteq U.
+\end{equation}
+These Borel events form a finite partition of $C$.  Discard those for
+which
+$P'(F_U)<2^{-d}P'(U)$.  At a fixed depth the cells partition $C$,
+so their $P'$-masses sum to one.  Summing over the at most
+$\lfloor J_t\rfloor+1$ depths bounds this deletion by the second term
+of \eqref{l:lt:one-step-deletion}.  Events of zero mass need no
+conditional law.
+
+Fix a remaining event $F_U$ of positive mass, and let $j$ be the
+relative depth of $U$.  Put $P''=P'(\,\cdot\mid F_U)$.  If a
+descendant $V$ of $U$ at further depth $i$ meets $F_U$, choose
+$z\in V\cap F_U$.  Maximality on this parameter's cell chain gives
+\[
+ 2^{\lambda j}P'(U)\ge2^{\lambda(j+i)}P'(V).
+\]
+Consequently
+\[
+ P''(V)\le\frac{P'(V)}{P'(F_U)}
+ \le2^d2^{-\lambda i},
+\]
+using $P'(F_U)\ge2^{-d}P'(U)$.  If $V\cap F_U$ is empty, its
+$P''$-mass is zero.  This proves regularity in $U$.
+
+The selected score is at least one, so
+$P'(U)\ge2^{-\lambda j}$ and
+$P'(F_U)\ge2^{-d-\lambda j}$.  The cell reference measures satisfy
+$\mu_C|_U=2^{-pj}\mu_U$.  Therefore
+\begin{align}
+ P''
+ &\le2^{ad+1}K
+       \frac{2^{-pj}}{P'(F_U)}\,\mu_U\notag\\
+ &\le2^{(a+1)d+1}K2^{-(p-\lambda)j}\mu_U
+ \le2^{Dd}K2^{-(p-\lambda)j}\mu_U. \label{l:lt:depth-update}
+\end{align}
+The last inequality uses $(a+1)d+1\le(a+2)d=Dd$ for $d\ge1$.
+Substituting the value of $K$ yields
+\[
+ P''\le2^{Dd(t+1)-(p-\lambda)(l+j)}\mu_U,
+\]
+which is \eqref{l:lt:density-depth} at the new time and total depth.
+The normalization throughout is by $P'(F_U)$, including when
+$F_U$ is a proper subset of $U$.
+\end{proof}
+
+\begin{proposition}[The finite-horizon cube success bound]
+\label{prop:l-lt-forward}
+For sufficiently large $d$, consider a deterministic Borel
+computation padded to $m\ge0$ blocks of $n$ rows as above.  Suppose its
+boundary alphabet has size at most $N$, where $N^{1/k}\le2^d$, and
+its final boundary state fixes its unit output.  Its average success
+under \eqref{l:lt:chart} is at most
+\begin{equation}\label{l:lt:forward-bound}
+ \Delta_m+2^{2Ddm}(5\epsilon)^p,\qquad
+ \Delta_m=3m2^{-c_1d}
+       +2^{-d}\sum_{t=0}^{m-1}(\lfloor J_t\rfloor+1).
+\end{equation}
+The sum is empty when $m=0$.  In particular,
+$\Delta_m=o(1)$ for any sequence $m=o(d)$.
+\end{proposition}
+\begin{proof}
+Apply Lemma~\ref{lem:l-lt-selection-step} at each surviving history
+and at each block.  There are finitely many histories at every time.
+The conditional deletion bounds are uniform, so their unconditional
+sum is at most $\Delta_m$: at each time, the probabilities of the
+surviving histories sum to at most one.  Also
+$p-\lambda=(d-1)/2$, and hence $J_t=O(t+1)$ with an absolute constant
+depending only on the already fixed $a$.  Thus
+\[
+ \Delta_m\le3m2^{-c_1d}+C(m^2+m)2^{-d},
+\]
+which tends to zero when $m=o(d)$.
+
+At a surviving terminal history, integrating
+\eqref{l:lt:density-depth} forces $K\ge1$.  Hence
+$(p-\lambda)l\le Ddm$.  Since $\mu(C)=2^{-pl}$, the bound relative
+to the original cube probability becomes
+\begin{equation}\label{l:lt:terminal-density}
+ P\le2^{Ddm+\lambda l}\mu\le2^{2Ddm}\mu.
+\end{equation}
+The last inequality uses $\lambda=p-\lambda$.  The history fixes the
+final boundary state and therefore its output.  Equation
+\eqref{l:lt:output-mass} bounds conditional success by
+$2^{2Ddm}(5\epsilon)^p$.  Average over surviving histories and add
+the deleted mass to obtain \eqref{l:lt:forward-bound}.  For $m=0$,
+the same argument is the fixed-output bound at the root.
+\end{proof}
+
+The finite-horizon estimate \eqref{l:lt:forward-bound} holds for every
+$m$.  We will obtain $m=o(d)$ only on the hypothetical short-run
+sequence in the proof of Theorem~\ref{thm:l-lt-precision}.
+
+\subsection{The constant-accuracy endpoint and the precision contradiction}
+\label{subsec:l-lt-endgame}
+
+The forward estimate pays a fixed amount at the first block.  A
+separate full-data argument supplies the sample bound at constant
+accuracy.  Even after all labels are revealed, the signal has an
+undetermined direction on a residual sphere.  Its directional second
+moment will bound the success probability.
+
+\begin{lemma}[A residual-sphere sample bound]
+\label{lem:l-lt-residual}
+For $0<\epsilon\le1/10$ and all sufficiently large $d$, any learner
+with success at least $2/3$ for every unit signal must have $T>d/4$.
+This holds even if the learner is given all $T$ observations before
+producing its output.
+\end{lemma}
+\begin{proof}
+Let \(S\) be uniform on \(S^{d-1}\), independently of the \(T\)
+pregenerated Gaussian rows.  The original jointly measurable experiment
+has prior success equal to the integral of its fixed-signal successes.
+For each admissible fixed shared seed, Lemmas~\ref{l:prior-ac} and
+\ref{l:borel} give Borel rules with the same uniform-prior law.
+The bound below is uniform over these rules, so it bounds the original
+conditional success before averaging over the seed.  This returns to
+the original learner; it does not reuse the cube-selected program.
+
+If $T\le d/4$, the span $U$ of the rows has dimension $T$ almost
+surely.  Given the rows, the labels
+determine $P_US$, since the row map is injective on $U$.  Conditional
+on the rows and $P_US$, the residual $(I-P_U)S$ is uniform on the
+sphere in $U^\perp$ of radius
+$r=(1-\|P_US\|^2)^{1/2}$.  This follows, for example, by representing
+$S$ as a normalized standard Gaussian and using rotational invariance
+of its component in $U^\perp$.
+
+Spherical symmetry gives $\mathbb E\|P_US\|^2=T/d$, so Markov's
+inequality yields
+\[
+ \mathbb P\{r<1/2\}
+ =\mathbb P\{\|P_US\|^2>3/4\}
+ \le\frac{4T}{3d}\le\frac13.
+\]
+Suppose $r\ge1/2$ and condition on the rows and labels.  Fix any
+possible output, and let $w$ be its projection onto $U^\perp$.
+If $w=0$, its residual error is $r>1/10$.  If $w\ne0$,
+write $\Theta$ for the unit residual direction and $e=w/\|w\|$.
+When $|\langle\Theta,e\rangle|<1/2$, the component of $r\Theta$
+orthogonal to $e$ has length greater than
+$\sqrt3\,r/2>1/10$, so the output cannot succeed.  The second moment
+of $\langle\Theta,e\rangle$ for the uniform direction in the
+$(d-T)$-dimensional space $U^\perp$ is $1/(d-T)$.  Markov's inequality
+therefore bounds success for the fixed output by $4/(d-T)$.  The
+learner's conditional output law uses only the revealed data and
+independent randomness, so averaging over that law preserves the bound.
+Angular success implies the Euclidean error bound used here.
+
+The uniform-prior success is consequently at most
+$1/3+4/(d-T)$, which is below $2/3$ for large $d$ when $T\le d/4$.
+The every-signal premise gives uniform-prior average at least $2/3$,
+a contradiction.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:l-lt-precision}]
+Write $L=\log_2(1/\epsilon)$ and keep the absolute constants $a,c_1,D$
+already fixed.  Choose
+\begin{equation}\label{l:lt:endgame-constants}
+ L_0\ge\max\{32D,\,2\log_2 5\},\qquad
+ 0<c\le\min\left\{1,\frac1{4L_0},\frac1{2048D}\right\}.
+\end{equation}
+Suppose for contradiction that there are infinitely many dimensions
+with successful learners satisfying
+\begin{equation}\label{l:lt:short-run}
+ T<c\,dL.
+\end{equation}
+All asymptotic reductions below concern these dimensions only.
+
+We first obtain the precision range forced by the finite set of
+terminal labels.  For fixed shared rules, there are at most
+$(T+1)2^M$ terminal state/index labels.  Let $\mathcal O_{t,u}$ be
+the output law at one such label.  For each parameter, its success
+probability is at most the sum, over all terminal labels, of the
+success probabilities under their output laws: this drops the
+probability of reaching each label, which is at most one.
+Integrating over $z$ and then over each $\mathcal O_{t,u}$, using
+\eqref{l:lt:output-mass}, bounds cube-prior success by
+$(T+1)2^M(5\epsilon)^p$.  This bound is uniform in the fixed shared
+rules, so it also bounds the original randomized learner.  Its
+every-signal guarantee gives cube-prior average at least $2/3$.
+Thus
+\begin{equation}\label{l:lt:output-count}
+ p(L-\log_2 5)
+ \le M+\log_2(T+1)+\log_2(3/2).
+\end{equation}
+
+Because $L\ge\log_2 10$, the absolute number
+$c_0=1-\log_2 5/\log_2 10$ is positive and
+$L-\log_2 5\ge c_0L$.  Under \eqref{l:lt:short-run} and $c\le1$,
+\[
+ \log_2(T+1)\le1+\log_2 d+\log_2 L\le1+\log_2 d+L.
+\]
+For large $d$, absorb the last $L$ into $c_0pL$ on the left of
+\eqref{l:lt:output-count}.  It follows that
+\begin{equation}\label{l:lt:precision-reduction}
+ L=O\!\left(\frac{M+\log d}{d}\right)=o(d),
+ \qquad T=o(d^2).
+\end{equation}
+The constants in this bound are absolute.  In particular, for a
+fixed memory sequence it bounds every $L$ arising in
+\eqref{l:lt:short-run} by the same sequence $o(d)$.
+
+At each such dimension, Lemma~\ref{lem:l-lt-borel} supplies a
+deterministic Borel learner with cube-prior success at least $3/5$.
+Pad a halted path by retaining its terminal state and its terminal
+index.  At any later layer, the continuing states together with all
+terminal tags have total width at most
+\begin{equation}\label{l:lt:global-width}
+ N=(T+2)2^M.
+\end{equation}
+Pad the last block with ignored rows and put $m=\lceil T/n\rceil$.
+By \eqref{l:lt:precision-reduction},
+$\log_2 N=o(d^2)$ and $m=o(d)$.  Since $k=\Theta(d)$,
+$N^{1/k}\le2^d$ for all sufficiently large dimensions under
+consideration.  Proposition~\ref{prop:l-lt-forward} applies and gives
+\begin{equation}\label{l:lt:asymptotic-bound}
+ \frac35\le \Delta_m+2^{2Ddm}(5\epsilon)^p
+            =o(1)+2^{2Ddm}(5\epsilon)^p.
+\end{equation}
+The $o(1)$ is uniform over the short-run precisions for a fixed memory
+sequence, by the uniform bound on $L$ just obtained.
+
+If $L\le L_0$, then \eqref{l:lt:short-run} and
+$c\le1/(4L_0)$ give $T<d/4$.  Apply
+Lemma~\ref{lem:l-lt-residual} to the original learner and its
+uniform-sphere average, obtaining a contradiction for large $d$.
+This use of the original learner preserves the prior of that lemma.
+
+It remains to consider $L>L_0$.  For large $d$, $n\ge d/64$, so
+\[
+ m\le64cL+1,\qquad
+ 2Ddm\le128Dc\,dL+2Dd\le dL/8.
+\]
+The last inequality follows from $c\le1/(2048D)$ and
+$L\ge32D$.  Also $p=d-1\ge d/2$ and $L\ge2\log_2 5$, whence
+\[
+ p(L-\log_2 5)\ge dL/4.
+\]
+Therefore the second term in \eqref{l:lt:asymptotic-bound} is at most
+$2^{-dL/8}$.  It tends to zero, as does $\Delta_m$, contradicting
+the fixed lower bound $3/5$.  No infinite subsequence
+\eqref{l:lt:short-run} exists.  This proves the asserted sample
+bound with the absolute $c$ in \eqref{l:lt:endgame-constants}.
+\end{proof}

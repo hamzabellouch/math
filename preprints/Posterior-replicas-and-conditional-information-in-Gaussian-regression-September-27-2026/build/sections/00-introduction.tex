@@ -1,0 +1,241 @@
+\section{Introduction}\label{sec:introduction}
+
+Consider an unknown unit vector $s\in S^{d-1}$ and a stream of independent
+Gaussian rows $X_j\sim N(0,I_d)$ with exact labels
+$Y_j=\langle X_j,s\rangle$. If all raw observations can be retained, $d$
+rows determine $s$ almost surely, because their matrix is invertible.
+A learner with finite persistent memory must instead replace each observed
+pair by an update of its state. The question is how this restriction changes
+the number of observations needed for a prescribed angular accuracy.
+Exact labels make the question particularly delicate: an individual real
+label has no prescribed bit precision.
+
+We study this problem through a conditional information bound. A finite
+message is formed from one block of exact observations, and a separate,
+independent projection of the signal is then revealed to the analyst.
+We bound the information that remains in the message after this revelation.
+The projection is an analysis variable throughout; it is not available to
+the learner or to the rule forming the message.
+
+\subsection*{Related memory--sample bounds}
+
+Steinhardt and Duchi established memory and communication lower bounds for
+noisy sparse regression, including a minimax squared-error lower bound
+$\Omega(\sigma^2\min\{kd/(Bn),1\})$ in their model with sparsity $k$,
+noise scale $\sigma$, and $n$ observations. Here $B$ bounds memory in bits
+or average communication per observation
+\cite[Theorem~2]{SteinhardtDuchi2015}.
+For learning over finite fields, Raz proved that learning a parity requires
+either quadratic memory or exponentially many samples, and extended the
+branching-program method to classes of finite learning problems defined by
+spectral conditions~\cite[Theorem~1]{Raz2016}\cite[Theorem~1]{Raz2017}.
+These results distinguish persistent memory from unrestricted computation
+on a newly observed sample.
+
+A closely related continuous regression result is due to Sharan, Sidford,
+and Valiant~\cite[Theorem~1 and Section~2]{SSV2019}. With Gaussian rows,
+independent uniform noise in $[-2^{-d/5},2^{-d/5}]$, and at most $d^2/4$
+bits, their bound is $\Omega(d\log r)$ observations for Euclidean accuracy
+$\epsilon=d^{-r}$ in the stated range $r\le O(d/\log d)$. Their
+$\Omega(d\log\log(1/\epsilon))$ consequence is stated for
+$\epsilon\le d^{-\Omega(\log d)}$ within that range.
+Their model already permits nonuniform finite-width
+branching programs on real-valued data. The result here concerns exact
+labels and $o(d^2)$ memory, and gives the single-logarithmic precision cost
+$\Omega(d\log(1/\epsilon))$. These memory and noise hypotheses differ:
+a lower bound with noisy labels alone does not imply a lower bound with
+exact labels, since a learner receiving exact labels can add noise itself.
+
+Dagan, Kur, and Shamir proved quadratic-space lower bounds for finding
+an approximate null vector of independent Gaussian rows and for achieving
+small empirical residual on a random-order consistent linear system
+\cite[Theorems~3 and~10]{DKS2019}. Their tasks explain another way that
+linear algebra can demand quadratic storage, but use different recovery
+criteria and observation laws from the fixed-signal stream considered here.
+
+Two companion papers give complementary treatments of exact observations.
+\emph{Memory and precision in noiseless Gaussian regression}
+\cite[Theorem~1.2]{OpenAIMemoryPrecision2026} obtains the same precision
+scale for every fixed $A>0$ and memory $M\le Ad^2$, with a constant depending
+on $A$, by propagating bounds on future success backward through blocks.
+\emph{Replacing Gaussian observations in memory-constrained inference}
+\cite[Proposition~7.1 and Lemma~7.2]{OpenAIReplacing2026} develops a
+conditional-information comparison based on a finite two-point fiber
+measure. The present paper instead develops the multi-replica block
+comparisons stated below and proves its streaming consequence from them.
+
+\subsection*{Conditional information from one block}
+
+Let $\sigma_d$ denote uniform probability on $S^{d-1}$. In a block
+experiment, the signal $S$ has law $p=f\sigma_d$, where $f$ is a bounded
+nonnegative Borel density. Independently draw a standard Gaussian matrix
+$A$, and observe $(A,AS)$. A finite-valued message $W$ is drawn from a
+measurable kernel of these data, conditionally independently of $S$.
+Finally draw a standard Gaussian matrix $B$ independently of the entire
+experiment producing $(S,A,AS,W)$. Our principal quantity is
+\[
+ I(S;W\mid B,BS).
+\]
+All logarithms and entropies below are in nats.
+
+\begin{theorem}[Gaussian replica block bound]\label{thm:gaussian-block}
+For all sufficiently large $d$, set
+\[
+ k=2\lfloor d/16\rfloor,\qquad m=k,\qquad t=m+1,\qquad \ell=4k.
+\]
+Suppose $p=f\sigma_d$ is a probability with $0\le f\le L<\infty$.
+In the block experiment above, let $A$ have $k$ rows and let $B$ have
+$\ell$ rows. There is an absolute constant $C$ such that
+\begin{equation}\label{eq:gaussian-block}
+ I(S;W\mid B,BS)
+ \le \frac{H(W)}{t}+Cd+C\log(2+\log L).
+\end{equation}
+The bound is uniform over the prior, the density bound $L$, and the message
+kernel. The labels used to produce $W$ are the exact values $AS$.
+\end{theorem}
+
+The entropy cost is divided by a number $t$ proportional to $d$.
+The weak dependence on $L$ matters when the theorem is applied to a
+streaming state: conditioning a uniform signal on a state value $v$ of
+probability $p_v>0$ gives a density at most $1/p_v$. Rare states may
+therefore have large density bounds, even when their average information
+cost is small.
+
+The proof couples several possible signals with the same observed data.
+Given $(A,AS)$, draw $S_1,\ldots,S_t$ independently from the posterior,
+independently also of $W$ given the data. Each pair $(S_i,W)$ has the
+original signal--message law. The replicas are dependent after the data
+are forgotten: they satisfy $AS_1=\cdots=AS_t$ for the common hidden
+matrix. Write $K$ for the relative entropy of their joint law from
+$p^{\otimes t}$, and $K'$ for the corresponding relative entropy of
+$(BS_1,\ldots,BS_t)$ from the product of its marginals, conditional on
+$B$. These are their total correlations before and after projection.
+Lemma~\ref{lem:replica-information} gives
+\[
+ tI(S;W\mid B,BS)\le H(W)+K-K'.
+\]
+Thus the proof must bound the \emph{loss} of correlation. Bounding $K$
+alone would discard the geometric dependence still visible to the analyst.
+
+The exact-label geometry supplies the comparison. For the difference
+matrix $D=[S_2-S_1,\ldots,S_t-S_1]$, the replica likelihood contains
+$\det(D^{\mathsf T}D)^{-k/2}$.
+Theorem~\ref{thm:equal-label-measure} identifies the underlying finite
+measure, including its normalization and density values on the constraint.
+An observable test of the projected replicas supplies a matching
+inverse-volume term.
+Section~\ref{sec:gaussian} then bounds the remaining projection-density
+ratio by a dyadic decomposition, proving Theorem~\ref{thm:gaussian-block}.
+
+\subsection*{A streaming consequence}
+
+The learner receives the fresh pairs $(X_j,Y_j)$ in order, cannot choose
+the rows, and cannot revisit them. At each index it has at most $2^M$
+persistent states. Its transition and stopping rules may be arbitrary
+measurable randomized functions of the current state and current pair;
+all information retained for later indices must be in the state.
+It stops at some $\tau\in\{0,\ldots,T\}$ for a prescribed deterministic
+horizon $T$. Its unit-vector output uses only the terminal state, the rule
+at index $\tau$, and fresh randomness. Thus the final observation affects
+the output only through that state. Rules may depend on the index, dimension,
+and target accuracy. Shared randomness and initialization are jointly
+independent of the signal and samples, and fresh random choices are
+independent before use. The entire experiment is required to be jointly
+measurable. Definition~\ref{def:streaming-model} records the full model and
+the completed-measurability convention.
+
+\begin{theorem}[Uniform-prior sample lower bound]\label{thm:streaming}
+Let $M(d)=o(d^2)$ be nonnegative integer-valued, and let
+$0<\epsilon(d)\le1/10$. Suppose a family of learners in
+Definition~\ref{def:streaming-model} satisfies
+\[
+ \Prob\{\arccos\langle\widehat S,S\rangle\le\epsilon(d)\}\ge\frac23
+ \qquad\text{when }S\sim\sigma_d,
+\]
+where the probability includes the signal, samples, and learner randomness.
+Then there is an absolute $c>0$ such that
+\[
+ T(d)\ge c\,d\log\frac1{\epsilon(d)}
+\]
+for all sufficiently large $d$. The eventual threshold may depend on the
+memory sequence.
+\end{theorem}
+
+The theorem assumes success averaged over the uniform sphere. A guarantee
+of success at least $2/3$ for every fixed signal implies that hypothesis
+by integration, so the same lower bound holds for such learners.
+Section~\ref{sec:streaming-consequences} proves the result by conditioning
+on the current state, applying a block estimate, and averaging its prior
+cost. The independent projection leaves a residual sphere of dimension
+proportional to $d$; accurate recovery still requires order
+$d\log(1/\epsilon)$ conditional information on that sphere.
+
+\subsection*{Information and geometric comparisons}
+
+The total-correlation argument uses Watanabe's measure of multivariate
+dependence~\cite{Watanabe1960} and its general probability-space chain
+rules~\cite[Sections~3.3 and~6]{Austin2020}. Posterior resampling preserves
+the joint law with the observed data, as in the general Nishimori identity
+recorded by Lelarge and Miolane~\cite[Proposition~16]{LelargeMiolane2019}.
+Here its role is to preserve the signal--message pair law while introducing
+dependence among replicas. The projected tests use the
+relative-entropy variational principle; a convenient statement is
+\cite[Equations~(1.1)--(1.2)]{DupuisMao2022}. The equal-label measure is
+related to coarea~\cite[Theorem~3.1]{Federer1959} and to affine
+simplex-volume changes of variables~\cite[Lemma~1]{Drury1984}.
+We prove the Gaussian probability normalization and the required
+evaluations at constrained labels directly. Thus these classical tools
+provide the background for the exact-fiber calculation, rather than an
+unproved formula for its particular probability law.
+
+The subsequent comparisons retain different information from that geometry.
+For a prior density at most $e^b$, Theorem~\ref{thm:distance-block} uses
+$q=\lfloor d/8\rfloor$ replicas and gives the alternative cost
+$H(W)/q+C(d+b/d)$. Its test records successive simplex heights in distance
+bins and compares the observed bin with a mixture over fixed bins.
+The direct linear dependence on $b$ makes averaging over state values
+immediate. The other routes use different comparison laws:
+Table~\ref{tab:comparisons} records their geometric inputs and the state
+information fixed during iteration. Each route verifies its own
+normalization and exceptional sets. They offer distinct tests and ways to
+average the prior cost, rather than a succession of stronger asymptotic
+sample bounds.
+
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{.18\textwidth}p{.24\textwidth}p{.34\textwidth}p{.15\textwidth}@{}}
+\toprule
+Comparison & Geometric identity & Projected comparison & Conditioning \\
+\midrule
+Gaussian selector & Spherical equal-label measure &
+Normalized determinant likelihood & Current state \\
+Distance bins & Spherical equal-label measure &
+Fixed mixture of height bins & Current state \\
+Haar frame & Successive Haar height insertion &
+Distance distribution functions & Current state \\
+Synthetic Gaussian & Spherical and Gaussian equal-label measures &
+Projected-prior likelihood with random covariance & Full history \\
+Stiefel incidence & Regular-incidence coarea &
+Conditional product law and density ratio & Full history \\
+\bottomrule
+\end{tabular}
+\caption{The five block comparisons. The last column records the information
+conditioned on before applying a block estimate. Every streaming proof also
+uses a residual-sphere endpoint as in Section~\ref{sec:model-endpoint}.}
+\label{tab:comparisons}
+\end{table}
+
+One complete route occupies Sections~\ref{sec:model-endpoint}--\ref{sec:streaming-consequences}.
+Section~\ref{sec:model-endpoint} supplies the learner reductions and the
+residual-sphere information requirement. Section~\ref{sec:replicas}
+establishes the replica inequality, exact equal-label measure, and
+logarithmic integrability. Sections~\ref{sec:gaussian}
+and~\ref{sec:distance-bins} prove the two block estimates, and
+Section~\ref{sec:streaming-consequences} gives their current-state
+iterations. The final three sections develop the other geometric
+comparisons and their streaming applications; the synthetic and incidence
+iterations condition on full state histories. All applications use the
+same exact-row, finite-state, deterministic-horizon learner model.

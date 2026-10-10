@@ -1,0 +1,631 @@
+
+\ProvidesFileRCS{pgflibrarygraphdrawing.code.tex}
+
+
+
+
+\ifx\directlua\relax%
+  \pgferror{You need to run LuaTeX to use the graph drawing library}
+  \expandafter\endinput
+\fi
+\ifx\directlua\undefined%
+  \pgferror{You need to run LuaTeX to use the graph drawing library}
+  \expandafter\endinput
+\fi
+
+
+
+
+
+\def\pgfgdset{\pgfqkeys{/graph drawing}}%
+
+
+
+\def\pgfgd@callbackkey#1{%
+  \pgf@gd@setup@forwards{#1}%
+  \pgfutil@g@addto@macro\pgf@gd@forwards@list{\pgf@gd@setup@forwards{#1}}%
+}%
+\def\pgf@gd@setup@forwards#1{%
+  \let\pgf@temp\pgfutil@empty
+  \foreach \pgf@gd@path in \pgf@gd@forwarding@list {%
+    \ifx\pgf@gd@path\pgfutil@empty\else%
+      \expandafter\pgfutil@g@addto@macro%
+      \expandafter\pgf@temp\expandafter{%
+        \expandafter\pgfkeys\expandafter{\pgf@gd@path#1/.forward to=/graph drawing/#1}}%
+    \fi%
+  }%
+  \pgf@temp
+}%
+
+\let\pgf@gd@forwards@list\pgfutil@empty
+
+
+
+\def\pgfgdappendtoforwardinglist#1{%
+  \let\pgf@gd@forwarding@list@orig\pgf@gd@forwarding@list
+  \def\pgf@gd@forwarding@list{#1}%
+  \pgf@gd@forwards@list%
+  \expandafter\def\expandafter\pgf@gd@forwarding@list\expandafter{\pgf@gd@forwarding@list@orig,#1}%
+}%
+\let\pgf@gd@forwarding@list\pgfutil@empty
+
+
+
+
+
+
+\def\pgfgdcallbackdeclareparameter#1#2{%
+  \pgfkeysdef{/graph drawing/#1}{\pgf@gd@handle@parameter{#1}{#2}{##1}}%
+  \pgfgd@callbackkey{#1}%
+}%
+\def\pgf@gd@handle@parameter#1#2#3{%
+  \def\pgf@temp{#3}%
+  \ifx\pgf@temp\pgfkeysnovalue@text%
+    \let\pgfgdresult\pgfgd@niltext%
+  \else%
+    \pgfkeys{/graph drawing/conversions/#2={#3}}%
+  \fi%
+  \advance\pgf@gd@parameter@stack@height by1\relax%
+  \pgf@gd@parameter@stack@height\directlua{%
+    local new, main = pgf.gd.interface.InterfaceToDisplay.pushOption('\pgfutil@luaescapestring{#1}',\pgfgdresult,\the\pgf@gd@parameter@stack@height)
+    tex.print(new..'\pgfutil@luaescapestring{\relax}')
+    if main then
+      tex.print('\pgfutil@luaescapestring{\noexpand\pgfgdtriggerrequest}')
+    end}%
+}%
+\newcount\pgf@gd@parameter@stack@height
+
+\def\pgfgdtriggerrequest{\pgfgdset{@request scope and layout}}%
+
+
+
+\pgfgdset{
+  conversions/string/.code=\def\pgfgdresult{'\pgfutil@luaescapestring{\detokenize{#1}}'},
+  conversions/raw/.code=\def\pgfgdresult{#1},
+  conversions/nil/.code=\let\pgfgdresult\pgfgd@niltext,
+  conversions/boolean/.code=\def\pgf@test{#1}\ifx\pgf@test\pgf@truetext\def\pgfgdresult{true}\else\ifx\pgf@test\pgfkeysnovalue@text\def\pgfgdresult{true}\else\def\pgfgdresult{false}\fi\fi,
+  conversions/number/.code=\pgfmathparse{#1}\let\pgfgdresult\pgfmathresult,
+  conversions/length/.code=\pgfmathparse{#1}\let\pgfgdresult\pgfmathresult,
+  conversions/time/.code=\pgfparsetime{#1}\let\pgfgdresult\pgftimeresult,
+  conversions/direction/.code=\pgf@lib@gd@grow@dir{#1}\let\pgfgdresult\pgfmathresult,
+  conversions/canvas coordinate/.code args={(#1pt,#2pt)}{\edef\pgfgdresult{pgf.gd.model.Coordinate.new(#1,#2)}},
+  conversions/coordinate/.code args={(#1pt,#2pt)}{\edef\pgfgdresult{{#1,#2}}}
+}%
+\def\pgf@truetext{true}%
+\def\pgfgd@niltext{nil}%
+
+\def\pgf@lib@gd@grow@dir#1{%
+  \def\pgf@temp{#1}%
+  \ifx\pgf@temp\pgf@gd@lib@active@bar%
+    \def\pgfmathresult{-90}
+  \else%
+    \ifcsname pgf@orient@direction@#1\endcsname%
+      \expandafter\let\expandafter\pgfmathresult\csname pgf@orient@direction@#1\endcsname%
+    \else
+      \pgfmathparse{#1}%
+    \fi
+  \fi
+}%
+
+\def\pgf@orient@direction@down{-90}%
+\def\pgf@orient@direction@up{90}%
+\def\pgf@orient@direction@left{180}%
+\def\pgf@orient@direction@right{0}%
+
+\def\pgf@orient@direction@south{-90}%
+\def\pgf@orient@direction@north{90}%
+\def\pgf@orient@direction@west{180}%
+\def\pgf@orient@direction@east{0}%
+
+\expandafter\def\csname pgf@orient@direction@north east\endcsname{45}%
+\expandafter\def\csname pgf@orient@direction@north west\endcsname{135}%
+\expandafter\def\csname pgf@orient@direction@south east\endcsname{-45}%
+\expandafter\def\csname pgf@orient@direction@south west\endcsname{-135}%
+
+\expandafter\def\csname pgf@orient@direction@-\endcsname{0}%
+\expandafter\def\csname pgf@orient@direction@|\endcsname{-90}%
+
+{%
+  \catcode`\|=13
+  \gdef\pgf@gd@lib@active@bar{|}%
+}%
+
+
+
+
+
+
+\def\pgfgdcallbackrendercollectionkindstart#1#2{%
+  \ifnum#2<0\relax
+    \setbox\pgf@gd@prekind@box=\hbox\bgroup%
+    \unhbox\pgf@gd@prekind@box%
+  \else%
+    \setbox\pgf@gd@postkind@box=\hbox\bgroup%
+    \unhbox\pgf@gd@postkind@box%
+  \fi%
+  \pgfgdset{/graph drawing/#1/begin rendering/.try}%
+}%
+
+
+\def\pgfgdcallbackrendercollectionkindstop#1#2{%
+  \pgfgdset{/graph drawing/#1/end rendering/.try}%
+  \egroup %
+}%
+
+
+
+
+\def\pgfgdcallbackrendercollection#1#2{
+  \pgfgdset{/graph drawing/#1/render/.try={#2}}
+}%
+
+
+
+
+
+
+
+
+
+\def\pgfgdevent#1#2{%
+  \directlua{pgf.gd.interface.InterfaceToDisplay.createEvent('\pgfutil@luaescapestring{#1}', '\pgfutil@luaescapestring{#2}')}%
+}%
+
+
+
+\def\pgfgdbegineventgroup#1{%
+  \pgfgdevent{begin}{#1}%
+}%
+
+
+\def\pgfgdendeventgroup{%
+  \pgfgdevent{end}{}%
+}%
+
+
+
+\def\pgfgdeventgroup#1{%
+  \pgfgdbegineventgroup{#1}%
+  \aftergroup\pgfgdendeventgroup%
+}%
+
+
+
+
+
+
+
+
+\def\pgf@gd@positionnode@callback{%
+  {%
+    \pgfmathsetmacro{\pgf@gd@node@minx}{\pgfpositionnodelaterminx}%
+    \pgfmathsetmacro{\pgf@gd@node@miny}{\pgfpositionnodelaterminy}%
+    \pgfmathsetmacro{\pgf@gd@node@maxx}{\pgfpositionnodelatermaxx}%
+    \pgfmathsetmacro{\pgf@gd@node@maxy}{\pgfpositionnodelatermaxy}%
+    \directlua{pgf.temp = require 'pgf.gd.model.Path'.new ()}%
+    \let\pgfsyssoftpath@movetotoken\pgf@gd@movetotoken%
+    \let\pgfsyssoftpath@linetotoken\pgf@gd@linetotoken%
+    \let\pgfsyssoftpath@rectcornertoken\pgf@gd@rectcornertoken%
+    \let\pgfsyssoftpath@curvetosupportatoken\pgf@gd@curvetosupportatoken%
+    \let\pgfsyssoftpath@closepathtoken\pgf@gd@closepathtoken%
+    \pgfpositionnodelaterpath%
+    \pgfmathsetlength\pgf@xa{\pgfkeysvalueof{/pgf/outer xsep}}%
+    \pgfmathsetlength\pgf@ya{\pgfkeysvalueof{/pgf/outer ysep}}%
+    {%
+      \pgf@process{\pgfpointanchor{\pgfpositionnodelatername}{center}}
+      \pgfsettransform{\csname pgf@sh@nt@\pgfpositionnodelatername\endcsname}%
+      \pgf@pos@transform{\pgf@x}{\pgf@y}%
+      \global\pgf@x=\pgf@x%
+      \global\pgf@y=\pgf@y%
+    }%
+    \directlua{
+      pgf.gd.interface.InterfaceToDisplay.createVertex(
+        string.sub('\pgfutil@luaescapestring{\pgfpositionnodelatername}',30), %
+        '\pgfutil@luaescapestring{\csname pgf@sh@ns@\pgfpositionnodelatername\endcsname}',
+        pgf.temp:pad((\pgf@sys@tonumber\pgf@xa+\pgf@sys@tonumber\pgf@ya)/2), %
+        \the\pgf@gd@parameter@stack@height, %
+        {%
+          x_min = \pgf@gd@node@minx,
+          y_min = \pgf@gd@node@miny,
+          x_max = \pgf@gd@node@maxx,
+          y_max = \pgf@gd@node@maxy,
+          tex_box_number = \pgfpositionnodelaterbox
+        },
+        {%
+          center = require 'pgf.gd.model.Coordinate'.new(\pgf@sys@tonumber\pgf@x,\pgf@sys@tonumber\pgf@y)
+        }
+      )
+      pgf.temp = nil
+    }
+  }%
+}%
+
+
+\def\pgf@gd@movetotoken#1#2{\directlua{pgf.temp:appendMoveto(\Pgf@geT#1,\Pgf@geT#2)}}%
+\def\pgf@gd@linetotoken#1#2{\directlua{pgf.temp:appendLineto(\Pgf@geT#1,\Pgf@geT#2)}}%
+\def\pgf@gd@rectcornertoken#1#2#3#4#5{%
+  \directlua{%
+    local x,y,dx,dy=\Pgf@geT#1,\Pgf@geT#2,\Pgf@geT#4,\Pgf@geT#5
+    pgf.temp:appendMoveto(x,y)
+    pgf.temp:appendLineto(x,y+dy)
+    pgf.temp:appendLineto(x+dx,y+dy)
+    pgf.temp:appendLineto(x+dx,y)
+    pgf.temp:appendClosepath()%
+  }%
+}%
+\def\pgf@gd@curvetosupportatoken#1#2#3#4#5#6#7#8{\directlua{pgf.temp:appendCurveto(\Pgf@geT#1,\Pgf@geT#2,\Pgf@geT#4,\Pgf@geT#5,\Pgf@geT#7,\Pgf@geT#8)}}%
+\def\pgf@gd@closepathtoken#1#2{\directlua{pgf.temp:appendClosepath()}}%
+
+
+
+\def\pgfgdsetlatenodeoption#1{%
+  \directlua{
+    pgf.gd.interface.InterfaceToDisplay.addToVertexOptions('\pgfutil@luaescapestring{#1}',\the\pgf@gd@parameter@stack@height)
+  }
+}%
+
+
+
+
+\def\pgfgdcallbackrendernode#1#2#3#4#5#6#7#8#9{%
+  {%
+    \def\pgfpositionnodelatername{#1}
+    \def\pgfpositionnodelaterminx{#2}
+    \def\pgfpositionnodelatermaxx{#3}
+    \def\pgfpositionnodelaterminy{#4}
+    \def\pgfpositionnodelatermaxy{#5}
+    \directlua{pgf.gd.interface.InterfaceCore.binding:retrieveBox(#8,\pgfpositionnodelaterbox)}
+    \def\pgf@temp{#9}%
+    \ifx\pgf@temp\pgfutil@empty%
+      \pgfpositionnodenow{\pgfqpoint{#6}{#7}}%
+    \else%
+      \pgfset{every graphdrawing animation/.try}%
+      \pgfset{every graphdrawing node animation/.try}%
+      #9%
+      \pgfuseid{pgf@gd}%
+      \pgfidscope%
+        \pgfpositionnodenow{\pgfqpoint{#6}{#7}}%
+      \endpgfidscope%
+    \fi%
+  }%
+}%
+
+\ifx\pgfanimateattribute\pgfutil@undefined
+  \def\pgfanimateattribute#1#2{\tikzerror{You need to say \string\usetikzlibrary{animations} for animated graphs}}%
+\fi
+
+
+\def\pgfgdedge#1#2#3#4#5{%
+  \begingroup%
+    \setbox0=\hbox{{%
+        \pgfinterruptpath%
+          \pgfgdprepareedge%
+          \pgfkeys{#4}%
+          \toks0={#4}%
+          \toks1={#5}%
+          \directlua{
+            pgf.gd.interface.InterfaceToDisplay.createEdge(
+            '\pgfutil@luaescapestring{#1}','\pgfutil@luaescapestring{#2}','\pgfutil@luaescapestring{#3}',
+            \the\pgf@gd@parameter@stack@height,
+            { pgf_options = '\pgfutil@luaescapestring{\the\toks0}',
+              pgf_edge_nodes = '\pgfutil@luaescapestring{\the\toks1}',
+            })
+          }%
+        \endpgfinterruptpath%
+      }}%
+  \endgroup%
+}%
+
+\let\pgfgdprepareedge=\pgfutil@empty
+\def\pgfgdaddprepareedgehook#1{\expandafter\def\expandafter\pgfgdprepareedge\expandafter{\pgfgdprepareedge#1}}%
+
+
+\newif\ifpgf@gd@nodes@behind@edges
+
+
+
+
+\def\pgfgdsetedgecallback#1{\let\pgfgdcallbackedge=#1}%
+
+\def\pgfgddefaultedgecallback#1#2#3#4#5#6#7#8{%
+  {%
+    \def\pgf@temp{#8}%
+    \ifx\pgf@temp\pgfutil@empty%
+    \else%
+      \pgfset{every graphdrawing animation/.try}%
+      \pgfset{every graphdrawing edge animation/.try}%
+      #8%
+      \pgfuseid{pgf@gd}%
+      \pgfidscope%
+    \fi%
+    \pgfscope
+      \pgfpathmoveto{
+        \pgfutil@in@.{#1}%
+        \ifpgfutil@in@
+          \pgf@gd@unravel#1\relax%
+        \else
+          \pgfpointshapeborder{#1}{\pgfpointanchor{#2}{center}}
+        \fi
+      }
+      \pgfpathlineto{
+        \pgfutil@in@.{#2}%
+        \ifpgfutil@in@
+          \pgf@gd@unravel#2\relax%
+        \else
+          \pgfpointshapeborder{#2}{\pgfpointanchor{#1}{center}}
+        \fi
+      }
+      \pgfusepath{stroke}
+    \endpgfscope
+    \ifx\pgf@temp\pgfutil@empty%
+    \else%
+      \endpgfidscope%
+    \fi%
+  }
+}%
+
+\pgfgdsetedgecallback{\pgfgddefaultedgecallback}%
+
+\def\pgf@gd@unravel#1.#2\relax{%
+  \pgfpointanchor{#1}{#2}%
+}%
+
+
+
+
+
+\def\pgfgdcallbackbeginshipout{%
+  \pgfscope%
+    \catcode`\@=11\relax%
+    \setbox\pgf@gd@prekind@box=\box\pgfutil@voidb@x%
+    \setbox\pgf@gd@postkind@box=\box\pgfutil@voidb@x%
+}%
+\def\pgfgdcallbackendshipout{%
+    \box\pgf@gd@prekind@box%
+    \ifpgf@gd@nodes@behind@edges%
+      \box\pgf@gd@node@box%
+      \box\pgf@gd@edge@box%
+    \else%
+      \box\pgf@gd@edge@box%
+      \box\pgf@gd@node@box%
+    \fi%
+    \box\pgf@gd@postkind@box%
+  \endpgfscope
+}%
+
+\newbox\pgf@gd@node@box
+\newbox\pgf@gd@edge@box
+\newbox\pgf@gd@prekind@box
+\newbox\pgf@gd@postkind@box
+
+\def\pgfgdcallbackbeginnodeshipout{%
+  \setbox\pgf@gd@node@box=\hbox\bgroup%
+}%
+\def\pgfgdcallbackendnodeshipout{%
+  \egroup%
+}%
+
+\def\pgfgdcallbackbeginedgeshipout{%
+  \setbox\pgf@gd@edge@box=\hbox\bgroup%
+}%
+
+\def\pgfgdcallbackendedgeshipout{%
+  \egroup
+}%
+
+
+
+
+
+\def\pgfgdcallbackcreatevertex#1#2#3#4{%
+  {
+    \pgfkeys{#3}
+    \pgfnode{#2}{\pgfkeysvalueof{/graph drawing/generated
+        node/anchor}}{#4}{#1}{\pgfkeysvalueof{/graph drawing/generated
+        node/use path}}
+  }
+}%
+
+\pgfkeys{
+  /graph drawing/generated node/anchor/.initial=center,
+  /graph drawing/generated node/use path/.initial=\pgfusepath{}
+}%
+
+
+
+
+\def\pgfgdbeginlayout{
+  \begingroup
+    \pgfgdlayoutscopeactivetrue
+    \advance\pgf@gd@parameter@stack@height by1\relax%
+    \directlua{pgf.gd.interface.InterfaceToDisplay.pushLayout(\the\pgf@gd@parameter@stack@height)}
+}%
+
+\def\pgfgdendlayout{
+  \endgroup%
+}%
+
+
+
+
+
+\def\pgfgdsubgraphnode#1#2#3{%
+  \advance\pgf@gd@parameter@stack@height by1\relax%
+  {%
+    \toks0={#2}%
+    \toks1={#3}%
+    \directlua{pgf.gd.interface.InterfaceToDisplay.pushSubgraphVertex%
+      ('\pgfutil@luaescapestring{#1}',\the\pgf@gd@parameter@stack@height,
+      {
+        shape = 'rectangle', %
+        pgf_options = '\pgfutil@luaescapestring{\the\toks0}',
+        text = '\pgfutil@luaescapestring{\the\toks1}',
+      })
+    }%
+  }
+}%
+
+\def\pgfgdsubgraphnodecontents#1{%
+  \hbox to \pgfkeysvalueof{/graph drawing/subgraph bounding box width}{%
+    \vrule width0pt height\pgfkeysvalueof{/graph drawing/subgraph bounding box height}\hfil}%
+}%
+
+\pgfgdset{
+  subgraph point cloud/.initial=,
+  subgraph bounding box width/.initial=,
+  subgraph bounding box height/.initial=,
+}%
+
+
+
+\pgfgdset{@request scope and layout/.code=\pgfgd@requestcallback{\pgfgdbeginrequest}{\pgfgdendrequest}}%
+
+\def\pgfgd@requestcallback#1#2{%
+  #1\def\pgf@gd@after@request{#2\egroup}\bgroup\aftergroup\pgf@gd@after@request%
+}%
+
+\def\pgfgdbeginrequest{%
+  \ifpgfgdlayoutscopeactive%
+  \else%
+    \expandafter\pgfgdbeginscope%
+  \fi%
+      \pgfgdbeginlayout%
+}%
+\def\pgfgdendrequest{%
+      \pgfgdendlayout%
+  \ifpgfgdlayoutscopeactive%
+  \else%
+    \expandafter\pgfgdendscope%
+  \fi%
+}%
+\newif\ifpgfgdlayoutscopeactive
+
+
+
+\def\pgfgdsetrequestcallback#1{\let\pgfgd@requestcallback#1}%
+
+
+
+
+
+\newif\ifpgfgdgraphdrawingscopeactive
+
+
+
+\def\pgfgdbeginscope{%
+  \begingroup %
+    \directlua{
+      pgf.gd.interface.InterfaceToDisplay.beginGraphDrawingScope(\the\pgf@gd@parameter@stack@height)
+    }%
+    \begingroup %
+      \pgfgdgraphdrawingscopeactivetrue
+      \pgfpositionnodelater{\pgf@gd@positionnode@callback}
+      \pgfgd@latecallback%
+      \pgftransformreset
+}%
+
+
+
+\newif\ifpgfgdresumecoroutine
+
+
+
+\def\pgfgdendscope{%
+      \pgfgdresumecoroutinefalse%
+      \directlua{
+        pgf.gd.interface.InterfaceToDisplay.runGraphDrawingAlgorithm()
+      }%
+      \pgfutil@loop%
+      \ifpgfgdresumecoroutine%
+        \pgfgdresumecoroutinefalse%
+        \directlua{
+          pgf.gd.interface.InterfaceToDisplay.resumeGraphDrawingCoroutine()
+        }%
+      \pgfutil@repeat%
+    \endgroup%
+    \directlua{pgf.gd.interface.InterfaceToDisplay.renderGraph()}%
+    \directlua{pgf.gd.interface.InterfaceToDisplay.endGraphDrawingScope()}%
+  \endgroup%
+}%
+
+
+
+
+
+
+
+\def\pgfgdaddspecificationhook#1{
+  \expandafter\def\expandafter\pgfgd@latecallback\expandafter{\pgfgd@latecallback#1}
+}%
+\let\pgfgd@latecallback\pgfutil@empty
+
+
+
+
+
+
+
+
+
+
+\def\usegdlibrary{\pgfutil@ifnextchar[{\use@gdlibrary}{\use@@gdlibrary}}%
+\def\use@gdlibrary[#1]{\use@@gdlibrary{#1}}%
+\def\use@@gdlibrary#1{%
+  \edef\pgf@list{#1}%
+  \pgfutil@for\pgf@temp:=\pgf@list\do{%
+    \expandafter\pgfkeys@spdef\expandafter\pgf@temp\expandafter{\pgf@temp}%
+    \ifx\pgf@temp\pgfutil@empty
+    \else
+      \directlua{if not pgf_lookup_and_require('\pgf@temp') then
+        tex.print('\pgfutil@luaescapestring{\noexpand\pgferror{Graph drawing library '\pgf@temp' not found}}')
+      end}
+    \fi
+  }
+}%
+
+{%
+\catcode`\%=11
+\directlua{
+    function pgf_lookup_and_require(name)
+        local sep = package.config:sub(1,1)
+        local function lookup(name)
+            local sub = name:gsub('%.',sep)
+            local find_file = context and
+                resolvers.findfile or
+                kpse.find_file
+            if find_file(sub, 'lua') then
+                require(name)
+            elseif find_file(sub, 'clua') then
+                collectgarbage('stop')
+                require(name)
+                collectgarbage('restart')
+            else
+                return false
+            end
+            return true
+        end
+        return
+            lookup('pgf.gd.' .. name .. '.library') or
+            lookup('pgf.gd.' .. name) or
+            lookup(name .. '.library') or
+            lookup(name)
+    end
+}
+}%
+
+
+\directlua{
+  require 'pgf.gd.interface.InterfaceToDisplay'
+  pgf.gd.interface.InterfaceToDisplay.bind(require 'pgf.gd.bindings.BindingToPGF')
+}%
+
+
+
+
+\pgfkeys{/graph drawing/nodes behind edges/.append code=\csname pgf@gd@nodes@behind@edges#1\endcsname}%
+\pgfkeys{/graph drawing/nodes behind edges/.default=true}%
+
+
+
+
+\endinput

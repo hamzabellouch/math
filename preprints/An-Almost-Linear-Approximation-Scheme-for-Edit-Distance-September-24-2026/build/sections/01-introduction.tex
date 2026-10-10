@@ -1,0 +1,203 @@
+\section{Introduction}\label{sec:intro}
+The unit-cost edit distance $\ED(x,y)$ is the minimum number of
+single-symbol insertions, deletions and substitutions that transform a string
+$x$ into a string $y$. All three operations have cost one. The strings are
+stored explicitly; write $N=|x|+|y|$. Their symbols are integer labels of
+polynomial magnitude in $N+2$, stored in words of $O(\log(N+2))$ bits.
+There is no bound on the alphabet size independent of $N$.
+
+An approximation scheme receives a rational $\varepsilon\in(0,1)$ and
+estimates the distance multiplicatively. Its guarantee must therefore include
+returning zero when the two strings are equal. We prove the following result.
+
+\begin{theorem}\label{thm:main}
+There is one uniform randomized algorithm that, given $x,y$ and a rational
+$\varepsilon\in(0,1)$, returns a nonnegative integer $\widehat D$ such that
+\[
+ \Pr\bigl[\ED(x,y)\le \widehat D\le(1+\varepsilon)\ED(x,y)\bigr]
+ \ge \frac23.
+\]
+For every fixed rational $\varepsilon$, its worst-case expected running time
+on strings of total length $N$ is $N^{1+o(1)}$ as $N\to\infty$ on the
+logarithmic-word RAM. The expectation is over internal randomness only,
+and the bound includes input processing, preprocessing, numerical work,
+random sampling and all data-structure operations. Equal strings return zero
+deterministically.
+\end{theorem}
+
+The program is uniform in the accuracy input. The asymptotic assertion is
+pointwise in each fixed rational accuracy: its constants and the threshold
+at which the bound applies may depend on $\varepsilon$. We do not assert
+polynomial dependence on $1/\varepsilon$ or a joint bound when the accuracy
+varies with $N$. The output is a distance estimate; no edit-script
+reconstruction is needed.
+
+The algorithm uses exact computation below an accuracy-dependent input-length
+threshold. Section~\ref{sec:geometry} gives the finite input convention and
+fallback rules; their thresholds are very large, so the result is an
+asymptotic approximation scheme.
+
+\subsection{Context and approach}
+Edit distance originates in the study of errors in transmitted strings,
+including Levenshtein's binary codes for insertions, deletions and bit
+flips~\cite{Levenshtein1966}. The dynamic program of Wagner and
+Fischer~\cite{WagnerFischer1974} computes the minimum cost of insertions,
+deletions and substitutions in quadratic time. Masek and
+Paterson~\cite{MasekPaterson1980} applied block tabulation to obtain a
+logarithmic speedup for fixed alphabets and suitable fixed costs.
+Distance-sensitive exact algorithms offer another route when few edits
+are needed: Ukkonen~\cite{Ukkonen1985} developed bounded-distance methods,
+and Landau and Vishkin~\cite{LandauVishkin1988,LandauVishkin1989} combined
+furthest-reaching states with fast matching queries. Myers's related
+difference algorithm~\cite{Myers1986} treats insertion--deletion scripts.
+For unrestricted exact computation, Backurs and
+Indyk~\cite{BackursIndyk2018} showed that a strongly subquadratic
+deterministic algorithm
+would refute the Strong Exponential Time Hypothesis. That lower bound
+does not rule out fixed-factor approximation.
+
+Approximation algorithms progressively improved the accuracy available
+with substantially less work. In the following historical comparisons,
+write $n$ for a common upper bound on the string lengths.
+Batu and coauthors~\cite{BatuEtAl2003}
+gave sublinear tests for fixed alphabets that distinguish sufficiently
+small distance from linear distance. For general pairs, Bar-Yossef, Jayram, Krauthgamer and
+Kumar~\cite{BarYossefEtAl2004} obtained an $n^{3/7}$ approximation in
+quasi-linear time; Batu, Erg\"un and
+Sahinalp~\cite{BatuErgunSahinalp2006} improved the factor to
+$n^{1/3+o(1)}$. For binary strings, Ostrovsky and
+Rabani~\cite{OstrovskyRabani2007}
+constructed a low-distortion embedding into $\ell_1$, and Andoni and
+Onak~\cite{AndoniOnak2012} obtained an efficiently computable
+$2^{\widetilde O(\sqrt{\log n})}$ approximation in $n^{1+o(1)}$ time.
+Andoni, Krauthgamer and Onak~\cite{AndoniKrauthgamerOnak2010} then
+achieved a $(\log n)^{O(1/\xi)}$ factor in $n^{1+\xi}$ time for each
+fixed $\xi>0$, using a hierarchical alignment representation and
+nonuniformly allocated precisions.
+
+The next advances reached constant factors. Chakraborty, Das,
+Goldenberg, Kouck\'y and Saks~\cite{ChakrabortyEtAl2020} gave a
+constant-factor approximation in $\widetilde O(n^{12/7})$ time.
+Brakensiek and Rubinstein~\cite{BrakensiekRubinstein2020} and Kouck\'y
+and Saks~\cite{KouckySaks2020} independently obtained near-linear
+exponents for sufficiently far input pairs, with a material additive
+error on general pairs. Andoni and Nosatzki~\cite{AndoniNosatzki2020}
+removed that restriction: for every fixed $\xi>0$, their algorithm
+gives an approximation factor depending only on $\xi$ in
+$O(n^{1+\xi})$ time. The factor depends on the exponent parameter;
+this is not an approximation scheme with error tending to zero.
+For accuracy arbitrarily close to one, Mao and
+Rubinstein~\cite[Theorem~6.1]{MaoRubinstein2026} recently obtained a
+randomized $(1+\varepsilon)$ approximation in
+$n^2/2^{\log^{\Omega(1)}n}$ time for every fixed positive
+$\varepsilon$.
+
+The issue addressed here is how to retain fixed $(1+\varepsilon)$
+accuracy while reducing the expected total work to $N^{1+o(1)}$.
+Recursive interval decompositions, economical evaluation of local
+distances, and accounting along an optimal alignment have substantial
+precedent in the algorithms above. In our refinement, unrestricted recursive evaluation of child distances would consume
+the available time even if the resulting numerical error were small. We therefore need both a narrow family that
+contains a suitable comparison alignment and a bound on the number of
+child distances actually evaluated.
+
+For the initial estimates we adapt the shift tree and precision sampling
+of Andoni, Krauthgamer and
+Onak~\cite{AndoniKrauthgamerOnak2010,AndoniKrauthgamerOnak2011}.
+The refinement is related to Mao and Rubinstein's use of multiscale
+deviation to constrain alignment paths before sampling
+\cite{MaoRubinstein2026}. Here we measure the alignment's changes in relative position using
+preliminary cost estimates as weights. A telescoping bound on their
+variation controls the total cost of places where the prediction fails.
+An entropy-regularized prediction rule, within the framework of
+Rakhlin and Sridharan~\cite{RakhlinSridharan2013}, then controls the
+accumulated error where the predictions can be used. We implement its
+optimization by a finite Frank--Wolfe procedure
+\cite{FrankWolfe1956,Jaggi2013}. The specialized geometric, probabilistic
+and numerical guarantees are proved in this paper.
+
+Two related comparisons concern different requirements on the output or
+the edit costs. A single $\ell_1$ embedding of all binary strings up to a
+length bound must incur growing distortion
+\cite[Theorem~1.1]{OpenAIEditDistortion2026}. Our algorithm estimates the
+distance of the supplied pair and does not construct such a common
+embedding. Recent algorithms for metric-weighted edit costs obtain
+$(3+\varepsilon)$ approximation in strongly subquadratic time
+\cite{MaderTavasoliWang2026,DasKipouridisKociumaka2026}; their cost model
+is broader than the unit-cost model treated here.
+
+\subsection{Proof overview}
+Recursively partition the first string into a tree of intervals, ending at
+intervals of length at most one. An interval state consists of a source
+interval $I$ and a target interval in the second string; its true cost is
+the edit distance between the two substrings. An action at a nonleaf
+assigns one target interval to each source child. We charge the sum of
+the child estimates together with penalties for gaps or overlaps between
+successive target endpoints and at the two outer endpoints. These
+penalties let us compare nearby actions without requiring their target
+intervals to join exactly.
+
+\paragraph{Estimates that can be requested adaptively.}
+The initial seed is an integer table whose entries give coarse upper
+approximations to all interval-state costs. Although the algorithm evaluates
+only requested entries, the accuracy event covers the entire domain:
+later queries may depend on earlier random answers. Each initial entry
+uses a private random stream, so its expected evaluation cost can also
+be bounded conditional on the request that first exposes it. Accuracy
+and expected work thus use different probability statements. Successive
+refinement passes improve the seed approximation factor.
+
+\paragraph{Predicting where an alignment goes.}
+One refinement starts from such a seed. It first propagates estimates
+through a wide family of actions and averages the resulting preliminary
+tables to obtain cost proxies. At a source cut, the alignment's shift is
+the target position minus the source position. The total shift change
+divided by the predicted total cost suggests how this shift should evolve
+as prefix cost accumulates. Requiring agreement with that prediction
+restricts the possible target positions at each cut to a narrow band.
+The algorithm computes these bands from the cost proxies alone.
+
+To analyze them, fix optimal alignments and recursively round their child
+endpoints. This gives a comparison tree that the algorithm never computes.
+A cost-weighted variance measures how far the comparison shifts depart
+from the predicted evolution. Its sum telescopes, with additional charges
+for disagreements among the cost proxies. Consequently the total cost of
+nodes with large discrepancies is controlled. At the other nodes, either
+the substring-length difference already accounts for almost all predicted
+cost, giving a direct error bound, or the computed band contains the
+comparison action.
+
+\paragraph{From a band to a better seed.}
+Within a band, an entropy-regularized rule predicts an action using earlier
+child values. Shared samples also compare rounded actions across nearby
+representatives. The resulting estimates decrease with the refinement
+index. After conditioning on complete child tables, the parent samples
+retain their prescribed laws, and an online inequality bounds cumulative
+excess over the comparison action.
+Some intermediate estimates can be smaller than true cost. The analysis
+therefore clips them from below at true cost, so an underestimate at one
+node cannot cancel an error elsewhere. Summing
+over the comparison tree gives a small expected positive error at any
+fixed queried state, together with a deterministic multiplicative lower
+bound. Independent repetitions, rescaling and medians turn these two
+bounds into a simultaneous one-sided seed with a smaller approximation
+factor. Repeating this improvement and making one final refinement gives
+the desired answer.
+
+\paragraph{Paying for recursive queries.}
+A wide search or an optimization step may inspect many actions, but it
+reuses previously gathered child values. Only shared group samples,
+selected rounded actions and actual online draws require child values
+at the current refinement index. Common rounded grids limit the number
+of these calls to slightly more than the tree's branching factor.
+Along a dependency path, a call either descends the tree at the same
+index or decreases an index or pass. Counting these two kinds of steps
+bounds the total expected work, including rational arithmetic and exact
+sampling, by $N^{1+o(1)}$.
+
+Section~\ref{sec:geometry} fixes the computational model, geometry and
+parameters. Sections~\ref{sec:seed}--\ref{sec:bands} construct the tables.
+Sections~\ref{sec:comparison} and~\ref{sec:regret} prove the geometric and
+probabilistic estimates, and Section~\ref{sec:accuracy} assembles the
+accuracy guarantee. Sections~\ref{sec:numerics} and~\ref{sec:work} implement
+every operation and complete the running-time proof.

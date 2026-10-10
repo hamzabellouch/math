@@ -1,0 +1,269 @@
+\section{A seed-to-refinement construction}\label{sec:cones}
+
+The initial table has a large approximation factor.  We now describe one
+refinement that reduces this factor while controlling expected excess over
+the true cost.  Throughout the construction, fix the entire seed table;
+randomness introduced by the refinement is independent of it.
+
+\begin{theorem}[Refinement]\label{thm:refinement}
+Use the parameters and interval tree of Section~\ref{sec:geometry} in the
+large-input branch.  Let $A$ be a power of two with
+$1\le A\le A_{\rm init}$, and let $U$ be an integer table on every labeled
+tree node and every valid target state, with
+\[
+ 0\le U(I,q)\le N,\qquad c(I,q)\le U(I,q)\le A c(I,q).
+\]
+Set $a=\max\{1,A/F\}$.  There is a randomized, finitely executable
+refinement table $d_S$ such that, for every state $(I,q)$,
+\begin{equation}\label{eq:refinement-guarantee}
+ d_S(I,q)\ge c(I,q)/a,\qquad
+ \E\bigl[\pos{d_S(I,q)-c(I,q)}\bigr]\le c(I,q)/\ell.
+\end{equation}
+The first inequality holds for every outcome of the refinement randomness;
+the expectation in the second is conditional on the fixed table $U$.
+At zero-cost states the returned value is zero for every outcome.
+\end{theorem}
+
+We call a seed \emph{good} if its input bounds
+$c(I,q)\le U(I,q)\le A c(I,q)$ hold simultaneously at every state.
+This section and the next define the refinement table
+and establish its elementary
+invariants.  Sections~\ref{sec:comparison}--\ref{sec:accuracy} prove the
+expected-error bound.  Sections~\ref{sec:numerics} and~\ref{sec:work} give
+the numerical and evaluation algorithms, including their work on
+inaccurate seed tables.  The distinction matters: the refinement can
+underestimate true cost when $a>1$.
+
+\subsection{Cost cones and their local evaluation}
+
+The number $a$ is an integer power of two.  Define
+\[
+ \widetilde U(I,q)=\max\{\ceil{U(I,q)/a},\abs{z(I,q)}\}.
+\]
+Since $Fc(I,q)$ is an integer, rounding does not spoil the bounds
+\begin{equation}\label{eq:scaled-seed}
+ \max\{c(I,q)/a,\abs{z(I,q)}\}
+ \le\widetilde U(I,q)\le Fc(I,q).
+\end{equation}
+These bounds do not give endpoint regularity: neighboring seed entries
+can have quite different overestimates. We replace the scaled table by
+a lower envelope of cones. The charge $L_0|q-r|_1$ for moving away from
+a center $r$ preserves the lower bounds $c/a$ and $|z|$, while making
+the envelope Lipschitz. To evaluate it with few seed queries, we retain
+centers on grids at several cost scales. A grid at the scale of the true
+cost will provide a nearby inexpensive center; its value will then
+force every minimizing center to be nearby as well.
+
+The scales $b$ are the powers of two from $1$ to the largest power of two
+at most $N$.  At scale $b$, put $g_b=\max\{1,b/P\}$.  A grid state has
+both coordinates in $g_b\Z\cap[0,|y|]$, in nondecreasing order.
+The state $r_b(q)$ rounds both coordinates of $q$ down to this grid.
+All these spacings are integers.  If $g_b=1$, rounding is exact;
+otherwise
+\begin{equation}\label{eq:grid-error}
+ \abs{q-r_b(q)}_1<2b/P.
+\end{equation}
+
+At a nonleaf $I$, consider all cones
+\[
+ q\longmapsto \widetilde U(I,r)+L_0\abs{q-r}_1
+\]
+whose centers are grid states at some scale $b$ with
+$b/2\le U(I,r)\le4Ab$.  Include also the cone at every state $r$ with
+$U(I,r)=0$, whether or not it occurs on one of these grids.  Define
+$w_0(I,q)$ to be their minimum.  At a leaf set $w_0(I,q)=c(I,q)$.
+The exact leaf rule will be used for every later table as well.
+
+\begin{lemma}[Initial cones]\label{lem:initial-cones}
+For the fixed seed in Theorem~\ref{thm:refinement},
+\begin{equation}\label{eq:initial-cones}
+ \max\{c/a,|z|\}\le w_0\le2Fc,
+ \qquad \Lip(w_0(I,\cdot))\le L_0.
+\end{equation}
+At a nonleaf, the following local rule computes this global minimum
+exactly.  If $U(I,q)=0$, return zero.  Otherwise omit the zero cones,
+enumerate scales
+\begin{equation}\label{eq:initial-local-scales}
+ U(I,q)/(16A^2)\le b\le4A U(I,q),
+\end{equation}
+and enumerate grid centers at sup distance at most $U(I,q)$ from $q$,
+retaining the eligibility test $b/2\le U(I,r)\le4Ab$.
+\end{lemma}
+
+\begin{proof}
+Each cone dominates $c(q)/a$ and $|z(q)|$ by
+\eqref{eq:scaled-seed} and the endpoint Lipschitz bounds.  Each has
+Lipschitz constant $L_0$, so their minimum does too.  Leaves satisfy
+these claims directly.
+
+If $c(I,q)=0$, the seed has $U(I,q)=0$, and its own cone gives zero.
+For $c=c(I,q)>0$, choose $b\le c<2b$ and set $r=r_b(q)$,
+$e=|q-r|_1$.  By~\eqref{eq:grid-error},
+\[
+ c(I,r)\ge b-2b/P\ge b/2,
+ \qquad c(I,r)<2b+2b/P\le4b.
+\]
+Thus $r$ is an eligible center.  Its cone has value at most
+\[
+ Fc(I,r)+L_0e
+ \le Fc+(F+L_0)e
+ \le Fc+66Fb/P\le2Fc.
+\]
+
+Any minimizing cone at a positive-cost state consequently has center
+distance at most $2Fc/L_0=c/16$.  Its center's true cost lies in
+$[15c/16,17c/16]$.  A zero center cannot minimize, since its distance
+would be at least $c$.  For a minimizing nonzero center, eligibility
+therefore gives
+\[
+ b\ge \frac{U(I,r)}{4A}
+   \ge\frac{15c}{64A}\ge\frac{U(I,q)}{16A^2},
+ \qquad
+ b\le2U(I,r)\le\frac{17Ac}{8}\le4AU(I,q).
+\]
+Its sup distance is at most $c/16\le U(I,q)$.  Thus the local list
+contains a global minimizer, and every member of the local list belongs
+to the global family.  The two minima agree.
+\end{proof}
+
+We use this local rule as the executable definition even when the seed
+is inaccurate, returning $N$ if its nonzero branch has no candidate.
+Its work remains finite without any seed guarantee.  Indeed, the scale
+interval has ratio at most $64A^3$, and $U(I,q)/b\le16A^2$ there.
+The local list therefore contains
+$O((1+PA^2)^2(1+\log A))=H^{O(p_*+1)}$ raw seed queries.
+The returned values are nonnegative integers of magnitude
+$O((L_0+1)N)$.  Global cone identities and Lipschitz continuity are
+asserted only for a seed satisfying Theorem~\ref{thm:refinement}.
+
+\subsection{Wide actions and Bellman propagation}
+
+The next operator combines child estimates into a parent estimate. We
+first allow each child to choose its target independently, paying the
+connection charge for gaps and overlaps. Its minimum over earlier child
+tables will remain an available parent option throughout the refinement;
+the more restricted choices will use current child tables. Extending
+each action cost by an endpoint cone retains spatial
+regularity. Repeated propagation will also supply the average cost table
+used to predict child alignments.
+
+Let a nonleaf $I=(l,u]$ have child cuts
+$l=l_0\le l_1\le\cdots\le l_M=u$, so
+$I_i=(l_{i-1},l_i]$.  A \emph{representative} is a pair $(b,r)$ with
+$r$ a grid state at scale $b$ and
+\begin{equation}\label{eq:representative}
+ b/(4a)\le w_0(I,r)\le8Fb.
+\end{equation}
+Write $p_0=r^--l$.  The wide action set $\mathcal A_{b,r}$ consists of
+lists $\alpha=(s_1,\ldots,s_M)$ of valid child grid states satisfying
+\[
+ |s_i^--l_{i-1}-p_0|\le10b,
+ \qquad |s_i^+-l_i-p_0|\le10b.
+\]
+Consecutive target intervals need not meet.  Their discrepancy is paid
+for by the connection charge $\conn_r(\alpha)$ defined in
+Section~\ref{sec:geometry}.  For child tables $f$, put
+\begin{align}
+ V_r(\alpha;f)&=\conn_r(\alpha)+\sum_{i=1}^M f(I_i,s_i),
+ \label{eq:action-cost}\\
+ \mathcal B_I(f)(q)
+ &=\min\left\{w_0(I,q),\;
+ \min_{(b,r)}\left[L|q-r|_1+
+        \min_{\alpha\in\mathcal A_{b,r}}V_r(\alpha;f)\right]\right\}.
+ \label{eq:bellman}
+\end{align}
+Every minimum over an empty set is $+\infty$.
+
+The operator $\mathcal B_I$ is monotone in its child tables and is
+$L$-Lipschitz in $q$.  It also preserves the lower bound
+$\max\{c/a,|z|\}$.  For the latter assertion, if each child satisfies
+the lower bound, then
+\[
+ V_r(\alpha;f)
+ \ge\frac{\conn_r(\alpha)+\sum_i c(I_i,s_i)}a
+ \ge c(I,r)/a,
+\]
+while the net-change-of-shift inequality gives
+$V_r(\alpha;f)\ge|z(I,r)|$.  Endpoint Lipschitz continuity extends
+both bounds along the cone, and $w_0$ satisfies them too.
+
+Define the warmup tables at nonleaves by
+\begin{equation}\label{eq:warmup}
+ w_j(I,q)=\mathcal B_I(w_{j-1})(q)\quad(1\le j\le T),
+ \qquad
+ m=\frac1T\sum_{j=0}^{T-1}w_j,\qquad d_0=w_T.
+\end{equation}
+Here the operator receives the indicated tables on children.  Because
+$w_1\le w_0$ and the operator is monotone, the warmup is nonincreasing.
+In particular,
+\begin{equation}\label{eq:warmup-invariants}
+ \max\{c/a,|z|\}\le d_0\le m\le w_0\le2Fc,
+ \qquad \mathcal B_I(d_0)\le d_0.
+\end{equation}
+The last inequality follows by one further application of the same
+monotonicity.  The tables $w_j$ and $m$ are $L$-Lipschitz.
+
+The average $m$ is useful because shifting its iteration range by one
+changes it by only the initial-to-final drop divided by $T$:
+\[
+ \frac1T\sum_{j=1}^T w_j
+ =m-\frac{w_0-w_T}{T}.
+\]
+For any fixed representative and wide action, average the inequalities
+$w_j(I,q)\le L|q-r|_1+V_r(\alpha;w_{j-1})$ and then minimize over
+that action. The result is
+\[
+ m(I,q)-\frac{w_0(I,q)-w_T(I,q)}T
+ \le L|q-r|_1+\min_{\alpha\in\mathcal A_{b,r}}V_r(\alpha;m).
+\]
+Thus parent and child cost proxies satisfy the Bellman comparison up to
+a controlled averaging error. Section~\ref{sec:comparison} will sum this
+error over a tree of comparison states.
+
+\subsection{Local evaluation of later cones}
+
+The Bellman minimum, and later minima containing selected action cones,
+admit the same local evaluation rule.  This rule is also what bounds the
+computation when a seed is wrong. We enumerate complete cells because
+Section~\ref{sec:bands} will make one shared choice for every cell; that
+choice must be independent of which query first requests the cell.
+
+\begin{lemma}[Cone locality]\label{lem:cone-locality}
+Fix a good seed as in Theorem~\ref{thm:refinement}.  Take a minimum of
+$w_0(I,q)$ and any family of cones of slope $L$ with nonnegative base
+costs at representatives $(b,r)$.  If $w_0(I,q)=0$, its value is zero.
+Otherwise it suffices to enumerate scales
+\begin{equation}\label{eq:local-scales}
+ w_0(I,q)/(16F)\le b\le8a w_0(I,q)
+\end{equation}
+and the following whole cells at each scale.  Partition endpoint-pair
+space into half-open cells of side $\theta b$ on each axis, with lower
+boundaries at multiples of $\theta b$.  Enumerate the cells intersecting
+the closed sup square of radius $w_0(I,q)$ about $q$, and all valid
+grid representatives in these cells.
+\end{lemma}
+
+\begin{proof}
+Write $w=w_0(I,q)>0$.  A competitive cone has value at most $w$ and
+therefore $|q-r|_1\le w/L$.  Since $L_0/L=1/4$,
+$3w/4\le w_0(I,r)\le5w/4$.  Representative eligibility yields
+\[
+ b\ge3w/(32F)>w/(16F),\qquad b\le5aw<8aw.
+\]
+The representative belongs to the enumerated square and hence to an
+enumerated cell.  Conversely, enumerating a whole cell only adds cones
+already in the global family.  This proves exactness.
+\end{proof}
+
+For arbitrary local $w_0$, the scale count in~\eqref{eq:local-scales}
+is $O(1+\log(aF))$, polynomial in $\ell$.  There are
+$O((1+F/\theta)^2)$ cells per scale and $O((1+P)^2)$ grid states per
+cell.  Indeed $w_0(I,q)/b\le16F$, and
+$\theta b/g_b\le P$.  Cells and grid points are generated by ranges
+of integer indices, without scanning unrelated positions.  These count
+bounds do not assume a correct seed.  Empty lists give the $w_0$ option.
+
+We have now obtained nonincreasing propagated estimates and the cost
+proxy $m$.  The next step uses $m$ to identify narrow sets of shared
+child alignments.  Expensive searches over the wide actions will use
+earlier tables; the narrow sets limit calls to current tables.

@@ -1,0 +1,979 @@
+\section{Local projection and the perfect-matching bound}
+\label{sec:projection-analysis}
+
+We now implement the fine-ledger projection and prove the progress and
+cost bounds for the phase algorithm of
+Section~\ref{sec:matching-state}.  We use its state notation and the
+guards in \eqref{match:initial-guards}, and the priced-step interface of
+Lemma~\ref{lem:priced-steps}, whose construction is given later.
+All estimates in this section with a subscript \(a\) are for a fixed
+parameter \(a\).  Constants in an exponent \(O(1/a)\), in contrast,
+are absolute.
+
+The threshold tests use the potential-reduction viewpoint of approximate
+minimum-ratio circulations developed by Chen et al.\ and its dynamic
+threshold formulation by van den Brand, Liu, and
+Sidford~\cite{FlowRandomized,BrandLiuSidford2023}. The logarithmic
+objective, local exploration and projection guarantees needed here are
+proved directly.
+
+\subsection{A local exact projection}
+
+The exchange network of Lemma~\ref{match:exchange-projection} has one vertex
+for every bin and row.  Its source and sink will be denoted by
+\(s_*,t_*\), to distinguish them from the size exponent in \(S=2^s\).
+For an integral parent ledger and a requested floor \(cw\), write
+\begin{equation}
+\label{proj:deficits}
+ b(d)=(cw_d-y_d)_+,\qquad
+ u(d)=(y_d-cw_d)_+,\qquad
+ \beta=\sum_d b(d),\qquad P=\sum_d p_d .
+\end{equation}
+The parent floor is one unit higher:
+\begin{equation}
+\label{proj:parent}
+                         y_d+p_d\ge(c+1)w_d .
+\end{equation}
+In particular, \(\beta\le P\).  A maximum exchange flow, followed when
+necessary by its full residual source-reachable bin set, is the exact
+information required by Lemma~\ref{match:exchange-projection}.  The following
+lemma obtains that information without scanning every bin.
+
+\begin{lemma}[Local exact projection]
+\label{lem:projection}
+Suppose an integral parent ledger satisfies
+\eqref{proj:parent} in a partition state of a subcubic graph on at most
+\(S\) physical vertices.  Its allocations, column residuals, weights,
+and positive debts support point access and sparse indexed updates.
+Assume \(P=O_a(S)\) for the fixed-parameter asymptotic bound.
+Then the exact exchange projection can be implemented in
+\begin{equation}
+\label{proj:time}
+                         (P+B)S^{O(1/a)+o_a(1)}
+\end{equation}
+total time on every path, at all sufficiently large sizes for fixed
+sufficiently large parameters.
+
+The implementation either returns the exact exchange-flow changes
+and, if needed, the full residual reachable set \(R_0\); reports a
+detected stochastic failure; or suspends on a deterministic
+prerequisite check.  It uses \(O(\log S)\) priced-step instances.
+Each reached instance with valid prerequisites has its conditional
+detected-failure allowance \(2^{-\sigma}S^{-60}\).
+All updates to a fresh child ledger and all necessary physical scans
+are confined to \(O(P)\) represented incidences and bin weight, apart
+from the padding and subpolynomial factors in \eqref{proj:time}.
+The stated deterministic prerequisites do not cause suspension in
+the sufficiently large fixed-parameter range.
+\end{lemma}
+
+The construction tests whether the full exchange maximum is at least
+an integer threshold.  An optimistic local network supplies an upper
+bound on that maximum, and the same explored region with true
+capacities supplies a lower bound.  We first construct and analyze
+this test, then show how two of its regions recover the full residual
+cut.  The proof of Lemma~\ref{lem:projection} will assemble these steps.
+
+\paragraph{Optimistic and true regions.}
+Assume \(\beta>0\) for the threshold construction.  Start the
+exploration with every \emph{seed} bin satisfying
+\(p_d\ge w_d/2\).  Their total weight is at most \(2P\).
+The index of positive integral debts has at most \(P\) entries, so
+listing these seeds and computing their deficits takes local work.
+Every deficit is a seed: if \(y_d<cw_d\), then
+\eqref{proj:parent} gives \(p_d>w_d\).
+
+Expanding a bin exposes all its bin-to-row exchange arcs, its true
+source and sink capacities, and all row-to-bin arcs and endpoints of
+the rows thereby discovered.  Arc identifiers are retained, so an
+already represented arc is not inserted a second time.  An
+unexpanded bin reached as an endpoint is a \emph{boundary}.  It has
+no represented bin-to-row arcs yet and no positive source capacity,
+since it is not a seed.  Give it, optimistically, a sink arc of
+capacity \(\beta+1\).  Its true spare is available by a point lookup,
+and \eqref{proj:parent} implies
+\begin{equation}
+\label{proj:boundary-spare}
+            u(d)=y_d-cw_d\ge w_d-p_d>w_d/2 .
+\end{equation}
+In particular \(u(d)\ge1\), by integrality.
+
+For every region so obtained, its unlocked optimistic maximum flow
+is at least the full true maximum flow.  Indeed, take an integral
+path decomposition of a full flow and discard its cycles.  Each
+source path starts at a seed.  Retain it until its first boundary,
+if any, and then send it directly to the sink.  The retained
+interior arcs are represented with their true capacities, and the
+total flow is at most \(\beta\), less than every optimistic boundary
+sink capacity.  The \emph{explored true graph} has the same represented
+arcs, but uses the true sink capacity at every boundary.  It embeds
+into the full exchange graph.
+
+\paragraph{Testing a threshold.}
+The two local networks just defined have zero lower bounds.
+For optimization we use a third network on the represented arcs:
+its capacities are scaled, its logarithms have padded arguments,
+and some sink arcs acquire permanent positive lower bounds.
+These lower bounds will limit the total explored weight.
+Lemma~\ref{prelim:small-violation} will convert its exactly
+conserved real points into integral feasibility statements, with
+the total violation including the return arc.
+
+For an integer \(1\le b\le\beta\), begin a fresh exploration and
+multiply all its ordinary capacities by \(16\).  Introduce a return
+arc \(t_*\to s_*\) with variable \(z\), and set
+\begin{equation}
+\label{proj:threshold-network}
+                       T=16b,\qquad W=20000(P+1).
+\end{equation}
+The objective is
+\begin{equation}
+\label{proj:objective}
+ \Phi(F,z)=
+ \sum_{e\ {\rm ordinary}}
+  \left[\log(F_e-\underline c_e+\zeta_e^-)
+       +\log(\overline c_e+\zeta_e^+-F_e)\right]
+                         -W\log(T-z).
+\end{equation}
+Here \(\underline c_e,\overline c_e\) are the current unpadded
+bounds, initially with lower bound zero, and
+\(\zeta_e^-,\zeta_e^+>0\) are dyadic pads.
+At the current point, write \(g=\nabla\Phi\), and let \(\lambda_e\)
+be the sum of the absolute derivatives of the individual weighted
+logarithmic terms on coordinate \(e\), as in
+Lemma~\ref{lem:priced-steps}.  In particular, this is not in general
+\(|g_e|\): the two ordinary-arc derivatives can cancel, whereas
+on the return arc \(g_z=\lambda_z=W/(T-z)\).
+All flows start at zero.  Added arcs also start at zero, and every
+subsequent motion is an exact circulation supplied by
+Lemma~\ref{lem:priced-steps}; no client operation changes an existing
+flow value.
+Figure~\ref{fig:local-projection} shows the threshold network and the
+transition from an optimistic boundary to a permanently locked sink.
+\input{figures/local-projection}
+
+Start each pad at \(4\delta\).  If a cached argument is at most
+\(3\delta\), increase its pad by \(4\delta\) and re-anchor that
+coordinate.  Explicit changes of bounds also re-anchor it.
+Increasing a pad only increases the objective.  The register and
+step-size guarantees, exactly as in Lemma~\ref{match:top-maintenance},
+keep all ordinary arguments above \(\delta\) before a new step and
+above \(\delta/10\) at a refresh after motion.  A serviced side does
+not need another increase without further motion or a change of
+its bounds.  The repairs can therefore be made on dirty and newly
+inserted coordinates, without a scan of the represented graph at
+each step.
+
+The loose iteration and operation caps give, on every guarded
+prefix, a total sum of pads
+\begin{equation}
+\label{proj:pad-budget}
+             \alpha:=\sum_{e\ {\rm ordinary}}
+                            (\zeta_e^-+\zeta_e^+)<S^{-800}.
+\end{equation}
+One may bound the number of potential repairs using all \(O(S)\)
+ordinary arcs of the full exchange graph; locality is not needed
+for this preliminary numerical estimate.  Alternatively, the
+external-operation cap gives at most a fixed multiple of \(S^{100}\)
+pad settings, each of size \(O(\delta)\), which is smaller than the
+right side of \eqref{proj:pad-budget} for large \(S\).
+There is no intervening infinite repair chain: a repaired argument
+is exactly re-anchored, and the current point does not move during
+the service.
+All ordinary unpadded-bound violations sum to at most \(\alpha\).
+Conservation at the source gives
+\begin{equation}
+\label{proj:return-range}
+                     -\alpha\le z\le16\beta+\alpha .
+\end{equation}
+
+At each loop test read \(z\) exactly.  Stop successfully when
+\(z\ge T-1/4\).  Otherwise the next step cannot cross \(T\):
+the return contribution to its length is
+\(W|\Delta z|/(T-z)\), and the step's total length is at most
+\(q/100\).  Thus its relative return-argument change is at most
+\(q/(100W)\).  In particular even the final successful step leaves
+\begin{equation}
+\label{proj:return-margin}
+                              T-z\ge1/8 .
+\end{equation}
+
+\paragraph{Boundary locks and explored size.}
+Before taking another pricing step, expand any boundary whose
+cached sink flow is at least \(8u(d)\).  Replace its unpadded
+optimistic sink interval by
+\begin{equation}
+\label{proj:lock}
+                              [\,4u(d),16u(d)\,] .
+\end{equation}
+Retain this lower lock for the rest of the threshold test, and add
+the newly discovered arcs with flow zero.  Pads can be
+reinitialized when the sink bounds change.
+
+The transition is interior with a constant margin.  At the start
+of a step, an untriggered boundary has actual flow less than
+\(8.2u(d)\): apply the register-error inequality to its
+padded-zero lower argument and use \(u(d)\ge1\).
+During the step its absolute change is at most
+\((q/100)(F_e+\zeta_e^-)\), so its resulting flow is less than
+\(10u(d)\).  At a first trigger the same cache guarantee gives
+actual flow greater than \(7u(d)\).  Hence the new interval
+\eqref{proj:lock} is safely interior.  Triggers are checked on
+dirty or newly supplied entries using their latest registers.
+Re-anchoring without motion cannot invalidate the estimate.
+In particular, if success is detected immediately after a step,
+before a newly triggered boundary has been serviced, that boundary
+still has
+\begin{equation}
+\label{proj:unserviced-exit}
+                              F_e<10u(d)<16u(d).
+\end{equation}
+Thus a successful exit does not require an uncharged final scan or
+expansion.
+
+Every previously locked sink carries at least \(4u(d)\), apart
+from its pad violation; each just-triggering sink carries more
+than \(7u(d)\).  All other sink flows are nonnegative apart from
+their pad violations, and their sum is \(z\).  Equations
+\eqref{proj:return-range} and \eqref{proj:boundary-spare} therefore
+bound the total weight of nonseed expanded or triggering bins by
+\(8P+1\).  Including seeds, the expanded weight is at most
+\begin{equation}
+\label{proj:region-size}
+                              11(P+1).
+\end{equation}
+This also bounds physical scanning: an expanded bin has \(2w_d-1\)
+vertices of degree at most three.  Per unit of expanded weight
+there are at most six bin-to-row incidences, at most eighteen
+row-to-bin incidences, and at most eighteen boundary occurrences.
+Including source and sink arcs, there are fewer than
+\(1000(P+1)\) ordinary arcs.  Each is inserted once, the region only
+grows, and each sink is locked at most once.  The same bound thus
+controls cumulative topological insertions in this test.
+
+\begin{lemma}[Threshold certificate]
+\label{proj:threshold}
+An unfailed, nonsuspended threshold test cannot report
+\(\mathrm{LOW}\) if the unlocked optimistic maximum is at least
+\(T\) in scaled units.  Its success exit implies that the explored
+true unscaled maximum is at least \(b\).
+\end{lemma}
+
+\begin{proof}
+First impose the current integral ordinary bounds, including the
+locks, and return interval \([0,16\beta]\).
+The current point is exactly conserved.  Its ordinary violation
+is at most \(\alpha\), and
+\eqref{proj:return-range} adds at most \(\alpha\) more for the
+return interval.  The total is at most \(2\alpha<1\), not merely
+the ordinary-arc error.  Lemma~\ref{prelim:small-violation} supplies
+an exactly feasible integral circulation for these bounds.
+
+Starting from its ordinary flow, one can attain the unlocked
+optimistic maximum while preserving all sink locks.  If the
+present value is smaller, the ordinary residual network contains
+a source-to-sink path; erase cycles to make that path simple.
+The only additional lower bounds are on incoming sink arcs.
+Their reversals leave the sink and cannot occur on a simple
+source-to-sink path.  Every augmentation therefore preserves
+the locks, even if the starting flow contained cycles.
+This constructs, existentially, a feasible comparator
+\((F',z')\) with \(z'\ge T\).
+
+The difference from the current point is a nonzero circulation.
+For each ordinary logarithmic term, a negative directional
+derivative has magnitude at most one, since the comparator is
+feasible even without the pads.  There are fewer than
+\(2000(P+1)\) such terms.  The return term contributes
+\[
+                 \frac{W(z'-z)}{T-z}\ge W
+\]
+positively.  If \(A_+\) and \(A_-\) are the sums of positive and
+absolute negative individual contributions, then
+\[
+ A_+\ge20000(P+1),\qquad A_-<2000(P+1),\qquad
+ \frac{g^{\mathsf T}(F'-F,z'-z)}
+      {\|\lambda(F'-F,z'-z)\|_1}
+       =\frac{A_+-A_-}{A_++A_-}>\frac12 .
+ \]
+Only a direction is being compared; evaluating the logarithmic
+objective at \(z'\ge T\) is neither intended nor necessary.
+Lemma~\ref{lem:priced-steps} rules out \(\mathrm{LOW}\).
+
+At a success exit, replace the optimistic boundary capacities by
+the true ones and impose return interval \([T,16\beta]\).
+Equation~\eqref{proj:unserviced-exit} shows that no unexpanded
+boundary violates its true upper capacity, even before trigger
+service.  There are no unexpanded deficits.  The ordinary
+violation is at most \(\alpha\); the additional return violation
+is at most \(1/4+\alpha\).  The total is less than one.
+Lemma~\ref{prelim:small-violation} gives a feasible integral scaled
+flow of value at least \(T=16b\) in the explored true graph.
+Dividing capacities and flow value by \(16\) proves that its
+unscaled maximum is at least \(b\).
+\end{proof}
+
+Continue until success, \(\mathrm{LOW}\), detected stochastic
+failure, or suspension.  On \(\mathrm{LOW}\), verify by a static
+integral maximum-flow computation that the unlocked optimistic
+unscaled maximum is below \(b\).  On success, verify that the
+explored true unscaled maximum is at least \(b\).
+A contradictory exact check causes suspension; Lemma~\ref{proj:threshold}
+shows that it cannot occur in an unfailed proceeding
+computation.  These calls use
+Lemmas~\ref{lem:integral-flow} and~\ref{lem:capacity-scaling}
+with size padded to \(O(P+B)\).  Capacity digit scaling in
+particular avoids a variable polynomial-capacity exponent when
+\(P\) is small relative to \(S\).
+
+Thus each verified test decides the threshold for the full graph.
+On \(\mathrm{LOW}\), optimistic domination implies that the full
+maximum is below \(b\).  On success, the explored true graph embeds
+into the full graph and supplies value at least \(b\).
+The locked engine network is discarded after the test; the exact
+checks use the unlocked optimistic or true capacities, respectively.
+
+\paragraph{Termination and cost of one test.}
+The objective range at loop and service states is
+\(O_a((P+1)\log S)\).  There are \(O(P+1)\) ordinary terms with
+arguments between \(\delta/10\) and a guarded polynomial upper
+bound, and the weighted return term has the same total order by
+\eqref{proj:return-margin} and \(W=O(P+1)\).
+Pad increases never lower the objective.  An arc insertion or a
+lock change costs at most \(O(\log S)\) in objective, and there
+are only \(O(P+1)\) such touches.  The
+\(\Omega(q^2)\) increase per successful priced step consequently
+bounds their number by
+\begin{equation}
+\label{proj:step-count}
+                    O_a((P+1)q^{-2}\log S).
+\end{equation}
+Use, for example, nominal engine lifetime size \(8192(P+1)\),
+including every new endpoint and arc.  Point reads of the return
+arc, local pad changes, boundary notifications, and the final
+static verification are charged.  No global scan is made at a
+pricing step.  Lemma~\ref{lem:priced-steps} and its notification
+bound now give \eqref{proj:time} for one threshold.  The guard
+\(S^{20}\) on local pricing iterations is eventually larger than
+\eqref{proj:step-count} because
+\(q^{-2}=O_a(S^{200/a})\) and \(P=O_a(S)\).
+
+\paragraph{Recovering the exact flow and the full peel.}
+The threshold tests determine the maximum value, but the matching
+procedure also needs the exact allocation changes and, when a deficit
+remains, the entire residual source-reachable bin set.  We now recover
+this information from the small regions explored by the tests.
+
+\begin{lemma}[Recovering the full residual cut]
+\label{proj:local-cut}
+Suppose \(\beta>0\), and let \(v\) be the full unscaled exchange maximum.
+Suppose a true
+explored region of maximum \(v\) is available when \(v>0\), and
+an unlocked optimistic region of maximum \(v\) is available when
+\(v<\beta\).  The union of the available regions, using true
+capacities and original arc identifiers, suffices to compute an
+exact full exchange flow and, when \(v<\beta\), the full residual
+source-reachable bin set.
+\end{lemma}
+
+\begin{proof}
+Call the supplied true region the success graph and the supplied
+optimistic region the failure graph.  Suppose \(v<\beta\), and
+let \(Q\) be a minimum source side of the failure graph.
+No boundary belongs to \(Q\), because its
+sink arc alone has capacity \(\beta+1>v\).  Consequently every
+bin of \(Q\) is expanded and all its outgoing bin-to-row arcs of
+positive true capacity are represented.  Every represented row
+has all its outgoing row-to-bin arcs, and every positive source
+arc is present because all deficits are seeded.  Thus all arcs
+leaving \(Q\) in the full true graph occur with the same capacity
+in the failure graph.  The same set \(Q\) is a full-graph cut
+of capacity \(v\).
+
+The true success graph supplies value \(v\) when \(v>0\).
+Solve an exact integral maximum flow in the union with true
+capacities, using the failure graph alone when \(v=0<\beta\),
+or the success graph alone when \(v=\beta>0\).
+The union's value is exactly \(v\), by the cut just proved or by
+the total source capacity \(\beta\).
+Extend its flow by zero to the full network.
+
+When \(v<\beta\), equality of its value with the capacity of
+\(Q\) forces every outgoing cut arc to be saturated and every
+incoming cut arc to have zero flow.  Neither an unsaturated
+forward arc nor a positive-flow reverse arc can leave \(Q\).
+All positive-capacity original arcs needed within \(Q\) are
+represented, and every needed reverse arc is the reverse of
+an arc carrying positive flow in the union.
+Residual reachability computed in this local representation is
+therefore the full residual source reachability.  Its bin part
+is precisely \(R_0\).
+\end{proof}
+
+\begin{proof}[Proof of Lemma~\ref{lem:projection}]
+List the positive parent debts to find the seeds and compute
+\(\beta\), in \(O(P)\) point operations.  If \(\beta=0\), the
+unchanged allocation already satisfies the requested floor, so
+giving the fresh child an empty debt map finishes the projection.
+The parent ledger remains unchanged.
+
+Otherwise binary search, using the verified threshold tests,
+determines the full unscaled maximum \(v\).  Retain a true success
+graph for \(v\) when \(v>0\).  If \(v<\beta\), retain an optimistic
+failure graph for \(v+1\).  Its unlocked maximum is exactly \(v\):
+it is below \(v+1\) by the test, at least \(v\) by optimistic
+domination, and integral.  At most a constant number of additional
+tests retrieves these regions.  Lemma~\ref{proj:local-cut} then
+returns the exact flow and, when needed, its full residual bin set.
+
+The union has size \(O(P+1)\).  Its flow support supplies all
+allocation changes.  The set \(R_0\) has weight \(O(P)\), either
+by \eqref{proj:region-size} or by applying the parent deletion
+inequality to the failed floor-\(c\) projection.  Listing its
+assigned rows and their affected allocations requires only
+that physical weight and bounded row degree.  No scan of an
+unexpanded high-volume bin or of an unchanged parent allocation
+is necessary.  This completes the local construction.
+There are \(O(\log S)\) thresholds and retrieval tests because
+\(\beta\le P=O_a(S)\).  The per-test bound \eqref{proj:time},
+the final static flow on the union, and these sparse ledger changes
+give the asserted total time.  Each reached priced-step instance
+has its stated conditional failure allowance; a detected failure
+or suspension is returned to the caller immediately.
+The numerical and nominal-size prerequisite checks, including
+those used above, are justified uniformly on guarded prefixes
+in Lemma~\ref{phase:guard-adequacy}.
+\end{proof}
+
+\subsection{Debt, structural work, and progress}
+
+The following estimates apply before the first deterministic
+interruption, and do not assume that the graph has a perfect
+matching.  A detected failure terminates the test; a returned
+structural action or projection satisfies its deterministic
+invariants.
+
+\begin{lemma}[Phase accounting]
+\label{phase:accounting}
+In a phase with initial deficit \(K\), threshold \(L\), and target
+\(g_*\), every guarded prefix before completion satisfies
+\begin{equation}
+\label{phase:peel-budget}
+ \sum_{\rm peels}w(R_0)\le2L(g_*-1)+S^{-800},
+ \qquad
+ \#\{\text{blockers}\}\le2C(g_*-1).
+\end{equation}
+There are \(O(N+Lg_*)\) expansions, the sum of contraction
+arities \(|X|\) is \(O(N+Lg_*)\), and the total tick increase is
+\(\tau=O_a(N)\).
+\end{lemma}
+
+\begin{proof}
+Before the terminal \(g_*\)-th gain there are at most \(g_*-1\)
+gains whose ledgers are repaired.  Top contractions preserve
+total debt, top expansions consume available slack without
+other debt, and the positivity service of
+Lemma~\ref{match:top-maintenance} adds less than \(S^{-800}\) debt.
+By Lemma~\ref{match:deletion}, each repaired gain adds at most \(2L\)
+net debt.  By Lemma~\ref{match:exchange-projection}, every projection
+peel consumes at least its weight from the top ledger.
+Nonnegative remaining debt gives the first bound in
+\eqref{phase:peel-budget}.
+
+The number of new blockers at a peel is at most
+\(h(R_0)<Cw(R_0)/L\).  Summing this strict inequality and using
+integrality gives the second bound in
+\eqref{phase:peel-budget}; the tiny positive remainder is less
+than one.  In particular, before the first gain of a phase
+with \(g_*=1\), no positive-weight peel can occur.
+
+The bottom certificate of Lemma~\ref{match:bottom-surplus} bounds the
+weight removed by a gain by \(2L\).
+A removed bin has \(2w_d-1\) physical vertices, and at most one
+assigned row per removed bin is materialized with it.  Thus the
+number of vertices returned to the paired remainder is bounded
+by a constant times the total erased weight.  Every expansion
+consumes a pair from that remainder.  Its initial population is
+at most \(N\), so expansions number \(O(N+Lg_*)\).
+Initially there are at most \(N\) bins and each expansion creates
+one new bin.  A contraction decreases their number by
+\(|X|-1\), and \(|X|\ge2\); hence the sum of \(|X|\) over
+contractions is also \(O(N+Lg_*)\).
+Expansions and contractions contribute one tick each, and a
+repaired gain contributes \(L\), giving
+\(\tau=O(N+Lg_*)\).
+
+Finally \(Lg_*=O_a(N)\).  If \(K<100C\), then \(g_*=1\) and
+\(L=O_a(N)\).  Otherwise
+\[
+ Lg_*\le
+ \left(\frac{10000CN}{K}+1\right)\frac{K}{100C}
+ =O(N).
+ \]
+This proves the tick bound.
+\end{proof}
+
+\begin{lemma}[No false stall without a stochastic failure]
+\label{phase:stall}
+If the subcubic graph has a perfect matching, a settled phase
+state with fewer than \(g_*\) gains admits neither a valid
+\(\mathrm{LOW}\) exit nor a permanent lack of progress.
+More precisely, when neither a distinct-bin contact nor an
+eligible expansion is available, the top objective has a
+circulation direction \(d\) with
+\[
+                      g^{\mathsf T}d
+                           >\tfrac12\|\lambda d\|_1 .
+ \]
+\end{lemma}
+
+\begin{proof}
+Let \(i_*\le g_*-1\) be the gains so far.
+For this argument only, realize the matching represented by the
+partition.  This is an existence comparison, not an instruction
+to materialize the graph at every pricing step.
+Taking the symmetric difference with a perfect matching gives \(K-i_*\)
+vertex-disjoint augmenting paths~\cite{Berge1957}.  At most the blocker count
+meet a blocker.
+
+Orient each remaining path from an unmatched endpoint.
+Its first bin is free and is entered at its exposed base.
+That bin has no other unmatched vertex and no crossing matching
+edge.  At a stall there is no edge to a distinct bin.
+If the path exits to a row by a nonmatching edge, its next
+matching edge is that row's assigned edge, entering another
+bin at its base.  This new bin is assigned; its only possible
+crossing matching edge is the one just used on entry.
+A simple path must therefore next exit it by a nonmatching
+edge.  Continuing this argument, the path must eventually
+reach \(U\): it avoids blockers, cannot end inside an assigned
+bin, and cannot enter another free bin through an assigned
+row edge.
+
+Every such entry uses the unique physical base of its bin.
+Simplicity and vertex-disjointness consequently imply that
+the prefixes through their first \(U\)-contacts use distinct
+bins and rows, both within a prefix and across different
+prefixes.  Reassign each prefix row to the preceding bin in
+its chain.  This is simultaneously injective and frees the
+last bin of every prefix.
+If \(Z\) denotes all bins with a \(U\)-contact, one can thus
+leave simultaneously free a subset of \(Z\) of size
+\begin{equation}
+\label{phase:free-contacts}
+ r\ge K-i_*-2C(g_*-1)\ge K/2 .
+\end{equation}
+
+Scale this conceptual assignment by \(L\).
+The desired top column capacities are
+\[
+                         L+p_d^0-Cw_d ,
+\]
+which are nonnegative because the current top allocation and
+positive slack realize them.  Clip overloaded columns by
+removing mass.  An assigned column initially carries \(L\),
+so its removed mass is at most \(Cw_d\); the total removed is
+at most \(Cw(\mathcal D)\le CN\).
+The current top allocation proves that all rows can be filled
+under these capacities.  Complete the clipped partial
+transportation flow by residual source-to-sink augmentations;
+one can scale the dyadic data and use integral path
+decomposition for this existence argument.  Simple augmenting
+paths do not leave the sink, so column sink flows do not
+decrease.  The \(r\) initially empty specified columns receive
+in total at most the removed mass.
+The resulting allocation \(x'\) has nonnegative slacks \(s'\)
+and satisfies
+\begin{equation}
+\label{phase:alternative-slack}
+                           s'(Z)\ge Lr-2CN .
+\end{equation}
+
+At a stall, the cache-based eligibility guarantee of
+Lemma~\ref{match:top-maintenance} gives \(s_d\le5C\) on \(Z\).
+Take the difference from the current allocation and slack as
+a direction.  Row sums and column equations are unchanged,
+so it is a circulation in the top engine graph.
+Every negative individual logarithmic directional contribution
+has magnitude at most one, since \(x',s'\ge0\).
+Their total is at most
+\(|E(\mathcal B)|+|\mathcal D|\le4N\).
+The positive sum is at least
+\[
+ \frac{s'(Z)}{5C}-|Z|
+ \ge \frac{Lr-2CN}{5C}-N .
+ \]
+By \eqref{phase:free-contacts} and
+\(L\ge10000CN/K\), this is greater than three times \(4N\).
+As \(\lambda\) counts the absolute individual contributions,
+the claimed ratio is greater than one half.
+Lemma~\ref{lem:priced-steps} excludes \(\mathrm{LOW}\) unless
+it explicitly reports failure or suspension.  Its positive
+objective increase, with the bounded objective accounting
+below, also excludes indefinite pricing without another
+structural action.
+\end{proof}
+
+\subsection{Implementation and total phase cost}
+\label{phase:implementation}
+
+We give the representation and cost details needed to sum the
+local work.  The charges are to touched records and actual
+engine notifications, rather than to a whole graph per event.
+
+\paragraph{Physical structure.}
+Maintain physical vertices, bin and row identifiers, mates,
+assignments, incident lists, and edge classifications in
+dictionaries and linked lists.  Maintain a set of distinct-bin
+contacts and, for each bin, a list of contacts to \(U\) with
+its first member accessible.  A register refresh changes a
+bin's eligibility flag without scanning its contacts.
+
+At a contraction retain a largest old bin's representative.
+Move the smaller bins' member lists and the swallowed rows,
+updating their physical incidences and affected ledger
+records.  Unchanged exterior incidence allocations retain
+their values and need only endpoint retargeting when
+necessary.  Sum bin data using \(|X|\) point reads per
+retained ledger; do not scan the largest bin's members.
+A moved old member's bin size at least doubles during its
+uninterrupted stay in bins.  Initial membership, new
+expansions, and swallowed row entries begin new charges;
+erasures and later returns are covered by
+Lemma~\ref{phase:accounting}.  Deletions inspect only removed
+bins, their assigned rows, and their affected physical
+incidences, applying Lemma~\ref{match:deletion}.
+Subcubicity therefore bounds all physical structural touches,
+including endpoint retargeting, by
+\begin{equation}
+\label{phase:structural-touches}
+                         O_a((S+Lg_*)\log S).
+\end{equation}
+Assignment flips in the pair primitive require only abstract
+assignment updates.  By Lemma~\ref{match:pair-action}, successful
+contractions charge their abstract arity, gains charge \(L\)
+up to logarithmic factors, and a final abort costs at most
+that latter amount.  All bin-pair work is consequently
+\begin{equation}
+\label{phase:pair-work}
+                    O_a((S+Lg_*+L)\polylog S),
+\end{equation}
+with the fixed reliability factors included.  Materialization
+uses Lemma~\ref{match:materialization} and is charged by the same
+physical erasure work or by one final phase-boundary scan.
+
+\paragraph{Top values and objective.}
+At a structural edit, read and reset only the affected top
+coordinates.  The top column residual is available from
+\[
+                         y_d^0=s_d-p_d^0+Cw_d ;
+\]
+it does not require a separate global sum of implicitly
+moving allocations.  The aggregation, redirection,
+restriction, and tiny transfers determine affected slacks
+exactly, preserving column equations without rounding.
+Compute all final settings of a batch before submitting
+deletions, point changes, and insertions to the engine.
+Both old and newly anchored descriptors then have positive
+arguments, and no pricing call occurs until the completed
+topology again satisfies its equations.
+Notifications arising during this service can be queued:
+there is no implicit primal motion during the service.
+Settle all dirty small-argument and eligibility checks
+before choosing the next main action.
+
+Use nominal top-engine lifetime size \(SB\), with an explicit
+check on the representation.  Only actual topological
+insertions and retargetings consume new incidence slots;
+repricing, motion, and positivity repairs on retained
+coordinates do not.  Equation~\eqref{phase:structural-touches}
+makes this nominal bound sufficient eventually.
+For fixed \(a\), Lemma~\ref{phase:accounting} gives
+\[
+ L=O_a(S),\qquad
+ \sum_d p_d^0=O_a(Lg_*+1),\qquad
+                         s_d\le L+\sum_d p_d^0 .
+\]
+Thus at pricing states all top arguments lie in a range
+whose logarithmic width is \(O_a(\log S)\), and there are
+only \(O(S)\) coordinates.  The top objective range is
+\(O_a(S\log S)\).  Each affected coordinate at a structural
+edit costs at most \(O_a(\log S)\) in objective, so the
+cumulative structural loss is
+\(O_a((S+Lg_*)\log^2 S)\).
+The donor decrease in a tiny positivity transfer has loss
+\(O(\delta)\), and its total is already covered by the
+tiny-repair count.  Each successful priced step increases
+the objective by \(\Omega(q^2)\).  Hence their number is
+\begin{equation}
+\label{phase:top-step-count}
+                             O_a(Sq^{-2}\log^2 S).
+\end{equation}
+Dirty-entry repairs and eligibility work charge a constant
+number of point operations per notified or structurally
+touched entry.  The notification bound of
+Lemma~\ref{lem:priced-steps} and
+\eqref{phase:top-step-count} put the total top work in
+\(S^{1+O(1/a)+o_a(1)}\).
+
+\paragraph{Persistent integral ledgers.}
+Store allocations by physical incidence and \(y,p\) by bin
+in persistent point maps, for example path-copy balanced
+trees.  Maintain an index and sum of positive live debts;
+deleted keys are cleared, and new bins are initialized
+locally.  Retained levels receive their structural edits
+separately.  At a projection from integral parent \(j-1\),
+retain the parent's roots from \emph{before} a possible
+peel, and modify a copy only along the obtained flow support
+and deletions.  Include the exterior loads freed by removed
+rows.  The new child's debt map is empty.  Apply preserving
+deletions separately to coarser ledgers, and let all deeper
+fresh ledgers initially share the new child's roots.
+This costs local projection-size work and logarithmic
+record overhead, not a whole-vector copy at each reset.
+Level \(1\) may build entire maps after its global static
+flow computation.
+
+The reset periods of Section~\ref{match:reset} are
+\(b_j=B^{a-j}\).
+Suppose an event selects level \(j>1\).  Even if the event
+advances ticks by \(L\), it crosses no \(b_{j-1}\) boundary:
+otherwise a coarser reset would have been selected.
+Its integral parent last reset to zero debt in this same
+\(b_{j-1}\) period interval; every crossing of such a
+boundary resets that parent or a coarser ledger.
+Its debt rises by at most \(C\) per expansion and \(2L\)
+per gain, and never positively for another action.
+Since these actions advance ticks by \(1,L\), respectively,
+the debt at the triggering event obeys
+\begin{equation}
+\label{phase:parent-debt}
+                              P\le(C+2)b_{j-1}.
+\end{equation}
+This reasoning uses both the pre-event and post-event
+quotients, so a jump over several periods cannot defeat it.
+In particular \(P=O_a(S)\) for \(j>1\).
+
+At most \(\lfloor\tau/b_j\rfloor\) events select level \(j\):
+each can be charged to a distinct crossed \(b_j\) boundary.
+By \(b_{j-1}/b_j=B\), Lemma~\ref{lem:projection}, and
+\eqref{phase:parent-debt}, all \(j>1\) projection costs sum to
+\begin{equation}
+\label{phase:local-reset-sum}
+ \sum_{j=2}^a
+   \frac{\tau}{b_j}\bigl((C+2)b_{j-1}+B\bigr)
+                    S^{O(1/a)+o_a(1)}
+       =S^{1+O(1/a)+o_a(1)} .
+\end{equation}
+The small-instance padding \(B\) is included here.
+For level \(1\), the global exact exchange computation has
+cost \(S^{1+o(1)}\).  Since
+\(b_0=B^a\ge S\) and \(b_1=b_0/B\), its total is at most
+\[
+                  \frac{\tau B}{S}S^{1+o(1)}
+                         =S^{1+O(1/a)+o_a(1)} .
+\]
+Together with initialization and the preceding charges,
+this proves the desired phase cost on completed guarded
+prefixes.
+
+\subsection{Guarded prefixes and the PM guarantee}
+
+\begin{lemma}[Eventual adequacy of the guards]
+\label{phase:guard-adequacy}
+For every sufficiently large fixed \(a\) and fixed
+admissible reliability parameter \(\sigma\), all deterministic
+guards of the PM construction are adequate for all
+sufficiently large \(S\), on every computation path.
+The bounds just proved apply also to a prefix ending in a
+failed or interrupted attempted operation.  No perfect-matching
+promise is needed for these time and adequacy assertions.
+\end{lemma}
+
+\begin{proof}
+Consider the prefix through a putative first deterministic
+interruption.  The elementary initial checks, such as
+\[
+ S\ge2^{100},\qquad
+ 100000C,\ B\le S^{1/20},\qquad q\ge S^{-1},
+\]
+are eventually satisfied at each fixed sufficiently large
+\(a\).  The loose \(S^{20}\) iteration caps and the
+\(S^{100}\) external-operation cap suffice first to bound
+tiny positivity debt and local pads.  A small argument
+increased and exactly re-anchored does not require another
+increase without motion or a reset of its bounds.  A top
+donor is chosen exactly from a bounded-degree row with sum
+\(L\); local repair does not create an unbounded chain of
+new small donors.  Thus these numerical error estimates
+do not assume the sharper running-time bounds that they
+are used to prove.
+
+All completed structural actions and peels preserve the
+deterministic ledger and matching invariants.  Their debt
+payoffs and the bottom certificates prove
+Lemma~\ref{phase:accounting} independently of objective
+progress.  Include the present structural action if any.
+For a coarse numerical bound, one has
+\[
+ L\le10000CS+1,\qquad g_*\le S,\qquad
+ \text{erased weight}\le4Lg_*+1,
+\]
+and at most \(N+4Lg_*+2\) expansions, allowing the next
+one as well.  Every retained integral ledger has acquired
+at most
+\begin{equation}
+\label{phase:crude-debt}
+                      C(N+4Lg_*+2)+2Lg_*
+\end{equation}
+debt between its resets, even without using
+\eqref{phase:parent-debt}.  Column loads are at most
+\(L|\mathcal A|\).
+Together with \(100000C\le S^{1/20}\), these estimates put
+all top data, exchange capacities, local return weights
+and scaled capacities, and argument upper bounds well
+inside \(S^{20}\).
+Thus numerical adequacy does not depend on
+parameter-dependent rounding constants in the period bound.
+
+At a local threshold test, the current sink consumption
+already bounds every lock-trigger expansion by
+\eqref{proj:region-size}, before that expansion is
+performed.  Ready arguments and post-motion refreshes have
+the required lower margin, and explicit edit batches use
+positive old and final settings.
+At the top, \eqref{phase:structural-touches}, with one
+extra physical-size edit allowance, verifies the nominal
+lifetime bound \(SB\) at a possible first overflow.
+At a local test, \eqref{phase:parent-debt} and its
+\(8192(P+1)\) nominal size give the engine condition
+\(R+B\le S^{1+2/a}\) eventually.  The same is true for
+the top nominal size.
+
+The structural and objective estimates
+\eqref{proj:step-count} and \eqref{phase:top-step-count}
+bound all completed iterations.  Add at most one final
+\(\mathrm{LOW}\), failed, or interrupted attempt.
+Because \(q^{-2}=O_a(S^{200/a})\), these bounds remain
+below \(S^{20}\) for fixed sufficiently large \(a\) and
+large \(S\).
+Up to a hypothetical first external-operation cap,
+the engine's notification bound charges dirty coordinates
+to priced motion.  Client repairs add only constantly
+many point operations per dirty trigger, besides the
+structural edits, and have no no-motion repair chain.
+Consequently even this cap-reaching prefix has only
+\(S^{1+O(1/a)+o_a(1)}\) external work, eventually smaller
+than \(S^{100}\).  The priced-step lemma's own eventual
+prerequisite adequacy applies within these hypotheses.
+
+These arguments are uniform over successful verified
+states and rejected stochastic attempts.  The engine
+lemma bounds attempted operations on every path; its
+construction uses verified structures and capped failed
+attempts, not a good-event-only time estimate.
+The pair primitive likewise either returns a valid
+action within its charged bound or terminates negatively.
+A detected stochastic failure promptly ends the PM test,
+whereas an inadequate deterministic prerequisite suspends
+the branch.  The latter has just been excluded in the
+fixed-parameter asymptotic range.  All local scans and
+updates, including a final pair abort or incomplete
+attempt, are charged by their represented work.
+This proves the claim.
+\end{proof}
+
+\begin{theorem}[Fixed-parameter subcubic perfect-matching search]
+\label{thm:subcubic}
+For the integers \(a\ge1000\) and fixed reliability parameters
+\(0\le\sigma\le a+1\), the construction defines a uniform
+randomized algorithm on loopless subcubic graphs with
+identified edge copies and \(N\le S\) vertices.
+Every computation halts with a checked perfect matching,
+a negative answer, or a suspension.
+It has no false positive.
+For each fixed input with a perfect matching, the
+probability of a negative answer is at most
+\begin{equation}
+\label{phase:pm-error}
+                            2^{-\sigma}S^{-5}.
+\end{equation}
+This statement bounds erroneous answers, not suspensions,
+and holds conditionally for adaptive invocations with
+fresh randomness and valid prerequisites.
+
+For every sufficiently large fixed \(a\) and fixed
+admissible \(\sigma\), there is no suspension on any path
+at all sufficiently large \(S\).  The total time on every
+path is then
+\begin{equation}
+\label{phase:pm-time}
+                              S^{1+O(1/a)+o_a(1)},
+\end{equation}
+where the exponent coefficients in \(O(1/a)\) are
+absolute.  All initialization, physical data movement,
+arithmetic, random bits, and explicit witness writing
+are included.
+\end{theorem}
+
+\begin{proof}
+Settle trivial cases directly; an odd number of vertices
+has no perfect matching.  Start with the empty matching
+and run the phase construction.  When
+\(K\ge200C\), a completed phase gains at least
+\(K/(200C)\).  Below that threshold, at most \(200C\)
+further phases are needed, each gaining at least one.
+Thus there are \(O_a(\log S)\) completed phases, and
+at most one final negative or suspended phase.
+Each has the bound established above.
+Initialization, phase-boundary materialization, and the
+final edge-identifier and vertex-coverage check cost
+only the already allowed near-linear work.
+Lemma~\ref{phase:guard-adequacy} makes
+\eqref{phase:pm-time} an every-path bound and excludes
+suspension in the stated asymptotic range.
+On arbitrary checked sizes, the explicit iteration,
+operation, representation, and sampling caps still give
+halting, with suspension permitted.
+
+On a PM instance, in the absence of a stochastic failed
+guarantee or suspension, valid pair actions and
+projections preserve the invariants.
+Lemma~\ref{phase:stall} prevents a \(\mathrm{LOW}\)
+negative answer before the phase target.  The objective
+step bound prevents an infinite sequence of priced
+steps, so each phase reaches its gains and the algorithm
+eventually constructs a perfect matching.
+Checking the proposed edge copies and coverage excludes
+false positives on every input, including no-instances.
+
+For the probability bound, count invocations using the
+loose guards rather than conditioning on later
+noninterruption.  There are fewer than \(S\) nontrivial
+phases, at most \(S^{20}\) main actions per phase, and
+only logarithmically many threshold tests and retrieval
+tests per projection.  On these prefixes,
+\[
+                      \beta\le CN+L|\mathcal A|,
+\]
+so its search range has logarithmic bit length.
+The total number of pair queries and priced-step
+instances is, conservatively, less than \(S^{50}\).
+Each reached pair query has the conditional error
+allowance in Lemma~\ref{match:pair-action}; each reached
+engine instance has the conditional allowance of
+Lemma~\ref{lem:priced-steps}.  Both are at most
+\(2^{-\sigma}S^{-60}\).
+Union over the reached invocations gives at most
+\(2^{-\sigma}S^{-10}\), which is smaller than
+\eqref{phase:pm-error}.
+
+The conditional bounds are applied when the invocation's
+input and prerequisites are fixed by its past history,
+and its new bits are fresh.  They are not conditioned on
+whether the branch later suspends or wins a scheduling
+race.  An additional deterministic suspension produces
+no negative answer by itself.  This proves
+\eqref{phase:pm-error} also at checked sizes where
+suspension remains possible, and completes the theorem.
+\end{proof}

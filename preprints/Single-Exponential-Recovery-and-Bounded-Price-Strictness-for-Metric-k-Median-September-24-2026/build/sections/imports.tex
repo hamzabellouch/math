@@ -1,0 +1,633 @@
+\section{The surplus construction and its execution certificate}
+\label{imp:section}
+
+This section specifies the external algorithmic input and derives the
+history properties used below.  The input is the construction of
+Cohen-Addad, Grandoni, Lee, Schwiegelshohn, and Svensson
+\cite{CGLSS2026}, in the version arXiv:2503.10972v2 dated 19 May 2026.
+We use its logarithmic-surplus construction and its robust dual analysis.
+The strictness proof below will be applied to the resulting certificate.
+
+Throughout this section, clients and facilities are distinct indexed points,
+all distances between distinct original indices are positive integers bounded by a fixed
+polynomial in $N=n+|F|$, and $n>0$.  Fix a sufficiently small rational
+$v\in(0,1/6)$ and put
+\[
+ \delta=3v,\qquad K=1+v^2,\qquad \lambda=2f>0,
+ \qquad [x]^+=\max\{x,0\}.
+\]
+The parameter $v$ is the small parameter denoted by $\varepsilon$ in the
+source's Section~3; the final approximation slack in its Theorem~1.2 need
+not have the same value.
+
+\subsection{The sequence data and the external result}
+
+A free copy $\widetilde i$ of a regular facility $i\in F$ has a specified
+length $u(\widetilde i)\ge0$.  Attach it as a leaf at $i$.  Thus
+\[
+ d(p,\widetilde i)=d(p,i)+u(\widetilde i),\qquad
+ d(\widetilde i,\widetilde j)
+   =u(\widetilde i)+d(i,j)+u(\widetilde j)
+\]
+for distinct copies.  Zero-length leaves may be identified metrically
+while retaining their labels for accounting.  In particular all triangle
+inequalities used below hold.  Each copy's length is fixed throughout the
+execution considered here.
+
+Here is the relevant sequence definition, stated with our notation.
+At phase value $z$ and a set $W$ of facilities define
+\[
+ A_W=\{j\in D:z<(1-\delta)d(j,W)\},\qquad I_W=D\setminus A_W.
+\]
+The convention $d(j,\varnothing)=+\infty$ is used only when every client
+is active.  A regular facility $i$ is $\eta$-openable relative to $(z,W)$
+if there are bids $(\tau_j)_{j\in A_W}$ satisfying
+\begin{align}
+ \tau_j&=z &&(j\in A_W,\ d(i,j)>vz),\label{imp:near-bids}\\
+ z\le\tau_j&\le\min\{Kz,(1-\delta)d(j,W)\}
+       &&(j\in A_W,\ d(i,j)\le vz),\label{imp:bid-cap}
+\end{align}
+and the payment and dual conditions
+\begin{equation}\label{imp:opening-payment}
+ \begin{split}
+ \sum_{j\in A_W}[\tau_j-(1-\delta)d(i,j)]^+
+  &+\sum_{j\in I_W}[(1-\delta)d(j,W)-(1-\delta)d(i,j)]^+\\
+  &\ge\lambda-n\eta,
+ \end{split}
+\end{equation}
+\begin{equation}\label{imp:opening-dual}
+ \sum_{j\in A_W}[\tau_j-d(i_0,j)]^+
+  +\sum_{j\in I_W}[\tau_a-2d(i_0,j)-d(i_0,a)]^+
+   \le\lambda
+ \qquad(i_0\in F,\ a\in A_W).
+\end{equation}
+Testing $i_0\in F$ also tests free copies: replacing $i_0$ by a free
+copy only increases the distances subtracted in
+\eqref{imp:opening-dual}.  These are Definition~3 of
+\cite{CGLSS2026}; $0$-openable means openable with the exact payment
+requirement.
+
+Suppose the actual set at the start of a phase is $Q$.  A phase sequence
+$H=(a_1,\ldots,a_s)$ is $\eta$-valid if every entry is either a free
+copy or a regular facility $\eta$-openable against some witness
+\[
+ W_t\supseteq Q\cup\{a_1,\ldots,a_{t-1}\},
+\]
+and no unopened regular facility is $0$-openable against the actual set
+$Q\cup\{a_1,\ldots,a_s\}$ after the sequence.  This last requirement
+is maximality for \emph{exact} openability, even when $\eta>0$.
+A solution of valid sequences consists of such sequences at successive
+phase values $1,K,K^2,\ldots$ and ends with all clients inactive.
+This is Definition~4 of \cite{CGLSS2026}.
+
+\begin{theorem}[Surplus construction]
+\label{imp:cglss}
+For the metric range above and fixed $v$, the construction underlying
+Theorem~1.2 of \cite{CGLSS2026} can be run in polynomial time at any
+target $2\le h\le |F|$.  With precision $\eta=2^{-N}$, its output has
+one of the following forms.
+\begin{enumerate}[label=(\roman*)]
+\item A solution of $\eta$-valid sequences with exactly $h$ distinct
+regular facilities and at most $L=O_v(\log N)$ free copies, for some
+final price $f>0$ and specified final copy lengths.
+\item A solution of $0$-valid sequences containing only regular
+facilities, at price $f=N^{-2}$, with at most $h$ facilities.
+\end{enumerate}
+One common integer $L$ can be used for all targets on an instance.
+For every regular opening, the algorithm also returns its witness set
+and certified bids.
+\end{theorem}
+
+The merging procedure is the external ingredient: Algorithm~3
+(\textsc{LogAdaptive}), Definitions~3--4, and Section~3.5
+(\textsc{MergeSolutions}) of \cite{CGLSS2026}. Its target counts
+regular facilities before projection of free copies. Section~\ref{imp:instantiation}
+justifies the price range, precision, interpolation endpoints and copy
+lengths used here; these choices are part of the stated construction.
+
+Before that verification, we prove what follows from any valid-sequence
+output of either form. Fix its final price and copy lengths and replay
+only its returned sequences. The preceding interpolation search is not
+part of this history. The next lemma derives all budget inequalities
+from this replay, including the final dual and its free-opening case.
+Its no-overbidding invariant will also justify the disabling length
+in Section~\ref{imp:instantiation}.
+
+\subsection{One execution supplies all the inequalities}
+
+\begin{lemma}[Surplus solution with a compatible history]
+\label{imp:surplus-history}
+Given valid sequences of either output form in Theorem~\ref{imp:cglss},
+with their price, fixed copy lengths, opening witnesses and certified bids, a
+polynomial-time replay produces final budgets $(\alpha_p)_{p\in D}$
+and a real solution $U\subseteq F$ of size at most $h+L$ with the
+following properties.
+
+The history replays the \emph{final} sequences using their fixed final
+price and fixed final copy lengths.  Each atomic step opens one facility
+or performs one simultaneous phase update.  Its actual pre-step and
+post-step open sets satisfy
+$Q_t^-\subseteq Q_t^+$, and these sets accumulate throughout the
+history. We call a client's transition to inactivity its removal from
+the active set. Let $t(p)$ be the step at which $p$ becomes inactive and
+$z_p$ the phase value immediately \emph{before} that step.  At this
+pre-step state all active clients have budget $z_p$, and
+\begin{align}
+ z_p&\le(1-\delta)d(p,Q_{t(p)}^-),\label{imp:active-threshold}\\
+ \alpha_p&\le Kz_p,\label{imp:final-cap}\\
+ (1-\delta)d(p,Q_{t(p)}^+)&\le\alpha_p\le Kz_p.
+ \label{imp:post-removal}
+\end{align}
+The distance on the left of \eqref{imp:post-removal} cannot increase
+at any later step.  If $I_t$ is the actual inactive set just before
+step $t=t(p)$, then, for every regular facility $i\in F$,
+\begin{equation}
+ \sum_{j\notin I_t}[z_p-d(i,j)]^+
+ +\sum_{j\in I_t}[(1-\delta)d(j,Q_t^-)-d(i,j)]^+
+ \le\lambda.
+ \label{imp:no-overbid}
+\end{equation}
+For these same final budgets, the dual inequality is
+\begin{equation}
+ \sum_{p\in D}[\alpha_p-2d(i,p)]^+\le\lambda
+ \qquad(i\in F).
+ \label{imp:dual}
+\end{equation}
+
+In the normal branch the history opens exactly $h$ paid regular
+facilities before projecting free copies, and
+\begin{equation}
+ (1-\delta)\operatorname{cost}(U)+h(\lambda-N\eta)
+       \le\sum_{p\in D}\alpha_p,
+ \qquad \eta=2^{-N}.
+ \label{imp:payment}
+\end{equation}
+In the small-price branch, $|U|\le h$, $\lambda=2/N^2$, $\eta=0$,
+and, writing $r=|U|$, the stronger exact-payment inequality is
+\begin{equation}
+ (1-\delta)\operatorname{cost}(U)+r\lambda
+       \le\sum_{p\in D}\alpha_p.
+ \label{imp:small-payment}
+\end{equation}
+In particular its paid term can be dropped.  For every nonempty real
+comparison solution $H\subseteq F$ one also has
+\begin{equation}
+ \sum_{p\in D}\alpha_p
+       \le |H|\lambda+2\operatorname{cost}(H).
+ \label{imp:comparison}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Fix the supplied valid sequences, price and copy lengths. This proof
+uses their validity. No facility deletion, change of price, or movement
+of a free copy during the construction's search is used as a step of
+this history. Write $\beta_j$ for
+a transient budget, reserving $\alpha_j$ for its final value.
+Initialize $Q=\varnothing$, $z=1$, and $\beta_j=1$ for all clients.
+
+\paragraph{Witness sets and actual updates.}
+At a regular opening with witness $W\supseteq Q$, one has
+$A_W\subseteq A_Q$ and $I_Q\subseteq I_W$.  Use the certified bid
+$\tau_j$ for $j\in A_W$ and the unchanged bid $z$ for
+$j\in A_Q\setminus A_W$.  Budgets of already inactive clients stay
+fixed.  Every actual active client whose budget increases lies within
+$vz$ of the newly opened regular facility.  It therefore immediately
+becomes inactive, since
+\[
+ (1-\delta)d(j,Q\cup\{i\})
+     \le(1-\delta)vz<z\le\tau_j.
+\]
+Consequently every client remaining active has its old budget $z$.
+At a free opening no budgets increase and the same conclusion holds.
+At a phase update, with old value $z$, each active budget becomes
+\[
+ \beta_j'=\min\{Kz,(1-\delta)d(j,Q)\};
+\]
+clients reaching the second value become inactive, and all others
+have budget $Kz$, the next phase value.  This proves inductively both
+the common active budget and the identity $A=A_Q$ at every atomic
+boundary.  It gives the strict form of
+\eqref{imp:active-threshold} whenever the right side is finite.
+
+When a regular opening inactivates a client, its final bid is at most
+$Kz_p$ and at least its new scaled connection distance. Inactivation
+during a free opening has final bid exactly $z_p$. At inactivation
+during a phase update, the final bid equals the scaled connection
+distance and is at most $Kz_p$. In every case the bid is frozen
+after removal from the active set.
+This proves \eqref{imp:final-cap}--\eqref{imp:post-removal}, using
+the old phase value also for a phase-update removal.
+Since $Q$ only grows in the fixed metric extension, later connection
+distances cannot increase.  Several removals in one atomic step all
+use the same pre-step value and pre-step set; an ordering of tied
+clients does not insert fictitious intermediate states.
+
+\paragraph{No overbidding at actual atomic boundaries.}
+We include the invariant argument corresponding to Claim~10,
+Equation~(33), in Appendix~A.2 of \cite{CGLSS2026}.  At a boundary set
+$c_j=(1-\delta)d(j,Q)$ and define
+\[
+ B_i=\sum_{j\in A}[z-d(i,j)]^+
+          +\sum_{j\in I}[c_j-d(i,j)]^+.
+\]
+Initially $B_i=0$ because all client--facility distances are at
+least one.  An opening cannot increase any client's term.
+Old inactive clients have smaller or unchanged $c_j$; an active
+client that stays active keeps $z$; and an active client that becomes
+inactive has new $c_j\le z$.  The latter assertion holds even if its
+bid increased, because an increased bid is possible only within
+$vz$ of the opening facility.  A free opening has the same
+monotonicity without bid increases.  This proves preservation at
+opening steps, including openings witnessed by supersets.
+
+Consider a phase update after a maximal phase sequence.  For its old
+active set put $b_j(t)=\min\{t,c_j\}$ for $z\le t\le Kz$, and define
+\[
+ B_i(t)=\sum_{j\in A}[b_j(t)-d(i,j)]^+
+             +\sum_{j\in I}[c_j-d(i,j)]^+.
+\]
+At $t=Kz$ this is precisely the invariant after the simultaneous
+update, including newly inactive clients.  If some $B_i(Kz)>\lambda$,
+continuity gives a first $t_*\in[z,Kz]$ at which some such facility
+$i$ has $B_i(t_*)=\lambda$; choose the first crossing among all
+regular facilities.  Then $B_{i_0}(t_*)\le\lambda$ for every
+$i_0\in F$.  Such an $i$ is unopened, since a facility in $Q$ has
+$B_i(t)=0$ for all these $t$.
+
+Offer $\tau_j=b_j(t_*)$ for $d(i,j)\le vz$ and $\tau_j=z$
+otherwise.  These bids satisfy the two update restrictions.
+For an outside client, $\delta d(i,j)\ge3v^2z\ge v^2z$, so
+\[
+ z-(1-\delta)d(i,j)\ge b_j(t_*)-d(i,j).
+\]
+For a nearby client this comparison holds immediately with
+$z$ replaced by $b_j(t_*)$.  Also
+$[c_j-(1-\delta)d(i,j)]^+\ge[c_j-d(i,j)]^+$ for an inactive client.
+Thus these bids pay at least $B_i(t_*)=\lambda$.
+Finally, for every $a\in A$, $j\in I$, and $i_0\in F$,
+the triangle inequality and $\tau_a\le c_a$ give
+\begin{align*}
+ \tau_a-d(i_0,a)-2d(i_0,j)
+ &\le (1-\delta)d(j,Q)-d(i_0,j)\\
+ &=c_j-d(i_0,j).
+\end{align*}
+Since $\tau_j\le b_j(t_*)$ for active $j$, the left side of
+\eqref{imp:opening-dual} is at most $B_{i_0}(t_*)\le\lambda$.
+Hence $i$ is $0$-openable against the actual set $Q$, contradicting
+maximality.  This proves the invariant through phase updates and
+establishes \eqref{imp:no-overbid} at precisely the required states.
+
+\paragraph{Payment with witness supersets.}
+The certificate's payment can be checked directly by a potential
+argument; this is the accounting in Lemma~A.1 and Equation~(32)
+of \cite{CGLSS2026}.  First compare a regular opening's witness
+payments with its actual payments.  For
+$j\in A_Q\setminus A_W$ we have
+$z\ge(1-\delta)d(j,W)$, whence
+\[
+ [z-(1-\delta)d(i,j)]^+
+ \ge[(1-\delta)d(j,W)-(1-\delta)d(i,j)]^+.
+\]
+For $j\in I_Q$, replacing $W$ by $Q\subseteq W$ only increases
+the available saving.  Clients in $A_W$ keep their certified bids.
+Therefore \eqref{imp:opening-payment} remains valid against the
+\emph{actual} prefix with the extended actual bids.
+
+Let $r_Q$ count regular facilities opened in the actual prefix.
+At every boundary consider
+\[
+ \mathcal P=\sum_{j\in I}\bigl(\beta_j-(1-\delta)d(j,Q)\bigr)
+              -r_Q(\lambda-n\eta).
+\]
+Initially it is zero.  At a regular opening, already inactive
+clients contribute their nonnegative connection savings.
+For an old active client a positive contribution
+$[\tau_j-(1-\delta)d(i,j)]^+$ makes it inactive, and its new slack
+$\tau_j-(1-\delta)d(j,Q\cup\{i\})$ is at least that
+contribution.  The total increase before the paid-facility term is
+therefore at least $\lambda-n\eta$.
+At a free opening, old inactive slacks can only increase and new
+inactive slacks are nonnegative.  At a phase update, the new inactive
+clients have zero slack, while the old terms and $r_Q$ are unchanged.
+Thus $\mathcal P\ge0$ always.  At termination, writing $V$ for the
+final virtual facilities and $r$ for its regular count, this gives
+\begin{equation}
+ (1-\delta)\sum_{j\in D}d(j,V)+r(\lambda-n\eta)
+           \le\sum_{j\in D}\alpha_j.
+ \label{imp:virtual-payment}
+\end{equation}
+
+\paragraph{The final dual on this replay.}
+We prove \eqref{imp:dual} for the budgets just constructed. The source
+defines this execution in Section~3.4 and immediately
+before Appendix~A.1. Its final-dual statement is Lemma~A.2, used to
+prove Theorem~3.10. Our argument follows Lemmas~A.2--A.3 and
+Equations~(34)--(38) of
+\cite[Appendix~A.2]{CGLSS2026}, whose regular-opening argument already
+handles witness supersets. We give the rows explicitly, including
+the case where the first facility that freezes the comparison facility
+is free.  That case needs the no-overbidding invariant in place of an
+opening-dual condition.
+
+Fix $i\in F$, write $d_j=d(i,j)$, and put
+\[
+ D^*=\{j\in D:\alpha_j>2d_j\},\qquad m=|D^*|.
+\]
+There is nothing to prove if $m=0$.  Order $D^*$ by removal step,
+breaking ties by nondecreasing final budget $\alpha_j$, and then
+arbitrarily between equal budgets.  Write $j\prec k$ and $j\succeq k$
+for this order.  This auxiliary order is specific to the present dual
+proof; it imposes no restriction on the arbitrary order of simultaneous
+removals allowed in the later strictness argument.  In particular it
+does not create intermediate states within an atomic step.
+
+An opening of $h$ at phase value $z$ \emph{freezes} $i$ if
+$d(i,h)\le(1+3v)z/2$.  We use only the first such opening, if there is
+one.  We first establish the following row for each contributor $k$
+removed strictly before that opening, or for every $k\in D^*$ if no
+opening freezes $i$:
+\begin{equation}\label{imp:pre-freeze-row}
+ \sum_{\substack{j\in D^*\\j\succeq k}}[\alpha_k-d_j]^+
+ +\sum_{\substack{j\in D^*\\j\prec k}}
+       [\alpha_k-2d_j-d_k]^+\le\lambda.
+\end{equation}
+The elementary comparison used below is that, for a nonempty actual
+prefix $Q$, $c_j=(1-\delta)d(j,Q)$, and $u\le c_k$,
+\begin{equation}\label{imp:triangle-row}
+ u-2d_j-d_k\le c_j-d_j.
+\end{equation}
+Indeed, $d(k,Q)\le d_k+d_j+d(j,Q)$, and multiplication by
+$1-\delta\le1$ proves the assertion.  When $Q=\varnothing$ there are
+no inactive clients, so none of the applications to inactive clients
+below is needed.
+
+Suppose first that $k$ is removed by opening $h$ at phase value $z$,
+before $i$ is frozen.  No contributor can have its budget increased by
+this opening: such an increase would require $d(h,j)\le vz$, whereas
+\[
+ 2d_j\ge2d(i,h)-2d(h,j)>(1+v)z\ge Kz\ge\alpha_j,
+\]
+contradicting $j\in D^*$.  Thus $\alpha_k=z$.  Apply no overbidding
+at the actual boundary immediately before the opening.  Every
+$j\succeq k$ is then active, so its term is exactly
+$[\alpha_k-d_j]^+$.  A $j\prec k$ removed in the same opening is
+also still active at this boundary, and its term $[z-d_j]^+$ dominates
+$[\alpha_k-2d_j-d_k]^+$.  Any remaining $j\prec k$ is already
+inactive; actual activity of $k$ gives $\alpha_k=z<c_k$, so
+\eqref{imp:triangle-row} gives the required domination for $j$.
+Discarding noncontributors proves \eqref{imp:pre-freeze-row}.
+
+Suppose instead that a simultaneous phase update removes $k$, with old
+phase value $z$.  Use the no-overbidding invariant at the actual
+\emph{post-update} boundary.  The set $Q$ is unchanged and
+$\alpha_k=c_k\le Kz$.  Clients still active have budget $Kz$, which
+dominates the budget appearing in either term of
+\eqref{imp:pre-freeze-row}.  For an inactive $j\prec k$, use
+\eqref{imp:triangle-row}.  An inactive $j\succeq k$ must have been
+removed in this same update.  Therefore $c_j=\alpha_j\ge\alpha_k$,
+where the last inequality is precisely the reason for the
+final-budget tie rule.  Its invariant term dominates
+$[\alpha_k-d_j]^+$.  This proves \eqref{imp:pre-freeze-row} also for
+phase-update removals.
+
+If no opening freezes $i$, sum \eqref{imp:pre-freeze-row} over all
+$k\in D^*$.  Replace each positive part by its argument.  Each budget
+has coefficient $m$.  If $j$ has rank $q$, its distance occurs with
+coefficient $q+2(m-q)+(q-1)=2m-1$.  Hence
+\[
+ m\sum_{j\in D^*}\alpha_j-(2m-1)\sum_{j\in D^*}d_j
+       \le m\lambda,
+\]
+which implies $\sum_{j\in D^*}(\alpha_j-2d_j)\le\lambda$.
+
+It remains to consider a first freezing opening $h$ at phase value
+$z$.  Let $Q,A,I$ be the actual state immediately before it, and let
+$b_j$ be the extended actual bid used at this opening: certified bids
+for witness-active clients and $z$ for the other active clients if
+$h$ is regular, and $b_j=z$ for all $j\in A$ if $h$ is free.
+Every $j\in A\cap D^*$ is removed at this opening and has
+$\alpha_j=b_j$.  To see this, suppose that $j$ remains active.
+Then $z\le b_j<(1-\delta)d(j,h)$.  Every later actual prefix, and
+thus every later witness, contains $h$.  Phase updates and certified
+bid updates are consequently capped by $(1-\delta)d(j,h)$; unchanged
+active bids also satisfy this bound.  It follows that
+$\alpha_j\le(1-\delta)d(j,h)$.  But
+\[
+ 2d_j\ge2d(j,h)-(1+3v)z
+    >\bigl(2-(1+3v)(1-\delta)\bigr)d(j,h)
+     =(1+9v^2)d(j,h)>\alpha_j,
+\]
+a contradiction.  This argument applies to free and regular openings
+and uses only containment of the actual prefix in future witnesses.
+
+Write $R=I\cap D^*$.  These contributors precede the freezing opening,
+so they retain all rows \eqref{imp:pre-freeze-row}.
+If $h$ is regular, let $W\supseteq Q$ be its witness and set
+\[
+ P=A_W\cap D^*,\qquad T=(A\setminus A_W)\cap D^*.
+\]
+For $j\in P$ the certified bid equals $\alpha_j$, whereas for
+$j\in T$ the unchanged actual bid gives $\alpha_j=z$.  Restricting
+\eqref{imp:opening-dual} to contributors gives, for every $k\in P$,
+\begin{equation}\label{imp:witness-freeze-row}
+ \sum_{j\in P}[\alpha_j-d_j]^+
+ +\sum_{j\in R\cup T}[\alpha_k-2d_j-d_k]^+\le\lambda.
+\end{equation}
+For each $k\in T$, apply actual no overbidding immediately before the
+opening.  The active budget is $z=\alpha_k$, and $k$ is actually
+active, so $\alpha_k<c_k$.  Using \eqref{imp:triangle-row} for
+inactive clients gives
+\begin{equation}\label{imp:unchanged-freeze-row}
+ \sum_{j\in P\cup T}[\alpha_k-d_j]^+
+ +\sum_{j\in R}[\alpha_k-2d_j-d_k]^+\le\lambda.
+\end{equation}
+Thus actual-active but witness-inactive contributors use the actual
+invariant, without assuming that the two active sets coincide.
+
+If $h$ is free, set $P=\varnothing$ and $T=A\cap D^*$.
+The preceding freezing argument shows that every $k\in T$ is removed
+by this free opening with $\alpha_k=z$.  The same actual pre-opening
+invariant and \eqref{imp:triangle-row} prove
+\eqref{imp:unchanged-freeze-row} for each such $k$.  No witness or
+opening-dual condition is needed for the free opening.  This supplies
+the free first-freezing case omitted by the invocation of an
+opening-dual condition in the cited proof.
+
+In either case put $r=|R|$, $p=|P|$, and $t=|T|$, so $m=r+p+t$.
+Sum \eqref{imp:pre-freeze-row} for $k\in R$,
+\eqref{imp:witness-freeze-row} for $k\in P$, and
+\eqref{imp:unchanged-freeze-row} for $k\in T$, replacing every
+positive part by its argument.  Each budget has coefficient $m$:
+for $R$ and $T$ it occurs $m$ times in its own row, and for $P$ it
+occurs in the first sum of each of the $p$ rows indexed by $P$ and
+$m-p$ times in its own second sum.  The distance coefficients are
+\[
+ \begin{array}{c|c|c}
+ \text{client class}&\text{coefficient calculation}&\text{coefficient}\\\hline
+ j\in R\text{, rank }q\text{ in }R
+    &q+2(r-q)+(q-1)+2p+2t&2m-1\\
+ j\in T&r+2p+t+r&2m-t\\
+ j\in P&r+t+p+(r+t)&2m-p.
+ \end{array}
+\]
+Consequently
+\[
+ m\sum_{j\in D^*}\alpha_j
+ -(2m-1)\sum_{j\in R}d_j
+ -(2m-t)\sum_{j\in T}d_j
+ -(2m-p)\sum_{j\in P}d_j\le m\lambda.
+\]
+Every displayed distance coefficient is at most $2m$; subtracting the
+remaining nonnegative distance terms and dividing by $m$ proves
+\[
+ \sum_{j\in D}[\alpha_j-2d(i,j)]^+
+   =\sum_{j\in D^*}(\alpha_j-2d_j)\le\lambda.
+\]
+This is \eqref{imp:dual} for the same final budgets used in the payment
+argument.  It also holds for each free copy by distance domination,
+although only $i\in F$ is needed here.
+
+\paragraph{Projection and cardinality.}
+Project each free copy of $i$ to $i$ and discard duplicate locations,
+giving $U\subseteq F$.  For every client,
+$d(j,U)\le d(j,V)$, so projection can only decrease cost.
+In the normal branch $r=h$ before projection and $|U|\le h+L$;
+substituting into \eqref{imp:virtual-payment} and using $n\le N$
+proves \eqref{imp:payment}.  Coincident projected locations do not
+reduce the number $h$ of paid regular facilities in that inequality.
+In the unmerged branch there are no free copies, $r=|U|\le h$,
+and $\eta=0$, giving \eqref{imp:small-payment}.
+Finally assign every client to its nearest facility of a nonempty
+$H$.  For each $i\in H$, the elementary bound
+\[
+ \sum_{j\text{ assigned to }i}\alpha_j
+ \le2\sum_{j\text{ assigned to }i}d(i,j)
+       +\sum_{j\in D}[\alpha_j-2d(i,j)]^+
+\]
+and \eqref{imp:dual} give \eqref{imp:comparison} upon summation.
+All statements therefore use one and the same history and budgets.
+\end{proof}
+
+\subsection{Instantiating the construction}
+\label{imp:instantiation}
+
+We now verify the choices needed for Theorem~\ref{imp:cglss}.
+The merging procedure itself is that of \cite[Section~3.5]{CGLSS2026}.
+It uses at most three free copies per phase and stops at exactly the
+target number of regular facilities. We check its endpoints and
+parameter transfers for the metric range and precision used here.
+
+\paragraph{Price range and precision.}
+Initialize at $f=N^{-2}$ and retain the source's
+upper price $4nM$, where $M$ bounds all original distances.
+At this upper endpoint, the first opening in an unmerged execution
+satisfies $nKz\ge\lambda=8nM$, since every active bid is at most
+$Kz$. Hence $z>M$, that opening makes all clients inactive, and
+the total subsequent switching payment is at most $nM<\lambda$.
+The upper-endpoint solution therefore has one facility, as required
+to bracket $h\ge2$. At the lower endpoint only cardinality is tested:
+if the unmerged run has at most $h$ facilities, return it as the
+small-price alternative. Section~\ref{sur:section} proves its cost
+bound using strictness.
+
+Perform each binary search to parameter difference at most $\eta/2$,
+where $\eta=2^{-N}$. A price difference of at most $\eta/2$ changes
+$\lambda=2f$ by at most $\eta\le n\eta$; a copy-length difference
+of at most $\eta/2$ changes the total payment by at most $n\eta/2$.
+Thus the source's parameter-transfer argument supplies the stated
+$\eta$-valid sequences, including when $n=1$. The source maintains
+a common $\eta$-valid prefix of earlier phases and transfers a current
+$0$-valid phase across one changed parameter
+\cite[Section~3.5]{CGLSS2026}. Thus the per-opening validity tolerance
+is not compounded from phase to phase.
+
+The transfer also preserves the unrelaxed opening-dual condition.
+Here is the scaled comparison needed when a client becomes inactive
+under a changed copy length, completing the corresponding calculation
+in \cite[Section~3.5.1, Claim~2]{CGLSS2026}.  Use the new metric $d$
+and witness $W$, and put $t=1-\delta$.  If $j$ was active and becomes
+witness-inactive while $\ell$ remains witness-active, the
+former active bid $\tau_j$, old phase value $z$, and new clipped bid
+$\tau'_\ell$ satisfy
+\[
+ \begin{aligned}
+ \tau_j&\ge z\ge t\,d(j,W)\\
+ &\ge t\,d(\ell,W)-t\,d(j,\ell)\\
+ &\ge\tau'_\ell-d(j,i_0)-d(\ell,i_0)
+       \qquad(i_0\in F).
+ \end{aligned}
+\]
+Subtracting $d(i_0,j)$ and taking positive parts shows that the
+former active term dominates the new inactive dual term.  The scaled
+distance $t\,d(j,W)$, rather than $d(j,W)$, is what the transfer
+hypothesis supplies.  Together with clipping of surviving active bids,
+this is the dual comparison; the payment tolerance is not added to the
+dual inequality.
+
+Witnesses and bids can be retained explicitly through the merge.
+Deleting an earlier entry preserves the superset relation for an
+inherited witness; a parameter transfer clips its inherited bids at
+the new caps; and a newly completed entry uses its actual prefix.
+These are polynomial-size certificates.  Fix deterministic LP and
+tie-breaking choices in the source's completion subroutine when
+comparing two interpolation endpoints.
+
+\paragraph{Paid counts at interpolation endpoints.}
+At a zero-length-copy endpoint, a regular facility and its free copy
+are geometrically coincident but have different paid counts.  In
+particular, the corresponding continuations can differ by one regular
+facility; the geometric endpoint identities in
+\cite[Section~3.5.2, Case~2; Section~3.5.3, Claim~5 and Case~3]{CGLSS2026}
+must not be used as equalities of paid counts. Test each endpoint explicitly for the
+target count $h$.  If an endpoint has count $h$, return it; otherwise
+a change by one cannot pass from strictly below $h$ to strictly above
+$h$.  This gives the needed integer bracketing for the interpolation
+while preserving exactly $h$ paid regular facilities in the normal
+branch.  No claim of exactly $h$ distinct projected facilities is used.
+
+\paragraph{Disabling copies and bounding the phase count.}
+Replace the fixed disabling length $10M$ used for
+free copies in the source's Section~3.5 by $20NM$. This ensures that
+the endpoint of a copy-length search has no effect except the copy's
+label. Indeed, the no-overbidding invariant in
+Lemma~\ref{imp:surplus-history} depends only on valid sequences.
+For any active client $j$ at any atomic boundary
+it implies $[z-d(i,j)]^+\le\lambda$ for every regular $i$, and hence
+\[
+ z\le M+\lambda\le Z:=M+8NM.
+\]
+An inactive client's scaled connection distance is at most its frozen
+budget, which is at most $KZ$. Since $v<1/6$ and $N\ge3$,
+\[
+ KZ\le\frac{37}{36}(M+8NM)<10NM<(1-\delta)20NM.
+\]
+A copy of length $20NM$ therefore cannot inactivate an active client,
+bind any bid cap at most $Kz$, or reduce an inactive client's
+connection distance. These observations apply also to witness sets:
+their scaled inactive connection distances are at most $z$, and their active bid caps
+are at most $Kz$. The disabling endpoint consequently leaves all
+subsequent openability tests and updates unchanged.
+
+All these parameters have polynomial bit length. Their binary searches
+remain polynomial. The bound $z\le Z$ and geometric phase growth give
+$O_v(\log N)$ possible active phase indices, uniformly over the
+search range. Multiplying a common phase bound by the source's at
+most three free copies per phase gives the asserted uniform $L$.
+
+\paragraph{Precision and parameter order.}
+The total payment error in the normal branch is
+\begin{equation}
+ e=hN\eta\le N^2 2^{-N}.
+ \label{imp:precision}
+\end{equation}
+For every fixed $v>0$ there is a fixed $N_v$ such that
+$N^2 2^{-N}\le v$ for all $N\ge N_v$.  Every positive integral
+comparison cost $P$ is at least one, so $e\le vP$ in that range.
+The binary representation of $\eta$ has $O(N)$ bits.
+Increasing the constant in $L=O_v(\log N)$ can place every
+$N<N_v$ in the branch $k\le2L$, where the logarithmic recovery
+procedure is used instead.  Thus constants in the local and
+strictness arguments can be chosen first, then $v$, then the common
+surplus bound and its fixed-size enlargement.  No dependence of
+those earlier constants on $L$ is introduced.

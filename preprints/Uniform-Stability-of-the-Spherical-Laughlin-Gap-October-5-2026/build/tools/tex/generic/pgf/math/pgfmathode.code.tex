@@ -1,0 +1,100 @@
+\def\pgfmathode@stopadd{\pgfmathode@stopadd}
+
+\def\pgfmathode@addindextofunc[#1]#2{%
+  \begingroup
+    \gdef\pgfmathode@func{}%
+    \pgfmathode@addindextofunc@i[#1]#2\pgfmathode@stopadd}
+
+\def\pgfmathode@addindextofunc@i[#1]#2#3{%
+    \ifx#1#2
+      \expandafter\gdef\expandafter\pgfmathode@func\expandafter{%
+        \pgfmathode@func #2[\pgfmathode@timeindex]}%
+    \else
+      \expandafter\gdef\expandafter\pgfmathode@func\expandafter{%
+        \pgfmathode@func #2}%
+    \fi
+    \ifx#3\pgfmathode@stopadd
+      \expandafter\gdef\expandafter\pgfmathode@func\expandafter{%
+        \expandafter{\pgfmathode@func}}%
+      \let\next\endgroup
+    \else
+      \def\next{\pgfmathode@addindextofunc@i[#1]#3}%
+    \fi
+    \next}
+
+
+
+\def\pgfmathode@generic@init@RK{%
+  \begingroup
+    \gdef#1{{#3}}%
+    \pgfmathode@addindextofunc[#1]#2%
+    \pgfmathsetmacro\pgfmathode@Sol@t{#1[0][0]}%
+    \pgfmathsetmacro\pgfmathode@Deltat{(#4-\pgfmathode@Sol@t)/#5}%
+    \pgfmathsetmacro\pgfmathode@dimfunc{dim(#3)-1}%
+    \pgfmathsetmacro\pgfmathode@numstep{#5-1}}
+
+\def\pgfmathodeRKI#1#2#3#4#5{%
+    \pgfmathode@generic@init@RK
+    \foreach \pgfmathode@timeindex in {0,...,\pgfmathode@numstep} {%
+      \message{Step \pgfmathode@timeindex...}%
+      \foreach \pgfmathode@funcindex in {1,...,\pgfmathode@dimfunc} {%
+        \pgfmathparse{%
+          \pgfmathode@Deltat*(\pgfmathode@func[\pgfmathode@funcindex-1])+
+          #1[\pgfmathode@timeindex][\pgfmathode@funcindex]}%
+        \expandafter\xdef\csname pgfmathode@Sol@\pgfmathode@funcindex
+          \endcsname{\pgfmathresult}%
+      }
+      \pgfmathparse{\pgfmathode@Sol@t+\pgfmathode@Deltat}%
+      \xdef\pgfmathode@Sol@t{\pgfmathresult}%
+      \xdef\pgfmathode@temp{}%
+      \foreach \pgfmathode@funcindex in {1,...,\pgfmathode@dimfunc} {%
+        \ifx\pgfmathode@temp\pgfutil@empty
+          \xdef\pgfmathode@temp{%
+            \csname pgfmathode@Sol@\pgfmathode@funcindex\endcsname}%
+        \else
+          \xdef\pgfmathode@temp{%
+            \pgfmathode@temp,
+            \csname pgfmathode@Sol@\pgfmathode@funcindex\endcsname}%
+        \fi}
+      \xdef#1{%
+        {\expandafter\pgfutil@firstofone#1,%
+          {\pgfmathode@Sol@t,\pgfmathode@temp}}}%
+    }
+  \endgroup}
+
+\def\pgfmathodeRKIV#1#2#3#4#5{%
+    \pgfmathode@generic@init@RK
+    \foreach \pgfmathode@timeindex in {0,...,\pgfmathode@numstep} {%
+      \message{Step \pgfmathode@timeindex...}%
+      \foreach \pgfmathode@funcindex in {1,...,\pgfmathode@dimfunc} {%
+        \pgfmathparse{%
+          \pgfmathode@Deltat*(\pgfmathode@func[\pgfmathode@funcindex-1])+
+          #1[\pgfmathode@timeindex][\pgfmathode@funcindex]}%
+        \expandafter\xdef\csname pgfmathode@RKIV@1@\pgfmathode@funcindex
+          \endcsname{\pgfmathresult}%
+        \pgfmathparse{%
+          \pgfmathode@Deltat*(\pgfmathode@func[\pgfmathode@funcindex-1])+
+          #1[\pgfmathode@timeindex][\pgfmathode@funcindex]}%
+        \expandafter\xdef\csname pgfmathode@RKIV@1@\pgfmathode@funcindex
+          \endcsname{\pgfmathresult}%
+      }
+      \pgfmathparse{\pgfmathode@Sol@t+\pgfmathode@Deltat}%
+      \xdef\pgfmathode@Sol@t{\pgfmathresult}%
+      \xdef\pgfmathode@temp{}%
+      \foreach \pgfmathode@funcindex in {1,...,\pgfmathode@dimfunc} {%
+        \ifx\pgfmathode@temp\pgfutil@empty
+          \xdef\pgfmathode@temp{%
+            \csname pgfmathode@Sol@\pgfmathode@funcindex\endcsname}%
+        \else
+          \xdef\pgfmathode@temp{%
+            \pgfmathode@temp,
+            \csname pgfmathode@Sol@\pgfmathode@funcindex\endcsname}%
+        \fi}
+      \xdef#1{%
+        {\expandafter\pgfutil@firstofone#1,%
+          {\pgfmathode@Sol@t,\pgfmathode@temp}}}%
+    }
+  \endgroup}
+
+
+\endinput

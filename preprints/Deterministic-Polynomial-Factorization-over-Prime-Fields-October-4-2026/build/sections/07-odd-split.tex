@@ -1,0 +1,243 @@
+\section{Splitting an odd number of roots}
+\label{odd:section}
+
+We now combine the geometry of Section~\ref{geom:section} with the divisor
+algorithms.  The input is a square-free polynomial already known to split
+into linear factors, but its roots are not given.  Computation over its
+coordinate algebra treats all roots at once.  If a scalar zero test behaves
+differently at two roots, it immediately produces a factor by
+Lemma~\ref{ff:simultaneous}.  Proposition~\ref{geom:separation} supplies
+the reason that a distinction must occur.  Our task here is to construct
+its input classes and perform its label tests within the promised bound.
+
+\begin{samepage}
+\begin{proposition}[Odd-degree splitting]
+\label{odd:split}
+Let $p$ be prime, $L=\lceil\log_2p\rceil$, and
+$B=20+(n+1)(L+1)$.  Suppose that $p>B^{200000}$ and that
+$F\in\mathbb F_p[X]$ is monic, square-free, totally split, and of odd
+degree $3\le N\le n$.  Choose an odd prime $q\mid N$.
+Suppose that the following data are supplied explicitly:
+\begin{itemize}
+\item a field $K/\mathbb F_p$ of degree at most $q-1$;
+\item a primitive $q$-th root of unity $\zeta\in K$;
+\item an element $\omega_K\in K^*$ of order
+      $q^{v_q(|K|-1)}$.
+\end{itemize}
+There is a deterministic algorithm, denoted by $\mathrm{OddSplit}$, that
+returns a nontrivial proper monic divisor of $F$ over $\mathbb F_p$ in a
+number of bit operations bounded by a fixed polynomial in $B$.
+\end{proposition}
+\end{samepage}
+
+\subsection{The working field and the computational operations}
+
+Put
+\begin{equation}
+             r=v_q(N),\qquad m=1+(q-1)r,
+             \qquad Q_K=|K|,\quad s_K=v_q(Q_K-1).
+\label{odd:parameters}
+\end{equation}
+Construct
+\begin{equation}
+             k=K[T]/(T^{q^r}-\omega_K),
+             \qquad \omega=T\bmod(T^{q^r}-\omega_K).
+\label{odd:working-field}
+\end{equation}
+This quotient is a field.  Indeed, every root of the binomial has exact
+order $q^{s_K+r}$.  For every positive integer $b$, the elementary
+lifting-the-exponent identity gives
+\[
+                  v_q(Q_K^b-1)=s_K+v_q(b).
+\]
+Thus the smallest extension of $K$ containing such a root has degree
+$q^r$.  The binomial has that degree and is irreducible.
+The same identity shows that $\omega$ generates the entire $q$-primary
+subgroup of $k^*$.
+Notice the bounds
+\begin{equation}
+                 q^r\le N,\qquad m\le q^r\le N,
+                 \qquad [k:\mathbb F_p]\le N(q-1).
+\label{odd:field-bounds}
+\end{equation}
+The middle inequality follows from
+$q^r=(1+(q-1))^r\ge1+r(q-1)$.
+
+Use the curve $C/K$ and its base extension to $k$ from
+Section~\ref{geom:setup}.  Thus $Y^q=F(X)$,
+$P_i=(x_i,0)$, $\lambda=1-\sigma$, and
+$e=(\sigma-1)\infty_0$.  Work simultaneously over
+\[
+                    A=k[T_1]/F(T_1)\simeq\prod_{i=1}^N k.
+\]
+The element $T_1\bmod F$ provides the known ramification point in each
+component computation.  The labels $i$ and values $x_i$ are used only in
+the correctness proof.
+
+Here are the precise divisor operations that the procedure uses.
+The divisor arithmetic of Proposition~\ref{div:arithmetic} adds divisors,
+applies $\sigma$, and reduces a degree-zero divisor to an equivalent one
+of absolute degree at most $2g$.  Lemma~\ref{div:trace} sums a
+simultaneously represented family across the components of $A$, without
+finding those components.  Lemma~\ref{div:circuits} finds a defining
+function for a principal divisor of the form $(1-\sigma)D-W$, even when
+the infinity divisor $W$ has large integer coefficients.  It handles those
+coefficients by addition and doubling circuits and retains the function
+as a product circuit.  Valuations and leading values at $P_i$ can be
+computed from this circuit.
+
+The procedure $\mathrm{LambdaDivide}$ of
+Proposition~\ref{div:divide} takes a reduced degree-zero divisor $D$
+and a known ramification point $P_i$.  Its promise is that $[D]$ has a
+$\lambda$-division represented by a divisor over $k$.  It returns a
+reduced degree-zero divisor $D'$ over $k$ satisfying
+\[
+                              \lambda[D']=[D].
+\]
+All these procedures use field arithmetic and scalar zero tests, so they admit
+the simultaneous execution just described.  At any test that distinguishes
+components, $\mathrm{OddSplit}$ stops and returns the resulting factor.
+
+\subsection{The procedure}
+
+The algorithm has three stages: lift the ramification classes, sum the
+lifts, and test labels.  We first give the complete instructions and then
+prove that the promise for every call holds and that a factor must be
+returned.
+
+\begin{enumerate}
+\item \textit{Lift each ramification class.}
+In simultaneous execution over $A$, start with
+$D=P_i-\infty_0$ in component $i$.
+Apply $\mathrm{LambdaDivide}(D,P_i)$ successively $m-1$ times, each time
+replacing $D$ by its output.  Write $d_{i,t}$ for the class after $t-1$
+divisions, so $d_{i,1}=[P_i-\infty_0]$.
+
+\item \textit{Sum the lifts and apply successive powers of $\lambda$.}
+Use the simultaneous divisor-sum operation to obtain a divisor representing
+\[
+                              d_m=\sum_{i=1}^N d_{i,m}.
+\]
+Reduce it, obtaining $D_m$.
+For $t=m-1,m-2,\ldots,1$, reduce
+$(1-\sigma)D_{t+1}$ to obtain $D_t$.  Thus, writing $d_t=[D_t]$,
+\begin{equation}
+                           d_t=\lambda^{m-t}d_m.
+\label{odd:downward-chain}
+\end{equation}
+Compute the integral infinity divisors
+\begin{equation}
+                           W_t=\lambda^{-(t-1)}Ne,
+                           \qquad 1\le t\le m.
+\label{odd:W}
+\end{equation}
+Here the inverse notation denotes the unique solution in the lattice
+$\Lambda$, not division of divisor classes.  These solutions exist because
+$q^r\mid N$ and $q$ is an associate of $\lambda^{q-1}$.
+One may compute them successively by solving
+$(1-\sigma)W_{t+1}=W_t$ on the cyclic infinity coordinates.
+
+\item \textit{Test the labels.}
+For $t=1,2,\ldots,m$, perform the following operations.
+The relation $\lambda d_t=[W_t]$ will hold at every test that is reached.
+Find a function $h_t\in k(C)^*$ satisfying
+\begin{equation}
+                      \operatorname{div}(h_t)
+                                   =(1-\sigma)D_t-W_t.
+\label{odd:h}
+\end{equation}
+It may be stored by the product-circuit method above.
+Evaluate $h_t(P_i)$ and $v_{P_i}(D_t)$ simultaneously.
+The value $h_t(P_i)^q$ is independent of $i$; extract it as a scalar
+$c_t\in k^*$ from $A$.
+Use $\mathrm{UnitRoot}$ from Lemma~\ref{ff:unitroot} to find
+$\gamma_t\in k^*$ with $\gamma_t^q=c_t$.
+For each component, compare $h_t(P_i)/\gamma_t$ with
+$1,\zeta,\ldots,\zeta^{q-1}$ and form
+\begin{equation}
+                 l_{i,t}=v_{P_i}(D_t)
+                        -\log_\zeta\bigl(h_t(P_i)/\gamma_t\bigr)
+                            \pmod q.
+\label{odd:labels}
+\end{equation}
+If these labels differ, return a nontrivial proper gcd with $F$
+corresponding to one of their values.  If they all agree, proceed to the
+next test.
+\end{enumerate}
+
+Every factor obtained by simultaneous execution lies in $\mathbb F_p[X]$.
+Indeed, although the gcd may be computed over $k$, it is the monic product
+of $X-x_i$ over a subset of roots $x_i\in\mathbb F_p$.
+Thus no additional descent of the output factor is required.
+
+\subsection{Correctness and cost}
+
+\begin{proof}[Proof of Proposition~\ref{odd:split}]
+Suppose that no earlier scalar test has returned a factor.
+The elements $\zeta$ and $\omega$ supply the primary-group data required
+by Theorem~\ref{norm:solve}.  In every division, its norm input is a
+constant multiple of the function $j$ in Lemma~\ref{div:compression}.
+Since the input divisor has absolute degree at most $2g$, the reduced
+numerator and denominator of $j$ have degrees at most $2g$.
+The norm solver's characteristic hypothesis therefore follows from
+$(N+4g+1)^2<B^6<p$.
+Corollary~\ref{geom:lifts}, with the $r,m,k$ of
+\eqref{odd:parameters}--\eqref{odd:working-field}, proves the promise for
+every invocation of $\mathrm{LambdaDivide}$ in the first stage.
+This remains true for the particular divisions chosen by the algorithm:
+every successive geometric division has a representative over $k$.
+We therefore have
+\[
+                       \lambda^t d_{i,t}=[e]
+                       \quad(1\le t\le m).
+\]
+The simultaneous sum in the second stage also satisfies its scalar-grid
+requirement.  A reduced divisor has absolute degree at most $2g$, so its
+compressed ideal bound has degree at most $2g$ and uses at most
+$b=4qg+1$ generators.  Thus
+\[
+             N(b-1)\le 4Nqg
+                  =2Nq(q-1)(N-2)<B^6<p,
+\]
+as required by Lemma~\ref{div:trace}.
+Summing the equalities $\lambda^m d_{i,m}=[e]$ gives
+\begin{equation}
+                              \lambda^m d_m=[Ne].
+\label{odd:sum-lifts}
+\end{equation}
+
+Equation~\eqref{odd:sum-lifts} is the hypothesis of
+Proposition~\ref{geom:separation}.  The classes in
+\eqref{odd:downward-chain}, their reduced representatives $D_t$, and
+the lattice divisors in~\eqref{odd:W} are exactly its inputs.
+That proposition proves that, at every reached test, the divisor in
+\eqref{odd:h} is principal over $k$, the function is a unit at all
+$P_i$, and its norm is a $q$-th power in $k^*$.
+Lemma~\ref{div:circuits} computes $h_t$ and its values, and
+Lemma~\ref{ff:unitroot} computes $\gamma_t$ with its promise thus
+verified.  The logarithms in~\eqref{odd:labels} require only the stated
+$q$ comparisons.
+These are precisely the labels of Proposition~\ref{geom:separation},
+which applies to all choices made by the deterministic routines.
+It guarantees a nonconstant label vector by test $m$, unless an earlier
+zero test has already returned a factor.  Therefore the procedure returns
+a nontrivial proper factor.
+
+For the running time, \eqref{odd:field-bounds} bounds the extension degree
+and the number of divisions and tests by polynomials in $n$.
+All divisors $D_t$ and all divisors retained between divisions are reduced,
+with absolute degree at most $2g$.
+The sole potentially large divisors are the $W_t$, and they have short
+integer descriptions.  More explicitly, if
+$W=\sum_j a_j\infty_j$, solving $(1-\sigma)W'=W$ amounts to taking
+partial sums of the $a_j$ and subtracting their mean.  Whenever the
+integral solution in $\Lambda$ exists, this increases the maximum
+absolute coefficient by at most a factor $2q$.
+Hence every coefficient of every $W_t$ has magnitude at most
+$N(2q)^m$, and thus bit length $O(\log N+m\log q)$.
+The principal-divisor computations use those coefficients through binary
+circuits, as guaranteed by Lemma~\ref{div:circuits}.
+All remaining loops and field operations have polynomial cost; the
+explicit combined bit bound is derived in Section~\ref{sec:complexity}.
+This proves the claimed uniform polynomial bound.
+\end{proof}

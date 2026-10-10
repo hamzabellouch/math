@@ -1,0 +1,811 @@
+\section{Adaptive fingerprints within budget blocks}
+\label{sec:fp-blocks}
+
+We now replace endpoint comparisons at small budget slacks by short keys.
+The endpoint universe has size $2^{O(B)}$, whereas the key range has size
+$B$.  These comparisons change the computed arrays.  To control the change,
+we compare the algorithm with a calculation that uses exact equality
+within one budget block and the actual algorithms below that block.
+
+This comparison has two roles.  Its conditional averages give the
+deterministic means needed by the compression reserve, and its candidate
+endpoints form a set independent of the current block's key.  We charge
+actual paths leaving that set to errors in lower calls, then bound
+collisions inside it.  The resulting coupled induction proves the error
+bound for the actual estimator.
+
+We use the root error metric $\mathfrak d_{u,a}$ for bounded nonnegative row
+outputs, its ordinary version $\|\cdot\|_{u,a;s}$ for raw arrays, and the
+ordinary vertex metric for vectors.  For a row quantity $Z(x,\sigma)$ define
+also
+\begin{equation}
+ \|Z\|_{\mathrm{row},u;s}^s
+ =\frac1N\mathbb E_\sigma\sum_x\frac{X_u(x)}u|Z(x,\sigma)|^s.
+ \label{eq:fp-row-measure}
+\end{equation}
+The value of $s$ remains $8$.  Supremums over endpoints below are over actual
+ID positions, with the appropriate retained-domain masks; virtual default
+positions are never counted with the multiplicity of the ambient universe.
+
+\subsection{Uniform salts and their access rule}
+
+The fixed-pair estimate below combines polynomial evaluation, as in
+classical algebraic fingerprinting~\cite{Schwartz1980}, with affine
+universal hashing~\cite{CarterWegman1979}. Its proof is included to
+specify the fair-bit distribution and space bound. The adaptive use of
+these fingerprints requires the separate block comparison that follows.
+
+\begin{lemma}[Short fingerprints]\label{lem:fp-hash}
+Suppose every endpoint has an injective, fixed-length binary encoding of
+length $L\le c_{\mathrm{ID}}B$.  There is a uniform construction from
+$O(\log B)$ independent fair bits of a map
+$k:\{\text{endpoint IDs}\}\longrightarrow\{1,\ldots,B\}$ such that, for
+distinct fixed IDs $v,w$,
+\begin{equation}
+ \Pr[k(v)=k(w)]\le C/B\le C B^{-1/2}.
+ \label{eq:fp-pair-collision}
+\end{equation}
+Evaluating the map at a presented endpoint needs $O(\log B)$ arithmetic
+scratch in addition to access to its encoding.
+\end{lemma}
+
+\begin{proof}
+Pad all encodings to the same length and put
+$P_v(T)=\sum_{i=0}^{L-1}v_iT^i$.  Choose a prime
+$B^3\le q\le2B^3$, increasing the fixed lower bound on $B$ if necessary.
+Thus $L<q$.  Let $\ell=\lceil\log_2q\rceil$.  Split a string of $3\ell$
+fair bits into independent integers $R,A,C$ in $\{0,\ldots,2^\ell-1\}$,
+and reduce them modulo $q$ to obtain $r,\alpha,\beta$.  Each residue has
+probability at most $2/q$.  Let
+$\tau:\mathbb F_q\longrightarrow\{1,\ldots,B\}$ partition the standard
+residues into consecutive sets of sizes differing by at most one, and set
+\[
+ k(v)=\tau\bigl(\alpha P_v(r)+\beta\bigr).
+\]
+All computations are in $\mathbb F_q$ before applying $\tau$.
+
+The nonzero polynomial $P_v-P_w$ has degree at most $L-1$, so it has at most
+$L-1$ roots.  This root bound follows by repeatedly factoring $T-r_0$ at a
+root; it applies here because the coefficient difference $1$ or $-1$ is
+nonzero in $\mathbb F_q$.  Consequently
+\[
+ \Pr[P_v(r)=P_w(r)]\le 2(L-1)/q.
+\]
+For distinct evaluations $z,z'$, the map
+$(\alpha,\beta)\mapsto(\alpha z+\beta,\alpha z'+\beta)$ is a bijection
+of $\mathbb F_q^2$.  Under uniform parameters its two outputs are uniform
+and independent.  The probability that their $\tau$-values agree is
+\[
+ q^{-2}\sum_{j=1}^B|\tau^{-1}(j)|^2
+ \le \frac{\lceil q/B\rceil}{q}\le\frac1B+\frac1q.
+\]
+The actual joint law of $(\alpha,\beta)$ is pointwise at most four times
+the uniform law and is independent of $r$.  Adding the two cases gives
+$2(L-1)/q+4/B+4/q=O(1/B)$.  A polynomial evaluation by Horner's rule and
+the residue arithmetic use $O(\log q)=O(\log B)$ bits.  The prime can be
+chosen uniformly by searching and trial division in that space.  The
+existence of a prime in the indicated interval is the same elementary
+prime-interval fact used in choosing the environment field.
+\end{proof}
+
+Fix a small positive rational $\epsilon$, to be chosen last.
+This coefficient controls the fingerprint block width. Write
+\begin{equation}
+ h_*=\lfloor\epsilon\log_2 B\rfloor,\qquad
+ M_b=bh_*,\qquad
+ \mathcal I_b=\{M_b,\ldots,M_b+h_*-1\}.
+ \label{eq:fp-blocks}
+\end{equation}
+Enlarge the fixed minimum $B$ so $h_*\ge1$ and
+$h_*\ge(\epsilon/2)\log_2B$.  Give each block meeting
+$\{0,\ldots,M_{\mathrm{top}}\}$ an independent salt from
+Lemma~\ref{lem:fp-hash}.  Pad each salt to a multiple of the fixed integer
+$H$ by unused independent bits.  Since $M_{\mathrm{top}}=O(B)$, the total
+number of bits is
+\begin{equation}
+ O\bigl((1+B/h_*)(\log B+H)\bigr)=O(B).
+ \label{eq:fp-salt-space}
+\end{equation}
+Here and throughout, constants may depend on the fixed $\epsilon$ and $H$.
+We enumerate the original fair-bit strings when enumerating environments;
+reducing chunks modulo $q$ does not change that sampling convention.
+
+The following access rule is part of the algorithm.  A task whose budget
+lies in $\mathcal I_b$ may inspect salts with indices at most $b$.  Its
+conditional walks vary all earlier salts as free bits and freeze the salt
+of block $b$ and every later salt.  The restriction applies to structural
+choices, port orders, validity tests, and predecessor tests as well as to
+numerical values.  The controller construction below implements this rule
+for every access operation, including inverse queries.  It is not enough
+to impose it only on the final output values.
+
+This rule is stated in the coordinates of the task's \emph{effective
+environment}.  Write $\sigma$ for that environment when analyzing a
+task.  A fixed ancestor variant may mix its free salt coordinates before
+supplying $\sigma$ to a descendant; the descendant's table depends on
+the resulting environment, not on the word that produced it.  Thus the
+rule does not forbid reading a later-indexed bit of the original master
+environment while replaying that word.  It requires the descendant's
+values, port orders, and access operations to be functions only of
+its permitted effective coordinates.  Lemma~\ref{lem:ctrl-replay}
+implements this distinction.  Each fixed variant is measure preserving
+by Lemma~\ref{lem:env-variants}, so the integrated estimates may change
+variables to its effective environment.  We do not assume that an
+adaptively selected variant leaves a uniform conditional law.  At a
+block-$b$ task, its own variants act only on effective salts earlier
+than $b$ and freeze its effective block-$b$ salt and all later ones.
+
+\subsection{The update rule and the clean calculation}
+
+We now complete the recursive definition of the actual task; inactive
+tasks still return zero outputs and empty access classes.  For an active
+row task, the additive schedule of Section~\ref{sec:est} supplies
+candidate increments from smaller-budget outputs.  Process the groups in
+decreasing slack.  In each group, distribute increments by the rule below,
+then use the compression, range clamps, and shortlist rule of
+Section~\ref{sec:buf-compression}.  After the last group, form the
+pre-incoming row functions and precursor classes from the completed arrays,
+then assemble any incoming gates and column multipliers as in
+Section~\ref{sec:atom}.  The separate column-vector calls have smaller
+budget.  Vector tasks use the same schedule to sum their scalar terms,
+with their prescribed range clamps and final clipping; they require no
+endpoint grouping or row-list compression.
+
+The row-group distribution rule is as follows.
+For a dyadic group with slack $d>2h_*$, compare endpoint IDs exactly.  For a
+group with $d\le2h_*$, use the key from the task's block as follows.
+First discard invalid candidates, including invalid guessed wraps,
+individually.  Sum all new candidate increments having the same key.
+Add a bucket's sum to every old representative with that key.  If the
+bucket has no old representative, introduce exactly its first valid new
+candidate, with its previous value equal to the old default, and add the
+bucket sum there.  Do not combine or discard old representatives in this
+key step.  Apply the same full-array compression, clamping, and shortlist
+rule as in the preceding section.
+
+Distinct actual representatives remain distinct.  Indeed two introduced
+representatives have different keys, and an introduced representative's
+key differs from every old key.  Increments at one and the same actual
+endpoint are always combined, even when other endpoints collide with it.
+Stored values are never summed by key.  The two channels use the same keys
+and the same representative selection for the entire group.
+
+For an analytical comparison at a budget $M\in\mathcal I_b$, define the
+\emph{clean calculation for block $b$} by replacing key comparisons by
+exact ID comparisons throughout that block, recursively in every child
+whose budget still belongs to $\mathcal I_b$.  Children below $M_b$ are
+the actual algorithms, with exactly the same environments in the two
+calculations.  This replacement applies to the entire numerical and
+structural calculation: candidate validity, representative selection,
+compression, exposed classes, and their port orders.  Descriptor
+enumeration uses fixed index orders.  Each finite-accuracy test for a
+shortlist or exposed class retains its prescribed accuracy level and
+tie convention, independently of any requested output accuracy.  All
+these operations use the corresponding clean operands.  Thus the clean
+calculation specifies its access choices as well as its represented
+arrays.
+
+Denote the actual and clean versions by superscripts $\mathrm{ac}$ and
+$\mathrm{cl}$.  Both still perform compression and clamping.  The clean
+calculation is a finite analytical recursion; its exact comparisons are
+not asserted to satisfy the eventual space bound.
+
+Clamping is part of both definitions.  The clean error reserve uses
+Lemma~\ref{lem:buf-clamping} for exact-ID increments, which are
+independent of the stored exception list.  That lemma preserves the
+relevant row functions and witnesses; it need not preserve the list or
+port presentation of an unclamped calculation.  The coupling below
+compares the two clamped calculations directly.  Its propagation bound
+uses the Lipschitz compression map and the nonexpansiveness of each
+common clamp, without introducing an unclamped actual calculation.
+
+\begin{lemma}[Independence of the clean block]\label{lem:fp-clean}
+Every clean value and structural choice for block $b$ is independent of
+that block's effective salt and of later effective salts.  In a task of
+budget $M\in\mathcal I_b$, the actual and clean row states immediately before
+the first group with $d\le2h_*$ are identical and independent of that
+salt.  Their stored lists at this boundary have size $2^{O(h_*)}$.
+The deterministic slice-mean assertion required by
+Lemma~\ref{lem:est-prefix} holds for the clean calculation.
+\end{lemma}
+
+\begin{proof}
+Induct on the budget and, within a task, on its prescribed sequence of
+operations.  Lower-block algorithms ignore the salt of block $b$ and
+later salts by the access rule; same-block clean children ignore them
+by induction.  Candidate tests use these children, exact endpoint
+grouping precedes compression, and the compressed row determines its
+exposed classes and pre-incoming scores.  Incoming ranks use those
+completed scores.  Separate column-vector queries likewise use a
+smaller-budget clean child in this block or an actual child below it.
+All statements here concern the current effective environment: each
+same-block transformation preserves its current and later salts, and
+each lower-block transformation acts on a subset of its earlier salts.
+Each numerical recipe uses the same fixed operand
+order, and each structural test uses its fixed accuracy level and tie
+rule.  Its result therefore depends only on earlier clean operands,
+including their finite numerical approximations.  The fixed index
+orders then give salt-independent representatives and ports.
+
+In particular, exact full-array addition, compression, and the prescribed
+row functions are salt independent.  Reordering paths or choosing a
+different representative of the same endpoint would not change an exact
+sum; retaining an extra default-valued position would not change the
+represented array.  The fixed conventions above also remove these
+presentation choices from the structural calculation.
+
+For a group with $d>2h_*$, every child budget is at most $M-d<M_b$.
+Both runs use the same lower-block children and exact comparisons there.
+All their list operations, including their deterministic tie conventions,
+ignore the present salt.  Thus their boundary states agree.  The last
+larger dyadic slack, if there is one, is at most $4h_*$, so its shortlist
+has at most $2^{O(h_*)}$ positions.  If there is no larger group, the
+boundary list is empty.
+
+Finally, the clean estimand depends only on rank channels and earlier
+salts.  These are precisely the variables averaged by its conditional
+walk, subject to its stated vertex conditions.  Same-block salts are
+irrelevant, and lower-block salts are free variables of this walk.
+Projection onto the uniform measure of the slice therefore gives a
+deterministic quantity at its indicated pair or vertex, with the
+prescribed retained-domain masks.  In particular, no random dependence
+on a frozen salt remains in this mean.  For the second channel, its
+deterministic mean magnitude is extended by its prescribed narrower
+endpoint mask, as required in Section~\ref{sec:buf-compression}.
+The salt rule is required of all access operations, including inverse
+queries and port orders; Lemma~\ref{lem:ctrl-replay} supplies its
+implementation.  Lemmas~\ref{lem:env-gap} and \ref{lem:env-variants}
+therefore apply to this function.  This verifies the deterministic-mean
+hypothesis of Proposition~\ref{prop:est-clean}; it does not assert
+independence between errors of different children.
+\end{proof}
+
+\subsection{Witness envelopes and escaped paths}
+
+To control adaptive candidates, we first bound a set of endpoints
+determined by the clean calculation.  An actual path leaving this set
+will be charged to a child witness discrepancy.
+
+We recall the relevant interfaces from Lemma~\ref{lem:atom-ports}.
+Every exposed actual path port has a broader smooth witness equal to one
+at that port.  Each witness has bounded row support.  The actual
+correction ports, including exposed ports of weight zero, have incoming
+multiplicity at most $K_c$.  Tables contain one entry per pair of actual
+IDs.  After fixing a copy part, the child tuple is common over the whole
+table; in particular, a right child reached from a midpoint does not
+depend on the discarded old start.  All these statements hold for
+arbitrary computed raw arrays, not just for accurate ones.
+
+The incoming cap applies to the entire exposed correction relation,
+including its zero-weight entries.  The broader auxiliary score class
+needs only a row bound: it is queried for scores and witnesses, whereas
+the left factor of a two-factor path is a capped correction table.
+This distinction permits the source sum below to be removed even when
+an offending candidate has zero numerical weight.
+
+Let $\mathcal G_b$ be the sigma-field generated by all coordinates of the
+task's effective environment except the salt of block $b$.  Fix a row
+$x$ and condition on $\mathcal G_b$ with $X_u(x)=1$.  Take its boundary list from
+Lemma~\ref{lem:fp-clean}, including every stored exact-default slot.
+For every small group and every immediate
+descriptor variant, evaluate the clean factors and their witnesses in
+the environment obtained by that fixed variant.  This transformation
+leaves the present and later salts frozen.  Include the endpoints in
+each direct witness support and, for a two-factor path, the endpoints
+in the right witness supports at all midpoints in the left witness
+support.  Include local base endpoints when applicable.  Let
+$\mathcal E_x$ be the union of these endpoints and the boundary list.
+Set $\mathcal E_x=\varnothing$ when $X_u(x)=0$.
+Unused or invalid clean descriptors may enlarge this set.  Actual
+candidates must still satisfy their wrap tests and all transformed
+source, midpoint, and terminal memberships; every error estimate below
+retains the memberships needed for its child metrics.
+
+\begin{lemma}[Size and independence of the envelope]
+\label{lem:fp-envelope}
+The set $\mathcal E_x$ is independent of the present salt and has size at
+most $2^{C_Eh_*}$ for a fixed $C_E$.  All clean nondefault representatives
+in the small groups belong to this set.  Consequently, conditional on
+the other data,
+\begin{equation}
+ \Pr[\text{two distinct IDs in $\mathcal E_x$ have the same key}]
+ \le C\,2^{2C_Eh_*}B^{-1/2}.
+ \label{eq:fp-envelope-collision}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Each fixed variant is independent of the present salt and leaves it
+unchanged.  Lemma~\ref{lem:fp-clean} therefore makes its clean witness
+supports $\mathcal G_b$-measurable.  We use these supports as sets of
+actual IDs, not the order of a port enumeration.  At a group of slack
+$d$ there are $2^{O(d)}$ immediate descriptors, including variants,
+difference parts, and copy choices.  The number of endpoints contributed by a direct
+witness is bounded.  A two-factor path contributes a bounded number of
+left witness midpoints and, for each, a bounded number of right witness
+endpoints.  Summing over the dyadic groups with $d\le2h_*$ and adding the
+boundary list proves the size bound.  No incoming bound on a clean
+witness is used here.
+
+Clean exposed ports lie in their clean witness supports.  Apart from the
+boundary representatives, exact updates can therefore create nondefault
+values only at the included endpoints.  Compression maps all untouched
+default positions to the new default.  Any extra exact-default slots in
+a shortlist may be omitted when describing its full array.  This proves
+the representative claim.  Equation~\eqref{eq:fp-envelope-collision}
+is now the pair union bound from Lemma~\ref{lem:fp-hash}, conditional on
+the fixed envelope.
+\end{proof}
+
+Let $\mathcal F_x$ be the event that some valid actual candidate in the
+small groups has endpoint outside $\mathcal E_x$, whether or not its
+increment is zero.  As representatives are
+only carried forward or chosen among new candidates, all actual
+representatives stay in the envelope outside this event.
+This includes default-valued representatives: they start in the full
+boundary list or inherit a candidate endpoint.  Dummy copies used to
+compute ranks are not new real representatives.  Thus omitting an
+exact-default clean slot when describing its full array does not omit
+an actual address from the collision analysis.
+
+\begin{lemma}[Charging an escaped candidate]\label{lem:fp-escape}
+Suppose actual--clean child discrepancies at budget $m$ have their
+prescribed metric bounds $2^{-p_m}\lambda_m$.  The contribution of
+$\mathcal F_x$ to any bounded final pre-incoming row output has norm at
+most
+\begin{equation}
+ 2^{-p}\sum_{\substack{d\le2h_*\\m\in\mathcal I_b,\ m\le M-d}}
+                 2^{C d}\lambda_m,
+ \label{eq:fp-escape-charge}
+\end{equation}
+where the sum includes the finitely many dependency types and their
+descriptor multiplicities in its constant $C$.  Equivalently, one may
+use the maximum of $\lambda_m$ over the children of each slack group
+and increase $C$.
+\end{lemma}
+
+\begin{proof}
+An actual endpoint outside the envelope has an offending path factor.
+For a direct path its actual port is outside the clean witness support.
+For a two-factor path, either its actual left port is outside its clean
+witness support, or its midpoint lies in that support and its actual
+right port is outside the corresponding clean right witness support.
+At the offending port the actual witness is one and the clean witness
+is zero.  Thus the indicator of this event is at most the $s$-th power
+of their root discrepancy there.  Union bounding over candidate paths
+gives a sum of such nonnegative powers.  The unit-witness property holds
+also for exposed zero-weight ports; no lower bound on the candidate's
+increment is being assumed.
+
+Each output under consideration is bounded and has bounded row support.
+The union of the two output supports is still bounded, by
+Equation~\eqref{eq:buf-row-support}.  Hence its entire row error power on
+$\mathcal F_x$ is at most a fixed multiple of
+$\mathbf1_{\mathcal F_x}$.  We charge this row-failure indicator, rather
+than the size of the offending increment.  There is no endpoint sum left
+on the output side to pay for.
+
+The right-factor charge is the case where the old start must be summed
+out.  Fix a guessed variant and a two-factor path $x\to z\to y$.
+Change variables by its measure-preserving transformation, as in
+Lemma~\ref{lem:env-variants}; in the following display all memberships,
+ports, and witness values are evaluated in that transformed environment.
+Write $e_R(z,y)$ for the root discrepancy of the two right witnesses and
+$\mathcal P^{\mathrm{ac}}_L$ for the actual left exposed-port relation.
+The candidate's validity retains $X_u(x)$, $Z_f(z)$, and the right
+child's endpoint membership $Y_{a'}(y)$.  Dropping only surplus guards,
+the right-port contribution is at most a constant times
+\begin{align}
+ &\frac1N\mathbb E\sum_x\frac{X_u(x)}u
+       \sum_{z:(x,z)\in\mathcal P^{\mathrm{ac}}_L}Z_f(z)
+       \sum_{y:Y_{a'}(y)=1}|e_R(z,y)|^s \notag\\
+ &\qquad\le\frac{K_c}{N u}\mathbb E\sum_z Z_f(z)
+       \sum_{y:Y_{a'}(y)=1}|e_R(z,y)|^s
+   =K_c\frac f u\,\mathfrak d_{f,a'}(W_R^{\mathrm{ac}},
+                                      W_R^{\mathrm{cl}})^s.
+ \label{eq:fp-actual-incoming}
+\end{align}
+The middle inequality uses the incoming cap of the \emph{actual} left
+port relation.  It does not use a clean incoming cap.  The right task's
+tuple is independent of $x$, so the same discrepancy is being summed
+when the old start is removed.  This condition is necessary for the
+displayed equality with the right metric.
+For the fixed variant and copy part, the right tuple has only the
+prescribed task parameters and transformed environment.  The midpoint
+$z$ is its vertex argument, and the old source $x$ is not a parameter.
+Its final gate and column queries use that same effective tuple, rather
+than the ancestral descriptor that happened to discover the entry.
+
+For a direct or left offending port, sum the child's witness discrepancy
+over its own row and endpoint domain; the bounded number of possible
+right ports incurs only a fixed factor.  Projected paths are partitioned
+by the fixed copy symbols, with constant multiplicity.  Normalization
+and preparation dependencies make the same direct witness comparison.
+If a candidate arose from a narrower terminal slice, its validity mask
+may be dropped in this row-event estimate.  Thus no factor
+$\pi_a/\pi_t$ is incurred.  In contrast, the transformed source hit
+cannot be omitted before the change of variables and the incoming-cap
+sum; it has been retained in Equation~\eqref{eq:fp-actual-incoming}.
+
+At slack $d$, scale ratios, variants, and immediate path counts cost at
+most $2^{O(d)}$, as in Lemma~\ref{lem:est-raw-difference}.  The possible
+reset factor in Equation~\eqref{eq:fp-actual-incoming} is absorbed by the
+precision gain.  Admissible row tasks have $u\le f$, as specified in
+Section~\ref{sec:atom}.  Equation~\eqref{eq:est-child-precision} gives,
+after the scale-dependent $O(d)$ terms,
+\begin{align*}
+ p_m&\ge p-O(d)+\tfrac12\log_2(f/u),\\
+ (f/u)^{1/s}2^{-p_m}
+ &\le 2^{-p+O(d)}(f/u)^{1/8-1/2}
+ \le 2^{-p+O(d)}.
+\end{align*}
+Take $s$-th roots and use Minkowski to sum the charges.  A child below
+$M_b$ is identical in the two versions and contributes zero.  All
+remaining children satisfy $m\le M-d$ and belong to $\mathcal I_b$,
+which proves Equation~\eqref{eq:fp-escape-charge}.
+\end{proof}
+
+\subsection{Bucket algebra and the collision charge}
+
+The escape estimate leaves rows whose candidates stay in
+$\mathcal E_x$.  On these rows we separate child discrepancies from
+collisions among the clean endpoints.  We compare full arrays with
+their defaults, so different shortlist presentations require no extra
+error term.  The following observation explains the key update rule.
+
+\begin{lemma}[Only increments are aliased]\label{lem:fp-buckets}
+Consider one small group on $\mathcal F_x^c$.  Let
+$\Delta_{\mathrm{ac}}(y),\Delta_{\mathrm{cl}}(y)$ be its unaliased
+increments, namely its true-ID sums using actual and clean children,
+respectively.  Let $k_d\le2^{C d}$ bound its number of immediate
+descriptors, and let $\mathcal C_x$ denote a collision on $\mathcal E_x$.
+The discrepancy between the actual bucket-distributed increment and
+the clean true-ID increment is at most
+\begin{equation}
+ (k_d+1)\left(
+       \sup_y|\Delta_{\mathrm{ac}}(y)-\Delta_{\mathrm{cl}}(y)|
+       +\mathbf1_{\mathcal C_x}\sup_y|\Delta_{\mathrm{cl}}(y)|
+                  \right)
+ \label{eq:fp-bucket-bound}
+\end{equation}
+in sup norm, simultaneously for both channels.  The old full-array
+discrepancy is added to this bound with coefficient one.
+\end{lemma}
+
+\begin{proof}
+When all envelope keys are distinct, the rule gives exactly the actual
+true-ID increment: each old occurrence is updated at its own ID, and
+each genuinely new ID has its own bucket.  Thus the discrepancy is
+simply $\Delta_{\mathrm{ac}}-\Delta_{\mathrm{cl}}$.
+
+When there is a collision, each updated representative receives a sum
+of increments at at most $k_d$ distinct actual addresses.  Its magnitude
+is at most $k_d\sup_y|\Delta_{\mathrm{ac}}(y)|$.  At positions not
+updated it is zero.  At either type of position subtracting the clean
+increment costs at most a further
+$\sup_y|\Delta_{\mathrm{cl}}(y)|$.  Apply
+\[
+ \sup_y|\Delta_{\mathrm{ac}}(y)|
+ \le\sup_y|\Delta_{\mathrm{ac}}(y)-\Delta_{\mathrm{cl}}(y)|
+      +\sup_y|\Delta_{\mathrm{cl}}(y)|
+\]
+to obtain Equation~\eqref{eq:fp-bucket-bound}.  This also covers an
+increment duplicated at several old representatives and a missing
+increment at an unchosen new representative.
+
+At no point are old values combined or moved to a different ID.  An
+unlisted old position has exactly the old default, and a newly selected
+representative starts with that value.  Therefore the full-array
+comparison before compression is the old discrepancy plus the increment
+discrepancy just bounded.  There is no term involving the height of an
+old value multiplied by a collision indicator.
+\end{proof}
+
+In applying this lemma to a group, combine contributions at equal actual
+endpoints \emph{within each paired difference} before measuring its
+clean height.  At a fixed endpoint and original generator word, the
+outer slice and wrap tests are the same for budgets $m$ and $m-1$.
+Their constituent port sets may differ, but each set contains all
+nonzero entries and enumerates each actual ID pair once; an absent
+entry contributes zero.  Their true-ID sums are therefore exactly the
+two terms of the paired difference.  Subtracting the same stochastic
+true-atom term from both sides, as in
+Lemma~\ref{lem:est-raw-difference}, preserves its cancellation.
+One can then sum the resulting sup bounds over difference layers.
+This remains legitimate
+if a first-bucket representative is chosen across several layers:
+the proof of Lemma~\ref{lem:fp-buckets} applies to their total increment,
+and the triangle inequality bounds the total by the sum of the paired
+bounds.  A descriptor with zero increment contributes only to $k_d$ in
+this bound.  It may affect representative selection, which is already
+covered by Lemma~\ref{lem:fp-buckets} and the escape event.
+
+\begin{lemma}[Direct cost of collisions]\label{lem:fp-direct}
+The direct collision contribution to any final pre-incoming output has
+norm at most
+\begin{equation}
+             2^{-p}\,2^{C h_*}B^{-1/(2s)},
+ \label{eq:fp-direct-charge}
+\end{equation}
+for a fixed $C$ independent of $D_1,D_2,\epsilon$ introduced below.
+All remaining contributions on $\mathcal F_x^c$ are bounded by
+actual--clean child discrepancy norms with an amplification at most
+$2^{C d}$ at slack $d$.
+\end{lemma}
+
+\begin{proof}
+For each small dyadic group, let $\Delta_d^{\mathrm{cl},\nu}(x,y)$ be
+its complete clean true-ID increment in channel $\nu\in\{1,2\}$,
+including any exact base term assigned to that group.  Take an absent second channel
+to be zero, and choose a deterministic descriptor bound $k_d\le2^{Cd}$.
+By Lemma~\ref{lem:est-raw-difference}, the clean paired increments at a
+group of slack $d$ obey their crude absolute estimates in the retained
+endpoint metric.  These estimates hold for each fixed valid variant
+after its measure-preserving change of variables.  Counting variants
+and summing difference layers by the triangle inequality costs
+$2^{O(d)}$, without using walk contraction.  Within each paired layer
+the true-ID cancellation is performed before this inequality is
+applied.  If a local unpaired base term occurs in a small group, its
+first-group slack satisfies $M=O(d)$, so the same crude bound holds in
+its normalized raw units.  Since $\sup_y|Z_y|^s\le\sum_y|Z_y|^s$ over actual ID
+positions, the row norm of
+$\max_\nu\sup_y|\Delta_d^{\mathrm{cl},\nu}(x,y)|$ is at most
+$2^{-p+O(d)}$.
+
+Lemmas~\ref{lem:buf-update} and \ref{lem:buf-clamping}, together with
+Equation~\eqref{eq:buf-propagation}, propagate an input discrepancy at
+slack $d$ to the final array with a factor polynomial in $d+1$.
+At each step the discrepancy is measured between the clamped full
+arrays, including their defaults.  The next bucket increment is
+compared by Lemma~\ref{lem:fp-buckets}; compression then applies its
+uniform Lipschitz bound and the common clamp cannot enlarge the
+discrepancy.  This recurrence does not require their later bucket
+distributions or stored lists to agree.
+Root-Lipschitz row functions and bounded final support then give the
+same type of bound for the output metric.  Choose fixed $C_P,A_P$ so
+that $C_P(d+1)^{A_P}$ bounds this propagation.  For a retained row define
+\[
+ H_x=C_P\sum_{\substack{d\le2h_*\\d\text{ a group slack}}}
+       (d+1)^{A_P}(k_d+1)
+       \max_\nu\sup_y|\Delta_d^{\mathrm{cl},\nu}(x,y)|.
+\]
+Set $H_x=0$ when $X_u(x)=0$.  This quantity bounds the propagated clean-height terms in
+Equation~\eqref{eq:fp-bucket-bound}.  The preceding estimates give
+\[
+                 \|H\|_{\mathrm{row},u;s}\le2^{-p+C_0h_*}.
+\]
+All increments defining $H_x$ are clean, and its other factors are
+deterministic.  Thus $H_x$ and $\mathcal E_x$ are
+$\mathcal G_b$-measurable.  Conditioning on this sigma-field gives
+\[
+ \mathbb E\bigl[\mathbf1_{\mathcal C_x}H_x^s\mid\mathcal G_b\bigr]
+ =H_x^s\Pr(\mathcal C_x\mid\mathcal G_b)
+ \le C\,2^{2C_Eh_*}B^{-1/2}H_x^s.
+\]
+The row membership $X_u(x)$ is also $\mathcal G_b$-measurable.
+Integrating the last inequality in the row measure therefore yields
+\begin{align*}
+ \|\mathbf1_{\mathcal C}H\|_{\mathrm{row},u;s}^s
+ &\le C\,2^{2C_Eh_*}B^{-1/2}
+              \|H\|_{\mathrm{row},u;s}^s.
+\end{align*}
+Taking roots proves Equation~\eqref{eq:fp-direct-charge} after enlarging
+$C$.  We have not conditioned on $\mathcal F_x^c$ in this independence
+calculation: the actual error there is bounded by
+$\mathbf1_{\mathcal C_x}H_x$, which is then integrated on the whole
+space.  Conditioning on the salt-dependent stay-inside event is
+unnecessary and could destroy the stated independence.
+
+For the first term of Equation~\eqref{eq:fp-bucket-bound}, split products
+using bounded-factor differences, actual or clean row caps, and the
+actual or clean incoming cap of the represented two-way factor, exactly
+as in Lemma~\ref{lem:est-raw-difference}.  These are comparisons of
+unaliased sums using the respective children; they make no assumption
+about key success or independence of child errors.  Fixed valid
+variants, scale costs, and counts are all at most $2^{O(d)}$, with the
+possible source-release factor absorbed by the same precision gain as
+in Equation~\eqref{eq:fp-actual-incoming}.  Compression propagation is
+again absorbed in $2^{C d}$.  This proves the remaining assertion.
+\end{proof}
+
+\Needspace{8\baselineskip}
+\subsection{Closing the coupled induction}
+
+\begin{proposition}[Uniform block coupling]\label{prop:fp-coupling}
+The fixed constants can be chosen so that, for every task of budget
+$M\in\mathcal I_b$ and precision $p$, each prescribed actual--clean
+output discrepancy, including every pre-incoming score and witness,
+is at most
+\begin{equation}
+ 2^{-p}\lambda_M,\qquad
+ \lambda_M=2^{-D_1h_*+D_2(M-M_b)}.
+ \label{eq:fp-lambda}
+\end{equation}
+The same assertion holds for the ordinary vector metrics.  Adding
+these discrepancies to the clean estimates proves the target error
+bounds for the actual tables and vectors.
+\end{proposition}
+
+\begin{proof}
+Perform strong induction on the statistical budget, simultaneously for
+the actual target estimates, the block-clean target estimates needed at
+that budget, and Equation~\eqref{eq:fp-lambda}.  An inactive task returns
+the same zero outputs and empty paths in both versions, so its coupling
+error is zero.  Lower-block children are identical in a block coupling
+and already have their actual target bounds.  Same-block clean children
+have the clean target bounds at smaller budgets.  Therefore
+Lemma~\ref{lem:fp-clean}, the prefix estimate, and the compression
+analysis give the clean active target bounds with the spare constants
+in Proposition~\ref{prop:est-clean}.
+
+For the coupling, Lemmas~\ref{lem:fp-escape}--\ref{lem:fp-direct}
+bound the pre-incoming quantities.  Incoming gates are then compared
+by their rank and root-Lipschitz bounds.  In their multiplier effect,
+restrict to the union of the final supports of the two tables; these
+have bounded incoming multiplicity.  Thus Lemma~\ref{lem:atom-assembly}
+costs only a fixed factor on pre-incoming errors.  Its separately queried
+column vectors have a positive constant budget drop and their
+$f/u$ metric factor is covered by their precision gain.  Vector raw
+sums have no endpoint grouping, but their same-block children may
+differ.  The same crude individual-variant comparisons and nonexpansive
+clamps bound those differences.  Detector rank comparisons are already
+part of the assembly estimate.  No simultaneous key-success event over
+an incoming search is required.
+
+Collect the finite number of output types and absorb their fixed
+assembly factors into one fixed exponent $C$.  For a child budget
+$m\in\mathcal I_b$ used at group slack $d$, we have
+\begin{equation}
+ \lambda_m=\lambda_M2^{-D_2(M-m)}
+              \le\lambda_M2^{-D_2d}.
+ \label{eq:fp-child-gain}
+\end{equation}
+For a separate post-assembly query with constant positive budget drop,
+use $d=1$ in this inequality.  Replacing the dyadic group sum by the
+larger sum over positive integers, all coupled child charges are at most
+\begin{equation}
+ 2^{-p}\lambda_M\sum_{d=1}^{2h_*}2^{-(D_2-C)d}.
+ \label{eq:fp-recurrence}
+\end{equation}
+Counts of budget layers and dependency types are included in $2^{C d}$.
+Groups with larger slack have identical children and contribute zero.
+Together with Equation~\eqref{eq:fp-direct-charge}, this is the complete
+coupling recurrence.
+
+Choose $D_2>C$ so large that the infinite geometric sum in
+Equation~\eqref{eq:fp-recurrence} is at most $1/4$.  Then choose
+$D_1>D_2+1$.  Finally choose rational $\epsilon>0$ so small that
+\begin{equation}
+                  \frac1{2s\epsilon}>C+D_1+2.
+ \label{eq:fp-epsilon}
+\end{equation}
+Since $h_*\le\epsilon\log_2B$, the direct relative charge satisfies
+\[
+ 2^{C h_*}B^{-1/(2s)}
+ \le 2^{-(1/(2s\epsilon)-C)h_*}
+ \le\tfrac14\,2^{-D_1h_*}
+ \le\tfrac14\lambda_M,
+\]
+after increasing the fixed minimum $B$ to absorb any fixed coefficient.
+The child and direct charges fit within Equation~\eqref{eq:fp-lambda},
+even with room for fixed norm conventions already included in $C$.
+
+Moreover $0\le M-M_b<h_*$ implies
+\[
+              \lambda_M\le2^{-(D_1-D_2)h_*}.
+\]
+This is uniformly as small as required after the same minimum-size
+padding.  The triangle inequality therefore adds the coupling bound to
+the spare clean active bound, for example $C_b2^{-p}/2$, without
+exceeding $C_b2^{-p}$.  Inactive target bounds are the previously fixed
+bounded-range bounds.  This completes all three inductions.
+
+The order of choices is consequential.  Fix the analytical hierarchy,
+table thresholds, and trivial-case bound first.  Choose the precision
+and cutoff constants for the mean comparisons; then the compression
+floors, capacities, and walk lengths so the clean sums converge with
+their spare coefficients.  Fix clamping ranges and the crude exponents
+in the fixed-variant comparisons next.  These choices determine $C$.
+Only after them choose $D_2,D_1,\epsilon$ as above.  Thus reducing
+$\epsilon$ to obtain the direct collision gain does not alter an
+earlier clean-coefficient requirement.
+
+Later choices of the common stage-size bound, top-budget coefficient,
+and environment-field exponent do not change this crude exponent $C$.
+Immediate descriptor counts depend on relative slack, fixed support
+bounds and fixed walk length.  The sampler gap is uniform in both
+field size and the length of its single free-bit component.  Likewise,
+an enlargement of the fixed identifier-length coefficient only changes
+the polynomial-evaluation collision term in Lemma~\ref{lem:fp-hash} to at most
+$2c_{\mathrm{ID}}/B^2$; increasing the fixed minimum
+$B\ge c_{\mathrm{ID}}$ bounds it by $2/B$.  These enlargements can
+therefore be absorbed after $D_2,D_1,\epsilon$ have been fixed.
+\end{proof}
+
+\begin{theorem}[Error bounds for the actual estimators]
+\label{thm:fp-estimators}
+For every allowed task, with precision $p$ defined in
+Equation~\eqref{eq:est-precision}, the actual row outputs, including the
+pre-incoming scores and support witnesses, satisfy
+\[
+                \mathfrak d_{u,a}(\bar H,H)\le C_b2^{-p}.
+\]
+The clipped vectors have the corresponding ordinary error bound.
+In particular, every allowed reward query satisfies
+\begin{equation}
+ \frac1N\mathbb E_\sigma\sum_{x\in V_l}\frac{X_u(x)}u
+           |\bar W_l(x)-W_l(x)|^s\le C_b^s2^{-sp}.
+ \label{eq:fp-reward-bound}
+\end{equation}
+These estimates are uniform over the allowed task parameters and stage,
+and the constants are independent of the input and of $B$.
+\end{theorem}
+
+\begin{proof}
+Proposition~\ref{prop:fp-coupling} adds the actual--clean discrepancy
+to Proposition~\ref{prop:est-clean} with its spare constant.  The
+inactive-task bounds follow from the fixed bounded ranges and supports.
+The induction in Proposition~\ref{prop:fp-coupling} includes both kinds
+of tasks and every prescribed output.  Applying its ordinary vector
+statement to $W_l$ and taking the $s$-th power gives
+Equation~\eqref{eq:fp-reward-bound}.
+\end{proof}
+
+\subsection{Catalytic key equality}
+
+The key is short, but retaining a $\log B$-bit key or index at each tight
+recursive frame would still be too costly.  The following exact
+identity gives a comparison with only a constant number of endpoint
+excursions.  Its use in the space accounting requires the restoring
+endpoint interfaces constructed below.
+The cancellation of arbitrary initial contents also appears in
+transparent programs for catalytic computation
+\cite[Section~3]{BuhrmanCleveKouckyLoffSpeelman2014}.  Here the shared bit
+vector is included in the ordinary work-space bound.
+
+\begin{lemma}[Restoring equality test]\label{lem:fp-catalytic}
+Let $V\in\{0,1\}^B$ be a shared vector with arbitrary initial contents.
+Suppose an excursion to either of two deterministically specified
+endpoints returns the cursor, and its path and result are independent
+of the incoming contents of $V$.  Such excursions may use nested
+procedures which restore $V$.  There is a procedure which xors the bit
+$\mathbf1_{k(v)=k(w)}$ into a local result bit, restores $V$, and needs
+only constant local data across four endpoint excursions.
+\end{lemma}
+
+\begin{proof}
+Starting with result bit $r_0$, perform the following four excursions:
+flip $V_{k(v)}$; xor $V_{k(w)}$ into the result; flip $V_{k(v)}$ again;
+xor $V_{k(w)}$ into the result again.  The key is evaluated only at the
+endpoint currently visited.  If $V^0$ is the incoming vector, the first
+read equals $V^0_{k(w)}\mathbin\oplus\mathbf1_{k(v)=k(w)}$ and the
+second equals $V^0_{k(w)}$.  Thus the final result is
+$r_0\mathbin\oplus\mathbf1_{k(v)=k(w)}$ and both flips restore $V^0$.
+
+For nesting, use induction on the well-founded procedure order.  A
+nested call sees some arbitrary incoming vector, restores precisely
+that vector, and returns a result independent of it.  Hence the four
+outer endpoint paths and their keys are the same on repeated visits,
+even between the two outer flips.  The terminal evaluation, read, or
+flip is a local operation with no further structural call.  Only a
+phase and a result bit must survive across the excursions; a key index
+is recomputed at each visit in shared scratch.  The result bit being
+accumulated is not used to choose either endpoint path.  These facts
+give the induction invariant and the claimed local storage bound.
+\end{proof}
+
+For $d>2h_*$, exact bit-by-bit ID comparison is retained.  A bit position
+then takes $O(\log B)=O(d)$ suspended bits, with constants allowed to
+depend on the already fixed $\epsilon$.  For small slack,
+Lemma~\ref{lem:fp-catalytic} avoids that per-frame index.  The shared
+vector itself occupies $B$ bits and, by the lemma, may be reused by all
+nested comparisons.  This algebra establishes restoration; the
+controller and traversal section supplies the deterministic excursion
+and call-order interfaces needed to apply it.
+
+The endpoint action evaluates the key with the invoking comparison's
+effective salt, even when the excursion visits a lower-budget table.
+It makes no further access query and does not choose or alter the
+excursion.  Thus the lower path remains independent of later salts.
+Lemmas~\ref{lem:ctrl-equality} and~\ref{lem:ctrl-replay} implement this
+separation for all restoring accesses, including inverse queries.

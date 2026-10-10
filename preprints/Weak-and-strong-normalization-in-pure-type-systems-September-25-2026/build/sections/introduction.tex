@@ -1,0 +1,257 @@
+\section{Introduction}\label{sec:introduction}
+
+A pure type system specifies which sorts classify other sorts and which
+sorts may form dependent function types.  A term is \emph{weakly
+$\beta$-normalizing} if some sequence of $\beta$-reductions reaches a normal
+form; it is \emph{strongly $\beta$-normalizing} if every such sequence is
+finite.  The distinction is between existence of a terminating computation
+and termination under every choice of reductions.
+
+We use the full annotated syntax: reduction is allowed in the domain of
+an abstraction and in both components of a dependent product. Contexts may
+be open. A legal expression is either side of a derivable typing judgment;
+declaration types are included by context validity. The formal rules and
+conventions are given below before the main theorem.
+
+\subsection{Pure type systems and normalization}\label{pts:setup}
+
+We first fix the syntax and the scope of the normalization properties.
+All contexts in the typing rules are finite, and all reductions include
+reductions inside annotations.
+
+\begin{definition}[Specification and expressions]\label{pts:specification}
+A \emph{pure type specification} is a triple
+$\mathcal P=(\mathcal S,\mathcal A,\mathcal R)$, where $\mathcal S$ is a
+set of \emph{sorts}, $\mathcal A\subseteq\mathcal S^2$ is a relation of
+\emph{axioms}, and $\mathcal R\subseteq\mathcal S^3$ is a relation of
+\emph{product rules}. Neither relation is assumed functional.
+Using a countably infinite set of variables disjoint from $\mathcal S$, form the
+raw expressions
+\[
+ M,N,A,B ::= x\mid s\mid MN\mid\lambda x:A.M\mid\Pi x:A.B,
+ \qquad s\in\mathcal S.
+\]
+Expressions are identified up to renaming bound variables. In each binder
+the variable binds in the body or codomain, but not in its annotation or
+domain. Application associates to the left. Substitution is capture
+avoiding; $M[x:=N]$ denotes substitution for one free variable.
+
+A raw context is a finite sequence
+$\Gamma=(x_1:A_1,\ldots,x_n:A_n)$ with distinct declared variables.
+Its domain is $\operatorname{dom}(\Gamma)=\{x_1,\ldots,x_n\}$.
+Whenever a rule appends $x:A$, its variable $x$ is fresh for the preceding
+context and for $A$.
+\end{definition}
+
+\begin{definition}[Full beta reduction]\label{pts:beta}
+The relation $\to_\beta$ is the compatible closure of
+\[
+             (\lambda x:A.M)N\to_\beta M[x:=N].
+\]
+Compatibility permits a step in either child of an application, product,
+or lambda. In particular, both
+$\lambda x:A.M\to_\beta\lambda x:A'.M$ when $A\to_\beta A'$ and
+$\Pi x:A.B\to_\beta\Pi x:A'.B$ are permitted.
+Write $\to_\beta^*$ for its reflexive-transitive closure and
+$=_\beta$ for the equivalence relation it generates. A normal expression
+has no beta redex at any position. An expression is \emph{weakly
+normalizing} if it reduces to a normal expression, and \emph{strongly
+normalizing} if it starts no infinite reduction sequence.
+\end{definition}
+
+Typing is the least relation closed under these seven rules, with
+$s,s_1,s_2,s_3$ literal sorts.
+\begin{gather*}
+ \frac{(s_1,s_2)\in\mathcal A}{\varnothing\vdash s_1:s_2}
+ \;\textsc{Axiom}
+ \qquad
+ \frac{\Gamma\vdash A:s}{\Gamma,x:A\vdash x:A}
+ \;\textsc{Variable}
+ \\
+ \frac{\Gamma\vdash M:B\qquad\Gamma\vdash A:s}
+      {\Gamma,x:A\vdash M:B}
+ \;\textsc{Weakening}
+ \\
+ \frac{\Gamma\vdash A:s_1\qquad
+       \Gamma,x:A\vdash B:s_2\qquad(s_1,s_2,s_3)\in\mathcal R}
+      {\Gamma\vdash\Pi x:A.B:s_3}
+ \;\textsc{Product}
+ \\
+ \frac{\Gamma,x:A\vdash M:B\qquad\Gamma\vdash\Pi x:A.B:s}
+      {\Gamma\vdash\lambda x:A.M:\Pi x:A.B}
+ \;\textsc{Abstraction}
+ \\
+ \frac{\Gamma\vdash M:\Pi x:A.B\qquad\Gamma\vdash N:A}
+      {\Gamma\vdash MN:B[x:=N]}
+ \;\textsc{Application}
+ \\
+ \frac{\Gamma\vdash M:A\qquad\Gamma\vdash B:s\qquad A=_\beta B}
+      {\Gamma\vdash M:B}
+ \;\textsc{Conversion}.
+\end{gather*}
+The relation is understood relative to the fixed specification.
+When two specifications are compared we indicate the system on the
+judgment. A derivation is always finite, including a finite conversion
+chain witnessing each use of $=_\beta$.
+
+\begin{definition}[Contexts, legality, and system normalization]
+\label{pts:normalization}
+A context $(x_1:A_1,\ldots,x_n:A_n)$ is \emph{valid} if each $A_i$ is
+typed at some literal sort in the preceding prefix. An expression is
+\emph{sorted} in $\Gamma$ if $\Gamma\vdash A:s$ for some $s\in\mathcal S$.
+It is \emph{legal} in $\Gamma$ if it is the subject or the expected type
+of a derivable judgment in $\Gamma$.
+
+The system is weakly normalizing, respectively strongly normalizing, if
+every legal expression in every context is weakly normalizing,
+respectively strongly normalizing. These are system-wide properties;
+neither statement replaces its universal quantifier by a hypothesis
+about a single expression. The reduction relation acts on the expression
+itself, including its annotations; it does not unfold declarations in
+the external context.
+\end{definition}
+
+
+
+\begin{theorem}[The $\beta$-Barendregt--Geuvers--Klop conjecture]
+\label{thm:main}
+Let $\mathcal P=(\mathcal S,\mathcal A,\mathcal R)$ be any pure type system.
+If every legal expression of $\mathcal P$, in every valid context, is weakly
+$\beta$-normalizing, then every such expression is strongly
+$\beta$-normalizing. No functionality assumption is imposed on
+$\mathcal A$ or $\mathcal R$.
+\end{theorem}
+
+Both quantifiers in Theorem~\ref{thm:main} range over the whole system.
+The theorem does not assert that an individual term with a normal form is
+strongly normalizing. In particular, the proof may use weak normalization
+of expressions other than the one whose strong normalization is being
+established. The result concerns $\beta$-reduction; it makes no assertion
+about adding $\eta$-reduction.
+
+\paragraph{History and significance.}
+Geuvers formulates the system-wide conjecture, for both $\beta$ and
+$\beta\eta$ reduction, in his thesis \cite[Conjecture~8.1.2]{Geuvers1993}.
+Theorem~\ref{thm:main} establishes its $\beta$ instance for arbitrary
+specifications. It allows a proof that every legal expression has a normal
+form to serve also as a proof of termination under every choice of beta
+reductions. This includes computations inside types and annotations,
+which may continue after the computational body has reached normal form.
+The hypothesis remains a property of the whole system: the argument can
+use normal forms of open expressions other than the expression under study.
+
+One line of earlier work reduces strong normalization to weak
+normalization of translated terms. The translation must preserve typing,
+so the products available in the source specification are decisive.
+S{\o}rensen's continuation-passing construction proves the implication for
+generalized nondependent, clean, negatable systems
+\cite[Theorem~3.5.20]{Sorensen1997}; the uniform nondependent result of
+Barthe, Hatcliff and S{\o}rensen develops this approach
+\cite{BartheHatcliffSorensen2001}. Mull's thesis weakens the cleanliness
+and negatability restrictions within the nondependent tiered setting
+\cite[Theorem~2]{MullThesis2023}. Here the sorts form a finite axiom chain
+and each product inherits its codomain's sort. In particular, the theorem
+allows a weakly clean alternative at each non-top tier that does not require
+negatability, alongside an alternative retaining negatability and a
+further cleanliness condition. These results explain both the force of
+type-preserving translations and the importance of the product rules they
+require.
+
+Structural transformations offer a complementary way to reduce the
+problem. Roux and van Doorn prove weak-normalization preservation for
+disjoint sums and a specified family of added product rules, using
+labelled syntax and dependency erasure
+\cite[Sections~3--4]{RouxVanDoorn2014}. Mull proves that the
+Barendregt--Geuvers--Klop implication transfers from the irrelevance
+reduction of a tiered system to that system
+\cite[Theorem~47]{Mull2023}. This is a conditional reduction of the
+conjecture within the tiered class. More recently, Roux proposes an
+internal proof translation with reported constructions for the simply
+typed lambda calculus, System~F, and a trivial recursive type
+\cite[slides~16--17]{Roux2025}. The general specification considered here
+need not have a hierarchy of sorts, functional axiom or product relations,
+or the products required by any of these translations.
+
+Annotations impose a separate constraint on comparisons between systems.
+Barthe and Coquand exhibit nonnormalizing pure type systems in which
+erasing lambda-domain annotations identifies terms of the same type and
+context that are not beta-convertible
+\cite[Theorem~17]{BartheCoquand2006}. The auxiliary erasure used below
+retains all annotations. It removes only proof/data mode labels, and its
+reduction-lifting property is proved for each ordinary typed beta step.
+
+\paragraph{Proof strategy.}
+A finite derivation of a counterexample uses only a finite part of the
+specification, so the proof first reduces to finite sort and rule sets.
+Under weak normalization and confluence, every legal expression then has
+a unique normal form. The \emph{sort profile} of a normal type records
+all sorts at which it can be typed. Retaining this set accommodates
+nonfunctional specifications; tracking its growth under substitution
+replaces an appeal to uniqueness of types.
+
+The candidate argument follows the Tait--Girard reducibility tradition
+\cite[Chapters~6 and~14]{Girard1989}. Its candidates are sets of strongly
+normalizing terms closed under the head expansions needed here; their
+lattice, product tests and substitution laws are proved explicitly,
+without requiring reduction closure. Profiles form a finite signed graph:
+in a dependent product, the domain reverses inclusion between candidates
+and the codomain preserves it. Processing its strongly connected
+components in dependency order establishes that a strongly normalizing
+function applied to any finite, correctly typed stack of strongly
+normalizing arguments remains strongly normalizing. This excludes a
+smallest nonnormalizing application and yields the theorem.
+
+Components whose signs are consistent admit an ordered fixed point by
+Tarski's theorem \cite{Tarski1955}. A second construction handles products
+with at most one child in the current component. The remaining components
+require observation tables, indexed by stacks of normal arguments and
+auxiliary values. Negative domain occurrences make the equations for
+these spaces circular. The construction resolves that circularity using
+well-founded recursion for some profiles and alternating finite stages
+for the others. Its key bound is uniform over all observations of a fixed
+typed expression, although the possible arguments and stack lengths are
+unbounded. Semantic substitution and reduction transport then give the
+candidate equality required at a dependent application.
+
+This last construction is conditional on a graph exclusion. The forbidden
+configuration records the profile pattern forced if substitution exposes
+new product nodes counted by the recursion's measure on normal types.
+Weak normalization rules it out through a second, typed argument. The
+product rules in such a configuration support a small
+formula calculus and a relational realization of Hurkens's
+well-foundedness paradox \cite{Hurkens1995}, using the presentation of
+Geuvers \cite[Section~2]{Geuvers2007}.
+
+Realizing that argument requires more than reproducing its final diagonal
+steps. The derived formula calculus can quantify only over data types
+supported by particular product rules in the profile graph. Moreover, the
+general cancellation law for wrappers compares formula observations by
+logical equivalence; this gives
+no permission to replace a data expression inside a function.
+Two data channels provide the predicates and observations needed by the
+diagonal. Their access construction retains an open parameter exactly
+while rounding a second data argument. Explicit validity and
+extensionality conditions then state which observations and predicates
+respect the resulting comparisons. The guarded diagonal uses precisely
+these conditions, and every logical quantifier is checked against the
+available product rules.
+
+The resulting labelled term proves a designated terminal formula in a
+context where a direct syntactic descent excludes every proof-mode term
+with normal erasure. Data inhabitants of the same terminal do not affect
+this statement. Erasure leaves all type annotations intact, and every
+ordinary reduction of the erased typed proof lifts to a labelled
+reduction. Weak normalization would therefore give the excluded normal
+erasure. This contradiction supplies the graph exclusion and completes
+the candidate argument.
+
+\paragraph{Organization.}
+Section~\ref{pts:metatheory} establishes the required PTS metatheory.
+Sections~\ref{sec:profiles} and~\ref{sec:simple-components} develop the
+candidate interface and its two simpler realizations.
+Section~\ref{obs:section} constructs the remaining interpretation,
+conditional on the graph exclusion. Sections~\ref{sec:enc-wrappers},
+\ref{chan-section} and~\ref{rel-section} build the logical and relational
+realization. Section~\ref{rel-diagonal} gives the guarded diagonal
+argument. Section~\ref{sec:conclusion} proves the exclusion and completes
+the theorem.

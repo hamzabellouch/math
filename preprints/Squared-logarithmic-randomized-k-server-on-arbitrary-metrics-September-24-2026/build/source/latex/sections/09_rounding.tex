@@ -1,0 +1,550 @@
+\section{Balanced rounding and realization in the metric}\label{sec:rounding}
+
+Balanced subtree rounding with constant movement loss on separated trees
+was developed in \cite[Section~5.2]{BBMN15}. The formulation here also
+allows internal parks and a prescribed parent total correlated with the
+old child counts.
+
+The allocation theorem allows mass to stop at internal vertices.  We round
+both subtree amounts and parks, working from the root toward the leaves.
+At each vertex the already rounded parent fixes an integer total for its
+children and its park.  That total may be correlated with their old counts.
+Our local kernel first meets the total in every realized state, then repairs
+the coordinate means by exchanges that preserve each state's total.
+
+The resulting integer parks can be matched along the tree.  Parks matched
+at different vertices are paid by tree movement; parks matched at the same
+vertex require the separate anchor-travel estimate when their representative
+has moved.
+
+Throughout this section, the filtration $\mathcal F_t$ contains the request
+prefix and the independent partition tape, as in Section~\ref{sec:allocation}.
+It excludes a further independent tape used only for rounding.  All fractional
+states and anchors at time $t$ are $\mathcal F_t$-measurable.  Write
+\[
+ p_v^\circ(t)=q_v(t)-\sum_{i\text{ child of }v}q_i(t),
+\]
+where the sum is empty at a leaf.  We seek integer subtree counts $n_v(t)$ and
+integer parks $c_v(t)$ satisfying
+\begin{equation}\label{eq:rounding-invariants}
+ \begin{aligned}
+ n_{\rm root}(t)&=k,&
+ n_v(t)&=c_v(t)+\sum_{i\text{ child of }v}n_i(t),\\
+ n_v(t)&\in\{\lfloor q_v(t)\rfloor,\lceil q_v(t)\rceil\},&
+ \E[n_v(t)\mid\mathcal F_t]&=q_v(t),\\
+ c_v(t)&\in\{\lfloor p_v^\circ(t)\rfloor,
+                    \lceil p_v^\circ(t)\rceil\},&
+ \E[c_v(t)\mid\mathcal F_t]&=p_v^\circ(t).
+ \end{aligned}
+\end{equation}
+These requirements concern conditional means given $\mathcal F_t$ alone.
+We do not prescribe the same means after additionally conditioning on the
+realized rounded ancestors; such requirements would generally be inconsistent
+with their prescribed integer totals.
+
+\subsection{A finite rounding kernel for one star}
+
+\begin{lemma}[Balanced rounding with a prescribed random total]
+\label{lem:rounding-star}
+Let $a,b\in[0,\infty)^d$, and let $X\in\Z_{\ge0}^d$ be a random vector with
+\[
+ X_i\in\{\lfloor a_i\rfloor,\lceil a_i\rceil\},
+ \qquad \E X_i=a_i.
+\]
+Put $M=\sum_iX_i$.  Let $N$ be any random integer, arbitrarily correlated with
+$X$, such that
+\[
+ N\in\left\{\left\lfloor\sum_i b_i\right\rfloor,
+                 \left\lceil\sum_i b_i\right\rceil\right\},
+ \qquad \E N=\sum_i b_i.
+\]
+There is a randomized kernel from the finite set of states $(X,N)$ to vectors
+$X'$ such that, in every state and every outcome of the kernel,
+\[
+ X'_i\in\{\lfloor b_i\rfloor,\lceil b_i\rceil\},
+ \qquad \sum_iX'_i=N.
+\]
+Its coordinate means, averaged over both the original state and the kernel,
+satisfy
+\[
+                         \E X'_i=b_i.
+\]
+With
+\[
+ T=\sum_i|a_i-b_i|,
+ \qquad I=\E|N-M|,
+\]
+the kernel can be chosen to satisfy
+\begin{equation}\label{eq:rounding-star-bound}
+             \E\|X'-X\|_1\le32T+11I.
+\end{equation}
+Moreover, for any balanced random total $N$ with the displayed mean, a balanced
+vector with total $N$ and coordinate means $b_i$ exists without specifying an
+old vector $X$.
+\end{lemma}
+
+\begin{proof}
+All expectations in this proof are taken under the given joint distribution;
+no independence assumption is made.  Set $l_i=\lfloor b_i\rfloor$ and
+$u_i=\lceil b_i\rceil$.  Clip $X_i$ into $[l_i,u_i]$, obtaining $Y_i$.
+For each coordinate,
+\begin{equation}\label{eq:rounding-clip}
+                       \E|Y_i-X_i|\le |a_i-b_i|.
+\end{equation}
+Indeed, if $a_i\le b_i$, upper clipping is impossible.  Lower clipping either
+does nothing, or $l_i>\lfloor a_i\rfloor$, in which case every possible $X_i$
+is at most $l_i$ and its expected cost is $l_i-a_i\le b_i-a_i$.
+If $a_i\ge b_i$, the symmetric argument applies to upper clipping.
+This includes integral targets and equality of endpoints.  Summing
+\eqref{eq:rounding-clip} gives $\E\|Y-X\|_1\le T$.
+
+For each state, adjust $Y$ within the integer intervals $[l_i,u_i]$ until its
+sum equals the actual value of $N$, obtaining $Z$.  The adjustment is always
+possible: the sums of allowed vectors comprise every integer between
+$\sum_i l_i$ and $\sum_i u_i$, and both endpoint integers of $\sum_i b_i$
+lie in that interval.  Increasing coordinates only, or decreasing coordinates
+only, as needed, costs exactly $|N-\sum_iY_i|$.  A fixed coordinate order
+makes this choice deterministic.  Thus, writing $L=\E\|Z-X\|_1$,
+\begin{equation}\label{eq:rounding-preliminary}
+ \begin{aligned}
+ L&\le \E\|Y-X\|_1+\E\left|N-\sum_iY_i\right|\\
+  &\le 2T+I,\\
+ D:=\sum_i|\E Z_i-b_i|
+  &\le \sum_i|\E Z_i-a_i|+T
+   \le L+T\le3T+I.
+ \end{aligned}
+\end{equation}
+Only the means of $Z$ may now be wrong.  Requiring
+$\E[X'_i\mid N]=b_i$ would force $N=\sum_i b_i$ on every
+positive-probability event.  We instead repair the means under the given
+joint law while preserving each state's actual total.
+
+To construct this repair by finite optimization, let
+\[
+ H=\{i:b_i\notin\Z\},\qquad f_i=b_i-l_i\quad(i\in H),
+ \qquad s=\left\lfloor\sum_{i\in H}f_i\right\rfloor.
+\]
+An allowed vector is specified by a subset $A\subseteq H$ of coordinates
+rounded upward.  Its cardinality is $N-\sum_i l_i$, and hence is either $s$
+or $s+1$.  If $\sum_{i\in H}f_i$ is integral, only $s$ occurs.  The preliminary
+vector $Z$ specifies such a subset $A_0$ in each original state.
+
+For every original state $\omega=(X,N)$ of positive probability, consider all
+probability distributions on subsets of the required cardinality for that
+state.  Their product is a nonempty compact finite-dimensional set.  A choice
+in this product is precisely a randomized kernel that keeps the observed
+total $N$ fixed.  Minimize on it
+\begin{equation}\label{eq:rounding-repair-objective}
+ \E|A\mathbin{\triangle}A_0|
+       +10\sum_{i\in H}|\Pr(i\in A)-f_i|.
+\end{equation}
+Here $|A\mathbin{\triangle}A_0|$ is the number of coordinates changed; it
+equals the $\ell_1$ change of the associated integer vectors.  A minimum
+exists by continuity.  Let $p_i=\Pr(i\in A)$ at a minimizer.  Since every
+outcome has the required total,
+\[
+                 \sum_{i\in H}p_i=\E N-\sum_i l_i
+                                      =\sum_{i\in H}f_i.
+\]
+Consequently, if a discrepancy remains, there are distinct indices $i,j$
+with $p_i>f_i$ and $p_j<f_j$.
+
+First suppose that a supported state-and-subset pair has $i\in A$, $j\notin A$.
+On a sufficiently small amount $\varepsilon>0$ of its probability mass replace
+$A$ by $A\setminus\{i\}\cup\{j\}$.  This preserves that state's total.  Choose
+$\varepsilon$ no larger than the two discrepancies and the mass of this
+state-and-subset pair.  The sum of marginal discrepancies falls by
+$2\varepsilon$, whereas the first term in
+\eqref{eq:rounding-repair-objective} rises by at most $2\varepsilon$.
+This contradicts minimality.
+
+In the remaining case, no supported subset contains $i$ without $j$.
+Because $p_i>f_i>0$, some supported subset $A$ contains both.  Because
+$p_j<f_j<1$, some supported subset $B$ contains neither.  Their cardinalities
+differ by at most one.  There must therefore be an index $h\in B\setminus A$:
+otherwise $B\subseteq A\setminus\{i,j\}$ would give
+$|B|\le|A|-2$.  On equal sufficiently small probability masses
+$\varepsilon$ of these two state-and-subset pairs, make the changes
+\[
+ A\longmapsto A\setminus\{i\}\cup\{h\},
+ \qquad
+ B\longmapsto B\setminus\{h\}\cup\{j\}.
+\]
+Each change occurs within its own original state and preserves that state's
+total.  The marginal of $h$ does not change, the marginal of $i$ decreases by
+$\varepsilon$, and that of $j$ increases by $\varepsilon$.  The Hamming cost
+in \eqref{eq:rounding-repair-objective} rises by at most $4\varepsilon$, by
+the triangle inequality for symmetric difference.  The discrepancy penalty
+falls by $20\varepsilon$.  Again this is a strict improvement.  This argument
+allows the two subsets to belong to different original states and different
+values of the rounded parent; it does not alter their probabilities or totals.
+
+Thus every minimizer has $p_i=f_i$ for all $i\in H$.  The other coordinates
+are fixed integers, so the corresponding vector $X'$ has all required means.
+Comparison with the kernel that always keeps $A_0$ gives
+\[
+                       \E\|X'-Z\|_1\le10D.
+\]
+Combining with \eqref{eq:rounding-preliminary} proves
+\[
+ \E\|X'-X\|_1\le L+10D
+       \le(2T+I)+10(3T+I)=32T+11I.
+\]
+
+For initialization, choose in each state $N$ any allowed subset of the
+required size, and minimize the same objective relative to that subset.
+The exchange argument still proves that the minimum has the desired means;
+it used only the correct mean and the two possible values of $N$.
+If $H$ is empty, $N=\sum_i b_i$ and the sole allowed vector is $b$ itself,
+so no repair is needed.  This proves the initialization assertion as well.
+\end{proof}
+
+\subsection{The joint rounding process}
+
+We apply Lemma~\ref{lem:rounding-star} in a fixed order from the root toward
+the leaves.  At an internal vertex $v$, the coordinates of its star are its
+ordinary children together with one extra coordinate for its park.  The
+target vector is $(q_i)_{i\text{ child of }v}$ together with $p_v^\circ$,
+whose sum is $q_v$.  The prescribed integer total is the already generated
+$n_v$.  At a leaf simply set $c_v=n_v$.
+
+At time zero, put $n_{\rm root}=k$ and use the initialization assertion
+successively at every internal vertex.  The resulting conditional means are
+those in \eqref{eq:rounding-invariants}, by induction over the fixed order.
+Consistency holds in every outcome, so summing all parks gives exactly $k$.
+No movement is charged for this choice of the initial simulated configuration;
+its mismatch from the actual starting tuple is charged once below.
+
+Consider an update from $t-1$ to $t$.  The old rounding variables are functions
+of $\mathcal F_{t-1}$ and the independent rounding tape.  The fractional
+algorithm and the requests do not depend on that tape.  Therefore revealing
+$\mathcal F_t$ preserves their conditional distribution from
+$\mathcal F_{t-1}$; in particular,
+\begin{equation}\label{eq:old-rounding-means}
+ \E[n_v(t-1)\mid\mathcal F_t]=q_v(t-1),
+ \qquad
+ \E[c_v(t-1)\mid\mathcal F_t]=p_v^\circ(t-1).
+\end{equation}
+Formally, if $U$ denotes the independent rounding tape and
+$Z=g(\mathcal F_{t-1},U)$ is one of these variables, its conditional law given
+$\mathcal F_t$ is obtained by integrating $g$ over the unchanged law of $U$.
+Its dependence on the observed data is already fixed by
+$\mathcal F_{t-1}\subseteq\mathcal F_t$.  This also shows why the additional
+rounding tape must not affect any of the fractional observations.
+
+Condition now on a fractional history through time $t$.  At a star $v$, use
+the joint law of its old child and parking counts and its newly generated
+parent count $n_v(t)$.  This is a finite law determined by the known past
+kernels and the kernels already used above $v$ at this step.  The parent
+count has conditional mean $q_v(t)$ by the top-down induction, while
+\eqref{eq:old-rounding-means} supplies the old coordinate means.  The lemma
+therefore applies even though this newly generated parent can be correlated
+with all the old local counts.  Select a minimizing finite kernel and sample
+it at the actual state encountered.  Subsequent stars do not change counts
+already assigned, so the induction gives all of
+\eqref{eq:rounding-invariants} jointly.
+
+This description defines causal kernels, rather than merely unrelated
+couplings at separate times.  Each kernel uses the joint law conditional on
+the fractional history, then acts on the realized local state and parent
+total.  It need not impose its marginal targets separately on the events
+specifying individual ancestor roundings.  At a fixed finite horizon there
+are only finitely many relevant request and partition outcomes: on $Y$, a
+radius is needed only through the finite ball it defines, and only finitely
+many insertion and retirement draws are used.  We can therefore choose one
+minimizing kernel at each relevant history without a measurable-selection
+issue.  Choices at histories of probability zero can be arbitrary balanced
+continuations.  The distributional policy is allowed to depend on the given
+law and horizon at this stage.
+
+\begin{proposition}[Rounding and metric realization]\label{prop:rounding}
+Assume the fractional allocations and anchors constructed in the preceding
+sections, with $\tau\ge22$.  They admit a causal rounding satisfying
+\eqref{eq:rounding-invariants} for which
+\begin{equation}\label{eq:rounding-global}
+ N_{\rm rnd}:=\E\sum_{t=1}^H\sum_{v\ne{\rm root}}
+                 r_{|v|-1}|n_v(t)-n_v(t-1)|\le132V.
+\end{equation}
+Placing the integer parks at their current anchors gives simulated
+configurations $S_t$ of exactly $k$ members containing each current request.
+There is a matching of consecutive configurations with expected total cost
+at most
+\begin{equation}\label{eq:rounding-realization}
+                         120N_{\rm rnd}+40T_{\rm anchor}.
+\end{equation}
+Consequently their expected movement is at most
+$C(V+\ell P+\ell Q)+D$ for an absolute $C$ and a finite additive term $D$
+depending only on the fixed finite structure.
+\end{proposition}
+
+\begin{proof}
+We first prove the movement estimate in the tree.  For an internal vertex
+$v$ and time $t$, define
+\[
+ T_{v,t}=\sum_{i\text{ child of }v}|\Delta q_i(t)|
+                                      +|\Delta p_v^\circ(t)|,
+ \qquad
+ I_{v,t}=\E[|\Delta n_v(t)|\mid\mathcal F_t].
+\]
+The local lemma, conditional on $\mathcal F_t$, gives
+\[
+ \E\left[\sum_{i\text{ child of }v}|\Delta n_i(t)|
+                          +|\Delta c_v(t)|\,\middle|\,\mathcal F_t\right]
+                                  \le32T_{v,t}+11I_{v,t}.
+\]
+Since $p_v^\circ=q_v-\sum_iq_i$,
+\[
+ T_{v,t}\le2\sum_{i\text{ child of }v}|\Delta q_i(t)|
+                                          +|\Delta q_v(t)|.
+\]
+Multiply by $r_{|v|}$, sum over internal vertices and times, and take
+expectations.  Every nonroot vertex occurs once as an ordinary child, and
+$\Delta q_{\rm root}=0$.  Thus
+\begin{equation}\label{eq:rounding-target-sum}
+ \E\sum_{t,v\text{ internal}}r_{|v|}T_{v,t}
+                                            \le(2+\tau^{-1})V.
+\end{equation}
+The same weighting of the parent terms gives
+\begin{equation}\label{eq:rounding-parent-sum}
+ \E\sum_{t,v\text{ internal}}r_{|v|}I_{v,t}
+                                       \le\tau^{-1}N_{\rm rnd},
+\end{equation}
+because the root count is fixed and the internal nonroot vertices are a
+subset of all nonroot vertices.  Dropping the nonnegative parking movements
+from the local left-hand sides now yields the exact recurrence
+\begin{equation}\label{eq:rounding-absorption}
+ N_{\rm rnd}\le(64+32/\tau)V+(11/\tau)N_{\rm rnd}.
+\end{equation}
+All sums are finite.  For $\tau\ge22$ this gives
+$N_{\rm rnd}\le(128+64/\tau)V\le132V$, proving
+\eqref{eq:rounding-global}.  In particular, initialization of the rounding
+does not introduce a new additive variation term.  The same absolute $\tau$
+can satisfy this threshold and the allocation theorem's absorption threshold.
+
+We next describe the matching in the tree.  Give the edge entering a nonroot
+vertex $v$ length $r_{|v|-1}$.  The consistency identities in
+\eqref{eq:rounding-invariants} imply that $n_v(t)$ is the total number of
+integer parks in the subtree at $v$.  First match
+$\min\{c_v(t-1),c_v(t)\}$ old and new copies at every identical vertex $v$.
+The unmatched copies define integer supplies and demands with equal total.
+Starting at the leaves, cancel supplies against demands whenever they meet,
+and carry the uncancelled copies to the parent.  At the edge entering $v$,
+the number of copies carried is exactly $|\Delta n_v(t)|$: the signed
+imbalance in that subtree is $\Delta n_v(t)$, and after cancellation all
+remaining copies have the same sign.  The root has zero final imbalance.
+Following each matched pair's path therefore gives total tree length exactly
+\begin{equation}\label{eq:rounding-transport-cost}
+                   \sum_{v\ne{\rm root}}r_{|v|-1}|\Delta n_v(t)|.
+\end{equation}
+This also proves the lower bound for any matching, since each subtree's net
+imbalance must cross its entering edge.  Fixing orders for cancellations
+makes the chosen matching a function of the current and previous rounded
+states.
+
+Every occupied vertex has a current validity witness.  Indeed $c_v(t)>0$
+implies $p_v^\circ(t)>0$, since the only balanced rounding of zero is zero.
+Hence $q_v(t)>0$, and the allocation domination $q_v(t)\le C_0m_v(t)$ implies
+$m_v(t)>0$.  Some point of $Y$ must then have the prefix defining $v$.
+This is also the witness assertion of Lemma~\ref{lem:park-variation}.
+At a nonroot vertex of depth $j$, its witness is within $20r_j$ of the
+vertex's current anchor, by Lemma~\ref{lem:fixed-alphabet}.
+
+Consider a matched old vertex $u$ and new vertex $v$ with $u\ne v$.
+Let their last common prefix be $w$ of depth $j$.  If $j\ge1$, choose an
+old witness $y_-$ for $u$ and a new witness $y_+$ for $v$.  Write $a_-(z)$
+and $a_+(z)$ for an anchor before and after the step, respectively.
+Both witnesses use the same depth-$j$ key at $w$ in the two consecutive
+maps.  By the fixed-alphabet construction, its two anchors are either equal
+or related by an explicit heavy-ball reuse, and in either case
+\[
+ d(a_-(w),a_+(w))\le40r_j.
+\]
+The witnesses are within $20r_j$ of the corresponding anchors at $w$.
+They are also within $20r_{|u|}$ and $20r_{|v|}$ of the anchors of their own
+endpoints.  Since both endpoint radii are at most $r_j$, the triangle
+inequality gives
+\begin{equation}\label{eq:rounding-distinct-anchors}
+ \begin{aligned}
+ d(a_-(u),a_+(v))
+ &\le20r_{|u|}+20r_j+40r_j+20r_j+20r_{|v|}\\
+ &\le120r_j.
+ \end{aligned}
+\end{equation}
+The tree path between distinct endpoints passes through an edge of length
+$r_j$: this remains true when $w=u$ or $w=v$, since then the path starts
+with the edge to the next depth.  Thus \eqref{eq:rounding-distinct-anchors}
+is at most $120$ times this path's tree length.  If $j=0$, both anchors
+belong to $Y$, so their distance is at most $\diam(Y)=r_0$.  Their path
+crosses an edge of length $r_0$, also when one endpoint is the root.  The
+same bound follows.  Only occupied vertices were used in this reasoning;
+no assertion about distances associated with nonexistent prefixes is needed.
+
+It remains to pay for the copies matched at one and the same vertex.
+The root anchor is fixed, so it contributes zero.  For a nonroot vertex
+$v$ of depth $j$, put
+$h_v=\min\{c_v(t-1),c_v(t)\}$.  If its anchor moves while both copies
+are occupied, its last label is retained across the step.  Only heavy
+labels can move in this way, and the displacement is at most $40r_j$.
+Write $E_{t,j,\lambda}$ for the event that label $\lambda$ is retained and
+moves at this step.  This event and both anchors are
+$\mathcal F_t$-measurable.  Since $h_v\le c_v(t)$, regardless of any
+correlations created by the matching,
+\[
+ \E[h_v\one_{E_{t,j,\lambda}}\mid\mathcal F_t]
+       \le p_v^\circ(t)\one_{E_{t,j,\lambda}}.
+\]
+Summing first over all depth-$j$ vertices with last label $\lambda$ turns
+the right-hand side into
+$b_{t,j,\lambda}\one_{E_{t,j,\lambda}}$, in the notation of
+Section~\ref{sec:travel}.  Summing over labels, levels and times pays the
+expected cost of all these coincident-vertex matches by $40T_{\rm anchor}$.
+Together with \eqref{eq:rounding-transport-cost} and the bound for distinct
+vertices, this proves \eqref{eq:rounding-realization}.
+
+Finally let $x$ be the current request.  Its assigned leaf has $q_v\ge1$
+by Theorem~\ref{thm:allocation}, so balancedness gives $c_v=n_v\ge1$.
+At level $J$, a point assigned to a ball key is within $20r_J$ of that
+key's center.  Since $40r_J$ is smaller than the least positive distance
+in $Y$, this point equals the center.  A fallback key is anchored at its
+point as well.  The anchor of the request leaf is therefore exactly $x$,
+and the simulated configuration serves it.  The claimed final estimate now
+follows from \eqref{eq:rounding-global}, \eqref{eq:rounding-realization},
+and Proposition~\ref{prop:anchor-travel}.
+\end{proof}
+
+\subsection{Uniform finite-law synthesis}
+
+We can now complete the distributional statement in the setup.  We give the
+additive accounting explicitly because its independence of the horizon is
+essential for the transfer in the next section.
+
+\begin{proof}[Proof of Proposition~\ref{prop:finite-law}]
+Fix the finite metric $Y$, the server number $k$ and the initial tuple $s$.
+Choose the absolute separation factor once, sufficiently large for
+Theorem~\ref{thm:allocation} and with $\tau\ge22$.  Fix the scales and the
+finite alphabets from Lemma~\ref{lem:fixed-alphabet}.  These choices depend
+only on $Y,k$ and the absolute construction parameters.  For a given
+finite-support input law at a finite horizon, choose its hidden optimal
+trajectory and carry out the partition, allocation, anchor and rounding
+constructions.  Their interfaces give absolute constants $C_P,C_A,C_T$ and
+finite remainders $D_P,D_A,D_T$ such that
+\begin{equation}\label{eq:rounding-budget-summary}
+ \begin{aligned}
+ P&\le C_P\ell Q+D_P,
+       &&\text{by Proposition~\ref{prop:embedded-cost}},\\
+ V&\le C_A\ell P+D_A,
+       &&\text{by Theorem~\ref{thm:allocation}},\\
+ T_{\rm anchor}&\le C_T(V+\ell P+\ell Q)+D_T,
+       &&\text{by Proposition~\ref{prop:anchor-travel}}.
+ \end{aligned}
+\end{equation}
+In particular the conditional laws used by the allocation are those of
+the hidden members under the final online map.  Filtering keeps the old
+map with the old hidden variable, and drift uses the coupled old and new
+maps, exactly as required by the first two estimates.  Rounding neither
+changes those observations nor supplies information to the partition rules.
+
+Here is a census of the fixed objects and their possible endpoint charges
+in \eqref{eq:rounding-budget-summary}.  Let $\mathcal T$ be the full finite
+prefix tree, let $d_v$ be the number of children of an internal vertex,
+and let $L_j$ be the number of label slots at level $j$.  These numbers can
+be large.  They are fixed before the law and horizon are chosen.
+
+\begin{enumerate}
+\item At each fixed vertex and rank, the elementary tracking potential is
+$p(1-p)+(p-p^\circ)^2\in[0,1]$.  There are finitely many such rank,
+flag and endpoint-function trackers, indexed by the $k$ ranks of the
+fixed vertices, with the fixed finite number of versions used in the
+allocation construction.  Their tolerances, including the tolerances of
+order $1/\ell$, have already been fixed.  The resulting initialization and
+endpoint charges are finite functions of $k$ and the vertex index, rather
+than of a trajectory's number of resets.
+
+At an internal vertex, the sizes, core sums and cap scales are bounded by
+fixed multiples of $k$.  The proportion variables have the fixed simplex
+or bounded-$\ell_1$ domains used in their definitions.  The primitive bounds
+in Section~\ref{sec:proportions} therefore bound the absolute values of
+both proportion potentials by a finite quantity, for example
+$C\ell k(d_v+1)$ after increasing an absolute constant.  The switching
+potential is bounded by $Ck$.  Initial size and epoch charges likewise
+involve only these bounded sizes.  Multiplying these finitely many bounds
+by their fixed star weights $r_{|v|}$ and by the fixed coefficients in the
+local estimates gives a finite common choice of $D_A$.
+
+\item At scale $r_j$, each pilot potential lies in $[0,2r_jk]$.
+There is one heavy template and a finite number of tier templates, the
+latter with their fixed weights $e^{-h}$.  The heavy distance-ramp and the
+tier noncoverage potentials lie in $[0,r_jk]$ for each template.  Their
+initial and terminal contributions are bounded by the corresponding
+finite sums of $2r_jk$ and $r_jk$ over levels and tiers, with the fixed
+coefficients from Section~\ref{sec:partitions}.  Hence $D_P$ can be
+chosen uniformly.
+
+\item Each held key size in Section~\ref{sec:travel} is in $[1,k+1]$.
+The affine tangent potential to $-s\log s$, evaluated at an argument and
+reference in that interval, has absolute value at most
+$C(k+1)\ell$.  The normalized travel potential for a level-$j$ label is
+nonnegative and at most $Cr_jk$, because its parked-mass coefficient
+$b/\widehat m$ is bounded by an absolute constant and its counting
+integral is at most $k$.  The sums
+\[
+ \sum_{j=1}^J L_j r_j(k+1)\ell
+       \quad\hbox{and}\quad
+ \sum_{j=1}^J L_j r_jk
+\]
+therefore bound all relevant endpoint terms up to fixed coefficients.
+They give a finite common choice of $D_T$, including its size-tracker
+initialization charges.
+
+\item The rounding process has no additional variation remainder, by
+\eqref{eq:rounding-global}.  Its initial configuration $S_0$ is a multiset
+of $k$ points in $Y$.  Consequently the initial minimum matching distance
+from $s$ to $S_0$ is at most $k\diam(Y)$, for every rounding outcome.
+\end{enumerate}
+
+This list uses persistent state at every fixed slot.  A rank or key tracker
+continues through absence and later reappearance of its label; no new
+initialization allowance is charged when a slot is reused.  Epoch changes
+and normalization refreshes are paid transitions in the preceding
+estimates.  The alphabets have bounded size because each tier and scale
+has at most $|Y|K^2$ relevant roster entries, with fixed additional slots
+for the label exclusion rule.  Fresh random draws at successive insertions
+do not create fresh tree vertices or fresh potentials.  Thus the finite
+endpoint bounds above hold uniformly over all possible histories, and
+are summed over slots and templates once.  The number of histories, the
+number of label reuses and the horizon do not enter $D_P,D_A,D_T$.
+
+To make the final combination explicit, put
+\[
+ C_1=120\cdot132+40C_T,
+ \qquad C_2=40C_T,
+ \qquad C_*=C_1C_A+C_2.
+\]
+Proposition~\ref{prop:rounding} and \eqref{eq:rounding-budget-summary} give
+\begin{align*}
+ \E[\text{simulated movement}]
+ &\le C_1V+C_2\ell P+C_2\ell Q+40D_T\\
+ &\le C_*\ell P+C_2\ell Q+C_1D_A+40D_T\\
+ &\le (C_*C_P+C_2)\ell^2Q
+                +C_*\ell D_P+C_1D_A+40D_T,
+\end{align*}
+where $\ell\ge1$ was used in the last line.  Apply
+Lemma~\ref{lem:lazy-simulation} from the actual labeled tuple $s$.
+It yields a causal strongly lazy policy serving the same requests, with
+expected cost at most this simulated movement plus the initial matching
+mismatch.  Thus Proposition~\ref{prop:finite-law} holds with the absolute
+constant
+\[
+                  a=C_*C_P+C_2
+\]
+and, for example, the finite nonnegative constant
+\begin{equation}\label{eq:rounding-finite-additive}
+ D_0=C_*\ell D_P+C_1D_A+40D_T+k\diam(Y).
+\end{equation}
+All three remainders can be enlarged to nonnegative uniform bounds from the
+census above.  Formula~\eqref{eq:rounding-finite-additive} consequently
+depends only on the fixed metric, $k$, the start and the fixed construction;
+it is independent of the input law and horizon.  Repeated starting
+positions cause no change, since both simulated configurations and the
+matching simulation treat repeated points as separate copies.
+\end{proof}

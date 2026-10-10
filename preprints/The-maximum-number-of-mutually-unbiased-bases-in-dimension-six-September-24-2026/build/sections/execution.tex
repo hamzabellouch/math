@@ -1,0 +1,400 @@
+\section{Finite execution and the recorded certificate}
+\label{sec:execution}
+
+The computation used below was completed on 4 October 2026 (UTC). This
+section specifies its finite inputs, the tests for complete execution,
+and the implication from those tests to nonexistence. The geometric and
+arithmetic justification of each rejection is given in
+Sections~\ref{sec:seed}--\ref{sec:exclusion} and
+Appendix~\ref{sec:rounding}. A successful exit by itself is not the
+certificate: the inputs, record counts, saved failures, and coverage of
+all shards must agree as described here.
+
+\subsection{Programs, records, and machine arithmetic}
+\label{execute:programs}
+
+The accompanying \texttt{verification/code/} directory contains the seven unchanged
+source files \texttt{seed.cpp}, \texttt{covout.cpp}, \texttt{ub.cpp},
+\texttt{patchx.cpp}, \texttt{atlas.cpp}, \texttt{stageB.cpp}, and
+\texttt{stageC.cpp}. Their byte lengths and full SHA-256 digests are
+listed in \texttt{verification/code/extraction.json}. The source hashes were checked
+before the recorded run, and the packaged copies match those same bytes.
+Only four translation units are
+built as entry points:
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Executable & Translation unit & Role\\
+\midrule
+\texttt{covrun} & \texttt{covout.cpp} & Nine-phase seed cover\\
+\texttt{arun} & \texttt{atlas.cpp} & Completion search and coarse atlas\\
+\texttt{brun} & \texttt{stageB.cpp} & Certified refinement\\
+\texttt{crun} & \texttt{stageC.cpp} & Vector cover and graph exclusion\\
+\bottomrule
+\end{tabular}
+\end{center}
+The other files are included through the macros in these translation
+units. Their standalone sample drivers are not executed. In particular,
+A uses \texttt{Asearch}, and C uses graph search mode~1.
+
+A serialized \texttt{Record} contains a certified \texttt{Root} and a
+radius $r$. Its interpretation is the set of exact Hadamard solutions
+represented, up to the equivalences of Section~\ref{sec:seed}, by
+$e(p+h)$ with horizontal $h$ and $\|h\|\le r$. The stored $p$ need not
+itself be an exact solution. The Root data justify the normal-displacement
+inequalities on this set; their construction is part of
+Section~\ref{sec:phase-cover}.
+
+The binary format is explicit. A file begins with an eight-byte unsigned
+record count. Each record consists, in order, of a four-byte signed
+integer $k$, 36 binary64 entries of $p$, $k$ rows of 36 binary64 entries
+of $T$, and the eight binary64 values
+\[
+ C,\ n_0,\ \mathrm{id},\ \mathrm{ort},\ \mathrm{hor},\
+ \mathrm{mnorm},\ \mathrm{froot},\ r.
+\]
+Thus a record occupies $356+288k$ bytes, and a valid zero-count file is
+exactly eight bytes. The platform is little endian. No phase data are
+converted to decimal between stages. The evidence checks parse every
+record, validate finite bounded fields, and require the declared count
+to reach the exact end of file. They also check that every saved C
+failure is an unchanged, ordered subsequence of its assigned inputs.
+
+The recorded platform was x86-64, Intel Xeon Platinum 8573C, Ubuntu
+GCC 13.3.0, and glibc 2.39. The builds, prepared on the same UTC date
+before the run, were
+\begin{lstlisting}
+g++ -O3 -march=native -ffp-contract=off covout.cpp -o covrun
+g++ -std=gnu++17 -O3 -march=native -ffp-contract=off atlas.cpp -o arun
+g++ -std=gnu++17 -O3 -march=native -ffp-contract=off stageB.cpp -o brun
+g++ -std=gnu++17 -O3 -march=native -ffp-contract=off stageC.cpp -o crun
+\end{lstlisting}
+The first command used this compiler's default GNU C++17 dialect.
+The arithmetic assumptions are binary64, round to nearest, separate
+operations without contraction or fast-math reassociation, correctly
+rounded binary64 square root, masked floating-point exceptions, and
+neither flush-to-zero nor denormals-are-zero. Separate probes compiled
+with the cover and A/B/C flag sets both passed and recorded
+\texttt{FLT\_EVAL\_METHOD=0}, 32-bit \texttt{int}, 64-bit
+\texttt{size\_t}, 64-bit \texttt{uint64\_t} equal to
+\texttt{unsigned long}, eight-bit bytes, and MXCSR \texttt{0x1f80}.
+Both probes recorded nearest rounding on entry and during the check,
+and passed the square-root and gradual-underflow samples. These probes
+and the program checks provide limited evidence for the stated platform
+conditions, not a proof of all primitive-operation or compiler semantics.
+Those semantics remain assumptions; Appendix~\ref{sec:rounding} supplies
+the numerical bounds under them. The retained
+\texttt{build/build-manifest.json} identifies the exact sources,
+binaries, compiler commands, probe outputs, and arithmetic evidence.
+
+One additional code-generation condition is needed by
+\texttt{coverSeeds::run}: both \texttt{pow(\ldots,2)} expressions must
+be lowered to the binary64 multiplications analyzed in
+Appendix~\ref{sec:rounding}. For the actual \texttt{covrun}, inspection
+of the saved disassembly finds the scale multiplication, its square,
+subtraction, square root, addition, and second square at hexadecimal
+addresses \texttt{6035}, \texttt{6039}, \texttt{603d},
+\texttt{605c}, \texttt{606d}, and \texttt{608b}, respectively. There
+is no dynamic \texttt{pow} symbol. Absence of that symbol alone would
+not establish the required instruction sequence. The recorded binary is
+identified by its full SHA-256 digest, so this check applies to that build.
+The specified lowerings address only this code-generation condition, not
+the full arithmetic model itself. A new build requires
+this check again. Its binary hash, like any native build hash, need not
+equal that of the recorded binary.
+
+\subsection{Specified finite control flow}
+\label{execute:control}
+
+All invocations use the C numeric locale and fresh output paths.
+The cover is run to normal completion before A reads its output.
+A uses all four parts $i=0,1,2,3$ with \texttt{parts=4}; part $i$
+processes exactly the center indices congruent to $i$ modulo~4.
+Its constants are seed radius \texttt{.0320001}, local target
+\texttt{.103}, global target \texttt{.125},
+\texttt{levels=3}, \texttt{iters=2}, and \texttt{first=1}.
+
+The following are the program invocations, with $i$ and $j$ standing for
+the indicated shard and batch indices. The accompanying
+\texttt{verification/code/proof\_run.py} runner was used in this execution and
+performs the validation between stages; this display only specifies the
+program arguments. A separate bounded supervisor retained the runner's
+exit and process-cleanup record.
+\begin{lstlisting}
+export LC_ALL=C
+./covrun centers.txt
+./arun centers.txt i 4 coarsei.bin badi.txt
+./brun .07 .013 mid.bin midbad.bin - \
+  coarse0.bin coarse1.bin coarse2.bin coarse3.bin
+./brun .016 .005 fine.bin finebad.bin batches/f mid.bin
+./crun 12 4 1 .042 1 1 5000000 0 1 \
+  batches/badj.bin batches/fj.bin
+./brun .011 .0038 fb1.bin fb1bad.bin - ALL_NONEMPTY_C_BAD_FILES
+./crun 12 4 1 .042 1 1 5000000 i 4 fb1cbadi.bin fb1.bin
+\end{lstlisting}
+There is one initial C invocation for every batch named by the completed
+\texttt{batches/fdone.txt} marker. In C the first seven parameters mean
+initial grid $12$, four layers, one linear-support iteration, proposed
+cluster radius $.042$, detail~1, graph mode~1, and graph-step cap
+$5{,}000{,}000$. Thus the single-vector grids are $12,24,48,96$.
+The unchanged default number of clustering passes is two.
+
+The mid and fine B invocations are sequential. A batching B invocation
+writes consecutive groups of at most 256 atlas records, replacing each
+batch radius by its target $.016$, and atomically renames each completed
+batch. The checked concatenation of all batch records equals
+\texttt{fine.bin}, except for that radius replacement. Every original
+fine radius is at most $.016$, so the replacement enlarges the represented
+sets. The completion marker agrees with both the number of batches and
+the sum of their record counts. The recorded run waited for B fine to
+finish before starting C; it used up to sixteen independent C workers.
+Concurrency changes scheduling only: workers have distinct output files
+and do not share mutable search state.
+
+For every initial C process, the normal status is 0 exactly when its
+saved bad count is zero, and 1 exactly when that count is positive.
+The four reported failure categories---uncapped graph candidate,
+graph-step cap, bin overflow, and clustering failure---sum to that bad
+count. None of them is an exclusion. Every nonempty-count bad file is
+passed to B fallback in C-locale filename order, including failures whose
+locations differ from those in another run. Final C uses all four
+modulo-4 parts of the fallback output. If initial C has no bad records,
+fallback and final C are unnecessary; that shortcut was not used in the
+recorded run.
+
+The required terminal conditions are:
+\begin{enumerate}
+\item successful builds, a normally completed cover, and a complete
+      center file;
+\item four A exits 0, all assigned centers processed, terminal
+      \texttt{failedBalls=0}, and four empty bad text files;
+\item both B exits 0, all input parents processed, agreement of logged
+      and saved output counts, and zero-count B bad files;
+\item every initial C batch processed exactly once with consistent
+      exit, done count, bad count, and saved records;
+\item every initial C bad record included in fallback, fallback exit 0
+      with all parents processed and zero saved failures, and four
+      final C exits 0 with total done equal to the fallback count and
+      zero saved failures.
+\end{enumerate}
+Missing files, truncated data, an unexpected exit, resource exhaustion,
+an unresolved A or B parent, or a final C bad record prevent acceptance.
+Recoverable search diagnostics are distinguished from these terminal
+conditions. For example, A's \texttt{ownfail} counts unsuccessful
+proposals of a local Root cover that are followed by subdivision. A0
+reported such a diagnostic in this run; its terminal unresolved count
+was nevertheless zero.
+
+\subsection{Finite bounds and conservative stopping}
+\label{execute:bounds}
+
+The control flow has explicit finite bounds. Before filtering, the
+nondecreasing five-bin lists for the seed cover number at most
+\[
+ \binom{116}{5}=160{,}389{,}488,
+\]
+and for any fixed shared bin the four ordered tail bins number at most
+\[
+ \binom{115}{4}=6{,}913{,}340.
+\]
+The former bound is below the signed 32-bit limit. Pair traversals use
+range loops and 64-bit counters. All bin differences lie between $-111$
+and $111$; their nine-coordinate square sum is at most $9\cdot111^2$,
+so the integer distance and bucket arithmetic fit the stated types.
+The stored five-coordinate differences also fit the signed eight-bit
+type used by the cover.
+
+A retains nonfinal unitary grid lists only through grid~32; the grid~64
+has at most $64^4/8=2{,}097{,}152$ cell tests per seed. Further tests
+are bounded by the $1{,}000{,}000$ extra-node cap, and the deepest
+grid is 512. Reaching the cap or reaching the deepest grid without a
+certificate records an unresolved seed. Trial-direction and Root
+proposal failures can lose an opportunity to cover a cell, but cannot
+make an uncovered cell successful. The local candidate list uses
+\texttt{topK=4} in an array of size~8.
+
+The Root dimension is at most $k=10$. Atlas sizes and individual record
+file counts are capped at $2{,}000{,}000$, and concatenated B/C input
+counts at $8{,}000{,}000$. For B the validated widths and radii give
+$L\le1262$ and hence axis indices at most 2524; the product grid is
+checked against $50{,}000{,}000$ before multiplication. Mixed-radix
+strides and marks therefore fit the stated index types. Each unresolved
+box is split to depth at most six, and the $2^k$ child masks fit an
+integer. Only successfully completed parents are inserted into B's
+list of earlier covered parents. A grid-cap rejection is a parent
+failure, not a completed parent.
+
+C retains at most $2{,}000{,}000$ phase bins. The first grid has
+$12^5=248{,}832$ cells; a later grid tests at most 32 children per
+retained bin. Clustering permits at most 2048 balls. Its graph bitsets
+have 32 words of 64 bits, and all members have indices below the current
+node count. Word shifts are unsigned. The graph pair counts fit an
+integer, and the joint test has at most 14 rows. Recursive clique
+search decreases the requested clique size or removes a candidate;
+the step cap supplies an additional bound. A cap sets the conservative
+candidate/give-up flag and saves the record. It does not return a
+negative certificate. Consequently no finite resource cap in the
+specified run can establish nonexistence by silently dropping a region.
+
+\subsection{The finite-execution implication}
+\label{execute:implication}
+
+\begin{theorem}[Finite-execution certificate]
+\label{execute:finite-theorem}
+Use the seven specified source files and the arithmetic conditions of
+Appendix~\ref{sec:rounding}. Suppose the invocations in
+Section~\ref{execute:control} meet all of its terminal conditions, with
+the record provenance and batch checks stated there. Then four mutually
+unbiased orthonormal bases in $\C^6$ do not exist.
+\end{theorem}
+
+\begin{proof}
+Suppose four such bases exist. Normalize the first to the standard basis
+and write the second as $H/\sqrt6$. Proposition~\ref{seed:cover} places
+the seed coordinates of an equivalent exact Hadamard matrix in one of
+the generated seed balls. All A shards together process that seed.
+Proposition~\ref{phase:A-cover} therefore places an equivalent exact
+solution in a coarse Record. Each equivalence preserves extendibility
+by two further bases.
+
+Apply Proposition~\ref{refine:cover-preservation} first to B mid and
+then to B fine, and Corollary~\ref{refine:batch-cover} to the emitted
+batches. They place
+an equivalent exact solution in a record of \texttt{fine.bin}, and
+therefore in its checked, possibly enlarged batch record. Completeness
+of the marker and the per-batch done counts ensures that initial C
+processes that record. A negative C result would contradict its
+extendibility by Proposition~\ref{exclude:local-certificate}. Hence it
+must occur among the saved initial failures. If there are none, this
+already gives a contradiction. Otherwise the fallback branch is executed,
+and the subsequence and fallback-input checks include that very record
+in B fallback.
+
+The successful fallback again covers its exact solutions, up to the
+same equivalences, by the records of \texttt{fb1.bin}. The final four
+modulo-4 shards partition those records without omission. Every final
+record has a negative C result, contradicting extendibility. Each
+coverage implication used here is justified by its geometric lemma and
+the one-sided arithmetic bounds; counts and hashes establish the
+identity and completeness of the finite chain, not those inequalities
+in isolation.
+\end{proof}
+
+\subsection{The completed execution}
+\label{execute:observed}
+
+The execution began at 03:10:26 and completed at 04:24:56 on
+4 October 2026 (UTC). Both the runner and its supervisor exited 0;
+the supervisor recorded no cleanup or finalization errors, no remaining
+children, and unchanged input hashes. The execution evidence includes
+the raw command and stream records, exact file contents, record provenance,
+batch concatenation, actual fallback inputs, and final modulo partition.
+Together with the validation records, these account for all 100 native
+invocations and show no final unresolved records. They document the finite
+execution, not an automatic verification of the geometric or arithmetic
+lemmas.
+
+Table~\ref{execute:counts} records this computation. All four A shards exited 0,
+with empty bad text files. Each B invocation exited 0 with an eight-byte
+zero-count bad file. Initial C had 73 exits 0 and 15 exits 1, all
+accounted for by saved failures. All final C shards exited 0 with
+eight-byte zero-count bad files.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrl}
+\toprule
+Stage & Inputs processed & Output records & Unresolved records\\
+\midrule
+Seed cover & $151{,}744{,}086$ pairs & $249{,}878$ centers & ---\\
+A0 & $62{,}470$ & 764 & 0\\
+A1 & $62{,}470$ & 774 & 0\\
+A2 & $62{,}469$ & 757 & 0\\
+A3 & $62{,}469$ & 788 & 0\\
+B mid & 3083 & 600 & 0\\
+B fine & 600 & $22{,}379$ & 0\\
+Initial C & $22{,}379$ & --- & 163 (all graph caps)\\
+B fallback & 163 & 1127 & 0\\
+Final C0 & 282 & --- & 0\\
+Final C1 & 282 & --- & 0\\
+Final C2 & 282 & --- & 0\\
+Final C3 & 281 & --- & 0\\
+\bottomrule
+\end{tabular}
+\caption{Observed execution on 4 October 2026 (UTC). The seed cover retained
+22,829 five-bin $x$ lists. The fine records form 88 batches:
+$87\cdot256+107=22{,}379$.}
+\label{execute:counts}
+\end{table}
+
+The nonzero initial C failure files, in the actual order supplied to
+B fallback, were
+\begin{lstlisting}
+bad10.bin bad3.bin bad4.bin bad5.bin bad52.bin bad53.bin
+bad55.bin bad56.bin bad6.bin bad7.bin bad78.bin bad79.bin
+bad8.bin bad80.bin bad84.bin
+\end{lstlisting}
+They contain all 163 unresolved records. There were no initial bin
+overflows, clustering failures, or uncapped graph candidates. There
+were no final failures of any category. Thus all 100 program invocations
+in the full pipeline are accounted for: one cover, four A processes,
+two B refinements, 88 initial C processes, one B fallback, and four
+final C processes. The fifteen initial C exits 1 are resolved by that
+fallback chain. No rejection threshold, graph cap, refinement width,
+or mathematical source file was altered, and no additional refinement
+level was inserted.
+
+For scale, the wrapper-measured stage wall times, including polling and
+validation, were 621.59 seconds for the cover, 2020.32 seconds for the
+four parallel A shards, 1071.49 and 407.45 seconds for B mid and B fine,
+and 300.23, 8.12, and 36.27 seconds for initial C, fallback B, and final C.
+The outer supervisor measured 4470.33 seconds for the complete pipeline.
+These are observations on this platform, not native CPU times or
+running-time guarantees. No stage hit its wall deadline, and no retry
+or resource-limit increase was used.
+
+\begin{longtable}{@{}p{.19\textwidth}p{.77\textwidth}@{}}
+\caption{SHA-256 digests of the actual principal data files. Full
+per-file inventories accompany the computation archive.}
+\label{execute:hashes}\\
+\toprule
+File & SHA-256\\
+\midrule
+\endfirsthead
+\toprule
+File & SHA-256\\
+\midrule
+\endhead
+\texttt{centers.txt} & {\scriptsize\texttt{c48bc9a2be1eb2cdeea82ea1b030d7cb9f00a6c9563b63f0248dd115748a5789}}\\
+\texttt{coarse0.bin} & {\scriptsize\texttt{77b0cda59484ffde0654db8d6008bcaab1daf1deefd00d4dc085d3d751418cd4}}\\
+\texttt{coarse1.bin} & {\scriptsize\texttt{48ca7775dba57a87a10d154da8b172074b29c9a65b32e44ee169f23a48d24b8a}}\\
+\texttt{coarse2.bin} & {\scriptsize\texttt{418b6d9cf338187c63635d26050940a13177515050a057b2bc67fd11a163e43e}}\\
+\texttt{coarse3.bin} & {\scriptsize\texttt{8c23427e63e31cd18abbb80838e3289e646fd108fa850687ca7b857471376535}}\\
+\texttt{mid.bin} & {\scriptsize\texttt{e97c74dde90a0e758df2cb5d9708f5bd6bd660ed920b3299f5df92ff4de11be4}}\\
+\texttt{fine.bin} & {\scriptsize\texttt{9b5b743b61907277fa6687a0ad45677bbcd0e4c9bd44a0d93d258253fb52923d}}\\
+\texttt{fb1.bin} & {\scriptsize\texttt{ef85ec73217ecb0c770d3c775396df88b60ca06918f77310df5dff2f6d9bf215}}\\
+\bottomrule
+\end{longtable}
+
+The execution archive identified by
+\texttt{verification/\allowbreak computation/README.md} preserves the numerical data and records
+of this complete run, with internal path and host fields redacted: all sources
+and binaries, center and record files, all 88 input batches and their C
+bad files, fallback data, all final bad files, stdout and stderr,
+commands, exits, platform information, and validation records. In the
+execution archive, \texttt{full-run-01/pipeline/status.json} is the
+whole-run record; \texttt{*.stage.json} files describe stages and
+individual \texttt{*.status.json} files describe child processes.
+The outer record is \texttt{full-run-01/run.json}.
+\texttt{verification/REPRODUCE.md} gives rebuild and
+execution instructions. Archived native binaries document this run;
+they are not a portability claim.
+
+The proof here uses only this newly completed chain and the values in
+Tables~\ref{execute:counts} and~\ref{execute:hashes}. The complete
+evidence packet for the execution reported on 7 September 2026 was not
+recovered. Although the new principal data hashes and stage counts agree
+with those reported for that run, this agreement does not authenticate
+the earlier execution. Neither its reported results nor earlier timed
+or sampled diagnostics substitute for any stage of the new full run.

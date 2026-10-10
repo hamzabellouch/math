@@ -1,0 +1,794 @@
+\section{The finite scalar verification}\label{sec:computation}
+
+The geometric argument requires the two inequalities
+\eqref{cal:scalar-bounds} for the exact functions $G$ and $g_d$.
+We now specify a finite calculation that implies them.  Its inputs
+are the radial data \eqref{cal:radial-data}, the formulas
+\eqref{cal:f0-e}, and the constants defined by the integrals
+\eqref{cal:constants}.  Its outputs are interval bounds for these
+constants, two strict bounds on a compact rectangle, and a positive
+Hessian bound near the exact stationary point.  The estimates of
+Section~\ref{tail:section} connect the finite radial calculation to
+the infinite series.
+
+Every terminating decimal in this section denotes an exact rational
+number.  An interval enclosure always contains the exact mathematical
+quantity in question.  In particular, the constants $\lambda,\mu,K$
+are not replaced by rounded numerical choices.  Their enclosures are
+used in all subsequent operations, while
+Lemma~\ref{cal:stationarity} supplies stationarity for their exact
+values.
+
+\subsection{Outward arithmetic and derivative intervals}
+\label{comp:arithmetic}
+
+The calculation follows the interval inclusion principle: every
+operation encloses its exact result, and analytic remainders are added
+explicitly. Revol and Rouillier~\cite{RevolRouillier2005} discuss this
+principle and the dependence of enclosure width on expressions and
+subdivision. We specify the integer operations here, so the proof's
+arithmetic assumptions and rounding rules are explicit.
+
+Put $q=2^{144}$.  A scalar interval is represented by integers
+$u\le v$, meaning $[u/q,v/q]$.  Rational inputs are rounded down at
+the lower endpoint and up at the upper endpoint.  Addition and
+negation are exact at this denominator.  Multiplication takes the
+least and greatest of the four endpoint products, then divides by
+$q$ with outward rounding.  If $0<u\le v$, inversion gives
+\[
+ \left[\frac{\lfloor q^2/v\rfloor}{q},
+       \frac{\lceil q^2/u\rceil}{q}\right];
+\]
+negative intervals are treated by negation, and division by an
+interval containing zero is forbidden.  Integer powers use repeated
+multiplication.  For a positive interval, integer square roots give
+the enclosure
+\[
+ \left[\frac{\lfloor\sqrt{uq}\rfloor}{q},
+       \frac{\lfloor\sqrt{vq}\rfloor+1}{q}\right].
+\]
+The extra unit in the upper endpoint is harmless when the upper
+square root is an integer.
+
+For logarithms, first extract an integer power of two and reduce the
+argument to $[1/4,1]$.  The arguments used below are positive table
+intervals or enclosures of fixed positive constants; their widths
+allow this reduction.  With $z=(v-1)/(v+1)$, evaluate
+\begin{equation}\label{comp:logarithm}
+ \log v=2\sum_{j=0}^{199}\frac{z^{2j+1}}{2j+1}+\mathcal R,
+ \qquad |\mathcal R|
+ \le\frac{2(3/5)^{401}}{401(1-(3/5)^2)}<q^{-1}.
+\end{equation}
+The same series at $z=1/3$ encloses $\log2$, used to restore the
+extracted power.  All summation errors are already enclosed by
+outward arithmetic; the displayed remainder is added separately.
+Similarly, use
+\begin{equation}\label{comp:pi}
+ \pi=16\arctan(1/5)-4\arctan(1/239),\qquad
+ \arctan(1/v)=\sum_{j=0}^{149}
+             \frac{(-1)^jv^{-2j-1}}{2j+1}+\mathcal R_v.
+\end{equation}
+The alternating-series bound gives
+$|\mathcal R_v|\le v^{-301}/301<q^{-1}$ for both values of $v$.
+Adding $[-2q^{-1},2q^{-1}]$ to each arctangent enclosure before the
+linear combination is sufficient.  These procedures also enclose
+$p,R_0,x_0,l$ using their exact defining formulas.
+
+To bound derivatives we use interval jets
+\[
+ (F_0,F_1,F_2,F_3),\qquad F_j\supseteq F^{(j)}(t)/j!.
+\]
+Addition, multiplication, inversion, logarithms, and square roots
+are performed as formal power series through degree three.
+For example, the product coefficient is
+$\sum_{r=0}^jF_rG_{j-r}$, and the inverse coefficients follow
+recursively from the product being one.  A variable on a radial
+interval $T$ is represented by $(T,1,0,0)$; the resulting coefficients
+enclose its derivatives at every point of $T$ on the chosen spline
+piece.  At a single point, the leading interval encloses that point
+and the same derivative entries are used.  After differentiation
+only the coefficients supported by the available derivative orders
+are used.  The calculation below never requires a fourth derivative
+of a spline: third derivatives of $B,D_i$ suffice for the second
+derivatives of $f_0,e$ and for the radial quadrature errors.
+
+For a differential equation $Y'=F(t,Y)$ with an enclosed value at
+the evaluation point,
+its jet coefficients are reconstructed in increasing order by
+\begin{equation}\label{comp:jet-ode}
+ Y_{j+1}=\frac{[F(t,Y)]_j}{j+1},\qquad 0\le j\le2.
+\end{equation}
+Thus the enclosed value and the known differential equation supply
+the derivatives without numerical differentiation.
+
+Spline polynomials are evaluated by interval Horner arithmetic.
+One may first translate a polynomial $P(t)=\sum_{\ell=0}^Na_\ell
+t^\ell$ to the midpoint $m$ of its leading interval:
+\begin{equation}\label{comp:polynomial-shift}
+ P(m+h)=\sum_{j=0}^N
+   \left(\sum_{\ell=j}^N\binom{\ell}{j}a_\ell m^{\ell-j}\right)h^j.
+\end{equation}
+This is an exact polynomial identity, also for jets.  It reduces
+interval widths without changing the spline or introducing an
+approximation; direct Horner evaluation remains a valid enclosure.
+
+\subsection{Coefficients and the radial table}
+\label{comp:radial-table}
+
+Retain the auxiliary mode $0$ and modes $1\le m\le38$.
+The two modes with exponent six remain separate in sums involving
+$D_i$.  Enclose each $c_m$ by summing over
+$|n|,|r|\le D$, where $D=256$ for $m=1$ and $D=48$ otherwise,
+and then adding the symmetric error in
+\eqref{tail:coefficient-square}, multiplied by $a^{-k_m}/k_m$.
+The summands can be evaluated using only integers before that last
+factor: if $k=k_m$, $A=2n+r$, and $N=n^2+nr+r^2$, then
+\begin{equation}\label{comp:coefficient-summand}
+ \operatorname{Re}(n+r/2+i\sqrt3r/2)^{-k}
+ =\frac{\displaystyle\sum_{j=0}^{k/2}(-1)^j
+       \binom{k}{2j}A^{k-2j}(3r^2)^j}{2^kN^k}.
+\end{equation}
+The pair $(0,0)$ is omitted.  The resulting enclosure also tests
+$|c_1|<1$.
+
+The radial breakpoints are
+\begin{equation}\label{comp:breakpoints}
+ b,\quad p-.06,\quad p,\quad R_0,\quad R_0+.001,
+       \quad R_0+.075,\quad l=R_0+.076.
+\end{equation}
+Each intervening interval is subdivided by affine interpolation
+between its exact endpoints.  For the first interval use
+$n=\lfloor8000(u-v)\rfloor+1$ subintervals, and for all later
+intervals use $n=\lfloor24000(u-v)\rfloor+1$, where $v,u$ are its
+endpoints.  In execution an outward upper bound on the product is
+used to choose $n$, which can only add subdivisions.  All true node
+positions are enclosed by the corresponding interval arithmetic.
+The length of every actual subinterval is bounded above in the
+calculation; these upper bounds are used in all error estimates.
+
+For the fixed table, write $[u_i/q,v_i/q]$ for the valid outward
+enclosure of its $i$th node, $0\le i\le m$.  The interval
+constructor enforces $u_i\le v_i$, and the node arithmetic preserves
+this invariant.  After appending the last node and before propagating
+any integral state, the program requires
+\begin{equation}\label{comp:node-separation}
+                    v_i<u_{i+1}\qquad(0\le i<m);
+\end{equation}
+it throws an exception if a comparison fails.  Thus, on a completed
+table construction,
+$u_i\le v_i<u_{i+1}\le v_{i+1}$.  Both endpoint arrays are strictly
+increasing, and the stored step interval is
+\[
+ H_i=[(u_{i+1}-v_i)/q,(v_{i+1}-u_i)/q]
+\]
+with positive lower endpoint.  This also justifies every division by
+$H_i$ below.  These facts concern the initialized table and its
+unchanged aligned node, point, and cell arrays in the fixed calculation.
+
+On $0<t\le p-.06$, the truncated functions have the monomial form
+\[
+ \widetilde B(t)=-\log t+\pi t^2/2
+       +\sum_{m=1}^{38}a_mt^{k_m},\qquad
+ \widetilde B_1(t)=\pi t+\sum_{m=1}^{38}k_ma_mt^{k_m-1},
+ \qquad a_m=(-1)^mc_m.
+\]
+For compact formulas introduce the finite list
+\[
+ (e_0,v_0)=(2,\pi),\qquad
+ (e_m,v_m)=(k_m,k_ma_m)\quad(1\le m\le38).
+\]
+This list indexes monomials of $\widetilde B_1$, rather than the
+sector modes; its exponent $e_0=2$ is unrelated to $k_0=6$.
+The starting integrals, including their derivatives, are obtained
+from the exact identities
+\begin{equation}\label{comp:initial-integrals}
+ \begin{split}
+ \widetilde S_1(t)&=\frac{t^2}{2}\left(\frac12-\log t\right)
+            +\frac\pi8t^4+
+                  \sum_{m=1}^{38}\frac{a_mt^{k_m+2}}{k_m+2},\\
+ \widetilde S_2(t)&=-2\sum_{i=0}^{38}\frac{v_it^{e_i}}{e_i}
+            +\sum_{i,j=0}^{38}\frac{v_iv_jt^{e_i+e_j}}{e_i+e_j},\\
+ \widetilde H_k(t)&=\sum_{i=0}^{38}\frac{v_it^{e_i}}{e_i+k}.
+ \end{split}
+\end{equation}
+In particular, the table starts propagation at the exact node
+$p-.06$ with these values; preceding nodes and cells use
+\eqref{comp:initial-integrals} directly.
+
+There is a useful exact simplification for the sector functions on
+this first interval.  Since $b_m(t)=0$, $D_m(t)=-a_mt^{k_m}$ and
+$D_0(t)=0$, substitution in \eqref{cal:trial-potential} cancels every
+nonconstant mode and gives $H(r,\varphi)=\gamma(r)$ for $r\le t$.
+Equivalently, every $Q_i$ vanishes.  Direct radial integration gives
+\begin{equation}\label{comp:inner-exact}
+ f_0(t)=(\pi t^2-\tfrac12)\log t-\frac{3\pi^2t^4}{8},
+ \qquad e(t)=0,\qquad 0<t\le p-.06.
+\end{equation}
+Indeed,
+\[
+ \int_0^t\gamma(r)r\,\mathrm dr
+ =-\frac{t^2}{2}\log t+\frac{t^2}{4}+\frac{\pi t^4}{8},
+ \qquad
+ \int_0^t{}^{\rm ren}\gamma'(r)^2r\,\mathrm dr
+ =\log t-\pi t^2+\frac{\pi^2t^4}{4}.
+\]
+Combining these with the source and energy factors in the sector
+formula proves \eqref{comp:inner-exact}.  The identity holds for
+the full infinite series as well as for every finite truncation.
+It may therefore replace the mode sums when evaluating $f_0,e$
+and their first two derivatives on the first interval, producing
+tighter enclosures.  The full finite-mode values
+\eqref{comp:initial-integrals} at $p-.06$ are still required to
+start the continuation of $S_1,S_2,H_k$.
+
+For a subsequent radial step $[v,u]$, propagate the integrals by
+\begin{equation}\label{comp:propagation}
+ \begin{split}
+ \widetilde S_1(u)&=\widetilde S_1(v)+
+                         \int_v^u r\widetilde B(r)\,\mathrm dr,\\
+ \widetilde S_2(u)&=\widetilde S_2(v)+
+             \int_v^u\bigl(-2\widetilde B_1(r)
+                            +r\widetilde B_1(r)^2\bigr)\,\mathrm dr,\\
+ \widetilde H_k(u)&=(v/u)^k\widetilde H_k(v)
+              +\int_v^u(r/u)^k\widetilde B_1(r)\,\mathrm dr.
+ \end{split}
+\end{equation}
+For each integrand $Y$, the midpoint rule has the rigorous enclosure
+\begin{equation}\label{comp:midpoint}
+ \int_v^uY(r)\,\mathrm dr
+ \in (u-v)Y((v+u)/2)
+   +\left[-\frac{(u-v)^3}{24}\sup_{[v,u]}|Y''|,
+           \frac{(u-v)^3}{24}\sup_{[v,u]}|Y''|\right].
+\end{equation}
+Midpoint values use point jets; second-derivative bounds use a jet
+whose leading interval contains $[v,u]$.  The formula applies to
+weak second derivatives bounded almost everywhere as well.
+
+For values inside a step, use the integral equations rather than
+the midpoint approximation.  If $T=[v,u]$ and $h=u-v$, then
+\begin{equation}\label{comp:cell-integrals}
+ \begin{split}
+ \widetilde S_j(T)&\subseteq \widetilde S_j(v)
+                                  +[0,h]\,\operatorname{range}_T Y_j,
+                         \qquad j=1,2,\\
+ \widetilde H_k(T)&\subseteq (v/T)^k\widetilde H_k(v)
+                  +[-h\|\widetilde B_1\|_{0,T},
+                     h\|\widetilde B_1\|_{0,T}],
+ \end{split}
+\end{equation}
+where $Y_1=r\widetilde B$ and
+$Y_2=-2\widetilde B_1+r\widetilde B_1^2$.
+For the last inclusion, $(r/t)^k\le1$ whenever $v\le r\le t\le u$.
+Recover the positive jet orders from
+\begin{equation}\label{comp:radial-odes}
+ \widetilde S_1'=t\widetilde B,\qquad
+ \widetilde S_2'=-2\widetilde B_1+t\widetilde B_1^2,\qquad
+ \widetilde H_k'=\widetilde B_1-k\widetilde H_k/t.
+\end{equation}
+Substitution into \eqref{cal:f0-e} produces both node enclosures and
+cell enclosures of the ordered six-tuple
+\begin{equation}\label{comp:table-tuple}
+ (\widetilde f_0,\widetilde f_0',\widetilde f_0'',
+          \widetilde e,\widetilde e',\widetilde e'').
+\end{equation}
+No numerical differentiation of table values is used.
+
+Separately, subdivide each interval in
+\eqref{comp:breakpoints} into steps of length at most $.00022$.
+Direct interval jets for $\widetilde B_1$ and $\widetilde D_i$
+test the two finite-core inequalities
+\eqref{tail:finite-core-premise}.  Together with $|c_1|<1$, these
+are the finite premises of the truncation analysis; their verification
+does not use any infinite-mode error bound.  Only after these tests
+pass is \eqref{tail:uniform-error} invoked.
+
+The spline data are $C^2$ and have bounded one-sided third
+derivatives.  Accordingly $f_0,e$ are $C^1$ with locally bounded weak
+second derivatives on $(b,\infty)$.  A radial cell uses its own spline
+formula at its endpoints; either one-sided second derivative is
+valid for its interior.  When a query meets a knot, the hull includes
+both adjacent cells.  Thus no jump of a second derivative is mistaken
+for global classical differentiability.
+
+\subsection{Queries for the infinite-mode functions}
+\label{comp:lookup}
+
+Let $\epsilon=[-10^{-11},10^{-11}]$, and let $T$ be a valid outward
+enclosure of the queried true radii.  In the fixed production calls
+every such radius is at least $b$, although $T$ may extend below $b$.
+For derivatives, take the componentwise hull of
+\eqref{comp:table-tuple} over every radial cell meeting $T$ and add
+$\epsilon$ to each component.  By \eqref{tail:uniform-error}, this
+encloses the full infinite-mode tuple $(f_0,f_0',f_0'',e,e',e'')$
+at every queried true radius in $T\cap[b,l]$.  The exact continuation
+below covers queried true radii at least $l$.
+Here is the cell-selection argument for the implementation.  In
+integer endpoint units write the valid query as $[a,b']$, let $j$ be
+the first index with $v_j\ge a$, and let $k$ be the first index with
+$u_k>b'$, using $m+1$ if either index is absent.  The closed envelope
+of cell $i$ is $[u_i,v_{i+1}]$.  It meets $[a,b']$ exactly when
+$v_{i+1}\ge a$ and $u_i\le b'$.  By the ordering proved above, these
+conditions are equivalent to $i\ge j-1$ and $i<k$.  Therefore the
+binary searches on the upper and lower endpoint arrays select exactly
+\[
+ \mathrm{im}=\max(0,j-1)\le i<\min(m,k)=\mathrm{ix}.
+\]
+The non-strict intersection inequalities include both cells at a
+shared endpoint.  Every true cell meeting the query lies in its
+envelope and is therefore selected; any extra cells only widen the
+hull.  This is a statement about the fixed initialized table, not a
+general-purpose lookup interface.
+
+For a query requiring values alone, improve the enclosure by linear
+interpolation of the endpoint values.  On a radial cell $[v,u]$ put
+\[
+ X=[0,1]\cap\frac{T-v}{u-v},\qquad
+ L_Y(T)=Y(v)+X\bigl(Y(u)-Y(v)\bigr),
+ \quad Y=\widetilde f_0,\widetilde e.
+\]
+An empty intersection is discarded.  The interpolation error is
+\begin{equation}\label{comp:radial-interpolation}
+ |Y(t)-L_Y(t)|\le\frac{(u-v)^2}{8}
+                                   \sup_{[v,u]}|Y''|.
+\end{equation}
+The cell enclosure supplies the derivative bound.  Add this
+symmetric error and $\epsilon$, then take the hull over all relevant
+cells.  Shared coefficient uncertainties need not be independent:
+interval operations enclose all their possible values and hence
+also their correlated exact values.
+In particular, the positive stored interval $H_i$ contains the true
+step $u-v$, so outward evaluation of the quotient defining $X$
+contains the normalized coordinate of every true queried point in
+that cell.  Intersecting with $[0,1]$ cannot discard such a point.
+
+Queries that meet $[l,\infty)$ also include the exact continuation
+\eqref{tail:exterior-formula}.  Enclose its two constants by the
+last node value plus $\epsilon$ and by
+\begin{equation}\label{comp:constant-B}
+ B(l)\in-\log R_0+\pi R_0^2/2+
+                    \sum_{m=1}^{38}V_m(R_0)+\epsilon.
+\end{equation}
+Thus the continuation contributes the tuple
+\begin{equation}\label{comp:tail-tuple}
+ \bigl(f_0(l)-\pi B(l)(T^2-l^2),\,
+       -2\pi B(l)T,\,-2\pi B(l),\,0,0,0\bigr).
+\end{equation}
+Using the entire query interval in this expression is conservative
+even if it extends below $l$, since the relevant exterior subset is
+contained in it.  This rule propagates the constant uncertainties
+through the exact formula and asserts no radius-independent error
+on the unbounded tail.
+
+\subsection{Enclosing the calibrated constants}
+\label{comp:constants}
+
+We evaluate the exact integrals defining $\lambda$ in
+\eqref{cal:constants}.  Put $s_0=.01$ and
+$t(s)=\sqrt{p^2+s^2}$.  Taylor's formula at $p$ removes the apparent
+division by zero in the first integral.  Specifically,
+\begin{equation}\label{comp:lambda-origin}
+ \begin{split}
+ \int_0^{s_0}p\frac{f_0(t(s))-f_0(p)}{s^2}\,\mathrm ds
+ \in{}& f_0'(p)\left(\frac{s_0}{2}
+           -\frac{s_0^3}{24p^2}
+                      +\left[0,\frac{s_0^5}{80p^4}\right]\right)\\
+ &+\frac{s_0^3}{6}
+   \left[\frac{p}{(\sqrt{p^2+s_0^2}+p)^2},\frac1{4p}\right]
+          \operatorname{range}_{[p,t(s_0)]} f_0''.
+ \end{split}
+\end{equation}
+Indeed, $t-p=s^2/(t+p)$, while
+\[
+ \frac{p}{t+p}=\frac12-\frac{s^2}{8p^2}
+                         +\left[0,\frac{s^4}{16p^4}\right].
+\]
+The quadratic Taylor remainder of $f_0$ supplies the second line of
+\eqref{comp:lambda-origin}.  The derivative range comes from the
+radial cells with the infinite-mode error added.
+
+The implementation obtains this range by a direct cell scan over
+$[p,t(s_0)]$, and obtains the derivative bounds below by a second
+direct scan over $[p,R_0]$.  Both use the same closed-cell selection
+rule, with outward endpoint bounds, but neither adds the exterior
+formula.  This is sufficient here: $p^4=1/12$ gives $p>1/2>b$,
+$x_0=R_0/2>s_0$, and
+\[
+              t(x_0)=\sqrt{p^2+(R_0/2)^2}=R_0<l.
+\]
+Hence both true scan domains are contained in the finite table
+$[b,l]$.  A nonempty scan alone would not justify a query extending
+beyond that table.
+
+On $[s_0,x_0]$ integrate
+$p(f_0(t(s))-f_0(p))/s^2$ by a midpoint sum with $45000$ equal
+steps.  Integrate $e(t(s))/p$ on $[0,x_0]$ by a separate midpoint
+sum with $45000$ equal steps.  Obtain integer upper bounds
+\[
+ C\ge\sup_{[p,R_0]}|f_0'|,\quad
+ C'\ge\sup_{[p,R_0]}|f_0''|,\quad
+ E\ge\sup_{[p,R_0]}|e'|,\quad
+ E'\ge\sup_{[p,R_0]}|e''|
+\]
+from the cell enclosures plus $\epsilon$.  The two integrands have
+second derivatives bounded respectively by
+\begin{equation}\label{comp:lambda-derivatives}
+ \frac{C'}p+\frac{8C}{s_0^2},\qquad
+ \frac{E'}p+\frac E{p^2}.
+\end{equation}
+For the first bound, set $V=f_0(t(s))-f_0(p)$; then
+\[
+ |V|\le Cs^2/(2p),\qquad
+ V''=f_0''(t)(s/t)^2+f_0'(t)p^2/t^3,
+\]
+and differentiate $pV/s^2$ twice.  The resulting terms are
+$p(V''/s^2-4V'/s^3+6V/s^4)$, bounded by the first expression in
+\eqref{comp:lambda-derivatives}.  The second follows by twice
+differentiating $e(t(s))/p$.
+For an interval of length $L$ and equal step length $h$, add the
+symmetric error $Lh^2\sup|Y''|/24$ to each complete midpoint sum.
+Together with \eqref{comp:lambda-origin}, the endpoint terms and
+the factors in \eqref{cal:constants}, this encloses $\lambda$.
+The same formula then encloses $\mu$.
+
+To enclose $K=2\int_0^{x_0}G(p,s)\,\mathrm ds$, choose an integer
+$n$ and equal steps of length $h=x_0/n\le.0001$, and use their
+midpoint sum.  Independently enclose
+$G_{ss}(p,s)$ on a partition with step length at most $.0002$.
+If $h$ is the midpoint step length and $L_K$ bounds this second
+derivative, the enclosure is
+\begin{equation}\label{comp:K-quadrature}
+ K\in2\left(\sum_jhG(p,s_j)
+                   +[-x_0h^2L_K/24,x_0h^2L_K/24]\right).
+\end{equation}
+The factor two multiplies both the sum and its error.
+
+The first sign tests are
+\begin{equation}\label{comp:tail-signs}
+ \begin{gathered}
+ -6.731<\lambda<-6.729,\qquad K<0,\\
+ f_0(l)-\lambda l^2/2-\mu>0,\qquad
+                  -\pi B(l)-\lambda/2>0.
+ \end{gathered}
+\end{equation}
+Each strict inequality is accepted only when the corresponding
+interval endpoint proves it.  The bound on $\lambda$ also serves
+as a check on the normalization.  The last two signs and
+\eqref{tail:exterior-formula} give
+\begin{equation}\label{comp:positive-tail}
+ f(t)=f(l)+\bigl(-\pi B(l)-\lambda/2\bigr)(t^2-l^2)>0,
+ \qquad G(d,s)>0\quad\hbox{if }t=\sqrt{d^2+s^2}\ge l.
+\end{equation}
+Here $e(t)=0$ and $d/t^2>0$.
+
+\subsection{The compact rectangle and its derivative bounds}
+\label{comp:rectangle}
+
+Because $l<.697$ and $\sqrt{b^2+.65^2}>l$, the signs
+\eqref{comp:positive-tail} reduce the remaining work to
+\begin{equation}\label{comp:domain}
+ \mathcal D=[b,.697]\times[0,.65].
+\end{equation}
+For $d\ge.697$, $G(d,s)>0$ for every $s\ge0$ and $g_d(x)\ge0$.
+For $d\ge b$ and $x\ge.65$, the primitive is increasing in $x$.
+The negative part of $G$ vanishes for $s\ge.65$.
+
+We obtain derivatives of $G$ by differentiating its defining
+formula, using the full radial query enclosures.  The following
+identities specify all needed factors.  Put
+\[
+ t=\sqrt{d^2+s^2},\quad A=d/t^2,\quad
+ Z=-s^2/(dt^2)=A-1/d,\quad r_d=d/t,\quad r_s=s/t,
+\]
+and write $f'=f_0'-\lambda t$, $f''=f_0''-\lambda$.
+Then
+\begin{equation}\label{comp:rational-derivatives}
+ \begin{aligned}
+ A_d&=(1-2d^2/t^2)/t^2,&Z_d&=A_d+1/d^2,\\
+ A_s&=-2ds/t^4,&Z_s&=A_s,\\
+ A_{dd}&=2d(d^2-3s^2)/t^6,&Z_{dd}&=A_{dd}-2/d^3,\\
+ A_{ss}&=-2d/t^4+8ds^2/t^6,&Z_{ss}&=A_{ss}.
+ \end{aligned}
+\end{equation}
+For $v=d$ or $v=s$ let $r_v$ have the meaning above.  The derivative
+formulas are
+\begin{equation}\label{comp:G-derivatives}
+ \begin{split}
+ G_v={}&A_vf+Af'r_v+Z_ve+Ze'r_v,\\
+ G_{vv}={}&A_{vv}f+2A_vf'r_v
+       +A\bigl(f''r_v^2+f'(1-r_v^2)/t\bigr)\\
+ &+Z_{vv}e+2Z_ve'r_v
+       +Z\bigl(e''r_v^2+e'(1-r_v^2)/t\bigr).
+ \end{split}
+\end{equation}
+These formulas hold on each smooth piece and almost everywhere
+across the radial knots.  No mixed second derivative of $G$ is
+needed.
+
+Partition both sides of \eqref{comp:domain} into intervals of
+length at most $.0008$.  Interval substitution in
+\eqref{comp:G-derivatives} on every closed rectangle supplies
+global upper bounds
+\begin{equation}\label{comp:global-derivative-bounds}
+ L_1\ge\|G_d\|_{\infty,\mathcal D},\quad
+ L_2\ge\|G_s\|_{\infty,\mathcal D},\quad
+ L_3\ge\|G_{dd}\|_{\infty,\mathcal D},\quad
+ L_4\ge\|G_{ss}\|_{\infty,\mathcal D}.
+\end{equation}
+The value-only interpolation is not used to obtain these derivative
+bounds.
+
+\subsection{The primitive away from its stationary point}
+\label{comp:outer-grid}
+
+Let
+\begin{equation}\label{comp:inner-domain}
+ \mathcal D_0=[.52528,.54930]\times[.29420,.32621].
+\end{equation}
+Its interior contains $(p,x_0)$.  To verify the primitive bound on
+the complement, partition the $d$ interval at the two vertical
+sides of $\mathcal D_0$, and partition the $s$ interval at its two
+horizontal sides.  Subdivide these pieces into steps with maximal
+lengths
+\[
+ D_h\le.00019,\qquad S_h\le.00018.
+\]
+Every cell therefore lies either in $\mathcal D_0$ or outside its
+interior.  For each $d$ node, form successive midpoint sums from
+$0$ to every $x$ node, using the actual step lengths:
+\[
+ Q(d,x)=\sum_{[s_j,s_{j+1}]\subseteq[0,x]}
+          (s_{j+1}-s_j)
+                     G\left(d,\frac{s_j+s_{j+1}}2\right).
+\]
+The sum at $x=0$ is zero and is tested as well.  The value queries
+in Section~\ref{comp:lookup} may be used here.  At every node
+outside the interior of $\mathcal D_0$, enclose $2Q(d,x)-K$ and
+let $m_*$ be a lower bound for all these enclosures.
+
+The quadrature error at grid nodes is bounded by $E_0$, and the
+additional interpolation error between nodes by $E_I$, where
+\begin{equation}\label{comp:outer-errors}
+ E_0=\frac{2(.65)S_h^2L_4}{24},\qquad
+ E_I=\frac{2\bigl(D_h^2(.65)L_3+S_h^2L_2\bigr)}8,
+\end{equation}
+Indeed, the bilinear interpolation estimate follows from
+\[
+ \partial_d^2(2g_d(x)-K)=2\int_0^xG_{dd}(d,s)\,\mathrm ds,
+ \qquad \partial_x^2(2g_d(x)-K)=2G_s(d,x).
+\]
+Apply the one-dimensional interpolation error in each variable
+successively; the resulting bounds add and require no mixed
+derivative.  Thus the finite assertion
+\begin{equation}\label{comp:outer-assertion}
+                         m_*-E_0-E_I>0
+\end{equation}
+proves $2g_d(x)>K$ throughout
+$\mathcal D\setminus\operatorname{int}\mathcal D_0$.
+All the derivative estimates are weak derivative estimates, so
+the same conclusion holds when a quadrature segment or rectangle
+crosses a radial knot.
+
+\subsection{The negative part on the whole rectangle}
+\label{comp:negative-part}
+
+At every $d$ node, including those between the vertical sides of
+$\mathcal D_0$, use the same $s$ partition to enclose
+\[
+ N(d)=\sum_j(s_{j+1}-s_j)
+       \max\left\{0,-G\left(d,\frac{s_j+s_{j+1}}2\right)\right\}.
+\]
+Let $N_*$ be an upper bound for all these sums.  The function
+$y\mapsto\max\{0,-y\}$ is $1$-Lipschitz.  On a subinterval of
+length $h$, its midpoint error is therefore at most $L_2h^2/4$:
+integrate $L_2|s-s_{\rm mid}|$.  Summing the errors gives at most
+$.65S_hL_2/4$.  Every $d$ lies within $D_h/2$ of a node; changing
+$d$ to that node changes the integral by at most
+$.65D_hL_1/2$.  Consequently the assertion
+\begin{equation}\label{comp:negative-assertion}
+ N_*+K+.65\left(\frac{S_hL_2}{4}+\frac{D_hL_1}{2}\right)<0
+\end{equation}
+proves
+\[
+ \int_0^{.65}\max\{0,-G(d,s)\}\,\mathrm ds<-K
+                   \qquad(b\le d\le.697).
+\]
+Together with \eqref{comp:positive-tail}, this gives the entire
+negative-part inequality in \eqref{cal:scalar-bounds}.
+
+\subsection{Convexity in the stationary rectangle}
+\label{comp:hessian}
+
+It remains to prove the primitive inequality on $\mathcal D_0$.
+Partition its $d$ interval into steps of length at most $.00004$.
+Partition $[0,.32621]$ into steps of length at most $.00008$,
+including $.29420$ as a node.  The accumulation in $s$ must begin
+at zero even though the Hessian is tested only above $.29420$.
+
+For a $d$ interval $D$ and an $s$ interval $S_j$, use the full
+derivative queries to enclose
+\[
+ F_1(D,S_j)\supseteq G_{dd}(D,S_j),\quad
+ F_2(D,S_j)\supseteq G_d(D,S_j),\quad
+ F_3(D,S_j)\supseteq G_s(D,S_j).
+\]
+For a cell $D\times S_j$ meeting $\mathcal D_0$, enclosures of
+the three Hessian entries of $(d,x)\mapsto g_d(x)$ are
+\begin{equation}\label{comp:hessian-entries}
+ \begin{split}
+ A_j&=\sum_{i<j}|S_i|F_1(D,S_i)
+                             +[0,|S_j|]F_1(D,S_j),\\
+ B_j&=F_2(D,S_j),\qquad C_j=F_3(D,S_j).
+ \end{split}
+\end{equation}
+The first line is direct interval integration, not midpoint
+quadrature: it bounds both the completed subintervals and the
+partial final subinterval.  Test, on every such cell, that
+\begin{equation}\label{comp:hessian-assertions}
+ \inf A_j>0,\qquad \inf C_j>0,\qquad
+                         \inf(A_jC_j-B_j^2)>0.
+\end{equation}
+Interval multiplication encloses the determinant even when its
+factors are correlated.  These inequalities imply positive
+definiteness, and in particular positive semidefiniteness, of the
+Hessian almost everywhere on $\mathcal D_0$.
+
+The function $(d,x)\mapsto g_d(x)$ belongs to
+$W^{2,\infty}$ on a neighbourhood of this rectangle.  To justify
+the passage from Hessian bounds to convexity, mollify on each
+smaller interior rectangle: the mollified Hessian is positive
+semidefinite, so the mollified functions are convex.  Local
+uniform convergence proves convexity in the interior, and
+continuity includes the boundary.  By
+Lemma~\ref{cal:stationarity}, $(p,x_0)$ is an interior stationary
+point.  Hence
+\begin{equation}\label{comp:inner-conclusion}
+          2g_d(x)\ge2g_p(x_0)=K\qquad((d,x)\in\mathcal D_0).
+\end{equation}
+This step uses the exact stationary point and does not infer
+convexity or stationarity from sampled function values.
+
+\subsection{Finite assertions and the scalar conclusion}
+\label{comp:conclusion}
+
+For clarity, the finite procedure has the following fixed
+parameters and obligations.
+\begin{center}
+\begin{tabular}{ll}
+\hline
+Quantity & Parameter or required assertion\\
+\hline
+Arithmetic & Denominator $2^{144}$, jet order $3$\\
+Retained modes & $i=0,1,\ldots,38$\\
+Coefficient squares & $D=256$ for $m=1$, $D=48$ otherwise\\
+Core mesh & At most $.00022$ on each spline interval\\
+Core assertions & $|c_1|<1$ and \eqref{tail:finite-core-premise}\\
+Radial table & Densities $8000$ and $24000$ as specified above\\
+Radial node ordering & Strict separation \eqref{comp:node-separation}
+                       at every adjacent pair\\
+$\lambda$ integrals & $45000$ midpoint steps each; $s_0=.01$\\
+$K$ integral & Steps at most $.0001$; derivative mesh $.0002$\\
+Exterior signs & All assertions in \eqref{comp:tail-signs}\\
+Global derivative mesh & At most $.0008$ in both coordinates\\
+Outer and negative-part mesh & $D_h\le.00019$, $S_h\le.00018$\\
+Outer and negative-part assertions & \eqref{comp:outer-assertion},
+                                      \eqref{comp:negative-assertion}\\
+Hessian mesh & $d$ steps $.00004$, $s$ steps $.00008$ or smaller\\
+Hessian assertions & \eqref{comp:hessian-assertions} on every cell\\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{proposition}[Meaning of the finite assertions]
+\label{comp:finite-soundness}
+Apply the outward interval procedure specified in this section to
+the radial data \eqref{cal:radial-data}, retaining modes $0$ through
+$38$, with the parameters in the table.  If every listed assertion
+holds, its enclosures establish the finite-core premise
+\eqref{tail:finite-core-premise}, the exterior positivity
+\eqref{comp:positive-tail}, the primitive bound outside the interior
+of $\mathcal D_0$, the negative-part bound for every $d\ge b$, and
+the convexity bound \eqref{comp:inner-conclusion}, all for the exact
+infinite-mode functions.
+\end{proposition}
+\begin{proof}
+The coefficient sum and its lattice tail enclose each retained
+coefficient.  The direct core tests concern only finitely many
+modes, so they imply the premise needed for
+\eqref{tail:uniform-error}.  Equations
+\eqref{comp:initial-integrals}--\eqref{comp:radial-odes} and
+the midpoint bound prove the node and cell table enclosures by
+induction through every radial step.  The node-separation guard supplies
+the positive steps and ordered search arrays used by the table and
+query arguments.  The query rules then enclose
+the exact infinite-mode functions and their first two derivatives,
+including the constant-region continuation.
+
+The origin expansion and midpoint errors prove the enclosures of
+$\lambda,\mu,K$.  The signs \eqref{comp:tail-signs} imply the
+positive tail.  The derivative bounds, quadrature errors and
+bilinear interpolation prove the outer primitive assertion;
+the Lipschitz estimate proves the negative-part assertion.
+Finally, \eqref{comp:hessian-entries} encloses the complete
+Hessian, whose positivity and exact stationarity give
+\eqref{comp:inner-conclusion}.  Every stage uses only enclosures
+established before that stage.
+\end{proof}
+
+\paragraph{Finite bounds.}
+The program \texttt{certificate.cpp} implements this procedure using
+\texttt{core.hpp} and \texttt{grids.hpp}. All three files and an
+execution wrapper are included in the \texttt{verification} directory.
+One completed guarded run is documented in
+\texttt{verification/README.md}, which binds the code and formula hashes,
+run metadata, saved integer pairs, and their interpretation below.
+The wrapper compiles and runs the computation; it does not read the TeX
+manuscript. The source-to-code and analytic correspondences are separate
+arguments.
+The interval denominator is $2^{144}$. The table gives outward-rounded
+projections, while interval assertions use uncoarsened endpoints.
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Quantity & Recorded projection\\
+\midrule
+$\lambda$ & $[-6.7300312,-6.7300275]$\\
+$\mu$ & $[.4138830,.4138838]$\\
+$K$ & $[-.0034823,-.0034809]$\\
+$B(l)$ & $[1.0464643,1.0464644]$\\
+$f_0(l)$ & $[-1.2135966,-1.2135965]$\\
+$f(l)$ & $[.0044755,.0044772]$\\
+$-\pi B(l)-\lambda/2$ & $[.0774490,.0774509]$\\
+$m_*-E_0-E_I$ & $\ge .0000120$\\
+Negative-part left side of \eqref{comp:negative-assertion}
+ & $\le -.0004585$\\
+$g_{dd}$ on $\mathcal D_0$ & $\ge1.0529222$\\
+$g_{xx}$ on $\mathcal D_0$ & $\ge .0128335$\\
+$\det\nabla^2g$ on $\mathcal D_0$ & $\ge .0086252$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Here the determinant is enclosed on each individual rectangle before
+the bounds are combined; it is not computed from separately combined
+entry ranges. The global derivative bounds, rounded outwards for
+display, are
+\[
+ L_1\le7.4636170,\qquad L_2\le2.5091315,\qquad
+ L_3\le143.7890461,\qquad L_4\le315.1489689.
+\]
+These derivative numbers are projections of the computed hulls, not
+separate executable threshold assertions. For the identified sources,
+under the documented runtime assumptions, the completed run verifies the
+listed finite assertions using uncoarsened interval endpoints.
+Proposition~\ref{comp:finite-soundness} explains why these assertions
+imply the required bounds for the exact infinite-mode functions:
+the interval formulas and range-coverage arguments identify the
+quantities enclosed, while the analytic truncation estimates supply
+the omitted modes. Neither the rounded table nor the execution record
+alone supplies those mathematical correspondences.
+
+\begin{theorem}[Scalar inequalities from the finite verification]
+\label{comp:scalar}
+The exact constants and functions of
+\eqref{cal:constants} and \eqref{cal:primitive} satisfy
+\[
+ K<0,\qquad 2g_d(x)\ge K\quad(d\ge b,\ x\ge0),\qquad
+ \int_0^\infty\max\{0,-G(d,s)\}\,\mathrm ds\le-K
+                                             \quad(d\ge b).
+\]
+\end{theorem}
+\begin{proof}
+The documented finite verification and the correspondences just
+established supply the hypotheses of
+Proposition~\ref{comp:finite-soundness}. The first assertion is
+part of \eqref{comp:tail-signs}.
+The outer-grid assertion and \eqref{comp:inner-conclusion}
+cover all of $\mathcal D$.  For $d\in[b,.697]$ the positive
+tail makes the primitive increasing after $x=.65$, so the
+primitive bound extends to every $x\ge0$.  For $d\ge.697$,
+$G(d,s)>0$ for all $s\ge0$, whence $g_d(x)\ge0>K/2$.
+The negative-part estimate follows from
+\eqref{comp:negative-assertion} on the rectangle; its integrand
+vanishes outside the rectangle by
+\eqref{comp:positive-tail}.  These are exactly
+\eqref{cal:scalar-bounds}.
+\end{proof}

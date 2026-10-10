@@ -1,0 +1,705 @@
+\section{Allocation on a separated tree: rank data}
+\label{sec:allocation}
+
+We first solve an allocation problem on a fixed finite tree.  The allocation
+uses conditional distributions of hidden subtree counts.  Convex functions
+of their rank probabilities give compatible lower bounds on the amounts
+allocated to subtrees.  A small, size-dependent change in the functions
+provides the slack needed to move those amounts slowly.
+
+Let $\mathcal T$ be a finite rooted tree whose leaves have depth $J$.
+Write $|v|$ for depth and $i\prec v$ when $i$ is a child of $v$.
+Fix $r_j=r_0\tau^{-j}$, where $r_0>0$ and $\tau\ge2$.
+Write $d_T$ for the leaf metric: distinct leaves with last common
+ancestor of depth $j$ have distance $r_j$.  At time $t$ there are $k$
+labeled hidden members at leaves,
+and a leaf $x_t$ known to $\mathcal F_t$ is required.  Assume that,
+conditional on $\mathcal F_t$, at least one hidden member is at $x_t$
+with probability one.  Let $N_v(t)$ be the number in the subtree of $v$,
+and put $m_v(t)=\E[N_v(t)\mid\mathcal F_t]$.  The expected sum of
+the labeled members' successive traveled distances is denoted by $P$;
+it includes their movement from time zero.  All conditional distributions
+below are available from the observed history.
+
+\begin{theorem}[Dominated tree allocation]\label{thm:allocation}
+There are absolute constants $C_0,C_1$ and $\tau_0$ with the following
+property.  For $\tau\ge\tau_0$, the observed histories determine amounts
+$q_v(t)$ satisfying
+\begin{equation}\label{eq:allocation-constraints}
+ q_{\mathrm{root}}=k,\qquad
+ 0\le q_v\le C_0m_v,\qquad
+ \sum_{i\prec v}q_i\le q_v,\qquad q_{x_t}\ge1.
+\end{equation}
+Moreover, with $\ell=1+\log(k+1)$,
+\begin{equation}\label{eq:allocation-bound}
+ V:=\E\sum_{t\ge1}\sum_{v\ne\mathrm{root}}
+       r_{|v|-1}|q_v(t)-q_v(t-1)|
+ \le C_1\ell P+D_{\mathcal T}.
+\end{equation}
+Here sums stop at the chosen finite horizon.  The finite constant
+$D_{\mathcal T}$ depends only on the fixed tree, radii, and $k$;
+it can be chosen independently of the input law, horizon, and number of
+histories.  No initial allocation is prescribed.
+\end{theorem}
+
+The proof occupies Sections~\ref{sec:allocation}--\ref{sec:allocation-finish}.
+
+At a vertex $v$, the local task is to distribute its amount $q_v$ among
+the children without violating their serving lower bounds.  We construct
+child allowances $d_i$, then remove at least $(\sum_i d_i-q_v)_+$ from
+them; additional removals leave mass parked at $v$.  The removal choices
+must remain stable under posterior fluctuations.  Section~\ref{sec:proportions}
+constructs these choices, and Section~\ref{sec:allocation-finish} proves
+that the resulting allocations meet their lower bounds and move slowly.
+
+This section supplies the rank lower bounds and the allowances.  It uses
+coarse estimates to control changes of the removal rule's parameters,
+and finer estimates for the final allowances.  Only the coarse variation
+will be multiplied by logarithmic potential slopes; keeping these two
+budgets separate preserves the single factor of $\ell$ in the theorem.
+
+Rank coordinates for subtree occupancies also occur in the assignment
+polytope of \cite[Section~3.2]{BCLLM18}. Here they are probabilities of
+the hidden comparator's occupancies, conditional on the observed history.
+For $1\le a\le k$, define the rank probabilities and their filtered values by
+\[
+ p_{va}(t)=\Pr(N_v(t)<a\mid\mathcal F_t),\qquad
+ p^-_{va}(t)=\Pr(N_v(t-1)<a\mid\mathcal F_t).
+\]
+Thus $\E[p^-_{va}(t)\mid\mathcal F_{t-1}]=p_{va}(t-1)$.
+The drift of this coordinate is
+$\delta_t p_{va}=p_{va}(t)-p^-_{va}(t)$, rather than its entire change
+between successive observations.  For the star at an internal vertex $v$,
+put
+\begin{equation}\label{eq:star-drift}
+ E_v=\E\sum_{t\ge1}\left(
+        \sum_{i\prec v}\sum_{a=1}^k|\delta_t p_{ia}|
+             +\sum_{a=1}^k|\delta_t p_{va}|\right).
+\end{equation}
+These local budgets satisfy
+\begin{equation}\label{eq:rank-drift-tree}
+             \sum_{v\text{ internal}}r_{|v|}E_v\le6P.
+\end{equation}
+Indeed, for two integer counts $n,n'\in\{0,\ldots,k\}$,
+\[
+ \sum_{a=1}^k|\one_{\{n<a\}}-\one_{\{n'<a\}}|=|n-n'|.
+\]
+Use the coupling of successive hidden configurations and conditional
+expectation to bound each rank drift by the corresponding indicator
+change.  A nonroot vertex of depth $d$ receives weight at most
+$r_{d-1}+r_d$ when all stars are summed.  If one labeled member moves
+between leaves with last common ancestor of depth $j$, its indicators
+change on the two paths strictly below that ancestor.  Its total charge
+is at most
+\[
+ 2\sum_{d=j+1}^J(r_{d-1}+r_d)
+ \le\frac{2(1+\tau^{-1})}{1-\tau^{-1}}r_j\le6r_j.
+\]
+The root count is constant.  Summing over the members proves
+\eqref{eq:rank-drift-tree}.
+
+\subsection{Explicit rank functions and compatible lower bounds}
+
+\begin{lemma}[Rank functions]\label{lem:rank-functions}
+There are absolute constants $p_*,s_*,\epsilon_*>0$, with $p_*<s_*<1$,
+and functions $l^\beta:[0,1]\to[0,1]$ for
+$3\le\beta\le3+\epsilon_*$ such that:
+\begin{enumerate}
+\item $l^\beta$ is convex and nonincreasing, equals $1-\beta p$ on
+      $[0,p_*]$, is positive on $[0,s_*)$, and is zero on $[s_*,1]$;
+\item $l^\beta$ is affine and nonincreasing in $\beta$, and the square
+      roots $\sqrt{l^\beta}$ have a common absolute Lipschitz constant;
+\item if $g(p)=-\partial_\beta l^\beta(p)$, then
+\begin{equation}\label{eq:rank-derivative}
+ \frac1{96}l^\beta(p)\le g(p)\le l^\beta(p)
+       \qquad(p\in[p_*/4,1]).
+\end{equation}
+\end{enumerate}
+One may take $p_*=1/24$, $s_*=5/8$, and $\epsilon_*=1/100$.
+\end{lemma}
+
+\begin{proof}
+Set $t_*=s_*-p_*=7/12$ and
+\[
+ A_*=\frac{18}{7},\qquad c_*'=\frac6{49},\qquad
+ d_*'=\frac{1152}{343},\qquad b_*'=c_*'+d_*'t_*=\frac{102}{49}.
+\]
+For $0\le z\le1/100$ define
+\begin{equation}\label{eq:explicit-rank}
+ l^{3+z}(p)=
+ \begin{cases}
+  1-(3+z)p,&0\le p\le p_*,\\
+  (s_*-p)^2\bigl[A_*-z(c_*'+d_*'(p-p_*))\bigr],
+                                     &p_*\le p\le s_*,\\
+  0,&s_*\le p\le1.
+ \end{cases}
+\end{equation}
+The identities
+\[
+ A_*t_*^2=1-3p_*,\quad 2A_*t_*=3,\quad
+ c_*'t_*^2=p_*,\quad -2c_*'t_*+d_*'t_*^2=1
+\]
+show that both values and first derivatives match at $p_*$.
+They also show that $g$ is $p$ on the first interval and
+$(s_*-p)^2(c_*'+d_*'(p-p_*))$ on the second.
+
+Writing $x=s_*-p$, the middle expression for $l^{3+z}$ is
+\[
+            (A_*-zb_*')x^2+zd_*'x^3.
+\]
+Its two coefficients are nonnegative, with $A_*-zb_*'>2$.
+Consequently it is positive before the cutoff, has nonpositive
+$p$-derivative, and has positive second derivative.  Its value and
+first derivative are zero at the cutoff.  Together with the matching
+at $p_*$, this proves global convexity and monotonicity.
+On the first interval the function is bounded away from zero, so its
+square root has bounded derivative.  On the middle interval its square
+root is
+$x\sqrt{A_*-zb_*'+zd_*'x}$, which also has bounded derivative,
+uniformly in $z$.  The matching and cutoff give the global Lipschitz bound.
+
+For $p\in[p_*/4,p_*]$, the quotient
+$g(p)/l^{3+z}(p)=p/(1-(3+z)p)$ lies between $1/96$ and $1$.
+On the middle interval the quotient is
+\[
+ \frac{b_*'-d_*'x}{A_*-zb_*'+zd_*'x},\qquad 0<x\le t_*.
+\]
+It is at least $c_*'/A_*=1/21$ and at most
+$b_*'/(A_*-(1/100)b_*')<1$.  Beyond the cutoff both functions vanish.
+This proves \eqref{eq:rank-derivative}.
+\end{proof}
+
+Fix also the broader size function
+\[
+ l^{\mathrm{siz}}(p)=\frac{(3/4-p)_+^2}{(3/4)^2},\qquad
+ L_v^\beta=\sum_{a=1}^k l^\beta(p_{va}),\qquad
+ M_v=\sum_{a=1}^k l^{\mathrm{siz}}(p_{va}).
+\]
+Its square root is Lipschitz.  Both kinds of functions vanish at one
+and have value one at zero.
+
+The next comparison is a majorization argument in the sense of
+Karamata \cite{Karamata32}. We include the convex-hinge proof to specify
+the direction of the comparison and the role of the padded coordinates.
+
+\begin{lemma}[Superadditivity]\label{lem:superadditivity}
+For every internal vertex $v$ and every allowed $\beta$,
+\begin{equation}\label{eq:rank-superadditivity}
+ \sum_{i\prec v}L_i^\beta\le L_v^\beta,\qquad
+ \sum_{i\prec v}M_i\le M_v\le m_v.
+\end{equation}
+No independence between child counts is required.
+\end{lemma}
+
+\begin{proof}
+Suppose there are $d$ children.  Pool their $dk$ rank probabilities
+and sort them increasingly, obtaining a vector $x$.
+Let $y$ be the parent's $k$ increasingly ordered rank probabilities
+followed by $(d-1)k$ ones.  Their total sums agree and equal $dk-m_v$.
+If the first $n$ coordinates of $x$ contain $n_i$ coordinates from child
+$i$, those coordinates can be chosen as the first $n_i$ of that child.
+Since $N_v=\sum_iN_i$, conditional expectation gives
+\[
+ \sum_{b=1}^n x_b
+ =\sum_i\E[(n_i-N_i)_+\mid\mathcal F_t]
+ \ge\E[(n-N_v)_+\mid\mathcal F_t]
+ =\sum_{b=1}^n y_b.
+\]
+The last identity also holds for $n>k$, precisely because of the padding.
+For every real $b$, an increasing vector $z$ satisfies
+\[
+       \sum_a(b-z_a)_+
+       =\max_{0\le n\le dk}\left(nb-\sum_{a=1}^n z_a\right).
+\]
+Thus the sum of every convex hinge $(b-p)_+$ on $x$ is no larger
+than its sum on $y$.  Affine functions have equal sums.  Every convex
+piecewise linear function is an affine function plus a nonnegative
+linear combination of these hinges.  Approximating a continuous convex
+function by its linear interpolants proves the same comparison for
+that function.  Apply it to $l^\beta$ and $l^{\mathrm{siz}}$;
+the padded ones contribute zero.  Finally convexity and the endpoint
+values give $l^{\mathrm{siz}}(p)\le1-p$, and
+$\sum_a(1-p_{va})=m_v$.
+\end{proof}
+
+From now on set $c_*=10^{-4}$; thus
+$100c_*<l^{\mathrm{siz}}(s_*)=1/36$.  Choose an absolute $c_\beta>0$
+so small that
+$c_\beta(1+\log(1/c_*))\le\epsilon_*/2$, and define
+\begin{equation}\label{eq:vertex-beta}
+ \beta_v=3+\frac{c_\beta}{\ell}
+                \log\frac{k}{\max(M_v,c_*)}.
+\end{equation}
+It belongs to $[3,3+\epsilon_*/2]$, because $M_v\le k$ and
+$\log(k/c_*)/\ell\le1+\log(1/c_*)$.
+The invariant propagated down the tree will be
+\begin{equation}\label{eq:allocation-lower-bound}
+                         q_v\ge L_v^{\beta_v}.
+\end{equation}
+Superadditivity gives compatible child lower bounds at the parent's
+parameter $\beta_v$.  Since $M_i\le M_v$, the child's own parameter
+satisfies $\beta_i\ge\beta_v$, and its required bound is no larger.
+The resulting difference is the slack available for choosing slowly
+varying child amounts.  We will estimate this difference in terms of
+the relative child sizes.
+At the root all ranks are zero, $M_{\mathrm{root}}=k$, and the lower
+bound is $k$.  At a required leaf $p_{v1}=0$, so the lower bound is
+at least one.
+
+\subsection{A rank tracker with a bounded affine potential}
+
+The input to a star may fluctuate substantially when information is
+revealed.  The following tracker charges only drift, using signed
+filtering changes before it decides whether to refresh.
+
+\begin{lemma}[Rank tracking]\label{lem:rank-tracking}
+Let $p_t,p_t^-\in[0,1]$ obey
+$\E[p_t^-\mid\mathcal F_{t-1}]=p_{t-1}$, and let
+$\mathcal E=\E\sum_t|p_t-p_t^-|$.
+If $f\ge0$ has an absolutely bounded Lipschitz constant for $\sqrt f$,
+then for $0<\xi<1/2$ there is a held estimate $\widehat f_t$ with
+\begin{equation}\label{eq:rank-relative-tracker}
+ (1+\xi)^{-1}f(p_t)\le\widehat f_t\le(1+\xi)f(p_t),\qquad
+ \E\sum_t|\widehat f_t-\widehat f_{t-1}|
+       \le\frac{C}{\xi}(\mathcal E+1).
+\end{equation}
+In particular zeros are tracked exactly.  A held estimate
+$\widehat p_t$ refreshed when $|p_t-\widehat p_{t-1}|>\delta$
+has expected number of refreshes at most
+$\delta^{-2}(\mathcal E+1)$.
+\end{lemma}
+
+\begin{proof}
+Initialize a reference $p^\circ=p_0$ and hold $f(p^\circ)$ until
+the displayed factor comparison fails, then replace $p^\circ$ by
+$p_t$.  With the reference held, use
+\[
+ \Phi(p;p^\circ)=p(1-p)+(p-p^\circ)^2
+              =(1-2p^\circ)p+(p^\circ)^2.
+\]
+This is affine in $p$, lies in $[0,1]$, and has slope of absolute
+value at most one.  At every step, first evaluate its change from
+$p_{t-1}$ to $p_t^-$ and then from $p_t^-$ to $p_t$, holding the old
+reference.  The former change has conditional expectation zero, and
+the latter is at most $|p_t-p_t^-|$.  A reference reset then decreases
+$\Phi$ by exactly $(p_t-p^\circ)^2$.  Telescoping gives
+\begin{equation}\label{eq:rank-reset-credit}
+        \E\sum_{\text{resets}}(p_t-p^\circ)^2\le\mathcal E+1.
+\end{equation}
+
+For two nonnegative values $a,b$ failing factor $1+\xi$ comparison,
+\[
+ (\sqrt a-\sqrt b)^2
+ =|a-b|\frac{|\sqrt a-\sqrt b|}{\sqrt a+\sqrt b}
+ \ge \frac{\xi}{5}|a-b|.
+\]
+The inequality includes the case in which exactly one value is zero.
+The Lipschitz bound for $\sqrt f$ therefore implies
+$(p_t-p^\circ)^2\ge c\xi|f(p_t)-f(p^\circ)|$ at every reset,
+proving \eqref{eq:rank-relative-tracker}.  The same potential proves
+the absolute-threshold claim, since every reset then releases more
+than $\delta^2$.  Filtering was evaluated at every step before the
+reset test; no expectation was restricted to a selected reset event.
+\end{proof}
+
+Apply the absolute tracker with threshold $p_*/8$ to every child rank.
+A rank is called \emph{core} when its held estimate is at most $p_*/2$.
+After the update, every core rank has $p\le5p_*/8$, every noncore
+rank has $p>3p_*/8$, and every rank with $p<p_*/4$ is core.
+Let $K_t$ count the changed core flags in this star at step $t$, and set
+\begin{equation}\label{eq:core-data}
+ n_i=\#\{a:\text{$a$ is core at $i$}\},\quad
+ B_i=\sum_{a\text{ core at }i}p_{ia},\quad
+ S=\sum_iB_i,\quad
+ f_i^\beta=\sum_{a\text{ noncore at }i}l^\beta(p_{ia}).
+\end{equation}
+We call \(f_i^\beta\) the \emph{noncore}, or \emph{flex}, contribution.
+The core ranks lie in the affine part of every rank function, so
+\begin{equation}\label{eq:core-decomposition}
+ L_i^\beta=n_i-\beta B_i+f_i^\beta,\qquad
+       n_i+\sup_\beta f_i^\beta\le C M_i.
+\end{equation}
+For the second bound, a core rank contributes at least
+$l^{\mathrm{siz}}(5p_*/8)>0$ to $M_i$.  Any positive $l^\beta(p)$
+has $p<s_*$, where $l^{\mathrm{siz}}(p)\ge1/36$ and $l^\beta(p)\le1$.
+These termwise bounds prove the assertion with an absolute constant.
+In particular,
+\begin{equation}\label{eq:inactive-rank-vanishing}
+ M_i\le10c_*\quad\Longrightarrow\quad
+ n_i=0\ \text{ and }\ L_i^\beta=f_i^\beta=0\ \text{for all $\beta$}.
+\end{equation}
+Also, if the old flags are held while the ranks are filtered and drifted,
+the resulting old-flag sum always satisfies $B_i\le n_i^{\mathrm{old}}$,
+even if those old flags no longer describe small current probabilities.
+This elementary bound will be used at wholesale changes.
+
+\subsection{Coarse data, active epochs, and parameter gaps}
+
+We now describe a schedule local to a star.  Its estimates are computed
+from the final, post-filtering and post-drift, ranks on each step.
+All elementary term trackers persist throughout the entire process,
+including times when a child is inactive and times when the schedule
+below is restarted.
+
+Choose a sufficiently small absolute size tolerance $\delta_s>0$,
+for example $10^{-3}$.  Track every term of $M_i$ by
+Lemma~\ref{lem:rank-tracking} with this tolerance, and let
+$\widehat M_i$ be their sum.  A child is either inactive, with $a_i=0$,
+or active.  Turn an inactive child on when $\widehat M_i\ge5c_*$,
+setting $a_i=\widehat M_i$.  Turn an active child off when
+$\widehat M_i\le2c_*$.  Otherwise, during an active period hold $a_i$
+until factor $1+\delta_s$ comparison with $\widehat M_i$ fails,
+then replace $a_i$ by $\widehat M_i$.  Initialize with the same rules,
+using either admissible state in the overlap.  These choices ensure
+\begin{equation}\label{eq:active-size-accuracy}
+ \begin{gathered}
+ 0.9M_i\le a_i\le1.1M_i\quad\text{at active children},\qquad
+ M_i\ge c_*\quad\text{if active},\\
+ M_i\ge10c_*\quad\Longrightarrow\quad\text{active}.
+ \end{gathered}
+\end{equation}
+By \eqref{eq:inactive-rank-vanishing}, an inactive child has no core
+ranks or positive rank lower bounds.
+
+We also hold an accurate estimate of $X_v=\max(M_v,c_*)$.
+For this purpose take a possibly smaller absolute tolerance $\delta_p$,
+track the parent size terms, and clip their sum below at $c_*$,
+obtaining $\widehat X_v$.  Hold $H_v$ equal to its last reference value,
+refreshing upon failure of factor $1+\delta_p$ comparison.  Then
+\[
+ (1+\delta_p)^{-2}X_v\le H_v\le(1+\delta_p)^2X_v.
+\]
+Put
+\begin{equation}\label{eq:held-beta-upper}
+ X_v^{\mathrm{low}}=\max\{c_*,H_v/(1+\delta_p)^2\},\qquad
+ \beta^+=3+\frac{c_\beta}{\ell}\log\frac{k}{X_v^{\mathrm{low}}}.
+\end{equation}
+Here $X_v^{\mathrm{low}}\le X_v\le k$, and
+$X_v^{\mathrm{low}}\ge X_v/(1+\delta_p)^4$.  Thus, for any prescribed
+small absolute $\epsilon>0$, choosing $\delta_p$ sufficiently small gives
+\begin{equation}\label{eq:beta-upper-error}
+       \beta_v\le\beta^+\le\beta_v+\epsilon/\ell.
+\end{equation}
+The parameter stays in the allowed interval and changes only when
+$H_v$ is refreshed.
+
+An \emph{epoch} starts with a \emph{wholesale change}, performed initially
+and whenever $\beta^+$ changes or the cumulative $\ell_1$ variation of
+the held size vector since the epoch started exceeds $A/100$.
+Here $A=\sum_i a_i$ at the start is held for that epoch.  Empty to
+nonempty or nonempty to empty changes always start a new epoch.
+At a wholesale change, choose a dominant index $o$ if some
+$a_o\ge0.85A$ and $A>0$.  It is unique.  Keep that mark until the
+next wholesale change.  All other active indices, or all active indices
+when there is no mark, are called regular.  With a dominant index the
+regular indices are also called sides.  No elementary size or rank
+tracker is restarted at an epoch boundary.
+
+During a marked epoch, let $T_{\mathrm{side}}=\sum_{i\ne o}a_i$.
+Set $U=T_{\mathrm{side}}$ at its start.  Subsequently hold $U$ until
+factor $1+\delta_s$ comparison with $T_{\mathrm{side}}$ fails, then
+refresh it to that side total.  This includes transitions to or from zero.
+When sides exist set $u=U/A$; otherwise set $u=0$.  For active children
+define
+\begin{equation}\label{eq:gap-weights}
+ h_i=1+\max\{0,\log(A/a_i)\}\quad(i\text{ regular}),\qquad
+ h_o=u\quad(o\text{ dominant}).
+\end{equation}
+The empty active domain needs none of these parameters.
+
+Finally prepare a coarse scale for a marked child.  Independently of
+the fine estimates used below, track every child rank value
+$l^3(p_{ia})$ with tolerance $\delta_s$, and write its estimate as
+$\widehat l^{\mathrm{coarse}}_{ia}$.  With a dominant index set
+\begin{equation}\label{eq:dominant-scale-definition}
+             D=\sum_{a\text{ noncore at }o}
+                       \widehat l^{\mathrm{coarse}}_{oa};
+\end{equation}
+set $D=0$ when no dominant index exists.  All these term trackers run
+on every child and every rank even when their estimates are not currently
+used in $D$.
+
+Here is a precise inventory of the coarse charges.  Write
+$a_i^-,a_i^+$ for the old and new held sizes on a step, and similarly
+for other held quantities; these superscripts in this inventory refer
+to step-end states, not to the filtered hidden configuration.
+Let $\mathcal W_v$ be the wholesale steps after initialization,
+$\mathcal H_v$ the steps at which $H_v$ is refreshed, and
+$\mathcal U_v$ the non-wholesale steps at which $U$ is refreshed.
+Define the nonnegative charge
+\begin{equation}\label{eq:coarse-charge-definition}
+\begin{aligned}
+ C_{v,t}={}&K_t+
+    \sum_{i:a_i^-\ne a_i^+}(a_i^-+a_i^+)
+    +\one_{\{t\in\mathcal H_v\}}(H_v^-+H_v^+)\\
+ &+\one_{\{t\in\mathcal W_v\}}\sum_i(a_i^-+a_i^+)
+    +\one_{\{t\in\mathcal U_v\}}
+                    (T_{\mathrm{side}}^-+T_{\mathrm{side}}^+)
+    +|D^+-D^-|.
+\end{aligned}
+\end{equation}
+The side totals in this expression use the unchanged dominant mark
+on a non-wholesale step.  A wholesale change of $U$, including a
+change of mark, is covered by the wholesale total in the preceding term.
+
+\begin{lemma}[Coarse budgets and parameter gaps]\label{lem:parameter-gaps}
+The data above satisfy, for an absolute constant $C$ and a finite
+$D_v^{\mathrm{data}}$ depending only on the fixed star and $k$,
+\begin{equation}\label{eq:coarse-data-budget}
+             \E\sum_t C_{v,t}\le C E_v+D_v^{\mathrm{data}}.
+\end{equation}
+The constant is uniform in the law and horizon.  Every active child obeys
+\begin{equation}\label{eq:parameter-gap}
+        0\le h_i\le C\ell,\qquad
+        \beta_i-\beta_v\ge\frac{c_g h_i}{\ell}
+\end{equation}
+for an absolute $c_g>0$.  If a dominant index and sides are present,
+then $0<u<1/4$, and with $H=1+\log(1/u)$ every side satisfies
+$h_i\ge cH$ for an absolute $c>0$.
+In addition, $n_i+B_i+\sup_\beta f_i^\beta\le C a_i$ at active
+children, and all these quantities vanish at inactive children.
+\end{lemma}
+
+\begin{proof}
+We give the amortization details because paying a large size on every
+small refresh would not suffice.  Lemma~\ref{lem:rank-tracking}, summed
+over the fixed collection of size terms, bounds the expected total
+variation of their estimates by $CE_v$ plus a fixed initialization
+constant.  It bounds $\E\sum_tK_t$ in the same way.  Constants may depend
+on the fixed absolute tolerances but never on $k$ or the degree.
+
+For a scalar estimate $x$ held at a reference $b>0$, a factor
+$1+\delta$ failure gives
+\[
+             b+x\le(1+2/\delta)|x-b|.
+\]
+The last difference is bounded by the variation of $x$ since its previous
+reference setting; these intervals are disjoint.  This pays all active
+to active changes of $a_i$ and all changes of $H_v$.
+Turning a child on after an off period costs its new size, and is paid
+by the variation from a previous value at most $2c_*$ to a value at least
+$5c_*$.  The first such event may instead use an initialization charge.
+For a turn-off, if the last held size exceeds $4c_*$, variation since
+that setting pays it because the new estimate is at most $2c_*$.
+Otherwise the charge is at most $4c_*$ and is paid by the traversal
+from at least $5c_*$ at the start of this on period to at most $2c_*$
+at its end.  Each on period and each off period is used only once in
+these latter arguments.  They overlap the scalar refresh intervals
+only a bounded number of times.  This proves the budget for all
+changed-$a_i$ charges.  Clipping the parent sum below at $c_*$ does
+not increase its variation, so the same argument applies to $H_v$.
+
+When $\beta^+$ changes, the old and new active totals are at most
+$C(X_v^-+X_v^+)\le C(H_v^-+H_v^+)$, and are therefore paid by that
+parent refresh.  For a wholesale event from the vector-variation test,
+let $R$ be the cumulative variation since the previous epoch started
+and let $A$ be that epoch's initial total.  The old total is at most
+$1.01A$, the new total is at most $1.01A+R$, and $R>A/100$.
+Their sum is consequently at most $203R$.  The intervals of variation
+assigned to successive epochs are disjoint.  If $A=0$, the new total
+is at most $R$, and the same conclusion holds.  Discarding unused
+variation credit when a parent refresh intervenes cannot increase its
+total use.  This proves the wholesale budget.
+
+On a fixed marked epoch, variation of $T_{\mathrm{side}}$ is at most
+$\sum_i|\Delta a_i|$.  The scalar relative-refresh argument pays every
+$U$ refresh by variation since its previous setting.  The actual old
+side total is within factor $1+\delta_s$ of that reference, so the
+old plus new side totals have the same bound.  A zero crossing is
+included: the variation then pays the positive reference or positive
+new total.  Setting $U$ at a wholesale change is paid by the wholesale
+total.  Thus all its asserted charges are covered.
+
+At a non-wholesale step the dominant index is unchanged.  The variation
+of \eqref{eq:dominant-scale-definition} is at most the summed variation
+of its coarse term estimates plus $CK_t$: a changed flag inserts or
+removes one term, each at most one.  At a wholesale step, its old and
+new values are at most $C(a_o^-+a_o^+)$, interpreted as zero when that
+mark is absent; this follows from the relative estimates and
+\eqref{eq:core-decomposition}.  The wholesale totals pay these changes.
+This proves \eqref{eq:coarse-data-budget}.
+
+For the gaps, at every state of an epoch with $A>0$ the current active
+total is in $[0.99A,1.01A]$.  In an unmarked epoch every child has
+$a_i\le0.86A$.  In a marked epoch the marked size is at least $0.84A$,
+and the side total is at most $0.16A$; in particular the mark stays
+active.  Therefore every regular child has $a_i\le0.86A$.
+By \eqref{eq:active-size-accuracy} and superadditivity,
+\begin{equation}\label{eq:size-log-comparison}
+ \frac{M_v}{M_i}\ge
+ 1+\frac9{11}\frac{\sum_{j\ne i,\ a_j>0}a_j}{a_i}
+ \ge1+\frac9{11}\left(\frac{0.99A}{a_i}-1\right).
+\end{equation}
+For $x=A/a_i\ge1/0.86$, the logarithm of the last expression is
+at least $c(1+\log x)$ for an absolute $c>0$.  To see the uniformity,
+the ratio to $1+\log x$ is continuous and positive on this interval
+and tends to one as $x\to\infty$; on a sufficiently large tail it is
+at least $1/2$, and on the remaining compact interval it has a
+positive minimum.  This proves the regular comparison.
+For the dominant child, use the first inequality in
+\eqref{eq:size-log-comparison}, the comparisons
+$T_{\mathrm{side}}\asymp U$, and $a_o\le1.01A$ to obtain
+\[
+                 \log(M_v/M_o)\ge cU/A=cu.
+\]
+Here $u\le(1+\delta_s)0.16<1/4$, so $\log(1+cu)\ge c'u$.
+If no sides exist, $u=0$ and the claimed inequality is automatic.
+
+At every active child $M_i\ge c_*$ and $M_v\ge M_i$, so the clipping
+in \eqref{eq:vertex-beta} is inactive at both vertices.  Hence
+\[
+               \beta_i-\beta_v
+                  =\frac{c_\beta}{\ell}\log(M_v/M_i),
+\]
+which proves the gap in \eqref{eq:parameter-gap}.
+Active held sizes have an absolute positive lower bound and
+$A\le1.1k$, proving $h_i\le C\ell$.  On a side,
+$a_i\le T_{\mathrm{side}}\le(1+\delta_s)uA$, whence
+\[
+ h_i\ge1+\log(1/u)-\log(1+\delta_s)\ge H/2.
+\]
+The final bounds on core and flex data follow from
+\eqref{eq:core-decomposition}, $B_i\le n_i$, and
+\eqref{eq:active-size-accuracy}.  Inactivity was addressed in
+\eqref{eq:inactive-rank-vanishing}.
+\end{proof}
+
+\subsection{Fine caps and their separate budget}
+
+The proportions constructed in the next section will use only the
+coarse data above and the raw core sums $B_i$.  The following finer
+estimates enter only the final allocations.  Keeping their variation
+out of the proportion potentials is necessary for the single factor
+of $\ell$ in Theorem~\ref{thm:allocation}.
+
+The parameter gap at a regular child leaves room to track its flex
+contribution between $f_i^{\beta_i}$ and $f_i^{\beta_v}$.  A marked
+child can have an arbitrarily smaller gap as its side mass tends to
+zero.  We therefore use a small upper approximation at that child;
+Section~\ref{sec:proportions} explains how this asymmetry changes the
+removal rule.
+
+\begin{lemma}[Caps]\label{lem:caps}
+Given a sufficiently small absolute $\epsilon_b>0$, the remaining
+absolute tolerances can be chosen so that there are caps
+$d_i=n_i+b_i$, zero on inactive children, with
+\begin{equation}\label{eq:cap-feasibility}
+ \begin{aligned}
+ f_i^{\beta_i}\le b_i\le f_i^{\beta_v}
+                                      &&(i\text{ regular}),\\
+ T:=f_o^{\beta_v}\le b_o\le(1+\epsilon_b/\ell)T,
+ \qquad c_DT\le D\le C_DT
+                                      &&(o\text{ dominant}).
+ \end{aligned}
+\end{equation}
+Here $c_D,C_D>0$ are absolute, fixed independently of
+$\epsilon_b$ and the fine tolerances; in particular $D=0$ if and only
+if $T=0$.  At every child $d_i\le C M_i\le C m_i$.
+Their variation away from wholesale changes satisfies
+\begin{equation}\label{eq:fine-cap-budget}
+ \E\sum_{t\notin\mathcal W_v}\sum_i|d_i(t)-d_i(t-1)|
+          \le C\ell E_v+D_v^{\mathrm{cap}},
+\end{equation}
+where $D_v^{\mathrm{cap}}$ is uniform in the law and horizon.
+At wholesale changes the old plus new caps are bounded by $C$ times
+the old plus new active totals.
+\end{lemma}
+
+\begin{proof}
+For every rank, at both endpoint parameters $3$ and $3+\epsilon_*$,
+run separate relative trackers with tolerance $\rho/\ell$, where
+$\rho>0$ is a small absolute constant to be selected.
+Interpolate their estimates by the convex coefficients expressing
+$\beta^+$ between these endpoints, and sum over the current noncore
+ranks at child $i$.  Call the result $\widetilde f_i$.
+The affinity in $\beta$ and the relative endpoint estimates imply
+\[
+ (1+\rho/\ell)^{-1} f_i^{\beta^+}
+       \le\widetilde f_i\le(1+\rho/\ell)f_i^{\beta^+}.
+\]
+Every noncore rank has $p>3p_*/8$, so
+\eqref{eq:rank-derivative} applies to it.  Together with
+\eqref{eq:beta-upper-error}, this yields
+\begin{equation}\label{eq:flex-estimate-error}
+       |\widetilde f_i-f_i^{\beta_v}|
+          \le\frac{e}{\ell}f_i^{\beta_v},\qquad
+                      e\le C(\rho+\epsilon).
+\end{equation}
+For example,
+$f_i^{\beta_v}-f_i^{\beta^+}
+=(\beta^+-\beta_v)\sum_{\mathrm{noncore}}g(p_{ia})
+\le(\epsilon/\ell)f_i^{\beta_v}$.
+If the true sum is zero then both endpoint estimates, and therefore
+the interpolated sum, are exactly zero, since all the functions have
+the same cutoff.
+
+For a regular child, $h_i\ge1$ and the parameter gap gives
+\begin{equation}\label{eq:regular-flex-slack}
+ f_i^{\beta_i}
+ =f_i^{\beta_v}-(\beta_i-\beta_v)
+                  \sum_{\mathrm{noncore}}g(p_{ia})
+ \le(1-\gamma/\ell)f_i^{\beta_v},
+             \qquad \gamma=c_g/96>0.
+\end{equation}
+Choose an absolute
+$0<\lambda_b\le\min\{\gamma/4,\epsilon_b/4,1/4\}$,
+and then choose $\rho,\epsilon$ so small that the $e$ in
+\eqref{eq:flex-estimate-error} is at most $\lambda_b/4$.
+Define
+\[
+ b_i=(1-\lambda_b/\ell)\widetilde f_i\quad(i\text{ regular}),
+ \qquad
+ b_o=(1+\lambda_b/\ell)\widetilde f_o\quad(o\text{ dominant}).
+\]
+For a regular child the upper estimate is at most $f_i^{\beta_v}$,
+because $e\le\lambda_b$; the lower estimate is at least
+$(1-(\lambda_b+e)/\ell)f_i^{\beta_v}$, which dominates
+\eqref{eq:regular-flex-slack}.  For a dominant child,
+$(1+\lambda_b/\ell)(1-e/\ell)\ge1$, whereas
+$(1+\lambda_b/\ell)(1+e/\ell)\le1+\epsilon_b/\ell$.
+This proves the cap comparisons.
+
+On the noncore range \eqref{eq:rank-derivative} also gives
+\[
+ l^{\beta_v}\le l^3
+       =l^{\beta_v}+(\beta_v-3)g
+       \le(1+\epsilon_*)l^{\beta_v}.
+\]
+The coarse tracker defining $D$ therefore satisfies
+\[
+ (1+\delta_s)^{-1}T\le D
+       \le(1+\delta_s)(1+\epsilon_*)T.
+\]
+These choices give the claimed $c_D,C_D$ and show that their values
+precede all fine choices.  The bound $d_i\le C M_i$ follows from
+\eqref{eq:core-decomposition} and the relative estimates.
+
+It remains to account for variation.  Lemma~\ref{lem:rank-tracking}
+with tolerance $\rho/\ell$ pays the summed variation of all endpoint
+estimates by $C\ell E_v$ plus a fixed constant.  On a non-wholesale
+step, $\beta^+$ and the dominant mark are unchanged, so their
+interpolation coefficients and the factors $1\pm\lambda_b/\ell$
+are fixed.  Changes of the noncore sets cost at most $CK_t$, as does
+the variation of $n_i$.  An inactive child has zero true endpoint
+values and hence zero endpoint estimates; setting its cap to zero
+therefore adds no variation beyond the same term and flag changes.
+This proves \eqref{eq:fine-cap-budget}.  At a wholesale step,
+$d_i^-+d_i^+\le C(a_i^-+a_i^+)$, including zero inactive values,
+and summing proves the remaining statement.
+\end{proof}
+
+All the additive terms in this section arise from bounded potentials
+and bounded initialization charges for a fixed number of rank trackers.
+There are only $k$ ranks per vertex of the fixed finite tree.
+The term trackers are never reinitialized when an epoch changes or a
+tree label reappears.  Thus their total additive allowance is uniform
+over every law and horizon.  The coarse allowance
+\eqref{eq:coarse-data-budget} and the fine allowance
+\eqref{eq:fine-cap-budget} are separate: only the former will be
+multiplied by the $O(\ell)$ slopes of the next section's potentials.
+
+The remaining construction starts from the caps $d_i$ and distributes
+the required reduction $\bigl(\sum_i d_i-q_v\bigr)_+$ between children.
+The star's parameters, flags, and proportion trackers can all be
+updated from its own rank inputs before $q_v$ is known.  The actual
+allocations are then propagated from the root downwards.

@@ -1,0 +1,124 @@
+
+\ProvidesFileRCS{pgflibrarytimelines.code.tex}
+
+
+
+\usepgfmodule{animations}%
+
+
+
+\def\pgftimelinebegin{%
+  \pgf@timeline@todo@saved=\pgf@timeline@todo%
+  \begingroup%
+    \advance\pgf@timeline@depth by1\relax%
+    \pgf@timeline@todo{}%
+}%
+
+\newcount\pgf@timeline@depth
+\newtoks\pgf@timeline@todo
+\newtoks\pgf@timeline@todo@saved
+
+
+
+\def\pgftimelineend{%
+    \the\pgf@timeline@todo%
+  \endgroup%
+  \global\pgf@timeline@todo=\pgf@timeline@todo@saved%
+}%
+
+
+
+\def\pgftimelineentry#1#2#3#4{%
+  \begingroup%
+    \pgfparsetime{#1}%
+    \edef\pgf@timeline@whom{#2}%
+    \edef\pgf@timeline@attr{#3}%
+    \expandafter\let\expandafter\pgf@timeline@entry\csname pgf@tl@\pgf@timeline@whom @\pgf@timeline@attr @\the\pgf@timeline@depth\endcsname%
+    \ifx\pgf@timeline@entry\relax%
+      \edef\pgf@timeline@entry{\noexpand\pgf@timeline@setup{\pgf@timeline@whom}{\pgf@timeline@attr}}%
+    \fi%
+    \expandafter\expandafter\expandafter\def\expandafter\expandafter\expandafter\pgf@timeline@entry\expandafter\expandafter\expandafter%
+    {\expandafter\pgf@timeline@entry\expandafter\pgf@timeline@doentry\expandafter{\pgftimeresult}{#4}}%
+    \expandafter\global\expandafter\let\csname pgf@tl@\pgf@timeline@whom @\pgf@timeline@attr @\the\pgf@timeline@depth\endcsname\pgf@timeline@entry%
+    \global\pgf@timeline@todo\expandafter\expandafter\expandafter{\expandafter\the\expandafter\pgf@timeline@todo\expandafter\pgf@timeline@handle\csname pgf@tl@\pgf@timeline@whom @\pgf@timeline@attr @\the\pgf@timeline@depth\endcsname}%
+  \endgroup%
+}%
+
+
+\newtoks\pgf@timeline@sort@toks
+\countdef\pgf@timeline@sort@count=0\relax%
+\countdef\pgf@timeline@count@down=1\relax%
+\countdef\pgf@timeline@count@down@next=2\relax%
+
+
+\def\pgf@timeline@handle#1{%
+  \ifx#1\relax%
+  \else%
+  {%
+    \pgf@timeline@sort@count=1\relax%
+    #1%
+      \pgf@timeline@count@down=1\relax%
+      \pgf@timeline@sort@toks{}%
+      \pgfutil@loop%
+      \ifnum\pgf@timeline@count@down<\pgf@timeline@sort@count\relax%
+        \edef\pgf@temp{\the\pgf@timeline@sort@toks\noexpand\pgf@timeline@donow{\the\dimen\pgf@timeline@count@down}{\the\toks\pgf@timeline@count@down}}%
+        \pgf@timeline@sort@toks\expandafter{\pgf@temp}%
+        \advance\pgf@timeline@count@down by1\relax%
+      \pgfutil@repeat%
+      \pgf@timeline@compute@duration%
+      \edef\pgf@temp{\noexpand\pgf@timeline@call@attribute{\pgf@timeline@whom}{\pgf@timeline@attr}{\the\pgf@timeline@sort@toks}}
+      \expandafter%
+    \endgroup%
+    \pgf@temp%
+  }%
+  \global\let#1\relax%
+  \fi%
+}%
+
+\def\pgf@timeline@compute@duration{%
+  \advance\pgf@timeline@sort@count by-1\relax%
+  \pgfmathparse{\the\dimen\pgf@timeline@sort@count}%
+  \global\let\pgf@timeline@duration\pgfmathresult%
+}%
+
+
+\def\pgf@timeline@setup#1#2{%
+  \def\pgf@timeline@whom{#1}%
+  \def\pgf@timeline@attr{#2}%
+  \begingroup%
+}%
+
+\def\pgf@timeline@doentry#1#2{%
+  \dimen\pgf@timeline@sort@count=#1pt\relax%
+  \toks\pgf@timeline@sort@count{#2}%
+  \pgf@timeline@count@down\pgf@timeline@sort@count\relax%
+  \pgfutil@loop%
+  \ifnum\pgf@timeline@count@down>1\relax%
+    \pgf@timeline@count@down@next\pgf@timeline@count@down%
+    \advance\pgf@timeline@count@down@next by-1\relax%
+    \ifdim\dimen\pgf@timeline@count@down<\dimen\pgf@timeline@count@down@next\relax%
+      \toks0=\toks\pgf@timeline@count@down%
+      \dimen0=\dimen\pgf@timeline@count@down%
+      \toks\pgf@timeline@count@down=\toks\pgf@timeline@count@down@next%
+      \dimen\pgf@timeline@count@down=\dimen\pgf@timeline@count@down@next%
+      \toks\pgf@timeline@count@down@next=\toks0\relax%
+      \dimen\pgf@timeline@count@down@next=\dimen0\relax%
+      \pgf@timeline@count@down\pgf@timeline@count@down@next\relax%
+    \else%
+      \pgf@timeline@count@down1\relax%
+    \fi%
+  \pgfutil@repeat%
+  \advance\pgf@timeline@sort@count by1\relax%
+}%
+
+
+\def\pgf@timeline@call@attribute#1#2#3{%
+  \pgfanimateattributecode{#2}{\pgfkeys{/pgf/animation/whom={#1},/pgf/animation/duration=\pgf@timeline@duration}#3}%
+}%
+
+\def\pgf@timeline@donow#1#2{%
+  \pgfkeys{/pgf/animation/key time={#1/\pgf@timeline@duration}}%
+  \pgfkeys{/pgf/animation/value={#2}}%
+}%
+
+\endinput

@@ -1,0 +1,526 @@
+\section{Preparing the openings}\label{sec:preparation}
+
+We first put the fractional openings on a sufficiently fine constant grid.
+The use of separated representatives and bundles is motivated by the
+discretization approach in~\cite{ByrkaEtAl2026}.  The construction below
+rounds a bundle's missing assignment mass together with the facilities
+that can supply it.  This coupling provides both an additive opening
+bound and a multiplicative connection-cost bound.
+
+Throughout this Section, the client set is nonempty; an instance without
+clients requires no cost analysis.  We start with feasible fractional
+openings $0\le y_i\le1$.  For each client $j$, choose a nearest-unit
+assignment $x_{ij}$, resolving ties in a fixed order, and write
+\[
+ V_j=\sum_i d(i,j)x_{ij}.
+\]
+The feasibility constraints are $\sum_i x_{ij}=1$ and $x_{ij}\le y_i$;
+there is no supply constraint shared by different clients.
+
+\begin{theorem}\label{thm:preparation}
+For every $\eta>0$, there is a constant $\Delta_0$ with the following
+property.  Given a finite rational metric instance and feasible rational
+openings $0\le y_i\le1$ with a nearest-unit assignment of cost $V_j$
+for each client $j$, fix any constant even integer $\Delta\ge\Delta_0$ and let
+$g=1/\Delta$.  There is a randomized procedure, running in expected
+polynomial time on rational inputs, that produces openings
+$\widetilde y_i\in[0,1]\cap g\mathbb Z$, allowing polynomially many
+co-located labeled facility pieces, such that
+\[
+ 1\le\sum_i\widetilde y_i\le\sum_i y_i+3g
+\]
+for every output, and the expected nearest-unit assignment cost of every
+client $j$ is at most $(1+\eta)V_j$.
+In particular the grid can be required to satisfy any additional
+positive instance-independent upper bound on $g$.
+\end{theorem}
+
+The expectation in Theorem~\ref{thm:preparation} is taken after rejecting
+outcomes that exceed the opening budget.  Section~\ref{sec:derandomization}
+gives a deterministic implementation that preserves the corresponding
+bound on the sum of the client costs.
+
+We use the following elementary dependent-rounding observation, in both
+weighted and unweighted form. The mean-preserving pair update and its
+product-supermartingale argument follow the standard
+approach~\cite{Srinivasan2001,GandhiEtAl2006}; weighted rounding with one
+residual fraction is also studied in~\cite[Section~2]{ByrkaEtAl2017}.
+We give the proof to specify exactly the moment guarantees used here.
+
+\begin{lemma}\label{lem:prep-weighted-rounding}
+Let $q_e\ge0$ be rational counts and let $\beta_e>0$ be rational weights.
+One can randomly update the counts within the bounds
+$[\lfloor q_e\rfloor,\lceil q_e\rceil]$, preserving
+$\sum_e\beta_e q_e$ on every update, until at most one count is
+fractional.  Every first moment is preserved, and the expectation of
+every product of two distinct counts is at most the product of their
+initial values.  Rounding the possible remaining fractional count with
+its correct mean preserves these moment assertions.
+For the resulting integer counts $Q_e$,
+\[
+ \Var(Q_e)\le q_e,\qquad
+ \E[Q_eQ_f]\le q_eq_f\quad(e\ne f).
+\]
+The procedure uses linearly many two-coordinate updates.
+\end{lemma}
+
+\begin{proof}
+When two coordinates are fractional, move them along the line
+\[
+ (q_e,q_f)\longmapsto
+ (q_e+t,q_f-(\beta_e/\beta_f)t)
+\]
+to one of the two endpoints allowed by their fixed floor and ceiling
+bounds.  Choose the endpoint probabilities so that the conditional
+mean of $t$ is zero.  At least one coordinate becomes integral, and
+integral coordinates are not updated subsequently.  Each coordinate
+is a martingale.  The product of the two updated coordinates is a
+concave quadratic in $t$; a product involving exactly one updated
+coordinate has unchanged conditional mean.  Thus every distinct-pair
+product is a supermartingale.  Rounding the last fractional coordinate
+with the correct conditional mean leaves all these products unchanged
+in expectation.  Finally, an integer random variable supported on
+$\{m,m+1\}$, with mean $m+\theta$, has variance
+$\theta(1-\theta)\le m+\theta$.  This proves the variance assertion.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:preparation}]
+We first form disjoint bundles containing most of each representative's
+assigned mass. We then round their deficits jointly with the openings
+that supply them, reserving a small amount of budget for clipping large
+deficits. After rounding inside bundles, every representative can again
+receive one unit. The final part of the proof compares connection costs
+at two representative-distance scales and conditions on the budget event.
+
+We will choose positive rational constants in the order
+\[
+ \delta,\quad M,\quad T_1,\quad\gamma,\quad g,
+\]
+with $\delta$ small, $M$ and then $T_1$ large, and $\gamma$ and then $g$
+small.  All choices depend only on $\eta$; the last choice means that
+every sufficiently fine even grid is permitted.  During the proof we
+require
+\begin{equation}\label{eq:prep-parameter-basics}
+ 0<\delta\le\tfrac14,\qquad 0<\gamma\le1,\qquad
+ \theta:=\frac1{M\delta}\le\tfrac18,\qquad
+ \alpha:=\frac M{\delta T_1}\le\tfrac14.
+\end{equation}
+Set $p_0=1-\theta$ and $\beta=M/T_1=\delta\alpha$.
+
+\paragraph{Splitting and representatives.}
+For each original facility, view its opening $y_i$ as an interval of
+length $y_i$ and its assignment to client $j$ as the initial subinterval
+of length $x_{ij}$.  Split at the endpoints of these subintervals for all
+clients.  There are at most $|J|+1$ positive-mass pieces per original
+facility, and every assignment now uses whole pieces.  Retain the
+notation $y_i$ for the mass of a piece, and let $F_j$ be the set of pieces
+used by client $j$.  Thus
+\[
+ y(F_j)=1,\qquad
+ V_j=\sum_{i\in F_j}y_i d(i,j),\qquad
+ y(W):=\sum_{i\in W}y_i.
+\]
+Pieces retain the distances of their original facility.  They may be
+treated as distinct candidates throughout the rounding; merging
+co-located integral openings at the end preserves all connection
+distances and can only decrease the number of opened facilities.
+
+Process the clients in nondecreasing order of $V_j$.  Select each
+remaining client $s$ as a representative and absorb every remaining
+client $j$ for which $d(j,s)\le MV_j$.  Write $\mathcal S$ for the set of
+representatives.  A client $j$ assigned to $s$ satisfies
+\begin{equation}\label{eq:prep-representative-properties}
+ V_s\le V_j,\qquad d(j,s)\le MV_j.
+\end{equation}
+Distinct representatives satisfy
+\[
+ d(s,t)>M\max(V_s,V_t):
+\]
+indeed, the later one was not absorbed by the earlier one.  Let $L_s$ be
+the distance to a nearest other representative, taking $L_s=\infty$
+when $s$ is the only representative.  Define
+\[
+ P_s=\{i\in F_s:d(s,i)\le\delta L_s\},\quad
+ p_s=y(P_s),\quad c_s=1-p_s,\quad A_s=F_s\setminus P_s,
+\]
+and let $U$ consist of all pieces outside $\bigcup_s P_s$.
+For $L_s=\infty$, interpret $P_s=F_s$ and $c_s=0$.
+
+The bundles $P_s$ are disjoint.  Otherwise a piece in $P_s\cap P_t$
+would imply
+\[
+ d(s,t)\le\delta(L_s+L_t)\le2\delta d(s,t),
+\]
+which is impossible.  For finite $L_s$, the mass in $A_s$ has distance
+at least $\delta L_s$ from $s$, so
+\begin{equation}\label{eq:prep-deficit-small}
+ \delta L_s c_s\le V_s,\qquad
+ 0\le c_s\le\theta,\qquad p_s\ge p_0.
+\end{equation}
+These bounds also cover $V_s=0$: in that case $c_s=0$.
+
+\paragraph{Supplier stars and signed counts.}
+For the raw opening count, give every bundle a base level of one.  A
+supplier star couples planned deficits in its target bundles to the
+mass that will supply them.  One planned count unit subtracts mass $g$
+from each target bundle and adds mass $g$ at the supplier if it lies in $U$.
+A bundle supplier incurs no additional opening in this accounting.
+Thus a star with $d$ targets changes the opening mass by $(1-d)g$ for
+an outside supplier and by $-dg$ for a bundle supplier.
+
+Make a list $\mathcal E$ of stars; a star $e$ has weight $w_e$, a flag
+$a_e\in\{0,1\}$ indicating an outside supplier, a target set
+$D_e\subseteq\mathcal S$, and a specified supplier:
+\begin{enumerate}
+ \item For each $i\in U$, take $w_e=y_i$, $a_e=1$,
+ $D_e=\{s:i\in A_s\}$, and supplier $i$.
+ \item For each pair $s,t$ with $y(A_s\cap P_t)>0$, take
+ $w_e=y(A_s\cap P_t)$, $a_e=0$, $D_e=\{s\}$, and supplier $P_t$.
+ Necessarily $t\ne s$.
+ \item For each $s$ with $c_s>0$, take $w_e=\gamma c_s$, $a_e=0$,
+ $D_e=\{s\}$, and use as supplier the bundle of a nearest other
+ representative.  Such a representative exists because $c_s>0$.
+\end{enumerate}
+The last stars are called extra stars.  The planned count of star $e$
+is $q_e=w_e/g$.  With $u_e=a_e-|D_e|$, the planned raw opening mass is
+\begin{equation}\label{eq:prep-raw-identity}
+ |\mathcal S|+\sum_e u_e w_e
+ =\sum_i y_i-\gamma\sum_s c_s.
+\end{equation}
+To see this, the flag-one weights sum to $y(U)$, while the total weight
+targeting $s$ is $(1+\gamma)c_s$.
+
+Apply Lemma~\ref{lem:prep-weighted-rounding} independently to the
+positive and negative signs of $u_e$, using weights $|u_e|$.  Complete
+the rounding of the positive class by rounding its possible last
+fraction with the correct mean.  Round the zero-coefficient counts
+independently between their floor and ceiling.  Leave the last
+fractional count of the negative class, if any, temporarily unrounded.
+All counts are then integral except possibly this one.
+
+If there is no remaining fraction, the resulting counts are both the
+nominal counts and the actual activation counts.  Otherwise, write the
+remaining count as $m+\xi$, where $0<\xi<1$, and let its star have
+$d=|D_e|$ targets.  Its nominal count is $m+\operatorname{Bernoulli}(\xi)$.
+If its flag is one, open $(m+1)g$ at its supplier, irrespective of the
+nominal coin.  Activate $m$ units at each target, and activate one
+additional unit at every target in a random subset of size
+\[
+ H\in\{\lfloor d\xi\rfloor,\lceil d\xi\rceil\},
+ \qquad \E H=d\xi,
+\]
+whose membership marginal is $\xi$ at every target.  Such a subset is
+obtained by choosing the indicated size with the correct mean and
+then taking a uniformly shifted interval of that size in a fixed
+cyclic ordering of the targets.  The nominal coin can be independent
+of this choice.  All other stars use their integral counts for both
+openings and activations.
+
+This modification bounds the raw opening error independently of the
+number of targets.  For the exceptional star its actual signed
+contribution, in count units, minus its planned contribution is
+\[
+ a_e(m+1)-dm-H-(a_e-d)(m+\xi)
+ =a_e(1-\xi)+d\xi-H<2.
+\]
+A positive coefficient $u_e$ necessarily equals one, so the last
+rounding in the positive class adds less than one further count unit.
+The zero class has no signed contribution.  If $\widetilde y_i$ denotes
+the actual opening on $U$, and $Z_s$ denotes the total activated deficit
+mass at $s$, we therefore have on every outcome
+\begin{equation}\label{eq:prep-raw-bound}
+ \sum_{i\in U}\widetilde y_i+\sum_s(1-Z_s)
+ \le\sum_i y_i-\gamma\sum_s c_s+3g.
+\end{equation}
+Moreover, each actual outside opening dominates both its nominal
+opening and every activation demand placed on it by a single target.
+
+\paragraph{Deficit moments and clipping.}
+The signed count already controls raw opening mass. The remaining
+obstacle is that an activated deficit might leave too little mass in its
+own bundle. We cap that deficit and pay for the added bundle mass with
+the reserve in Equation~\ref{eq:prep-raw-bound}.
+For every $s$, let $A_{es}$ be the integer activation count from a star
+targeting $s$.  Then
+\begin{equation}\label{eq:prep-deficit-moments}
+ \E Z_s=(1+\gamma)c_s,
+ \qquad \Var(Z_s)\le g(1+\gamma)c_s.
+\end{equation}
+Here it matters that the last negative star may depend on the preceding
+random choices.  Condition on the complete count vector immediately
+before its exceptional rounding.  At most one coordinate is
+fractional, so for distinct $e,f$ targeting $s$, at least one of
+$A_{es},A_{fs}$ is deterministic under this conditioning.  Each has
+conditional mean equal to its current count.  Their conditional product
+expectation is therefore the product of those two current counts.
+The distinct-pair product bound in
+Lemma~\ref{lem:prep-weighted-rounding} consequently still holds for
+these activations.  Their individual means are $q_e$, and each is
+supported on $\{\lfloor q_e\rfloor,\lceil q_e\rceil\}$.  Thus
+\[
+ \Var(Z_s)
+ \le g^2\sum_{e:s\in D_e}\Var(A_{es})
+ \le g^2\sum_{e:s\in D_e}q_e
+ =g(1+\gamma)c_s,
+\]
+as asserted.  The nominal counts also retain the same first and
+distinct-pair moment bounds.
+
+Clip the deficit at one half:
+\[
+ Z_s^*=\min(Z_s,\tfrac12),\qquad p'_s=1-Z_s^*.
+\]
+Discard any excess activation units.  This can be done in whole units
+because $\Delta$ is even.  By Equation~\ref{eq:prep-parameter-basics},
+$\mu_s:=\E Z_s\le1/4$.  For any random variable $X$ with mean $\mu<b$,
+\[
+ (X-b)_+\le\frac{(X-\mu)^2}{b-\mu}.
+\]
+Indeed the assertion is immediate when $X\le b$, and otherwise follows
+by expanding $(X-\mu)^2=(X-b+b-\mu)^2$.
+Equation~\ref{eq:prep-deficit-moments} therefore gives
+\[
+ \E(Z_s-\tfrac12)_+\le4g(1+\gamma)c_s.
+\]
+Let $\mathcal G$ be the event that
+\[
+ \sum_s(Z_s-Z_s^*)\le\gamma\sum_s c_s.
+\]
+If some $c_s$ is positive, Markov's inequality gives
+\begin{equation}\label{eq:prep-budget-probability}
+ \Prob(\mathcal G)\ge1-\rho,
+ \qquad \rho:=\frac{4g(1+\gamma)}\gamma.
+\end{equation}
+If all $c_s$ vanish, all activations and discarded amounts are zero,
+and $\mathcal G$ holds surely.  Equations~\ref{eq:prep-raw-bound} and
+\ref{eq:prep-budget-probability} show that a vector with bundle sums
+$p'_s$ has total opening mass at most $\sum_i y_i+3g$ on $\mathcal G$.
+
+\paragraph{Rounding within bundles and supplying one unit.}
+Condition on the complete star-rounding outcome, including the retained
+activations.  In each bundle independently, rescale piece $i\in P_s$ to
+mass
+\[
+ \overline y_i=y_i\frac{p'_s}{p_s}.
+\]
+Since $y_i\le p_s$ and $1/2\le p'_s\le1$, these masses belong to $[0,1]$.
+Their sum $p'_s$ is a grid multiple.  Apply the unweighted version of
+Lemma~\ref{lem:prep-weighted-rounding} to counts $\overline y_i/g$.
+The preserved sum is integral in count units, so there is no final
+fraction.  This produces grid masses $\widetilde y_i$ with conditional
+means $\overline y_i$ and nonpositive conditional pair covariances.
+All masses remain at most one, because one is a grid point.  Likewise
+the outside opening at a piece of original mass $y_i$ is at most
+$g\lceil y_i/g\rceil\le1$, even under the exceptional correction.
+
+Every representative $s$ can now receive one unit: take its entire
+bundle mass $p'_s$ and supply its retained deficit $Z_s^*$ using the
+retained activations.  Each outside supplier has enough mass for its
+activation demand at $s$.  Any bundle supplier is different from $P_s$.
+The total demand of $s$ on any one such bundle is at most its entire
+retained deficit, hence at most $1/2$, while every supplying bundle has
+mass at least $1/2$.  Allocate this demand greedily over its pieces.
+The bundles and $U$ are disjoint, and different clients have separate
+assignment constraints.  This proves feasibility for each client
+individually, even before conditioning on $\mathcal G$.  It also shows
+that the total opening mass is at least one.
+
+\paragraph{Cost comparison at a distant representative scale.}
+Fix a client $j$ and its representative $s$, and put $D=d(j,s)$.
+Let $R_s=\max_{i\in F_s}d(s,i)$, and define the radius
+\[
+ K_s=\begin{cases}L_s,&c_s>0,\\R_s,&c_s=0.\end{cases}
+\]
+If $V_j=0$, Equation~\ref{eq:prep-representative-properties} gives
+$D=V_s=0$.  All pieces of $F_s$ then have distance zero from $j$,
+$c_s=0$, and $Z_s=0$ surely.  The rounded bundle $P_s=F_s$ still has
+one unit at distance zero.  Hence the new cost is identically zero.
+We may therefore assume $V_j>0$ in the remaining cost analysis.
+
+Suppose first that $K_s>T_1V_j$.  We have $R_s\ge\delta K_s$: this is
+immediate if $c_s=0$, and otherwise some assigned mass lies beyond
+$\delta L_s$.  Consequently $D/R_s\le\alpha<1$.  This controls the
+cost of exchanging the portions of $F_j$ and $F_s$ that are not shared.
+Leave the shared pieces matched identically.  The masses of
+$F_s\setminus F_j$ and $F_j\setminus F_s$ are equal.  Each piece in the
+former set is at distance at most $R_s+D$ from $j$.  Each piece in the
+latter set is at distance at least $R_s-D$ from $j$, because the
+nearest-unit assignment at $s$ uses all closer mass before stopping at
+radius $R_s$.  This argument remains valid at ties.  Comparing the two
+residual costs shows that using the old assignment $F_s$ for client $j$
+has cost at most
+\begin{equation}\label{eq:prep-far-exchange}
+ C_j(F_s):=\sum_{i\in F_s}y_i d(j,i)
+ \le\frac{1+\alpha}{1-\alpha}V_j.
+\end{equation}
+
+Serve $j$ with the feasible assignment just constructed for $s$.
+For each $i\in P_s$,
+\[
+ \E\widetilde y_i
+ =y_i\E[p'_s]/p_s\le y_i/p_s.
+\]
+For an ordinary star, the expected retained activation mass is at most
+its original weight.  Thus outside suppliers do not increase their
+expected cost charge.  It remains to compare arbitrary new supply
+inside a bundle $P_t$ with the old pieces in $A_s\cap P_t$.
+This case only arises when $c_s>0$.  Then $D\le\beta L_s$, and for any
+old supplier piece $i\in P_t$,
+\[
+ d(j,i)\ge d(s,t)-D-\delta L_t
+ \ge(1-\beta-\delta)d(s,t).
+\]
+Any two pieces of $P_t$ are at distance at most $2\delta L_t$.
+Because $L_t\le d(s,t)$ and $1-\beta-\delta>0$, every possible new
+supplier piece has distance to $j$ at most
+\[
+ \kappa\,d(j,i),\qquad
+ \kappa:=1+\frac{2\delta}{1-\beta-\delta}.
+\]
+The comparison holds for every old piece, so it also holds relative to
+the weighted mean distance of the old pieces aggregated by that star.
+Multiplying by its expected retained activation mass bounds its
+expected cost by $\kappa$ times its old cost contribution.
+
+Finally, for the extra star at $s$, its supplier $P_t$ satisfies
+$d(s,t)=L_s$ and $L_t\le L_s$.  Every supply position is therefore at
+distance at most $(\beta+1+\delta)L_s$ from $j$.  By
+Equation~\ref{eq:prep-deficit-small}, its expected cost is at most
+\[
+ (\beta+1+\delta)\gamma c_s L_s
+ \le\frac{(\beta+1+\delta)\gamma}{\delta}V_j.
+\]
+There is no extra star when $c_s=0$.
+Combining these bounds with Equation~\ref{eq:prep-far-exchange}, the
+unconditional expected nearest-unit cost in this case is at most
+$B_{\mathrm{far}}V_j$, where
+\begin{equation}\label{eq:prep-far-factor}
+ B_{\mathrm{far}}
+ :=\max\{p_0^{-1},\kappa\}\frac{1+\alpha}{1-\alpha}
+   +\frac{(\beta+1+\delta)\gamma}{\delta}.
+\end{equation}
+
+\paragraph{Cost comparison at a nearby representative scale.}
+Now suppose $K_s\le T_1V_j$.  Consider the mass on the old set $F_j$,
+using nominal rounded masses on $U$ and actual rounded masses in the
+bundles.  This mass is available in the actual opening vector.  Its
+unconditional expected cost is at most $V_j/p_0$: nominal outside
+openings have mean $y_i$, and a bundle piece has expected mass at most
+$y_i/p_s\le y_i/p_0$.
+
+We bound the expected shortfall of this available mass from one.
+Write $M_U$ for its nominal mass on $U\cap F_j$.  The first and pair
+moments of the nominal counts imply
+\begin{equation}\label{eq:prep-outside-noise}
+ \E M_U=y(U\cap F_j),\qquad
+ \Var(M_U)\le g\,y(U\cap F_j)\le g.
+\end{equation}
+For a fixed complete star outcome, put
+\[
+ a_t=y(F_j\cap P_t),\qquad
+ \overline M_P=\sum_t a_t p'_t/p_t,
+\]
+and write $M_P$ for the actual rounded mass on these bundle pieces.
+Conditional on the star outcome, bundle rounding has nonpositive pair
+covariances within each bundle and is independent between bundles.
+The variance of a single grid-rounded mass of conditional mean
+$\overline y_i$ is at most $g\overline y_i$.  Therefore
+\begin{equation}\label{eq:prep-conditional-noise}
+ \E[M_P\mid\text{star outcome}]=\overline M_P,\qquad
+ \Var(M_P\mid\text{star outcome})
+ \le g\overline M_P\le g/p_0.
+\end{equation}
+
+Clipping at $1/2$ cannot increase distance from $c_t\le1/2$, so
+Equation~\ref{eq:prep-deficit-moments} gives
+\begin{align}
+ \E|p'_t-p_t|
+ &=\E|c_t-Z_t^*|\notag\\
+ &\le\E|c_t-Z_t|
+ \le\gamma c_t+\sqrt{g(1+\gamma)c_t}.
+ \label{eq:prep-rescaling-noise}
+\end{align}
+Since $\sum_t a_t\le1$, it follows that
+\[
+ \E\left|\overline M_P-\sum_t a_t\right|
+ \le\sum_t\frac{a_t}{p_t}\E|p'_t-p_t|
+ \le\frac{\gamma+\sqrt{g(1+\gamma)}}{p_0}.
+\]
+Use the identity $y(U\cap F_j)+\sum_t a_t=1$, the triangle inequality,
+and the second-moment bounds in
+Equations~\ref{eq:prep-outside-noise}--\ref{eq:prep-conditional-noise}.
+The expected shortfall is at most
+\begin{equation}\label{eq:prep-shortfall}
+ \E(1-M_U-M_P)_+\le H,
+ \qquad
+ H:=\sqrt g+\sqrt{g/p_0}
+       +\frac{\gamma+\sqrt{g(1+\gamma)}}{p_0}.
+\end{equation}
+In particular no independence between outside counts and rescaled
+bundle masses is being assumed.
+
+Trim any surplus mass on $F_j$, which cannot increase its cost.  To
+fill a remaining shortfall, there is always one unit of available
+opening within distance
+\[
+ QV_j,\qquad Q:=M+(1+\delta)T_1,
+\]
+from $j$.  Indeed, if $c_s=0$, there are no activations at $s$ and $P_s$
+has exactly one unit, all at distance at most
+$D+R_s\le(M+T_1)V_j$.  If $c_s>0$, use $P_s$ and the bundle $P_t$ of a
+nearest other representative.  They are disjoint and each has at
+least half a unit.  Their supply lies within distance
+$D+(1+\delta)L_s\le QV_j$.
+This supply can fill the shortfall even if some of it is already used:
+if the current assignment has mass $1-q$, a ball containing at least
+one opening unit contains at least $q$ unused units.  Allocate those
+units to finish the assignment.  By Equation~\ref{eq:prep-shortfall},
+the unconditional expected nearest-unit cost is at most
+$B_{\mathrm{near}}V_j$, where
+\begin{equation}\label{eq:prep-near-factor}
+ B_{\mathrm{near}}:=p_0^{-1}+QH.
+\end{equation}
+
+\paragraph{Choosing parameters and enforcing the budget.}
+Equations~\ref{eq:prep-far-factor} and~\ref{eq:prep-near-factor} give
+explicit bounds that approach one in the stated order of parameter
+choices.  More precisely, first choose $\delta$ small to make the
+limiting value of $\kappa$ close to one.  Next choose $M$ large so that
+$p_0^{-1}$ is close to one, and then choose $T_1$ large so that $\alpha$
+and $\beta$ are small.  With these constants fixed, choose $\gamma$
+small enough to control both the last term of $B_{\mathrm{far}}$ and
+the term $Q\gamma/p_0$ in $B_{\mathrm{near}}$.  Finally choose $g$ small
+enough to control all square-root terms and $\rho$ in
+Equation~\ref{eq:prep-budget-probability}.  All constants may be
+rational, and all sufficiently small $g=1/\Delta$ with even $\Delta$
+satisfy the resulting strict bounds.  In particular, arrange
+\[
+ \rho<\tfrac12,\qquad
+ \frac{\max\{B_{\mathrm{far}},B_{\mathrm{near}}\}}{1-\rho}
+ \le1+\eta.
+\]
+
+Reject a star-rounding outcome outside $\mathcal G$ and repeat.
+For the purpose of the preceding unconditional analysis, the subsequent
+bundle rounding can be imagined on every outcome.  Let
+$\widetilde V_j$ denote the resulting nearest-unit cost.  Its
+nonnegativity, rather than any independence from $\mathcal G$, gives
+\begin{equation}\label{eq:prep-cost-final}
+ \E[\widetilde V_j\mid\mathcal G]
+ \le\frac{\E\widetilde V_j}{\Prob(\mathcal G)}
+ \le(1+\eta)V_j.
+\end{equation}
+The already established supply and opening bounds hold on every
+accepted outcome.
+
+The split representation, star list, and number of pair updates are
+polynomial in the input size.  Pair updates and subset choices use
+rational probabilities and rational linear operations.  Their
+encodings have polynomial bit length: each weighted update introduces
+only ratios of integer weights bounded by $|\mathcal S|$, and there
+are polynomially many updates; the subsequent rescalings divide by
+the rational masses $p_s$.  Exact rational sampling has expected
+polynomial running time.  The acceptance probability is at least
+one half, so rejection multiplies the expected running time by at
+most two.  This proves the theorem.
+\end{proof}

@@ -1,0 +1,294 @@
+\section{Tight capacities and two scales}\label{sec:scales}
+
+We first reduce the input to one in which every coordinate bound is
+attained.  The use of tight capacities and a maximum-capacity spanning
+forest follows the representation of integral flows in~\cite{CDR2010}.
+The estimates below allow both dimensions and all capacities to vary.
+
+For feasibility, form a directed network with a source, the row and
+column vertices, and a sink. Give the source-to-row arcs capacities
+$r_i$, the row-to-column arcs capacities $b_{ij}$, and the
+column-to-sink arcs capacities $c_j$. An integral flow of value
+$N=\sum_i r_i=\sum_j c_j$ is exactly a feasible table: at that value
+every arc incident to the source or sink is saturated. The
+shortest-augmenting-path algorithm of Edmonds and
+Karp~\cite[Theorem~1]{EK1972} uses $O(VE)$ augmentations, where $V$
+and $E$ are the numbers of vertices and arcs.  The present network is
+simple, so $E=O(V^2)$ and the bound is $O(V^3)$, independently of the
+numerical capacities. Each augmenting path is found by breadth-first
+search in $O(V+E)$ operations. Starting at zero, augmentation by the
+minimum residual capacity preserves integrality. All flow and residual-capacity
+values have polynomial binary length, so this gives a deterministic
+polynomial-bit feasibility test for the present network.
+
+Return zero if the input is infeasible. For a feasible input, let
+$\ell_s$ and $u_s$ be the minimum
+and maximum feasible integer values of cell $s$.  Each extremum is
+computable by binary search using flow feasibility with one additional
+upper or lower bound.  A lower bound is subtracted from its cell and
+the two incident margins before applying the flow test; if a residual
+margin or capacity is negative, reject that tested bound immediately.
+The searches
+use polynomially many operations on integers of polynomial binary
+length.
+
+Replace each cell value $X_s$ by $X_s-\ell_s$, replace its upper bound
+by $b_s=u_s-\ell_s$, and subtract all incident minima from each margin.
+This is a bijection between the original and the new feasible sets:
+every original feasible table satisfies all its individual extremum
+bounds, and adding back the minima is the inverse map.  In the new
+instance, each endpoint $0$ and $b_s$ is attained by a feasible table,
+possibly a different table for each endpoint and cell.  Delete cells
+with $b_s=0$.  A deleted cell contributes no choice.  Retain all row
+and column vertices, including isolated vertices, and write $r,c$ for
+the new margins and $Z$ for the unchanged count.
+
+Let $L$ be the binary input length from Theorem~\ref{thm:main}, and
+retain the original dimensions $m,n$.  Fix
+\begin{equation}\label{eq:parameters}
+\begin{gathered}
+d=mn+m+n+2,\qquad
+K=20\bigl(L+d+\lceil\log_2(1/\epsilon)\rceil+1\bigr),
+\qquad \gamma=\frac{\epsilon}{512dK},\\
+A=\left\lceil\frac{4K}{\gamma}\right\rceil,\qquad
+B=16Ad^2,\qquad W=100dB,\qquad H=10Ad^2(W+1).
+\end{gathered}
+\end{equation}
+All these parameters except $\gamma$ are positive integers.
+Here $K$ bounds the logarithmic counting scales, $\gamma$ is a relative
+width near a tree boundary, and $A$ sets the penalty strength. The
+parameter $B$ is the number of bins per free coordinate, $W$ separates
+small and large capacities, and $H$ bounds the penalty and is the final
+annealing index. Binary encoding and the fact that tightened capacities
+never increase give
+\begin{equation}\label{eq:capacity-product}
+\prod_{s\text{ remaining}}(b_s+1)\le 2^L\le 2^K,
+\qquad 2^{-3K}\le\frac{\epsilon}{128}.
+\end{equation}
+Indeed, a nonnegative integer written with $\ell$ binary digits has
+at most $2^\ell$ possible values between zero and itself.  For the
+second inequality, the definition of $K$ gives
+$3K\ge\log_2(128/\epsilon)$.
+Call a remaining cell \emph{small} if $b_s<W$, and \emph{large}
+otherwise.  Write $\mathcal S$ for the small cells and set
+\[
+p=\sum_{s\in\mathcal S}b_s.
+\]
+There are at most $mn<d$ remaining cells and $m+n<d$ vertices,
+so $p\le dW$.  In particular the number of binary slots introduced
+later is polynomial.  More explicitly, $d,K=O(L)$ and
+\[
+A=O(L^3\epsilon^{-1}),\quad
+B=O(L^5\epsilon^{-1}),\quad
+W=O(L^6\epsilon^{-1}),\quad
+H=O(L^{11}\epsilon^{-2}).
+\]
+Here $L$ includes the encoding of $\epsilon$, so
+$\lceil\log_2(1/\epsilon)\rceil=O(L)$.  These bounds concern the
+numerical values of the auxiliary parameters; the retained capacities
+themselves continue to have polynomial binary length.
+
+Form the bipartite graph whose vertices are the rows and columns and
+whose edges are the large cells.  In each connected component choose
+a spanning tree of maximum total capacity, and choose a root.  An
+isolated vertex constitutes a component with an empty tree.  The
+union of these trees is denoted by $\mathcal T$; the large cells
+outside $\mathcal T$ form the set $\mathcal F$ of \emph{free cells}.
+Sorting large cells by decreasing capacity and adding an edge whenever
+it joins two current components constructs such a forest in
+polynomial time.
+
+The small cells will have separate row and column coordinates.  The small-cell
+contributions to row and column equations will therefore use disjoint
+coordinate sets.  We recover an actual table by requiring the two
+physical values of each small cell to agree.
+
+For each small cell $s$, take integer counts
+$x_s,y_s\in\{0,\ldots,b_s\}$.  Its contribution to its row margin is
+$x_s$, and its contribution to its column margin is $b_s-y_s$.
+Thus the two contributions agree precisely when $x_s+y_s=b_s$.
+For example, when $b_s=3$, the profile $(x_s,y_s)=(2,1)$ gives
+physical value two at both endpoints, whereas $(2,2)$ gives row value
+two and column value one.
+For a large cell there is a single value at both endpoints.  Given
+free values $(z_e)_{e\in\mathcal F}$, impose the prescribed margin at
+every nonroot vertex and solve for the values $(z_t)_{t\in\mathcal T}$.
+As proved below, this has a unique real solution, which is integral
+when the free values are integral.  For a root $v$, let $\delta_v$
+be its resulting actual incident sum minus its prescribed margin.
+Define
+\begin{equation}\label{eq:penalty}
+D(x,y,z)=A\left(
+\sum_{v\text{ a root}}|\delta_v|
++\sum_{t\in\mathcal T}
+\frac{\dist(z_t,[0,b_t])}{b_t}
+\right).
+\end{equation}
+In this expression $z$ denotes the free vector; the tree values and
+root deviations are its determined functions.  The denominators
+$b_t$ are positive because every tree cell is large.
+
+\begin{lemma}[Forest estimates]\label{lem:forest}
+For a free cell $e$, every tree cell $t$ on the path joining its
+endpoints satisfies $b_e\le b_t$.  For every box-valid integer small profile
+$(x,y)$ and every real free vector
+$z\in\prod_{e\in\mathcal F}[0,b_e+1]$, the nonroot equations have a
+unique solution.  This solution is integral for integral $z$, and
+the root deviations are independent of $z$.
+
+For any fixed feasible table $X^*$ of the tightened instance,
+\begin{equation}\label{eq:forest-displacement}
+|z_t-X^*_t|\le4db_t\quad(t\in\mathcal T),
+\qquad
+\sum_{v\text{ a root}}|\delta_v|\le2dW.
+\end{equation}
+Consequently, throughout the extended free box,
+\[
+0\le D\le H,\qquad
+z_t\in[-10db_t,10db_t]\quad(t\in\mathcal T).
+\]
+For fixed $(x,y)$, set $u_e=z_e/(b_e+1)$.  As a function of $u$,
+the penalty $D$ is convex on $[0,1]^{\mathcal F}$ and satisfies
+\begin{equation}\label{eq:forest-lipschitz}
+|D(x,y,u)-D(x,y,u')|
+\le2Ad^2\|u-u'\|_\infty.
+\end{equation}
+For an empty free set the domain is a singleton and the last bound
+has its usual vacuous interpretation.
+\end{lemma}
+
+\begin{proof}
+If a free edge had larger capacity than a tree edge on its path,
+exchanging those two edges would increase the total tree capacity.
+This proves the path inequality.  Leaf elimination proves existence
+and uniqueness of the nonroot solution: at a nonroot leaf its margin
+equation determines the edge to its parent, after which that vertex
+can be removed.  The same procedure proves integrality and that all
+tree values are affine functions of the free values.  No equation is
+imposed at the last, root vertex.  For a singleton component there
+are no unknown tree values and no nonroot equations.
+
+Changing a free value affects tree values along its tree path.
+Small-cell profiles need more care: their two physical views need not
+agree, so their contributions must be counted by incidences rather than
+cancelled as an ordinary flow.  The following cut identities keep both
+effects explicit.
+Give a row vertex sign $\sigma_v=1$ and a column vertex sign
+$\sigma_v=-1$.  For a small-cell incidence $(v,s)$, let
+\[
+a_{v,s}=\begin{cases}
+x_s,&v\text{ is the row of }s,\\
+b_s-y_s,&v\text{ is the column of }s,
+\end{cases}
+\qquad
+\Delta a_{v,s}=a_{v,s}-X^*_s.
+\]
+For a large cell write $\Delta z_e=z_e-X^*_e$, including solved
+tree cells in this notation.  Remove a tree edge $t$, and let $U_t$
+be the vertex set on the side away from the root; let $v_t$ be the
+endpoint of $t$ in $U_t$.  Sum the differences of the nonroot margin
+equations over $U_t$, with signs $\sigma_v$.  Internal large edges
+cancel.  If $v(e,U_t)$ is the unique endpoint in $U_t$ of a free edge
+crossing the cut, the result is
+\begin{equation}\label{eq:forest-cut}
+\sigma_{v_t}\Delta z_t
+=-\sum_{\substack{e\in\mathcal F\\e\text{ crosses }U_t}}
+\sigma_{v(e,U_t)}\Delta z_e
+-\sum_{\substack{s\in\mathcal S,\ v\in U_t\\v\text{ incident to }s}}
+\sigma_v\Delta a_{v,s}.
+\end{equation}
+The last sum is over incidences, including both incidences when a
+small edge has both endpoints in $U_t$; its two values can differ
+for an unbalanced profile.
+
+Each crossing free edge has $t$ on its tree path.  Hence
+$|\Delta z_e|\le b_e+1\le2b_t$ even on the extended real free box.
+Every small incidence satisfies
+$|\Delta a_{v,s}|\le b_s<W\le b_t$.  There are at most $d$ free
+edges and $2d$ small incidences.  Equation~\eqref{eq:forest-cut}
+therefore gives $|\Delta z_t|\le4db_t$.
+
+For a whole large-cell component $U$ with root $v_0$, the analogous
+signed sum cancels every large-cell contribution and gives
+\[
+\sigma_{v_0}\delta_{v_0}
+=\sum_{\substack{s\in\mathcal S,\ v\in U\\v\text{ incident to }s}}
+\sigma_v\Delta a_{v,s}.
+\]
+This proves independence from all free values, also for a singleton
+component.  Summing absolute values over components yields
+$\sum_{v_0}|\delta_{v_0}|\le2\sum_{s\in\mathcal S}b_s\le2dW$.
+Since $X^*_t\in[0,b_t]$, the displacement bound now implies
+\[
+0\le D\le A(2dW+4d^2)\le10Ad^2(W+1)=H.
+\]
+It also places $z_t$ in
+$[-4db_t,(4d+1)b_t]\subseteq[-10db_t,10db_t]$.
+
+Finally, subtract~\eqref{eq:forest-cut} for two free vectors with the
+same small profile.  Each coefficient in normalized coordinates is
+$\pm(b_e+1)$ for an edge crossing the cut, and its absolute value
+divided by $b_t$ is at most two.  Thus
+\[
+\frac{|z_t(u)-z_t(u')|}{b_t}
+\le2d\|u-u'\|_\infty.
+\]
+Distance from an interval is convex and is 1-Lipschitz.  Composing
+with the affine tree values and summing at most $d$ tree terms proves
+convexity and~\eqref{eq:forest-lipschitz}; the root terms are constant
+in the free coordinates.
+\end{proof}
+
+Define the small-profile domain
+\[
+\mathcal P=\left\{(x,y)\in\prod_{s\in\mathcal S}
+\{0,\ldots,b_s\}^2:
+\sum_{s\in\mathcal S}(x_s+y_s)=p\right\}.
+\]
+For each integer $j\in\{0,\ldots,H\}$, set
+\begin{equation}\label{eq:hj}
+h_j(x,y)=
+\sum_{z\in\prod_{e\in\mathcal F}\{0,\ldots,b_e\}}
+2^{-jD(x,y,z)/H},\qquad (x,y)\in\mathcal P.
+\end{equation}
+When needed, extend $h_j$ by zero outside $\mathcal P$.  On
+$\mathcal P$ it is strictly positive, including at unbalanced
+profiles.  With the empty-product convention, put
+$M_f=\prod_{e\in\mathcal F}(b_e+1)$.  Lemma~\ref{lem:forest} gives
+\[
+M_f2^{-j}\le h_j(x,y)\le M_f.
+\]
+An empty free block contributes one term, of value $2^{-jD(x,y)/H}$.
+If there are no small cells, then $p=0$ and $\mathcal P$ contains
+only the empty profile.
+
+The partition functions of interest are
+\begin{equation}\label{eq:Cj}
+C(j)=\sum_{\substack{(x,y)\in\mathcal P\\
+x_s+y_s=b_s\ (s\in\mathcal S)}}h_j(x,y).
+\end{equation}
+In particular,
+$C(0)=M_f\prod_{s\in\mathcal S}(b_s+1)$ is explicitly computable.
+Equations~\eqref{eq:hj} and~\eqref{eq:Cj} define finite mathematical
+sums.  Section~\ref{sec:evaluation} and the subsequent annealing
+algorithm estimate them using polynomially many operations on
+binary representations, without enumerating the free ranges or the
+small-profile domain. The outer counting algorithm in
+Section~\ref{sec:algorithm} estimates the adjacent ratios in the identity
+\[
+ C(H)=C(0)\prod_{j=0}^{H-1}\frac{C(j+1)}{C(j)}.
+\]
+
+\begin{proposition}[Contamination bound]\label{prop:contamination}
+For the feasible tightened instance,
+\[
+Z\le C(H)\le(1+\epsilon/32)Z.
+\]
+\end{proposition}
+
+The lower bound counts each feasible table with weight one.  For the
+upper bound, strong penalties immediately control root violations and
+large tree violations; tree values just outside their intervals require
+a marginal estimate.  We prove that estimate and complete the proof of
+Proposition~\ref{prop:contamination} in
+Section~\ref{sec:integer-signatures}.

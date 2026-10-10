@@ -1,0 +1,517 @@
+\section{An alternative rational verification procedure}
+\label{app:floor-certificate}
+
+This appendix proves a conditional alternative to the exact-array interval
+verification used in Proposition~\ref{prop:finite-certificate}.  If the
+rational procedure below passes the stronger tables of
+Section~\ref{sec:finite}, its roundoff allowances leave the exact quadrature
+arrays within the proposition's looser bounds.  The complete floor-rounded
+matrix procedure is not executed by the supplied programs; the selected
+finite certificate uses direct Arb enclosures of the exact arrays.
+
+We use $\epsilon=10^{-80}$ and the decimal brackets $p_*,b_*$ from
+\eqref{eq:rational-pi-b} in Appendix~\ref{sec:arithmetic}.  We first define
+the rounding and prove its error bounds.  The complete listings then specify
+each finite loop, keeping all arithmetic not explicitly rounded exact.
+
+\subsection{Componentwise rounding and its error}
+
+For real $x$, let $R(x)=\epsilon\lfloor x/\epsilon\rfloor$.  Apply $R$
+separately to the real and imaginary components of a complex number and
+entrywise to a matrix.  For complex rational $w$, define
+\begin{equation}\label{eq:rational-exponential}
+\begin{gathered}
+ u=R(w/4096),\qquad d_0=1,\qquad
+ d_j=R(d_{j-1}u/j)\quad(1\le j\le60),\\
+ x_0=\sum_{j=0}^{60}d_j,\qquad
+ x_{j+1}=R(x_j^2)\quad(0\le j<12),\qquad e_*(w)=x_{12}.
+\end{gathered}
+\end{equation}
+This uses a degree-$60$ polynomial with $61$ terms followed by twelve
+squarings.  Every quantity is rational.  In the floor prescription,
+$\pi,b,\sqrt3$ are replaced by $p_*,b_*,2b_*$, cosine is evaluated as
+$\Rea e_*(iw)$ at the corresponding rational phase $w$, and $B,h$ remain
+exact.
+
+In addition to the floors internal to $e_*$, the prescription rounds the
+quadrature points and weights, mass entries, and values of $z$ and $\lambda$.
+It rounds the transformed zeroth moment factor and every higher moment
+factor after its divided-power update.  It also rounds the projected jet
+entries, the entries of $Y$, every product in the power and partial-sum
+updates, and both final positive-node coefficient matrices.  The extra
+coordinates and all other operations are exact rational arithmetic; in
+particular, the products used to form the Bernstein and tail rows incur no
+further floors.  The listings below fix the order of these operations.
+
+A superscript $\#$ denotes the output of this floor prescription.  Its
+error is measured against the corresponding exact quadrature array of
+Section~\ref{sec:finite}: for example,
+$S^\#_{\mathcal F\mathcal F}$ is compared with
+$\widetilde S_{\mathcal F\mathcal F}$, $S^\#_{\mathcal F e}$ with
+$\widetilde S_{\mathcal F e}$, and $Y^\#,X_i^\#$ with $Y,X_i$.
+The error from quadrature to the exact spectral integrals is a different
+quantity, already bounded in Lemma~\ref{lem:quadrature-error}.
+
+\Needspace{6\baselineskip}
+\begin{lemma}[Roundoff bounds for rational verification]
+\label{lem:rational-roundoff}
+The floor prescription below has the following properties.
+\begin{enumerate}
+\item If $|w|<1700$ and $\Rea w<7$, then $|e_*(w)-e^w|<10^{-68}$.
+Every exponential argument in the prescription lies in this domain.
+\item A computed single-column quadrature moment of order at most $42$,
+scaled by $y^a/a!$ with $|y|\le3/2$, differs from the exact quadrature
+moment by less than $10^{-48}$.  The initial operator-norm errors in
+$S^\#_{\mathcal F\mathcal F}$, $S^\#_{\mathcal F e}$, and $Y^\#$ are
+less than $10^{-44}$.
+\item Suppose that either the exact or the rounded computation satisfies
+the following envelopes: every pre-update power in the nine steps has norm
+below $3$, each intermediate partial-sum matrix has norm below $34$, and
+every combined pair of corresponding $X_1,X_2$ columns has norm below $5.6$.
+Then the combined error in a pair of corresponding columns of
+$X_1^\#,X_2^\#$ is less than $10^{-29}$.
+Every entry of the Bernstein rows $L_{i,d}^\#$ differs from the
+corresponding entry of $L_{i,d}$ in \eqref{eq:bernstein-rows} by less than
+$10^{-16}$.  Every lower evaluation in \eqref{eq:bernstein-certificate}
+and every tail expression in \eqref{eq:tail-certificate} has error less
+than $10^{-6}$.
+\end{enumerate}
+The stagewise envelopes in the last item follow from the stronger power and
+column tables, whether those tests are established on the exact arrays by
+intervals or on the rounded arrays by the prescription below.
+\end{lemma}
+
+\begin{proof}
+We control elementary functions first, then a single moment, then the
+matrix products, and finally the scalar lower evaluations.  This order
+keeps the error due to the coefficient lists separate from the error in
+the primitive moments.
+
+\paragraph{Exponential approximation.}
+A componentwise floor changes a complex number by less than $2\epsilon$.
+For $r=w/4096$, both $|r|$ and $|u|$ are below $.416$.  If $\delta_j$
+bounds $|d_j-r^j/j!|$, then
+\[
+ \delta_0=0,\qquad
+ \delta_j\le\frac{.416}{j}\delta_{j-1}
+ +\frac{2\epsilon\,.416^{j-1}}{j!}+2\epsilon.
+\]
+The first term propagates the previous error, the second changes $r$ to
+$u$, and the last is the new floor.  Summing through $j=60$ and adding
+the exponential tail gives
+\[
+ |x_0-e^{w/4096}|
+ \le\sum_{j=0}^{60}\delta_j+\frac{e^{.416}.416^{61}}{61!}
+ <1.263\cdot10^{-78}<4\cdot10^{-78}.
+\]
+The factorial tail alone is less than $4\cdot10^{-107}$.  These are finite
+rational comparisons after using $e^{.416}<e<2719/1000$.
+
+At squaring step $j$, the exact value has modulus at most
+$e^{7/2^{12-j}}$.  While the accumulated error is below one, its
+amplification factor is at most $2e^{7/2^{12-j}}+1$.
+Since $2e^a+1\le3e^a$ for $a\ge0$, the product of all twelve factors
+is at most $3^{12}e^7$.  Including all twelve new floors gives
+\begin{equation}\label{eq:exponential-roundoff-budget}
+ (4\cdot10^{-78}+24\epsilon)3^{12}e^7
+ <2.472\cdot10^{-69}<10^{-68}.
+\end{equation}
+The same bound is below one at every earlier stage, closing the hypothesis
+used in the amplification estimate.
+
+The arguments used by the prescription have ample room in the stated domain.
+Density phases have modulus at most $\pi\cdot168$ before the rational
+perturbations.  The weight cosines have phase modulus less than
+$2\pi\cdot191$.  Transformed phases have modulus at most
+$\pi(44/15)168<1549$ and nonpositive real part by
+Lemma~\ref{lem:kernel-bounds}.  They remain in the left half-plane after
+substitution: on the real integration interval, $\Ima z>.187/\pi$,
+whereas the perturbation of $z$ below is less than $10^{-65}$.
+The only positive real scalar phases are $K\le6$ in the support at $m=0$.
+Every other finite scalar phase is nonpositive with modulus at most $48$.
+Infinite endpoints are evaluated by their limits, not passed to $e_*$.
+Thus every call satisfies $|w|<1700$ and $\Rea w<7$.
+
+\paragraph{Primitive masses and moments.}
+The intermediate absolute error allowances are
+\begin{equation}\label{eq:primitive-roundoff-budgets}
+\begin{array}{c|c}
+\text{quantity}&\text{absolute error bound}\\ \hline
+ \tau_{jv}&10^{-67}\\
+ o_v&10^{-65}/384\\
+ z(t),\ \lambda(t)&10^{-65}\\
+ \text{one density value}&10^{-60}\\
+ \text{one mass column, summed absolute error}&10^{-59}\\
+ F_0(t),\ G_0(t)&10^{-60}\\
+ F_a(t),\ G_a(t),\quad0\le a\le42&10^{-52}\\
+ Q_n,\ D_n&10^{-75}.
+\end{array}
+\end{equation}
+The comparison values here use the exact quadrature points and the exact
+constants $\pi,b$.  We justify each stage rather than infer it from decimal
+agreement.
+
+For a weight phase, replacing $\pi$ changes the phase by less than
+$382\epsilon$.  Add the $10^{-68}$ exponential error, and use
+$2\sum_{a=1}^{191}(4a^2-1)^{-1}<1$.  Including the final floor gives
+the stated bounds for $\tau$ and $o$.  On the real line, $|t+ih|\ge h$;
+the derivative bounds
+\[
+ |z'(t)|\le B/h^2<9,\qquad
+ |\partial_t\lambda(t)|<8,\qquad |\partial_b\lambda(t)|<4
+\]
+then give the errors for $z$ and $\lambda$.  The density phase errors
+are below $10^{-63}$ because $n\le168$.  Inserting them in the six-term
+density formulas, using $\sum_{l>0}|P_l|=10$, gives the density allowance
+$10^{-60}$. The weighted density errors sum to at most $10^{-60}$ because
+the six positive quadrature rules have total weight one. Weight errors,
+density errors, the $2311$ componentwise mass floors, and atom coefficient
+errors together contribute less than $10^{-59}$
+to the sum of absolute errors in one mass column.
+
+Each exact mass column has sum of absolute values less than $230$.  Indeed,
+the pointwise real-interval density bounds are
+$2\pi^2\sum_{l>0}t_l|P_l|<106$ for a $c_n$ column and $20\pi<63$ for a
+$d_n$ column; the constant column has atomic variation $25$.  Positivity
+and total density weight one from \eqref{eq:positive-quadrature-weights}
+make $230$ a common bound.
+
+The direct zeroth kernel phase error is below $10^{-63}$.  The transformed
+zeroth phase error is below $6\cdot10^{-63}$, and multiplication by
+$|\lambda|<3$ still leaves error below $10^{-60}$.  The divided-power
+arguments $i\pi yt$ and $i\pi yz$ have modulus below $15$ and error below
+$10^{-63}$.  To see explicitly how these errors enter a higher moment, write
+either exact factor as $H_a=H_0v^a/a!$ and its rounded update as
+$H_a^\#=R(H_{a-1}^\#v^\#/a)$.  Here
+\[
+ |H_0|<3,\qquad |H_0^\#-H_0|<10^{-60},\qquad
+ |v|,|v^\#|<15,\qquad |v^\#-v|<10^{-63}.
+\]
+Changing the initial value costs at most $e^{15}10^{-60}$, and changing
+$v$ costs at most $3e^{15}10^{-63}$, by the derivative of $v^a/a!$.
+A floor introduced at step $j$ is multiplied by
+$(v^\#)^{a-j}j!/a!$.  Since $j!/a!\le1/(a-j)!$, all the floors together
+cost at most
+\[
+ 2\epsilon\sum_{j=1}^a15^{a-j}\frac{j!}{a!}\le2\epsilon e^{15}.
+\]
+Thus for $0\le a\le42$ the total factor error is bounded by
+\[
+ |H_a^\#-H_a|
+ <e^{15}\bigl(10^{-60}+3\cdot10^{-63}+2\epsilon\bigr)<10^{-52}.
+\]
+The last comparison follows already from $e<3$.
+Expanding the moment difference against the rounded mass column, whose norm
+is below $230+10^{-59}$,
+also retains the product of the two primitive errors.  The total is at most
+\[
+ (230+10^{-59})10^{-52}+3e^{15}\cdot10^{-59}<10^{-48}.
+\]
+Finally, \eqref{eq:node-constants} and \eqref{eq:rational-pi-b-error}
+give errors below $10^{-75}$ in $Q_n,D_n$.  Jet projection uses
+$Q_n>1.75$, $|D_n|<2.12$, and $168$ output coordinates.  Including its
+floors, the resulting initial operator errors are less than $10^{-44}$;
+the same estimate applies to $Y^\#$.
+
+\paragraph{Powers and coefficient columns.}
+A floor on a real matrix with $168$ rows contributes at most
+$168\epsilon<10^{-77}$ in operator norm.  Let $e_r$ bound the error in
+$U$ before step $r$, and let $v_r$ bound the error in either partial-sum
+matrix after $r$ steps, with $v_0=0$.  The assumed stagewise envelopes give
+$\norm{U}<3$ and partial-sum norms below $34$.  Comparing products and
+then adding the floor gives
+\begin{equation}\label{eq:matrix-roundoff-recurrence}
+ e_0<10^{-44},\qquad
+ e_{r+1}\le7e_r+10^{-77},\qquad
+ v_{r+1}\le5v_r+34e_r+10^{-77}.
+\end{equation}
+More precisely, the square error is at most $(6+e_r)e_r+10^{-77}$,
+and the partial-sum coefficient of $v_r$ is at most $4+e_r$.
+Induction gives $e_r<1$ and validates the displayed recurrence.  Its
+finite rational solution yields
+\[
+ \max_{0\le r\le8}e_r<5.765\cdot10^{-38}<10^{-36},
+ \qquad v_9<6.529\cdot10^{-36}<10^{-34}.
+\]
+If the coarse norms are known for the rounded rather than exact factors,
+exchange their roles in the product difference.  The same two inequalities
+follow.  This is why the argument is not circular and does not require a
+rounded matrix inverse.
+
+The largest combined column norm of $E_1,E_2$ is $3.3505$.
+The formulas for $Y$ give $\norm{Y}<2$, and the transform bound gives
+the sharper data estimate
+$2+(4000+2\cdot10^{-27})3.3505<13405$.
+Its rational perturbation is less than $10^{-43}$. Thus, for every column $j$,
+$\norm{(g_1)_j}_1+\norm{(g_2)_j}_1<20000$ for both the exact and rounded data.
+Applying the two sum/difference formulas in
+\eqref{eq:finite-columns}, including the $168$ real floors in each of
+the two final columns, gives the complete bound
+\[
+ 40000v_9+72\cdot10^{-43}+336\epsilon
+ <2.612\cdot10^{-31}<10^{-29}.
+\]
+The appended extras are exact.  In particular, the term $336\epsilon$ is
+part of the column error even though it is negligible numerically.
+
+\paragraph{Bernstein and lower-evaluation errors.}
+A scaled moment against a unit list column has absolute value at most
+$230\cdot3e^{15}$.  Also $|y|^{-\nu}\le4$ and
+$0\le\omega_{dr}\le1$.  The contribution from the coefficient-list error
+to one Bernstein row entry is therefore at most
+\[
+ 41\cdot4\cdot230\cdot3e^{15}\cdot10^{-29}
+ <3.700\cdot10^{-18}.
+\]
+For this decomposition the list difference is evaluated with exact moments;
+the primitive difference is evaluated against the rounded columns.
+The primitive moments therefore contribute separately.  The relevant combined
+column norm is below $6$, either directly from the rounded cutoffs or
+from the exact cutoff $5.6$ and the column error.  Thus their contribution
+is at most
+\[
+ 41\cdot4\cdot6\cdot10^{-48}<10^{-44}.
+\]
+The sum of these two contributions is below $10^{-16}$, as claimed.
+This explicitly includes the primitive-moment addition.
+
+For completeness, the subsequent minimizations do not amplify that bound
+to anything close to $10^{-6}$.  The same moment bound with combined
+column norm $6$ shows that each exact Bernstein row entry is below $10^{14}$
+in modulus.  If its entry error is $\delta=10^{-16}$, then for
+$x\in\{1/K,1/J\}\subset[0,1]$ the error in $a_j+xb_j$ is below $2\delta$.
+A finite endpoint exponential has error below $10^{-68}$ and modulus at
+most one; the infinite-endpoint values are exact.  Each product in
+\eqref{eq:box-lower} consequently has error below
+$2\delta+(2\cdot10^{14}+2\delta)10^{-68}$.  There are four such products
+and one unmultiplied term.  A minimum is nonexpansive in the maximum norm,
+so the total row lower-evaluation error is less than $2\cdot10^{-15}$.
+
+Only the target supports at $m=0$ and $m=3$ use a rounded exponential.
+At $m=0$, $|Ky|\le3$, $1/K<1$, and
+$\sum_{r=0}^{40}3^r/r!<e^3<27$, so their total weighted error is below
+$27\cdot10^{-68}$.  At $m=3$, $J/2\le3$ gives error below
+$3\cdot10^{-68}$.  The $m=1$ support is rational and exact.  These
+additions still leave a bound far below $10^{-6}$.
+
+For a tail row from $X_i$, the entry error is below $10^{-29}$ and its
+entry modulus is below $6$.  The same is true for the row obtained by
+summing the low $d_n$ rows, because the combined column norm controls that
+sum.  The preceding five-term argument gives lower-evaluation error below
+$2\cdot10^{-28}$ for each such row.  Taking $\min(0,\cdot)$ does not
+increase it.  In \eqref{eq:tail-certificate} there are one constant row,
+one summed row, and two rows for each of $46$ low nodes, hence $94$ terms.
+Their nonnegative reciprocal factors are at most one since $s_0-n\ge1.5$.
+The tail error is therefore below $94(2\cdot10^{-28})<2\cdot10^{-26}$,
+in particular below $10^{-6}$.
+\end{proof}
+
+\subsection{The complete floor-rounded finite prescription}
+
+We now specify the alternative rational computation.  Every loop has a
+finite inclusive range.  The five shell and two list indices are one-based;
+quadrature and derivative indices start at zero as indicated.  Products
+are ordinary matrix or row products, without conjugation.  An operation
+not marked $R$ is exact rational arithmetic.  The imaginary unit is
+\texttt{i}; a list subscript never denotes that unit.  The symbols
+$P_l,Q_n,D_n$ mean the formulas in \eqref{eq:periodic-coefficients} and
+\eqref{eq:node-constants} after the rational substitutions above.
+
+The input order is all $c_n$ for increasing $n\in\mathcal F$, then all
+$d_n$, then $c_0,d_0,C$.  The $2311$ mass rows are the $6\cdot384$
+quadrature points in lexicographic order followed by the seven atoms.
+
+\Needspace{12\baselineskip}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,columns=fullflexible,
+breaklines=true,frame=single,caption={Floor-rounded verification: masses and moment factors},label=alg:finite-verification]
+eps = 1/10^80
+R(x) = eps * floor(x/eps)  # separately on complex components
+# pstar,bStar are the two printed 80-digit decimal rationals.
+# e_star uses the degree-60 Taylor polynomial and 12 squarings above.
+
+F_nodes = [n for n=1..168 if n mod 12 in {0,1,3,4,7,9}]
+t_l = l/6 for l=0..6
+for v=0..383:
+    a0 = (v+1/2)/384
+    o[v] = R((1-2*sum(Re(e_star(2*d*i*pstar*a0))/(4*d*d-1)
+                          for d=1..191))/384)
+    for j=1..6:
+        tau[j,v] = R((2*j-1+Re(e_star(i*pstar*a0)))/12)
+
+W = zero complex matrix with 2311 rows and 171 columns
+for j=1..6:
+  for v=0..383:
+    t = tau[j,v]
+    for n in F_nodes followed by [0]:
+      for l=j..6:
+        A[l] = (o[v]/6)*2*pstar*e_star(-i*pstar*t*n)
+                            *P[l]*e_star(i*pstar*t_l*n)
+      W[(j,v),c(n)] = R(-pstar*sum((t_l-t)*A[l] for l=j..6))
+      W[(j,v),d(n)] = R(i*sum(A[l] for l=j..6))
+for j=0..6:
+    W[atom(j),C] = R((1 if j==0 else 2)*P[j])
+
+function factors(m,y,end_degree):
+    points = all tau[j,v], followed by t_0,...,t_6
+    for each point t:
+        z[t] = R(-B/(t+i*h)-i*h)
+        lam[t] = R(i/(bStar*(t+i*h)))
+        F[0,t] = e_star(i*pstar*t*m)
+        G[0,t] = R(lam[t]*e_star(i*pstar*z[t]*m))
+        for a=1..end_degree:
+            F[a,t] = R(F[a-1,t]*i*pstar*t*y/a)
+            G[a,t] = R(G[a-1,t]*i*pstar*z[t]*y/a)
+    return F,G
+\end{lstlisting}
+
+These moments are scaled by $y^a/a!$, which explains the division by
+$y^\nu$ in the later half-gap rows.  The floor convention can itself be
+implemented with integers.  Put $S=10^{80}$.  For $w=w_r+iw_i$, initialize
+$u_r=\lfloor Sw_r/4096\rfloor$ and
+$u_i=\lfloor Sw_i/4096\rfloor$.  Represent a rounded complex number by
+the two integers obtained after multiplication by $S$.  The Taylor update is
+\[
+ (d_r,d_i)\longmapsto
+ \left(
+ \left\lfloor\frac{d_ru_r-d_iu_i}{Sj}\right\rfloor,
+ \left\lfloor\frac{d_ru_i+d_iu_r}{Sj}\right\rfloor
+ \right),
+\]
+with both right sides evaluated before replacement.  The squaring update is
+\[
+ (x_r,x_i)\longmapsto
+ \left(
+ \left\lfloor\frac{x_r^2-x_i^2}{S}\right\rfloor,
+ \left\lfloor\frac{2x_rx_i}{S}\right\rfloor
+ \right).
+\]
+Every floor is toward negative infinity, including for negative numerators.
+These formulas are exactly \eqref{eq:rational-exponential}.
+
+\Needspace{12\baselineskip}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,columns=fullflexible,
+breaklines=true,frame=single,caption={Floor-rounded verification: projected matrices and columns},label=alg:finite-columns]
+Ssharp = zero matrix with 168 rows and 171 columns
+Ysharp = zero matrix with 168 rows and 10 columns
+for m in F_nodes:
+    F,G = factors(m,1,1)
+    a = Re(G[0,:] * W)
+    d = Re(G[1,:] * W)
+    Ssharp[c(m),:] = R(-a/Q_m)
+    Ssharp[d(m),:] = R((D_m*a-d)/Q_m)
+for j=1..5:
+    n = [1,3,4,7,9][j]
+    Ysharp[d(n),j]   = R(-1/Q_n)
+    Ysharp[c(n),j+5] = R(1/Q_n)
+    Ysharp[d(n),j+5] = R(-D_n/Q_n)
+
+E = zero matrix with 6 rows and 10 columns
+E[:,1] = [.567,.250,-.0074,0,-.209,.0096]
+E[:,6] = [-.976,.408,.0115,1,.938,-.017]
+E1 = first three rows of E
+E2 = last three rows of E
+U = positive-coordinate columns of Ssharp
+vp = identity matrix of size 168
+vm = identity matrix of size 168
+for r=0..8:
+    vp = vp + R(vp*U)
+    vm = vm + R((-1 if r==0 else 1)*vm*U)
+    record the maximum absolute column sums of U,vp,vm
+    if r<8: U = R(U*U)
+# Compare every recorded value with the power table, row r.
+
+Se = last three columns of Ssharp
+g1 = Ysharp + Se*E2
+g2 = Se*E1
+X[1] = stack(R((vp*(g1+g2)+vm*(g1-g2))/2), E1)
+X[2] = stack(R((vp*(g1+g2)-vm*(g1-g2))/2), E2)
+# Test every individual and same-column combined absolute column sum
+# against the corresponding bound in the column table.
+\end{lstlisting}
+
+The product identities in the proof of
+Proposition~\ref{prop:finite-certificate} give the prescribed $512$-term
+series.  At each stage, the entries of \texttt{vp} and \texttt{vm} are
+integer multiples of $\epsilon$.  Hence
+$V+R(VU)=R(V(I+U))$, with the analogous identity for the initial minus
+sign.  The listing and the rounded product update used in
+\eqref{eq:matrix-roundoff-recurrence} are therefore the same operation.
+
+\Needspace{12\baselineskip}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,columns=fullflexible,
+breaklines=true,frame=single,caption={Floor-rounded verification: every half-gap and tail inequality},label=alg:finite-signs]
+nodes5 = [1,3,4,7,9]
+endpoints = [2.36,2.65,3.2,4,6,infinity]
+sigma = [-1,1]
+
+function low(row,K,J):
+    exK = [e_star(-K*(n-1)) for n in nodes5]
+    exJ = ([e_star(-J*(n-1)) for n in nodes5]
+                   if J<infinity else [1,0,0,0,0])
+    answers = []
+    for x in [1/K, (1/J if J<infinity else 0)]:
+        v = row[1..5] + x*row[6..10]
+        answers.append(v[1] + sum(min(v[a]*exK[a],v[a]*exJ[a])
+                                                     for a=2..5))
+    return min(answers)
+
+low_nodes = [0] followed by all n in F_nodes with n<=88
+for m in low_nodes:
+    # Successor and predecessor are in {0} union the positive nodes.
+    ys = [(successor(m)-m)/2]
+    if m>0: append (predecessor(m)-m)/2 to ys
+    for y in ys:
+        nu = (0 if m==0 else 2)
+        F,G = factors(m,y,40+nu)
+        for fn=1..2:
+            for a=0..40:
+                l[a] = sigma[fn]/y^nu * Re(
+                    F[a+nu,:]*(W*X[fn])
+                    +G[a+nu,:]*(W*X[3-fn]))
+            for consecutive K,J in endpoints:
+                tc = zero row of length 41
+                if m==0:
+                    tc[r] = e_star(K)/K * (-K*y)^r/r! for r=0..40
+                if m==1:
+                    tc[r] = K*(-K*y)^r/(r+2)! for r=0..40
+                if m==3 and J<infinity:
+                    tc[0] = (J/2)*e_star(-13*J/6)
+                for d=0..40:
+                    lsum = zero row of length 10
+                    tsum = 0
+                    w = 1
+                    for r=0..d:
+                        lsum = lsum + w*l[r]
+                        if fn==1: tsum = tsum + w*tc[r]
+                        if r<d: w = w*(d-r)/(40-r)
+                    value = low(lsum,K,J) + tsum
+                    # Strictly compare with the m-group and K row
+                    # of the half-gap table, for every value.
+
+s0 = 89.5
+for consecutive K,J in endpoints:
+    for fn=1..2:
+        signedX = sigma[fn]*X[fn]
+        neg(row) = min(0,low(row,K,J))
+        value = low(signedX[C,:],K,J)
+        value += neg(sum(signedX[d(n),:] for n in low_nodes))/s0
+        for n in low_nodes:
+            value += neg(signedX[c(n),:])/(s0-n)^2
+            value += n*neg(signedX[d(n),:])/(s0*(s0-n))
+        # Strictly compare with the tail column for this K row.
+\end{lstlisting}
+
+The three references to tables in these listings mean, respectively,
+Tables~\ref{table:power-bounds}, \ref{table:column-bounds}, and
+\ref{table:sign-bounds}.  Every comparison is strict and
+rational.  There are $37310$ half-gap comparisons and ten tail comparisons;
+a reported extremum is not a substitute for testing each index.
+
+If the floor computation passes all these tests, the roundoff lemma transfers
+them to the looser exact-array bounds in
+Proposition~\ref{prop:finite-certificate}.  For example,
+$.00116-10^{-6}>.001$ and $.0022-10^{-6}>.0021$.
+The column cutoffs $2.20,5.40$ remain below $2.3,5.6$ after the column
+error, and the power errors are much smaller than the gaps from $.0031$
+to $.004$ and from $32.12+1.85$ to $36$.
+

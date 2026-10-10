@@ -1,0 +1,401 @@
+\section{Exact verification of the two certificates}
+\label{sec:verification}
+
+We now give the finite calculations establishing
+Propositions~\ref{prop:pair-certificate} and~\ref{prop:mixed-certificate}.
+The complete program and all its data are printed in
+Appendix~\ref{app:code}.  It specifies the integer
+matrices, coordinate orders, and finite enumerations used below.  All
+arithmetic that certifies an equality or inequality is integer or rational
+arithmetic.  Modular arithmetic supplies candidate substitutions, whose
+validity is then checked exactly.
+Rational Gram certificates and exact positivity checks are established
+methods; see Peyrl--Parrilo \cite[Section~3]{PeyrlParrilo2008}.
+Our input matrices are specified integers, and the proof below certifies
+the displayed identities directly from those data.
+
+The calculation has three steps.  First, expand each expression in named
+moments using the identities already proved.  Next, use a finite set of
+true linear equations to substitute for some of these moments.  Finally,
+check either that every coefficient vanishes, for the pair certificate, or
+that the constant coefficient plus the absolute sum of the remaining
+coefficients is negative, for the mixed certificate.  We first justify the
+substitutions for arbitrary real moment values, then specify the equations and coefficient checks for each certificate.
+
+\subsection{Exact certification of linear substitutions}
+
+Both certificates use finite systems of linear equations in their moment
+coordinates. The same substitution procedure applies to either system.
+Include the constant moment as a coordinate, so that every moment equation is
+homogeneous in the enlarged coordinate vector.  Clearing denominators
+turns the equations into integer rows.  The lists called \texttt{I} in
+the program specify a fixed priority order on the coordinates.  This
+choice affects the form of the answer and, in the mixed calculation,
+the size of its residual coefficient sum; it does not add any relation.
+
+\begin{lemma}[Exact substitutions]
+\label{lem:exact-elimination}
+Let $W\in\Z^{r\times N}$ consist of selected moment equations after
+their denominators have been cleared.  Suppose a set $J$ of $r$ columns gives a square
+submatrix $W_J$ invertible modulo a prime.  Put
+$F=\{1,\ldots,N\}\setminus J$.  If a rational matrix
+$P\in\Q^{N\times N}$ satisfies
+\[
+ P_{F,F}=I,\qquad P_{*,J}=0,\qquad WP=0,
+\]
+then every real vector $\mathbf m$ satisfying $W\mathbf m=0$ obeys
+$\mathbf m=P\mathbf m$.  Thus the rows of $P$ give valid substitutions
+for all coordinates in terms of the coordinates indexed by $F$.
+\end{lemma}
+
+\begin{proof}
+Invertibility modulo the prime implies that the integer
+$\det W_J$ is nonzero.  In the coordinate order $J,F$, write
+\[
+ W=\begin{pmatrix}W_J&W_F\end{pmatrix},\qquad
+ P=\begin{pmatrix}0&P_{J,F}\\0&I\end{pmatrix}.
+\]
+The exact equality $WP=0$ gives
+$P_{J,F}=-W_J^{-1}W_F$.  Every solution of $W\mathbf m=0$ consequently
+satisfies $\mathbf m_J=P_{J,F}\mathbf m_F$, while the free coordinates
+of $P\mathbf m$ are already $\mathbf m_F$.  This proves the claim over
+$\mathbb R$, regardless of whether the moment values are rational.
+Equivalently, $P$ has rank $N-r$, its image equals $\ker W$, and its
+identity rules make it the identity on that kernel.
+\end{proof}
+
+Here is how \texttt{eliminate} verifies the hypotheses of the lemma.
+Its first modular elimination uses the prime $1000000007$.  The routine
+\texttt{echelon} retains an original integer equation whenever that
+equation supplies a new pivot.  These retained equations form $W$.
+Each pivot is at the largest remaining coordinate of its row; normalized
+elimination therefore proves that $W_J$ is invertible modulo the prime.
+Back substitution processes pivot coordinates in ascending order.
+When a smaller pivot is removed, its already reduced row contains only
+that pivot and free coordinates.  The final rule for a pivot thus has
+no other pivot on its right side.
+
+The program then works modulo the further moduli listed in the source,
+retaining matching pivot sets, combines coefficients by the Chinese
+remainder algorithm, and uses \texttt{rat} to propose rational rules.
+These steps preserve the absence of other pivot coordinates.  All
+nonpivot coordinates receive explicit identity rules.  Finally, for
+each retained integer equation the program substitutes every proposed
+rule, clears all denominators, and checks that every integer
+coefficient is zero.  This is the exact check $WP=0$ in
+Lemma~\ref{lem:exact-elimination}.
+
+Every actual moment vector satisfies the selected equations, so this
+check suffices even if additional generated equations have not been
+used.  In particular, the modular pivot count is not asserted to be the
+full rational rank of the original system.  A prime that conceals an
+additional independent equation merely leaves that true equation
+unused.  The rational reconstruction and its size threshold are ways
+to find a candidate $P$; the exact check and the lemma establish its
+validity.
+
+\subsection{Pair equations and the vanishing identity}
+
+For an integer array $A$ with zero row and column sums, put
+\[
+ \operatorname{wt}(A)=\sum_i\ord(A_{i,*}).
+\]
+This also equals the sum of the column orders.  Arrays name the real
+injective moments $m_H(A)$ of Section~\ref{sec:pair}; the empty array names
+the constant moment $1$.  A formal linear expression in these moments is
+stored as a finite list of rational coefficients indexed by arrays.
+Coefficients at the same index are added, and zero coefficients are
+discarded.  These are the operations \texttt{add} and \texttt{lin} in the
+program.
+
+The routine \texttt{canonpair} selects a representative using precisely
+the symmetries of $m_H$: permutation of either axis, removal of zero
+rows and columns, global negation, and transposition.  More explicitly,
+after removing zero axes it considers $A,-A,A^{\mathsf T},-A^{\mathsf T}$,
+retains orientations with at least as many rows as columns, orders
+columns by their positive-part orders, and minimizes over the remaining
+column permutations after lexicographically sorting the rows.  Each
+operation preserves the moment by its definition and
+Lemma~\ref{lem:contraction}.  The degree orders and lexicographic choices
+serve only to select consistent names.
+
+Define $U_0(A)$ recursively as a linear expression in representatives
+whose nonzero row and column orders are all at least two.  If a row of
+$A$, or of $A^{\mathsf T}$, has order one, apply
+Lemma~\ref{lem:contraction} in that orientation:
+\begin{equation}
+ U_0(A)=-\frac{1}{7-p}\sum_{\ell\ne i}U_0(A_{i\to\ell}),
+ \qquad p\le6.
+ \label{eq:recursive-pair-reduction}
+\end{equation}
+Canonicalize each contracted array before continuing.  If no such row
+exists on either axis, retain its moment as a single coordinate.  The
+empty array is retained in the same way.  Every contraction reduces the
+sum of the two axis lengths, so this recursion terminates.  This is
+\texttt{evpair}; \texttt{expand\_degree1} supplies the unsigned sum of
+contractions.  The program checks that every evaluated array has both
+dimensions at most six and has zero sums on both axes.
+
+The pair table is formed from formal seven-row equations.  The exact
+enumeration restrictions are as follows:
+\begin{enumerate}[label=(\roman*)]
+ \item Choose a total weight $k\in\{7,8,9,10,11\}$ and a column count
+ $q$ with $2\le q\le\min(4,\lfloor k/2\rfloor)$.
+ \item Choose nondecreasing sequences of seven row orders
+ $(r_0,\ldots,r_6)$ and $q$ column orders $(c_0,\ldots,c_{q-1})$.
+ Both sequences sum to $k$, and
+ \[
+ 1\le r_i\le\lfloor k/2\rfloor,
+ \qquad 2\le c_j\le\lfloor k/2\rfloor.
+ \]
+ \item Enumerate integer $7\times q$ arrays with zero row and column
+ sums and exactly these orders.  Rows of equal order may be put in
+ lexicographic order, and arrays with the same canonical representative
+ may be skipped.
+\end{enumerate}
+The routines \texttt{parts}, \texttt{comps}, and \texttt{allAB} implement
+this enumeration.  A row is generated as the difference of disjointly
+supported nonnegative compositions of its prescribed order, within the
+remaining positive and negative column capacities.  The capacities
+enforce the prescribed column orders.  The first row has order one:
+seven positive integer row orders with sum at most eleven cannot all
+be at least two, and the orders are sorted.
+
+For each retained array, the seven-row boundary case of
+Lemma~\ref{lem:contraction} gives the equation
+\begin{equation}
+ \sum_{\ell=1}^{6}U_0(A_{0\to\ell})=0.
+ \label{eq:pair-table-equations}
+\end{equation}
+Here $0,\ldots,6$ index the formal rows, not coordinates of a charge.
+Only the contracted arrays, which have at most six rows, are evaluated.
+The checks in \texttt{pairtable} verify the balance, number of formal
+rows, and order of the first row before forming this equation.
+Skipping an array can only omit an available true equation; the proof
+does not require a complete set of moment relations.
+
+Apply Lemma~\ref{lem:exact-elimination} to these equations.  Write
+$U(A)$ for the resulting expansion of $U_0(A)$ in the retained moment
+coordinates.  For a product used here, with charge columns
+$a_1,\ldots,a_n$ and $n\le4$, let
+$A_{\mathcal S}$ be the array obtained by adding the columns in each
+block of a set partition $\mathcal S$ of $\{1,\ldots,n\}$.  The final
+pair expansion is
+\begin{equation}
+ \sum_{\substack{\mathcal S\text{ a set partition}\\|\mathcal S|\le6}}
+ \frac{(6)_{|\mathcal S|}}{6^n}\,U(A_{\mathcal S}).
+ \label{eq:verified-partition-expansion}
+\end{equation}
+This is exactly Lemma~\ref{lem:partitions}.  The routine
+\texttt{partition} enumerates set partitions by numbering blocks in
+order of first occurrence, and \texttt{rep\_pair} implements
+\eqref{eq:verified-partition-expansion}.  The routine \texttt{apair}
+first forms the array of charge columns.  It may remove a zero charge
+before the expansion, since that removes the factor $g_H(0)=1$.
+Deletion of zero coordinate rows is also legitimate: a uniform
+injection on the retained positions has the required uniform marginal.
+
+For the pair certificate, \texttt{check\_pair} forms the displayed
+polynomial $L_H$ of Proposition~\ref{prop:pair-certificate}, with
+coefficients $-1,2,1,1,1$.  It multiplies each monomial by the conjugate
+of every monomial, expanding $3|L_H|^2$ through
+\eqref{eq:verified-partition-expansion}.  For each of the two stated
+charges $q$, it adds the expansion with charge columns
+$(\alpha,q,-\alpha,-q)$.  After the exact pair substitutions, the
+result has no nonzero coefficient, for either $q$.  This proves the
+identity in Proposition~\ref{prop:pair-certificate}; all expressions
+used in the check have been identified with their actual averaged
+moment values above.
+
+\subsection{Mixed keys and the finite mixed table}
+
+We use the notation $\mathcal M(\mathbf s;\mathbf a)$ and $m(A)$ from
+Section~\ref{sec:mixed}.  The latter is the average of $m_H(A)$ over
+the ordered basis pairs.  A mixed key consists of a label tuple
+$\mathbf s$ and an array $A$ whose columns are the charges.  The array
+has at most six nonzero coordinate rows.  Its rows and columns sum to
+zero.  The routine \texttt{cmix} chooses representatives by simultaneous
+factor and label permutations, renaming labels by order of first
+occurrence, sorting the common coordinate rows, global negation, and
+removing zero factors and zero coordinate rows.  These are exactly the
+symmetries justified in Lemma~\ref{lem:mixed-reductions}.  The separate
+tag $(\varnothing,A)$ names the pair moment $m(A)$; the completely empty
+key names $1$.
+
+The routine \texttt{evmix} supplies the following recursive expansion
+of a key into named moment coordinates:
+\begin{enumerate}[label=(\roman*)]
+ \item If a charge has order one or is a permutation of $\alpha$, the
+ mixed moment is zero.
+ \item When at most one label remains, expand the product by
+ \eqref{eq:verified-partition-expansion}, now using the averaged pair
+ moments $m(A)$, and attach the pair tag to its coordinates.
+ If this single-label expression was zero by the preceding rule,
+ also record its pair expansion as a zero equation.  These recorded
+ equations are stored in \texttt{rows0}.
+ \item Otherwise, if an order-two charge has a label occurring exactly
+ once among the factors, let $l$ be the number of labels in use and
+ replace that label in turn by each of the other $l-1$ labels.  The
+ original moment is $-1/(7-l)$ times the sum of the resulting moments.
+ Apply the same rules recursively to each term.
+ \item If none of these rules applies, retain the key as an original
+ mixed-moment coordinate.
+\end{enumerate}
+The zero rules and the singleton coefficient follow from
+Lemma~\ref{lem:mixed-reductions}.  Each singleton replacement decreases
+the number of distinct labels.  The single-label use of the pair table
+is legitimate because the real average over ordered pairs includes
+the required transpose symmetry, as proved in that lemma.
+
+The finite enumeration of triples is given by \texttt{triples(11)}.
+For precision, it generates balanced charges $a,b,c\in\Z^6$ with
+\[
+ \begin{gathered}
+ a+b+c=0,\qquad 0\le\ord(c)\le\ord(b)\le\ord(a)\le5,\\
+ \ord(a)+\ord(b)+\ord(c)\le11.
+ \end{gathered}
+\]
+Choose $a$ up to a coordinate permutation and sign by taking the lesser
+of its sorted entries and the sorted entries of $-a$.  Enumerate all
+balanced $b$ of orders at most $\ord(a)$, put $c=-a-b$, and retain those
+meeting the displayed restrictions.  Sorting the six rows of the
+array $(a,b,c)$ removes common-coordinate duplicates.  Balanced
+vectors of a given order are generated by subtracting two
+disjointly supported nonnegative compositions of that order, which is
+the routine \texttt{vecs}.
+
+For each generated array, \texttt{mixeq} first evaluates all five
+equality patterns on its three labels, registering any single-label
+zero equations.  It then considers the distinct permutations of the
+three charge columns, choosing $a\le b$ lexicographically to avoid
+duplicated first-two-column orderings.  Write
+\[
+ a_{ij}=a+e_i-e_j,\qquad b_{ij}=b-e_i+e_j
+ \quad (0\le i,j\le5).
+\]
+\Needspace{6\baselineskip}
+The following equations are included after applying \texttt{evmix} to
+every term:
+\begin{itemize}
+ \item For different first two labels, sum the moments with charges
+ $(a_{ij},b_{ij},c)$ over all $i\ne j$, obtaining zero by
+ \eqref{eq:different-matrices}.  For nonzero $c$, use the label tuples
+ $(0,1,2)$, $(0,1,0)$, and $(0,1,1)$; for $c=0$, use $(0,1,0)$.
+ Include this equation only if all $36$ shifted triples have total
+ order at most eleven.
+ \item For equal first two labels, fix $i$, sum over all six $j$, and
+ subtract the moment with charges $(-c,c)$ and labels $(0,u)$, by
+ \eqref{eq:same-matrix}.  Use $(0,0,u)$ with $u=0,1$ when $c\ne0$,
+ and $u=0$ when $c=0$.  Also use the reversed shifts
+ $(a+e_j-e_i,b-e_j+e_i,c)$.  Include each equation only if all its six
+ shifted triples have total order at most eleven.
+\end{itemize}
+The third charge is unchanged in these sums because the equations have
+been multiplied by its factor.  On the right side of the equal-label
+equation, $a+b=-c$, which explains both remaining charges and the
+labels selected by \texttt{s[-2:]} in the source.
+
+Finally add the pair equations recorded in \texttt{rows0}.  All
+coordinates encountered by these reductions are registered, including
+coordinates that cancel in a particular equation.  With the specified
+coordinate order, \texttt{mixtable} applies
+Lemma~\ref{lem:exact-elimination} to the nonzero equations.  A vanishing
+expression encountered later may still be replaced by zero: its
+vanishing is an independently proved rule, whether or not its pair
+expansion was used to strengthen this table.  No completeness of the
+enumeration, and no vanishing of unlisted higher-order moments, is
+assumed.
+
+The exact table dimensions are as follows.  The witness column counts
+the independent equations used in Lemma~\ref{lem:exact-elimination}.
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Table & Nonzero equations & Coordinates & Witness rows \\
+\midrule
+Pair  & $8871$  & $909$  & $897$ \\
+Mixed & $46041$ & $3429$ & $2767$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Positive matrices and the negative bound}
+
+For the mixed certificate, the literal data in Appendix~\ref{app:code}
+specify the six lists and lower triangles of the symmetric integer
+matrices $Z_\lambda$.  The routine \texttt{makeZ} checks the number of
+entries and reconstructs each symmetric matrix.  Positive definiteness
+is verified without eigenvalue approximation.  At each step,
+\texttt{posdef} writes the remaining matrix as
+\[
+ B=\begin{pmatrix}C&u\\u^{\mathsf T}&p\end{pmatrix},
+ \qquad p>40000,
+\]
+and replaces it by the exact Schur complement $C-uu^{\mathsf T}/p$.
+The identity
+\[
+ \begin{pmatrix}x\\t\end{pmatrix}^{\!*}
+ B\begin{pmatrix}x\\t\end{pmatrix}
+ =x^*(C-uu^{\mathsf T}/p)x
+   +p\left|t+\frac{u^{\mathsf T}x}{p}\right|^2
+\]
+shows inductively that positive pivots prove positive definiteness,
+also for complex vectors.  All $98$ pivots in the six matrices satisfy
+the asserted rational inequality.
+
+The routines \texttt{permsign} and \texttt{polynomial} implement the
+signed permutation sums defining $Y_\lambda$ in
+Section~\ref{sec:mixed}.  The convention
+$(P_pv)_i=v_{p(i)}$ gives
+$(P_pP_qv)_i=v_{q(p(i))}$, exactly
+\texttt{perm(perm(v,q),p)}.  The routine \texttt{tagmom} uses the Gram
+charges $(a,-v,v-a)$ of Lemma~\ref{lem:gram}.  After multiplying the
+entire form by five, \texttt{product} assigns weight five unless both
+function types are one; in that case the weights for equal and
+different external labels are one and four.  The lower-triangle
+summation in \texttt{gaps} doubles the off-diagonal terms.  Since the
+polynomial coefficients and $Z_\lambda$ are real, its real-moment
+expansion equals the full quadratic form for complex $Y_\lambda$.
+
+Consequently the expression formed by \texttt{gaps} is exactly
+\[
+ \mathcal Q=
+ 5\sum_\lambda 10^{15-e_\lambda}
+       \E\bigl(Y_\lambda^*Z_\lambda Y_\lambda\bigr).
+\]
+Apply \texttt{evmix} and then the certified mixed substitutions.  On
+combining coefficients, we obtain the residual expansion in
+\eqref{eq:mixed-residual}, now indexed by the program's moment keys:
+\begin{equation}
+ \begin{gathered}
+ \mathcal Q=c_0+\sum_{K\ne\varnothing}c_K\,\mu_K,\\
+ c_0=-\frac{613302797399911}{6480},\qquad
+ \sum_{K\ne\varnothing}|c_K|
+     =\frac{179721388988719}{6480}.
+ \end{gathered}
+ \label{eq:exact-residual-coefficients}
+\end{equation}
+Here $\mu_K$ denotes the original moment named by a retained coordinate;
+the notation $K\ne\varnothing$ excludes the completely empty constant
+key.  Both equalities of rational coefficients in
+\eqref{eq:exact-residual-coefficients} are checked exactly by the
+program, as is their strictly negative sum.
+
+It remains to justify the bound on these residual coordinates.  A
+tagged pair coordinate is a real average of unit-modulus monomials, so
+$|m(A)|\le1$.  A mixed coordinate is a real average of products of
+$g_s(a)$, each of absolute value at most one, so
+$|\mathcal M(\mathbf s;\mathbf a)|\le1$.  Every coordinate retained by
+the substitutions is one of these original moments.  The new linear
+combinations occur as expressions in the coordinates, not as newly
+named coordinates to which a bound is assigned.  The constant
+coordinate is exactly one.  Hence
+\[
+ 0\le\mathcal Q
+ \le c_0+\sum_{K\ne\varnothing}|c_K|
+ =-\frac{2007321335237}{30}<0.
+\]
+This proves Proposition~\ref{prop:mixed-certificate}.  Together with
+the pair coefficient check, it completes the exact verification of
+both certificates using only the finite equations and integer data
+specified in Appendix~\ref{app:code}.

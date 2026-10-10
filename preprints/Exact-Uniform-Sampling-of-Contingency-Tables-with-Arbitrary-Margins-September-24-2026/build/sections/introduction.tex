@@ -1,0 +1,158 @@
+\section{Introduction}\label{sec:introduction}
+
+For nonnegative integer vectors $r=(r_1,\ldots,r_m)$ and
+$c=(c_1,\ldots,c_n)$ with common total $N$, write
+\[
+ \Omega(r,c)=\left\{X\in\Z_{\ge0}^{m\times n}:
+       \sum_jX_{ij}=r_i,\quad \sum_iX_{ij}=c_j\right\}.
+\]
+The uniform distribution on this finite set gives every table equal mass.
+We study sampling when both dimensions vary and the margins are encoded
+in binary. In particular, a polynomial bound in the numeric total $N$
+would not, in general, give a polynomial bound in the input length.
+There are no cell bounds or forbidden positions: every nonnegative integer
+matrix with the prescribed margins is allowed. For probability laws on a
+finite set, we use the convention
+$\TV(\mu,\nu)=\tfrac12\sum_x|\mu(x)-\nu(x)|$.
+
+\begin{theorem}\label{thm:main}
+For arbitrary nonnegative integer margins of equal total, the following
+algorithms exist in the model of unbiased random bits and bit operations.
+\begin{enumerate}[label=\textup{(\roman*)}]
+ \item Given an integer $k\ge1$, a bounded-time algorithm outputs a table
+ in $\Omega(r,c)$ whose law is within $2^{-k}$ in total variation of the
+ uniform law. Its running time is polynomial in
+ $m,n,\log(N+1),k$.
+ \item An algorithm outputs an exactly uniform table in $\Omega(r,c)$,
+ terminates almost surely, and has expected running time polynomial in
+ $m,n,\log(N+1)$.
+\end{enumerate}
+The polynomials are uniform over all margin vectors. No positivity,
+sparsity, balance, or fixed-dimension hypothesis is imposed.
+\end{theorem}
+
+For a rational tolerance $0<\eps<1$ encoded by a binary numerator and
+denominator, integer comparisons compute
+$k=\lceil\log_2(1/\eps)\rceil$ in time polynomial in that encoding length.
+Thereafter part~\textup{(i)} has accuracy dependence polynomial in
+$\log(1/\eps)$.
+The algorithms below are explicit, although their exponents are deliberately
+large. Part~\textup{(ii)} concerns expected time: an exceptionally rare
+branch performs exhaustive computation.
+
+\paragraph{Counting and sampling fixed-margin arrays.}
+Contingency tables are a basic family of integer arrays with linear
+constraints. Their enumeration and exact and approximate generation are
+treated, for example, by Diaconis and Gangolli~\cite{DiaconisGangolli1995}.
+The algorithmic question involves more than producing one feasible table:
+the law must give all feasible tables nearly or exactly the same mass,
+even when their number and the coordinate ranges are exponentially large
+in the margin bit length.
+
+For two rows, Dyer and Greenhill~\cite{DyerGreenhill2000} give polynomial-time
+approximate counting and sampling. Their heat-bath chain has mixing time
+at most $n(n-1)\log(N/\eps)/2$ in the author version's Theorem~4.1.
+Dependence on $\log N$ rather than $N$ makes this a polynomial bound in
+the binary input length.
+Kijima and Matsui~\cite[Theorems~3.1 and~5.1]{KM2003} give exact uniform
+sampling for two rows by monotone coupling from the past, after sorting
+the columns. Their expected $O(n^3\ln N)$ bound is stated for pseudocode
+using uniform real draws. These results allow arbitrary two-row margin
+sizes after deleting zero margins.
+
+The fixed-row case extends beyond two rows. Cryan and
+Dyer~\cite{CD2003} combine dynamic programming with volume estimation for
+approximate counting and sampling. Dyer~\cite[Section~3]{Dyer2003} gives a
+dynamic-programming rejection sampler that is exactly uniform, analyzed
+in arithmetic operations. Cryan, Dyer, Goldberg,
+Jerrum, and Martin~\cite{CDGJM2006} prove rapid mixing of the
+$2\times2$ heat-bath chain for every fixed number of rows.
+The polynomial bounds in these results depend on that fixed row count;
+they do not give a bound polynomial jointly in both dimensions.
+
+DeSalvo and Zhao~\cite[Theorem~2.3 and Remarks~2.4--2.5]{DZ2016} give a
+general exact divide-and-conquer construction using $O(mn\log M)$ expected
+random bits, where $M$ is the largest margin. In the cited arXiv version,
+their polynomial total-runtime conclusion is conditional on efficient
+evaluation of the parity-restricted counting quantities in Conjecture~2.6;
+the bit-time bounds in Theorem~\ref{thm:main} are unconditional.
+
+Another line of work uses the geometry of the transportation polytope
+when margins are large. Dyer, Kannan, and Mount~\cite{DKM1997} develop
+scaled coordinates, softened constraints, lattice walks, and rounding
+comparisons for dense tables. Morris~\cite{Morris2002} improves the dense
+sampling bounds through expanded polytopes and rounding. These methods
+are close antecedents of the dense completion routine below. Our use of
+that routine is conditional: a padding construction makes every
+completion problem dense, while a separate chain handles all cells
+incident to small margins.
+
+For sparse margins, Arman, Gao, and Wormald~\cite[Theorem~1 and
+Remark~2]{AGW2021} give exact uniform generation under $5\Delta^4<N$,
+where $\Delta$ is the largest margin, in expected $O(N)$ time with
+unit-cost arithmetic on integers of magnitude $O(N)$. The condition is
+a genuine restriction, although within this family it also bounds $N$
+polynomially in the dimensions. Their 2021 introduction surveys fixed-row,
+dense, and sparse algorithms and reports that no polynomial-time
+approximately uniform sampler for arbitrary margins was then known.
+Theorem~\ref{thm:main} removes those margin and dimension restrictions
+and includes all random bits and integer arithmetic in its cost.
+
+\paragraph{Approximation and exact correction.}
+Exactness and bounded running time are separate issues. Our approximate
+algorithm has a deterministic polynomial work bound for each accuracy
+request. The final exact correction uses the residual-mixture construction
+of G\"obel, Liu, Manurangsi, and Pappik~\cite[Section~3.1, Algorithm~1 and
+Theorem~6]{GLMP2024}. That construction combines a sufficiently accurate
+sampler with a rare exhaustive draw from the remaining probability mass.
+Its application here requires an additional property: the actual
+implemented output law can be tabulated in time with an exponential
+input-size factor but only polynomial dependence on the accuracy bits.
+We prove that property and give the dyadic implementation explicitly.
+Thus the exact algorithm has polynomial expected bit cost, not a
+polynomial bound on every execution.
+
+\paragraph{Proof strategy.}
+Only cells incident to a margin below a polynomial threshold are explicit
+coordinates of the auxiliary chain. The remaining cells form a complete
+rectangle. We pad this rectangle so every conditional completion problem
+has large margins. Each explicit cell has two bounded integer values,
+one for its row and one for its column. Besides states where these values
+agree, called transversals, we allow a positive unit discrepancy at one
+cell and a negative unit discrepancy at another.
+
+The target law on these small states assigns weight equal to the number
+of padded completions. Sampling a state from that law and then a uniform
+completion makes all state/completion pairs equally likely. Accept only
+a transversal whose large completion entries are all at least the
+padding. Subtracting it then gives a uniform original table conditional
+on acceptance.
+Section~\ref{sec:graph} constructs a repair map for the defect states and
+uses it to bound their weight and the probability of successful unpadding.
+The bounded sampler never evaluates completion counts: an ideal transition
+uses a uniform completion draw to test a proposed move.
+
+To prove that this chain mixes in polynomial time, we expose the small-cell
+values of a transversal in a fixed order. After fixing a prefix, we compare
+the averages of any real function on the state graph over the two fibers
+that assign adjacent values to the next cell. The comparison comes from
+quadratic forms indexed by pairs of unit removals.
+Section~\ref{sec:signatures} proves that these forms have at most
+one positive eigenvalue and that the property survives summing out a
+balanced pair. A weighted telescoping calculation then bounds the energy
+of a signed flow between neighboring conditional fibers.
+Section~\ref{sec:transport} combines this bound with conditional-variance
+decomposition and repair to obtain a Poincar\'e inequality for the
+completion-count law. This supplies the small chain's mixing bound.
+
+Section~\ref{sec:dense} implements the completion draws approximately on
+a finite scaled grid, using rational arithmetic and dyadic random choices.
+A continuous log-concave density serves only as an analytic tool for the
+rejection and conductance bounds. Large coordinate ranges appear in
+finite sums in the proof but are never enumerated in an ordinary run.
+Section~\ref{sec:algorithms} couples each implemented completion draw to
+its ideal counterpart and bounds the number of sampling and unpadding
+attempts, giving the bounded almost-uniform algorithm. For exactness,
+it also shows how to tabulate that algorithm's actual finite law,
+including its stopping rules and fallbacks. This exhaustive computation
+is performed only on the rare correction branch.

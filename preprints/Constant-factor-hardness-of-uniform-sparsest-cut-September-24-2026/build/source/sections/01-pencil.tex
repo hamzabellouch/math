@@ -1,0 +1,614 @@
+\section{An explicit pencil of directions}\label{sec:pencil}
+
+The first ingredient is a short list of vectors on which every quadratic
+evaluation that is nonzero somewhere on the list has large support.
+Its length must be linear in the
+ambient dimension.  We construct the list by evaluating functions in an
+additive tower, and give the local calculations and finite algorithm needed
+for its uniformity.
+
+\begin{lemma}[Quadratic evaluation pencil]\label{lem:pencil}
+For every $0<\lambda_0<1$ and every sufficiently large power of two $r$,
+put $q=r^2$.  There is a deterministic algorithm which, given an integer
+$d\geq 1$, constructs a list
+\[
+ u_1,\ldots,u_m\in\F_q^d
+\]
+with the following properties:
+\begin{enumerate}[label=(\roman*)]
+ \item $m=O(d)$, and the list contains every standard basis vector of
+ $\F_q^d$;
+ \item if a homogeneous quadratic polynomial $Q$ in $d$ variables does
+ not vanish at every point of the list, then
+ \[
+   \#\{j:Q(u_j)=0\}\leq\lambda_0m.
+ \]
+\end{enumerate}
+The running time is $2^{O(d)}$ bit operations.  The constants in both bounds
+may depend on $r$, which is fixed independently of $d$.
+\end{lemma}
+
+In Section~\ref{sec:bit-tests}, these vectors define rank-one directions
+for a random walk on a space of matrices. Its spectral estimate needs
+only quadratic evaluations that are nonzero somewhere on the list,
+exactly the hypothesis in~\textup{(ii)}. The application takes
+$d=O(\log(\text{input size}+1))$, so the construction time is polynomial
+in the formula size.
+
+The proof first describes the local branches of the tower and their
+integral lattices. Their determinant orders bound the conditions imposed
+on global functions with controlled poles. We then evaluate a sufficiently
+large space of these functions to obtain the quadratic zero bound, and
+finally give a finite algorithm with explicit precision and running-time
+bounds.
+
+Fix a power of two $r$ sufficiently large that, with $D=r+1$,
+\begin{equation}\label{eq:pencil-parameters}
+ \frac{2D}{r^2-r}\leq\lambda_0.
+\end{equation}
+All finite fields used below have characteristic two.  Write $F=\F_q$ and
+let $k$ be an algebraic closure of $F$.  Define
+\begin{equation}\label{eq:pencil-tower}
+ S(Y)=Y^r+Y,\qquad
+ f(Y)=\frac{Y^{r+1}}{Y^r+Y}
+     =\frac{Y^r}{Y^{r-1}+1}
+     =\frac{1}{S(1/Y)},\qquad
+ S(x_{i+1})=f(x_i),
+\end{equation}
+where $x_1$ is transcendental. This is the Garcia--Stichtenoth tower
+\cite{GS1996}; the recurrence also appears in
+\cite[Example~3.3]{Stichtenoth2001}.  The identities involving inverses are
+rational-function identities.  In particular, the middle expression defines
+$f$ at zero.  We will prove that the tower through $x_l$ is a field of degree
+$N=r^{l-1}$ over $k(x_1)$, and that the monomials
+\begin{equation}\label{eq:pencil-power-basis}
+ e_{\boldsymbol a}=x_2^{a_2}\cdots x_l^{a_l},
+ \qquad 0\leq a_i<r,
+\end{equation}
+form a basis.  For $l=1$ this is the one-element basis $1$.
+The same equations and basis will then define the tower over $F(x_1)$.
+
+\subsection{The two local extensions}
+
+For a formal Laurent series, its order is the least exponent with nonzero
+coefficient; the order of zero is $+\infty$.  An element of $k((z))$ is
+called integral if it belongs to $k[[z]]$.
+
+Suppose first that the right side of an equation $S(X)=b(z)$ becomes
+integral after subtracting $S(g)$, for a specified $g\in k((z))$.  Put
+$b_0=b-S(g)\in k[[z]]$.  There are exactly $r$ choices of a constant
+$\beta$ satisfying $\beta^r+\beta=b_0(0)$: the derivative of this polynomial
+is one, and its roots differ by the elements of $\F_r$.  For each choice,
+there is a unique positive-order series $u$ with
+$S(u)=b_0-S(\beta)$.  Indeed, if $b_0-S(\beta)=\sum_{n>0}b_nz^n$, then
+\begin{equation}\label{eq:pencil-additive-recursion}
+ u_n=b_n+\ind_{\{r\mid n\}}u_{n/r}^{r}\qquad(n>0)
+\end{equation}
+determines its coefficients successively.  Thus the equation splits into
+$r$ distinct roots $g+\beta+u$ in $k((z))$.  Its local algebra is a product
+of $r$ copies of $k((z))$, with integral lattice $k[[z]]^r$.
+
+The second case is a simple pole.  It is useful to establish the parameter
+and degree assertions without first assuming irreducibility.
+
+\begin{lemma}[A simple-pole extension]\label{lem:pencil-simple-pole}
+Let $b\in k((z))$ have order $-1$.  The polynomial $X^r+X-b$ is
+irreducible over $k((z))$.  Its extension is a Laurent series field
+$k((w))$, where $w=1/X$ and $z$ has order $r$ in $w$.  Its integral lattice
+has the basis
+\[
+ 1,w,\ldots,w^{r-1}\quad\text{over }k[[z]],
+\]
+and the discriminant of this basis has $z$-order $2(r-1)$.
+\end{lemma}
+
+\begin{proof}
+The series $q_0(z)=1/b(z)$ has order one.  Its compositional inverse
+$\psi$ exists: the coefficient of each new term is determined by division
+by the nonzero linear coefficient of $q_0$.  In a new series field
+$k((w))$, set
+\begin{equation}\label{eq:pencil-reparameterization}
+ z=\psi\left(\frac{w^r}{1+w^{r-1}}\right).
+\end{equation}
+Substitution gives an injective homomorphism from $k((z))$ to $k((w))$,
+and $z=cw^r+\cdots$ for some $c\ne0$.  Moreover $X=1/w$ satisfies
+$X^r+X=b(z)$.
+
+The monomials $w^jz^n$, with $0\leq j<r$ and $n\geq0$, have distinct
+leading orders $j+rn$, which exhaust the nonnegative integers.  Given a
+power series in $w$, subtract its lowest remaining coefficient using the
+unique such monomial of that order, and repeat.  The subtractions converge
+formally because their orders tend to infinity.  Collecting terms with the
+same $j$ gives
+\[
+ k[[w]]=\bigoplus_{j=0}^{r-1}w^j k[[z]].
+\]
+The sum is direct: the leading orders of nonzero summands belong to
+distinct residue classes modulo $r$.  After multiplying a Laurent series
+by a sufficiently large power of $z$, the same argument applies.  Hence
+$[k((w)):k((z))]=r$ and $k((w))=k((z))(w)=k((z))(X)$.
+This proves irreducibility, and separability follows from the derivative
+$S'(X)=1$.
+
+The displayed free module is closed under multiplication, so each of its
+elements is integral over $k[[z]]$ by the characteristic polynomial of its
+multiplication map.  Conversely, an element of negative $w$-order cannot
+satisfy a monic polynomial over $k[[z]]$: its highest power would be the
+unique term of smallest order.  Thus $k[[w]]$ is precisely the integral
+closure.
+
+The $r$ embeddings send $X$ to $X+c$, $c\in\F_r$, and therefore send $w$
+to $w_c=1/(X+c)$.  For distinct $c,c'$, the difference
+\[
+ w_c-w_{c'}=\frac{c'-c}{(X+c)(X+c')}
+\]
+has $w$-order two, or extended $z$-order $2/r$.  The evaluation matrix of
+$1,w,\ldots,w^{r-1}$ is Vandermonde.  Its determinant squared is the
+trace-pairing determinant, so the latter has order
+$2\binom r2(2/r)=2(r-1)$.
+\end{proof}
+
+Here and below the trace of an element of a finite algebra is the trace
+of its multiplication map, and its norm is the determinant of that map.
+For a separable field or product of separable fields, passing to a field
+containing all embeddings diagonalizes multiplication.  Thus trace is
+the sum of the embedded values, and the trace matrix of a basis is the
+transpose of its evaluation matrix times that matrix.  This also proves
+the discriminant identity used in Lemma~\ref{lem:pencil-simple-pole}.
+
+\subsection{All branches of the tower}
+
+At a pole of $Y$, the difference $f(Y)-Y$ is integral: from
+$f(Y)=Y/(1+Y^{1-r})$, its order is at least zero.  Start at infinity with
+the parameter $t=1/x_1$.  The first right side has a simple pole, and
+Lemma~\ref{lem:pencil-simple-pole} produces a single branch in which
+$x_2$ has a simple pole with parameter $1/x_2$.  Repeating the lemma gives
+a single branch at every level.  Inductively, the polynomial defining
+$x_{i+1}$ is irreducible over this completion of the preceding field,
+and hence over that field itself.  This proves the degree and basis
+assertions following Equation~\ref{eq:pencil-power-basis}.  It also proves
+them over $F(x_1)$, since an equation irreducible after extending constants
+to $k$ was already irreducible over $F$.
+
+At a finite point $x_1=a$, put $t=x_1-a$.  If
+$a\in\F_r\setminus\{0\}$, then $S(x_1)$ has a simple zero and
+$x_1^{r+1}$ is a unit.  Thus the first right side has a simple pole, and
+all subsequent steps are again simple-pole extensions.  If
+$a\notin\F_r$, the first right side is integral and the extension splits.
+An integral residue $\beta\notin\F_r$ has $f(\beta)\ne0$, so no root of
+$S(Y)=f(\beta)$ belongs to $\F_r$.  Induction therefore gives only
+unshifted integral splittings at such a point.
+
+It remains to describe every branch above zero.  As long as the residues
+of $x_1,x_2,\ldots$ are zero, all extensions split without a shift.  Since
+$f(Y)$ has order $r$ at zero and $S(Y)$ has order one there,
+\[
+ \operatorname{ord}_t(x_j)=r^{j-1}
+\]
+along the branch with zero residues.  Suppose the first nonzero residue
+occurs at $x_i$, where $i\geq2$.  It is an element
+$\alpha\in\F_r^*$, and
+\[
+ \operatorname{ord}_t(x_i-\alpha)
+ =\operatorname{ord}_t S(x_i)=r^{i-1}.
+\]
+The numerator $x_i^{r+1}-\alpha^2$ is divisible by $x_i-\alpha$.
+Consequently, modulo integral series,
+\begin{equation}\label{eq:pencil-first-shift}
+ f(x_i)\equiv\frac{\alpha^2}{S(x_i)}
+ =S\left(\frac{\alpha^2}{x_{i-1}}\right).
+\end{equation}
+The equality uses $S(x_i)=f(x_{i-1})$, the last identity in
+Equation~\ref{eq:pencil-tower}, and $\alpha^2\in\F_r$.
+Thus this step splits after the specified shift, and every resulting
+root satisfies $x_{i+1}\equiv\alpha^2/x_{i-1}$ modulo integral series.
+
+For any earlier small variable $x_j$, $j>1$, one has
+\begin{equation}\label{eq:pencil-descending-shifts}
+ \frac1{x_j}\equiv\frac1{S(x_j)}=S\left(\frac1{x_{j-1}}\right)
+ \pmod{k[[t]]}.
+\end{equation}
+Indeed the difference of the first two expressions is
+$x_j^{r-2}/(1+x_j^{r-1})$, which is integral.  Since $f(Y)\equiv Y$ at a
+pole, Equations~\ref{eq:pencil-first-shift} and
+\ref{eq:pencil-descending-shifts} give successively
+\[
+ x_{i+s}\equiv\frac{\alpha^2}{x_{i-s}}\pmod{k[[t]]},
+ \qquad 1\leq s\leq i-1,
+\]
+for as long as those variables occur in the tower.  Each step in this
+list is a splitting step with the indicated shift.  The last principal
+part is $\alpha^2/x_1$, a simple pole.  From then on every extension is
+the simple-pole extension of Lemma~\ref{lem:pencil-simple-pole}.
+This description includes branches for which the tower stops before the
+first nonzero residue, during the descending shifts, or after ramification.
+
+At every step the split factors or the single ramified factor account
+for the full relative degree $r$.  Therefore, at each base place,
+the scalar extension of the degree-$N$ tower to $k((t))$ is exactly the
+product of the branch fields just constructed.  No additional local
+factor is omitted.
+
+\subsection{Integral lattices and their determinants}
+
+Fix a base place with parameter $t$, and put $R=k[[t]]$.
+The product of its branch integral rings is a free $R$-module of rank
+$N$, by the bases constructed above.  Express it in coefficient
+coordinates relative to Equation~\ref{eq:pencil-power-basis}, and denote
+the resulting lattice in $k((t))^N$ by $\Lambda$.  If $C$ is a basis
+matrix of this lattice, define its coefficient determinant order by
+$\delta=\operatorname{ord}_t\det C$.
+
+We use two elementary facts about this order.  First, if a square matrix
+over $R$ has nonzero determinant, invertible row and column operations
+reduce it to a diagonal matrix.  To see this, choose an entry of least
+order and move it to the first position.  It divides every entry in $R$,
+so row and column subtractions clear its column and row.  Continue in
+the remaining square matrix.  The diagonal entries are units times
+powers of $t$.  It follows that the dimension over $k$ of the cokernel
+equals the determinant order.  Second, for a branch $k((z))$ over
+$k((t))$, multiplication by a unit has determinant a unit on $k[[z]]$,
+whereas multiplication by $z$ has cokernel $k$ and hence determinant
+order one.  Thus
+\begin{equation}\label{eq:pencil-norm-order}
+ \operatorname{ord}_t\operatorname{Norm}_{k((z))/k((t))}(z^a u)=a
+ \qquad(a\in\Z,\ u\in k[[z]]^*).
+\end{equation}
+The equality for negative $a$ follows by multiplicativity.  The residue
+field of each branch is $k$; this is why no residue-degree multiplier
+appears in Equation~\ref{eq:pencil-norm-order}.
+
+For completeness, if $b_1,\ldots,b_n$ is a basis of a separable algebra
+over a field and $c_1,\ldots,c_r$ is a relative basis for a separable
+algebra above it, their composed basis satisfies
+\begin{equation}\label{eq:pencil-disc-tower}
+ \operatorname{disc}(b_i c_j)
+ =\operatorname{disc}(b_i)^r
+   \operatorname{Norm}\bigl(\operatorname{disc}(c_j)\bigr).
+\end{equation}
+Indeed, the evaluation map first applies $r$ copies of the lower
+evaluation matrix and then, over each lower embedding, its relative
+evaluation matrix.  Taking determinants and squaring gives the formula.
+For a product algebra choose the relative bases componentwise; the same
+factorization applies.
+
+The discriminant of the power basis in
+Equation~\ref{eq:pencil-power-basis} is a nonzero constant.  At every
+relative step the roots of the additive equation differ by nonzero
+elements of $\F_r$, so its power-basis Vandermonde discriminant is a
+nonzero constant; Equation~\ref{eq:pencil-disc-tower} preserves this
+property.  For integral bases, a splitting step has relative
+discriminant one, using the idempotent basis of its product of rings.
+A simple-pole step has relative discriminant order $2(r-1)$ by
+Lemma~\ref{lem:pencil-simple-pole}.
+
+Suppose the current local algebra has degree $n$, has $B$ branches,
+and its integral discriminant has base order $d_{\rm int}$.  If $R_0$
+of those branches ramify at the next step, then
+\begin{align*}
+ d_{\rm int,new}&=r d_{\rm int}+2(r-1)R_0,\\
+ B_{\rm new}&=rB-(r-1)R_0,\qquad n_{\rm new}=rn.
+\end{align*}
+Equation~\ref{eq:pencil-norm-order} justifies each contribution from a
+branch that may already be ramified over the base.  Starting from
+$d_{\rm int}=0$ and $n=B=1$, these recurrences give
+$d_{\rm int}=2(n-B)$ at every level.  On changing from the power basis
+to an integral basis, the trace matrix changes to $C^{\mathsf T}GC$,
+where $G$ is the power-basis trace matrix.  Since $\det G$ is a unit,
+we obtain
+\begin{equation}\label{eq:pencil-lattice-det}
+ \delta=N-B,\qquad 0\leq\delta\leq N.
+\end{equation}
+At a good finite point $a\notin\F_r$ all variables are integral and
+all extensions split.  The power basis is then itself an integral
+basis: its lattice is contained in the integral lattice, and both have
+determinant order zero.
+
+We next give a bound that makes the lattice conditions finite.
+At every exceptional place, and in every partial branch, each nonzero
+$x_i-c$, $c\in\F_r$, has absolute order at most $N^2$ in the current
+parameter.  Before a later ramified extension, the zero-branch orders
+and the descending pole orders in the preceding subsection are at
+most $N$; the order of $x_i-c$ is zero unless its residue equals $c$
+or it has a pole.  Subsequent ramification multiplies these orders
+by a total factor at most $N$.  This proves the bound for every such
+factor, including variables retained from an earlier level.
+Set
+\begin{equation}\label{eq:pencil-FH}
+ F_0=(l+1)rN^2,\qquad H=(2N-1)F_0+D.
+\end{equation}
+In every branch, $t^{F_0}e_{\boldsymbol a}$ is integral: the pole order
+of the monomial is at most $(l-1)(r-1)N^2$, while $t$ has positive
+integral order.  Hence $t^{F_0}R^N\subseteq\Lambda$.
+
+Multiplication by an integral element acts on the integral lattice,
+so its trace belongs to $R$.  Each entry of $G$ therefore has order at
+least $-2F_0$.  If $y$ is integral, then
+$\operatorname{tr}(y e_{\boldsymbol a})$ has order at least $-F_0$;
+if $t^D y$ is integral, the lower bound is $-F_0-D$.
+The vector of these traces is $G$ times the coefficient vector of $y$.
+Since $\det G$ has order zero, each cofactor has order at least
+$-2F_0(N-1)$, and Cramer's rule yields
+\begin{equation}\label{eq:pencil-lattice-sandwich}
+ \begin{aligned}
+ t^{F_0}R^N&\subseteq\Lambda_a\subseteq t^{-H}R^N
+       &&(a\in\F_r),\\
+ t^{F_0-D}R^N&\subseteq t^{-D}\Lambda_\infty
+                       \subseteq t^{-H}R^N.
+ \end{aligned}
+\end{equation}
+All shifts here are powers of the base parameter, including the shift
+at infinity.  In particular, membership in any target lattice inside
+$t^{-H}R^N$ is determined by the coefficient jet with exponents from
+$-H$ through $F_0-1$.  Changing the omitted tail adds an element of
+the target lattice.  At infinity the smaller upper endpoint
+$F_0-D-1$ would also suffice.
+
+\subsection{A large space of global functions}
+
+In coefficient coordinates, let $V_H$ consist of functions whose every
+coefficient is a linear combination of
+\[
+ 1,x_1,\ldots,x_1^H,
+ \qquad (x_1-a)^{-j}\quad(a\in\F_r, 1\leq j\leq H).
+\]
+These rational functions are independent: their principal parts at
+the distinct finite poles first determine all the negative-power
+coefficients, and the remaining polynomial determines the others.
+Consequently
+\[
+ \dim_k V_H=N[1+(r+1)H].
+\]
+At each of the $r$ bad finite points and at infinity, its coefficient
+expansion belongs to $t^{-H}k[[t]]^N$.
+Let $\cL_k$ be the subspace of $V_H$ that is integral at every finite
+place and becomes integral at infinity after multiplication by $t^D$.
+
+The finite-place quotient by $\Lambda_a$ has dimension
+$NH+\delta_a$: scale the inclusion into an integral matrix and apply
+the diagonalization argument preceding
+Equation~\ref{eq:pencil-norm-order}.  At infinity the target is
+$t^{-D}\Lambda_\infty$, whose determinant order is
+$\delta_\infty-ND$, because all $N$ coefficient coordinates are scaled.
+The quotient dimension there is therefore
+$NH+\delta_\infty-ND$.
+Expansion followed by these quotient maps gives one linear map from
+$V_H$ to their direct sum.  Its rank is at most the dimension of its
+target; no independent prescription of local jets is required.
+Equation~\ref{eq:pencil-lattice-det} gives
+\begin{align}
+ \dim_k\cL_k
+ &\geq N[1+(r+1)H]
+       -\left((r+1)NH+\sum_{a\in\F_r\cup\{\infty\}}\delta_a-ND\right)
+       \notag\\
+ &\geq N(D-r)=N.\label{eq:pencil-dimension}
+\end{align}
+There are no conditions to impose elsewhere, since the rational
+coefficients and the power basis are integral at every other finite
+place.  The space contains the constant function one.
+
+This space is defined over $F$.  Indeed, coefficientwise $q$-Frobenius,
+fixing the formal variables $x_i$, preserves the tower equations and
+permutes all branches above each exceptional place.  It thus preserves
+the subspace $\cL_k$ in the fixed finite rational-coefficient basis of
+$V_H$.  Put a matrix whose rows form a basis of this subspace into
+reduced row echelon form.  Applying Frobenius gives another reduced row
+echelon basis of the same subspace with the same pivots.  Uniqueness of
+that form forces every entry to be fixed by Frobenius, hence to belong
+to $F$.  Thus the space $\cL$ of its $F$-rational coefficient vectors
+has
+\begin{equation}\label{eq:pencil-descent}
+ \dim_F\cL=\dim_k\cL_k\geq N.
+\end{equation}
+The algorithm below obtains this space by a finite ground-field
+matrix, not by searching for Frobenius-fixed vectors.
+
+\subsection{Evaluation and the quadratic zero bound}
+
+There are $(q-r)N$ rational evaluation tuples above
+$x_1\in F\setminus\F_r$.  To verify this count, if
+$\beta\in F\setminus\F_r$, then
+$\beta^r+\beta\in\F_r^*$ and $\beta^{r+1}\in\F_r^*$, so
+$f(\beta)\in\F_r^*$.  The map $S:F\to\F_r$ is linear over $\F_r$
+with kernel $\F_r$, hence is onto.  Each equation
+$S(Y)=f(\beta)$ has exactly $r$ distinct roots in
+$F\setminus\F_r$.  Induction proves the count and describes all tuples.
+All functions in $\cL$ are regular at these tuples, so evaluation is
+well defined.
+
+Let $a$ be a nonzero element of the span of products of two elements
+of $\cL_k$.  It is integral at every finite place, and $t^{2D}a$ is
+integral at infinity.  Its field norm to $k(x_1)$ is nonzero.  At every
+finite place its local multiplication matrix is integral, so the norm
+has no finite poles and is a polynomial in $x_1$.  At infinity,
+\[
+ 0\leq\operatorname{ord}_t\operatorname{Norm}(t^{2D}a)
+   =2DN+\operatorname{ord}_t\operatorname{Norm}(a),
+\]
+and therefore
+\begin{equation}\label{eq:pencil-norm-degree}
+ \deg\operatorname{Norm}(a)\leq2DN.
+\end{equation}
+At a good base value $b$, the local algebra is a product of $N$ copies
+of $k((x_1-b))$.  The local norm is the product of the integral branch
+values $a_1,\ldots,a_N$, and
+\[
+ \operatorname{ord}_{x_1-b}\operatorname{Norm}(a)
+   =\sum_{j=1}^N\operatorname{ord}_{x_1-b}(a_j).
+\]
+Each zero evaluation contributes at least one to this sum.  In
+particular, several zero branches above the same $b$ are counted with
+their full multiplicity.  Equation~\ref{eq:pencil-norm-degree} bounds
+the total number of zero evaluation positions by $2DN$.
+
+Evaluation on these positions is injective on $\cL$: if a nonzero
+function vanished everywhere, its product with the constant one would
+contradict $2DN<(q-r)N$, which follows from
+Equation~\ref{eq:pencil-parameters}.  Choose $l$ least such that
+$N=r^{l-1}\geq d$, and choose $d$ independent functions in $\cL$.
+Their $d$ by $(q-r)N$ evaluation matrix has rank $d$.  Choose $d$
+independent columns and left-multiply by the inverse of their square
+matrix.  The new functions still belong to $\cL$, and their evaluation
+vectors include all standard basis vectors.
+
+Call the resulting columns $u_1,\ldots,u_m$.  If a homogeneous
+quadratic $Q$ is nonzero on this list, applying $Q$ to the $d$ functions
+gives a nonzero element of the product span.  The preceding zero bound
+and Equation~\ref{eq:pencil-parameters} give
+\[
+ \#\{j:Q(u_j)=0\}\leq2DN\leq\lambda_0(q-r)N=\lambda_0m.
+\]
+Since $N<rd$ for this choice of $l$, we have $m=O_r(d)$.
+This proves the algebraic assertions of Lemma~\ref{lem:pencil}; it remains
+to justify the claimed algorithm and running time.
+
+\subsection{A finite algorithm and its precision bounds}
+
+The fixed fields $F$ and $\F_r$ can be constructed once and for all.
+For example, the roots of $Z^{2^s}-Z$ form the field of $2^s$ elements,
+and a representation by a binary basis and an irreducible polynomial
+can be fixed by a finite search when $s$ is fixed.  Only the extension
+degrees below grow with $d$; they will be constructed by linear algebra.
+Field arithmetic in a binary basis has polynomial bit complexity in
+the basis dimension.
+
+\paragraph{Finite constant fields.}
+At a splitting step, suppose the constant term of the shifted right
+side lies in a current finite field $\F_Q$ containing $F$.  If
+$S(\beta)$ belongs to that field, then
+$\beta^Q-\beta\in\F_r$, because applying $S$ gives zero.  This difference
+is fixed by $Q$-Frobenius, so in characteristic two
+$\beta^{Q^2}=\beta$.  Thus a quadratic extension suffices to solve the
+constant equation.  It can be built without enumerating the field:
+the binary-linear map $y\mapsto y^2+y$ on $\F_Q$ has kernel
+$\{0,1\}$ and image of codimension one.  Linear algebra finds a vector
+$b$ outside that image, and $Y^2+Y+b$ is irreducible and defines the
+quadratic extension.  The equation $S(\beta)=b_0$ is itself a binary
+linear system in that extension; all its other solutions differ by
+elements of $\F_r$.
+
+At most one such quadratic extension is needed at each tower level.
+We may work in nested fields, one for each level, and finally express
+all constants in a common field of degree
+\begin{equation}\label{eq:pencil-constant-degree}
+ E=2^{l-1}\leq N
+\end{equation}
+over $F$.  Simple-pole reversion introduces no new constants.
+Thus the use of $k$ in the dimension calculation does not require an
+algorithm to enumerate an algebraic closure.
+
+\paragraph{Elementary precision rules.}
+Put $M_0=N^2$.  Suppose a nonzero factor $x_i-c$ has order in
+$[-M_0,M_0]$ and is known modulo the current parameter to the power $K$,
+where $K>M_0$.  Its relative error has order at least $K-M_0$.
+Multiplication, integer powers, and inversion preserve this lower
+bound on relative accuracy: for inversion use
+$(a(1+u))^{-1}=a^{-1}(1+u)^{-1}$ with $u$ of positive order.
+A product or quotient of at most a fixed number, depending on $r$,
+of these factors therefore has absolute accuracy at least
+$K-C_rM_0$, for a fixed constant $C_r$.
+The functions $f$, the indicated shifts $\alpha^2/x_j$, and their
+images under $S$ are sums of such expressions; one may factor
+$Y^{r-1}+1$ over $\F_r^*$ when computing $f$.
+
+Subtraction preserves absolute accuracy even when all the known
+principal parts cancel.  In a splitting step, the branch description
+already proves that $f(x_i)-S(g)$ is integral.  Computing its input
+factors through $L+C_rM_0$ therefore determines it through the
+required order $L$.  After the constant equation has been solved,
+Equation~\ref{eq:pencil-additive-recursion} determines positive
+coefficients through $L$ using only those right-side coefficients.
+Adding back $g$ has the same finite accuracy bound.
+
+In a simple-pole step, compute $q_0=1/f(x_i)$, which has order one.
+Its inverse under composition through any order uses only its
+coefficients through that order and divides by its nonzero linear
+coefficient.  Substitute $w^r/(1+w^{r-1})$ in this inverse to obtain
+Equation~\ref{eq:pencil-reparameterization}.  If $z(w)$ is known modulo
+$w^B$, its relative error has order at least $B-r$.  An old Laurent
+series whose pole order in $z$ is at most $M_0$ then changes, after
+substitution, only in orders at least $B-r-rM_0$.
+Indeed, for each retained term $a_nz^n$ the relative error is at least
+$B-r$, and its order is at least $-rM_0$; sums preserve the resulting
+absolute bound.  Thus $B\geq L+r(M_0+1)$ suffices for output precision
+$L$.  Old coefficients through $\ceil{L/r}+M_0+2$ suffice as well,
+since higher powers of $z(w)$ cannot contribute below order $L$.
+Updating all previously constructed variables increases the number of
+operations, but not the exponent in these precision bounds.
+
+Choose an integer $a_r$ depending only on $r$ so large that
+$K_N=(2N)^{a_r}$ dominates $M_0$ and all fixed constants in the preceding
+rules, for every $N\geq1$.  The rules are all covered by the single
+backward precision budget
+\begin{equation}\label{eq:pencil-precision-recurrence}
+ L_{i-1}=K_N\bigl(L_i+K_N+H+D\bigr).
+\end{equation}
+This is an allocated upper budget; the algorithm may retain all
+coefficients up to that budget.  It is uniform over levels, branches,
+and rational coefficient basis inputs.
+
+\paragraph{The final integrality tests.}
+Consider one rational coefficient basis element in $V_H$ times one
+power-basis monomial.  In a final branch its pole order, allowing also
+the infinity adjustment, is bounded by
+\begin{equation}\label{eq:pencil-product-pole}
+ P_0=HN+(r-1)(l-1)N^2+DN.
+\end{equation}
+The first term bounds a base pole of order at most $H$ after total
+ramification at most $N$; the second bounds the monomial; the last
+is a harmless bound for the infinity multiplier.
+Such an input is a product of powers and inverses of the elementary
+factors already considered.  Knowing each factor with relative error
+of order greater than $P_0$ makes the unknown remainder of the full
+input integral.  A sufficiently large fixed multiple
+\begin{equation}\label{eq:pencil-final-precision}
+ L_{\rm end}=C'_r(H+D+l+1)N^2
+\end{equation}
+as absolute factor precision therefore determines every negative
+coefficient, including after multiplication by $t^D$ at infinity.
+Cancellation in a linear combination of these inputs can remove
+computed negative coefficients but cannot reveal an uncomputed one:
+each individual unknown remainder is already integral.
+
+Use Equation~\ref{eq:pencil-precision-recurrence} backwards from
+$L_{\rm end}$, and then perform the forward branch expansions at those
+precisions.  The branch type and its prescribed shift are determined
+by the explicit residue and descending-shift rules above.  For each
+basis input, record all negative coefficients in every branch, with
+the infinity multiplier included.  Their vanishing is exactly the
+desired system defining $\cL$.
+
+\paragraph{Size and running time.}
+There are at most $(r+1)N$ exceptional branches at any level.  Since
+$l=1+\log_r N$, Equation~\ref{eq:pencil-FH} gives
+$F_0=O_r(N^3)$ and $H=O_r(N^4)$.  The number of rational coefficient
+unknowns is $N[1+(r+1)H]=O_r(N^5)$, and
+$L_{\rm end}=O_r(N^6)$.  Even retaining a full window of this latter
+length per branch gives only $O_r(N^7)$ negative-coefficient equations
+over the finite constant fields.  Expanding each coefficient in an
+$F$-basis of the common field in
+Equation~\ref{eq:pencil-constant-degree} gives at most $O_r(N^8)$
+equations over $F$.  Solving this explicit matrix computes $\cL$;
+Equation~\ref{eq:pencil-descent} proves that its dimension is at least
+$N$.  The computation does not infer dimension by testing random
+functions.
+
+Iterating Equation~\ref{eq:pencil-precision-recurrence} for at most
+$l-1$ steps shows that every retained series length is at most
+\[
+ (2N)^{O_r(l+1)}.
+\]
+Elementary truncated addition, multiplication, inversion and
+composition, and coefficientwise reversion, use a number of field
+operations polynomial in the retained lengths.  All branch counts,
+field representation sizes and matrix dimensions are polynomial in
+$N$; allowing every level and every basis input multiplies these
+bounds by polynomial factors.  For $N\geq2$,
+$\log((2N)^{O_r(l+1)})=O_r((\log N)^2)=O_r(N)$; the case $N=1$ is a
+fixed computation.  Total bit complexity is consequently $2^{O_r(N)}$.
+Enumerating the rational evaluation tuples, evaluating the functions,
+and selecting the independent columns require only additional
+polynomial time in $N$ and the matrix sizes.
+Finally $N<rd$, so the entire construction takes $2^{O_r(d)}$ time.
+Together with the evaluation argument, this completes the proof of
+Lemma~\ref{lem:pencil}.

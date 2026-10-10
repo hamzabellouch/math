@@ -1,0 +1,195 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,array,longtable,enumitem,microtype,graphicx,needspace}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\usepackage[capitalise,nameinlink,noabbrev]{cleveref}
+\hypersetup{pdftitle={Hellinger contraction with arbitrary Boolean output bias},pdfauthor={OpenAI}}
+\input{supporting/typography-mappings}
+\setlength{\emergencystretch}{1.5em}
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\E}{\mathbb E}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\R}{\mathbb R}
+\newcommand{\N}{\mathbb N}
+\newcommand{\eps}{\varepsilon}
+\DeclareMathOperator{\Ent}{Ent}
+\title{Hellinger contraction with arbitrary Boolean output bias}
+\author{OpenAI}
+\date{September 24, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We prove the Hellinger conjecture for Boolean functions on the uniform discrete cube, with arbitrary output bias. For a Boolean function of mean $m$ and every $\rho\in[-1,1]$, the loss
+$\sqrt{1-m^2}-\E\sqrt{1-(T_\rho f)^2}$ is at most
+$1-\sqrt{1-\rho^2}$, with equality for signed coordinates.
+The proof combines asymmetric dimension induction, a calibrated noise-semigroup energy estimate, and finite exact arithmetic certificates.
+The Hellinger inequality also yields the Courtade--Kumar information bound.
+\end{abstract}
+
+\section{Introduction}\label{sec:introduction}
+The Hellinger conjecture asks whether a single coordinate maximizes a particular loss of Hellinger affinity under product noise, among all Boolean functions on a uniform cube. Its formulation retains the mean of the function, so biased functions are part of the question. Anantharam, Bogdanov, Chakrabarti, Jayram, and Nair formulated it in their 2017 manuscript and proved that it implies the Courtade--Kumar conjecture on the most informative Boolean function~\cite{ABCJN,CK14}. This connection makes a sharp inequality for the square-root profile significant beyond that profile itself.
+
+Let \(X\) be uniform on \(\{-1,1\}^n\). For \(-1\le\rho\le1\), let
+\(Y_i=X_i Z_i\), where the independent signs \(Z_i\), also independent of \(X\), satisfy
+\(\Pr(Z_i=1)=(1+\rho)/2\). The noise operator is
+\[
+T_\rho u(x)=\E[u(Y)\mid X=x].
+\]
+We write \(H(t)=\sqrt{1-t^2}\) for \(-1\le t\le1\).
+
+\begin{theorem}[Hellinger conjecture]\label{thm:main}
+For every \(n\ge1\), every Boolean function
+\(f:\{-1,1\}^n\to\{-1,1\}\), and every \(\rho\in[-1,1]\), writing \(m=\E f\), one has
+\begin{equation}\label{eq:main}
+H(m)-\E H(T_\rho f)\le1-H(\rho).
+\end{equation}
+Both expectations are with respect to the uniform probability measure.
+\end{theorem}
+
+Thus the conjecture is resolved positively in its full, unbalanced form.
+Signed coordinate functions \(f(x)=\pm x_i\), also called dictators,
+attain equality for every \(\rho\).
+The implication proved in~\cite[Proposition~1]{ABCJN} also shows that signed
+coordinates maximize the mutual information between \(f(X)\) and \(Y\),
+which is the Courtade--Kumar conclusion. We state and prove this implication
+in Corollary~\ref{cor:ck}, keeping its binary-entropy normalization explicit.
+Throughout the paper the input measure is uniform; arbitrary output bias
+means that no restriction is imposed on $m$.
+
+To identify its Hellinger meaning, suppose \(f\) is nonconstant and let
+\(P_\pm\) be the conditional law of \(Y\) given \(f(X)=\pm1\).
+Bayes' formula and symmetry of the noise kernel give
+\(P_\pm(y)=2^{-n}(1\pm T_\rho f(y))/(1\pm m)\). Their Hellinger affinity is
+\[
+ A(P_+,P_-):=\sum_y\sqrt{P_+(y)P_-(y)}
+ =\frac{\E H(T_\rho f)}{H(m)}.
+\]
+Thus the left side of Equation~\eqref{eq:main} is the weighted affinity
+loss \(H(m)(1-A(P_+,P_-))\).
+
+\paragraph{Earlier results and methods.}
+The original information problem of Courtade and Kumar~\cite{CK14}
+asks how much information a single Boolean summary retains about a
+noisy input. The square-root formulation of Anantharam et
+al.~\cite{ABCJN} replaces binary entropy by Hellinger affinity while
+preserving an implication to that information bound. It also supplies a
+compression principle for arbitrary convex profiles, whose concave
+form we use in Section~\ref{sec:induction}.
+
+Chen and Nair~\cite[Theorem~2, Equation~(6), and Remark~5]{ChenNair24}
+proved a mean-dependent lower bound using the Gaussian isoperimetric
+profile. Let $\phi_{\rm G}$ and $\Phi_{\rm G}$ be the standard Gaussian
+density and distribution function, and put
+$I_{\rm G}(p)=\phi_{\rm G}(\Phi_{\rm G}^{-1}(p))$ for $0<p<1$,
+with $I_{\rm G}(0)=I_{\rm G}(1)=0$.
+Writing $s=\sqrt{1-\rho^2}$, their estimate is
+\[
+ \E H(T_\rho f)\ge 2s\,I_{\rm G}\!\left(\frac{1+m}{2}\right).
+\]
+This bound holds for every Boolean mean. It implies the Hellinger
+inequality wherever its right side reaches $H(m)-1+s$, but at $m=0$
+it gives only $\sqrt{2/\pi}\,s$, below the sharp value $s$ for $s>0$.
+Their proof in Section~III.B splits the cube into two sections and
+closes a recursion for a profile of their means. It connects this
+induction to Bobkov's local two-point inequality and its tensorization
+on the discrete cube~\cite[Proposition~1 and Lemma~1]{Bobkov97}.
+The induction below uses this local-to-product strategy with an
+asymmetric profile and a sheared two-point comparison; its scalar
+inequalities are proved here.
+
+Durcik, Ivanisvili, Roos, and Xie~\cite[Theorem~1.1 and Section~5]{DIRX26}
+proved the sharp square-root sensitivity inequality for balanced Boolean
+functions, confirming the low-noise consequence predicted by the
+Hellinger conjecture.
+
+Recent preprints of Chen et al.~\cite{ChenEtAl2026CK}, Ky and
+Tran~\cite{KyTran2026CK}, and Mahdavifar and
+Beirami~\cite{MahdavifarBeirami2026CK} announce proofs of the ordinary
+Courtade--Kumar inequality. The Hellinger inequality studied here is a
+distinct functional statement: the implication in~\cite{ABCJN} runs
+from the Hellinger estimate to the ordinary Boolean information bound.
+
+\paragraph{Proof strategy.}
+A differential approach to the Hellinger conjecture was developed by
+Chen, Gohari, and Nair in 2025~\cite[Section~III, Lemma~6 and Theorem~7]{HellingerDifferential}.
+They express the noise-semigroup derivative of $\E H(T_\rho f)$ as a
+sum of edge costs and bound that derivative through scalar profiles.
+We use the same derivative identity, in the normalization specified
+in Section~\ref{sec:continuation}. The calibrated edge comparison and
+the spectral estimates needed for our continuation argument are
+proved below.
+
+There are two complementary parts to the proof. For $s\le .84$,
+we compress to increasing Boolean functions and induct in dimension.
+For each fixed $s$ we choose a concave function $G:[0,1]\to[0,\infty)$
+and a nonnegative polynomial $B$ on $[-1,1]$, and prove the stronger bound
+\[
+ \E G\bigl((1+T_\rho f)/2\bigr)\ge sB(m).
+\]
+The identity $G(p)+G(1-p)=2H(2p-1)$ recovers the Hellinger profile
+when this bound is averaged with the bound for the increasing function
+$-f(-x)$. The polynomial $B$ is chosen so that the reflected lower bound
+is at least $H(m)-1+s$.
+The induction step controls the gain from mixing two sections by their
+probability difference after subtracting a multiple of their difference
+in $G$. Cauchy--Schwarz then gives an inequality involving only the
+section averages and their mean gap. Its monotone quadratic-root bound
+allows substitution of the induction hypotheses. A coordinate with small positive
+correlation with the output confines the comparison to a fixed scalar
+domain.
+
+For $s\ge .84$, we continue from the established range. At a first
+failure of the target bound, its equality case would have semigroup
+energy no greater than the corresponding coordinate energy. The change
+of variable $F(0)=0$, $F'=H^{-3/2}$ bounds the energy below by the
+Dirichlet energy of $F(T_\rho f)$. Near zero bias, a sharper edge bound
+uses a symmetric comparison pair $\pm x_0$ with
+$H(x_0)=\E H(T_\rho f)$. This retains the exact cost of a noised
+coordinate. The resulting energy balance separates a variance gain
+from the possible spread of the first Fourier level; controlling that
+spread excludes a crossing unless $f$ is a signed coordinate.
+For intermediate biases, even--odd Fourier decomposition reduces the
+energy estimate to pointwise bounds with explicit bias margins.
+Large biases instead admit a direct proof from forward and reverse
+cube norm estimates.
+Figure~\ref{fig:proof-regions} displays how their parameter ranges fit together.
+
+The proof is computer-assisted only through fixed scalar inequalities, independent of \(n\). Every decimal appearing as an inequality constant denotes its exact rational value. We give the transformations, domains, arithmetic recursions, and positive bounds that certify these inequalities; the supplementary sources reproduce the finite calculations.
+
+\input{figures/proof-regions}
+
+\paragraph{Organization.}
+Section~\ref{sec:preliminaries} fixes the cube conventions.
+Section~\ref{sec:induction} proves the dimension-induction range.
+Section~\ref{sec:continuation} reduces the rest to excluding an energy crossing.
+Sections~\ref{sec:central}, \ref{sec:intermediate}, and \ref{sec:large-bias}
+treat the three bias regimes and complete the proof.
+Appendix~\ref{app:arithmetic} records the exact-arithmetic conventions;
+Appendix~\ref{app:scalar} proves the scalar estimates needed for the induction.
+
+\input{sections/preliminaries}
+\input{sections/induction}
+\input{sections/continuation}
+\input{sections/central}
+\input{sections/intermediate}
+\input{sections/large-bias}
+\input{sections/conclusion}
+\appendix
+\input{sections/arithmetic}
+\input{sections/scalar}
+\input{sections/references}
+\end{document}

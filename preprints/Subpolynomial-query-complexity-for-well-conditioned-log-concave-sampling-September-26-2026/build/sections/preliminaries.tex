@@ -1,0 +1,275 @@
+\section{The near-quadratic sampling problem}\label{sec:preliminaries}
+
+The conditional density in the introduction is a Gaussian multiplied
+by a factor with a small Hessian. We now formulate the sampling
+problem for that larger class of perturbations. The center will be
+arbitrary: later calls must work at centers supplied by earlier
+random computations, without a bound on the gradient there. We state
+the required uniform guarantee first, then prove the comparison and
+smoothing facts used throughout its construction.
+
+\subsection{Notation and the auxiliary theorem}
+
+Vectors have Euclidean norm, and matrices have its induced operator
+norm unless otherwise indicated. For a random vector or tensor,
+\(\norm{X}_2=(\E|X|^2)^{1/2}\), with the chosen pointwise norm;
+the notation \(\norm{X}_{\HS,2}\) specifies the Frobenius norm.
+The distance \(\Wtwo\) is quadratic Wasserstein distance on
+Euclidean space. Total variation is
+\(\norm{\mu-\eta}_{\TV}=\sup_B|\mu(B)-\eta(B)|\).
+All probability laws and oracle procedures are measurable.
+
+Fix \(0<e<1\), and put \(\delta=d^{-e}\). Let
+\(F:\R^d\to\R\) be \(C^2\), with gradient \(g=\nabla F\)
+of Lipschitz constant at most the declared bound
+\(\lambda=\delta\). Values of \(F\) need not be available.
+For \(x\in\R^d\) and \(0<r\le1\), define
+\begin{equation}\label{eq:primitive-law}
+ \nu_{x,r}(dz)=
+ \frac{\exp(-|z|^2/2-F(x+rz))\,dz}
+ {\int_{\R^d}\exp(-|v|^2/2-F(x+rv))\,dv},
+ \qquad f(z)=g(x+rz),\qquad u=\E_{\nu_{x,r}}f.
+\end{equation}
+We often write \(\nu=\nu_{x,r}\), and use
+\begin{equation}\label{eq:primitive-scales}
+ L=\lambda r,\qquad l=\lambda r^2=rL,\qquad
+ D(x)=\sqrt d+|g(x)|.
+\end{equation}
+Here \(x\) is the actual input center; it need not be a minimizer
+of \(F\). The positive number \(\lambda\) is a declared upper bound,
+so the notation also covers affine or constant \(F\).
+The full potential in \eqref{eq:primitive-law} has Hessian between
+\((1-l)I\) and \((1+l)I\). Since \(l\le\delta<1\) for \(d\ge2\),
+the normalizing integral is finite, even when \(F\) is not convex.
+For the quantitative construction we take \(d\) large enough that
+\(l\le1/2\).
+
+Throughout the construction, \(\polylog(d)\) denotes a factor
+bounded by \(C(1+\log d)^C\). Its constants may depend on the
+fixed parameters \(e\), accuracy orders, and other fixed orders
+introduced below, but never on \(F,x,r\), or the oracle responses.
+Different occurrences may have different constants. Every
+sufficiently-large-dimension threshold has the same uniformity.
+
+\begin{theorem}[Noisy near-quadratic sampling]\label{thm:primitive}
+Fix \(0<e<1\), an integer \(K_0\ge2\), and \(t>0\) satisfying
+\begin{equation}\label{eq:t-choice}
+                 40(K_0+2)t<\frac14.
+\end{equation}
+There are constants and a dimension threshold depending only on
+\(e,K_0,t\) with the following property. For every integer \(d\)
+above that threshold, put \(\delta=d^{-e}\). One measurable randomized
+oracle procedure works for every \(F\in C^2(\R^d)\) with
+\(\Lip(\nabla F)\le\delta\), every \(x\in\R^d\), and every
+\(0<r\le1\). Given evaluation access to \(g=\nabla F\), it
+uses at most \(\polylog(d)\delta^{-t}\) evaluations of
+\(g\) on every execution and returns
+\[
+                  X=X_{\mathrm{pre}}+\tfrac12G,
+\]
+where \(G\sim N(0,I_d)\) is independent of \(X_{\mathrm{pre}}\) and of all
+queries, and
+\begin{equation}\label{eq:primitive-pre-noise}
+ \Wtwo\!\left(\mathcal L(X_{\mathrm{pre}}),
+       \nu_{x,r}*N(0,\tfrac34I_d)\right)
+       \le \polylog(d)\delta^{K_0}D(x).
+\end{equation}
+Consequently both
+\[
+ \Wtwo\!\left(\mathcal L(X),\nu_{x,r}*N(0,I_d)\right)
+ \quad\hbox{and}\quad
+ \norm{\mathcal L(X)-\nu_{x,r}*N(0,I_d)}_{\TV}
+\]
+are at most \(\polylog(d)\delta^{K_0}D(x)\).
+All constants in these bounds are uniform in \(F,x,r\).
+The procedure's scalar parameters, shapes of its computations,
+and query cap are independent of \(x\) and of the primitive.
+It uses no evaluations of \(F\) itself.
+\end{theorem}
+
+The proof occupies Sections~\ref{sec:jets}--\ref{sec:compiler}.
+The independent Gaussian is reserved until all queries have been made.
+Adding the same reserve to a coupling preserves its transportation
+error; smoothing by that reserve gives the total-variation conclusion
+through Lemma~\ref{lem:coupling-smoothing} below. The target here
+contains a full independent Gaussian convolution.
+Section~\ref{sec:sampling} will remove that auxiliary noise before
+returning a sample for the original problem.
+
+\subsection{Convexity, moments, and comparisons}
+
+We recall the elementary diffusion facts needed for the proof,
+including their regularity requirements. They are familiar forms
+of the curvature method for functional inequalities
+\citep{bakry2014analysis}; we give the argument used here.
+
+\begin{lemma}[Uniformly convex laws]\label{lem:convex-preliminaries}
+Let \(H\in C^2(\R^n)\) satisfy
+\(mI\preceq\nabla^2H\preceq MI\), with \(0<m\le M<\infty\).
+Write \(\mu(dx)\propto e^{-H(x)}dx\), and let \(z_0\) be
+its unique mode. Then
+\[
+ \E_\mu|X-z_0|^2\le n/m,\qquad
+ \Var_\mu h\le m^{-1}\E_\mu|\nabla h|^2.
+\]
+The latter applies, in particular, to \(C^1\) functions whose
+value and gradient have polynomial growth.
+The diffusion
+\[
+                  dX_t=-\nabla H(X_t)\,dt+\sqrt2\,dB_t
+\]
+has invariant law \(\mu\), and synchronous solutions contract
+in distance by \(e^{-mt}\).
+
+If \(\bar H\) is another strongly convex \(C^2\) potential
+with bounded Hessian and law \(\eta\), then
+\begin{equation}\label{eq:synchronous-comparison}
+ \Wtwo(\mu,\eta)
+ \le \frac1m
+       \left(\E_\eta|\nabla H-\nabla\bar H|^2\right)^{1/2}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Strong convexity implies Gaussian tails and existence of a
+unique minimizer. Integration by parts gives
+\(\E_\mu (X-z_0)\cdot\nabla H(X)=n\); strong monotonicity
+of \(\nabla H\) gives the moment bound.
+The globally Lipschitz drift gives a nonexplosive diffusion.
+For synchronous solutions, differentiating their squared
+distance and using strong monotonicity gives the contraction.
+
+First suppose \(H\) is smooth and has bounded derivatives of
+orders at least two. For a smooth compactly supported \(h\),
+let \(P_th(x)=\E[h(X_t)\mid X_0=x]\).
+Differentiating the synchronous flow in the initial state
+gives bounded first and second derivatives on bounded time
+intervals. It\^o's formula and the semigroup identity yield
+\[
+ \partial_tP_th=P_t\mathcal Ah=\mathcal AP_th,
+ \qquad \mathcal A=\Delta-\nabla H\cdot\nabla.
+\]
+The equality with \(\mathcal AP_th\) also follows by
+differentiating \(P_{t+s}h=P_s(P_th)\) at \(s=0\).
+Its at-most-linear growth is integrable against \(\mu\).
+Integration by parts gives
+\(\int\mathcal AP_th\,d\mu=0\), hence invariance.
+Coupling to an invariant starting point and using contraction
+shows \(P_th\to\mu h\) in \(L^2(\mu)\). Therefore
+\[
+ \Var_\mu h=2\int_0^\infty
+                \int|\nabla P_th|^2\,d\mu\,dt.
+\]
+The flow derivative has operator norm at most \(e^{-mt}\).
+Jensen's inequality and invariance thus bound the inner
+integral by \(e^{-2mt}\int|\nabla h|^2d\mu\), proving
+the Poincar\'e inequality.
+
+For \(C^2\) potentials, convolve with smooth compactly
+supported mollifiers of radii tending to zero. Both Hessian
+bounds are preserved; all higher derivatives are bounded
+for each mollification. The normalized laws converge in
+total variation by the uniform quadratic tail bounds
+(subtract the potential's value at zero).
+The gradients converge uniformly since the original
+gradient is globally Lipschitz. Synchronous solutions of
+the mollified and original diffusions consequently converge
+uniformly in their common starting point on each bounded
+time interval, by Gronwall's inequality. Testing invariance
+against bounded Lipschitz functions passes it to the limit.
+Poincar\'e first passes on smooth compact tests, then by
+cutoff and approximation to the stated class.
+
+For \eqref{eq:synchronous-comparison}, start the two
+diffusions with their respective invariant marginals,
+with any initial coupling, and use common Brownian motion.
+Writing \(a(t)=(\E|X_t-Y_t|^2)^{1/2}\) and
+\(\beta=(\E_\eta|\nabla H-\nabla\bar H|^2)^{1/2}\),
+strong monotonicity and Cauchy--Schwarz give, in the usual
+upper-derivative sense,
+\[
+                         a'(t)\le-ma(t)+\beta.
+\]
+The marginals remain fixed, so \(\Wtwo(\mu,\eta)\le a(t)\).
+Letting \(t\) tend to infinity proves the claim.
+\end{proof}
+
+These estimates apply to the auxiliary laws without imposing convexity
+on \(F\). For \(\nu_{x,r}\), the mode equation is
+\(z_0=-r g(x+rz_0)\). In particular, for \(l\le1/2\),
+\begin{equation}\label{eq:primitive-moments}
+ |z_0|\le\frac{r|g(x)|}{1-l},\qquad
+ \bigl(\E_\nu|Z|^2\bigr)^{1/2}
+      \le C(\sqrt d+r|g(x)|),\qquad |u|\le CD(x).
+\end{equation}
+Indeed, \(|g(x+rz_0)-g(x)|\le L|z_0|\) proves the first bound,
+and the lemma gives \(\norm{Z-z_0}_2\le\sqrt{d/(1-l)}\).
+The triangle inequality and
+\(|u|\le|g(x)|+L\norm{Z}_2\) give the remaining bounds.
+Thus \(D(x)\) controls the required moments uniformly over all
+centers, including those with very large gradients.
+
+\subsection{Coupling and smoothing conventions}
+
+Errors of a deterministic map evaluated on a specified
+input law will be measured in root mean square. Errors of
+randomized outputs will be measured in \(\Wtwo\). The
+following rules allow us to keep these two notions separate.
+
+\begin{lemma}[Conditional comparisons and smoothing]\label{lem:coupling-smoothing}
+Let \((\mu_z)\) and \((\eta_z)\) be probability kernels on
+finite-dimensional Euclidean spaces, and let \(Z\) have
+law \(\zeta\). Whenever the relevant second moments are finite,
+\[
+ \Wtwo^2\!\left(\int\mu_z\,d\zeta(z),\int\eta_z\,d\zeta(z)\right)
+       \le\int\Wtwo^2(\mu_z,\eta_z)\,d\zeta(z).
+\]
+For finite families, independent sums satisfy
+\[
+ \Wtwo\!\left(\mathcal L\Bigl(\sum_i a_iX_i\Bigr),
+             \mathcal L\Bigl(\sum_i a_iY_i\Bigr)\right)
+ \le\sum_i|a_i|\Wtwo(\mathcal L(X_i),\mathcal L(Y_i)),
+\]
+where independence is required within each of the two
+families, not between them.
+For \(s>0\),
+\begin{equation}\label{eq:gaussian-smoothing}
+ \norm{\mu*N(0,s^2I)-\eta*N(0,s^2I)}_{\TV}
+                       \le s^{-1}\Wtwo(\mu,\eta).
+\end{equation}
+Moreover, applying a common probability kernel cannot
+increase total variation, and
+\[
+ \left\|\int\mu_z\,d\zeta(z)-\int\eta_z\,d\zeta(z)\right\|_{\TV}
+       \le\int\norm{\mu_z-\eta_z}_{\TV}\,d\zeta(z).
+\]
+\end{lemma}
+
+\begin{proof}
+Use conditional near-optimal couplings for the first
+inequality and their independent product for the second,
+followed by the triangle inequality in \(L^2\).
+Measurability of such conditional comparisons can also be
+seen without an exact optimal-kernel selection: quantize
+each output law on a finite grid inside a box, sending
+the complement to zero. A minimizing plan on the finite
+sets can be chosen measurably by a fixed ordering of the
+finitely many basic feasible solutions. Lift it using
+the conditional measures in the cells, and refine the
+grids and boxes. Finite unconditional second moments
+and the triangle inequality give the asserted limit.
+
+For deterministic centers \(x,y\), the relative entropy
+of \(N(x,s^2I)\) from \(N(y,s^2I)\) is
+\(|x-y|^2/(2s^2)\). Pinsker's inequality gives TV at most
+\(|x-y|/(2s)\). Integrate this estimate over any coupling
+and apply Cauchy--Schwarz to obtain
+\eqref{eq:gaussian-smoothing}, with room in its constant.
+The total-variation rules follow directly by testing
+measurable functions taking values in \([0,1]\).
+\end{proof}
+
+We will also repeatedly combine deterministic root-mean-square
+errors with absolute coefficient sums. This uses the
+ordinary \(L^2\) triangle inequality and does not require
+independence.
