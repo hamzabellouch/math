@@ -1,0 +1,1 @@
+import OAI.MathematicalPhysics.RapidForcing.EffectiveResult

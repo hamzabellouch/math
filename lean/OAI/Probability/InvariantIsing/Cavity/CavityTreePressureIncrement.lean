@@ -1,0 +1,66 @@
+import OAI.Probability.InvariantIsing.Cavity.CavityPressureIncrement
+import OAI.Probability.InvariantIsing.Cavity.CavityTreeLogIntegrability
+
+namespace OAI
+
+/-! Averaging the literal physical pressure increment over the common
+finite cascade law, with no integrability assumptions left to the caller. -/
+
+noncomputable section
+open MeasureTheory ProbabilityTheory IsingPerceptron
+
+namespace InvariantIsing
+
+theorem cavity_tree_pressure_capped_increment {N n m d depth : ℕ} (hN : 0<N)
+    (g : Fin (N+n) → Fin m) (k : Fin m → ℕ)
+    (ek : ∀ a, {i : Fin (N+n) // g i=a} ≃ Fin (k a+n))
+    (e : (((a : Fin m) × Fin (k a)) ⊕ Fin d) ≃ Fin N)
+    (es : Fin (m*n) ≃ Fin (d+n)) (B₀ : Matrix (Fin (d+n)) (Fin d) ℝ)
+    (a₀ : Fin d → Fin m) (l r : Fin m → ℕ)
+    (hg : ∀ a i, g i=a ↔ l a ≤ i.val ∧ i.val<r a)
+    (hln : ∀ a, l a+n ≤ r a) (hr : ∀ a, r a ≤ N+n)
+    (μ : Measure (Orthogonal (N+n))) [IsProbabilityMeasure μ] [μ.IsMulRightInvariant]
+    (ν : Measure (Orthogonal N)) [IsProbabilityMeasure ν] [ν.IsMulRightInvariant]
+    (θ : Measure (LabeledTree depth)) [IsProbabilityMeasure θ] (lam v : Fin m → ℝ) (hv : ∀ a, |v a| ≤ 2)
+    (u : ℕ → ℝ) (hu : ∀ j, |u j| ≤ 2) (t cap : ℝ) (hcap : 0 ≤ cap) :
+    let A := fun U => cavityCompressionFactorBlocks es lam (fun j => lam (a₀ j)) B₀
+      (cavityCompressionGrams g U)
+    let q := fun V => cavityLabeledProjectorAction V (cavityCanonicalProjectorFrame k e a₀)
+    let c := fun a => t*lam a+2*perturbationScale N*v a
+    let δ := cavityDeterministicRate n m (2*(2*n+1)) N+
+      2*cavityCovarianceRate n (2*n+1) N
+    let I₀ := cavityBaseGroup k e a₀
+    let eig₀ := diagonalPerturbedEigenvalues
+      (fun i => lam (Sum.elim (fun w => w.1) a₀ (e.symm i))) I₀ v t
+    let I := cavitySpectralGroup g
+    let eig := diagonalPerturbedEigenvalues (fun i => lam (g i)) I v t
+    (∫ T, ∫ z, cavityProjectorCappedLog T c u t cap δ (A z.1) (q z.2)
+      ∂μ.prod ν ∂θ) ≤
+      (∫ z, cavityRotationLogMean z.2 eig I u z.1 ∂μ.prod θ) -
+        ∫ z, cavityRotationLogMean z.2 eig₀ I₀ u z.1 ∂ν.prod θ := by
+  intro A q c δ I₀ eig₀ I eig
+  have hmA : Measurable A :=
+    (measurable_cavityCompressionFactorBlocks es lam (fun j => lam (a₀ j)) B₀).comp
+      (measurable_cavityCompressionGrams g)
+  have hiA := integrable_cavity_canonical_tree_log μ ν θ k e a₀ lam v u hu
+    t cap δ hcap A hmA
+    (fun U => cavity_compression_factor_size_bound g es lam (fun j => lam (a₀ j)) B₀ U)
+  have hiF := integrable_cavityRotationLogMean_tree μ θ eig I u hu
+  have hiB := integrable_cavityRotationLogMean_tree ν θ eig₀ I₀ u hu
+  have hle : (∫ T, ∫ z, cavityProjectorCappedLog T c u t cap δ (A z.1) (q z.2)
+      ∂μ.prod ν ∂θ) ≤
+      ∫ T, ((∫ U, cavityRotationLogMean T eig I u U ∂μ) -
+        ∫ V, cavityRotationLogMean T eig₀ I₀ u V ∂ν) ∂θ := by
+    apply integral_mono hiA.integral_prod_left (hiF.integral_prod_right.sub hiB.integral_prod_right)
+    intro T
+    exact cavity_pressure_capped_increment hN g k ek e es B₀ a₀ l r hg hln hr
+      μ ν T lam v hv u hu t cap hcap
+  rw [integral_sub hiF.integral_prod_right hiB.integral_prod_right,
+    ← integral_prod_symm _ hiF, ← integral_prod_symm _ hiB] at hle
+  exact hle
+
+end InvariantIsing
+
+end
+
+end OAI

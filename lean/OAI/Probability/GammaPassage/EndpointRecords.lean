@@ -1,0 +1,47 @@
+import OAI.Probability.GammaPassage.EndpointLimit
+import OAI.Probability.GammaPassage.RecordGridProbability
+
+namespace OAI
+
+namespace GammaFPP.CrossingBridge
+open PlanarFPP GammaFPP.RealDirectionBridge Set Filter MeasureTheory ProbabilityTheory
+open scoped Topology
+variable {shape rate : ℝ}
+variable {Ω : Type*} [MeasurableSpace Ω] {P : Measure Ω} {τ : Edge → Ω → ℝ}
+
+/-- Lemma `gr:variable-endpoints` on characteristic record scales, chosen
+independently of the box parameters, deficit, and sign. -/
+theorem gamma_arbitraryEndpoint_record_scales (henv : GammaEnvironment shape rate P τ)
+    (hshape : 0 < shape) (hrate : 0 < rate)
+    (b q₀ : ℝ) (hb : |b| ≤ 1) (hq : 0 < q₀) (hq1 : q₀ < 1) :
+    ∃ k₀ : ℕ, ∃ k : ℕ → ℕ, Tendsto k atTop atTop ∧
+      (∀ n, n < k n ∧ k₀ ≤ k n ∧
+        ∀ j, j ≤ k n-k₀ → (1/16 : ℝ)^j*(characteristicLength P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n) : ℝ) ≤
+          (characteristicLength P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n-j) : ℝ)) ∧
+      ∀ A R ε : ℝ, 0 < A → 0 < R → 0 < ε → ∀ plus : Bool,
+        Tendsto (fun n => P.real {ω | (fun e => τ e ω) ∈ arbitraryEndpointEvent b ((gammaMeanNorm henv hshape hrate) (direction b))
+          (extremeSlope (gammaMeanNorm henv hshape hrate) b plus) A R ε (k n) (characteristicExponent P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n))}) atTop (𝓝 0) := by
+  obtain ⟨k₀,hscales⟩ := gamma_simultaneous_grid_scales henv hshape hrate b q₀ hb hq hq1
+  choose k hk hk₀ hrec hgrid using hscales
+  have hkt : Tendsto k atTop atTop := by
+    apply tendsto_atTop.2
+    intro N
+    filter_upwards [eventually_ge_atTop N] with n hn
+    exact hn.trans (hk n).le
+  refine ⟨k₀,k,hkt,fun n => ⟨hk n,hk₀ n,hrec n⟩,?_⟩
+  intro A R ε hA hR hε plus
+  have hratio : Tendsto (fun n => (2 : ℝ)^(characteristicExponent P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n))/(2 : ℝ)^(k n)) atTop atTop := by
+    convert (gamma_characteristic_lengths_ratio henv hshape hrate b q₀ hb hq hq1).comp hkt using 1
+    ext n
+    simp [characteristicLength]
+  have hm : ∀ᶠ n : ℕ in atTop, characteristicExponent P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n) ≤ 3*k n := by
+    filter_upwards [hkt.eventually (gamma_characteristic_lengths_exist henv hshape hrate b q₀ hb hq)] with n hn
+    exact hn.1
+  exact gamma_arbitraryEndpoint_tendsto_of_grids henv hshape hrate b (sourceCrossingK shape rate (gammaMeanNorm henv hshape hrate) b) A R ε q₀
+    hb (sourceCrossingK_ge_hundred shape rate (gammaMeanNorm henv hshape hrate) b) hA hR hε hq plus k
+    (fun n => characteristicExponent P τ shape rate (gammaMeanNorm henv hshape hrate) b q₀ (k n)) hkt hratio hm
+    (fun J hJ => Eventually.of_forall (fun n => hgrid n A R hA hR J hJ))
+
+end GammaFPP.CrossingBridge
+
+end OAI

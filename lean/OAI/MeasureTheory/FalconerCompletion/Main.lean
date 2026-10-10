@@ -1,0 +1,10 @@
+import OAI.MeasureTheory.FalconerCompletion.Estimates.EuclideanSourceFarRegion
+import OAI.MeasureTheory.FalconerCompletion.Estimates.SourceFullFar
+import OAI.MeasureTheory.FalconerCompletion.Graphs.GraphHFFiniteJetEstimate
+import OAI.MeasureTheory.FalconerCompletion.Graphs.LiteralDyadicPaths
+import OAI.MeasureTheory.FalconerCompletion.Measures.StartingPairCompletion
+import OAI.MeasureTheory.FalconerCompletion.Recursion.OccupiedFarCountTerminal
+import OAI.MeasureTheory.FalconerCompletion.Recursion.PrefixShellLeSourceShellSuccessor
+import OAI.MeasureTheory.FalconerCompletion.Shells.PrefixPhasedGlobalBound
+
+/-! Conditional starting-pair completion for Euclidean distance sets. -/

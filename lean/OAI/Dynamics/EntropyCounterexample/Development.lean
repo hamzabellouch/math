@@ -1,0 +1,100 @@
+import OAI.Dynamics.EntropyCounterexample.AngularDerivative
+import OAI.Dynamics.EntropyCounterexample.AngularExtension
+import OAI.Dynamics.EntropyCounterexample.AttractionSupport
+import OAI.Dynamics.EntropyCounterexample.C1CoordinatePullback
+import OAI.Dynamics.EntropyCounterexample.C1Coordinates
+import OAI.Dynamics.EntropyCounterexample.C1Retraction
+import OAI.Dynamics.EntropyCounterexample.Clock
+import OAI.Dynamics.EntropyCounterexample.ClockCharts
+import OAI.Dynamics.EntropyCounterexample.ClockDynamics
+import OAI.Dynamics.EntropyCounterexample.ClockLocalExtension
+import OAI.Dynamics.EntropyCounterexample.ClockPeriodization
+import OAI.Dynamics.EntropyCounterexample.CompactLabels
+import OAI.Dynamics.EntropyCounterexample.ConcreteContinuity
+import OAI.Dynamics.EntropyCounterexample.ConcreteInputRegularity
+import OAI.Dynamics.EntropyCounterexample.MapAmplification
+import OAI.Dynamics.EntropyCounterexample.MapC1Complete
+import OAI.Dynamics.EntropyCounterexample.MapEntropy
+import OAI.Dynamics.EntropyCounterexample.MapEntropyComplete
+import OAI.Dynamics.EntropyCounterexample.MapOrbitAlternatives
+import OAI.Geometry.SingularHomology.MapRealizedHomology
+import OAI.Dynamics.EntropyCounterexample.MapSignals
+import OAI.Geometry.SingularHomology.CoordinateHomology
+import OAI.Dynamics.EntropyCounterexample.CounterexampleEntropy
+import OAI.Dynamics.EntropyCounterexample.Definitions
+import OAI.Dynamics.EntropyCounterexample.Embedding
+import OAI.Dynamics.EntropyCounterexample.EntropyBounds
+import OAI.Dynamics.EntropyCounterexample.EntropyCoding
+import OAI.Geometry.SingularHomology.FiniteSimplicialHomology
+import OAI.Dynamics.EntropyCounterexample.FiniteSpectrumBound
+import OAI.Geometry.SingularHomology.HomologyEigenvalue
+import OAI.Geometry.SingularHomology.HomologyNaturality
+import OAI.Geometry.SingularHomology.HomologySpectrumFactor
+import OAI.Geometry.SingularHomology.HomologySupport
+import OAI.Geometry.SingularHomology.HomologyTransfer
+import OAI.Geometry.SingularHomology.HomologyZero
+import OAI.Dynamics.EntropyCounterexample.HomotopySpectrum
+import OAI.Dynamics.EntropyCounterexample.InfinityChart
+import OAI.Dynamics.EntropyCounterexample.InputSeries
+import OAI.Dynamics.EntropyCounterexample.MonotoneItineraries
+import OAI.Dynamics.EntropyCounterexample.NormalizedPrediction
+import OAI.Dynamics.EntropyCounterexample.OrbitSupport
+import OAI.Dynamics.EntropyCounterexample.OrderedIntervalLabels
+import OAI.Dynamics.EntropyCounterexample.PolarLabels
+import OAI.Dynamics.EntropyCounterexample.PolynomialSpectralBound
+import OAI.Dynamics.EntropyCounterexample.PredictionDerivative
+import OAI.Dynamics.EntropyCounterexample.PredictionModelBridge
+import OAI.Dynamics.EntropyCounterexample.PredictionSeries
+import OAI.Dynamics.EntropyCounterexample.PredictionSupport
+import OAI.Dynamics.EntropyCounterexample.RadialOrbitRepresentation
+import OAI.Dynamics.EntropyCounterexample.RawSpectrumFactor
+import OAI.Dynamics.EntropyCounterexample.ReadoutCover
+import OAI.Dynamics.EntropyCounterexample.RealAngularDerivative
+import OAI.Dynamics.EntropyCounterexample.RealizedConstruction
+import OAI.Dynamics.EntropyCounterexample.RegisterEntropyCoding
+import OAI.Dynamics.EntropyCounterexample.RegisterLinearity
+import OAI.Dynamics.EntropyCounterexample.Saturation
+import OAI.Geometry.SingularHomology.SimplicialSphereHomology
+import OAI.Geometry.SingularHomology.SingularAugmentation
+import OAI.Dynamics.EntropyCounterexample.SkewProduct
+import OAI.Dynamics.EntropyCounterexample.SparseLogBound
+import OAI.Dynamics.EntropyCounterexample.SparseVisits
+import OAI.Dynamics.EntropyCounterexample.SpectralRadius
+import OAI.Dynamics.EntropyCounterexample.SphereCompactSupport
+import OAI.Dynamics.EntropyCounterexample.SphereCutoffSupport
+import OAI.Dynamics.EntropyCounterexample.SphereCutoffs
+import OAI.Dynamics.EntropyCounterexample.SphereDoubling
+import OAI.Dynamics.EntropyCounterexample.SphereGeometry
+import OAI.Dynamics.EntropyCounterexample.SpherePerturbation
+import OAI.Dynamics.EntropyCounterexample.TargetReduction
+import OAI.Dynamics.EntropyCounterexample.TerminalEntropySupport
+import OAI.Geometry.SingularHomology.TetrahedronSingular
+import OAI.Dynamics.EntropyCounterexample.TranslationDerivative
+
+import OAI.Geometry.SingularHomology.TetrahedronChainInjection
+import OAI.Geometry.SingularHomology.TetrahedronRadialHomeomorph
+import OAI.Geometry.SingularHomology.TetrahedronGoodCover
+
+import OAI.Dynamics.EntropyCounterexample.TopologyCoverSupport
+import OAI.Geometry.SingularHomology.TetrahedronHomologyRank
+
+import OAI.Geometry.SingularHomology.TetrahedronHomologyEquiv
+
+import OAI.Dynamics.EntropyCounterexample.ExactSequenceSpectrum
+import OAI.Dynamics.EntropyCounterexample.MapFinalReduction
+import OAI.Geometry.SingularHomology.SphereSquareHomologyTransport
+import OAI.Geometry.SingularHomology.SingularChainsFinsuppBoundary
+
+import OAI.Geometry.SingularHomology.SingularChainFoundations
+import OAI.Geometry.SingularHomology.SubdivisionSupport
+
+import OAI.Geometry.SingularHomology.CircleHomologySupport
+import OAI.Geometry.SingularHomology.SingularMayerVietorisSupport
+
+import OAI.Dynamics.EntropyCounterexample.FiniteTypeSupport
+
+import OAI.Dynamics.EntropyCounterexample.SmallCoverNaturality
+
+import OAI.Geometry.SingularHomology.SingularSmallComparison
+
+import OAI.Dynamics.EntropyCounterexample.Assembly

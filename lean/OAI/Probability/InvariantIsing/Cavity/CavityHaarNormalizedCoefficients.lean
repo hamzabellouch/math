@@ -1,0 +1,54 @@
+import OAI.Probability.InvariantIsing.Cavity.CavityProjectorHaarMean
+import OAI.Probability.InvariantIsing.Cavity.CavityCoefficientValueLimit
+
+namespace OAI
+
+/-! Normalized coefficient replacement under independent compression
+and base-Haar averages. -/
+
+noncomputable section
+open MeasureTheory ProbabilityTheory IsingPerceptron Filter
+open scoped Topology Matrix
+
+namespace InvariantIsing
+
+theorem cavity_haar_normalized_coefficient_tendsto {m d n : ℕ}
+    (N depth : ℕ → ℕ) (k : ℕ → Fin m → ℕ)
+    (e : (j : ℕ) → (((a : Fin m) × Fin (k j a)) ⊕ Fin d) ≃ Fin (N j))
+    (a₀ : Fin d → Fin m)
+    (μ : (j : ℕ) → Measure (Orthogonal (N j+n))) [∀ j, IsProbabilityMeasure (μ j)]
+    (ν : (j : ℕ) → Measure (Orthogonal (N j))) [∀ j, IsProbabilityMeasure (ν j)]
+    (T : (j : ℕ) → LabeledTree (depth j)) (lam v : Fin m → ℝ)
+    (u : ℕ → ℝ) (hu : ∀ j, |u j| ≤ 2) (t : ℝ) {D : ℝ} (hD : 0 ≤ D)
+    (A : (j : ℕ) → Orthogonal (N j+n) → CavityFactorBlocks d n)
+    (hA : ∀ j, Measurable (A j)) (A₀ : CavityFactorBlocks d n)
+    (F : (j : ℕ) → (Fin 2 → (Spin (N j) × LabeledLeaf (depth j)) × Spin n) → ℝ)
+    {M : ℝ} (hM : 0 ≤ M) (hF : ∀ j σ, |F j σ| ≤ M)
+    (hprob : ∀ δ > 0, Tendsto (fun j => (μ j).real
+      {U | δ < cavityFactorDeviation (A j U) A₀}) atTop (𝓝 0)) :
+    Tendsto (fun j =>
+      (∫ U, ∫ V, cavityProjectorCavityMean (T j)
+        (fun a => t*lam a+2*perturbationScale (N j)*v a) u t D (A j U) (F j)
+        (cavityLabeledProjectorAction V (cavityCanonicalProjectorFrame (k j) (e j) a₀)) ∂ν j ∂μ j) -
+      ∫ _U, ∫ V, cavityProjectorCavityMean (T j)
+        (fun a => t*lam a+2*perturbationScale (N j)*v a) u t D A₀ (F j)
+        (cavityLabeledProjectorAction V (cavityCanonicalProjectorFrame (k j) (e j) a₀)) ∂ν j ∂μ j)
+      atTop (𝓝 0) := by
+  apply cavity_coefficient_values_tendsto μ A hA A₀ _ _
+    (fun j => measurable_cavityProjectorHaarMean (k j) (e j) a₀ (ν j) (T j) _ u t D
+      (A j) (hA j) (F j))
+    (fun j => measurable_cavityProjectorHaarMean (k j) (e j) a₀ (ν j) (T j) _ u t D
+      (fun _ => A₀) measurable_const (F j)) hM
+    (show 0 ≤ 4*|t| *D by positivity)
+    (fun j U => cavityProjectorHaarMean_bound (k j) (e j) a₀ (ν j) (T j) _ u t D
+      (A j U) (F j) hM (hF j))
+    (fun j _ => cavityProjectorHaarMean_bound (k j) (e j) a₀ (ν j) (T j) _ u t D
+      A₀ (F j) hM (hF j))
+    (fun j U s hs => cavity_projector_haar_coefficient_error (k j) (e j) a₀ (ν j)
+      (T j) lam v u hu t hD (A j U) A₀ (F j) hM (hF j) hs) hprob
+
+end InvariantIsing
+
+end
+
+end OAI

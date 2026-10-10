@@ -1,0 +1,100 @@
+import OAI.Geometry.SurfaceImmersion.Primitive.UniformPhasePrimitive
+import OAI.Geometry.SurfaceImmersion.Geometry.ExactGeometricFastFamily
+import OAI.Geometry.SurfaceImmersion.Atlas.AtlasMetricJetMargins
+import OAI.Geometry.SurfaceImmersion.Correction.UniformPrimitiveMeanRealization
+import OAI.Geometry.SurfaceImmersion.Geometry.SupportedPatchGeometry
+import OAI.Geometry.SurfaceImmersion.Atlas.AtlasPhaseNormalMargin
+import OAI.Geometry.SurfaceImmersion.Atlas.PhaseAnsatzNormal
+import OAI.Geometry.SurfaceImmersion.Primitive.NonlinearPrimitiveExpansion
+import OAI.Geometry.SurfaceImmersion.Primitive.NonlinearJetProfiles
+import OAI.Geometry.SurfaceImmersion.Geometry.NonlinearLowJetNeighborhood
+import OAI.Geometry.SurfaceImmersion.Primitive.AtlasPrimitiveExpansion
+import OAI.Geometry.SurfaceImmersion.Atlas.AtlasLowJetNeighborhood
+import OAI.Geometry.SurfaceImmersion.Correction.PolynomialMeanApproximation
+import OAI.Geometry.SurfaceImmersion.Primitive.PrimitiveShiftedPowers
+import OAI.Geometry.SurfaceImmersion.Primitive.UniformPrimitiveNormal
+import OAI.Geometry.SurfaceImmersion.Primitive.PrimitiveWeightedBudget
+import OAI.Geometry.SurfaceImmersion.Primitive.SupportedPrimitiveGeometry
+import OAI.Geometry.SurfaceImmersion.Primitive.PrimitiveAtlasNormalMargin
+import OAI.Geometry.SurfaceImmersion.Primitive.AtlasPrimitiveNormal
+
+namespace OAI
+
+/-! Construct the actual globally supported primitive from the finite recursion
+and its extended polynomial mean operator. -/
+noncomputable section
+open Set Manifold Bundle
+open scoped ContDiff Manifold Topology
+namespace ClosedSurfaceR4.FiniteOrderSmoothing
+open JetPolynomial JetPolynomial.Perturbation LocalPeriodicExpansion CovarianceCorrector WeightedEstimates
+local instance exactPhasePrimitiveFiberNormed : NormedAddCommGroup TensorFiber := inferInstance
+local instance exactPhasePrimitiveFiberSpace : NormedSpace ℝ TensorFiber := inferInstance
+variable {M : Type*} [TopologicalSpace M] [ChartedSpace Plane M]
+  [IsManifold planeModel ∞ M] [CompactSpace M]
+local instance exactPhasePrimitiveDualAdd : ∀ p : M, ContinuousAdd (TangentSpace planeModel p →L[ℝ] ℝ) :=
+  fun _ => inferInstanceAs (ContinuousAdd (Plane →L[ℝ] ℝ))
+local instance exactPhasePrimitiveDualSmul : ∀ p : M, ContinuousSMul ℝ (TangentSpace planeModel p →L[ℝ] ℝ) :=
+  fun _ => inferInstanceAs (ContinuousSMul ℝ (Plane →L[ℝ] ℝ))
+local instance exactPhasePrimitiveSectionNormed (p : M) : NormedAddCommGroup (CovariantTwoTensor p) :=
+  inferInstanceAs (NormedAddCommGroup TensorFiber)
+local instance exactPhasePrimitiveSectionSpace (p : M) : NormedSpace ℝ (CovariantTwoTensor p) :=
+  inferInstanceAs (NormedSpace ℝ TensorFiber)
+namespace MetricGoodPhaseData
+open PrimitiveRealization
+variable {g : SmoothMetric M} {F : M → Space}
+
+theorem exact_phase_primitive_metric [T2Space M] (data : MetricGoodPhaseData g F)
+    (hF : ContMDiff planeModel spaceModel ∞ F) (hmetric : g.inner = inducedTensor F)
+    (i : data.A.centers)
+    (e : OpenPartialHomeomorph JetPolynomial.Base JetPolynomial.Base)
+    (he : ContDiff ℝ ∞ e) (hi : ContDiff ℝ ∞ e.symm)
+    {χ : JetPolynomial.Base → ℝ} (hχ : ContDiff ℝ ∞ χ)
+    (hχc : HasCompactSupport χ) (hχs : tsupport χ ⊆ e.source)
+    (hcover : (data.A.chartWeightCompact i : Set JetPolynomial.Base) ⊆ e.source)
+    {O : TopologicalSpace.Opens LowJet} (l : SurfaceVelocityFamily.Loop O)
+    {a : JetPolynomial.Base → ℝ} (ha : ContDiff ℝ ∞ a) (hamp : l.HasSpatialAmplitude a)
+    (S : TopologicalSpace.Opens JetPolynomial.Base)
+    (hSc : IsCompact (closure (S : Set JetPolynomial.Base))) (hTS : MapsTo e e.source S)
+    {Q : Set LowJet} (hQ : IsCompact Q) (hQO : Q ⊆ O)
+    (hFQ : MapsTo (lowJet (data.A.jetChartMap i F ∘ e.symm)) S Q)
+    (K : Set JetPolynomial.Base) (hK : IsCompact K) (hKS : K ⊆ S)
+    (hKA : e.symm '' K ⊆ (data.A.chartWeightCompact i : Set JetPolynomial.Base))
+    (hone : ∀ x ∈ e.symm '' K, χ x = 1)
+    (hv : ∀ J ∈ O, lowJetPosition J ∉ K → ∀ t, l.velocity (J,t) = SurfaceVelocityFamily.normal J)
+    (ℓ : JetPolynomial.Base →L[ℝ] ℝ)
+    (hℓx : ℓ (coordinateVector 0) = 1) (hℓy : ℓ (coordinateVector 1) = 0)
+
+    (h : SmoothMetric M)
+    (htarget : h.inner = g.inner + data.A.bundleRestore data.A.tensorTriv i
+      (fun y => fiberFromThree (localizedTensorPullback e χ (fun q => ![a q^2,0,0]) y))) :
+    ∃ G : M → Space, IsSmoothIsometricImmersion M h G ∧ Nonempty (MetricGoodPhaseData h G) := by
+  obtain ⟨ρ,R₁,c₁,hρ,hR₁,hc₁,hjet⟩ := data.A.metric_firstJet_margin h
+  obtain ⟨c,c₂,V₀,hc,hc₂,hV₀,hfamilies⟩ := data.uniform_phase_primitive_realization
+    hF hmetric i e he hi hχ hχc hχs hcover l ha hamp S hSc hTS
+    hQ hQO hFQ K hK hKS hKA hone hv ℓ hℓx hℓy
+  apply data.A.exact_geometric_metric_from_fast_family h data.outer_locally_one R₁ c₁ c₂ V₀ hc₁ hc₂ hV₀
+  intro N
+  obtain ⟨b,u,η,L,C,Cv,P,hb,hb16,hu,hη,hη1,hL,hC,hCv,hP,hfamily⟩ := hfamilies 442 (N+1)
+  obtain ⟨η₀,hη₀,_,hsmall⟩ := ExactCorrection.positive_power_threshold C (N+1) ρ
+    (by positivity) hρ
+  refine ⟨min η η₀,C,Cv,lt_min hη hη₀,hC,hCv,?_⟩
+  intro z hz hzη
+  obtain ⟨G,V,hG,hV,hclose,hslow,hweighted,hzero,hshift,herror,hI,hB,hBmargin,hN,hext⟩ :=
+    hfamily z hz (hzη.trans_le (min_le_left _ _))
+  have herr : data.A.TensorWeightedBound 1 440 (C*z^(N+1)) (inducedTensor V-h.inner) := by
+    rw [htarget]
+    exact fun j => (herror j).mono_order (by omega)
+  have hexp : (N : ℝ)+1 = ((N+1 : ℕ) : ℝ) := by norm_num
+  have hjet' := hjet V hV (C*z^(N+1)) (by positivity)
+    (by simpa only [hexp,Real.rpow_natCast] using hsmall z hz (hzη.trans_le (min_le_right _ _)))
+    (fun j => (herr j).mono_order (Nat.zero_le 440))
+  refine ⟨V,hV,hzero,hweighted,(fun j k hk x => hshift j k (by omega) x),herr,?_⟩
+  intro j x hx
+  exact ⟨(hjet' j x hx).1,(hjet' j x hx).2,(hBmargin j x hx).le⟩
+
+end MetricGoodPhaseData
+end ClosedSurfaceR4.FiniteOrderSmoothing
+
+end
+
+end OAI

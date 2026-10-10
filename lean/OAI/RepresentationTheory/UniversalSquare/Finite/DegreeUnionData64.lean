@@ -1,0 +1,22 @@
+import Mathlib
+import OAI.RepresentationTheory.Saxl.Main
+import OAI.RepresentationTheory.UniversalSquare.Finite.DegreeRegionData64
+
+namespace OAI
+
+/-! Degree Union Data 64. -/
+
+section
+
+namespace UniversalTensorSquare
+
+def degreeHalfRegions64 : List PrefixRegion := [degreeRegion64_0,degreeRegion64_1,degreeRegion64_2,degreeRegion64_4,degreeRegion64_5,degreeRegion64_8,degreeRegion64_9,degreeRegion64_10,degreeRegion64_11,degreeRegion64_12,degreeRegion64_13,degreeRegion64_14,degreeRegion64_15,degreeRegion64_16,degreeRegion64_17,degreeRegion64_18,degreeRegion64_19,degreeRegion64_20,degreeRegion64_21,degreeRegion64_22,degreeRegion64_23,degreeRegion64_25,degreeRegion64_26,degreeRegion64_27,degreeRegion64_28,degreeRegion64_29,degreeRegion64_30,degreeRegion64_31,degreeRegion64_32,degreeRegion64_33,degreeRegion64_34,degreeRegion64_35,degreeRegion64_36,degreeRegion64_37,degreeRegion64_38,degreeRegion64_39,degreeRegion64_40,degreeRegion64_41,degreeRegion64_42,degreeRegion64_45,degreeRegion64_46,degreeRegion64_47,degreeRegion64_48,degreeRegion64_49,degreeRegion64_50,degreeRegion64_51,degreeRegion64_52,degreeRegion64_57,degreeRegion64_58,degreeRegion64_59,degreeRegion64_60,degreeRegion64_61,degreeRegion64_62,degreeRegion64_63,degreeRegion64_69,degreeRegion64_70,degreeRegion64_71,degreeRegion64_72,degreeRegion64_73,degreeRegion64_74,degreeRegion64_81,degreeRegion64_82,degreeRegion64_83,degreeRegion64_84,degreeRegion64_85,degreeRegion64_93,degreeRegion64_94,degreeRegion64_95,degreeRegion64_96,degreeRegion64_105,degreeRegion64_106,degreeRegion64_107,degreeRegion64_117,degreeRegion64_118,degreeRegion64_129]
+
+lemma degreeHalfHeight64 : ∀ R ∈ degreeHalfRegions64, firstBound 64 R.1 ≤ 30 := by decide +kernel
+
+lemma degreeHalfWidth64 : ∀ R ∈ degreeHalfRegions64, firstBound 64 R.2 ≤ 30 := by decide +kernel
+
+end UniversalTensorSquare
+end
+
+end OAI

@@ -1,0 +1,146 @@
+import Mathlib
+
+namespace OAI
+
+noncomputable section
+
+open scoped BigOperators Topology NNReal ENNReal
+
+open scoped BigOperators NNReal ENNReal Topology Pointwise Matrix.Norms.Elementwise
+open Set Metric MeasureTheory MeasureTheory.Measure
+open MeasureTheory ProbabilityTheory
+open scoped ENNReal NNReal
+open scoped BigOperators InnerProductSpace
+open Module
+open scoped BigOperators ENNReal NNReal Real Topology
+open MeasureTheory ProbabilityTheory Filter
+open scoped BigOperators NNReal
+open scoped BigOperators
+open Matrix Polynomial
+open scoped BigOperators Topology
+open Filter
+namespace CriticalSK
+
+section
+
+abbrev Spin (n : ℕ) := Fin n → Bool
+
+abbrev Edge (n : ℕ) := {p : Fin n × Fin n // p.1 < p.2}
+
+abbrev Disorder (n : ℕ) := Edge n → ℝ
+
+def spinValue (b : Bool) : ℝ := if b then 1 else -1
+
+def hamiltonian {n : ℕ} (W : Disorder n) (x : Spin n) : ℝ :=
+  ∑ e : Edge n, W e * spinValue (x e.val.1) * spinValue (x e.val.2)
+
+def partition {n : ℕ} (W : Disorder n) : ℝ :=
+  ∑ x : Spin n, Real.exp (hamiltonian W x)
+
+def gibbs {n : ℕ} (W : Disorder n) (x : Spin n) : ℝ :=
+  Real.exp (hamiltonian W x) / partition W
+
+def disorderLaw (n : ℕ) : Measure (Disorder n) :=
+  Measure.pi fun _ : Edge n => gaussianReal 0 (n : ℝ≥0)⁻¹
+
+def sameExcept {n : ℕ} (i : Fin n) (x y : Spin n) : Prop :=
+  ∀ j, j ≠ i → y j = x j
+
+instance {n : ℕ} (i : Fin n) (x y : Spin n) : Decidable (sameExcept i x y) :=
+  Classical.propDecidable _
+
+def siteKernel {n : ℕ} (W : Disorder n) (i : Fin n) : Matrix (Spin n) (Spin n) ℝ :=
+  fun x y => if sameExcept i x y then
+    gibbs W y / (∑ z : Spin n, if sameExcept i x z then gibbs W z else 0)
+  else 0
+
+def discreteKernel {n : ℕ} (W : Disorder n) : Matrix (Spin n) (Spin n) ℝ :=
+  (n : ℝ)⁻¹ • ∑ i : Fin n, siteKernel W i
+
+def generator {n : ℕ} (W : Disorder n) : Matrix (Spin n) (Spin n) ℝ :=
+  ∑ i : Fin n, (siteKernel W i - 1)
+
+def continuousKernel {n : ℕ} (W : Disorder n) (t : ℝ) :
+    Matrix (Spin n) (Spin n) ℝ :=
+  NormedSpace.exp (t • generator W)
+
+def totalVariation {n : ℕ} (W : Disorder n) (p : Spin n → ℝ) : ℝ :=
+  (1 / 2 : ℝ) * ∑ y : Spin n, |p y - gibbs W y|
+
+def continuousDistance {n : ℕ} (W : Disorder n) (t : ℝ) (x : Spin n) : ℝ :=
+  totalVariation W (continuousKernel W t x)
+
+def discreteDistance {n : ℕ} (W : Disorder n) (k : ℕ) (x : Spin n) : ℝ :=
+  totalVariation W ((discreteKernel W ^ k) x)
+
+def continuousMixingTime {n : ℕ} (W : Disorder n) : ℝ :=
+  sInf {t : ℝ | 0 ≤ t ∧ ∀ x, continuousDistance W t x ≤ 1 / 4}
+
+def discreteMixingTime {n : ℕ} (W : Disorder n) : ℕ :=
+  sInf {k : ℕ | ∀ x, discreteDistance W k x ≤ 1 / 4}
+
+def mean {n : ℕ} (W : Disorder n) (f : Spin n → ℝ) : ℝ :=
+  ∑ x : Spin n, gibbs W x * f x
+
+def variance {n : ℕ} (W : Disorder n) (f : Spin n → ℝ) : ℝ :=
+  mean W (fun x => (f x - mean W f) ^ 2)
+
+def dirichlet {n : ℕ} (W : Disorder n) (f : Spin n → ℝ) : ℝ :=
+  ∑ i : Fin n, mean W (fun x => (f x - ∑ y : Spin n, siteKernel W i x y * f y) ^ 2)
+
+def linearObservable {n : ℕ} (a : Fin n → ℝ) (x : Spin n) : ℝ :=
+  ∑ i : Fin n, a i * spinValue (x i)
+
+def covariance {n : ℕ} (W : Disorder n) : Matrix (Fin n) (Fin n) ℝ :=
+  fun i j => mean W (fun x =>
+    (spinValue (x i) - mean W (fun y => spinValue (y i))) *
+    (spinValue (x j) - mean W (fun y => spinValue (y j))))
+
+def covarianceNorm {n : ℕ} (W : Disorder n) : ℝ :=
+  ‖(covariance W).toEuclideanLin.toContinuousLinearMap‖
+
+def linearRayleigh {n : ℕ} (W : Disorder n) : ℝ :=
+  sSup {r : ℝ | ∃ a : Fin n → ℝ, a ≠ 0 ∧
+    r = variance W (linearObservable a) / dirichlet W (linearObservable a)}
+
+def continuousGoodMass {n : ℕ} (W : Disorder n) (t : ℝ) : ℝ :=
+  ∑ x : Spin n, if 1 / 4 < continuousDistance W t x then gibbs W x else 0
+
+def discreteGoodMass {n : ℕ} (W : Disorder n) (k : ℕ) : ℝ :=
+  ∑ x : Spin n, if 1 / 4 < discreteDistance W k x then gibbs W x else 0
+
+variable {n : ℕ} (W : Disorder n)
+
+@[simp] lemma spinValue_sq (b : Bool) : spinValue b ^ 2 = 1 := by
+  cases b <;> norm_num [spinValue]
+
+end
+
+section
+
+def cubeVector {n : ℕ} (x : Spin n) : EuclideanSpace ℝ (Fin n) :=
+  WithLp.toLp 2 (fun i => spinValue (x i))
+
+def cubeOverlap {n : ℕ} (x y : Spin n) : ℝ := inner ℝ (cubeVector x) (cubeVector y) / n
+
+instance {n : ℕ} (i : Fin n) (x y : Spin n) : Decidable (sameExcept i x y) :=
+  Classical.propDecidable _
+
+instance {n : ℕ} (i : Fin n) (x y : Spin n) : Decidable (sameExcept i x y) :=
+  Classical.propDecidable _
+
+open Set MeasureTheory
+
+def gibbsOverlap {n : ℕ} (W : Disorder n) : ℝ :=
+  ∑ x : Spin n, ∑ y : Spin n, gibbs W x*gibbs W y*(cubeOverlap x y)^2
+
+end
+
+instance {n : ℕ} (i : Fin n) (x y : Spin n) : Decidable (sameExcept i x y) :=
+  Classical.propDecidable _
+
+end CriticalSK
+
+end
+
+end OAI

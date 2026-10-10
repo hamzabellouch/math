@@ -1,0 +1,86 @@
+import OAI.GroupTheory.PolycyclicRecognition.Geometry.CartanSegmentCoding
+import OAI.GroupTheory.PolycyclicRecognition.Analysis.CoordinateStationaryPaths
+import OAI.GroupTheory.PolycyclicRecognition.Analysis.NormalizedEndpointMeasure
+import Mathlib.MeasureTheory.Measure.Lebesgue.EqHaar
+
+namespace OAI
+
+/-! # Stationary good paths to actual rescaled endpoints
+
+Independent normalized coordinate volume and continuous endpoint coding
+instantiate the stationary sampling theorem. A single normalized pair is
+therefore good on an endpoint subset retaining half the coordinate volume.
+-/
+
+noncomputable section
+
+namespace PolycyclicRecognition.CartanWordModel
+
+open Module LieAlgebra LieModule MeasureTheory Metric Set
+open scoped Manifold NNReal ENNReal
+
+variable {EG G W : Type*} [NormedAddCommGroup EG] [NormedSpace ℝ EG]
+  [FiniteDimensional ℝ EG] [MetricSpace G] [ChartedSpace EG G] [Group G]
+  [LieGroup (𝓘(ℝ, EG)) ⊤ G] [SimplyConnectedSpace G] [IsIsometricSMul G G]
+  [ProperSpace G] [IsTopologicalGroup G] [MeasurableSpace G] [BorelSpace G]
+  [NormedAddCommGroup W] [NormedSpace ℝ W]
+  [MeasurableSpace W] [BorelSpace W] [SecondCountableTopology W]
+  {Λ : ℝ≥0} [MeasurableSpace (NormalizedPair G Λ)] [BorelSpace (NormalizedPair G Λ)]
+  {a : ℕ} (T : TriangularAdjoint (GroupLieAlgebra (𝓘(ℝ, EG)) G) a)
+  {H : LieSubalgebra ℝ (GroupLieAlgebra (𝓘(ℝ, EG)) G)} [H.IsCartanSubalgebra]
+  (M : CartanWordModel H)
+  {Exp : GroupLieAlgebra (𝓘(ℝ, EG)) G → G} (F : CartanFactorModel H Exp)
+
+include T in
+/-- For all large scales, one actual pair has controlled image paths to a
+subset of the actual rescaled endpoints with half the coordinate volume. -/
+theorem exists_stationary_good_segment_paths
+    (hExp : IsGroupExponential Exp)
+    (realize : ExponentialLinearRealizationInput (EG := EG) (G := G))
+    (haarN : NilpotentExponentialHaarInput F.N.modelSpace F.N.carrier)
+    (dynkinN : NilpotentDynkinExpansionInput F.N.modelSpace F.N.carrier)
+    (μ : Measure (NormalizedPair G Λ)) [IsProbabilityMeasure μ]
+    (π l : G →* Multiplicative W)
+    (hπ : Continuous fun g => (π g).toAdd) (hl : Continuous fun g => (l g).toAdd)
+    {K L : ℝ} (hK : 0 ≤ K) (hL : 0 ≤ L)
+    (hLip : ∀ x y, ‖(π x).toAdd - (π y).toAdd‖ ≤ K * dist x y)
+    (hbound : ∀ g, ‖(l g).toAdd‖ ≤ L * dist 1 g)
+    (hsub : ∀ ε : ℝ, 0 < ε → ∃ B : ℝ, 0 ≤ B ∧ ∀ g,
+      ‖pairHeightL2 μ π hπ g - Lp.const 2 μ (l g).toAdd‖ ≤ ε * dist 1 g + B)
+    (b₀ : Basis (Fin (finrank ℝ (cartanRootIdeal H))) ℝ (cartanRootIdeal H)) (v : H) :
+    ∃ (ε C : ℝ) (β : M.Bases), 0 < ε ∧ 0 ≤ C ∧
+      IsMaximizingColumnBasis (wordListCoordinates M.letter M.wordList b₀)
+        (fun w => bracketWordExponent (M.segmentSupportExponent v) w) β.val ∧
+      ∀ δ : ℝ, 0 < δ → ∀ η : ℝ, 0 < η → ∃ r₀ : ℝ, 1 ≤ r₀ ∧
+      ∀ r : ℝ, r₀ ≤ r →
+      let b := exponentialRescaleBasis (WordBasisSelections.basis M.letter M.wordList β)
+        (fun j => bracketWordExponent (M.segmentSupportExponent v) (β.val j)) r
+      ∃ (p : NormalizedPair G Λ)
+        (B : Set (ball (0 : Fin (finrank ℝ (cartanRootIdeal H)) → ℝ) ε)),
+        MeasurableSet B ∧
+        volume (ball (0 : Fin (finrank ℝ (cartanRootIdeal H)) → ℝ) ε) * (1 / 2) ≤
+          volume (Subtype.val '' Bᶜ) ∧
+        ∀ y ∉ B, ∃ γ : Path (1 : G) (F.inclusionN (F.ExpN (F.N.equiv (b.equivFun.symm y.val)))),
+          PathMetricBound γ (C * r) (C * (1 + Real.log (2 + r))) ∧
+          ∀ t, ∃ z ∈ segment ℝ (0 : W) (l (Exp v)).toAdd,
+            ‖pairHeight π (γ t) p - r • z‖ ≤
+              (K * Λ * C * δ + η) * r + K * Λ * C * (1 + Real.log (2 + r)) := by
+  classical
+  obtain ⟨ε, C, hε, hC, hcode⟩ := M.exists_continuous_segment_box_paths T F hExp realize
+    haarN dynkinN l hl hL hbound b₀ v
+  obtain ⟨β, hβ⟩ := exists_maximizing_wordBasis M.letter M.wordList b₀
+    (fun w => bracketWordExponent (M.segmentSupportExponent v) w)
+  refine ⟨ε, C, β, hε, hC, hβ, ?_⟩
+  apply coordinate_stationary_paths hε hC hK μ π l hπ hl hLip hsub
+    (segment ℝ (0 : W) (l (Exp v)).toAdd)
+    (fun r y => F.inclusionN (F.ExpN (F.N.equiv
+      ((exponentialRescaleBasis (WordBasisSelections.basis M.letter M.wordList β)
+        (fun j => bracketWordExponent (M.segmentSupportExponent v) (β.val j)) r).equivFun.symm y.val))))
+  intro r hr
+  exact hcode r hr β hβ
+
+end PolycyclicRecognition.CartanWordModel
+
+end
+
+end OAI

@@ -1,0 +1,100 @@
+import OAI.Probability.FirstPassage.RareFastGeometry
+
+namespace OAI
+
+namespace PlanarFPP
+open Set Finset
+
+noncomputable def trialSpacing (R s : ℝ) : ℝ := (R+1)*(⌈s⌉₊ : ℝ)
+
+noncomputable def trialWindow (M : ℕ) (R s : ℝ) : ℝ := 100*M*trialSpacing R s
+
+noncomputable def trialOffset (M : ℕ) (R s : ℝ) (j : Fin M) : ℝ :=
+  (2*((j.val : ℝ)+1)-(M : ℝ)-1)*3*trialSpacing R s
+
+noncomputable def trialTranslate (b : ℝ) (X : ℤ) (Y : ℝ)
+    (M : ℕ) (R s : ℝ) (j : Fin M) : Vertex :=
+  (X,⌊b*X+Y+trialOffset M R s j+1/2⌋)
+
+theorem nearest_integer_error (t : ℝ) : |(⌊t+1/2⌋ : ℝ)-t| ≤ 1/2 := by
+  have hlo := Int.floor_le (t+1/2)
+  have hhi := Int.lt_floor_add_one (t+1/2)
+  apply abs_le.mpr
+  constructor <;> linarith
+
+theorem trialTranslate_error (b : ℝ) (X : ℤ) (Y : ℝ)
+    (M : ℕ) (R s : ℝ) (j : Fin M) :
+    |transverse b (trialTranslate b X Y M R s j)-(Y+trialOffset M R s j)| ≤ 1/2 := by
+  have hh := nearest_integer_error (b*X+Y+trialOffset M R s j)
+  convert hh using 1
+  simp [trialTranslate,transverse]
+  congr 1
+  ring
+
+theorem trialSpacing_bounds (R s : ℝ) (hR : 0 ≤ R) (hs : 1 ≤ s) :
+    1 ≤ trialSpacing R s ∧ R*s ≤ trialSpacing R s := by
+  have hc := Nat.le_ceil s
+  have hn : (1 : ℝ) ≤ (⌈s⌉₊ : ℝ) := by linarith
+  unfold trialSpacing
+  constructor
+  · nlinarith
+  · nlinarith
+
+theorem trialOffset_bound (M : ℕ) (R s : ℝ) (j : Fin M)
+    (hR : 0 ≤ R) (hs : 1 ≤ s) :
+    |trialOffset M R s j| ≤ 3*M*trialSpacing R s := by
+  have hB := (trialSpacing_bounds R s hR hs).1
+  have hj : (j.val : ℝ)+1 ≤ M := by exact_mod_cast j.isLt
+  have hj0 : (0 : ℝ) ≤ j.val := Nat.cast_nonneg _
+  have ha : |2*((j.val : ℝ)+1)-(M : ℝ)-1| ≤ M := by
+    apply abs_le.mpr
+    constructor <;> linarith
+  unfold trialOffset
+  rw [abs_mul,abs_mul,abs_of_pos (by norm_num : (0 : ℝ)<3),abs_of_nonneg (show 0 ≤ trialSpacing R s by linarith)]
+  nlinarith
+
+theorem trial_strip_in_window (b : ℝ) (X : ℤ) (Y : ℝ)
+    (M : ℕ) (R s : ℝ) (j : Fin M) (hR : 0 ≤ R) (hs : 1 ≤ s)
+    (p : Vertex) (hp : |transverse b p-transverse b (trialTranslate b X Y M R s j)| ≤ R*s) :
+    |transverse b p-Y| ≤ trialWindow M R s/4 := by
+  have he := trialTranslate_error b X Y M R s j
+  have ho := trialOffset_bound M R s j hR hs
+  have hB := trialSpacing_bounds R s hR hs
+  have hM : (1 : ℝ) ≤ M := by exact_mod_cast j.pos
+  have hh := abs_add_le
+    (transverse b (trialTranslate b X Y M R s j)-(Y+trialOffset M R s j))
+    (trialOffset M R s j)
+  have heq : transverse b (trialTranslate b X Y M R s j)-(Y+trialOffset M R s j)+
+      trialOffset M R s j = transverse b (trialTranslate b X Y M R s j)-Y := by ring
+  rw [heq] at hh
+  have ht := abs_add_le (transverse b p-transverse b (trialTranslate b X Y M R s j))
+    (transverse b (trialTranslate b X Y M R s j)-Y)
+  rw [sub_add_sub_cancel] at ht
+  unfold trialWindow
+  nlinarith [mul_le_mul_of_nonneg_right hM (by linarith : 0 ≤ trialSpacing R s)]
+
+theorem trial_centers_separated (b : ℝ) (X : ℤ) (Y : ℝ)
+    (M : ℕ) (R s : ℝ) (j l : Fin M) (hjl : j ≠ l) (hR : 0 ≤ R) (hs : 1 ≤ s) :
+    2*R*s < |transverse b (trialTranslate b X Y M R s j)-
+      transverse b (trialTranslate b X Y M R s l)| := by
+  have hB := trialSpacing_bounds R s hR hs
+  have he := trialTranslate_error b X Y M R s j
+  have hf := trialTranslate_error b X Y M R s l
+  have he' := abs_le.mp he
+  have hf' := abs_le.mp hf
+  have hdiff : trialOffset M R s j-trialOffset M R s l =
+      6*((j.val : ℝ)-(l.val : ℝ))*trialSpacing R s := by unfold trialOffset; ring
+  have hne : j.val ≠ l.val := fun hh => hjl (Fin.ext hh)
+  rcases lt_or_gt_of_ne hne with hlt | hgt
+  · have hn : (j.val : ℝ)+1 ≤ l.val := by exact_mod_cast hlt
+    have ha := neg_le_abs (transverse b (trialTranslate b X Y M R s j)-
+      transverse b (trialTranslate b X Y M R s l))
+    nlinarith [mul_le_mul_of_nonneg_right hn (by linarith : 0 ≤ trialSpacing R s)]
+  · have hn : (l.val : ℝ)+1 ≤ j.val := by exact_mod_cast hgt
+    have ha := le_abs_self (transverse b (trialTranslate b X Y M R s j)-
+      transverse b (trialTranslate b X Y M R s l))
+    nlinarith [mul_le_mul_of_nonneg_right hn (by linarith : 0 ≤ trialSpacing R s)]
+
+end PlanarFPP
+
+end OAI

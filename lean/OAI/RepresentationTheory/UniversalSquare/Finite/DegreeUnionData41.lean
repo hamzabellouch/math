@@ -1,0 +1,22 @@
+import Mathlib
+import OAI.RepresentationTheory.Saxl.Main
+import OAI.RepresentationTheory.UniversalSquare.Finite.DegreeRegionData41
+
+namespace OAI
+
+/-! Degree Union Data 41. -/
+
+section
+
+namespace UniversalTensorSquare
+
+def degreeHalfRegions41 : List PrefixRegion := [degreeRegion41_0,degreeRegion41_1,degreeRegion41_2,degreeRegion41_3,degreeRegion41_4,degreeRegion41_5,degreeRegion41_6,degreeRegion41_7,degreeRegion41_8,degreeRegion41_9,degreeRegion41_10,degreeRegion41_11,degreeRegion41_12,degreeRegion41_13,degreeRegion41_14,degreeRegion41_15,degreeRegion41_16,degreeRegion41_17,degreeRegion41_18,degreeRegion41_19,degreeRegion41_20,degreeRegion41_21,degreeRegion41_22,degreeRegion41_23,degreeRegion41_24,degreeRegion41_25,degreeRegion41_26,degreeRegion41_27,degreeRegion41_28,degreeRegion41_29,degreeRegion41_30,degreeRegion41_31,degreeRegion41_32,degreeRegion41_33,degreeRegion41_34,degreeRegion41_35,degreeRegion41_36,degreeRegion41_37,degreeRegion41_38,degreeRegion41_39,degreeRegion41_40,degreeRegion41_41,degreeRegion41_42,degreeRegion41_43,degreeRegion41_44,degreeRegion41_46,degreeRegion41_47,degreeRegion41_48,degreeRegion41_49,degreeRegion41_52,degreeRegion41_53,degreeRegion41_54,degreeRegion41_58,degreeRegion41_59,degreeRegion41_64,degreeRegion41_65,degreeRegion41_66,degreeRegion41_67,degreeRegion41_68,degreeRegion41_69,degreeRegion41_70,degreeRegion41_71,degreeRegion41_73,degreeRegion41_74,degreeRegion41_75,degreeRegion41_76,degreeRegion41_77,degreeRegion41_78,degreeRegion41_79,degreeRegion41_82,degreeRegion41_83,degreeRegion41_84,degreeRegion41_85,degreeRegion41_86,degreeRegion41_87,degreeRegion41_91,degreeRegion41_92,degreeRegion41_93,degreeRegion41_94,degreeRegion41_99,degreeRegion41_100,degreeRegion41_101,degreeRegion41_107,degreeRegion41_108]
+
+lemma degreeHalfHeight41 : ∀ R ∈ degreeHalfRegions41, firstBound 41 R.1 ≤ 21 := by decide +kernel
+
+lemma degreeHalfWidth41 : ∀ R ∈ degreeHalfRegions41, firstBound 41 R.2 ≤ 21 := by decide +kernel
+
+end UniversalTensorSquare
+end
+
+end OAI

@@ -1,0 +1,110 @@
+import Mathlib
+import OAI.Computability.QuantumFactoring.BitStackProcedures
+import OAI.Computability.QuantumFactoring.BitStackQuotation
+
+namespace OAI
+
+
+
+section
+
+namespace ExactQuantumFactoring.BitStackProgram
+variable {K : Type} [DecidableEq K]
+/-- A fixed finite list is part of the program, not a run-time oracle. -/
+def pushWord (k : K) : List Bool→Program K
+  | []=>.skip
+  | b::bs=>.seq (pushWord k bs) (.push k b)
+lemma pushWord_runs (k : K) (xs : List Bool) (s : Store K) :
+    Runs (pushWord k xs) s (Function.update s k (xs++s k)) (xs.length+1) := by
+  induction xs with
+  | nil=>simpa [pushWord] using Runs.skip s
+  | cons b bs ih=>
+    have hh:=Runs.seq ih (Runs.push (Function.update s k (bs++s k)) k b)
+    simpa only [pushWord,Function.update_self,Function.update_idem,List.cons_append,
+      List.length_cons,Nat.add_comm] using hh
+namespace Procedure
+variable {α β : Type} (ea : α→List Bool) (eb : β→List Bool)
+noncomputable def constant (b : β) : Procedure ea eb (fun _=>b) where
+  K:=Fin 1
+  finiteK:=inferInstance
+  decideK:=inferInstance
+  input:=0
+  output:=0
+  program:=.seq (clear 0) (pushWord 0 (eb b))
+  bound:=Polynomial.C 2*Polynomial.X+Polynomial.C ((eb b).length+2)
+  runs a:=by
+    let s : Store (Fin 1):=singletonStore 0 (ea a)
+    let u : Store (Fin 1):=Function.update s 0 []
+    have hc:=clear_runs (0 : Fin 1) s
+    have hp:=pushWord_runs (0 : Fin 1) (eb b) u
+    have hh:=Runs.seq hc hp
+    refine ⟨((eb b).length+1)+(2*(ea a).length+1),by simp;omega,?_⟩
+    convert hh using 1
+    · funext k;fin_cases k;simp [u,s,singletonStore]
+    · simp [s,singletonStore]
+
+noncomputable def quote (ea : α→List Bool) : Procedure ea (fun a=>quoteBits (ea a)) id where
+  K:=Fin 3
+  finiteK:=inferInstance
+  decideK:=inferInstance
+  input:=0
+  output:=1
+  program:=quoteMove 0 1 2
+  bound:=Polynomial.C 7*Polynomial.X+Polynomial.C 5
+  runs a:=by
+    have hh:=quoteMove_runs (0 : Fin 3) 1 2 (by decide) (by decide) (by decide)
+      (singletonStore 0 (ea a)) (by simp [singletonStore])
+    refine ⟨7*(ea a).length+5,by simp,?_⟩
+    convert hh using 1
+    · funext k; fin_cases k <;> simp [singletonStore,Function.update]
+    · simp [singletonStore]
+
+/-- Count each actual symbol, returning a unary length. -/
+noncomputable def length : Procedure (id : List Bool→List Bool)
+    (fun n=>List.replicate n true) List.length where
+  K:=Fin 2
+  finiteK:=inferInstance
+  decideK:=inferInstance
+  input:=0
+  output:=1
+  program:=.loop 0 (.push 1 true) (.push 1 true)
+  bound:=Polynomial.C 2*Polynomial.X+1
+  runs xs:=by
+    have h : ∀ xs (s : Store (Fin 2)),s 0=xs→
+        Runs (.loop 0 (.push 1 true) (.push 1 true)) s
+          (Function.update (Function.update s 0 []) 1 (List.replicate xs.length true++s 1))
+          (2*xs.length+1) := by
+      intro ys; induction ys with
+      | nil=>
+        intro s hs
+        have he : Function.update (Function.update s 0 []) 1
+            (List.replicate ([] : List Bool).length true++s 1)=s := by
+          simp only [List.length_nil,List.replicate_zero,List.nil_append]
+          rw [←hs,Function.update_eq_self,Function.update_eq_self]
+        rw [he];exact Runs.loop_nil hs
+      | cons y ys ih=>
+        intro s hs
+        let u:=Function.update s 0 ys
+        let v:=Function.update u 1 (true::u 1)
+        have hv : v 0=ys:=by simp [v,u]
+        have htail:=ih v hv
+        have hh : Runs (.loop 0 (.push 1 true) (.push 1 true)) s
+            (Function.update (Function.update v 0 []) 1 (List.replicate ys.length true++v 1))
+            (2*ys.length+1+1+1) := by
+          cases y
+          · exact Runs.loop_false (a:=1) (b:=2*ys.length+1) hs (Runs.push u 1 true) htail
+          · exact Runs.loop_true (a:=1) (b:=2*ys.length+1) hs (Runs.push u 1 true) htail
+        convert hh using 1
+        · funext k;fin_cases k <;> simp [u,v,Function.update,List.replicate_succ]
+          rw [←List.cons_append,←List.replicate_succ,List.replicate_succ',List.append_assoc]
+          rfl
+    refine ⟨2*xs.length+1,by simp,?_⟩
+    convert h xs (singletonStore 0 xs) (by simp [singletonStore]) using 1 <;>
+      (funext k;fin_cases k <;> simp [singletonStore,Function.update])
+end Procedure
+end ExactQuantumFactoring.BitStackProgram
+
+end
+
+
+end OAI

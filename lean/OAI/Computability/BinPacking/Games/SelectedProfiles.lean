@@ -1,0 +1,915 @@
+import OAI.Computability.BinPacking.Games.ProfileCorrection
+import OAI.Computability.BinPacking.Games.QuestionMarginal
+
+namespace OAI
+
+noncomputable section
+
+namespace BinPackingGames.Foundations.Repetition
+
+section
+open scoped BigOperators
+variable {I T X Y : Type*} [Fintype I] [DecidableEq I] [Fintype T]
+  [Fintype X] [Fintype Y] [DecidableEq X] [DecidableEq Y]
+
+def mergeAt {R : Type*} (j : I) (a : R) (rest : {i : I // i ≠ j} → R) : I → R :=
+  fun i => if h : i = j then a else rest ⟨i,h⟩
+
+omit [Fintype I] in
+@[simp] theorem mergeAt_self {R : Type*} (j : I) (a : R) (rest : {i : I // i ≠ j} → R) :
+    mergeAt j a rest j = a := by simp [mergeAt]
+
+omit [Fintype I] in
+@[simp] theorem mergeAt_other {R : Type*} (j : I) (a : R)
+    (rest : {i : I // i ≠ j} → R) (i : {i : I // i ≠ j}) :
+    mergeAt j a rest i.1 = rest i := by simp [mergeAt, i.property]
+
+def partialRevealWeight (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (u : I → X × Y) : ℝ :=
+  μ.weight (u j) * ∏ i : {i : I // i ≠ j}, (revealLaw μ).weight (u i.1,rest i)
+
+theorem product_reveal_at (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (r : X ⊕ Y) (rest : {i : I // i ≠ j} → X ⊕ Y) (u : I → X × Y) :
+    (∏ i, (revealLaw μ).weight (u i,mergeAt j r rest i)) =
+      (if r = Sum.inl (u j).1 then partialRevealWeight μ j rest u / 2 else 0) +
+      (if r = Sum.inr (u j).2 then partialRevealWeight μ j rest u / 2 else 0) := by
+  rw [Fintype.prod_eq_mul_prod_subtype_ne _ j]
+  simp only [mergeAt_self, mergeAt_other, revealLaw_weight]
+  by_cases hl : r = Sum.inl (u j).1 <;> by_cases hr : r = Sum.inr (u j).2 <;>
+    simp [hl, hr, partialRevealWeight, revealLaw_weight] <;> ring
+
+def partialRevealMarginal (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    (T × ({i : I // i ≠ j} → X ⊕ Y)) × (X × Y) → ℝ := by
+  classical
+  exact fun z => ∑ u, if u j = z.2 then
+    partialRevealWeight μ j z.1.2 u * likelihood z.1.1 u else 0
+
+def fullRevealMarginal (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    (T × (I → X ⊕ Y)) × (X × Y) → ℝ := by
+  classical
+  exact fun z => ∑ u, if u j = z.2 then
+    (∏ i, (revealLaw μ).weight (u i,z.1.2 i)) * likelihood z.1.1 u else 0
+
+omit [Fintype T] in
+theorem fullRevealMarginal_merge (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) (t : T)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (r : X ⊕ Y) (q : X × Y) :
+    fullRevealMarginal μ j likelihood ((t,mergeAt j r rest),q) =
+      maskedJoint (partialRevealMarginal μ j likelihood) (((t,rest),r),q) := by
+  classical
+  unfold fullRevealMarginal
+  simp_rw [product_reveal_at]
+  have hpoint (u : I → X × Y) :
+      (if u j = q then
+        ((if r = Sum.inl (u j).1 then partialRevealWeight μ j rest u / 2 else 0) +
+         (if r = Sum.inr (u j).2 then partialRevealWeight μ j rest u / 2 else 0)) *
+          likelihood t u else 0) =
+      (if r = Sum.inl q.1 then
+        (if u j = q then partialRevealWeight μ j rest u * likelihood t u else 0) / 2 else 0) +
+      (if r = Sum.inr q.2 then
+        (if u j = q then partialRevealWeight μ j rest u * likelihood t u else 0) / 2 else 0) := by
+    by_cases hu : u j = q
+    · rw [hu]
+      by_cases hl : r = Sum.inl q.1 <;> by_cases hr : r = Sum.inr q.2 <;>
+        simp [hl, hr] <;> ring
+    · simp [hu]
+  simp_rw [hpoint]
+  simp [maskedJoint, partialRevealMarginal, Finset.sum_add_distrib,
+    Finset.sum_ite_irrel, div_eq_mul_inv, Finset.sum_mul]
+
+def fullRevealModel (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    (T × (I → X ⊕ Y)) × (X × Y) → ℝ := fun z =>
+  Information.firstMarginal (fullRevealMarginal μ j likelihood) z.1 *
+    (revealProfile μ (z.1.2 j)).weight z.2
+
+omit [Fintype T] in
+theorem fullRevealModel_merge (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) (t : T)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (r : X ⊕ Y) (q : X × Y) :
+    fullRevealModel μ j likelihood ((t,mergeAt j r rest),q) =
+      maskedModel μ (partialRevealMarginal μ j likelihood) (((t,rest),r),q) := by
+  simp only [fullRevealModel, Information.firstMarginal, fullRevealMarginal_merge,
+    mergeAt_self, maskedModel]
+
+def revealSplitEquiv (j : I) :
+    ((T × (I → X ⊕ Y)) × (X × Y)) ≃
+      (((T × ({i : I // i ≠ j} → X ⊕ Y)) × (X ⊕ Y)) × (X × Y)) where
+  toFun z := (((z.1.1, fun i => z.1.2 i.1), z.1.2 j), z.2)
+  invFun z := ((z.1.1.1, mergeAt j z.1.2 z.1.1.2), z.2)
+  left_inv z := by
+    apply Prod.ext
+    · apply Prod.ext
+      · rfl
+      · funext i
+        by_cases h : i = j <;> simp [mergeAt, h]
+    · rfl
+  right_inv z := by
+    apply Prod.ext
+    · apply Prod.ext
+      · apply Prod.ext
+        · rfl
+        · funext i
+          exact mergeAt_other j z.1.2 z.1.1.2 i
+      · exact mergeAt_self j z.1.2 z.1.1.2
+    · rfl
+
+theorem totalVariation_comp_equiv {A B : Type*} [Fintype A] [Fintype B]
+    (e : A ≃ B) (p q : B → ℝ) :
+    Information.totalVariation (fun a => p (e a)) (fun a => q (e a)) =
+      Information.totalVariation p q := by
+  unfold Information.totalVariation
+  congr 1
+  exact e.sum_comp (fun b => |p b - q b|)
+
+theorem fullReveal_totalVariation (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    Information.totalVariation (fullRevealMarginal μ j likelihood) (fullRevealModel μ j likelihood) =
+      Information.totalVariation (maskedJoint (partialRevealMarginal μ j likelihood))
+        (maskedModel μ (partialRevealMarginal μ j likelihood)) := by
+  calc
+    _ = Information.totalVariation
+        (fun z => fullRevealMarginal μ j likelihood ((revealSplitEquiv (T := T) j).symm z))
+        (fun z => fullRevealModel μ j likelihood ((revealSplitEquiv (T := T) j).symm z)) :=
+      (totalVariation_comp_equiv (revealSplitEquiv (T := T) j).symm _ _).symm
+    _ = _ := by
+      congr 1 <;> funext z
+      · exact fullRevealMarginal_merge μ j likelihood z.1.1.1 z.1.1.2 z.1.2 z.2
+      · exact fullRevealModel_merge μ j likelihood z.1.1.1 z.1.1.2 z.1.2 z.2
+
+theorem leftReveal_full_error (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    Information.totalVariation (partialRevealMarginal μ j likelihood)
+      (leftRevealModel μ (partialRevealMarginal μ j likelihood)) ≤
+      2 * Information.totalVariation (fullRevealMarginal μ j likelihood)
+        (fullRevealModel μ j likelihood) := by
+  rw [fullReveal_totalVariation]
+  exact leftRevealModel_totalVariation_le μ _
+
+theorem rightReveal_full_error (μ : Games.FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ) :
+    Information.totalVariation (partialRevealMarginal μ j likelihood)
+      (rightRevealModel μ (partialRevealMarginal μ j likelihood)) ≤
+      2 * Information.totalVariation (fullRevealMarginal μ j likelihood)
+        (fullRevealModel μ j likelihood) := by
+  rw [fullReveal_totalVariation]
+  exact rightRevealModel_totalVariation_le μ _
+
+end
+
+section
+
+open scoped BigOperators
+open Games Information
+
+variable {Q₁ Q₂ A₁ A₂ : Type*}
+  [Fintype Q₁] [Fintype Q₂] [Fintype A₁] [Fintype A₂]
+  [DecidableEq Q₁] [DecidableEq Q₂] {n : Nat}
+
+omit [DecidableEq Q₁] [DecidableEq Q₂] in
+theorem selectedSplit_question_probability (G : Game Q₁ Q₂ A₁ A₂)
+    (selected : Finset (Fin n))
+    (event : ((Fin n → Q₁) × (Fin n → Q₂)) → Bool) :
+    (selectedSplitLaw G selected).probability
+      (fun q => event (selectedQuestionTuple selected q.1 q.2)) =
+        (G.repetition n).questions.probability event := by
+  rw [selectedSplitLaw, ← iid_coordinate_split, FiniteDistribution.probability_transport]
+  change (G.questions.iid n).probability _ =
+    ((G.questions.iid n).transport (Game.tupleQuestionEquiv n)).probability event
+  rw [FiniteDistribution.probability_transport]
+  apply congrArg (G.questions.iid n).probability
+  funext q
+  congr 1
+  apply Prod.ext <;> funext i <;>
+    simp [selectedQuestionTuple, coordinateSplitEquiv, mergeCoordinates, Game.tupleQuestionEquiv]
+
+theorem selectedJoint_eventMass (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n))
+    (event : ((Fin n → Q₁) × (Fin n → Q₂)) → Bool) :
+    (∑ tv : SelectedInput Q₁ Q₂ selected ×
+        SelectedLabels (A₁ := A₁) (A₂ := A₂) selected,
+      (selectedInputLaw G selected).weight tv.1 *
+        ∑ u, independentProduct
+          (fun i => (selectedInputProfile G selected tv.1 i).weight) u *
+            selectedLikelihood G strategy selected tv.1.1 tv.2 u *
+              (if event (selectedQuestionTuple selected tv.1.1 u) then 1 else 0)) =
+      (G.repetition n).questions.probability
+        (fun q => G.selectedWins strategy selected q && event q) := by
+  classical
+  have hlabel (t : SelectedInput Q₁ Q₂ selected) :
+      (∑ v, ∑ u, independentProduct
+        (fun i => (selectedInputProfile G selected t i).weight) u *
+          selectedLikelihood G strategy selected t.1 v u *
+            (if event (selectedQuestionTuple selected t.1 u) then 1 else 0)) =
+      ∑ u, independentProduct
+        (fun i => (selectedInputProfile G selected t i).weight) u *
+          (if G.selectedWins strategy selected (selectedQuestionTuple selected t.1 u) &&
+            event (selectedQuestionTuple selected t.1 u) then 1 else 0) := by
+    rw [Finset.sum_comm]
+    apply Finset.sum_congr rfl
+    intro u _
+    rw [← Finset.sum_mul, ← Finset.mul_sum, selectedLikelihood_sum]
+    cases G.selectedWins strategy selected (selectedQuestionTuple selected t.1 u) <;>
+      cases event (selectedQuestionTuple selected t.1 u) <;> simp
+  rw [Fintype.sum_prod_type]
+  simp_rw [← Finset.mul_sum, hlabel]
+  rw [Fintype.sum_prod_type]
+  simp only [selectedInputLaw, FiniteDistribution.product, FiniteDistribution.table,
+    selectedInputProfile, independentProduct]
+  simp_rw [mul_assoc, ← Finset.mul_sum]
+  have hforget (fixed : selected → Q₁ × Q₂) :=
+    reveal_product_expectation G.questions
+      (fun u : {i : Fin n // i ∉ selected} → Q₁ × Q₂ =>
+        if G.selectedWins strategy selected (selectedQuestionTuple selected fixed u) &&
+          event (selectedQuestionTuple selected fixed u) then (1 : ℝ) else 0)
+  simp_rw [hforget]
+  have h := selectedSplit_question_probability G selected
+    (fun q => G.selectedWins strategy selected q && event q)
+  simpa [selectedSplitLaw, FiniteDistribution.probability, FiniteDistribution.product,
+    FiniteDistribution.table, Fintype.sum_prod_type, Finset.mul_sum, mul_ite, mul_assoc] using h
+
+theorem selectedJointLaw_question_probability (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (event : ((Fin n → Q₁) × (Fin n → Q₂)) → Bool) :
+    (selectedJointLaw G strategy selected positive).probability
+      (fun z => event (selectedQuestionTuple selected z.1.1.1 z.2)) =
+        ((G.repetition n).questions.condition (G.selectedWins strategy selected) positive).probability
+          event := by
+  classical
+  erw [FiniteDistribution.probability_condition]
+  change
+    (∑ z : (SelectedInput Q₁ Q₂ selected ×
+        SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) ×
+          ({i : Fin n // i ∉ selected} → Q₁ × Q₂),
+      if event (selectedQuestionTuple selected z.1.1.1 z.2)
+      then selectedJointWeight G strategy selected z else 0) =
+        (G.repetition n).questions.probability
+          (fun q => G.selectedWins strategy selected q && event q) /
+            G.selectedSuccess strategy selected
+  calc
+    _ = (∑ tv : SelectedInput Q₁ Q₂ selected ×
+          SelectedLabels (A₁ := A₁) (A₂ := A₂) selected,
+        (selectedInputLaw G selected).weight tv.1 *
+          ∑ u, independentProduct
+            (fun i => (selectedInputProfile G selected tv.1 i).weight) u *
+              selectedLikelihood G strategy selected tv.1.1 tv.2 u *
+                (if event (selectedQuestionTuple selected tv.1.1 u) then 1 else 0)) /
+        G.selectedSuccess strategy selected := by
+      conv_lhs => rw [Fintype.sum_prod_type]
+      simp only [div_eq_mul_inv, Finset.sum_mul, Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro tv _
+      apply Finset.sum_congr rfl
+      intro u _
+      cases event (selectedQuestionTuple selected tv.1.1 u) <;>
+        simp [selectedJointWeight, div_eq_mul_inv, mul_assoc]
+    _ = _ := by rw [selectedJoint_eventMass]
+
+theorem selectedJointLaw_questions_pushforward (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected) :
+    (selectedJointLaw G strategy selected positive).pushforward
+      (fun z => selectedQuestionTuple selected z.1.1.1 z.2) =
+        (G.repetition n).questions.condition (G.selectedWins strategy selected) positive := by
+  classical
+  apply FiniteDistribution.eq_of_weight_eq
+  intro questions
+  have h :
+      ((selectedJointLaw G strategy selected positive).pushforward
+        (fun z => selectedQuestionTuple selected z.1.1.1 z.2)).probability
+          (fun q => decide (q = questions)) =
+      ((G.repetition n).questions.condition (G.selectedWins strategy selected) positive).probability
+        (fun q => decide (q = questions)) := by
+    rw [FiniteDistribution.probability_pushforward]
+    exact selectedJointLaw_question_probability G strategy selected positive
+      (fun q => decide (q = questions))
+  simpa [FiniteDistribution.probability] using h
+
+end
+
+section
+open scoped BigOperators
+open Games Information
+variable {Q₁ Q₂ A₁ A₂ : Type*}
+  [Fintype Q₁] [Fintype Q₂] [Fintype A₁] [Fintype A₂]
+  [DecidableEq Q₁] [DecidableEq Q₂] {n : Nat}
+
+def selectedRawMarginal (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) :
+    (SelectedInput Q₁ Q₂ selected × SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) ×
+      (Q₁ × Q₂) → ℝ := by
+  classical
+  exact fun z => ∑ u, if u j = z.2 then selectedJointWeight G strategy selected (z.1,u) else 0
+
+theorem selectedPosterior_eq_raw (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) (tv) (q) :
+    selectedSideWeight G strategy selected tv * coordinateMarginal
+      (posteriorOrOriginal
+        (independentProduct (fun i => (selectedInputProfile G selected tv.1 i).weight))
+        (selectedLikelihood G strategy selected tv.1.1 tv.2)
+        (selectedSideMass G strategy selected tv)) j q =
+      selectedRawMarginal G strategy selected j (tv,q) := by
+  classical
+  rw [selectedSideWeight]
+  have h := weighted_coordinate_posterior_recombine
+    (independentProduct (fun i => (selectedInputProfile G selected tv.1 i).weight))
+    (selectedLikelihood G strategy selected tv.1.1 tv.2)
+    (independentProduct_isProbability _
+      (fun i => gameLaw_isProbability (selectedInputProfile G selected tv.1 i)))
+    (selectedLikelihood_nonnegative G strategy selected tv.1.1 tv.2)
+    (c := selectedSideMass G strategy selected tv) rfl
+    ((selectedInputLaw G selected).weight tv.1) (G.selectedSuccess strategy selected) j q
+  rw [h]
+  simp only [Finset.mul_sum, selectedRawMarginal, selectedJointWeight]
+  apply Finset.sum_congr rfl
+  intro u _
+  by_cases hu : u j = q
+  · simp only [ite_eq_left hu]
+    ring
+  · simp [hu]
+
+theorem selectedRawMarginal_firstMarginal (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) (tv) :
+    firstMarginal (selectedRawMarginal G strategy selected j) tv =
+      selectedSideWeight G strategy selected tv := by
+  classical
+  simp only [firstMarginal, selectedRawMarginal]
+  rw [Finset.sum_comm]
+  simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
+  exact selectedJointWeight_firstMarginal G strategy selected tv
+
+theorem selectedRawMarginal_isProbability (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    IsProbability (selectedRawMarginal G strategy selected j) := by
+  classical
+  constructor
+  · intro z
+    apply Finset.sum_nonneg
+    intro u _
+    split
+    · exact selectedJointWeight_nonnegative G strategy selected (z.1,u)
+    · exact le_rfl
+  · rw [Fintype.sum_prod_type]
+    change (∑ tv, firstMarginal (selectedRawMarginal G strategy selected j) tv) = 1
+    simp_rw [selectedRawMarginal_firstMarginal, selectedSideWeight, div_eq_mul_inv]
+    rw [← Finset.sum_mul, selectedSideMass_total, mul_inv_cancel₀ positive.ne']
+
+theorem selected_raw_information_bound [Nonempty A₁] [Nonempty A₂]
+    (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected) :
+    (∑ j : {i : Fin n // i ∉ selected}, totalVariation
+      (selectedRawMarginal G strategy selected j)
+      (fun z => selectedSideWeight G strategy selected z.1 *
+        (selectedInputProfile G selected z.1.1 j).weight z.2)) ≤
+      Real.sqrt ((Fintype.card {i : Fin n // i ∉ selected} : ℝ) *
+        (Real.log (Fintype.card (SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) : ℝ) +
+          Real.log (1 / G.selectedSuccess strategy selected))) := by
+  have h := selected_information_bound G strategy selected positive
+  simp_rw [selectedPosterior_eq_raw] at h
+  exact h
+
+def selectedOutsideLikelihood (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n))
+    (t : (selected → Q₁ × Q₂) × SelectedLabels (A₁ := A₁) (A₂ := A₂) selected)
+    (u : {i : Fin n // i ∉ selected} → Q₁ × Q₂) : ℝ :=
+  (∏ i : selected, G.questions.weight (t.1 i)) *
+    selectedLikelihood G strategy selected t.1 t.2 u / G.selectedSuccess strategy selected
+
+def selectedObservationEquiv (selected : Finset (Fin n)) :
+    ((SelectedInput Q₁ Q₂ selected × SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) ×
+      (Q₁ × Q₂)) ≃
+    ((((selected → Q₁ × Q₂) × SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) ×
+      ({i : Fin n // i ∉ selected} → Q₁ ⊕ Q₂)) × (Q₁ × Q₂)) where
+  toFun z := (((z.1.1.1,z.1.2),z.1.1.2),z.2)
+  invFun z := (((z.1.1.1,z.1.2),z.1.1.2),z.2)
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+theorem selectedRawMarginal_fullReveal (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) (z) :
+    selectedRawMarginal G strategy selected j
+        ((selectedObservationEquiv (Q₁ := Q₁) (Q₂ := Q₂) (A₁ := A₁) (A₂ := A₂) selected).symm z) =
+      fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected) z := by
+  classical
+  change selectedRawMarginal G strategy selected j
+    (((z.1.1.1,z.1.2),z.1.1.2),z.2) = _
+  simp only [selectedRawMarginal, fullRevealMarginal]
+  apply Finset.sum_congr rfl
+  intro u _
+  by_cases hu : u j = z.2
+  · simp only [ite_eq_left hu, selectedJointWeight_factorization, selectedOutsideLikelihood]
+    ring
+  · simp [hu]
+
+theorem selectedRawReference_fullReveal (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) (z) :
+    (fun w => selectedSideWeight G strategy selected w.1 *
+      (selectedInputProfile G selected w.1.1 j).weight w.2)
+        ((selectedObservationEquiv (Q₁ := Q₁) (Q₂ := Q₂) (A₁ := A₁) (A₂ := A₂) selected).symm z) =
+      fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected) z := by
+  change selectedSideWeight G strategy selected ((z.1.1.1,z.1.2),z.1.1.2) *
+    (revealProfile G.questions (z.1.2 j)).weight z.2 = _
+  rw [← selectedRawMarginal_firstMarginal G strategy selected j]
+  unfold firstMarginal fullRevealModel
+  congr 1
+  apply Finset.sum_congr rfl
+  intro q _
+  exact selectedRawMarginal_fullReveal G strategy selected j (z.1,q)
+
+theorem selected_raw_error_eq_fullReveal (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (j : {i : Fin n // i ∉ selected}) :
+    totalVariation (selectedRawMarginal G strategy selected j)
+      (fun z => selectedSideWeight G strategy selected z.1 *
+        (selectedInputProfile G selected z.1.1 j).weight z.2) =
+      totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected)) := by
+  rw [← totalVariation_comp_equiv
+    (selectedObservationEquiv (Q₁ := Q₁) (Q₂ := Q₂) (A₁ := A₁) (A₂ := A₂) selected).symm]
+  congr 1 <;> funext z
+  · exact selectedRawMarginal_fullReveal G strategy selected j z
+  · exact selectedRawReference_fullReveal G strategy selected j z
+
+theorem selected_fullReveal_information_bound [Nonempty A₁] [Nonempty A₂]
+    (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected) :
+    (∑ j : {i : Fin n // i ∉ selected},
+      totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected))) ≤
+      Real.sqrt ((Fintype.card {i : Fin n // i ∉ selected} : ℝ) *
+        (Real.log (Fintype.card (SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) : ℝ) +
+          Real.log (1 / G.selectedSuccess strategy selected))) := by
+  have h := selected_raw_information_bound G strategy selected positive
+  simp_rw [selected_raw_error_eq_fullReveal] at h
+  exact h
+
+def selectedInformationRadius (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) : ℝ :=
+  Real.sqrt ((Fintype.card {i : Fin n // i ∉ selected} : ℝ) *
+    (Real.log (Fintype.card (SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) : ℝ) +
+      Real.log (1 / G.selectedSuccess strategy selected)))
+
+theorem selected_leftReveal_error_sum [Nonempty A₁] [Nonempty A₂]
+    (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected) :
+    (∑ j : {i : Fin n // i ∉ selected},
+      totalVariation (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (leftRevealModel G.questions
+          (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected)))) ≤
+      2 * selectedInformationRadius G strategy selected := by
+  calc
+    _ ≤ ∑ j : {i : Fin n // i ∉ selected},
+        2 * totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+          (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected)) := by
+      apply Finset.sum_le_sum
+      intro j _
+      exact leftReveal_full_error G.questions j _
+    _ = 2 * ∑ j : {i : Fin n // i ∉ selected},
+        totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+          (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected)) :=
+      (Finset.mul_sum _ _ _).symm
+    _ ≤ _ := mul_le_mul_of_nonneg_left
+      (selected_fullReveal_information_bound G strategy selected positive) (by norm_num)
+
+theorem selected_rightReveal_error_sum [Nonempty A₁] [Nonempty A₂]
+    (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected) :
+    (∑ j : {i : Fin n // i ∉ selected},
+      totalVariation (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (rightRevealModel G.questions
+          (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected)))) ≤
+      2 * selectedInformationRadius G strategy selected := by
+  calc
+    _ ≤ ∑ j : {i : Fin n // i ∉ selected},
+        2 * totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+          (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected)) := by
+      apply Finset.sum_le_sum
+      intro j _
+      exact rightReveal_full_error G.questions j _
+    _ = 2 * ∑ j : {i : Fin n // i ∉ selected},
+        totalVariation (fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+          (fullRevealModel G.questions j (selectedOutsideLikelihood G strategy selected)) :=
+      (Finset.mul_sum _ _ _).symm
+    _ ≤ _ := mul_le_mul_of_nonneg_left
+      (selected_fullReveal_information_bound G strategy selected positive) (by norm_num)
+
+end
+
+section
+open scoped BigOperators
+open Games
+variable {I X Y : Type*} [Fintype I] [DecidableEq I]
+  [Fintype X] [Fintype Y] [DecidableEq X] [DecidableEq Y]
+
+def revealLeftFactor (μ : FiniteDistribution (X × Y)) (r : X ⊕ Y) (x : X) : ℝ :=
+  match r with
+  | Sum.inl u => if x = u then 1 else 0
+  | Sum.inr v => μ.weight (x,v) / 2
+
+def revealRightFactor (μ : FiniteDistribution (X × Y)) (r : X ⊕ Y) (y : Y) : ℝ :=
+  match r with
+  | Sum.inl u => μ.weight (u,y) / 2
+  | Sum.inr v => if y = v then 1 else 0
+
+omit [DecidableEq Y] in
+theorem revealLeftFactor_nonnegative (μ : FiniteDistribution (X × Y))
+    (r : X ⊕ Y) (x : X) : 0 ≤ revealLeftFactor μ r x := by
+  cases r with
+  | inl u => simp only [revealLeftFactor]; split <;> norm_num
+  | inr v => exact div_nonneg (μ.nonnegative _) (by norm_num)
+
+omit [DecidableEq X] in
+theorem revealRightFactor_nonnegative (μ : FiniteDistribution (X × Y))
+    (r : X ⊕ Y) (y : Y) : 0 ≤ revealRightFactor μ r y := by
+  cases r with
+  | inl u => exact div_nonneg (μ.nonnegative _) (by norm_num)
+  | inr v => simp only [revealRightFactor]; split <;> norm_num
+
+theorem revealLaw_factorization (μ : FiniteDistribution (X × Y))
+    (r : X ⊕ Y) (x : X) (y : Y) :
+    (revealLaw μ).weight ((x,y),r) =
+      revealLeftFactor μ r x * revealRightFactor μ r y := by
+  rw [revealLaw_weight]
+  cases r with
+  | inl u =>
+    by_cases h : x = u
+    · subst x; simp [revealLeftFactor, revealRightFactor]
+    · simp [revealLeftFactor, revealRightFactor, h, Ne.symm h]
+  | inr v =>
+    by_cases h : y = v
+    · subst y; simp [revealLeftFactor, revealRightFactor]
+    · simp [revealLeftFactor, revealRightFactor, h, Ne.symm h]
+
+def partialLeftFactor (μ : FiniteDistribution (X × Y)) (j : I)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (x : I → X) : ℝ :=
+  ∏ i, revealLeftFactor μ (rest i) (x i.1)
+
+def partialRightFactor (μ : FiniteDistribution (X × Y)) (j : I)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (y : I → Y) : ℝ :=
+  ∏ i, revealRightFactor μ (rest i) (y i.1)
+
+theorem partialRevealWeight_factorization (μ : FiniteDistribution (X × Y)) (j : I)
+    (rest : {i : I // i ≠ j} → X ⊕ Y) (u : I → X × Y) :
+    partialRevealWeight μ j rest u =
+      μ.weight (u j) * partialLeftFactor μ j rest (fun i => (u i).1) *
+        partialRightFactor μ j rest (fun i => (u i).2) := by
+  have hpoint (i : {i : I // i ≠ j}) :
+      (revealLaw μ).weight (u i.1,rest i) =
+        revealLeftFactor μ (rest i) (u i.1).1 * revealRightFactor μ (rest i) (u i.1).2 :=
+    revealLaw_factorization μ (rest i) (u i.1).1 (u i.1).2
+  simp only [partialRevealWeight, partialLeftFactor, partialRightFactor,
+    hpoint, Finset.prod_mul_distrib]
+  ring
+
+end
+
+section
+open scoped BigOperators
+open Games Information
+
+theorem isProbability_comp_equiv {A B : Type*} [Fintype A] [Fintype B]
+    (e : A ≃ B) (p : B → ℝ) (hp : IsProbability p) :
+    IsProbability (fun a => p (e a)) := by
+  constructor
+  · intro a
+    exact hp.1 _
+  · rw [e.sum_comp]
+    exact hp.2
+
+theorem partialRevealMarginal_isProbability
+    {I T X Y : Type*} [Fintype I] [DecidableEq I] [Fintype T]
+    [Fintype X] [Fintype Y] [DecidableEq X] [DecidableEq Y]
+    (μ : FiniteDistribution (X × Y)) (j : I)
+    (likelihood : T → (I → X × Y) → ℝ)
+    (hp : IsProbability (fullRevealMarginal μ j likelihood)) :
+    IsProbability (partialRevealMarginal μ j likelihood) := by
+  apply (maskedJoint_isProbability_iff _).mp
+  have h := isProbability_comp_equiv (revealSplitEquiv (T := T) j).symm _ hp
+  have he : (fun z => fullRevealMarginal μ j likelihood
+      ((revealSplitEquiv (T := T) j).symm z)) =
+      maskedJoint (partialRevealMarginal μ j likelihood) := by
+    funext z
+    exact fullRevealMarginal_merge μ j likelihood z.1.1.1 z.1.1.2 z.1.2 z.2
+  rw [he] at h
+  exact h
+
+variable {Q₁ Q₂ A₁ A₂ : Type*}
+  [Fintype Q₁] [Fintype Q₂] [Fintype A₁] [Fintype A₂]
+  [DecidableEq Q₁] [DecidableEq Q₂] {n : Nat}
+
+abbrev SelectedCommonData (selected : Finset (Fin n))
+    (j : {i : Fin n // i ∉ selected}) :=
+  ((selected → Q₁ × Q₂) × SelectedLabels (A₁ := A₁) (A₂ := A₂) selected) ×
+    ({i : {i : Fin n // i ∉ selected} // i ≠ j} → Q₁ ⊕ Q₂)
+
+theorem selected_fullReveal_isProbability (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    IsProbability (fullRevealMarginal G.questions j
+      (selectedOutsideLikelihood G strategy selected)) := by
+  have h := isProbability_comp_equiv
+    (selectedObservationEquiv (Q₁ := Q₁) (Q₂ := Q₂) (A₁ := A₁) (A₂ := A₂) selected).symm
+    _ (selectedRawMarginal_isProbability G strategy selected positive j)
+  have he : (fun z => selectedRawMarginal G strategy selected j
+      ((selectedObservationEquiv (Q₁ := Q₁) (Q₂ := Q₂) (A₁ := A₁) (A₂ := A₂) selected).symm z)) =
+      fullRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected) := by
+    funext z
+    exact selectedRawMarginal_fullReveal G strategy selected j z
+  rw [he] at h
+  exact h
+
+def selectedCommonLaw (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    FiniteDistribution (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j × (Q₁ × Q₂)) :=
+  toGameLaw (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+    (partialRevealMarginal_isProbability G.questions j _
+      (selected_fullReveal_isProbability G strategy selected positive j))
+
+end
+
+section
+open scoped BigOperators
+open Games Information
+variable {S X Y : Type*} [Fintype S] [Fintype X] [Fintype Y]
+
+theorem firstMarginal_totalVariation_le (r t : X × Y → ℝ) :
+    totalVariation (firstMarginal r) (firstMarginal t) ≤ totalVariation r t := by
+  unfold totalVariation firstMarginal
+  simp_rw [← Finset.sum_sub_distrib]
+  have h := Finset.sum_le_sum (s := Finset.univ)
+    (fun x _ => Finset.abs_sum_le_sum_abs (fun y : Y => r (x,y)-t (x,y)) Finset.univ)
+  rw [Fintype.sum_prod_type]
+  linarith
+
+def leftCommonMarginal (p : S × (X × Y) → ℝ) : X × S → ℝ :=
+  fun z => ∑ y, p (z.2,(z.1,y))
+
+def leftCommonProfile (p : S × (X × Y) → ℝ) (fallback : S → ℝ) : X → S → ℝ :=
+  conditionalKernel (leftCommonMarginal p) fallback
+
+def swapSeedLeft : (X × (S × Y)) ≃ (S × (X × Y)) where
+  toFun z := (z.2.1,(z.1,z.2.2))
+  invFun z := (z.2.1,(z.1,z.2.2))
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+theorem leftCommonMarginal_isProbability (p : S × (X × Y) → ℝ)
+    (hp : IsProbability p) : IsProbability (leftCommonMarginal p) := by
+  exact ProfileCorrection.seedQuestionMarginal_isProbability
+    (fun z => p (swapSeedLeft z)) (isProbability_comp_equiv swapSeedLeft p hp)
+
+theorem leftCommonProfile_isProbability (p : S × (X × Y) → ℝ) (fallback : S → ℝ)
+    (hp : IsProbability p) (hf : IsProbability fallback) (x : X) :
+    IsProbability (leftCommonProfile p fallback x) :=
+  conditionalKernel_isProbability _ _ (leftCommonMarginal_isProbability p hp) hf x
+
+theorem leftCommonProfile_error [DecidableEq X] [DecidableEq Y]
+    (p : S × (X × Y) → ℝ) (μ : FiniteDistribution (X × Y)) (fallback : S → ℝ)
+    (hp : IsProbability p) (hf : IsProbability fallback) :
+    totalVariation p (fun z => μ.weight z.2 * leftCommonProfile p fallback z.2.1 z.1) ≤
+      totalVariation p (leftRevealModel μ p) + totalVariation (secondMarginal p) μ.weight := by
+  let e := swapSeedLeft (S := S) (X := X) (Y := Y)
+  let p' : X × (S × Y) → ℝ := fun z => p (e z)
+  have h := ProfileCorrection.left_profile_correction p' μ.weight fallback
+    (μ.pushforward Prod.snd).weight
+    (isProbability_comp_equiv e p hp) (gameLaw_isProbability μ) hf
+    (gameLaw_isProbability (μ.pushforward Prod.snd))
+  have hs : ProfileCorrection.seedQuestionMarginal p' = leftCommonMarginal p := rfl
+  have hc : (fun z : X × (S × Y) => ProfileCorrection.seedQuestionMarginal p' (z.1,z.2.1) *
+      conditionalKernel μ.weight (μ.pushforward Prod.snd).weight z.1 z.2.2) =
+      fun z => leftRevealModel μ p (e z) := by
+    funext z
+    change (∑ y, p (z.2.1,(z.1,y))) *
+      conditionalKernel μ.weight (μ.pushforward Prod.snd).weight z.1 z.2.2 =
+      (∑ y, p (z.2.1,(z.1,y))) *
+        (revealProfile μ (Sum.inl z.1)).weight (z.1,z.2.2)
+    rw [revealProfile_inl_diagonal]
+  have hd : (fun z : X × (S × Y) => μ.weight (z.1,z.2.2) *
+      conditionalKernel (ProfileCorrection.seedQuestionMarginal p') fallback z.1 z.2.1) =
+      fun z => μ.weight (e z).2 * leftCommonProfile p fallback (e z).2.1 (e z).1 := rfl
+  rw [hc, hd] at h
+  change totalVariation (fun z => p (e z)) _ ≤
+    totalVariation (fun z => p (e z)) _ + _ at h
+  rw [totalVariation_comp_equiv e p (leftRevealModel μ p)] at h
+  rw [totalVariation_comp_equiv e p
+    (fun z => μ.weight z.2 * leftCommonProfile p fallback z.2.1 z.1)] at h
+  have hm : firstMarginal p' = firstMarginal (secondMarginal p) := by
+    funext x
+    simp only [firstMarginal, secondMarginal, Fintype.sum_prod_type, p', e, swapSeedLeft]
+    exact Finset.sum_comm
+  rw [hm] at h
+  exact h.trans (add_le_add le_rfl (firstMarginal_totalVariation_le (secondMarginal p) μ.weight))
+
+def swapQuestionEndpoints : (S × (Y × X)) ≃ (S × (X × Y)) where
+  toFun z := (z.1,(z.2.2,z.2.1))
+  invFun z := (z.1,(z.2.2,z.2.1))
+  left_inv _ := rfl
+  right_inv _ := rfl
+
+def rightCommonMarginal (p : S × (X × Y) → ℝ) : Y × S → ℝ :=
+  fun z => ∑ x, p (z.2,(x,z.1))
+
+def rightCommonProfile (p : S × (X × Y) → ℝ) (fallback : S → ℝ) : Y → S → ℝ :=
+  conditionalKernel (rightCommonMarginal p) fallback
+
+theorem rightCommonProfile_isProbability (p : S × (X × Y) → ℝ) (fallback : S → ℝ)
+    (hp : IsProbability p) (hf : IsProbability fallback) (y : Y) :
+    IsProbability (rightCommonProfile p fallback y) :=
+  leftCommonProfile_isProbability (fun z => p (swapQuestionEndpoints z)) fallback
+    (isProbability_comp_equiv swapQuestionEndpoints p hp) hf y
+
+theorem swap_question_pushforward_snd (μ : FiniteDistribution (X × Y)) :
+    ((μ.transport (Equiv.prodComm X Y)).pushforward Prod.snd) = μ.pushforward Prod.fst := by
+  rw [FiniteDistribution.transport_eq_pushforward, FiniteDistribution.pushforward_comp]
+  rfl
+
+omit [Fintype S] in
+theorem leftRevealModel_swap [DecidableEq X] [DecidableEq Y]
+    (p : S × (X × Y) → ℝ) (μ : FiniteDistribution (X × Y)) (z : S × (Y × X)) :
+    leftRevealModel (μ.transport (Equiv.prodComm X Y))
+      (fun z => p (swapQuestionEndpoints z)) z = rightRevealModel μ p (swapQuestionEndpoints z) := by
+  rcases z with ⟨s,y,x⟩
+  change (∑ x', p (s,(x',y))) *
+      (revealProfile (μ.transport (Equiv.prodComm X Y)) (Sum.inl y)).weight (y,x) =
+    (∑ x', p (s,(x',y))) * (revealProfile μ (Sum.inr y)).weight (x,y)
+  rw [revealProfile_inl_diagonal, revealProfile_inr_diagonal, swap_question_pushforward_snd]
+
+theorem rightCommonProfile_error [DecidableEq X] [DecidableEq Y]
+    (p : S × (X × Y) → ℝ) (μ : FiniteDistribution (X × Y)) (fallback : S → ℝ)
+    (hp : IsProbability p) (hf : IsProbability fallback) :
+    totalVariation p (fun z => μ.weight z.2 * rightCommonProfile p fallback z.2.2 z.1) ≤
+      totalVariation p (rightRevealModel μ p) + totalVariation (secondMarginal p) μ.weight := by
+  let e := swapQuestionEndpoints (S := S) (X := X) (Y := Y)
+  let p' : S × (Y × X) → ℝ := fun z => p (e z)
+  let μ' := μ.transport (Equiv.prodComm X Y)
+  have h := leftCommonProfile_error p' μ' fallback (isProbability_comp_equiv e p hp) hf
+  have hc : leftRevealModel μ' p' = fun z => rightRevealModel μ p (e z) := by
+    funext z
+    exact leftRevealModel_swap p μ z
+  have hd : (fun z : S × (Y × X) => μ'.weight z.2 * leftCommonProfile p' fallback z.2.1 z.1) =
+      fun z => μ.weight (e z).2 * rightCommonProfile p fallback (e z).2.2 (e z).1 := rfl
+  rw [hc, hd] at h
+  change totalVariation (fun z => p (e z)) _ ≤
+    totalVariation (fun z => p (e z)) _ + _ at h
+  rw [totalVariation_comp_equiv e p (rightRevealModel μ p)] at h
+  rw [totalVariation_comp_equiv e p
+    (fun z => μ.weight z.2 * rightCommonProfile p fallback z.2.2 z.1)] at h
+  have hm : totalVariation (secondMarginal p') μ'.weight =
+      totalVariation (secondMarginal p) μ.weight := by
+    change totalVariation (fun yx => secondMarginal p ((Equiv.prodComm Y X) yx))
+      (fun yx => μ.weight ((Equiv.prodComm Y X) yx)) = _
+    exact totalVariation_comp_equiv (Equiv.prodComm Y X) _ _
+  rw [hm] at h
+  exact h
+
+end
+
+open scoped BigOperators
+open Games Information
+
+theorem finiteDistribution_nonempty {A : Type*} [Fintype A] (μ : FiniteDistribution A) :
+    Nonempty A := by
+  have hsum : (∑ a, μ.weight a) ≠ 0 := by rw [μ.normalized]; norm_num
+  obtain ⟨a, _, _⟩ := Finset.exists_ne_zero_of_sum_ne_zero hsum
+  exact ⟨a⟩
+
+variable {Q₁ Q₂ A₁ A₂ : Type*}
+  [Fintype Q₁] [Fintype Q₂] [Fintype A₁] [Fintype A₂]
+  [DecidableEq Q₁] [DecidableEq Q₂] {n : Nat}
+
+def selectedProfileFallback (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    FiniteDistribution (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j) :=
+  (selectedCommonLaw G strategy selected positive j).pushforward Prod.fst
+
+def selectedLeftProfile (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) (x : Q₁) :
+    FiniteDistribution (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j) :=
+  toGameLaw
+    (leftCommonProfile (selectedCommonLaw G strategy selected positive j).weight
+      (selectedProfileFallback G strategy selected positive j).weight x)
+    (leftCommonProfile_isProbability _ _
+      (gameLaw_isProbability (selectedCommonLaw G strategy selected positive j))
+      (gameLaw_isProbability (selectedProfileFallback G strategy selected positive j)) x)
+
+def selectedRightProfile (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) (y : Q₂) :
+    FiniteDistribution (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j) :=
+  toGameLaw
+    (rightCommonProfile (selectedCommonLaw G strategy selected positive j).weight
+      (selectedProfileFallback G strategy selected positive j).weight y)
+    (rightCommonProfile_isProbability _ _
+      (gameLaw_isProbability (selectedCommonLaw G strategy selected positive j))
+      (gameLaw_isProbability (selectedProfileFallback G strategy selected positive j)) y)
+
+def selectedLeftProfileError (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) : ℝ :=
+  totalVariation (selectedCommonLaw G strategy selected positive j).weight
+    (fun z => G.questions.weight z.2 * (selectedLeftProfile G strategy selected positive j z.2.1).weight z.1)
+
+def selectedRightProfileError (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) : ℝ :=
+  totalVariation (selectedCommonLaw G strategy selected positive j).weight
+    (fun z => G.questions.weight z.2 * (selectedRightProfile G strategy selected positive j z.2.2).weight z.1)
+
+theorem selectedLeftProfileError_le (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    selectedLeftProfileError G strategy selected positive j ≤
+      totalVariation (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (leftRevealModel G.questions
+          (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))) +
+      totalVariation (secondMarginal (selectedCommonLaw G strategy selected positive j).weight)
+        G.questions.weight :=
+  leftCommonProfile_error _ G.questions _
+    (gameLaw_isProbability (selectedCommonLaw G strategy selected positive j))
+    (gameLaw_isProbability (selectedProfileFallback G strategy selected positive j))
+
+theorem selectedRightProfileError_le (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    selectedRightProfileError G strategy selected positive j ≤
+      totalVariation (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))
+        (rightRevealModel G.questions
+          (partialRevealMarginal G.questions j (selectedOutsideLikelihood G strategy selected))) +
+      totalVariation (secondMarginal (selectedCommonLaw G strategy selected positive j).weight)
+        G.questions.weight :=
+  rightCommonProfile_error _ G.questions _
+    (gameLaw_isProbability (selectedCommonLaw G strategy selected positive j))
+    (gameLaw_isProbability (selectedProfileFallback G strategy selected positive j))
+
+def selectedSamplingTarget (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    FiniteDistribution ((Q₁ × Q₂) × SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j) :=
+  (selectedCommonLaw G strategy selected positive j).transport (Equiv.prodComm _ _)
+
+theorem selectedSamplingTarget_left_error (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    totalVariation (selectedSamplingTarget G strategy selected positive j).weight
+      (fun z => G.questions.weight z.1 * (selectedLeftProfile G strategy selected positive j z.1.1).weight z.2) =
+      selectedLeftProfileError G strategy selected positive j := by
+  exact totalVariation_comp_equiv
+    (Equiv.prodComm (Q₁ × Q₂) (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j))
+    (selectedCommonLaw G strategy selected positive j).weight
+    (fun z => G.questions.weight z.2 * (selectedLeftProfile G strategy selected positive j z.2.1).weight z.1)
+
+theorem selectedSamplingTarget_right_error (G : Game Q₁ Q₂ A₁ A₂)
+    (strategy : Strategy (Fin n → Q₁) (Fin n → Q₂) (Fin n → A₁) (Fin n → A₂))
+    (selected : Finset (Fin n)) (positive : 0 < G.selectedSuccess strategy selected)
+    (j : {i : Fin n // i ∉ selected}) :
+    totalVariation (selectedSamplingTarget G strategy selected positive j).weight
+      (fun z => G.questions.weight z.1 * (selectedRightProfile G strategy selected positive j z.1.2).weight z.2) =
+      selectedRightProfileError G strategy selected positive j := by
+  exact totalVariation_comp_equiv
+    (Equiv.prodComm (Q₁ × Q₂) (SelectedCommonData (Q₁ := Q₁) (Q₂ := Q₂)
+      (A₁ := A₁) (A₂ := A₂) selected j))
+    (selectedCommonLaw G strategy selected positive j).weight
+    (fun z => G.questions.weight z.2 * (selectedRightProfile G strategy selected positive j z.2.2).weight z.1)
+
+end BinPackingGames.Foundations.Repetition
+
+end
+
+end OAI

@@ -1,0 +1,937 @@
+import Mathlib
+import OAI.Computability.DirectedFeedback.Games.FieldArray
+
+namespace OAI
+
+
+namespace DFVSGames.Foundations.Hastad.SourceContextLoad
+
+open Turing DFVSGames.Foundations.Complexity
+open MachineComposition
+
+inductive Tape (u : Nat) (Extra : Type)
+  | formula | index | work | scratch | copyScratch
+  | current (coordinate : Fin u) | remaining (coordinate : Fin u)
+  | field (coordinate : Fin u) (slot : Fin 6)
+  | extra (value : Extra)
+  deriving DecidableEq, Fintype
+
+inductive Label (u : Nat)
+  | copyOut (coordinate : Fin u) | copyBack (coordinate : Fin u)
+  | lookup (coordinate : Fin u) (localLabel : SourceClauseLookup.Label)
+  | clearWork (coordinate : Fin u) | clearIndex (coordinate : Fin u)
+  | done
+  deriving DecidableEq, Fintype
+
+variable {u : Nat} {Extra : Type}
+
+def place (j : Fin u) : SourceClauseLookup.Tape → Tape u Extra
+  | .formula => .formula | .index => .index | .work => .work | .scratch => .scratch
+  | .field s => .field j s
+
+def fill (j : Fin u) (base : Tape u Extra → List Bool)
+    (localTapes : SourceClauseLookup.Tape → List Bool) : Tape u Extra → List Bool
+  | .formula => localTapes .formula | .index => localTapes .index
+  | .work => localTapes .work | .scratch => localTapes .scratch
+  | .field i s => if i = j then localTapes (.field s) else base (.field i s)
+  | p => base p
+
+@[simp] theorem fill_place (j : Fin u) (base : Tape u Extra → List Bool)
+    (localTapes : SourceClauseLookup.Tape → List Bool) (p : SourceClauseLookup.Tape) :
+    fill j base localTapes (place j p) = localTapes p := by
+  cases p <;> simp [fill, place]
+
+@[simp] theorem fill_self (j : Fin u) (base : Tape u Extra → List Bool) :
+    fill j base (base ∘ place j) = base := by
+  funext p
+  cases p <;> simp [fill, place]
+  intro h
+  subst h
+  rfl
+
+variable [DecidableEq Extra]
+
+theorem fill_update (j : Fin u) (base : Tape u Extra → List Bool)
+    (localTapes : SourceClauseLookup.Tape → List Bool) (p : SourceClauseLookup.Tape)
+    (value : List Bool) :
+    fill j base (Function.update localTapes p value) =
+      Function.update (fill j base localTapes) (place j p) value := by
+  funext k
+  cases k <;> cases p <;> simp [fill, place, Function.update_apply]
+  all_goals split <;> simp_all
+
+def placedLabel (j : Fin u) : Option SourceClauseLookup.Label → Option (Label u)
+  | none => some (.clearWork j)
+  | some l => some (.lookup j l)
+
+def placedConfiguration (j : Fin u) (base : Tape u Extra → List Bool)
+    (c : TM2.Cfg (fun _ : SourceClauseLookup.Tape => Bool)
+      SourceClauseLookup.Label (Unit × Option Bool)) :
+    TM2.Cfg (fun _ : Tape u Extra => Bool) (Label u) (Unit × Option Bool) :=
+  ⟨placedLabel j c.l, c.var, fill j base c.stk⟩
+
+def placedStatement (j : Fin u) :
+    TM2.Stmt (fun _ : SourceClauseLookup.Tape => Bool)
+      SourceClauseLookup.Label (Unit × Option Bool) →
+    TM2.Stmt (fun _ : Tape u Extra => Bool) (Label u) (Unit × Option Bool)
+  | .push k f next => .push (place j k) f (placedStatement j next)
+  | .peek k f next => .peek (place j k) f (placedStatement j next)
+  | .pop k f next => .pop (place j k) f (placedStatement j next)
+  | .load f next => .load f (placedStatement j next)
+  | .branch f yes no => .branch f (placedStatement j yes) (placedStatement j no)
+  | .goto f => .goto (fun state => .lookup j (f state))
+  | .halt => .goto (fun _ => .clearWork j)
+
+theorem placed_stepAux (j : Fin u) (base : Tape u Extra → List Bool)
+    (q : TM2.Stmt (fun _ : SourceClauseLookup.Tape => Bool)
+      SourceClauseLookup.Label (Unit × Option Bool))
+    (state : Unit × Option Bool) (localTapes : SourceClauseLookup.Tape → List Bool) :
+    TM2.stepAux (placedStatement j q) state (fill j base localTapes) =
+      placedConfiguration j base (TM2.stepAux q state localTapes) := by
+  induction q generalizing state localTapes with
+  | push k f next ih =>
+    simp only [placedStatement, TM2.stepAux, fill_place]
+    rw [← fill_update]
+    exact ih state _
+  | peek k f next ih =>
+    simpa only [placedStatement, TM2.stepAux, fill_place] using ih (f state _) localTapes
+  | pop k f next ih =>
+    simp only [placedStatement, TM2.stepAux, fill_place]
+    rw [← fill_update]
+    exact ih (f state _) _
+  | load f next ih => simpa only [placedStatement, TM2.stepAux] using ih (f state) localTapes
+  | branch f yes no ihYes ihNo =>
+    cases h : f state
+    · simpa only [placedStatement, TM2.stepAux, h, Bool.cond_false] using ihNo state localTapes
+    · simpa only [placedStatement, TM2.stepAux, h, Bool.cond_true] using ihYes state localTapes
+  | goto f => rfl
+  | halt => rfl
+
+def nextLabel (j : Fin u) : Label u :=
+  if h : j.val + 1 < u then .copyOut ⟨j.val + 1, h⟩ else .done
+
+def program : Label u → TM2.Stmt (fun _ : Tape u Extra => Bool)
+    (Label u) (Unit × Option Bool)
+  | .copyOut j => Reduction.MachineTransfer.loopAt (.current j) .copyScratch id false
+      (.copyOut j) (some (.copyBack j))
+  | .copyBack j => MachineCopy.forkLoop .copyScratch (.current j) .index false
+      (.copyBack j) (some (.lookup j .copyOut))
+  | .lookup j l => placedStatement j (SourceClauseLookup.program l)
+  | .clearWork j => MachineDrain.drain .work (.clearWork j) (some (.clearIndex j))
+  | .clearIndex j => MachineDrain.drain .index (.clearIndex j) (some (nextLabel j))
+  | .done => .halt
+
+theorem placed_step (j : Fin u) (base : Tape u Extra → List Bool)
+    (a b : TM2.Cfg (fun _ : SourceClauseLookup.Tape => Bool)
+      SourceClauseLookup.Label (Unit × Option Bool))
+    (h : TM2.step SourceClauseLookup.program a = some b) :
+    TM2.step program (placedConfiguration j base a) =
+      some (placedConfiguration j base b) := by
+  cases a with
+  | mk l state localTapes =>
+    cases l with
+    | none => contradiction
+    | some l =>
+      change some (TM2.stepAux (SourceClauseLookup.program l) state localTapes) = some b at h
+      cases Option.some.inj h
+      change some (TM2.stepAux (placedStatement j (SourceClauseLookup.program l))
+        state (fill j base localTapes)) = _
+      rw [placed_stepAux]
+
+def lookupOutput (j : Fin u) (F : Target.Formula) (i : Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : List Bool) : Tape u Extra → List Bool :=
+  fill j base (SourceClauseLookup.outputTapes (base ∘ place j) F.clauses[i.val] suffix
+    (encodeWords ((F.clauses.drop (i.val + 1)).flatMap clauseWords)))
+
+noncomputable def placedLookupInTime (j : Fin u) (F : Target.Formula) (i : Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : List Bool)
+    (hformula : base .formula = formulaBits F)
+    (hindex : base .index = encodeWord i.val ++ suffix)
+    (hwork : base .work = []) (hscratch : base .scratch = []) (register : Option Bool) :
+    StateTransition.EvalsToInTime (TM2.step program)
+      ⟨some (.lookup j .copyOut), ((), register), base⟩
+      (some ⟨some (.clearWork j), ((), none), lookupOutput j F i base suffix⟩)
+      (4 * (formulaBits F).length + 10) := by
+  have h := SourceClauseLookup.lookupInTime F i (base ∘ place j) suffix
+    hformula hindex hwork hscratch register
+  have lifted := liftExecutionInTime (TM2.step SourceClauseLookup.program) (TM2.step program)
+    (placedConfiguration j base) (placed_step j base) h
+  simpa only [placedConfiguration, placedLabel, fill_self,
+    SourceClauseLookup.timePolynomial_eval, lookupOutput] using lifted
+
+def copiedTapes (j : Fin u) (base : Tape u Extra → List Bool) : Tape u Extra → List Bool :=
+  Function.update base .index (base (.current j))
+
+def coordinateOutput {n : Nat} (j : Fin u) (clause : Target.Clause n)
+    (base : Tape u Extra → List Bool) : Tape u Extra → List Bool
+  | .index | .work => []
+  | .field k s => if k = j then
+      encodeWord ((clauseWords clause)[s.val]'(by simp)) ++ base (.field k s)
+    else base (.field k s)
+  | p => base p
+
+theorem cleanup_lookupOutput (j : Fin u) (F : Target.Formula) (i : Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : List Bool) :
+    Function.update (Function.update
+      (lookupOutput j F i (copiedTapes j base) suffix) .work []) .index [] =
+      coordinateOutput j F.clauses[i.val] base := by
+  funext p
+  cases p with
+  | formula => simp [lookupOutput, fill, coordinateOutput, SourceClauseLookup.output_formula,
+      copiedTapes, place]
+  | index => simp [coordinateOutput]
+  | work => simp [coordinateOutput]
+  | scratch =>
+    simp only [Function.update_of_ne (by simp : (Tape.scratch : Tape u Extra) ≠ .index),
+      Function.update_of_ne (by simp : (Tape.scratch : Tape u Extra) ≠ .work), lookupOutput, fill,
+      coordinateOutput]
+    rw [SourceClauseLookup.output_frame _ _ _ _ .scratch (by simp) (by simp) (by intro s; simp)]
+    simp [copiedTapes, place]
+  | field k s =>
+    by_cases hk : k = j
+    · subst k
+      simp [lookupOutput, fill, coordinateOutput, SourceClauseLookup.output_field,
+        copiedTapes, place]
+    · simp [lookupOutput, fill, coordinateOutput, hk, copiedTapes]
+  | copyScratch => simp [lookupOutput, fill, coordinateOutput, copiedTapes]
+  | current k => simp [lookupOutput, fill, coordinateOutput, copiedTapes]
+  | remaining k => simp [lookupOutput, fill, coordinateOutput, copiedTapes]
+  | extra k => simp [lookupOutput, fill, coordinateOutput, copiedTapes]
+
+omit [DecidableEq Extra] in
+@[simp] theorem coordinateOutput_current {n : Nat} (j k : Fin u) (clause : Target.Clause n)
+    (base : Tape u Extra → List Bool) :
+    coordinateOutput j clause base (.current k) = base (.current k) := rfl
+
+omit [DecidableEq Extra] in
+@[simp] theorem coordinateOutput_remaining {n : Nat} (j k : Fin u) (clause : Target.Clause n)
+    (base : Tape u Extra → List Bool) :
+    coordinateOutput j clause base (.remaining k) = base (.remaining k) := rfl
+
+omit [DecidableEq Extra] in
+@[simp] theorem coordinateOutput_field {n : Nat} (j : Fin u) (s : Fin 6)
+    (clause : Target.Clause n) (base : Tape u Extra → List Bool) :
+    coordinateOutput j clause base (.field j s) =
+      encodeWord ((clauseWords clause)[s.val]'(by simp)) ++ base (.field j s) := by
+  simp [coordinateOutput]
+
+omit [DecidableEq Extra] in
+theorem coordinateOutput_other_field {n : Nat} (j k : Fin u) (s : Fin 6)
+    (clause : Target.Clause n) (base : Tape u Extra → List Bool) (h : k ≠ j) :
+    coordinateOutput j clause base (.field k s) = base (.field k s) := by
+  simp [coordinateOutput, h]
+
+theorem suffix_length_le_input (F : Target.Formula) (i : Nat) :
+    (encodeWords ((F.clauses.drop i).flatMap clauseWords)).length ≤ (formulaBits F).length := by
+  have hs := List.take_append_drop i F.clauses
+  have he : formulaBits F = encodeWords [F.«variables», F.clauses.length] ++
+      encodeWords ((F.clauses.take i).flatMap clauseWords) ++
+      encodeWords ((F.clauses.drop i).flatMap clauseWords) := by
+    conv_lhs => rw [formulaBits, formulaWords, ← hs]
+    simp only [List.flatMap_append, encodeWords_append, List.append_assoc]
+    rw [hs]
+  rw [he, List.length_append, List.length_append]
+  omega
+
+noncomputable def coordinateInTime (j : Fin u) (F : Target.Formula) (i : Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : List Bool)
+    (hformula : base .formula = formulaBits F)
+    (hcurrent : base (.current j) = encodeWord i.val ++ suffix)
+    (hindex : base .index = []) (hwork : base .work = [])
+    (hscratch : base .scratch = []) (hcopy : base .copyScratch = []) (register : Option Bool) :
+    StateTransition.EvalsToInTime (TM2.step program)
+      ⟨some (.copyOut j), ((), register), base⟩
+      (some ⟨some (nextLabel j), ((), none), coordinateOutput j F.clauses[i.val] base⟩)
+      (6 * (formulaBits F).length + 4 * (base (.current j)).length + 20) := by
+  let copied := copiedTapes j base
+  let loaded := lookupOutput j F i copied suffix
+  have copyRun := MachineCopy.copyInTime (.current j) .index .copyScratch
+    (by simp) (by simp) (by simp) false (.copyOut j) (.copyBack j)
+    (some (.lookup j .copyOut)) program rfl rfl base hcopy () register
+  have copied_eq : Function.update base .index (base (.current j) ++ base .index) = copied := by
+    simp [copied, copiedTapes, hindex]
+  rw [copied_eq] at copyRun
+  have lookupRun := placedLookupInTime j F i copied suffix
+    (by simpa [copied, copiedTapes] using hformula)
+    (by simpa [copied, copiedTapes] using hcurrent)
+    (by simpa [copied, copiedTapes] using hwork)
+    (by simpa [copied, copiedTapes] using hscratch) none
+  have workRun := MachineDrain.drainInTime .work (.clearWork j) (some (.clearIndex j))
+    program rfl loaded () none
+  have indexRun := MachineDrain.drainInTime .index (.clearIndex j) (some (nextLabel j))
+    program rfl (Function.update loaded .work []) () none
+  have hrun := StateTransition.EvalsToInTime.trans (TM2.step program) _ _ _ _ _
+    (StateTransition.EvalsToInTime.trans (TM2.step program) _ _ _ _ _
+      (StateTransition.EvalsToInTime.trans (TM2.step program) _ _ _ _ _ copyRun lookupRun)
+      workRun) indexRun
+  have hw : loaded .work = encodeWords ((F.clauses.drop (i.val + 1)).flatMap clauseWords) := by
+    simp [loaded, lookupOutput, fill, SourceClauseLookup.output_work]
+  have hi : (Function.update loaded .work []) .index = encodeWord 0 ++ suffix := by
+    simp [loaded, lookupOutput, fill, SourceClauseLookup.output_index]
+  have hc : suffix.length ≤ (base (.current j)).length := by
+    rw [hcurrent, List.length_append]
+    omega
+  refine { steps := hrun.steps, evals_in_steps := ?_, steps_le_m := ?_ }
+  · simpa only [loaded, copied, cleanup_lookupOutput] using hrun.evals_in_steps
+  · apply Nat.le_trans hrun.steps_le_m
+    rw [hw, hi, List.length_append, encodeWord_length]
+    have hs := suffix_length_le_input F (i.val + 1)
+    omega
+
+def labelAt (r : Nat) : Label u :=
+  if h : r < u then .copyOut ⟨r, h⟩ else .done
+
+theorem nextLabel_eq (j : Fin u) : nextLabel j = labelAt (j.val + 1) := rfl
+
+def stageTapes (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) : Nat → Tape u Extra → List Bool
+  | 0 => base
+  | r + 1 => if h : r < u then
+      coordinateOutput ⟨r, h⟩ F.clauses[(tuple ⟨r, h⟩).val] (stageTapes F tuple base r)
+    else stageTapes F tuple base r
+
+omit [DecidableEq Extra] in
+theorem stageTapes_frame (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (r : Nat) (p : Tape u Extra)
+    (hi : p ≠ .index) (hw : p ≠ .work) (hf : ∀ j s, p ≠ .field j s) :
+    stageTapes F tuple base r p = base p := by
+  induction r with
+  | zero => rfl
+  | succ r ih =>
+    simp only [stageTapes]
+    split
+    · cases p <;> simp_all [coordinateOutput]
+    · exact ih
+
+omit [DecidableEq Extra] in
+theorem stageTapes_clean (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (r : Nat) (hi : base .index = []) (hw : base .work = []) :
+    stageTapes F tuple base r .index = [] ∧ stageTapes F tuple base r .work = [] := by
+  induction r with
+  | zero => exact ⟨hi, hw⟩
+  | succ r ih =>
+    simp only [stageTapes]
+    split
+    · exact ⟨rfl, rfl⟩
+    · exact ih
+
+omit [DecidableEq Extra] in
+theorem stageTapes_field (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (r : Nat) (j : Fin u) (s : Fin 6) :
+    stageTapes F tuple base r (.field j s) = if j.val < r then
+      encodeWord ((clauseWords F.clauses[(tuple j).val])[s.val]'(by simp)) ++ base (.field j s)
+      else base (.field j s) := by
+  induction r with
+  | zero => simp [stageTapes]
+  | succ r ih =>
+    simp only [stageTapes]
+    split
+    next hr =>
+      by_cases hj : j = (⟨r, hr⟩ : Fin u)
+      · subst j
+        simp only [coordinateOutput_field, ih]
+        simp
+      · rw [coordinateOutput_other_field _ _ _ _ _ hj, ih]
+        have hval : j.val ≠ r := by intro h; apply hj; exact Fin.ext h
+        have he : j.val < r + 1 ↔ j.val < r := by omega
+        simp only [he]
+    next hr =>
+      rw [ih]
+      have hjr : j.val < r := by omega
+      have hjr' : j.val < r + 1 := by omega
+      simp only [hjr, hjr', ite_true]
+
+noncomputable def prefixInTime (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : Fin u → List Bool) (C : Nat)
+    (hformula : base .formula = formulaBits F)
+    (hcurrent : ∀ j, base (.current j) = encodeWord (tuple j).val ++ suffix j)
+    (hsize : ∀ j, (base (.current j)).length ≤ C)
+    (hindex : base .index = []) (hwork : base .work = [])
+    (hscratch : base .scratch = []) (hcopy : base .copyScratch = [])
+    (r : Nat) (hr : r ≤ u) :
+    StateTransition.EvalsToInTime (TM2.step program)
+      ⟨some (labelAt 0), ((), none), base⟩
+      (some ⟨some (labelAt r), ((), none), stageTapes F tuple base r⟩)
+      (r * (6 * (formulaBits F).length + 4 * C + 20)) := by
+  induction r with
+  | zero => exact { steps := 0, evals_in_steps := rfl, steps_le_m := by omega }
+  | succ r ih =>
+    have hru : r < u := by omega
+    let j : Fin u := ⟨r, hru⟩
+    let before := stageTapes F tuple base r
+    have hf (p : Tape u Extra) (hi : p ≠ .index) (hw : p ≠ .work)
+        (hh : ∀ j s, p ≠ .field j s) : before p = base p :=
+      stageTapes_frame F tuple base r p hi hw hh
+    have hd := stageTapes_clean F tuple base r hindex hwork
+    have hc : before (.current j) = base (.current j) := hf _ (by simp) (by simp) (by simp)
+    have one := coordinateInTime j F (tuple j) before (suffix j)
+      (by rw [hf _ (by simp) (by simp) (by simp)]; exact hformula)
+      (by rw [hc]; exact hcurrent j) hd.1 hd.2
+      (by rw [hf _ (by simp) (by simp) (by simp)]; exact hscratch)
+      (by rw [hf _ (by simp) (by simp) (by simp)]; exact hcopy) none
+    have one' : StateTransition.EvalsToInTime (TM2.step program)
+        ⟨some (labelAt r), ((), none), before⟩
+        (some ⟨some (labelAt (r + 1)), ((), none), stageTapes F tuple base (r + 1)⟩)
+        (6 * (formulaBits F).length + 4 * C + 20) := by
+      refine { steps := one.steps, evals_in_steps := ?_, steps_le_m := ?_ }
+      · simpa only [labelAt, dite_eq_left hru, nextLabel_eq, j, stageTapes, before] using
+          one.evals_in_steps
+      · apply Nat.le_trans one.steps_le_m
+        rw [hc]
+        have hs := hsize j
+        omega
+    have joined := StateTransition.EvalsToInTime.trans (TM2.step program) _ _ _ _ _
+      (ih (by omega)) one'
+    simpa only [Nat.add_mul, Nat.one_mul, Nat.add_comm] using joined
+
+noncomputable def loadInTime (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (suffix : Fin u → List Bool) (C : Nat)
+    (hformula : base .formula = formulaBits F)
+    (hcurrent : ∀ j, base (.current j) = encodeWord (tuple j).val ++ suffix j)
+    (hsize : ∀ j, (base (.current j)).length ≤ C)
+    (hindex : base .index = []) (hwork : base .work = [])
+    (hscratch : base .scratch = []) (hcopy : base .copyScratch = []) :
+    StateTransition.EvalsToInTime (TM2.step program)
+      ⟨some (labelAt 0), ((), none), base⟩
+      (some ⟨none, ((), none), stageTapes F tuple base u⟩)
+      (u * (6 * (formulaBits F).length + 4 * C + 20) + 1) := by
+  have prefixRun := prefixInTime F tuple base suffix C hformula hcurrent hsize
+    hindex hwork hscratch hcopy u (Nat.le_refl _)
+  have doneRun : StateTransition.EvalsToInTime (TM2.step (program (Extra := Extra)))
+      ⟨some (labelAt u), ((), none), stageTapes F tuple base u⟩
+      (some ⟨none, ((), none), stageTapes F tuple base u⟩) 1 := by
+    refine { steps := 1, evals_in_steps := ?_, steps_le_m := Nat.le_refl _ }
+    change TM2.step program ⟨some (labelAt u), ((), none), stageTapes F tuple base u⟩ = _
+    simp only [labelAt, Nat.lt_irrefl, ↓reduceDIte]
+    rfl
+  simpa only [Nat.add_comm] using
+    StateTransition.EvalsToInTime.trans (TM2.step program) _ _ _ _ _ prefixRun doneRun
+
+theorem clauses_length_le_input (F : Target.Formula) :
+    F.clauses.length ≤ (formulaBits F).length := by
+  simp only [formulaBits, encodeWords_length, formulaWords_length]
+  omega
+
+noncomputable def loadUnaryInTime (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool)
+    (hformula : base .formula = formulaBits F)
+    (hcurrent : ∀ j, base (.current j) = encodeWord (tuple j).val)
+    (hindex : base .index = []) (hwork : base .work = [])
+    (hscratch : base .scratch = []) (hcopy : base .copyScratch = []) :
+    StateTransition.EvalsToInTime (TM2.step program)
+      ⟨some (labelAt 0), ((), none), base⟩
+      (some ⟨none, ((), none), stageTapes F tuple base u⟩)
+      (u * (10 * (formulaBits F).length + 20) + 1) := by
+  have run := loadInTime F tuple base (fun _ => []) (formulaBits F).length hformula
+    (by simpa only [List.append_nil] using hcurrent)
+    (by
+      intro j
+      rw [hcurrent j, encodeWord_length]
+      have h := (tuple j).isLt
+      have hm := clauses_length_le_input F
+      omega)
+    hindex hwork hscratch hcopy
+  have he : 6 * (formulaBits F).length + 4 * (formulaBits F).length + 20 =
+      10 * (formulaBits F).length + 20 := by omega
+  simpa only [he] using run
+
+noncomputable def timePolynomial (u : Nat) : Polynomial Nat :=
+  Polynomial.C (10 * u) * Polynomial.X + Polynomial.C (20 * u + 1)
+
+theorem timePolynomial_eval (u L : Nat) :
+    (timePolynomial u).eval L = u * (10 * L + 20) + 1 := by
+  simp only [timePolynomial, Polynomial.eval_add, Polynomial.eval_mul,
+    Polynomial.eval_C, Polynomial.eval_X]
+  simp [Nat.mul_add, Nat.mul_comm, Nat.mul_left_comm, Nat.add_assoc]
+
+def variableSlot (s : Fin 3) : Fin 6 := ⟨2 * s.val, by omega⟩
+def polaritySlot (s : Fin 3) : Fin 6 := ⟨2 * s.val + 1, by omega⟩
+def variableField (j : Fin u) (s : Fin 3) : Tape u Extra := .field j (variableSlot s)
+def polarityField (j : Fin u) (s : Fin 3) : Tape u Extra := .field j (polaritySlot s)
+
+theorem clauseWords_variable {n : Nat} (clause : Target.Clause n) (s : Fin 3) :
+    (clauseWords clause)[(variableSlot s).val]'(by simp) = clause[s.val].variableIndex.val := by
+  obtain ⟨s, hs⟩ := s
+  have h : s = 0 ∨ s = 1 ∨ s = 2 := by omega
+  rcases h with rfl | rfl | rfl <;> rfl
+
+theorem clauseWords_polarity {n : Nat} (clause : Target.Clause n) (s : Fin 3) :
+    (clauseWords clause)[(polaritySlot s).val]'(by simp) =
+      if clause[s.val].positive then 1 else 0 := by
+  obtain ⟨s, hs⟩ := s
+  have h : s = 0 ∨ s = 1 ∨ s = 2 := by omega
+  rcases h with rfl | rfl | rfl <;> rfl
+
+omit [DecidableEq Extra] in
+theorem output_variable (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (j : Fin u) (s : Fin 3) :
+    stageTapes F tuple base u (variableField j s) =
+      encodeWord (F.clauses[(tuple j).val][s.val].variableIndex.val) ++ base (variableField j s) := by
+  rw [variableField, stageTapes_field, ite_eq_left j.isLt, clauseWords_variable]
+
+omit [DecidableEq Extra] in
+theorem output_polarity (F : Target.Formula) (tuple : Fin u → Fin F.clauses.length)
+    (base : Tape u Extra → List Bool) (j : Fin u) (s : Fin 3) :
+    stageTapes F tuple base u (polarityField j s) =
+      encodeWord (if F.clauses[(tuple j).val][s.val].positive then 1 else 0) ++
+        base (polarityField j s) := by
+  rw [polarityField, stageTapes_field, ite_eq_left j.isLt, clauseWords_polarity]
+
+variable [Fintype Extra]
+
+def machine (u : Nat) (Extra : Type) [DecidableEq Extra] [Fintype Extra] : FinTM2 where
+  K := Tape u Extra
+  k₀ := .formula
+  k₁ := .formula
+  Γ _ := Bool
+  Λ := Label u
+  main := labelAt 0
+  σ := Unit × Option Bool
+  initialState := ((), none)
+  m := program
+
+end DFVSGames.Foundations.Hastad.SourceContextLoad
+
+
+noncomputable section
+
+namespace DFVSGames.Foundations.Hastad
+
+open scoped BigOperators
+open Finset
+
+abbrev Cube (I : Type*) := I → Bool
+
+def bitSign (b : Bool) : ℝ := if b then -1 else 1
+
+@[simp] theorem bitSign_sq (b : Bool) : bitSign b ^ 2 = 1 := by
+  cases b <;> norm_num [bitSign]
+
+theorem bitSign_xor (b c : Bool) :
+    bitSign (b ^^ c) = bitSign b * bitSign c := by
+  cases b <;> cases c <;> norm_num [bitSign]
+
+def cubeXor {I : Type*} (x y : Cube I) : Cube I := fun i => x i ^^ y i
+
+def walsh {I : Type*} [Fintype I] [DecidableEq I] (s x : Cube I) : ℝ :=
+  ∏ i, bitSign (s i && x i)
+
+theorem walsh_symm {I : Type*} [Fintype I] [DecidableEq I] (s x : Cube I) :
+    walsh s x = walsh x s := by
+  simp [walsh, Bool.and_comm]
+
+@[simp] theorem walsh_sq {I : Type*} [Fintype I] [DecidableEq I] (s x : Cube I) :
+    walsh s x ^ 2 = 1 := by
+  simp [walsh, ← Finset.prod_pow]
+
+theorem walsh_xor {I : Type*} [Fintype I] [DecidableEq I] (s x y : Cube I) :
+    walsh s (cubeXor x y) = walsh s x * walsh s y := by
+  simp only [walsh, ← Finset.prod_mul_distrib]
+  apply Finset.prod_congr rfl
+  intro i _
+  simp only [cubeXor]
+  cases s i <;> cases x i <;> cases y i <;> norm_num [bitSign]
+
+theorem coordinate_orthogonality (s t : Bool) :
+    (∑ x : Bool, bitSign (s && x) * bitSign (t && x)) =
+      if s = t then 2 else 0 := by
+  cases s <;> cases t <;> norm_num [bitSign, Fintype.sum_bool]
+
+theorem walsh_sum_orthogonality {I : Type*} [Fintype I] [DecidableEq I]
+    (s t : Cube I) :
+    (∑ x, walsh s x * walsh t x) =
+      if s = t then (Fintype.card (Cube I) : ℝ) else 0 := by
+  classical
+  simp only [walsh, ← Finset.prod_mul_distrib]
+  rw [← Fintype.prod_sum (fun (i : I) (b : Bool) =>
+    bitSign (s i && b) * bitSign (t i && b))]
+  simp only [coordinate_orthogonality]
+  by_cases h : s = t
+  · subst t
+    simp []
+  · rw [ite_eq_right h]
+    obtain ⟨i, hi⟩ := Function.ne_iff.mp h
+    apply Finset.prod_eq_zero (Finset.mem_univ i)
+    exact ite_eq_right hi
+
+theorem walsh_orthogonality {I : Type*} [Fintype I] [DecidableEq I]
+    (s t : Cube I) :
+    (𝔼 x, walsh s x * walsh t x) = if s = t then 1 else 0 := by
+  classical
+  rw [Fintype.expect_eq_sum_div_card, walsh_sum_orthogonality]
+  split_ifs <;> simp
+
+def coefficient {I : Type*} [Fintype I] [DecidableEq I] (f : Cube I → ℝ) (s : Cube I) : ℝ :=
+  𝔼 x, f x * walsh s x
+
+theorem walsh_inversion {I : Type*} [Fintype I] [DecidableEq I] (f : Cube I → ℝ) (x : Cube I) :
+    (∑ s, coefficient f s * walsh s x) = f x := by
+  classical
+  unfold coefficient
+  simp_rw [Finset.expect_mul]
+  rw [← Finset.expect_sum_comm]
+  have h (y : Cube I) :
+      (∑ s, (f y * walsh s y) * walsh s x) =
+        f y * (if y = x then (Fintype.card (Cube I) : ℝ) else 0) := by
+    simp only [mul_assoc, ← Finset.mul_sum]
+    congr 1
+    simp_rw [walsh_symm (x := y), walsh_symm (x := x)]
+    exact walsh_sum_orthogonality y x
+  simp_rw [h]
+  rw [Fintype.expect_eq_sum_div_card]
+  simp
+
+theorem walsh_inner {I : Type*} [Fintype I] [DecidableEq I] (f g : Cube I → ℝ) :
+    (∑ s, coefficient f s * coefficient g s) = 𝔼 x, f x * g x := by
+  classical
+  unfold coefficient
+  simp_rw [Finset.mul_expect]
+  rw [← Finset.expect_sum_comm]
+  apply Finset.expect_congr rfl
+  intro x _
+  have h : (∑ s, (𝔼 y, f y * walsh s y) * (g x * walsh s x)) =
+      g x * (∑ s, coefficient f s * walsh s x) := by
+    simp only [Finset.mul_sum, coefficient]
+    apply Finset.sum_congr rfl
+    intro s _
+    ring
+  rw [h, walsh_inversion]
+  ring
+
+theorem walsh_parseval {I : Type*} [Fintype I] [DecidableEq I] (f : Cube I → ℝ) :
+    (∑ s, coefficient f s ^ 2) = 𝔼 x, f x ^ 2 := by
+  simpa [pow_two] using walsh_inner f f
+
+theorem sign_parseval {I : Type*} [Fintype I] [DecidableEq I] (f : Cube I → Bool) :
+    (∑ s, coefficient (fun x => bitSign (f x)) s ^ 2) = 1 := by
+  rw [walsh_parseval]
+  simp
+
+end DFVSGames.Foundations.Hastad
+end
+
+
+noncomputable section
+
+namespace DFVSGames.Foundations.Hastad
+
+open scoped BigOperators
+open Finset
+
+variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
+
+def support (s : Cube I) : Finset I := Finset.univ.filter fun i => s i = true
+
+def noiseWeight (ε : ℝ) (μ : Cube I) : ℝ :=
+  ∏ i, if μ i then ε else 1 - ε
+
+omit [DecidableEq I] in
+theorem noiseWeight_nonneg {ε : ℝ} (hε : 0 ≤ ε) (hε' : ε ≤ 1) (μ : Cube I) :
+    0 ≤ noiseWeight ε μ := by
+  apply Finset.prod_nonneg
+  intro i _
+  split <;> linarith
+
+theorem noiseWeight_sum (ε : ℝ) : (∑ μ : Cube I, noiseWeight ε μ) = 1 := by
+  unfold noiseWeight
+  rw [← Fintype.prod_sum (fun (_ : I) (b : Bool) => if b then ε else 1 - ε)]
+  simp []
+
+theorem noise_walsh (ε : ℝ) (s : Cube I) :
+    (∑ μ, noiseWeight ε μ * walsh s μ) = (1 - 2 * ε) ^ (support s).card := by
+  unfold noiseWeight walsh
+  simp only [← Finset.prod_mul_distrib]
+  rw [← Fintype.prod_sum (fun i b =>
+    (if b then ε else 1 - ε) * bitSign (s i && b))]
+  have hc (i : I) : (∑ b : Bool,
+      (if b then ε else 1 - ε) * bitSign (s i && b)) =
+        if s i then 1 - 2 * ε else 1 := by
+    cases s i <;> simp [bitSign] ; ring
+  simp_rw [hc]
+  simp [support, Finset.prod_ite]
+
+def thirdQuery (π : J → I) (f : Cube I) (g μ : Cube J) : Cube J :=
+  cubeXor g (cubeXor (fun y => f (π y)) μ)
+
+theorem walsh_autocorrelation (B : Cube J → ℝ) (h : Cube J) :
+    (𝔼 g, B g * B (cubeXor g h)) =
+      ∑ s, coefficient B s ^ 2 * walsh s h := by
+  conv_lhs =>
+    enter [2, g, 2]
+    rw [← walsh_inversion B (cubeXor g h)]
+  simp_rw [Finset.mul_sum, walsh_xor]
+  rw [Finset.expect_sum_comm]
+  apply Finset.sum_congr rfl
+  intro s _
+  have hterm : (fun g => B g * (coefficient B s * (walsh s g * walsh s h))) =
+      (fun g => (coefficient B s * walsh s h) * (B g * walsh s g)) := by
+    funext g
+    ring
+  rw [hterm, ← Finset.mul_expect]
+  change (coefficient B s * walsh s h) * coefficient B s = _
+  ring
+
+def projectedCoefficient (π : J → I) (A : Cube I → ℝ) (s : Cube J) : ℝ :=
+  𝔼 f, A f * walsh s (fun y => f (π y))
+
+def testBias (ε : ℝ) (π : J → I) (A : Cube I → ℝ) (B : Cube J → ℝ) : ℝ :=
+  𝔼 f, ∑ μ, noiseWeight ε μ * A f *
+    (𝔼 g, B g * B (thirdQuery π f g μ))
+
+theorem testBias_fourier (ε : ℝ) (π : J → I)
+    (A : Cube I → ℝ) (B : Cube J → ℝ) :
+    testBias ε π A B = ∑ s,
+      projectedCoefficient π A s * coefficient B s ^ 2 *
+        (1 - 2 * ε) ^ (support s).card := by
+  unfold testBias thirdQuery
+  simp_rw [walsh_autocorrelation, Finset.mul_sum]
+  conv_lhs =>
+    enter [2, f]
+    rw [Finset.sum_comm]
+  rw [Finset.expect_sum_comm]
+  apply Finset.sum_congr rfl
+  intro s _
+  have hterm (f : Cube I) :
+      (∑ μ, noiseWeight ε μ * A f *
+        (coefficient B s ^ 2 * walsh s (cubeXor (fun y => f (π y)) μ))) =
+      (A f * walsh s (fun y => f (π y))) * coefficient B s ^ 2 *
+        (1 - 2 * ε) ^ (support s).card := by
+    simp_rw [walsh_xor]
+    have heq (μ : Cube J) : noiseWeight ε μ * A f *
+        (coefficient B s ^ 2 * (walsh s (fun y => f (π y)) * walsh s μ)) =
+      ((A f * walsh s (fun y => f (π y))) * coefficient B s ^ 2) *
+        (noiseWeight ε μ * walsh s μ) := by ring
+    simp_rw [heq]
+    rw [← Finset.mul_sum, noise_walsh]
+  simp_rw [hterm, ← Finset.expect_mul]
+  rfl
+
+def testAcceptance (ε : ℝ) (π : J → I)
+    (A : Cube I → Bool) (B : Cube J → Bool) : ℝ :=
+  𝔼 f, ∑ μ, noiseWeight ε μ *
+    (𝔼 g, if A f ^^ B g ^^ B (thirdQuery π f g μ) then 0 else 1)
+
+theorem threeBit_indicator (a b c : Bool) :
+    (if a ^^ b ^^ c then (0 : ℝ) else 1) =
+      (1 + bitSign a * bitSign b * bitSign c) / 2 := by
+  cases a <;> cases b <;> cases c <;> norm_num [bitSign]
+
+theorem testAcceptance_eq (ε : ℝ) (π : J → I)
+    (A : Cube I → Bool) (B : Cube J → Bool) :
+    testAcceptance ε π A B =
+      (1 + testBias ε π (fun f => bitSign (A f)) (fun g => bitSign (B g))) / 2 := by
+  unfold testAcceptance testBias
+  simp_rw [threeBit_indicator, div_eq_mul_inv,
+    ← Finset.expect_mul, Finset.expect_add_distrib]
+  simp only [Fintype.expect_const]
+  have hterm (f : Cube I) (μ : Cube J) :
+      noiseWeight ε μ * ((1 + 𝔼 g,
+        bitSign (A f) * bitSign (B g) * bitSign (B (thirdQuery π f g μ))) * 2⁻¹) =
+      (noiseWeight ε μ + noiseWeight ε μ * bitSign (A f) *
+        (𝔼 g, bitSign (B g) * bitSign (B (thirdQuery π f g μ)))) * 2⁻¹ := by
+    simp_rw [mul_assoc (bitSign (A f)), ← Finset.mul_expect]
+    ring
+  simp_rw [hterm, ← Finset.sum_mul, Finset.sum_add_distrib, noiseWeight_sum,
+    ← Finset.expect_mul, Finset.expect_add_distrib]
+  simp
+
+end DFVSGames.Foundations.Hastad
+end
+
+
+noncomputable section
+
+namespace DFVSGames.Foundations.Hastad
+
+open scoped BigOperators
+open Finset
+
+variable {I : Type*} [Fintype I] [DecidableEq I]
+
+def cubeFlip (f : Cube I) : Cube I := fun i => !(f i)
+
+omit [Fintype I] [DecidableEq I] in
+@[simp] theorem cubeFlip_cubeFlip (f : Cube I) : cubeFlip (cubeFlip f) = f := by
+  funext i
+  simp [cubeFlip]
+
+@[simp] theorem bitSign_not (b : Bool) : bitSign (!b) = -bitSign b := by
+  cases b <;> norm_num [bitSign]
+
+theorem sum_cubeFlip (F : Cube I → ℝ) : (∑ f, F (cubeFlip f)) = ∑ f, F f := by
+  refine Finset.sum_bij (fun f _ => cubeFlip f) ?_ ?_ ?_ ?_
+  · intro f _
+    exact Finset.mem_univ _
+  · intro f _ g _ h
+    have h' := congrArg cubeFlip h
+    simpa only [cubeFlip_cubeFlip] using h'
+  · intro g _
+    exact ⟨cubeFlip g, Finset.mem_univ _, cubeFlip_cubeFlip g⟩
+  · intro f _
+    rfl
+
+theorem coefficient_zero_of_odd (F : Cube I → ℝ)
+    (hF : ∀ f, F (cubeFlip f) = -F f) :
+    coefficient F (fun _ => false) = 0 := by
+  have hs : (∑ f, F f) = 0 := by
+    have h := sum_cubeFlip F
+    simp_rw [hF, Finset.sum_neg_distrib] at h
+    linarith
+  simp [coefficient, walsh, bitSign, Fintype.expect_eq_sum_div_card, hs]
+
+theorem coefficient_sign_zero_of_folded (A : Cube I → Bool)
+    (hA : ∀ f, A (cubeFlip f) = !(A f)) :
+    coefficient (fun f => bitSign (A f)) (fun _ => false) = 0 := by
+  apply coefficient_zero_of_odd
+  intro f
+  rw [hA, bitSign_not]
+
+def representative (i₀ : I) (f : Cube I) : Cube I :=
+  if f i₀ then cubeFlip f else f
+
+omit [Fintype I] [DecidableEq I] in
+theorem representative_at (i₀ : I) (f : Cube I) :
+    representative i₀ f i₀ = false := by
+  cases hf : f i₀ <;> simp [representative, cubeFlip, hf]
+
+omit [Fintype I] [DecidableEq I] in
+theorem representative_flip (i₀ : I) (f : Cube I) :
+    representative i₀ (cubeFlip f) = representative i₀ f := by
+  cases hf : f i₀ <;> simp [representative, cubeFlip, hf]
+
+abbrev HalfCube (i₀ : I) := {f : Cube I // f i₀ = false}
+
+def canonicalInput (i₀ : I) (f : Cube I) : HalfCube i₀ :=
+  ⟨representative i₀ f, representative_at i₀ f⟩
+
+omit [Fintype I] [DecidableEq I] in
+theorem canonicalInput_flip (i₀ : I) (f : Cube I) :
+    canonicalInput i₀ (cubeFlip f) = canonicalInput i₀ f := by
+  apply Subtype.ext
+  exact representative_flip i₀ f
+
+def foldedAnswer (i₀ : I) (table : HalfCube i₀ → Bool) (f : Cube I) : Bool :=
+  table (canonicalInput i₀ f) ^^ f i₀
+
+omit [Fintype I] [DecidableEq I] in
+theorem foldedAnswer_flip (i₀ : I) (table : HalfCube i₀ → Bool) (f : Cube I) :
+    foldedAnswer i₀ table (cubeFlip f) = !(foldedAnswer i₀ table f) := by
+  unfold foldedAnswer
+  rw [canonicalInput_flip]
+  change (table (canonicalInput i₀ f) ^^ !(f i₀)) =
+    !(table (canonicalInput i₀ f) ^^ f i₀)
+  cases table (canonicalInput i₀ f) <;> cases f i₀ <;> rfl
+
+theorem foldedAnswer_zero_coefficient (i₀ : I) (table : HalfCube i₀ → Bool) :
+    coefficient (fun f => bitSign (foldedAnswer i₀ table f)) (fun _ => false) = 0 :=
+  coefficient_sign_zero_of_folded _ (foldedAnswer_flip i₀ table)
+
+omit [Fintype I] [DecidableEq I] in
+theorem foldedAnswer_dictator (i₀ i : I) (f : Cube I) :
+    foldedAnswer i₀ (fun h => h.val i) f = f i := by
+  cases hf : f i₀ <;> cases hi : f i <;>
+    simp [foldedAnswer, canonicalInput, representative, cubeFlip, hf, hi]
+
+def coordinateMask (i : I) : Cube I := fun j => decide (j = i)
+
+def cubeToggle (i : I) (f : Cube I) : Cube I :=
+  cubeXor f (coordinateMask i)
+
+omit [Fintype I] in
+@[simp] theorem cubeToggle_twice (i : I) (f : Cube I) :
+    cubeToggle i (cubeToggle i f) = f := by
+  funext j
+  change ((f j ^^ coordinateMask i j) ^^ coordinateMask i j) = f j
+  cases f j <;> cases coordinateMask i j <;> rfl
+
+theorem walsh_coordinateMask (s : Cube I) (i : I) :
+    walsh s (coordinateMask i) = bitSign (s i) := by
+  unfold walsh
+  rw [Finset.prod_eq_single i]
+  · simp [coordinateMask]
+  · intro j _ hj
+    simp [coordinateMask, hj, bitSign]
+  · intro h
+    exact False.elim (h (Finset.mem_univ _))
+
+theorem walsh_cubeToggle (s : Cube I) (i : I) (f : Cube I) (hs : s i = true) :
+    walsh s (cubeToggle i f) = -walsh s f := by
+  rw [cubeToggle, walsh_xor, walsh_coordinateMask, hs]
+  simp [bitSign]
+
+theorem sum_cubeToggle (i : I) (F : Cube I → ℝ) :
+    (∑ f, F (cubeToggle i f)) = ∑ f, F f := by
+  refine Finset.sum_bij (fun f _ => cubeToggle i f) ?_ ?_ ?_ ?_
+  · intro f _
+    exact Finset.mem_univ _
+  · intro f _ g _ h
+    have h' := congrArg (cubeToggle i) h
+    simpa only [cubeToggle_twice] using h'
+  · intro g _
+    exact ⟨cubeToggle i g, Finset.mem_univ _, cubeToggle_twice i g⟩
+  · intro f _
+    rfl
+
+def restrictQuery (valid : I → Bool) (f : Cube I) :
+    Cube {i : I // valid i = true} := fun i => f i.val
+
+omit [Fintype I] in
+theorem restrictQuery_cubeToggle (valid : I → Bool) (i : I)
+    (hi : valid i = false) (f : Cube I) :
+    restrictQuery valid (cubeToggle i f) = restrictQuery valid f := by
+  funext j
+  have hj : j.val ≠ i := by
+    intro heq
+    have hp := j.property
+    rw [heq, hi] at hp
+    contradiction
+  simp [restrictQuery, cubeToggle, cubeXor, coordinateMask, hj]
+
+theorem conditioned_coefficient_zero_invalid (valid : I → Bool)
+    (B : Cube {i : I // valid i = true} → ℝ) (s : Cube I) (i : I)
+    (hi : valid i = false) (hs : s i = true) :
+    coefficient (fun f => B (restrictQuery valid f)) s = 0 := by
+  have hsum := sum_cubeToggle i (fun f => B (restrictQuery valid f) * walsh s f)
+  simp_rw [restrictQuery_cubeToggle valid i hi, walsh_cubeToggle s i _ hs,
+    mul_neg, Finset.sum_neg_distrib] at hsum
+  have hz : (∑ f, B (restrictQuery valid f) * walsh s f) = 0 := by linarith
+  simp [coefficient, Fintype.expect_eq_sum_div_card, hz]
+
+theorem conditioned_coefficient_support (valid : I → Bool)
+    (B : Cube {i : I // valid i = true} → ℝ) (s : Cube I)
+    (hne : coefficient (fun f => B (restrictQuery valid f)) s ≠ 0) :
+    ∀ i ∈ support s, valid i = true := by
+  intro i hi
+  have hs := (Finset.mem_filter.mp hi).2
+  cases hv : valid i
+  · exact False.elim (hne (conditioned_coefficient_zero_invalid valid B s i hv hs))
+  · rfl
+
+def conditionedFoldedAnswer (valid : I → Bool) (i₀ : {i : I // valid i = true})
+    (table : HalfCube i₀ → Bool) (f : Cube I) : Bool :=
+  foldedAnswer i₀ table (restrictQuery valid f)
+
+omit [Fintype I] [DecidableEq I] in
+theorem conditionedFoldedAnswer_flip (valid : I → Bool)
+    (i₀ : {i : I // valid i = true}) (table : HalfCube i₀ → Bool) (f : Cube I) :
+    conditionedFoldedAnswer valid i₀ table (cubeFlip f) =
+      !(conditionedFoldedAnswer valid i₀ table f) := by
+  change foldedAnswer i₀ table (cubeFlip (restrictQuery valid f)) = _
+  exact foldedAnswer_flip i₀ table (restrictQuery valid f)
+
+theorem conditionedFoldedAnswer_zero_coefficient (valid : I → Bool)
+    (i₀ : {i : I // valid i = true}) (table : HalfCube i₀ → Bool) :
+    coefficient (fun f => bitSign (conditionedFoldedAnswer valid i₀ table f))
+      (fun _ => false) = 0 :=
+  coefficient_sign_zero_of_folded _ (conditionedFoldedAnswer_flip valid i₀ table)
+
+omit [Fintype I] [DecidableEq I] in
+theorem conditionedFoldedAnswer_dictator (valid : I → Bool)
+    (i₀ i : {i : I // valid i = true}) (f : Cube I) :
+    conditionedFoldedAnswer valid i₀ (fun h => h.val i) f = f i.val := by
+  exact foldedAnswer_dictator i₀ i (restrictQuery valid f)
+
+end DFVSGames.Foundations.Hastad
+end
+
+end OAI

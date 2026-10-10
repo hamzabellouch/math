@@ -1,0 +1,7 @@
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.ObservationMeasurableUpperHalfPlane
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.ParabolicTails
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.TailCompleteness
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.ExpandingArrayDriftData
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.PeriodicLifts
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.PeriodicMildTimeDerivative
+import OAI.MathematicalPhysics.NavierStokes.VelocityDetection.MainResult

@@ -1,0 +1,213 @@
+import Mathlib
+import OAI.Probability.CriticalPercolation.GraphGeometry.ObjectKernel
+import OAI.Probability.CriticalPercolation.Clusters.ClusterObjectAvoidanceCross
+import OAI.Probability.CriticalPercolation.Clusters.ThreeClusterAvoidanceSecond
+import OAI.Probability.CriticalPercolation.GraphGeometry.ResidualConvertedVariance
+import OAI.Probability.CriticalPercolation.Clusters.ThreeClusterAvoidanceGeneral
+import OAI.Probability.CriticalPercolation.GraphGeometry.ProbIsolateThree
+import OAI.Probability.CriticalPercolation.GraphGeometry.PhaseStepCharge
+import OAI.Probability.CriticalPercolation.GraphGeometry.EraseBond
+import OAI.Probability.CriticalPercolation.GraphGeometry.OpenGraphInsert
+import OAI.Probability.CriticalPercolation.GraphGeometry.CutEdges
+import OAI.Probability.CriticalPercolation.GraphGeometry.CutEdgesSubsetIncident
+import OAI.Probability.CriticalPercolation.Gluing.ContactPivot
+import OAI.Probability.CriticalPercolation.Exploration.ReachableIncidenceImp
+import OAI.Probability.CriticalPercolation.Gluing.ContactExitPivot
+import OAI.Probability.CriticalPercolation.Exploration.TranscriptWeight
+import OAI.Probability.CriticalPercolation.GraphGeometry.UpdateKernel
+import OAI.Probability.CriticalPercolation.GraphGeometry.ExpectedResidualAlt
+import OAI.Probability.CriticalPercolation.GraphGeometry.ColumnHitOthersOffdiag
+import OAI.Probability.CriticalPercolation.GraphGeometry.LastInverseDiagonal
+import OAI.Probability.CriticalPercolation.GraphGeometry.HittingSubAvoidance
+import OAI.Probability.CriticalPercolation.Gluing.FiniteJointGluingStrict
+import OAI.Probability.CriticalPercolation.Gluing.FiniteJointGluing
+import OAI.Probability.CriticalPercolation.GraphGeometry.RestrictVertices
+import OAI.Probability.CriticalPercolation.Modular.FiniteClusterTransport
+import OAI.Probability.CriticalPercolation.Criticality.FiniteSeedTree
+import OAI.Probability.CriticalPercolation.Gluing.CollarDistance
+import OAI.Probability.CriticalPercolation.Gluing.InwardTrial
+import OAI.Probability.CriticalPercolation.Gluing.LevelContactGeometry
+import OAI.Probability.CriticalPercolation.Gluing.StoredPrediction
+import OAI.Probability.CriticalPercolation.Criticality.ActualGrowth
+import OAI.Probability.CriticalPercolation.GraphGeometry.MarkConnectivity
+import OAI.Probability.CriticalPercolation.Criticality.GrowthEstimate
+import OAI.Probability.CriticalPercolation.Gluing.SourceRelaySeparation
+import OAI.Probability.CriticalPercolation.Gluing.FewContacts
+import OAI.Probability.CriticalPercolation.Gluing.ContactSelection
+import OAI.Probability.CriticalPercolation.Gluing.FreshContactTransfer
+import OAI.Probability.CriticalPercolation.Gluing.DistanceCollarTransfer
+import OAI.Probability.CriticalPercolation.Gluing.SourceLift
+import OAI.Probability.CriticalPercolation.Gluing.SourceCollarTransfer
+import OAI.Probability.CriticalPercolation.Gluing.FreshCollarExact
+import OAI.Probability.CriticalPercolation.Gluing.FreshCorridor
+import OAI.Probability.CriticalPercolation.Gluing.SourceConnectivity
+import OAI.Probability.CriticalPercolation.ProductMeasure.SourceEventLaw
+import OAI.Probability.CriticalPercolation.Gluing.ProspectiveCorridor
+import OAI.Probability.CriticalPercolation.Gluing.RootCorridor
+import OAI.Probability.CriticalPercolation.ProductMeasure.SourceMissLaw
+import OAI.Probability.CriticalPercolation.Gluing.CoordinateProspective
+import OAI.Probability.CriticalPercolation.Gluing.ApproximateMoveEndgame
+import OAI.Probability.CriticalPercolation.Gluing.MoveWitness
+import OAI.Probability.CriticalPercolation.Modular.MoveTransport
+import OAI.Probability.CriticalPercolation.Exploration.IncidenceDegree
+import OAI.Probability.CriticalPercolation.GraphGeometry.FiniteAdjacent
+import OAI.Probability.CriticalPercolation.ProductMeasure.FiniteAdjacentMeasure
+import OAI.Probability.CriticalPercolation.GraphGeometry.InfiniteAdjacent
+import OAI.Probability.CriticalPercolation.Clusters.PercolationTail
+import OAI.Probability.CriticalPercolation.Clusters.InfiniteUniqueness
+import OAI.Probability.CriticalPercolation.Criticality.DirectionalTail
+import OAI.Probability.CriticalPercolation.Gluing.StripMoves
+import OAI.Probability.CriticalPercolation.GraphGeometry.StripContinuity
+import OAI.Probability.CriticalPercolation.GraphGeometry.StripUniform
+import OAI.Probability.CriticalPercolation.Criticality.FiniteSusceptibility
+import OAI.Probability.CriticalPercolation.ProductMeasure.SusceptibilityMeasure
+import OAI.Probability.CriticalPercolation.Criticality.PositiveCritical
+import OAI.Probability.CriticalPercolation.GraphGeometry.StripCritical
+import OAI.Probability.CriticalPercolation.GraphGeometry.EllipseSeed
+import OAI.Probability.CriticalPercolation.GraphGeometry.StripCompactness
+import OAI.Probability.CriticalPercolation.ProductMeasure.EllipseProbability
+import OAI.Probability.CriticalPercolation.GraphGeometry.EllipseOrigin
+import OAI.Probability.CriticalPercolation.GraphGeometry.EllipseUniform
+import OAI.Probability.CriticalPercolation.GraphGeometry.CriticalCoordinates
+import OAI.Probability.CriticalPercolation.Criticality.OneDimensionalCritical
+import OAI.Probability.CriticalPercolation.GraphGeometry.GraphAction
+import OAI.Probability.CriticalPercolation.GraphGeometry.ActionCoordinates
+import OAI.Probability.CriticalPercolation.GraphGeometry.InducedCritical
+import OAI.Probability.CriticalPercolation.Criticality.ComponentCritical
+import OAI.Probability.CriticalPercolation.Nilpotent.AbelianDescent
+import OAI.Probability.CriticalPercolation.Nilpotent.FiniteCyclicInheritance
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitQuotientTransfer
+import OAI.Probability.CriticalPercolation.Nilpotent.StructuredVirtuallyNilpotent
+import OAI.Probability.CriticalPercolation.Criticality.RestrictedInterpolation
+import OAI.Probability.CriticalPercolation.Criticality.InfiniteInterpolation
+import OAI.Probability.CriticalPercolation.Criticality.MinimalPair
+import OAI.Probability.CriticalPercolation.Criticality.MinimalInterpolation
+import OAI.Probability.CriticalPercolation.GraphGeometry.AdjacentLog
+import OAI.Probability.CriticalPercolation.Criticality.InfiniteNearbyPair
+import OAI.Probability.CriticalPercolation.Growth.SuperpolynomialContradiction
+import OAI.Probability.CriticalPercolation.Growth.SuperpolynomialMain
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitalPower
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitalAction
+import OAI.Probability.CriticalPercolation.Exploration.FrontierDivergence
+import OAI.Probability.CriticalPercolation.Exploration.OpenFrontierDivergence
+import OAI.Probability.CriticalPercolation.Gluing.UniformFreshBoundary
+import OAI.Probability.CriticalPercolation.Modular.ModularGrowth
+import OAI.Probability.CriticalPercolation.Criticality.ParameterLeftBounds
+import OAI.Probability.CriticalPercolation.GraphGeometry.BallCutGeometry
+import OAI.Probability.CriticalPercolation.Criticality.SparseLinearCritical
+import OAI.Probability.CriticalPercolation.Criticality.MainResidualBoundary
+import OAI.Probability.CriticalPercolation.Modular.ModularIncidence
+import OAI.Probability.CriticalPercolation.Modular.WeightedQueryBand
+import OAI.Probability.CriticalPercolation.Modular.TiltedMassTransport
+import OAI.Probability.CriticalPercolation.Modular.PeakClusters
+import OAI.Probability.CriticalPercolation.Modular.WeightedExplorationCost
+import OAI.Probability.CriticalPercolation.Modular.WeightedDiscrepancyLimit
+import OAI.Probability.CriticalPercolation.Modular.ModularSuperlevels
+import OAI.Probability.CriticalPercolation.Modular.HeavyPeaks
+import OAI.Probability.CriticalPercolation.Modular.WeightedPeakBand
+import OAI.Probability.CriticalPercolation.Modular.GeometricPeakBand
+import OAI.Probability.CriticalPercolation.Modular.HeavyThinning
+import OAI.Probability.CriticalPercolation.Modular.HeavyDiscrepancy
+import OAI.Probability.CriticalPercolation.Modular.SignedIncidenceTransport
+import OAI.Probability.CriticalPercolation.Modular.ExpectedIncidenceTransport
+import OAI.Probability.CriticalPercolation.Criticality.SignedCountIdentity
+import OAI.Probability.CriticalPercolation.Criticality.AutDisplacement
+import OAI.Probability.CriticalPercolation.Clusters.GraphErgodicity
+import OAI.Probability.CriticalPercolation.Modular.HeavyClusterNumber
+import OAI.Probability.CriticalPercolation.Modular.CriticalHeavyIdentity
+import OAI.Probability.CriticalPercolation.Clusters.ForcedDisconnectContinuity
+import OAI.Probability.CriticalPercolation.Modular.CriticalHeavyDrop
+import OAI.Probability.CriticalPercolation.Modular.HeavyFiniteGeometry
+import OAI.Probability.CriticalPercolation.Modular.CriticalHeavyUniqueness
+import OAI.Probability.CriticalPercolation.Modular.MainLightBoundary
+import OAI.Probability.CriticalPercolation.Criticality.InvariantFiniteSets
+import OAI.Probability.CriticalPercolation.Modular.MainInfiniteLightBoundary
+import OAI.Probability.CriticalPercolation.Modular.HeavyHarris
+import OAI.Probability.CriticalPercolation.Modular.CriticalHeavyNull
+import OAI.Probability.CriticalPercolation.Modular.LightTwoPointDecay
+import OAI.Probability.CriticalPercolation.Clusters.CriticalClusterMultiplicity
+import OAI.Probability.CriticalPercolation.GraphGeometry.EncounterGeometry
+import OAI.Probability.CriticalPercolation.Modular.MainAllLightBoundary
+import OAI.Probability.CriticalPercolation.Modular.LightCeiling
+import OAI.Probability.CriticalPercolation.Criticality.UniformDescendingFan
+import OAI.Probability.CriticalPercolation.Criticality.LocalDescendingBlock
+import OAI.Probability.CriticalPercolation.Criticality.IntrinsicCriticalFragility
+import OAI.Probability.CriticalPercolation.Criticality.DomainPercolation
+import OAI.Probability.CriticalPercolation.Modular.LightSliceFrontier
+import OAI.Probability.CriticalPercolation.Gluing.FreshExitContinuity
+import OAI.Probability.CriticalPercolation.Gluing.DomainFreshExit
+import OAI.Probability.CriticalPercolation.GraphGeometry.NestedLayerGeometry
+import OAI.Probability.CriticalPercolation.Criticality.BlockLocalization
+import OAI.Probability.CriticalPercolation.Criticality.UniformLocalContinuity
+import OAI.Probability.CriticalPercolation.Criticality.LayerLocality
+import OAI.Probability.CriticalPercolation.Exploration.LayerExposure
+import OAI.Probability.CriticalPercolation.Criticality.LayerCounting
+import OAI.Probability.CriticalPercolation.ProductMeasure.LayerExpectation
+import OAI.Probability.CriticalPercolation.Criticality.LayerContradiction
+import OAI.Probability.CriticalPercolation.Criticality.MainSparseBoundary
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitalPacking
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitalFiniteGeneration
+import OAI.Probability.CriticalPercolation.GraphGeometry.RestrictedOrbitalPacking
+import OAI.Probability.CriticalPercolation.Modular.ModularLevelGeometry
+import OAI.Probability.CriticalPercolation.Classification.ConcreteStructureAssembly
+import OAI.Probability.CriticalPercolation.Classification.FaithfulOrbitalModel
+import OAI.Probability.CriticalPercolation.GraphGeometry.OrbitalStructureTransfer
+import OAI.Probability.CriticalPercolation.GraphGeometry.FullOrbitalStructureTransfer
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousAverage
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousGrowth
+import OAI.Probability.CriticalPercolation.Harmonic.PolynomialHarmonicSpace
+import OAI.Probability.CriticalPercolation.Harmonic.CoverPoincare
+import OAI.Probability.CriticalPercolation.Harmonic.HarmonicDimensionBound
+import OAI.Probability.CriticalPercolation.Harmonic.LazyWalkProbability
+import OAI.Probability.CriticalPercolation.Harmonic.WalkEnergyLower
+import OAI.Probability.CriticalPercolation.Harmonic.WalkAlmostHarmonic
+import OAI.Probability.CriticalPercolation.Harmonic.ProjectedWalkFunctions
+import OAI.Probability.CriticalPercolation.Harmonic.AlmostHarmonicCompactness
+import OAI.Probability.CriticalPercolation.Criticality.VirtualIndicability
+import OAI.Probability.CriticalPercolation.LinearGroups.SolvableSparseClassification
+import OAI.Probability.CriticalPercolation.Harmonic.HomogeneousCaccioppoli
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousPolynomialSpace
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousBallPacking
+import OAI.Probability.CriticalPercolation.Harmonic.HomogeneousGramScales
+import OAI.Probability.CriticalPercolation.Harmonic.HomogeneousPoincare
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousCover
+import OAI.Probability.CriticalPercolation.Growth.HomogeneousDimension
+import OAI.Probability.CriticalPercolation.Harmonic.GraphWalkEnergy
+import OAI.Probability.CriticalPercolation.Harmonic.GraphProjectedFunctions
+import OAI.Probability.CriticalPercolation.Harmonic.GraphHarmonicCompactness
+import OAI.Probability.CriticalPercolation.Classification.GraphCompactNormalClassification
+
+namespace OAI
+
+section
+noncomputable section
+open Set MeasureTheory ProbabilityTheory
+open scoped Classical
+
+namespace CriticalPercolation.BondGraph
+variable {V E : Type*} (G : BondGraph V E)
+
+theorem no_percolation_at_criticality [Infinite V]
+    (hconnected : G.fullGraph.Connected)
+    (hlocal : G.LocallyFinite)
+    (hquasi : G.QuasiTransitive)
+    (hpc : G.criticalProbability < 1) :
+    G.law G.criticalProbability G.percolates = 0 := by
+  by_contra hper
+  obtain ⟨o⟩ := hconnected.nonempty
+  obtain ⟨d,hd,C,hconn,hinf,hloc,htrans,hscales,happrox,hnot⟩ :=
+    G.main_failure_topological_classification_counterexample
+      hconnected hlocal hquasi hpc hper o
+  let u : MulAction.orbit G.Aut o := ⟨o,MulAction.mem_orbit_self o⟩
+  apply hnot
+  exact GraphTopology.compact_open_virtually_nilpotent_quotient_of_sparse_polynomial
+    (G.orbitPower o (2*C+1)) hconn hloc htrans u (d+1) (fun R => by
+      obtain ⟨n,hn,hp⟩ := hscales R
+      exact ⟨n,hn,hp u⟩)
+
+end CriticalPercolation.BondGraph
+
+end
+end
+
+end OAI

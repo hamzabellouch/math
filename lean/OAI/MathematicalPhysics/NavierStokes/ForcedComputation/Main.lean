@@ -1,0 +1,33 @@
+import OAI.MathematicalPhysics.NavierStokes.ShearFlows.Main
+import OAI.Analysis.BoxTransport.Routing
+import OAI.MathematicalPhysics.SheetFlows.SheetProgram
+import OAI.MathematicalPhysics.RapidForcing.Main
+import OAI.MathematicalPhysics.AlternatingFlow.Development
+import OAI.Analysis.PeriodicLattice.Main
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.InitializedMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.FixedParticleMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.StationaryMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Flow.PlanarProcessorMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.PeriodicMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.PrefixMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Scalar.ScalarDecayMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.TorusSlowMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.PeriodicLatticeCorollaryMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.CompactDetectorMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.TorusDetectorMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.ExpandingMain
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.ParticleDecisionCorollaries
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.RapidDecisionCorollaries
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.VelocityDecisionCorollaries
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.BalancedCycle
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.BalancedMain
+
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Flow.PlanarProcessorUnconditional
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.ParticleDecisionUnconditional
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Programs.RapidDecisionUnconditional
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.ExpandingEnergyDischarge
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Flow.TorusVariationsDischarge
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.VelocityDecisionDischarge
+import OAI.MathematicalPhysics.NavierStokes.ForcedComputation.Detector.VelocityUnconditional
+
+/-! Universal computation, material observations, and velocity detection in forced incompressible Navier–Stokes flows. -/

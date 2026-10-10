@@ -1,0 +1,4 @@
+import OAI.AlgebraicGeometry.CharacterVarieties.Frames.InheritedSeams
+import OAI.AlgebraicGeometry.CharacterVarieties.Frames.BoundaryMarking
+import OAI.AlgebraicGeometry.CharacterVarieties.Frames.ShortSeams
+import OAI.AlgebraicGeometry.CharacterVarieties.Frames.SeamValues

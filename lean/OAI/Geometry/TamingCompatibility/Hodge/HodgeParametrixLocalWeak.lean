@@ -1,0 +1,200 @@
+import Mathlib
+import OAI.Geometry.TamingCompatibility.Concentration.HodgeCutoffResidual
+import OAI.Geometry.TamingCompatibility.Concentration.HodgeParametrixResidual
+
+namespace OAI
+
+section
+
+section
+
+noncomputable section
+namespace TamingCompatibility.GeometricHilbert.GeometricNormalCharts
+open ManifoldForms ManifoldHodge NormalJets NormalMetricCalculus CoordinateOperator
+open HodgeNormalSymbol FirstJetGauge OrthogonalJets Filter Set OperatorCalculus UniformJets
+open MeasureTheory
+open scoped Manifold ContDiff Topology RealInnerProductSpace
+attribute [local instance] ContinuousLinearMap.toNormedAddCommGroup ContinuousLinearMap.toNormedSpace
+local instance parametrixLocalWeakMetricTensorNormedAddCommGroup : NormedAddCommGroup (MetricTensor (V := Space)) := ContinuousLinearMap.toNormedAddCommGroup
+local instance parametrixLocalWeakMetricTensorNormedSpace : NormedSpace ℝ (MetricTensor (V := Space)) := ContinuousLinearMap.toNormedSpace
+variable {X : Type*} [TopologicalSpace X] [ChartedSpace Space X] [IsManifold Model ∞ X]
+variable (J : AlmostComplexStructure X) (α : TwoForm X) (ht : Tames α J)
+  (p : X) (D : GeometricChart.Data J α ht p)
+  (g : Space → MetricTensor (V := Space)) (B : Space → Space →L[ℝ] Space)
+attribute [local irreducible] pulledA pulledB normalFirst normalZero normalDensity
+  normalPrincipal normalGauge gaugedFirst gaugedZero
+
+lemma actual_cutoff_weak_local (hs : IsSmooth α) (hg : ContDiff ℝ ∞ g) (hB : ContDiff ℝ ∞ B)
+    (hsym : ∀ y v w, g y v w = g y w v) {q : Space}
+    (hactual : ActualData J α ht p D q g B)
+    (χ : Space → ℝ) (hχ : ContDiff ℝ ∞ χ) (hχc : HasCompactSupport χ)
+    {U : Set Space} (hU : IsOpen U) (hχU : tsupport χ ⊆ U)
+    {t : ℝ} (htpos : 0 < t) (u : W)
+    (η : Space → W) (hη : ContDiffOn ℝ ∞ η U)
+    (hsub : ∀ z ∈ U, (q,z) ∈ normalDomain J α ht p D g B)
+    (hgact : ∀ z ∈ U,
+      g (normalMap g B q z) = (coordinateMetric J α ht p (normalMap g B q z)).bilinear) :
+    (∫ z, normalDensity g B (q,z) * ⟪η z,
+      deriv (fun s => normalGauge J α ht p D g B (q,z)
+        (χ z • NormalHeatResidual.modelSection s u z)) t⟫) +
+    (∫ z, normalDensity g B (q,z) *
+      ⟪differential EuclideanEnergy.e (pulledA J α ht p D g B q) (pulledB J α ht p D g B q) η z,
+        differential EuclideanEnergy.e (pulledA J α ht p D g B q) (pulledB J α ht p D g B q)
+          (fun y => normalGauge J α ht p D g B (q,y) (χ y • NormalHeatResidual.modelSection t u y)) z⟫) =
+    ∫ z, normalDensity g B (q,z) * ⟪η z,normalGauge J α ht p D g B (q,z)
+      (NormalHeatResidual.residual
+        (fun y => CutoffFamilies.principal (normalPrincipal g B) χ (q,y))
+        (fun y => CutoffFamilies.first (normalPrincipal g B) (gaugedFirst J α ht p D g B) χ (q,y))
+        (fun y => CutoffFamilies.zero (normalPrincipal g B) (gaugedFirst J α ht p D g B)
+          (gaugedZero J α ht p D g B) χ (q,y)) t z u)⟫ := by
+  have hG : ContDiff ℝ ∞ (fun y => normalGauge J α ht p D g B (q,y)) := by
+    unfold normalGauge
+    exact OrthogonalJets.gauge_contDiff (V := Space) (W := W)
+      (halfJet (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin 4))
+        (fun j => normalFirst J α ht p D g B j (q,0)))
+  have hk : ContDiff ℝ ∞ (fun y => normalGauge J α ht p D g B (q,y)
+      (χ y • NormalHeatResidual.modelSection t u y)) :=
+    hG.clm_apply (hχ.smul ((FlatHeat.heat_contDiff t).smul contDiff_const))
+  have htime (z : Space) :
+      deriv (fun s => normalGauge J α ht p D g B (q,z)
+        (χ z • NormalHeatResidual.modelSection s u z)) t =
+      normalGauge J α ht p D g B (q,z)
+        (χ z • (((-2/t+‖z‖^2/(4*t^2))*FlatHeat.heat t z) • u)) := by
+    exact ((normalGauge J α ht p D g B (q,z)).hasFDerivAt.comp_hasDerivAt t
+      (((FlatHeat.heat_hasDerivAt_time htpos z).smul_const u).const_smul (χ z))).deriv
+  have hd : Continuous (fun z => deriv (fun s => normalGauge J α ht p D g B (q,z)
+      (χ z • NormalHeatResidual.modelSection s u z)) t) := by
+    simp_rw [htime]
+    exact hG.continuous.clm_apply (hχ.continuous.smul
+      (((continuous_const.add ((continuous_norm.pow 2).div_const _)).mul
+        (FlatHeat.heat_contDiff t).continuous).smul continuous_const))
+  apply integral_square_residual_local volume hU hχc hχU EuclideanEnergy.e
+    (pulledA J α ht p D g B q) (pulledB J α ht p D g B q) (fun z => normalDensity g B (q,z))
+    _ _ _ η _ _ _ hk.contDiffOn hd.continuousOn hη
+  · apply closure_minimal _ (isClosed_tsupport χ)
+    intro z hz
+    by_contra hn
+    exact hz (by simp [image_eq_zero_of_notMem_tsupport hn])
+  · intro z hz
+    by_contra hn
+    apply hz
+    dsimp only
+    rw [htime,image_eq_zero_of_notMem_tsupport hn]
+    simp
+  · intro z hz
+    by_contra hn
+    apply hz
+    dsimp only
+    rw [CutoffFamilies.residual_zero_off _ _ _ χ q t hn]
+    simp
+  · intro z hz
+    unfold normalDensity
+    exact ne_of_gt (volumeDensity_pos (hsub z hz).2)
+  · intro z hz
+    exact actual_cutoff_square_eq J α ht p D g B hs hg hB hsym hactual (hsub z hz)
+      (hgact z hz) χ hχ htpos u
+  · intro i z hz
+    exact ((pulledA_joint J α ht p D g B hg hB (hsub z hz).1 i).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+  · intro z hz
+    exact ((pulledB_joint J α hs ht p D g B hg hB (hsub z hz).1).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+  · intro z hz
+    exact ((normalDensity_smooth g B hg hB (hsub z hz).2).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+
+end TamingCompatibility.GeometricHilbert.GeometricNormalCharts
+
+end
+end
+
+section
+
+noncomputable section
+namespace TamingCompatibility.GeometricHilbert.GeometricNormalCharts
+open ManifoldForms ManifoldHodge NormalJets NormalMetricCalculus CoordinateOperator
+open HodgeNormalSymbol FirstJetGauge OrthogonalJets Filter Set OperatorCalculus UniformJets
+open MeasureTheory
+open scoped Manifold ContDiff Topology RealInnerProductSpace
+attribute [local instance] ContinuousLinearMap.toNormedAddCommGroup ContinuousLinearMap.toNormedSpace
+local instance parametrixWeakMetricTensorNormedAddCommGroup : NormedAddCommGroup (MetricTensor (V := Space)) := ContinuousLinearMap.toNormedAddCommGroup
+local instance parametrixWeakMetricTensorNormedSpace : NormedSpace ℝ (MetricTensor (V := Space)) := ContinuousLinearMap.toNormedSpace
+variable {X : Type*} [TopologicalSpace X] [ChartedSpace Space X] [IsManifold Model ∞ X]
+variable (J : AlmostComplexStructure X) (α : TwoForm X) (ht : Tames α J)
+  (p : X) (D : GeometricChart.Data J α ht p)
+  (g : Space → MetricTensor (V := Space)) (B : Space → Space →L[ℝ] Space)
+attribute [local irreducible] pulledA pulledB normalFirst normalZero normalDensity
+  normalPrincipal normalGauge gaugedFirst gaugedZero
+
+lemma actual_cutoff_weak (hs : IsSmooth α) (hg : ContDiff ℝ ∞ g) (hB : ContDiff ℝ ∞ B)
+    (hsym : ∀ y v w, g y v w = g y w v) {q : Space}
+    (hactual : ActualData J α ht p D q g B)
+    (χ : Space → ℝ) (hχ : ContDiff ℝ ∞ χ) {t : ℝ} (htpos : 0 < t) (u : W)
+    (η : Space → W) (hη : ContDiff ℝ ∞ η) (hc : HasCompactSupport η)
+    (hsub : ∀ z ∈ tsupport η, (q,z) ∈ normalDomain J α ht p D g B)
+    (hgact : ∀ z ∈ tsupport η,
+      g (normalMap g B q z) = (coordinateMetric J α ht p (normalMap g B q z)).bilinear) :
+    (∫ z, normalDensity g B (q,z) * ⟪η z,
+      deriv (fun s => normalGauge J α ht p D g B (q,z)
+        (χ z • NormalHeatResidual.modelSection s u z)) t⟫) +
+    (∫ z, normalDensity g B (q,z) *
+      ⟪differential EuclideanEnergy.e (pulledA J α ht p D g B q) (pulledB J α ht p D g B q) η z,
+        differential EuclideanEnergy.e (pulledA J α ht p D g B q) (pulledB J α ht p D g B q)
+          (fun y => normalGauge J α ht p D g B (q,y) (χ y • NormalHeatResidual.modelSection t u y)) z⟫) =
+    ∫ z, normalDensity g B (q,z) * ⟪η z,normalGauge J α ht p D g B (q,z)
+      (NormalHeatResidual.residual
+        (fun y => CutoffFamilies.principal (normalPrincipal g B) χ (q,y))
+        (fun y => CutoffFamilies.first (normalPrincipal g B) (gaugedFirst J α ht p D g B) χ (q,y))
+        (fun y => CutoffFamilies.zero (normalPrincipal g B) (gaugedFirst J α ht p D g B)
+          (gaugedZero J α ht p D g B) χ (q,y)) t z u)⟫ := by
+  let U : Set Space := (fun z : Space => (q,z)) ⁻¹' normalDomain J α ht p D g B
+  have hU : IsOpen U := (normalDomain_open J α ht p D g B hg hB).preimage
+    (continuous_const.prodMk continuous_id)
+  have hG : ContDiff ℝ ∞ (fun y => normalGauge J α ht p D g B (q,y)) := by
+    unfold normalGauge
+    exact OrthogonalJets.gauge_contDiff (V := Space) (W := W)
+      (halfJet (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin 4))
+        (fun j => normalFirst J α ht p D g B j (q,0)))
+  have hk : ContDiff ℝ ∞ (fun y => normalGauge J α ht p D g B (q,y)
+      (χ y • NormalHeatResidual.modelSection t u y)) :=
+    hG.clm_apply (hχ.smul ((FlatHeat.heat_contDiff t).smul contDiff_const))
+  have htime (z : Space) :
+      deriv (fun s => normalGauge J α ht p D g B (q,z)
+        (χ z • NormalHeatResidual.modelSection s u z)) t =
+      normalGauge J α ht p D g B (q,z)
+        (χ z • (((-2/t+‖z‖^2/(4*t^2))*FlatHeat.heat t z) • u)) := by
+    exact ((normalGauge J α ht p D g B (q,z)).hasFDerivAt.comp_hasDerivAt t
+      (((FlatHeat.heat_hasDerivAt_time htpos z).smul_const u).const_smul (χ z))).deriv
+  have hd : Continuous (fun z => deriv (fun s => normalGauge J α ht p D g B (q,z)
+      (χ z • NormalHeatResidual.modelSection s u z)) t) := by
+    simp_rw [htime]
+    exact hG.continuous.clm_apply (hχ.continuous.smul
+      (((continuous_const.add ((continuous_norm.pow 2).div_const _)).mul
+        (FlatHeat.heat_contDiff t).continuous).smul continuous_const))
+  apply integral_square_residual volume hU EuclideanEnergy.e
+    (pulledA J α ht p D g B q) (pulledB J α ht p D g B q) (fun z => normalDensity g B (q,z))
+    _ _ _ η _ _ _ hk.contDiffOn (fun z _ => hd.continuousAt) hη hc hsub
+  · intro z hz
+    unfold normalDensity
+    exact ne_of_gt (volumeDensity_pos hz.2)
+  · intro z hz
+    exact actual_cutoff_square_eq J α ht p D g B hs hg hB hsym hactual (hsub z hz)
+      (hgact z hz) χ hχ htpos u
+  · intro i z hz
+    exact ((pulledA_joint J α ht p D g B hg hB hz.1 i).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+  · intro z hz
+    exact ((pulledB_joint J α hs ht p D g B hg hB hz.1).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+  · intro z hz
+    exact ((normalDensity_smooth g B hg hB hz.2).comp z
+      (contDiffAt_const.prodMk contDiffAt_id)).contDiffWithinAt
+
+end TamingCompatibility.GeometricHilbert.GeometricNormalCharts
+
+end
+end
+
+end
+
+end OAI
