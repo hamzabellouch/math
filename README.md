@@ -1,4 +1,4 @@
-# Readme
+# Math
 
 This repository contains mathematical manuscripts and supporting proof artifacts produced by an internal OpenAI model. 
 
